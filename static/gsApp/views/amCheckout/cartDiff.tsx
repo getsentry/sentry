@@ -539,8 +539,9 @@ function CartDiff({
   return (
     <Stack
       data-test-id="cart-diff"
-      borderBottom="primary"
-      paddingBottom="lg"
+      border="primary"
+      padding="xl"
+      radius="lg"
       align="start"
     >
       <Button

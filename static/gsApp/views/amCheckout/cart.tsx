@@ -335,7 +335,7 @@ function SubtotalSummary({
   );
 
   return (
-    <Flex direction="column" width="100%" gap="md" padding="xl 0">
+    <Flex direction="column" width="100%" gap="md" padding="md 0">
       <Flex data-test-id="summary-item-plan-total" justify="between" align="center">
         <Text size="lg" bold>
           {t('Plan Total')}
@@ -819,52 +819,54 @@ function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <Stack align="start" width="100%" gap="sm" height="100%">
-        <SubtotalSummary
+      <Stack border="primary" padding="xl" radius="lg" gap="lg">
+        <Stack align="start" width="100%" gap="sm" height="100%">
+          <SubtotalSummary
+            activePlan={activePlan}
+            formData={formData}
+            previewDataLoading={previewState.isLoading}
+            renewalDate={previewState.renewalDate}
+            subscription={subscription}
+          />
+          <Button
+            aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
+            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+            borderless
+            size="zero"
+            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'right'} />}
+          >
+            {summaryIsOpen ? t('Hide details') : t('Show details')}
+          </Button>
+          {summaryIsOpen && (
+            <Flex
+              direction="column"
+              width="100%"
+              gap="lg"
+              paddingBottom="xl"
+              data-test-id="plan-summary"
+            >
+              {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+              <ItemsSummary activePlan={activePlan} formData={formData} />
+            </Flex>
+          )}
+        </Stack>
+        <TotalSummary
+          isOpen={summaryIsOpen}
           activePlan={activePlan}
+          billedTotal={previewState.billedTotal}
+          buttonDisabled={!hasCompleteBillingInfo}
           formData={formData}
+          isSubmitting={isSubmitting}
+          originalBilledTotal={previewState.originalBilledTotal}
+          previewData={previewState.previewData}
           previewDataLoading={previewState.isLoading}
           renewalDate={previewState.renewalDate}
+          effectiveDate={previewState.effectiveDate}
+          onSubmit={handleConfirmAndPay}
+          organization={organization}
           subscription={subscription}
         />
-        <Button
-          aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
-          onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-          borderless
-          size="zero"
-          icon={<IconChevron direction={summaryIsOpen ? 'up' : 'right'} />}
-        >
-          {summaryIsOpen ? t('Hide details') : t('Show details')}
-        </Button>
-        {summaryIsOpen && (
-          <Flex
-            direction="column"
-            width="100%"
-            gap="lg"
-            paddingBottom="xl"
-            data-test-id="plan-summary"
-          >
-            {errorMessage && <Alert type="error">{errorMessage}</Alert>}
-            <ItemsSummary activePlan={activePlan} formData={formData} />
-          </Flex>
-        )}
       </Stack>
-      <TotalSummary
-        isOpen={summaryIsOpen}
-        activePlan={activePlan}
-        billedTotal={previewState.billedTotal}
-        buttonDisabled={!hasCompleteBillingInfo}
-        formData={formData}
-        isSubmitting={isSubmitting}
-        originalBilledTotal={previewState.originalBilledTotal}
-        previewData={previewState.previewData}
-        previewDataLoading={previewState.isLoading}
-        renewalDate={previewState.renewalDate}
-        effectiveDate={previewState.effectiveDate}
-        onSubmit={handleConfirmAndPay}
-        organization={organization}
-        subscription={subscription}
-      />
     </Stack>
   );
 }
