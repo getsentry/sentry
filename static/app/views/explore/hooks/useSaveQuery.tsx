@@ -124,7 +124,10 @@ function useCreateOrUpdateSavedQuery(id?: string) {
         `/organizations/${organization.slug}/explore/saved/${id}/`,
         {
           method: 'PUT',
-          data,
+          data: {
+            ...data,
+            dataset: data.dataset === 'segment_spans' ? 'spans' : data.dataset,
+          },
         }
       );
       invalidateSavedQueries();
@@ -153,6 +156,9 @@ export function useFromSavedQuery() {
           method: 'POST',
           data: {
             ...savedQuery,
+            // we want to make sure no new queries are saved with the segment_spans dataset
+            dataset:
+              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
           },
         }
       );
@@ -170,6 +176,9 @@ export function useFromSavedQuery() {
           method: 'PUT',
           data: {
             ...savedQuery,
+            // we want to make sure queries are locked in as spans once they're updated
+            dataset:
+              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
           },
         }
       );
