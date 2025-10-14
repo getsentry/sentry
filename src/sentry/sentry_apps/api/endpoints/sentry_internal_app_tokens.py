@@ -80,7 +80,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                 event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
                 data={
                     "sentry_app_slug": sentry_app.slug,
-                    "installation_uuid": sentry_app_installation.uuid,
+                    "sentry_app_installation_uuid": sentry_app_installation.uuid,
                 },
             )
         except ApiTokenLimitError as e:
