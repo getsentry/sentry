@@ -13,8 +13,9 @@ from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.models import Integration
 from sentry.integrations.msteams.client import MsTeamsClient
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError
@@ -145,17 +146,15 @@ def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
     return results
 
 
-def _msteams_list_channels(*, integration_id: int, team_id: str) -> list[dict[str, Any]]:
+def _msteams_list_channels(
+    *, integration: Integration | RpcIntegration, team_id: str
+) -> list[dict[str, Any]]:
     """
     List Microsoft Teams channels for a given team.
 
     The Teams API returns all channels at once.
     Only standard and private channels are included.
     """
-
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if not integration:
-        raise ApiError("Microsoft Teams integration not found")
 
     client = MsTeamsClient(integration)
 
@@ -164,7 +163,7 @@ def _msteams_list_channels(*, integration_id: int, team_id: str) -> list[dict[st
     except Exception as e:
         logger.warning(
             "Microsoft Teams API request failed for integration_id=%s, team_id=%s: %s",
-            integration_id,
+            integration.id,
             team_id,
             e,
         )
@@ -173,7 +172,7 @@ def _msteams_list_channels(*, integration_id: int, team_id: str) -> list[dict[st
     if not isinstance(raw_resp, dict):
         logger.warning(
             "Unexpected Microsoft Teams API response for integration_id=%s, team_id=%s: %r",
-            integration_id,
+            integration.id,
             team_id,
             raw_resp,
         )
@@ -183,7 +182,7 @@ def _msteams_list_channels(*, integration_id: int, team_id: str) -> list[dict[st
     if not isinstance(raw_channels, list):
         logger.warning(
             "Missing or invalid 'conversations' in Teams API response for integration_id=%s, team_id=%s: %r",
-            integration_id,
+            integration.id,
             team_id,
             raw_resp,
         )
@@ -241,7 +240,7 @@ class OrganizationIntegrationChannelsEndpoint(OrganizationIntegrationBaseEndpoin
                     results = _discord_list_channels(guild_id=str(integration.external_id))
                 case IntegrationProviderSlug.MSTEAMS.value:
                     results = _msteams_list_channels(
-                        integration_id=integration.id,
+                        integration=integration,
                         team_id=str(integration.external_id),
                     )
                 case _:
