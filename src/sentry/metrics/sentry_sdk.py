@@ -48,7 +48,6 @@ class SentrySDKMetricsBackend(MetricsBackend):
         metric_attributes = dict(tags) if tags else {}
         if instance:
             metric_attributes["instance"] = instance
-        metric_attributes["stacklevel"] = stacklevel
 
         metrics.count(
             self._get_key(key),
@@ -87,7 +86,6 @@ class SentrySDKMetricsBackend(MetricsBackend):
         metric_attributes = dict(tags) if tags else {}
         if instance:
             metric_attributes["instance"] = instance
-        metric_attributes["stacklevel"] = stacklevel
 
         metrics.gauge(
             self._get_key(key),
@@ -115,7 +113,6 @@ class SentrySDKMetricsBackend(MetricsBackend):
         metric_attributes = dict(tags) if tags else {}
         if instance:
             metric_attributes["instance"] = instance
-        metric_attributes["stacklevel"] = stacklevel
 
         metrics.distribution(
             self._get_key(key),
