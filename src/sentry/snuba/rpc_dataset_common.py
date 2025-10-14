@@ -48,7 +48,13 @@ from sentry.search.eap.columns import (
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import handle_downsample_meta
-from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import (
+    CONFIDENCES,
+    AdditionalQueries,
+    ConfidenceData,
+    EAPResponse,
+    SearchResolverConfig,
+)
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
@@ -79,8 +85,7 @@ class TableQuery:
     equations: list[str] | None = None
     name: str | None = None
     page_token: PageToken | None = None
-    ourlog_queries: list[str] | None = None
-    span_queries: list[str] | None = None
+    additional_queries: AdditionalQueries | None = None
 
 
 @dataclass
@@ -145,6 +150,52 @@ class RPCBase:
         else:
             raise Exception(f"Unknown column type {type(column)}")
 
+    @classmethod
+    def get_cross_trace_queries(cls, query: TableQuery) -> list[TraceItemFilterWithType]:
+        from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+        from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+        from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
+
+        if query.additional_queries is None:
+            return []
+
+        # resolve cross trace queries
+        # Copy the existing resolver, but we don't allow aggregate conditions for cross trace filters
+        cross_trace_config = replace(query.resolver.config, use_aggregate_conditions=False)
+
+        cross_trace_queries = []
+        for queries, definitions, item_type in [
+            (
+                query.additional_queries.log,
+                OURLOG_DEFINITIONS,
+                TraceItemType.TRACE_ITEM_TYPE_LOG,
+            ),
+            (query.additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
+            (
+                query.additional_queries.metric,
+                TRACE_METRICS_DEFINITIONS,
+                TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            ),
+        ]:
+            if queries is not None:
+                # Create a resolver for the subqueries
+                cross_resolver = SearchResolver(
+                    params=query.resolver.params,
+                    config=cross_trace_config,
+                    definitions=definitions,
+                )
+                for query_string in queries:
+                    # Having and VCCs aren't relevant from these queries
+                    cross_query_where, _, _ = cross_resolver.resolve_query(query_string)
+                    if cross_query_where is not None:
+                        cross_trace_queries.append(
+                            TraceItemFilterWithType(
+                                filter=cross_query_where,
+                                item_type=item_type,
+                            )
+                        )
+        return cross_trace_queries
+
     """ Table Methods """
 
     @classmethod
@@ -155,33 +206,7 @@ class RPCBase:
         meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
         where, having, query_contexts = resolver.resolve_query(query.query_string)
 
-        # resolve cross trace queries
-        # Copy the existing resolver, but we don't allow aggregate conditions for cross trace filters
-        cross_trace_config = replace(resolver.config, use_aggregate_conditions=False)
-        cross_trace_queries = []
-
-        from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
-        from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-
-        for queries, definitions, item_type in [
-            (query.ourlog_queries, OURLOG_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_LOG),
-            (query.span_queries, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
-        ]:
-            if queries is not None:
-                cross_resolver = SearchResolver(
-                    params=resolver.params,
-                    config=cross_trace_config,
-                    definitions=definitions,
-                )
-                for query_string in queries:
-                    cross_query_where, _, _ = cross_resolver.resolve_query(query_string)
-                    if cross_query_where is not None:
-                        cross_trace_queries.append(
-                            TraceItemFilterWithType(
-                                filter=cross_query_where,
-                                item_type=item_type,
-                            )
-                        )
+        cross_trace_queries = cls.get_cross_trace_queries(query)
 
         trace_column, _ = resolver.resolve_column("trace")
         if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
@@ -296,8 +321,7 @@ class RPCBase:
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
-        ourlog_queries: list[str] | None = None,
-        span_queries: list[str] | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         raise NotImplementedError()
 

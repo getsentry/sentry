@@ -29,7 +29,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.eap.types import FieldsACL, SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
@@ -498,8 +498,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             scoped_query = request.GET.get("query")
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
-            span_queries = request.GET.getlist("spanQueries")
-            ourlog_queries = request.GET.getlist("logQueries")
+            additional_queries = AdditionalQueries(
+                span=request.GET.getlist("spanQueries"),
+                log=request.GET.getlist("logQueries"),
+                metric=request.GET.getlist("metricQueries"),
+            )
 
             def get_rpc_config():
                 if scoped_dataset not in RPC_DATASETS:
@@ -550,8 +553,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
                         page_token=page_token,
-                        span_queries=span_queries,
-                        ourlog_queries=ourlog_queries,
+                        additional_queries=additional_queries,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
@@ -571,8 +573,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         referrer=referrer,
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
-                        span_queries=span_queries,
-                        ourlog_queries=ourlog_queries,
+                        additional_queries=additional_queries,
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:
