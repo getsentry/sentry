@@ -58,7 +58,7 @@ export default function FeedbackSummaryCategories() {
       <SummaryContainer>
         <Flex justify="between" align="center">
           <SummaryHeader>
-            {t('Summary')} <FeatureBadge type="experimental" />
+            {t('Summary')} <FeatureBadge type="beta" />
           </SummaryHeader>
           <Flex gap="xs">
             {feedbackButton({type: 'positive'})}
