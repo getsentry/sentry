@@ -363,16 +363,18 @@ def _run_size_analysis_comparison(
     )
 
     # Update existing PENDING comparison or create new one
-    if comparison:
-        comparison.state = PreprodArtifactSizeComparison.State.PROCESSING
-        comparison.save()
-    else:
-        comparison = PreprodArtifactSizeComparison.objects.create(
-            head_size_analysis=head_size_metric,
-            base_size_analysis=base_size_metric,
-            organization_id=org_id,
-            state=PreprodArtifactSizeComparison.State.PROCESSING,
-        )
+    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+        if comparison:
+            comparison.state = PreprodArtifactSizeComparison.State.PROCESSING
+            comparison.save()
+        else:
+            comparison = PreprodArtifactSizeComparison.objects.create(
+                head_size_analysis=head_size_metric,
+                base_size_analysis=base_size_metric,
+                organization_id=org_id,
+                state=PreprodArtifactSizeComparison.State.PROCESSING,
+            )
+            comparison.save()
 
     comparison_results = compare_size_analysis(
         head_size_analysis=head_size_metric,
