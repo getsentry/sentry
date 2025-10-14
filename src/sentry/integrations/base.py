@@ -516,6 +516,20 @@ class IntegrationInstallation(abc.ABC):
     def metadata(self) -> dict[str, Any]:
         return self.model.metadata
 
+    def _update_integration_model(self) -> None:
+        from sentry.integrations.services.integration.service import integration_service
+
+        updated_model: RpcIntegration | Integration | None = None
+        if isinstance(self.model, Integration):
+            updated_model = Integration.objects.get(id=self.model.id)
+        else:
+            updated_model = integration_service.get_integration(self.model.id)
+
+        if updated_model is None:
+            raise IntegrationError("Integration model not found")
+
+        self.model = updated_model
+
     def uninstall(self) -> None:
         """
         For integrations that need additional steps for uninstalling
