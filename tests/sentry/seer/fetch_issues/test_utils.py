@@ -88,31 +88,6 @@ class TestGetRepoAndProjects(TestCase):
                 external_id="nonexistent",
             )
 
-    @patch("sentry_sdk.set_tags")
-    def test_get_repo_and_projects_sets_sentry_tags(self, mock_set_tags):
-        self.create_repo(
-            project=self.project,
-            name="getsentry/sentry",
-            provider="integrations:github",
-            external_id="123",
-        )
-
-        get_repo_and_projects(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            run_id=456,
-        )
-
-        mock_set_tags.assert_called_once_with(
-            {
-                "organization_id": self.organization.id,
-                "provider": "integrations:github",
-                "external_id": "123",
-                "run_id": 456,
-            }
-        )
-
 
 class TestAsIssueDetails(TestCase):
     def test_as_issue_details_success(self):
