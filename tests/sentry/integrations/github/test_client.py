@@ -568,6 +568,7 @@ class GithubProxyClientTest(TestCase):
                 "metadata": "read",
                 "pull_requests": "read",
             },
+            "expires_at": datetime.fromisoformat("3000-01-01T00:00:00Z"),
         }
 
     @responses.activate
