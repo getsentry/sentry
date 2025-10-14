@@ -833,3 +833,25 @@ export function getFees({
       (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
   );
 }
+
+/**
+ * Returns ondemand invoice items from the invoice or preview data.
+ */
+export function getOnDemandItems({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(item => item.type.startsWith('ondemand'));
+}
+
+/**
+ * Removes the budget term (pay-as-you-go/on-demand) from an ondemand item description.
+ */
+export function formatOnDemandDescription(
+  description: string,
+  plan?: Plan | null
+): string {
+  const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
+  return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
+}

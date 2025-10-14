@@ -34,6 +34,7 @@ import {
   getCreditApplied,
   getCredits,
   getFees,
+  getOnDemandItems,
   getPlanIcon,
   getProductIcon,
   getReservedBudgetCategoryForAddOn,
@@ -526,6 +527,7 @@ function TotalSummary({
   };
 
   const fees = getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const onDemandItems = getOnDemandItems({invoiceItems: previewData?.invoiceItems ?? []});
   const credits = getCredits({invoiceItems: previewData?.invoiceItems ?? []});
   const creditApplied = getCreditApplied({
     creditApplied: previewData?.creditApplied ?? 0,
@@ -557,6 +559,19 @@ function TotalSummary({
                     </Item>
                   );
                 })}
+                {onDemandItems.length > 0 && (
+                  <Item data-test-id="summary-item-ondemand-total">
+                    <ItemWithPrice
+                      item={tct('[budgetTerm] usage', {
+                        budgetTerm: displayBudgetName(activePlan, {title: true}),
+                      })}
+                      price={utils.displayPrice({
+                        cents: onDemandItems.reduce((sum, item) => sum + item.amount, 0),
+                      })}
+                      shouldBoldItem={false}
+                    />
+                  </Item>
+                )}
                 {!!creditApplied && (
                   <Item data-test-id="summary-item-credit_applied">
                     <ItemWithPrice
