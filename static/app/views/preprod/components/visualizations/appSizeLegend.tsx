@@ -45,17 +45,18 @@ export function AppSizeLegend({
 
   useLayoutEffect(() => {
     const calculateVisibleItems = () => {
-      if (!containerRef.current || itemRefs.current.length === 0) {
+      if (!containerRef.current || sortedCategories.length === 0) {
         return;
       }
 
       const firstItemTop = itemRefs.current[0]?.getBoundingClientRect().top;
-      if (!firstItemTop) {
+      if (firstItemTop === undefined) {
         return;
       }
 
       let count = 0;
-      for (const item of itemRefs.current) {
+      for (let i = 0; i < sortedCategories.length; i++) {
+        const item = itemRefs.current[i];
         if (item) {
           const itemTop = item.getBoundingClientRect().top;
           if (Math.abs(itemTop - firstItemTop) < 2) {
@@ -63,6 +64,8 @@ export function AppSizeLegend({
           } else {
             break;
           }
+        } else {
+          break;
         }
       }
 
