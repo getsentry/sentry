@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -25,6 +26,7 @@ import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
@@ -72,6 +74,10 @@ interface UsageOverviewProps {
   usageData: CustomerUsage;
 }
 
+// XXX: This is a hack to ensure that the grid rows don't change height
+// when hovering over the row (due to buttons that appear)
+const MIN_CONTENT_HEIGHT = '28px';
+
 function CurrencyCell({
   children,
   bold,
@@ -106,12 +112,17 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
   const hasBillingPerms = organization.access.includes('org:billing');
   const navigate = useNavigate();
   const location = useLocation();
-  const [openState, setOpenState] = useState<Record<string, boolean>>({});
+  const [openState, setOpenState] = useState<Partial<Record<AddOnCategory, boolean>>>({});
+  const [hoverState, setHoverState] = useState<Partial<Record<DataCategory, boolean>>>(
+    {}
+  );
   const {isDrawerOpen, openDrawer} = useDrawer();
   const [highlightedRow, setHighlightedRow] = useState<number | undefined>(undefined);
   const [trialButtonBusyState, setTrialButtonBusyState] = useState<
     Partial<Record<DataCategory, boolean>>
   >({});
+  const theme = useTheme();
+  const isXlScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
 
   const handleOpenDrawer = useCallback(
     (dataCategory: DataCategory) => {
@@ -211,11 +222,11 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       {key: 'product', name: t('Product'), width: 250},
       {key: 'currentUsage', name: t('Current usage'), width: 200},
       {key: 'reservedUsage', name: t('Reserved usage'), width: 200},
-      {key: 'reservedSpend', name: t('Reserved spend'), width: 150},
+      {key: 'reservedSpend', name: t('Reserved spend'), width: isXlScreen ? 200 : 150},
       {
         key: 'budgetSpend',
         name: t('%s spend', displayBudgetName(subscription.planDetails, {title: true})),
-        width: 150,
+        width: isXlScreen ? 200 : 150,
       },
       {
         key: 'trialInfo',
@@ -242,6 +253,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     subscription.canSelfServe,
     subscription.onDemandInvoiced,
     subscription.onDemandInvoicedManual,
+    isXlScreen,
   ]);
 
   // TODO(isabella): refactor this to have better types
@@ -387,7 +399,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 
           // Only show child categories if the add-on is open and enabled
           const childCategoriesData =
-            openState[apiName] && hasAccess
+            openState[apiName as AddOnCategory] && hasAccess
               ? addOnInfo.dataCategories.map(addOnDataCategory => {
                   const categoryInfo = getCategoryInfoFromPlural(addOnDataCategory);
                   const childSpend =
@@ -407,7 +419,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                     addOnCategory: apiName as AddOnCategory,
                     dataCategory: addOnDataCategory,
                     isChildProduct: true,
-                    isOpen: openState[apiName],
+                    isOpen: openState[apiName as AddOnCategory],
                     hasAccess: true,
                     isPaygOnly: false,
                     isUnlimited: !!activeProductTrial,
@@ -427,7 +439,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               free: reservedBudget?.freeBudget ?? 0,
               reserved: reservedBudget?.reservedBudget ?? 0,
               isPaygOnly: !reservedBudget,
-              isOpen: openState[apiName],
+              isOpen: openState[apiName as AddOnCategory],
               toggleKey: hasAccess ? (apiName as AddOnCategory) : undefined,
               isUnlimited: !!activeProductTrial,
               productTrialCategory: addOnDataCategories[0] as DataCategory,
@@ -509,16 +521,20 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 
               if (toggleKey) {
                 return (
-                  <Flex align="center" gap="sm">
+                  <Flex align="center" gap="sm" minHeight={MIN_CONTENT_HEIGHT}>
                     <IconChevron direction={isOpen ? 'up' : 'down'} />
                     {title}
                   </Flex>
                 );
               }
               return (
-                <Container paddingLeft={isChildProduct ? '2xl' : undefined}>
+                <Flex
+                  paddingLeft={isChildProduct ? '2xl' : undefined}
+                  minHeight={MIN_CONTENT_HEIGHT}
+                  align="center"
+                >
                   {title}
-                </Container>
+                </Flex>
               );
             }
             case 'currentUsage': {
@@ -671,10 +687,11 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               return <div />;
             }
             case 'drawerButton': {
-              if (isClickable && dataCategory) {
+              if (isClickable && dataCategory && hoverState[dataCategory]) {
                 return (
-                  <Container>
+                  <Container alignSelf="end">
                     <Button
+                      size="xs"
                       aria-label={t('View %s usage', product)}
                       icon={<IconChevron direction="right" />}
                       onClick={() => handleOpenDrawer(dataCategory)}
@@ -693,10 +710,16 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       onRowMouseOver={(row, key) => {
         if (row.isClickable) {
           setHighlightedRow(key);
+          if (row.dataCategory) {
+            setHoverState(prev => ({...prev, [row.dataCategory as DataCategory]: true}));
+          }
         }
       }}
-      onRowMouseOut={() => {
+      onRowMouseOut={row => {
         setHighlightedRow(undefined);
+        if (row.dataCategory) {
+          setHoverState(prev => ({...prev, [row.dataCategory as DataCategory]: false}));
+        }
       }}
       highlightedRowKey={highlightedRow}
       onRowClick={row => {
@@ -706,7 +729,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           } else if (row.addOnCategory) {
             setOpenState(prev => ({
               ...prev,
-              [row.addOnCategory as string]: !prev[row.addOnCategory as string],
+              [row.addOnCategory as AddOnCategory]:
+                !prev[row.addOnCategory as AddOnCategory],
             }));
           }
         }
@@ -719,7 +743,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               return t('View %s usage', row.product);
             }
           } else if (row.addOnCategory) {
-            const isOpen = openState[row.addOnCategory as string];
+            const isOpen = openState[row.addOnCategory];
             return isOpen
               ? t('Collapse %s details', row.product)
               : t('Expand %s details', row.product);
