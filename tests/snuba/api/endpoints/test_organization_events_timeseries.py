@@ -83,6 +83,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
+    def test_no_projects(self) -> None:
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": org.slug})
+        response = self.do_request({}, url)
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert "timeSeries" in data
+        assert len(data["timeSeries"]) == 0
+        assert data["meta"] == {}
+
     @pytest.mark.querybuilder
     def test_simple(self) -> None:
         response = self.do_request(
