@@ -14,7 +14,6 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -81,10 +80,6 @@ const GENERATION_COUNTS = AI_GENERATION_OPS.map(
   op => `count_if(span.op,equals,${op})` as const
 );
 
-const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, 'gen_ai.execute_tool'].map(
-  op => `count_if(span.op,equals,${op})` as const
-);
-
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -126,9 +121,9 @@ export function TracesTable() {
 
   const traceErrorRequest = useSpans(
     {
-      // Get all generations and tool calls with status unknown
-      search: `has:span.status !span.status:ok trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
-      fields: ['trace', ...AI_AGENT_SUB_OPS],
+      // Get all spans with error status
+      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
     },
@@ -142,12 +137,7 @@ export function TracesTable() {
     // sum up the error spans for a trace
     const errors = traceErrorRequest.data?.reduce(
       (acc, span) => {
-        const sum = AI_AGENT_SUB_OPS.reduce(
-          (errorSum, key) => errorSum + (span[key] ?? 0),
-          0
-        );
-
-        acc[span.trace] = sum;
+        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
         return acc;
       },
       {} as Record<string, number>
@@ -297,7 +287,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} has:span.status !span.status:ok trace:[${dataRow.traceId}]`,
+            query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,
@@ -334,7 +324,7 @@ const BodyCell = memo(function BodyCell({
 
 const GridEditableContainer = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LoadingOverlay = styled('div')`
@@ -360,7 +350,7 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;
 

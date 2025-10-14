@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -11,10 +11,12 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons';
+import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -25,33 +27,17 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const replay = readerResult.replay;
+  const replayReader = readerResult.replay;
 
-  const [isLive, setIsLive] = useState(replay?.getIsLive());
-
-  const computeIsLive = useCallback(() => replay?.getIsLive(), [replay]);
-
-  useEffect(() => {
-    // Immediately update if props change
-    setIsLive(computeIsLive());
-
-    let tickerRef: number | undefined = undefined;
-
-    // If the replay is live, start the ticker
-    if (computeIsLive()) {
-      const ONE_MINUTE_INTERVAL = 60 * 1000;
-      tickerRef = window.setInterval(() => {
-        const computedIsLive = computeIsLive();
-        setIsLive(computedIsLive);
-        if (!computedIsLive) {
-          window.clearInterval(tickerRef);
-        }
-      }, ONE_MINUTE_INTERVAL);
-    }
-
-    return () => window.clearInterval(tickerRef);
-  }, [computeIsLive]);
-
+  const {slug: orgSlug} = organization;
+  const replayId = readerResult.replayId;
+  const isLive = useIsLive({replayReader});
+  const replayUpdated = usePollReplayRecord({
+    isLive,
+    replayId,
+    orgSlug,
+    replayReader,
+  });
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
     if (!replayRecord?.user) {
@@ -71,6 +57,10 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const searchQuery = getUserSearchQuery();
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   const badge = replayRecord ? (
     <UserBadge
@@ -108,13 +98,19 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 <Tooltip
                   showUnderline
                   underlineColor="success"
-                  title={t(
-                    'This replay is still in progress. Refresh for the latest activity.'
-                  )}
+                  title={t('This replay is still in progress.')}
                 >
                   <Live />
                 </Tooltip>
               ) : null}
+              <RefreshButton
+                title={t('Replay is outdated. Refresh for latest activity.')}
+                size="xs"
+                onClick={handleRefresh}
+                replayUpdated={replayUpdated}
+              >
+                <IconRefresh />
+              </RefreshButton>
             </TimeContainer>
           ) : null}
         </DisplayHeader>
@@ -192,7 +188,14 @@ const LiveIndicator = styled('div')`
   width: 8px;
   position: relative;
   border-radius: 50%;
-  margin-left: 6px;
+  margin-left: ${p => p.theme.space.sm};
+  margin-right: ${p => p.theme.space.sm};
+
+  @media (prefers-reduced-motion: reduce) {
+    &:before {
+      display: none;
+    }
+  }
 
   &:before {
     content: '';
@@ -205,4 +208,8 @@ const LiveIndicator = styled('div')`
     top: -6px;
     left: -6px;
   }
+`;
+
+const RefreshButton = styled(Button)<{replayUpdated: boolean}>`
+  visibility: ${p => (p.replayUpdated ? 'visible' : 'hidden')};
 `;

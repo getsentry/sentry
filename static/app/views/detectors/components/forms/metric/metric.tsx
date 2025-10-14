@@ -39,6 +39,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
 import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
@@ -46,51 +47,7 @@ import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDete
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
-
-function validateThresholdOrder(
-  value: number,
-  reference: number,
-  conditionType: DataConditionType,
-  isGreaterExpected: boolean
-): boolean {
-  if (conditionType === DataConditionType.GREATER) {
-    return isGreaterExpected ? value > reference : value < reference;
-  }
-  // For LESS condition type, logic is inverted
-  return isGreaterExpected ? value < reference : value > reference;
-}
-
-function validateResolutionThreshold({
-  form,
-}: {
-  form: MetricDetectorFormData;
-  id: string;
-}): Array<[string, string]> {
-  const {conditionType, conditionValue, detectionType, resolutionStrategy} = form;
-  if (!conditionType || detectionType !== 'static' || resolutionStrategy !== 'manual') {
-    return [];
-  }
-
-  const resolutionNum = Number(form.resolutionValue);
-  const conditionNum = Number(conditionValue);
-
-  if (
-    Number.isFinite(resolutionNum) &&
-    Number.isFinite(conditionNum) &&
-    !validateThresholdOrder(resolutionNum, conditionNum, conditionType, false)
-  ) {
-    const message = t(
-      'Resolution threshold must be %s than alert threshold (%s)',
-      conditionType === DataConditionType.GREATER ? t('lower') : t('higher'),
-      String(conditionNum)
-    );
-    return [[METRIC_DETECTOR_FORM_FIELDS.resolutionValue, message]];
-  }
-
-  return [];
-}
 
 function MetricDetectorForm() {
   return (
@@ -190,113 +147,6 @@ function DetectionType() {
       choices={options}
       preserveOnUnmount
     />
-  );
-}
-
-function ResolveSection() {
-  const detectionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.detectionType
-  );
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
-  );
-  const conditionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionType
-  );
-  const conditionComparisonAgo = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
-  );
-  const resolutionStrategy = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
-  );
-  const resolutionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.resolutionValue
-  );
-  const aggregate = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
-
-  const effectiveConditionValue =
-    resolutionStrategy === 'manual' &&
-    resolutionValue !== undefined &&
-    resolutionValue !== ''
-      ? resolutionValue
-      : conditionValue;
-
-  const descriptionContent =
-    detectionType === 'static' && resolutionStrategy === 'manual' ? (
-      <Flex align="center" gap="sm">
-        <div>
-          <span>
-            {t(
-              'Issue will be resolved when the query value is %s',
-              conditionType === DataConditionType.GREATER
-                ? t('less than')
-                : t('more than')
-            )}
-          </span>
-        </div>
-        <ThresholdField
-          aria-label={t('Resolution threshold')}
-          name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
-          hideLabel
-          inline={false}
-          flexibleControlStateSize
-          placeholder="0"
-          suffix={thresholdSuffix}
-          validate={validateResolutionThreshold}
-          required
-          preserveOnUnmount
-        />
-      </Flex>
-    ) : (
-      getResolutionDescription(
-        detectionType === 'percent'
-          ? {
-              detectionType: 'percent',
-              conditionType,
-              conditionValue: effectiveConditionValue,
-              comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
-              thresholdSuffix,
-            }
-          : detectionType === 'static'
-            ? {
-                detectionType: 'static',
-                conditionType,
-                conditionValue: effectiveConditionValue,
-                thresholdSuffix,
-              }
-            : {
-                detectionType: 'dynamic',
-                thresholdSuffix,
-              }
-      )
-    );
-
-  return (
-    <Container>
-      <Section title={t('Resolve')}>
-        {detectionType !== 'dynamic' && (
-          <Flex direction="column" gap="sm">
-            <ResolutionStrategyField
-              name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
-              label={t('Resolution method')}
-              hideLabel
-              inline={false}
-              flexibleControlStateSize
-              preserveOnUnmount
-              defaultValue="automatic"
-              choices={[
-                ['automatic', t('Automatic')],
-                ['manual', t('Manual')],
-              ]}
-            />
-          </Flex>
-        )}
-        <DescriptionContainer>{descriptionContent}</DescriptionContainer>
-      </Section>
-    </Container>
   );
 }
 
@@ -621,21 +471,6 @@ const DetectionTypeField = styled(SegmentedRadioField)`
   padding-block: ${space(1)};
   border-bottom: none;
   max-width: 840px;
-
-  > div {
-    padding: 0;
-  }
-`;
-
-const DescriptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-`;
-
-const ResolutionStrategyField = styled(SegmentedRadioField)`
-  padding: 0;
-  max-width: 350px;
 
   > div {
     padding: 0;

@@ -1693,6 +1693,51 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert alert_rule.name == "JustAValidTestRule"
 
+    def test_eap_alert_with_invalid_time_window(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["timeWindow"] = 1
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+        )
+
+    def test_transactions_dataset_deprecation_validation(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "transactions"
+        data["alertType"] = "performance"
+
+        with self.feature(
+            ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+        ):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data[0]
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
+    def test_generic_metrics_dataset_deprecation_validation(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "generic_metrics"
+        data["alertType"] = "performance"
+        data["aggregate"] = "p95(transaction.duration)"
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover-saved-queries-deprecation",
+                "organizations:performance-view",
+            ]
+        ):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data[0]
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
 
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
@@ -1820,18 +1865,6 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             "user_id": self.user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
-
-    def test_eap_alert_with_invalid_time_window(self) -> None:
-        data = deepcopy(self.alert_rule_dict)
-        data["dataset"] = "events_analytics_platform"
-        data["alertType"] = "eap_metrics"
-        data["timeWindow"] = 1
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert (
-            resp.data["nonFieldErrors"][0]
-            == "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
-        )
 
 
 @freeze_time()
