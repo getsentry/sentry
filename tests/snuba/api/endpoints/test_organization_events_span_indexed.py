@@ -1327,6 +1327,75 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_case_sensitivity_with_wildcards(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "FoOoOoO"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "FooOOoo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foooooo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "boooooo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "orderby": ["span.description"],
+                "query": "span.description:Foo*",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+                "caseInsensitive": 1,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "FoOoOoO",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "FooOOoo",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "foooooo",
+                "count()": 1.0,
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "orderby": ["span.description"],
+                "query": "!span.description:Foo*",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+                "caseInsensitive": 1,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "boooooo",
+                "count()": 1.0,
+            },
+        ]
+
     @pytest.mark.skip(reason="replay id alias not migrated over")
     def test_replay_id(self) -> None:
         self.store_spans(
