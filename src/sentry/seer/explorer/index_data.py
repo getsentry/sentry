@@ -555,12 +555,12 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     )
 
 
-def get_trace_details(trace_id: str, organization_id: int) -> EAPTrace | None:
+def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     """
-    Get a trace's spans and errors from a trace ID.
+    Get the full span waterfall and connected errors for a trace.
 
     Args:
-        trace_id: The ID of the trace to fetch. Can be shortened to the first 8 characters.
+        trace_id: The ID of the trace to fetch. Can be shortened to the first 8 or 16 characters.
         organization_id: The ID of the trace's organization
 
     Returns:
@@ -571,7 +571,7 @@ def get_trace_details(trace_id: str, organization_id: int) -> EAPTrace | None:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         logger.exception(
-            "Organization does not exist; cannot fetch trace",
+            "get_trace_waterfall: Organization does not exist",
             extra={"organization_id": organization_id, "trace_id": trace_id},
         )
         return None
@@ -606,7 +606,7 @@ def get_trace_details(trace_id: str, organization_id: int) -> EAPTrace | None:
 
     if not isinstance(full_trace_id, str):
         logger.info(
-            "Trace not found from short id",
+            "get_trace_waterfall: Trace not found from short id",
             extra={
                 "organization_id": organization_id,
                 "trace_id": trace_id,
@@ -648,6 +648,6 @@ def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> di
     return issues.dict() if issues else {}
 
 
-def rpc_get_trace_details(trace_id: str, organization_id: int) -> dict[str, Any]:
-    trace = get_trace_details(trace_id, organization_id)
+def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
+    trace = get_trace_waterfall(trace_id, organization_id)
     return trace.dict() if trace else {}
