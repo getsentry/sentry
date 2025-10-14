@@ -87,7 +87,6 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
         type: 'all',
       })
       .then(() =>
-        // Warning: refetchQueries will not work here, only invalidateQueries
         queryClient.invalidateQueries({
           queryKey: [
             `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
