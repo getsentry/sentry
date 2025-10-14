@@ -89,13 +89,16 @@ def get_repo_and_projects(
             repository_id=repo.id,
         )
     )
+    projects = [config.project for config in repo_configs]
+    if not projects:
+        raise ValueError("No Sentry projects found for repo")
     return RepoProjects(
         organization_id=organization_id,
         provider=provider,
         external_id=external_id,
         repo=repo,
         repo_configs=repo_configs,
-        projects=[config.project for config in repo_configs],
+        projects=projects,
     )
 
 

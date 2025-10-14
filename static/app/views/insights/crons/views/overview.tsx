@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/core/button';
@@ -170,14 +172,16 @@ function CronsOverview() {
             />
           </Filters>
           {!!processingErrors?.length && (
-            <MonitorProcessingErrors
-              checkinErrors={processingErrors}
-              onDismiss={handleDismissError}
-            >
-              {t(
-                'Errors were encountered while ingesting check-ins for the selected projects'
-              )}
-            </MonitorProcessingErrors>
+            <Alert.Container>
+              <MonitorProcessingErrors
+                checkinErrors={processingErrors}
+                onDismiss={handleDismissError}
+              >
+                {t(
+                  'Errors were encountered while ingesting check-ins for the selected projects'
+                )}
+              </MonitorProcessingErrors>
+            </Alert.Container>
           )}
           {isPending ? (
             <LoadingIndicator />
