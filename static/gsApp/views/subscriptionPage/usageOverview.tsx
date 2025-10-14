@@ -31,7 +31,12 @@ import {NavLayout} from 'sentry/views/nav/types';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
-import {RESERVED_BUDGET_QUOTA, UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_RESERVED,
+} from 'getsentry/constants';
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import {
   AddOnCategory,
@@ -48,10 +53,13 @@ import {
   getPercentage,
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
+  MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
+  isByteCategory,
+  isContinuousProfiling,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
@@ -251,7 +259,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             title: true,
           });
           const reserved = metricHistory.reserved ?? 0;
-          const free = metricHistory.free;
+          const free = metricHistory.free ?? 0;
+          const prepaid = metricHistory.prepaid ?? 0;
           const total = metricHistory.usage;
           const paygTotal = metricHistory.onDemandSpendUsed;
           const softCapType =
@@ -273,11 +282,16 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               : reserved > 0;
 
           const bucket = getBucket({
-            events: reserved,
+            events: reserved, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
             buckets: subscription.planDetails.planCategories[category],
           });
           const recurringReservedSpend = bucket.price ?? 0;
-          const reservedTotal = (reserved ?? 0) + (free ?? 0);
+          // convert prepaid amount to the same unit as usage to accurately calculate percent used
+          const reservedTotal = isByteCategory(category)
+            ? prepaid * GIGABYTE
+            : isContinuousProfiling(category)
+              ? prepaid * MILLISECONDS_IN_HOUR
+              : prepaid;
           const percentUsed = reservedTotal
             ? getPercentage(total, reservedTotal)
             : undefined;
