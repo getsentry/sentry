@@ -21,6 +21,7 @@ import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayRe
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
@@ -75,19 +76,26 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
   const projectSlug = useReplayProjectSlug({replayRecord});
 
+  const {startSummaryRequest} = useReplaySummaryContext();
+
   const handleRefresh = () => {
     setShowRefreshButton(false);
-    queryClient.refetchQueries({
-      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
-      exact: true,
-      type: 'all',
-    });
-    queryClient.invalidateQueries({
-      queryKey: [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-      ],
-      type: 'all',
-    });
+    queryClient
+      .refetchQueries({
+        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+        exact: true,
+        type: 'all',
+      })
+      .then(() =>
+        // Warning: refetchQueries will not work here, only invalidateQueries
+        queryClient.invalidateQueries({
+          queryKey: [
+            `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+          ],
+          type: 'all',
+        })
+      )
+      .then(() => startSummaryRequest());
   };
 
   const badge = replayRecord ? (
@@ -238,6 +246,6 @@ const LiveIndicator = styled('div')`
   }
 `;
 
-const RefreshButton = styled(Button)<{showRefreshButton: boolean}>`
-  visibility: ${p => (p.showRefreshButton ? 'visible' : 'hidden')};
+const RefreshButton = styled(Button)<{replayUpdated: boolean}>`
+  visibility: ${p => (p.replayUpdated ? 'visible' : 'hidden')};
 `;
