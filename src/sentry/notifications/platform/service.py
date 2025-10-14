@@ -37,9 +37,7 @@ class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
 
-    def notify_target(
-        self, *, target: NotificationTarget
-    ) -> None | dict[NotificationProviderKey, list[str]]:
+    def notify_target(self, *, target: NotificationTarget) -> None:
         """
         Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
@@ -74,14 +72,6 @@ class NotificationService[T: NotificationData]:
                 raise
             return None
 
-    def notify_target_async(self, *, target: NotificationTarget) -> None:
-        """
-        Send a notification directly to a target asynchronously.
-        NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
-              using this method directly to prevent unwanted noise associated with your notifications.
-        """
-        raise NotImplementedError
-
     def notify(
         self,
         *,
@@ -114,5 +104,14 @@ class NotificationService[T: NotificationData]:
 
         else:
             for target in targets:
-                self.notify_target_async(target=target)
+                notify_target_async(target=target)
         return None
+
+
+def notify_target_async(*, target: NotificationTarget) -> None:
+    """
+    Send a notification directly to a target asynchronously.
+    NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
+            using this method directly to prevent unwanted noise associated with your notifications.
+    """
+    raise NotImplementedError
