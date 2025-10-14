@@ -125,7 +125,7 @@ export function ModelsTable() {
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        'count_if(span.status,equals,internal_error)', // spans with status unknown are errors
+        'count_if(span.status,equals,internal_error)',
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
