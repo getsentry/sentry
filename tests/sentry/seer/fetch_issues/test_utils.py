@@ -64,22 +64,19 @@ class TestGetRepoAndProjects(TestCase):
         assert project_ids == {self.project.id, project2.id}
 
     def test_get_repo_and_projects_no_configs(self):
-        repo = self.create_repo(
+        self.create_repo(
             project=self.project,
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
         )
 
-        result = get_repo_and_projects(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-        )
-
-        assert result.repo == repo
-        assert len(result.repo_configs) == 0
-        assert len(result.projects) == 0
+        with pytest.raises(ValueError, match="No Sentry projects found for repo"):
+            get_repo_and_projects(
+                organization_id=self.organization.id,
+                provider="integrations:github",
+                external_id="123",
+            )
 
     def test_get_repo_and_projects_repo_not_found(self):
         from sentry.models.repository import Repository
