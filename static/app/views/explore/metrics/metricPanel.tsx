@@ -21,13 +21,14 @@ import {
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricPanelProps {
+  queryIndex: number;
   traceMetric: TraceMetric;
 }
 
 const MIN_LEFT_WIDTH = 400;
 const MIN_RIGHT_WIDTH = 400;
 
-export function MetricPanel({traceMetric}: MetricPanelProps) {
+export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const visualize = useMetricVisualize();
   const groupBys = useQueryParamsGroupBys();
   const measureRef = useRef<HTMLDivElement>(null);
@@ -72,7 +73,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
                 content: (
                   <MetricsGraph
                     timeseriesResult={timeseriesResult}
-                    traceMetric={traceMetric}
+                    queryIndex={queryIndex}
                   />
                 ),
                 default: width * 0.65,

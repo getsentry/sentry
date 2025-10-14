@@ -10,11 +10,11 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
-import {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {getQuerySymbol} from 'sentry/views/explore/metrics/metricToolbar/querySymbol';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {
@@ -25,11 +25,11 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricsGraphProps {
+  queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  traceMetric: TraceMetric;
 }
 
-export function MetricsGraph({timeseriesResult, traceMetric}: MetricsGraphProps) {
+export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
@@ -42,23 +42,18 @@ export function MetricsGraph({timeseriesResult, traceMetric}: MetricsGraphProps)
       visualize={visualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
-      traceMetric={traceMetric}
+      queryIndex={queryIndex}
     />
   );
 }
 
 interface GraphProps extends MetricsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
-  traceMetric: TraceMetric;
+  queryIndex: number;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({
-  onChartTypeChange,
-  timeseriesResult,
-  visualize,
-  traceMetric,
-}: GraphProps) {
+function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
@@ -84,7 +79,7 @@ function Graph({
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${traceMetric.id}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+      title={`${getQuerySymbol(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
     />
   );
 

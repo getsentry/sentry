@@ -73,16 +73,16 @@ function MetricsTabBodySection() {
   return (
     <BottomSectionBody>
       <Flex direction="column" gap="lg">
-        {metricQueries.map(metricQuery => {
+        {metricQueries.map((metricQuery, index) => {
           return (
             <MetricsQueryParamsProvider
-              key={metricQuery.metric.id}
+              key={index}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               setTraceMetric={metricQuery.setTraceMetric}
               removeMetric={metricQuery.removeMetric}
             >
-              <MetricToolbar traceMetric={metricQuery.metric} />
+              <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
             </MetricsQueryParamsProvider>
           );
         })}
@@ -95,16 +95,16 @@ function MetricsTabBodySection() {
         >
           {t('Add Metric')}
         </Button>
-        {metricQueries.map(metricQuery => {
+        {metricQueries.map((metricQuery, index) => {
           return (
             <MetricsQueryParamsProvider
-              key={metricQuery.metric.id}
+              key={index}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               setTraceMetric={metricQuery.setTraceMetric}
               removeMetric={metricQuery.removeMetric}
             >
-              <MetricPanel traceMetric={metricQuery.metric} />
+              <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
             </MetricsQueryParamsProvider>
           );
         })}

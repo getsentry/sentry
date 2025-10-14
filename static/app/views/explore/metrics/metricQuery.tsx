@@ -13,10 +13,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-export const DEFAULT_METRIC_ID = 'a';
-
 export interface TraceMetric {
-  id: string;
   name: string;
   type: string;
 }
@@ -107,9 +104,9 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   });
 }
 
-export function defaultMetricQuery(id?: string): BaseMetricQuery {
+export function defaultMetricQuery(): BaseMetricQuery {
   return {
-    metric: {id: id ?? DEFAULT_METRIC_ID, name: '', type: ''},
+    metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,

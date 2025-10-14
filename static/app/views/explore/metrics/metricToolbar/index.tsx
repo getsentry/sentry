@@ -8,14 +8,15 @@ import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricS
 import QuerySymbol from 'sentry/views/explore/metrics/metricToolbar/querySymbol';
 
 interface MetricToolbarProps {
+  queryIndex: number;
   traceMetric: TraceMetric;
 }
 
-export function MetricToolbar({traceMetric}: MetricToolbarProps) {
+export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
   return (
     <div style={{width: '100%'}}>
       <Flex direction="row" gap="md" align="center">
-        <QuerySymbol id={traceMetric.id} />
+        <QuerySymbol index={queryIndex} />
         <MetricSelector traceMetric={traceMetric} />
         <AggregateDropdown type={traceMetric.type} />
         <GroupBySelector metricName={traceMetric.name} />

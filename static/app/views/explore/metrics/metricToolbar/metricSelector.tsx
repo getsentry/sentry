@@ -39,10 +39,9 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
       setTraceMetric({
         name: metricOptions[0]?.value ?? '',
         type: metricOptions[0]?.type ?? '',
-        id: traceMetric.id,
       });
     }
-  }, [metricOptions, setTraceMetric, traceMetric.name, traceMetric.id]);
+  }, [metricOptions, setTraceMetric, traceMetric.name]);
 
   return (
     <CompactSelect
@@ -55,7 +54,6 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
           setTraceMetric({
             name: typedOption.value,
             type: typedOption.type,
-            id: traceMetric.id,
           });
         }
       }}

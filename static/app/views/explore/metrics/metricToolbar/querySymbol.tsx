@@ -2,8 +2,20 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-function QuerySymbol({id}: {id: string}) {
-  return <Symbol>{id}</Symbol>;
+const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
+
+export const getQuerySymbol = (index: number) => {
+  let result = '';
+  let i = index;
+  do {
+    result = indexToChar[i % indexToChar.length] + result;
+    i = Math.floor(i / indexToChar.length) - 1;
+  } while (i >= 0);
+  return result;
+};
+
+function QuerySymbol({index}: {index: number}) {
+  return <Symbol>{getQuerySymbol(index)}</Symbol>;
 }
 
 export default QuerySymbol;
