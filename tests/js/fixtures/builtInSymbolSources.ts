@@ -59,12 +59,6 @@ export function BuiltInSymbolSourcesFixture(
       hidden: false,
     },
     {
-      sentry_key: 'cuda',
-      id: 'sentry:cuda',
-      name: 'CUDA',
-      hidden: false,
-    },
-    {
       sentry_key: 'unity',
       id: 'sentry:unity',
       name: 'Unity',
