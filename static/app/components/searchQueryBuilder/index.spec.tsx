@@ -4147,9 +4147,7 @@ describe('SearchQueryBuilder', () => {
         {organization: {features: ['search-query-builder-case-insensitivity']}}
       );
 
-      expect(
-        await screen.findByRole('button', {name: 'Toggle case sensitivity'})
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
     });
   });
 

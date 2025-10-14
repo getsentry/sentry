@@ -2,8 +2,10 @@ import {useContext, useLayoutEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
@@ -198,21 +200,26 @@ function ActionButtons({
     return null;
   }
 
+  const isCaseInsensitive = caseInsensitive === 1;
+  const caseInsensitiveLabel = isCaseInsensitive ? t('Match case') : t('Ignore case');
+
   return (
     <ButtonsWrapper ref={ref}>
       {trailingItems}
       {defined(onCaseInsensitiveClick) && hasCaseSensitiveSearch ? (
-        <ActionButton
-          aria-label={t('Toggle case sensitivity')}
-          aria-pressed={caseInsensitive === 1}
-          size="zero"
-          icon={<IconCase color={caseInsensitive ? 'active' : 'subText'} />}
-          borderless
-          active={caseInsensitive === 1}
-          onClick={() => {
-            onCaseInsensitiveClick?.(caseInsensitive === 1 ? null : 1);
-          }}
-        />
+        <Tooltip title={caseInsensitiveLabel}>
+          <ActionButton
+            aria-label={caseInsensitiveLabel}
+            aria-pressed={isCaseInsensitive}
+            size="zero"
+            icon={<IconCase color={isCaseInsensitive ? 'subText' : 'active'} />}
+            borderless
+            active={!isCaseInsensitive}
+            onClick={() => {
+              onCaseInsensitiveClick?.(isCaseInsensitive ? null : 1);
+            }}
+          />
+        </Tooltip>
       ) : null}
       {query === '' ? null : (
         <ActionButton
