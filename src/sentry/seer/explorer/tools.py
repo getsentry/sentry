@@ -59,21 +59,21 @@ def execute_trace_query_chart(
     # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
     metric_is_single = len(y_axes) == 1
     metric_name = y_axes[0] if metric_is_single else None
+    if metric_name and metric_is_single:
+        # Handle grouped data with single metric: wrap each group's data in the metric name
+        if group_by:
+            return {
+                group_value: (
+                    {metric_name: group_data}
+                    if isinstance(group_data, dict) and "data" in group_data
+                    else group_data
+                )
+                for group_value, group_data in data.items()
+            }
 
-    # Handle grouped data with single metric: wrap each group's data in the metric name
-    if group_by and metric_is_single:
-        return {
-            group_value: (
-                {metric_name: group_data}
-                if isinstance(group_data, dict) and "data" in group_data
-                else group_data
-            )
-            for group_value, group_data in data.items()
-        }
-
-    # Handle non-grouped data with single metric: wrap data in the metric name
-    if metric_is_single and isinstance(data, dict) and "data" in data:
-        return {metric_name: data}
+        # Handle non-grouped data with single metric: wrap data in the metric name
+        if isinstance(data, dict) and "data" in data:
+            return {metric_name: data}
 
     return data
 
