@@ -33,6 +33,14 @@ class NotificationServiceError(Exception):
     pass
 
 
+def _render_template[T: NotificationData, RenderableT](
+    data: T, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
+) -> RenderableT:
+    rendered_template = template.render(data=data)
+    renderer = provider.get_renderer(data=data, category=template.category)
+    return renderer.render(data=data, rendered_template=rendered_template)
+
+
 class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
