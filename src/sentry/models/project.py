@@ -639,7 +639,7 @@ class Project(Model):
             "linked_id", flat=True
         )
 
-        # Delete code mappings to prevent them from being stuck on the old org
+        # Delete issue ownership objects to prevent them from being stuck on the old org
         ProjectCodeOwners.objects.filter(project_id=self.id).delete()
         RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
 
