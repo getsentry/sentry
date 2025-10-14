@@ -136,7 +136,7 @@ describe('SubscriptionHeader', () => {
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am3_f',
+      plan: 'am3_team',
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
@@ -144,9 +144,9 @@ describe('SubscriptionHeader', () => {
     );
     await assertNewHeaderCards({
       organization,
-      hasNextBillCard: false,
+      hasNextBillCard: true,
       hasBillingInfoCard: true,
-      hasPaygCard: false,
+      hasPaygCard: true,
     });
   });
 
@@ -157,7 +157,7 @@ describe('SubscriptionHeader', () => {
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am3_team',
+      plan: 'am3_f',
       isSelfServePartner: true,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -166,9 +166,9 @@ describe('SubscriptionHeader', () => {
     );
     await assertNewHeaderCards({
       organization,
-      hasNextBillCard: true,
+      hasNextBillCard: false,
       hasBillingInfoCard: false,
-      hasPaygCard: true,
+      hasPaygCard: false,
     });
   });
 
