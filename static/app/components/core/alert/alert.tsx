@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
+import type {DistributiveOmit} from '@sentry/scraps/types';
+
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -185,7 +187,8 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => getAlertColors(p.theme, p.type).backgroundLight};
+  background-image: ${p =>
+    `linear-gradient(${getAlertColors(p.theme, p.type).backgroundLight}), linear-gradient(${p.theme.tokens.background.primary})`};
 
   a:not([role='button']) {
     color: ${p => getAlertColors(p.theme, p.type).color};
@@ -325,10 +328,6 @@ const Container = styled('div')`
 `;
 
 Alert.Container = Container;
-
-type DistributiveOmit<TObject, TKey extends keyof TObject> = TObject extends unknown
-  ? Omit<TObject, TKey>
-  : never;
 
 function AlertButton(props: DistributiveOmit<ButtonProps, 'size'>) {
   const theme = useTheme();
