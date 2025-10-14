@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Stack} from 'sentry/components/core/layout/stack';
+import type {FlexProps} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
-export const ContextContainer = Stack;
+export function ContextContainer(props: FlexProps) {
+  return <Stack {...props} />;
+}
 
 export const ContextHeader = styled(Flex)`
   align-items: center;
@@ -44,6 +46,6 @@ export const NoContextWrapper = styled('div')`
   min-width: 320px;
 `;
 
-export const ContextRow = styled(Flex)`
-  justify-content: space-between;
-`;
+export function ContextRow(props: FlexProps) {
+  return <Flex justify="between" {...props} />;
+}

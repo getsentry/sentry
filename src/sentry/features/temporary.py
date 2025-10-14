@@ -118,6 +118,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the discover saved queries deprecation warnings
     manager.add("organizations:discover-saved-queries-deprecation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable migration of transaction widgets and queries to spans
+    manager.add("organizations:migrate-transaction-queries-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new cell actions styling and features for tables that use the component
     manager.add("organizations:discover-cell-actions-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the org recalibration
@@ -373,8 +375,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:init-sentry-toolbar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable Sentry Toolbar settings for customers (ex: project settings page)
     manager.add("organizations:sentry-toolbar-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
-    # Enable feature flag CTA on issue details page
-    manager.add("organizations:feature-flag-cta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable suspect feature flags endpoint.
     manager.add("organizations:feature-flag-suspect-flags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable suspect commit information in workflow notification emails
@@ -435,8 +435,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to use trace admin ui.
     manager.add("organizations:trace-view-admin-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable displaying span links in the attribute tree
-    manager.add("organizations:trace-view-span-links", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to use trace tabs layout ui
     manager.add("organizations:trace-tabs-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new traces onboarding guide.

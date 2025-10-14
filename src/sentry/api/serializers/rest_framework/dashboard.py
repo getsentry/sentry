@@ -696,6 +696,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         page_filter_keys = ["environment", "period", "start", "end", "utc"]
         dashboard_filter_keys = ["release", "release_id"]
 
+        if features.has(
+            "organizations:dashboards-global-filters",
+            organization=self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            dashboard_filter_keys.append("global_filter")
+
         filters = {}
 
         if "projects" in validated_data:
@@ -898,8 +905,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             "discover_widget_split", widget.discover_widget_split
         )
         widget.limit = data.get("limit", widget.limit)
-        widget.dataset_source = data.get("dataset_source", widget.dataset_source)
+        new_dataset_source = data.get("dataset_source", widget.dataset_source)
+        widget.dataset_source = new_dataset_source
         widget.detail = {"layout": data.get("layout", prev_layout)}
+
+        if (
+            new_dataset_source == DatasetSourcesTypes.USER.value
+            and widget.widget_type == DashboardWidgetTypes.SPANS
+        ):
+            widget.changed_reason = None
 
         if widget.widget_type not in [
             DashboardWidgetTypes.DISCOVER,

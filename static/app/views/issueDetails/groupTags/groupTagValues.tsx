@@ -5,7 +5,8 @@ import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/gr
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout/flex';
+import type {FlexProps} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -404,7 +405,15 @@ const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
 `;
 
-const NameColumn = styled(Flex)`
+function Column(props: FlexProps) {
+  return <Flex align="center" {...props} />;
+}
+
+function RightAlignColumn(props: FlexProps) {
+  return <Flex align="center" justify="end" {...props} />;
+}
+
+const NameColumn = styled(Column)`
   ${p => p.theme.overflowEllipsis};
   min-width: 320px;
 `;

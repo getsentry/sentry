@@ -235,7 +235,6 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
  */
 export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
-  ModuleName.SESSIONS,
   ModuleName.MCP,
 ]);
 
