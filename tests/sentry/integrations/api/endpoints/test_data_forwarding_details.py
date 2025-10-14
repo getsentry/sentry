@@ -23,7 +23,6 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "old_key"},
             is_enabled=True,
-            project_ids=[self.project.id],
         )
 
         payload = {
@@ -138,9 +137,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         self.create_member(
             user=user,
             organization=self.organization,
-            role="member",
+            role="admin",
             teams=[self.team],
-            teamRole="admin",
         )
         self.login_as(user=user)
 
@@ -185,9 +183,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         self.create_member(
             user=user,
             organization=self.organization,
-            role="member",
+            role="admin",
             teams=[self.team],
-            teamRole="admin",
         )
         self.login_as(user=user)
 
@@ -225,7 +222,10 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 
         user = self.create_user()
         self.create_member(
-            user=user, organization=self.organization, role="member", teams=[self.team]
+            user=user,
+            organization=self.organization,
+            role="admin",
+            teams=[self.team],
         )
         self.login_as(user=user)
 
@@ -252,7 +252,12 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 
         # User only has access to team1
         user = self.create_user()
-        self.create_member(user=user, organization=self.organization, role="member", teams=[team1])
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="admin",
+            teams=[team1],
+        )
         self.login_as(user=user)
 
         payload = {"project_ids": [project1.id, project2.id]}
