@@ -1051,7 +1051,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             self.frame_from_module(f"{java_module_prefix}.foo.Bar", "Bar.kt"),
             self.frame_from_module(f"{java_module_prefix}.bar.Baz", "Baz.kt"),
         ]
-        with self.options({"auto_source_code_config.multi_module_projects_allowlist": True}):
+        with self.options({"auto_source_code_config.multi_module_java": True}):
             self._process_and_assert_configuration_changes(
                 repo_trees=repo_trees,
                 frames=frames,

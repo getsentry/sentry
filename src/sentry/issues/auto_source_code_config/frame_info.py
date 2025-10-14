@@ -172,7 +172,7 @@ def get_granularity(parts: Sequence[str]) -> int:
             #    file_path:  uk/co/example/foo/bar/Baz.kt
             granularity = STACK_ROOT_MAX_LEVEL
 
-        elif options.get("auto_source_code_config.multi_module_projects_allowlist"):
+        elif options.get("auto_source_code_config.multi_module_java"):
             # com.example.multi.foo.bar.Baz$InnerClass, Baz.kt ->
             #    stack_root: com/example/multi/foo/
             #    file_path:  com/example/multi/foo/bar/Baz.kt
