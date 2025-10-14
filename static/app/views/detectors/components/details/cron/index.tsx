@@ -21,6 +21,7 @@ import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import toArray from 'sentry/utils/array/toArray';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
@@ -31,8 +32,10 @@ import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/deta
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
 import MonitorQuickStartGuide from 'sentry/views/insights/crons/components/monitorQuickStartGuide';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
+import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
 import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 
 type CronDetectorDetailsProps = {
   detector: CronDetector;
@@ -53,11 +56,18 @@ function hasLastCheckIn(envs: MonitorEnvironment[]) {
 }
 
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
+  const organization = useOrganization();
   const location = useLocation();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+
+  const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
+    organization,
+    projectId: project.id,
+    monitorSlug: dataSource.queryObj.slug,
+  });
 
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
@@ -127,6 +137,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 onTimezoneSelected={setTimezoneOverride}
               />
             </Flex>
+            {!!checkinErrors?.length && (
+              <MonitorProcessingErrors
+                checkinErrors={checkinErrors}
+                onDismiss={handleDismissError}
+              >
+                {t('Errors were encountered while ingesting check-ins for this monitor')}
+              </MonitorProcessingErrors>
+            )}
             {hasCheckedIn ? (
               <Fragment>
                 <DetailsTimeline
