@@ -15,10 +15,11 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -64,24 +65,32 @@ function initializeData({
   return initialData;
 }
 
-function TestComponent({
-  ...props
-}: React.ComponentProps<typeof TransactionSummary> & {
-  router: InjectedRouter;
-}) {
-  if (!props.organization) {
-    throw new Error('Missing organization');
-  }
-
-  return (
-    <MetricsCardinalityProvider
-      organization={props.organization}
-      location={props.location}
-    >
-      <TransactionSummary {...props} />
-    </MetricsCardinalityProvider>
-  );
-}
+const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
+  return render(<TransactionSummaryLayout />, {
+    organization: data.organization,
+    initialRouterConfig: {
+      location: {
+        pathname: '/performance/summary/',
+        query: data.routerProps.location.query,
+      },
+      route: '/performance/',
+      children: [
+        {
+          path: 'summary',
+          handle: {tab: TransactionSummaryTab.TRANSACTION_SUMMARY},
+          element: (
+            <MetricsCardinalityProvider
+              organization={data.organization}
+              location={data.router.location}
+            >
+              <TransactionSummary />
+            </MetricsCardinalityProvider>
+          ),
+        },
+      ],
+    },
+  });
+};
 
 describe('Performance > TransactionSummary', () => {
   let eventStatsMock: jest.Mock;
@@ -539,20 +548,9 @@ describe('Performance > TransactionSummary', () => {
 
   describe('with events', () => {
     it('renders basic UI elements', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       //  It shows the header
       await screen.findByText('Transaction Summary');
@@ -592,22 +590,11 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('renders feature flagged UI elements', async () => {
-      const {organization, router} = initializeData({
+      const data = initializeData({
         features: ['incidents'],
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       // Ensure create alert from discover is shown with metric alerts
       expect(
@@ -616,7 +603,7 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('renders Web Vitals widget', async () => {
-      const {organization, router} = initializeData({
+      const data = initializeData({
         project: ProjectFixture({teams, platform: 'javascript'}),
         query: {
           query:
@@ -624,18 +611,7 @@ describe('Performance > TransactionSummary', () => {
         },
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       // It renders the web vitals widget
       await screen.findByRole('heading', {name: 'Web Vitals'});
@@ -651,20 +627,9 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('renders sidebar widgets', async () => {
-      const {organization, router} = initializeData({});
+      const data = initializeData({});
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       // Renders Apdex widget
       await screen.findByRole('heading', {name: 'Apdex'});
@@ -718,24 +683,13 @@ describe('Performance > TransactionSummary', () => {
       OrganizationStore.onUpdate(OrganizationFixture({slug: 'org-slug'}), {
         replace: true,
       });
-      const {organization, router} = initializeData({projects});
-      const spy = jest.spyOn(router, 'replace');
+      const data = initializeData({projects});
+      const spy = jest.spyOn(data.router, 'replace');
 
       // Ensure project id is not in path
-      delete router.location.query.project;
+      delete data.router.location.query.project;
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       renderGlobalModal();
 
@@ -751,7 +705,7 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('fetches transaction threshold', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/project-transaction-threshold-override/',
@@ -771,18 +725,7 @@ describe('Performance > TransactionSummary', () => {
         },
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       expect(await screen.findByText('Transaction Summary')).toBeInTheDocument();
 
@@ -791,7 +734,7 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('fetches project transaction threshdold', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/project-transaction-threshold-override/',
@@ -808,18 +751,7 @@ describe('Performance > TransactionSummary', () => {
         },
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -828,20 +760,9 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('triggers a navigation on search', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       // Fill out the search box, and submit it.
       await userEvent.click(
@@ -850,11 +771,11 @@ describe('Performance > TransactionSummary', () => {
       await userEvent.paste('user.email:uhoh*');
 
       await waitFor(() => {
-        expect(router.push).toHaveBeenCalledTimes(1);
+        expect(data.router.push).toHaveBeenCalledTimes(1);
       });
 
       // Check the navigation.
-      expect(router.push).toHaveBeenCalledWith({
+      expect(data.router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -867,20 +788,9 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('can mark a transaction as key', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       const mockUpdate = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/key-transactions/`,
@@ -900,20 +810,9 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('triggers a navigation on transaction filter', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
       await waitFor(() => {
@@ -928,7 +827,7 @@ describe('Performance > TransactionSummary', () => {
       await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]!);
 
       // Check the navigation.
-      expect(router.push).toHaveBeenCalledWith({
+      expect(data.router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -940,20 +839,9 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('renders pagination buttons', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -965,7 +853,7 @@ describe('Performance > TransactionSummary', () => {
       await userEvent.click(await within(pagination).findByLabelText('Next'));
 
       // Check the navigation.
-      expect(router.push).toHaveBeenCalledWith({
+      expect(data.router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -981,22 +869,11 @@ describe('Performance > TransactionSummary', () => {
         body: [],
       });
 
-      const {organization, router} = initializeData({
+      const data = initializeData({
         query: {query: 'tag:value'},
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -1015,22 +892,11 @@ describe('Performance > TransactionSummary', () => {
         ],
       });
 
-      const {organization, router} = initializeData({
+      const data = initializeData({
         query: {query: 'tag:value event.type:transaction'},
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -1038,27 +904,16 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('adds search condition on transaction status when clicking on status breakdown', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByTestId('status-ok');
 
       await userEvent.click(screen.getByTestId('status-ok'));
 
-      expect(router.push).toHaveBeenCalledTimes(1);
-      expect(router.push).toHaveBeenCalledWith(
+      expect(data.router.push).toHaveBeenCalledTimes(1);
+      expect(data.router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('transaction.status:ok'),
@@ -1068,20 +923,9 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('appends tag value to existing query when clicked', async () => {
-      const {organization, router} = initializeData();
+      const data = initializeData();
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Tag Summary');
 
@@ -1103,9 +947,9 @@ describe('Performance > TransactionSummary', () => {
         )
       );
 
-      expect(router.push).toHaveBeenCalledTimes(2);
+      expect(data.router.push).toHaveBeenCalledTimes(2);
 
-      expect(router.push).toHaveBeenNthCalledWith(1, {
+      expect(data.router.push).toHaveBeenNthCalledWith(1, {
         pathname: '/',
         query: {
           project: '2',
@@ -1115,7 +959,7 @@ describe('Performance > TransactionSummary', () => {
         },
       });
 
-      expect(router.push).toHaveBeenNthCalledWith(2, {
+      expect(data.router.push).toHaveBeenNthCalledWith(2, {
         pathname: '/',
         query: {
           project: '2',
@@ -1127,23 +971,12 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('does not use MEP dataset for stats query without features', async () => {
-      const {organization, router} = initializeData({
+      const data = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: [''], // No 'dynamic-sampling' feature to indicate it can use metrics dataset or metrics enhanced.
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -1177,23 +1010,12 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('uses MEP dataset for stats query', async () => {
-      const {organization, router} = initializeData({
+      const data = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -1234,23 +1056,12 @@ describe('Performance > TransactionSummary', () => {
           },
         },
       });
-      const {organization, router} = initializeData({
+      const data = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -1318,23 +1129,12 @@ describe('Performance > TransactionSummary', () => {
           },
         ],
       });
-      const {organization, router} = initializeData({
+      const data = initializeData({
         query: {query: 'transaction.op:pageload has:not-compatible'}, // Adds incompatible w/ metrics tag
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
 
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
