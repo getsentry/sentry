@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T20:28:34.154815+00:00'
+created: '2025-10-07T20:42:03.406756+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,6 +24,7 @@ contributing variants:
   default*
     hash: "efddf1cde918097259aa7d4904fb1942"
     contributing component: csp
+    hint: None
     root_component:
       default*
         csp*

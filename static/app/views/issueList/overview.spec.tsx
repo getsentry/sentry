@@ -549,6 +549,51 @@ describe('IssueList', () => {
 
       expect(await screen.findByText(/No issues match your search/i)).toBeInTheDocument();
     });
+
+    it('sets statsLoading to false when fetchStats returns early with empty groupIds', async () => {
+      // Start with some groups to trigger stats loading
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      const statsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-stats/',
+        body: [groupStats],
+        asyncDelay: 5000,
+      });
+
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      // Verify stats request was made
+      await waitFor(() => {
+        expect(statsRequest).toHaveBeenCalled();
+      });
+
+      // Now simulate a query that returns empty results
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      // Trigger a new search that returns empty results
+      await userEvent.click(getSearchInput());
+      await userEvent.keyboard('void{enter}');
+
+      // Wait for the empty state to appear (not loading skeleton)
+      await waitFor(() => {
+        expect(screen.getByText(/No issues match your search/i)).toBeInTheDocument();
+      });
+    });
   });
 
   describe('Error Robot', () => {

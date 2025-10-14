@@ -1,10 +1,13 @@
-import {Container, Grid} from 'sentry/components/core/layout';
+import {Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
+import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
+import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
+import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 import {SubscriptionCard} from './subscriptionCard';
@@ -16,15 +19,30 @@ interface HeaderCardsProps {
 }
 
 function getCards(organization: Organization, subscription: Subscription) {
+  const hasBillingPerms = organization.access?.includes('org:billing');
   const cards: React.ReactNode[] = [];
 
-  cards.push(
-    <Container key="subscription-card" background="primary" border="primary" radius="md">
-      <SubscriptionCard organization={organization} subscription={subscription} />
-    </Container>
-  );
+  if (subscription.canSelfServe && hasBillingPerms) {
+    cards.push(
+      <NextBillCard
+        key="next-bill"
+        subscription={subscription}
+        organization={organization}
+      />
+    );
+  }
 
-  if (subscription.canSelfServe || subscription.onDemandInvoiced) {
+  if (subscription.supportsOnDemand && hasBillingPerms) {
+    cards.push(
+      <PaygCard key="payg" subscription={subscription} organization={organization} />
+    );
+  }
+
+  if (
+    hasBillingPerms &&
+    (subscription.canSelfServe || subscription.onDemandInvoiced) &&
+    !subscription.isSelfServePartner
+  ) {
     cards.push(
       <BillingInfoCard
         key="billing-info"
@@ -33,6 +51,8 @@ function getCards(organization: Organization, subscription: Subscription) {
       />
     );
   }
+
+  cards.push(<LinksCard key="links" organization={organization} />);
 
   return cards;
 }
@@ -49,8 +69,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
         <Grid
           columns={{
             xs: '1fr',
-            sm: `repeat(${Math.min(cards.length, 2)}, 1fr)`,
-            md: `repeat(${cards.length}, 1fr)`,
+            md: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"
         >

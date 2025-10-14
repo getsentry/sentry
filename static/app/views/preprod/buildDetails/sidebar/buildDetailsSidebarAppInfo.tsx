@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -30,6 +30,7 @@ interface Labels {
   downloadSize: string;
   installSize: string;
   installSizeText: string;
+  installUnavailableTooltip: string;
 }
 
 function getLabels(platform: Platform | undefined): Labels {
@@ -41,6 +42,7 @@ function getLabels(platform: Platform | undefined): Labels {
         installSize: t('Size on disk not including AOT DEX'),
         downloadSize: t('Bytes transferred over the network'),
         buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t('This app cannot be installed.'),
       };
     case 'ios':
     case 'macos':
@@ -51,6 +53,9 @@ function getLabels(platform: Platform | undefined): Labels {
         installSize: t('Unencrypted install size'),
         downloadSize: t('Bytes transferred over the network'),
         buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t(
+          'Code signature must be valid for this app to be installed.'
+        ),
       };
     default:
       return unreachable(platform);
@@ -161,7 +166,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
                 Installable
               </InstallableLink>
             ) : (
-              'Not Installable'
+              <Tooltip title={labels.installUnavailableTooltip}>Not Installable</Tooltip>
             )}
           </Text>
         </Flex>
@@ -223,6 +228,6 @@ const InstallableLink = styled('button')`
   }
 `;
 
-const InlineCodeSnippet = styled(CodeSnippet)`
+const InlineCodeSnippet = styled(CodeBlock)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 `;

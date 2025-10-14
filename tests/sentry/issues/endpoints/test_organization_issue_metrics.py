@@ -28,10 +28,38 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         after_prev = prev + timedelta(microseconds=100)
 
         # Release issues.
-        self.create_group(project=project1, status=0, first_seen=curr, first_release=one, type=1)
-        self.create_group(project=project1, status=1, first_seen=prev, first_release=one, type=2)
-        self.create_group(project=project2, status=1, first_seen=curr, first_release=two, type=3)
-        self.create_group(project=project2, status=2, first_seen=curr, first_release=two, type=4)
+        self.create_group(
+            project=project1,
+            status=0,
+            first_seen=curr,
+            first_release=one,
+            type=1,
+            create_open_period=False,
+        )
+        self.create_group(
+            project=project1,
+            status=1,
+            first_seen=prev,
+            first_release=one,
+            type=2,
+            create_open_period=False,
+        )
+        self.create_group(
+            project=project2,
+            status=1,
+            first_seen=curr,
+            first_release=two,
+            type=3,
+            create_open_period=False,
+        )
+        self.create_group(
+            project=project2,
+            status=2,
+            first_seen=curr,
+            first_release=two,
+            type=4,
+            create_open_period=False,
+        )
         self.create_group(
             project=project2,
             status=2,
@@ -41,14 +69,28 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         )
 
         # Time based issues.
-        self.create_group(project=project1, status=0, first_seen=curr, type=1)
         self.create_group(
-            project=project1, status=1, first_seen=before_curr, resolved_at=curr, type=2
+            project=project1, status=0, first_seen=curr, type=1, create_open_period=False
         )
         self.create_group(
-            project=project2, status=1, first_seen=prev, resolved_at=after_prev, type=3
+            project=project1,
+            status=1,
+            first_seen=before_curr,
+            resolved_at=curr,
+            type=2,
+            create_open_period=False,
         )
-        self.create_group(project=project2, status=2, first_seen=prev, type=4)
+        self.create_group(
+            project=project2,
+            status=1,
+            first_seen=prev,
+            resolved_at=after_prev,
+            type=3,
+            create_open_period=False,
+        )
+        self.create_group(
+            project=project2, status=2, first_seen=prev, type=4, create_open_period=False
+        )
         self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
 
         response = self.client.get(
@@ -192,16 +234,30 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         after_prev = prev + timedelta(microseconds=100)
         # New cohort
         self.create_group(project=project1, status=0, first_seen=curr, type=1)
-        self.create_group(project=project1, status=1, first_seen=curr, type=2)
-        self.create_group(project=project2, status=1, first_seen=curr, type=3)
+        self.create_group(
+            project=project1, status=1, first_seen=curr, type=2, create_open_period=False
+        )
+        self.create_group(
+            project=project2, status=1, first_seen=curr, type=3, create_open_period=False
+        )
         self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
         self.create_group(project=project2, status=2, first_seen=curr, type=FeedbackGroup.type_id)
         # Resolved cohort
         self.create_group(
-            project=project1, status=0, first_seen=before_curr, resolved_at=curr, type=2
+            project=project1,
+            status=0,
+            first_seen=before_curr,
+            resolved_at=curr,
+            type=2,
+            create_open_period=False,
         )
         self.create_group(
-            project=project1, status=1, first_seen=before_curr, resolved_at=curr, type=3
+            project=project1,
+            status=1,
+            first_seen=before_curr,
+            resolved_at=curr,
+            type=3,
+            create_open_period=False,
         )
         self.create_group(
             project=project2,
@@ -209,6 +265,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             first_seen=prev,
             resolved_at=after_prev,
             type=FeedbackGroup.type_id,
+            create_open_period=False,
         )
         self.create_group(
             project=project2,
@@ -216,9 +273,15 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             first_seen=before_curr,
             resolved_at=curr,
             type=FeedbackGroup.type_id,
+            create_open_period=False,
         )
         self.create_group(
-            project=project2, status=2, first_seen=before_curr, resolved_at=curr, type=5
+            project=project2,
+            status=2,
+            first_seen=before_curr,
+            resolved_at=curr,
+            type=5,
+            create_open_period=False,
         )
 
         response = self.client.get(

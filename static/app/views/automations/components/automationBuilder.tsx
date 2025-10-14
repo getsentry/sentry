@@ -82,6 +82,7 @@ export default function AutomationBuilder() {
         </Step>
         <DataConditionNodeList
           handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          label={t('Add trigger')}
           placeholder={t('Select a trigger...')}
           conditions={state.triggers.conditions}
           groupId={state.triggers.id}
@@ -192,6 +193,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
           )}
           <DataConditionNodeList
             handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
+            label={t('Add filter')}
             placeholder={t('Any event')}
             groupId={actionFilter.id}
             conditions={actionFilter?.conditions || []}

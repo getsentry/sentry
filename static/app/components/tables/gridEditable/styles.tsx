@@ -192,7 +192,7 @@ export const GridBody = styled('tbody')`
   grid-column: 1/-1;
 `;
 
-export const GridRow = styled('tr')`
+export const GridRow = styled('tr')<{isClickable?: boolean}>`
   display: grid;
   position: relative;
   grid-template-columns: subgrid;
@@ -210,6 +210,12 @@ export const GridRow = styled('tr')`
       border-bottom-right-radius: ${p => p.theme.borderRadius};
     }
   }
+
+  ${p =>
+    p.isClickable &&
+    css`
+      cursor: pointer;
+    `}
 `;
 
 export const GridBodyCell = styled('td')`

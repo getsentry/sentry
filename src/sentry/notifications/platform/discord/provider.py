@@ -37,7 +37,9 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         from sentry.integrations.discord.message_builder.base.component.base import (
             DiscordMessageComponent,
         )
-        from sentry.integrations.discord.message_builder.base.component.button import DiscordButton
+        from sentry.integrations.discord.message_builder.base.component.button import (
+            DiscordLinkButton,
+        )
         from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
         from sentry.integrations.discord.message_builder.base.embed.footer import (
             DiscordMessageEmbedFooter,
@@ -68,8 +70,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
         if len(rendered_template.actions) > 0:
             buttons = [
-                DiscordButton(
-                    custom_id=action.label.lower().replace(" ", "_"),
+                DiscordLinkButton(
                     label=action.label,
                     url=action.link,
                 )

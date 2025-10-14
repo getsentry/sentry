@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:43.239490+00:00'
+created: '2025-10-06T19:13:32.350248+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "csp_url": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -76,10 +76,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "URL",
+    "description": "directive and URL",
     "hash": "666766514295bb52812324097cdaf53e",
     "hint": null,
-    "key": "default",
+    "key": "csp_url",
     "type": "component"
   }
 }

@@ -27,7 +27,7 @@ export function PullRequestDetailsSizeContent({
 
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
-      [`projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
+      [`/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
       {
         staleTime: 0,
         enabled: !!selectedBuildId,
@@ -98,6 +98,8 @@ export function PullRequestDetailsSizeContent({
           <BuildDetailsMainContent
             buildDetailsData={selectedBuildDetail}
             appSizeQuery={appSizeQuery}
+            isRerunning={false}
+            onRerunAnalysis={() => {}}
           />
         </Flex>
       </Grid>

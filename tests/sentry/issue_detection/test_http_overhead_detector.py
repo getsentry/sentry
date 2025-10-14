@@ -290,5 +290,5 @@ class HTTPOverheadDetectorTest(TestCase):
         assert self.find_problems(event) == []
 
     def test_filtered_url(self) -> None:
-        injection_event = get_event("http-overhead-filtered-url")
+        injection_event = get_event("http-overhead/http-overhead-filtered-url")
         assert len(self.find_problems(injection_event)) == 0

@@ -98,12 +98,7 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
-    if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
-        granularity = Granularity(60)
-    else:
-        granularity = Granularity(3600)
-
-    orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity)
+    orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60))
     for orgs in orgs_iterator:
         # get the low and high transactions
         totals_it = FetchProjectTransactionTotals(orgs)
@@ -264,10 +259,7 @@ class FetchProjectTransactionTotals:
         if not self._cache_empty():
             return self._get_from_cache()
 
-        if options.get("dynamic-sampling.query-granularity-60s.fetch-transaction-totals", None):
-            granularity = Granularity(60)
-        else:
-            granularity = Granularity(3600)
+        granularity = Granularity(60)
 
         if self.has_more_results:
             query = (
@@ -394,10 +386,7 @@ class FetchProjectTransactionVolumes:
             # data in cache no need to go to the db
             return self._get_from_cache()
 
-        if options.get("dynamic-sampling.query-granularity-60s.fetch-transaction-totals", None):
-            granularity = Granularity(60)
-        else:
-            granularity = Granularity(3600)
+        granularity = Granularity(60)
 
         if self.has_more_results:
             # still data in the db, load cache

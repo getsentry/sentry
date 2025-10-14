@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:46.382467+00:00'
+created: '2025-10-06T21:57:35.701923+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_thread_stacktrace": {
     "component": {
       "contributes": false,
       "hint": null,
@@ -41,15 +41,15 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "in-app",
+    "description": "thread stacktrace — in-app frames",
     "hash": null,
     "hint": null,
-    "key": "app",
+    "key": "app_thread_stacktrace",
     "type": "component"
   },
   "fallback": {
     "contributes": true,
-    "description": "fallback",
+    "description": "fallback grouping",
     "hash": "d41d8cd98f00b204e9800998ecf8427e",
     "hint": null,
     "key": "fallback",

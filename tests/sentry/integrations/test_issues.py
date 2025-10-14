@@ -12,7 +12,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
@@ -29,8 +28,6 @@ class IssueSyncIntegration(TestCase):
     def test_status_sync_inbound_resolve(self) -> None:
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
-        open_period = GroupOpenPeriod.objects.get(group=group)
-        assert open_period.date_ended is None
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="example", external_id="123456")
@@ -77,9 +74,6 @@ class IssueSyncIntegration(TestCase):
                 "provider": integration.get_provider().name,
                 "provider_key": integration.get_provider().key,
             }
-
-            open_period.refresh_from_db()
-            assert open_period.date_ended is not None
 
     def test_sync_status_resolve_in_next_release_no_releases(self) -> None:
         group = self.group
@@ -434,8 +428,6 @@ class IssueSyncIntegration(TestCase):
             type=ActivityType.SET_RESOLVED.value,
             datetime=timezone.now(),
         )
-        open_period = GroupOpenPeriod.objects.get(group=group, project=group.project)
-        open_period.close_open_period(resolution_time=timezone.now(), resolution_activity=activity)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="example", external_id="123456")
@@ -484,9 +476,6 @@ class IssueSyncIntegration(TestCase):
                 "provider": integration.get_provider().name,
                 "provider_key": integration.get_provider().key,
             }
-
-            open_period.refresh_from_db()
-            assert open_period.date_ended is None
 
 
 class IssueSyncIntegrationWebhookTest(TestCase):
@@ -606,14 +595,11 @@ class IssueDefaultTest(TestCase):
         self.group.substatus = None
         self.group.save()
 
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED.value,
             datetime=timezone.now(),
-        )
-        GroupOpenPeriod.objects.get(group_id=self.group.id).close_open_period(
-            resolution_time=timezone.now(), resolution_activity=activity
         )
 
         integration = self.create_integration(
