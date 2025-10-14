@@ -123,14 +123,6 @@ class NotificationService[T: NotificationData]:
         return None
 
 
-def _render_template[RenderableT, T: NotificationData](
-    data: T, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
-) -> RenderableT:
-    rendered_template = template.render(data=data)
-    renderer = provider.get_renderer(data=data, category=template.category)
-    return renderer.render(data=data, rendered_template=rendered_template)
-
-
 @instrumented_task(
     name="src.sentry.notifications.platform.service.notify_target_async",
     namespace=notifications_tasks,
