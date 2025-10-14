@@ -365,8 +365,10 @@ function getReleasesRequest(
   // as a group by, or we are using a rate function.
   const useSessionAPI =
     query.columns.includes('session.status') ||
-    query.fields?.some(field =>
-      RATE_FUNCTIONS.some(rateFunction => field.startsWith(rateFunction))
+    Boolean(
+      query.fields?.some(field =>
+        RATE_FUNCTIONS.some(rateFunction => field.startsWith(rateFunction))
+      )
     );
   const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
   const isDescending = query.orderby.startsWith('-');
