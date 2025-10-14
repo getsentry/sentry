@@ -148,11 +148,6 @@ export default function FiltersBar({
 
           {organization.features.includes('dashboards-global-filters') && (
             <Fragment>
-              <AddFilter
-                onAddFilter={newFilter => {
-                  updateGlobalFilters([...activeGlobalFilters, newFilter]);
-                }}
-              />
               {activeGlobalFilters.map(filter => (
                 <FilterSelector
                   key={filter.tag.key}
@@ -171,6 +166,11 @@ export default function FiltersBar({
                   }}
                 />
               ))}
+              <AddFilter
+                onAddFilter={newFilter => {
+                  updateGlobalFilters([...activeGlobalFilters, newFilter]);
+                }}
+              />
             </Fragment>
           )}
         </FilterButtons>
