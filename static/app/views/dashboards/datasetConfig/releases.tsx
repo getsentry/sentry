@@ -312,6 +312,14 @@ function fieldsToDerivedMetrics(field: string): string {
   return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
 
+const RATE_FUNCTIONS = [
+  'unhealthy_rate',
+  'abnormal_rate',
+  'errored_rate',
+  'unhandled_rate',
+  'crash_rate',
+];
+
 function getReleasesRequest(
   includeSeries: number,
   includeTotals: number,
@@ -354,8 +362,12 @@ function getReleasesRequest(
   }
 
   // Only time we need to use sessions API is when session.status is requested
-  // as a group by.
-  const useSessionAPI = query.columns.includes('session.status');
+  // as a group by, or we are using a rate function.
+  const useSessionAPI =
+    query.columns.includes('session.status') ||
+    query.fields?.some(field =>
+      RATE_FUNCTIONS.some(rateFunction => field.startsWith(rateFunction))
+    );
   const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
   const isDescending = query.orderby.startsWith('-');
   const rawOrderby = trimStart(query.orderby, '-');
