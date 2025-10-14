@@ -78,6 +78,7 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceFileIOMainThreadGroupType,
@@ -112,7 +113,6 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
@@ -1161,6 +1161,17 @@ class SnubaTestCase(BaseTestCase):
 
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
+    def store_trace_metrics(self, trace_metrics):
+        files = {
+            f"trace_metric_{i}": trace_metric.SerializeToString()
+            for i, trace_metric in enumerate(trace_metrics)
+        }
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
             files=files,
@@ -3385,7 +3396,16 @@ def span_to_trace_item(span) -> TraceItem:
     )
 
 
-class OurLogTestCase(BaseTestCase):
+class TraceItemTestCase:
+    def random_item_id(self, item_id: str | None = None) -> UUID:
+        if item_id is None:
+            return uuid4()
+        # There's some flipping of bytes when ingesting the item id
+        # this ensures that the final item we get back is what we send
+        return UUID(bytes=bytes(reversed(UUID(item_id).bytes)))
+
+
+class OurLogTestCase(BaseTestCase, TraceItemTestCase):
     def create_ourlog(
         self,
         extra_data: _OptionalOurLogData | None = None,
@@ -3405,12 +3425,8 @@ class OurLogTestCase(BaseTestCase):
             attributes = {}
         if extra_data is None:
             extra_data = {}
-        if log_id is None:
-            item_id = uuid4()
-        else:
-            # There's some flipping of bytes when ingesting the item id
-            # this ensures that the final item we get back is what we send
-            item_id = UUID(bytes=bytes(reversed(UUID(log_id).bytes)))
+
+        item_id = self.random_item_id(log_id)
 
         trace_id = extra_data.pop("trace_id", uuid4().hex)
 
@@ -3451,6 +3467,56 @@ class OurLogTestCase(BaseTestCase):
             item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
             timestamp=timestamp_proto,
             trace_id=trace_id,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
+    def create_trace_metric(
+        self,
+        metric_name: str,
+        metric_value: float,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {
+            "sentry.metric_name": AnyValue(string_value=metric_name),
+            "sentry.value": AnyValue(double_value=metric_value),
+        }
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,
@@ -3650,3 +3716,153 @@ class TraceTestCase(SpanTestCase):
             },
             project_id=self.gen1_project.id,
         )
+
+
+@pytest.mark.snuba
+@requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
+class UptimeResultEAPTestCase(BaseTestCase):
+    """Test case for creating and storing EAP uptime results."""
+
+    def create_eap_uptime_result(
+        self,
+        *,
+        organization=None,
+        project=None,
+        scheduled_check_time=None,
+        trace_id=None,
+        guid=None,
+        subscription_id=None,
+        check_id=None,
+        check_status="success",
+        incident_status=None,
+        region="default",
+        http_status_code=200,
+        request_type="GET",
+        request_url="https://example.com",
+        original_url=None,
+        request_sequence=0,
+        check_duration_us=150000,
+        request_duration_us=125000,
+        dns_lookup_duration_us=None,
+        tcp_connection_duration_us=None,
+        tls_handshake_duration_us=None,
+        time_to_first_byte_duration_us=None,
+        send_request_duration_us=None,
+        receive_response_duration_us=None,
+        request_body_size_bytes=None,
+        response_body_size_bytes=None,
+        status_reason_type=None,
+        status_reason_description=None,
+        span_id=None,
+    ):
+        from datetime import datetime, timedelta, timezone
+        from uuid import uuid4
+
+        from google.protobuf.timestamp_pb2 import Timestamp
+        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+        from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now(timezone.utc) - timedelta(minutes=1)
+        if trace_id is None:
+            trace_id = uuid4().hex
+        if guid is None:
+            guid = uuid4().hex
+        if subscription_id is None:
+            subscription_id = f"sub-{uuid4().hex[:8]}"
+        if span_id is None:
+            span_id = uuid4().hex[:16]
+
+        attributes_data = {
+            "guid": guid,
+            "subscription_id": subscription_id,
+            "check_status": check_status,
+            "region": region,
+            "http_status_code": http_status_code,
+            "request_type": request_type,
+            "request_url": request_url,
+            "request_sequence": request_sequence,
+            "check_duration_us": check_duration_us,
+            "request_duration_us": request_duration_us,
+            "span_id": span_id,
+        }
+
+        if check_id is not None:
+            attributes_data["check_id"] = check_id
+
+        optional_fields = {
+            "dns_lookup_duration_us": dns_lookup_duration_us,
+            "tcp_connection_duration_us": tcp_connection_duration_us,
+            "tls_handshake_duration_us": tls_handshake_duration_us,
+            "time_to_first_byte_duration_us": time_to_first_byte_duration_us,
+            "send_request_duration_us": send_request_duration_us,
+            "receive_response_duration_us": receive_response_duration_us,
+            "request_body_size_bytes": request_body_size_bytes,
+            "response_body_size_bytes": response_body_size_bytes,
+        }
+        for field, value in optional_fields.items():
+            if value is not None:
+                attributes_data[field] = value
+
+        if status_reason_type is not None:
+            attributes_data["status_reason_type"] = status_reason_type
+        if status_reason_description is not None:
+            attributes_data["status_reason_description"] = status_reason_description
+
+        if incident_status is not None:
+            attributes_data["incident_status"] = incident_status.value
+
+        if original_url is None:
+            original_url = request_url
+        attributes_data["original_url"] = original_url
+
+        attributes_proto = {}
+        for k, v in attributes_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(scheduled_check_time)
+
+        attributes_proto["scheduled_check_time_us"] = AnyValue(
+            int_value=int(scheduled_check_time.timestamp() * 1_000_000)
+        )
+        attributes_proto["actual_check_time_us"] = AnyValue(
+            int_value=int(scheduled_check_time.timestamp() * 1_000_000) + 5000
+        )
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+    def store_uptime_results(self, uptime_results):
+        """Store uptime results in the EAP dataset."""
+        import requests
+        from django.conf import settings
+
+        files = {
+            f"uptime_{i}": result.SerializeToString() for i, result in enumerate(uptime_results)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
+        for result in uptime_results:
+            # Reverse the ids here since these are stored in little endian in Clickhouse
+            # and end up reversed.
+            result.item_id = result.item_id[::-1]

@@ -29,10 +29,10 @@ from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
     assemble_file,
+    get_assemble_status,
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.sdk import bind_organization_context
@@ -285,10 +285,10 @@ def _assemble_preprod_artifact_file(
     logger.info(
         "Starting preprod file assembly",
         extra={
-            "timestamp": datetime.datetime.now().isoformat(),
-            "project_id": project_id,
             "organization_id": org_id,
+            "project_id": project_id,
             "assemble_task": assemble_task,
+            "checksum": checksum,
         },
     )
 
@@ -313,6 +313,18 @@ def _assemble_preprod_artifact_file(
             file_type="preprod.file",
         )
         if assemble_result is None:
+            state, detail = get_assemble_status(assemble_task, project_id, checksum)
+            logger.error(
+                "Failed to assemble preprod file",
+                extra={
+                    "organization_id": org_id,
+                    "project_id": project_id,
+                    "assemble_task": assemble_task,
+                    "checksum": checksum,
+                    "detail": detail,
+                    "state": state,
+                },
+            )
             return
 
         callback(assemble_result, project)
@@ -320,9 +332,10 @@ def _assemble_preprod_artifact_file(
         logger.exception(
             "Failed to assemble preprod file",
             extra={
-                "project_id": project_id,
                 "organization_id": org_id,
+                "project_id": project_id,
                 "assemble_task": assemble_task,
+                "checksum": checksum,
             },
         )
         set_assemble_status(
@@ -538,10 +551,9 @@ def assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
-    max_retries=0,
-    record_timing=True,
+    namespace=preprod_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=preprod_tasks, processing_deadline_duration=60),
 )
 def detect_expired_preprod_artifacts():
     """

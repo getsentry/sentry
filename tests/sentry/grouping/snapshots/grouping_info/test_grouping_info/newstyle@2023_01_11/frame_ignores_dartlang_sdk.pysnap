@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:03.393256+00:00'
+created: '2025-10-06T21:57:33.680026+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_stacktrace": {
     "component": {
       "contributes": false,
       "hint": null,
@@ -74,20 +74,22 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app",
+    "contributes": false,
+    "description": "event-level stacktrace — in-app frames",
     "hash": null,
     "hint": null,
-    "key": "app",
+    "key": "app_stacktrace",
     "type": "component"
   },
   "fallback": {
-    "description": "fallback",
+    "contributes": true,
+    "description": "fallback grouping",
     "hash": "d41d8cd98f00b204e9800998ecf8427e",
     "hint": null,
     "key": "fallback",
     "type": "fallback"
   },
-  "system": {
+  "system_stacktrace": {
     "component": {
       "contributes": false,
       "hint": null,
@@ -157,10 +159,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "system",
+    "contributes": false,
+    "description": "event-level stacktrace — all frames",
     "hash": null,
     "hint": null,
-    "key": "system",
+    "key": "system_stacktrace",
     "type": "component"
   }
 }

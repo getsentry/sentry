@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
@@ -6,9 +6,9 @@ import type {Location, LocationDescriptorObject} from 'history';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
-import type {GridColumn} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -78,8 +78,6 @@ function Table({
   summaryConditions,
   theme,
 }: TableProps) {
-  const [widths, setWidths] = useState<number[]>([]);
-
   const handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: string | number) => {
       trackAnalytics('performance_views.overview.cellaction', {
@@ -300,19 +298,6 @@ function Table({
     });
   }, [organization, projects, location]);
 
-  const handleResizeColumn = useCallback(
-    (columnIndex: number, nextColumn: GridColumn) => {
-      setWidths(prev => {
-        const next = [...prev];
-        next[columnIndex] = nextColumn.width
-          ? Number(nextColumn.width)
-          : COL_WIDTH_UNDEFINED;
-        return next;
-      });
-    },
-    []
-  );
-
   const getSortedEventView = (vitalName: WebVital) => {
     const aggregateFieldPoor = getAggregateAlias(
       getVitalDetailTablePoorStatusFunction(vitalName)
@@ -345,7 +330,7 @@ function Table({
     return eventView.withSorts([...additionalSorts, ...eventView.sorts]);
   };
 
-  const columnOrder = useMemo(() => {
+  const columns = useMemo(() => {
     const fakeColumnView = eventView.clone();
     fakeColumnView.fields = [...eventView.fields];
     return (
@@ -356,15 +341,12 @@ function Table({
         .filter(
           (col: TableColumn<string | number>) => col.name !== 'team_key_transaction'
         )
-        .slice(0, -1)
-        .map((col: TableColumn<string | number>, i: number) => {
-          if (typeof widths[i] === 'number') {
-            return {...col, width: widths[i]};
-          }
-          return col;
-        })
     );
-  }, [eventView, widths]);
+  }, [eventView]);
+
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns,
+  });
 
   const vitalName = vitalNameFromLocation(location);
   const sortedEventView = getSortedEventView(vitalName);

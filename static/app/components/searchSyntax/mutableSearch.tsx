@@ -14,12 +14,12 @@ import {getKeyName} from './utils';
 const EMPTY_OPTION_VALUE = '(empty)';
 
 // Hoisted regular expressions to avoid recompilation in hot paths
-const TRIMMABLE_ENDS_RE = /^["\(]+|["\)]+$/g;
-const WILDCARD_ESCAPE_RE = /([\*])/g;
-const NEEDS_QUOTING_RE = /[\s\(\)\\"]/;
+const TRIMMABLE_ENDS_RE = /^["(]+|[")]+$/g;
+const WILDCARD_ESCAPE_RE = /([*])/g;
+const NEEDS_QUOTING_RE = /[\s()\\"]/;
 const VALUE_IS_LIST_RE = /^\[.*\]$/;
 const VALUE_IS_QUOTED_RE = /^".*"$/;
-const BRACKET_QUOTE_PATTERN_RE = /^(.*), (\[[^\]]+\])\"]$/;
+const BRACKET_QUOTE_PATTERN_RE = /^(.*), (\[[^\]]+\])"]$/;
 
 const ALLOWED_WILDCARD_FIELDS = new Set<string>([
   'span.description',
@@ -626,6 +626,63 @@ export class MutableSearch {
     this.removeFilter(key);
     this.addEndsWithFilterValues(key, values, shouldEscape);
     return this;
+  }
+
+  private _addFilterValueList(
+    key: string,
+    values: string[],
+    shouldEscape = true,
+    operator:
+      | ''
+      | WildcardOperators.CONTAINS
+      | WildcardOperators.STARTS_WITH
+      | WildcardOperators.ENDS_WITH
+  ): this {
+    const escapedValues = values.map(value => {
+      const escaped = shouldEscape ? escapeFilterValue(value) : value;
+      return quoteIfNeeded(escaped);
+    });
+
+    this.tokens.push({
+      type: TokenType.FILTER,
+      key,
+      value: `${operator}[${escapedValues.join(',')}]`,
+      listValues: escapedValues,
+      text: `${key}:${operator}[${escapedValues.join(',')}]`,
+      wildcard: operator || undefined,
+    });
+    return this;
+  }
+
+  addFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(key, values, shouldEscape, '');
+  }
+
+  addContainsFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(
+      key,
+      values,
+      shouldEscape,
+      WildcardOperators.CONTAINS
+    );
+  }
+
+  addStartsWithFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(
+      key,
+      values,
+      shouldEscape,
+      WildcardOperators.STARTS_WITH
+    );
+  }
+
+  addEndsWithFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(
+      key,
+      values,
+      shouldEscape,
+      WildcardOperators.ENDS_WITH
+    );
   }
 
   getFilters(): Record<string, string[]> {

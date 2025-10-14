@@ -68,6 +68,7 @@ describe('SpansTabContent', () => {
         'gen-ai-features',
         'gen-ai-explore-traces',
         'gen-ai-explore-traces-consent-ui',
+        'search-query-builder-case-insensitivity',
       ],
     },
   });
@@ -79,14 +80,11 @@ describe('SpansTabContent', () => {
     jest.spyOn(console, 'error').mockImplementation();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [project].map(p => parseInt(p.id, 10)),
-        environments: [],
-        datetime: {period: '7d', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [project].map(p => parseInt(p.id, 10)),
+      environments: [],
+      datetime: {period: '7d', start: null, end: null, utc: null},
+    });
     MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
@@ -97,7 +95,6 @@ describe('SpansTabContent', () => {
       method: 'GET',
       body: {},
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
       method: 'GET',
@@ -252,6 +249,84 @@ describe('SpansTabContent', () => {
     expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+  });
+
+  describe('case sensitivity', () => {
+    it('renders the case sensitivity toggle', () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Toggle case sensitivity',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+    });
+
+    it('toggles case sensitivity', async () => {
+      const {router} = render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Toggle case sensitivity',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+      await userEvent.click(caseSensitivityToggle);
+
+      expect(caseSensitivityToggle).toHaveAttribute('aria-pressed', 'true');
+      expect(router.location.query.caseInsensitive).toBe('1');
+    });
+
+    it('appends case sensitive to the query', async () => {
+      const eventsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {},
+      });
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        method: 'GET',
+        body: {},
+      });
+
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Toggle case sensitivity',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+      await userEvent.click(caseSensitivityToggle);
+
+      await waitFor(() =>
+        expect(eventsMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events/`,
+          expect.objectContaining({
+            query: expect.objectContaining({caseInsensitive: '1'}),
+          })
+        )
+      );
+
+      await waitFor(() =>
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-stats/`,
+          expect.objectContaining({
+            query: expect.objectContaining({caseInsensitive: 1}),
+          })
+        )
+      );
+    });
   });
 
   describe('schema hints', () => {

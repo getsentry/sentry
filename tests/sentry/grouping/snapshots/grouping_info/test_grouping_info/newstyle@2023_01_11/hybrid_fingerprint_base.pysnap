@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:04.348973+00:00'
+created: '2025-10-07T22:42:55.939638+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_message_hybrid_fingerprint": {
     "client_values": [
       "{{ default }}",
       "dogs are great"
@@ -70,10 +70,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "modified in-app exception",
+    "contributes": true,
+    "description": "exception message and custom fingerprint",
     "hash": "e3d593b4335190212ca7c18b8e967fb1",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_message_hybrid_fingerprint",
     "type": "salted_component",
     "values": [
       "{{ default }}",

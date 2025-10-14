@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -33,11 +33,13 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {AffectSelector} from 'sentry/views/insights/mobile/screenload/components/affectSelector';
 import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
 } from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
+import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/data/useAffectsSelection';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -64,6 +66,7 @@ export function ScreenLoadSpansTable({
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
+  const {value: affects} = useAffectsSelection();
 
   const spanOp = decodeScalar(location.query[SpanFields.SPAN_OP]) ?? '';
   const {hasTTFD, isPending: hasTTFDLoading} = useTTFDConfigured([
@@ -84,6 +87,15 @@ export function ScreenLoadSpansTable({
       searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
+    if (affects === 'NONE') {
+      searchQuery.addFilterValue(`!${SpanFields.TTFD}`, 'ttfd');
+      searchQuery.addFilterValue(`!${SpanFields.TTID}`, 'ttid');
+    } else if (affects === 'TTFD') {
+      searchQuery.addFilterValue(SpanFields.TTFD, 'ttfd');
+    } else if (affects === 'TTID') {
+      searchQuery.addFilterValue(SpanFields.TTID, 'ttid');
+    }
+
     return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
   }, [
     isProjectCrossPlatform,
@@ -92,6 +104,7 @@ export function ScreenLoadSpansTable({
     selectedPlatform,
     spanOp,
     transaction,
+    affects,
   ]);
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
@@ -356,17 +369,19 @@ export function ScreenLoadSpansTable({
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: gridColumnOrder,
-    location,
     paramName: COLUMN_RESIZE_PARAM_NAME,
   });
 
   return (
     <Fragment>
-      <SpanOpSelector
-        primaryRelease={primaryRelease}
-        transaction={transaction}
-        secondaryRelease={secondaryRelease}
-      />
+      <ButtonContainer theme={theme}>
+        <SpanOpSelector
+          primaryRelease={primaryRelease}
+          transaction={transaction}
+          secondaryRelease={secondaryRelease}
+        />
+        <AffectSelector transaction={transaction} />
+      </ButtonContainer>
       <GridEditable
         isLoading={isPending || hasTTFDLoading}
         data={data}
@@ -386,4 +401,9 @@ export function ScreenLoadSpansTable({
 const Container = styled('div')`
   ${p => p.theme.overflowEllipsis};
   text-align: right;
+`;
+
+const ButtonContainer = styled('div')<{theme: Theme}>`
+  display: flex;
+  gap: ${p => p.theme.space.md};
 `;

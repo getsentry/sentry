@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Text} from 'sentry/components/core/text';
@@ -61,9 +61,9 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
             onChange={(option: {value: Frameworks}) => setSelectedFramework(option.value)}
           />
           <Text>{t('Install requirements in your terminal:')}</Text>
-          <CodeSnippet dark language="bash">
+          <CodeBlock dark language="bash">
             {INSTALL_REQUIREMENTS_SNIPPETS[selectedFramework]}
-          </CodeSnippet>
+          </CodeBlock>
           {GENERATE_FILE_SNIPPETS[selectedFramework] ? (
             <Fragment>
               <Text>
@@ -71,9 +71,9 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
                   'Generate a JUnit XML file that contains the results of your test run.'
                 )}
               </Text>
-              <CodeSnippet dark language="bash">
+              <CodeBlock dark language="bash">
                 {GENERATE_FILE_SNIPPETS[selectedFramework]}
-              </CodeSnippet>
+              </CodeBlock>
             </Fragment>
           ) : null}
         </OnboardingStep.Content>

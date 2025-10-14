@@ -2,7 +2,7 @@ import logging
 import math
 import uuid
 from datetime import datetime, timezone
-from itertools import chain, islice
+from itertools import islice
 
 from sentry import options
 from sentry.utils import metrics
@@ -114,40 +114,23 @@ def mark_projects_processed(
     if not all_project_ids_and_timestamps:
         return
     with metrics.timer("workflow_engine.scheduler.mark_projects_processed"):
-        max_project_timestamp = max(chain(*all_project_ids_and_timestamps.values()))
-        if options.get("workflow_engine.scheduler.use_conditional_delete"):
-            member_maxes = [
-                (project_id, max(timestamps))
-                for project_id, timestamps in all_project_ids_and_timestamps.items()
-            ]
-            try:
-                deleted_project_ids = set[int]()
-                # The conditional delete can be slow, so we break it into chunks that probably
-                # aren't big enough to hold onto the main redis thread for too long.
-                for chunk in chunked(member_maxes, 500):
-                    with metrics.timer(
-                        "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
-                    ):
-                        deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
-                        deleted_project_ids.update(deleted)
+        member_maxes = [
+            (project_id, max(timestamps))
+            for project_id, timestamps in all_project_ids_and_timestamps.items()
+        ]
+        deleted_project_ids = set[int]()
+        # The conditional delete can be slow, so we break it into chunks that probably
+        # aren't big enough to hold onto the main redis thread for too long.
+        for chunk in chunked(member_maxes, 500):
+            with metrics.timer(
+                "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+            ):
+                deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
+                deleted_project_ids.update(deleted)
 
-                logger.info(
-                    "process_buffered_workflows.project_ids_deleted",
-                    extra={
-                        "deleted_project_ids": sorted(deleted_project_ids),
-                    },
-                )
-            except Exception:
-                logger.exception(
-                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
-                )
-                # Fallback.
-                buffer_client.clear_project_ids(
-                    min=0,
-                    max=max_project_timestamp,
-                )
-        else:
-            buffer_client.clear_project_ids(
-                min=0,
-                max=max_project_timestamp,
-            )
+        logger.info(
+            "process_buffered_workflows.project_ids_deleted",
+            extra={
+                "deleted_project_ids": sorted(deleted_project_ids),
+            },
+        )

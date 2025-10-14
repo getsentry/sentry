@@ -4,18 +4,17 @@ import styled from '@emotion/styled';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {ConnectMonitorsContent} from 'sentry/views/automations/components/editConnectedMonitors';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
@@ -52,13 +51,14 @@ export default function AutomationNew() {
   });
 
   return (
-    <SentryDocumentTitle title={t('New Automation')} noSuffix>
+    <SentryDocumentTitle title={t('New Automation')}>
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <AutomationBreadcrumbs />
             <Layout.Title>{t('New Automation')}</Layout.Title>
           </Layout.HeaderContent>
+          <AutomationFeedbackButton />
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -79,7 +79,9 @@ export default function AutomationNew() {
         </Layout.Body>
       </Layout.Page>
       <StickyFooter>
-        <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
+        <Text variant="muted" size="md">
+          {t('Step 1 of 2')}
+        </Text>
         <Flex gap="md">
           <LinkButton
             priority="default"

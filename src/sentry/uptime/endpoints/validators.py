@@ -14,7 +14,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionDataSourceHandler,
     get_audit_log_data,
@@ -25,6 +24,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     MaxManualUptimeSubscriptionsReached,
     MaxUrlsForDomainReachedException,
     UptimeMonitorNoSeatAvailable,
+    check_uptime_subscription_limit,
     check_url_limits,
     create_uptime_detector,
     create_uptime_subscription,
@@ -202,6 +202,16 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
 
     def validate(self, attrs):
+        # When creating a new uptime monitor, check if we would exceed the organization limit
+        if not self.instance:
+            organization = self.context["organization"]
+            try:
+                check_uptime_subscription_limit(organization.id)
+            except MaxManualUptimeSubscriptionsReached:
+                raise serializers.ValidationError(
+                    f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
+                )
+
         headers = []
         method = "GET"
         body = None
@@ -246,34 +256,29 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         method_headers_body = {
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
-        try:
-            detector = create_uptime_detector(
-                project=self.context["project"],
-                environment=environment,
-                url=validated_data["url"],
-                interval_seconds=validated_data["interval_seconds"],
-                timeout_ms=validated_data["timeout_ms"],
-                name=validated_data["name"],
-                status=validated_data.get("status"),
-                mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
-                owner=validated_data.get("owner"),
-                trace_sampling=validated_data.get("trace_sampling", False),
-                recovery_threshold=validated_data["recovery_threshold"],
-                downtime_threshold=validated_data["downtime_threshold"],
-                **method_headers_body,
-            )
+        detector = create_uptime_detector(
+            project=self.context["project"],
+            environment=environment,
+            url=validated_data["url"],
+            interval_seconds=validated_data["interval_seconds"],
+            timeout_ms=validated_data["timeout_ms"],
+            name=validated_data["name"],
+            status=validated_data.get("status"),
+            mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
+            owner=validated_data.get("owner"),
+            trace_sampling=validated_data.get("trace_sampling", False),
+            recovery_threshold=validated_data["recovery_threshold"],
+            downtime_threshold=validated_data["downtime_threshold"],
+            **method_headers_body,
+        )
 
-            create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
-                target_object=detector.id,
-                event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
-                data=get_audit_log_data(detector),
-            )
-        except MaxManualUptimeSubscriptionsReached:
-            raise serializers.ValidationError(
-                f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
-            )
+        create_audit_entry(
+            request=self.context["request"],
+            organization=self.context["organization"],
+            target_object=detector.id,
+            event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
+            data=get_audit_log_data(detector),
+        )
 
         return detector
 
@@ -447,7 +452,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
                 interval_seconds=validated_data["interval_seconds"],
                 timeout_ms=validated_data["timeout_ms"],
                 trace_sampling=validated_data.get("trace_sampling", False),
-                uptime_status=UptimeStatus.OK,
                 method=validated_data.get("method", "GET"),
                 headers=validated_data.get("headers", None),
                 body=validated_data.get("body", None),

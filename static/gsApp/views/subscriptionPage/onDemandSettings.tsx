@@ -54,7 +54,12 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
       },
       success: data => {
         SubscriptionStore.set(data.slug, data);
-        addSuccessMessage(t('%s max spend updated', subscription.planDetails.budgetTerm));
+        addSuccessMessage(
+          t(
+            '%s max spend updated',
+            displayBudgetName(subscription.planDetails, {title: true})
+          )
+        );
       },
     });
   }
