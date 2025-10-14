@@ -258,10 +258,20 @@ class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Should have different span.op values like "db", "http.client", etc.
         assert len(result) > 0
 
-        # Each group should have the metric
+        # Each group should have the metric wrapped in normalized format
+        # Format: {"group_value": {"count()": {"data": [...]}}}
         for group_value, metrics in result.items():
-            if isinstance(metrics, dict) and "count()" in metrics:
-                assert "data" in metrics["count()"]
+            assert isinstance(
+                metrics, dict
+            ), f"Expected dict for {group_value}, got {type(metrics)}"
+            assert (
+                "count()" in metrics
+            ), f"Missing count() in metrics for {group_value}: {metrics.keys()}"
+            assert "data" in metrics["count()"], f"Missing data in count() for {group_value}"
+
+            # Verify we can get actual count data
+            data_points = metrics["count()"]["data"]
+            assert isinstance(data_points, list)
 
     def test_execute_trace_query_table_with_groupby(self):
         """Test table query with group_by for aggregates mode"""

@@ -56,11 +56,23 @@ def execute_trace_query_chart(
     )
     data = resp.data
 
-    # Normalize response format: single-axis returns flat format, multi-axis returns nested
-    # We always want the nested format {"metric": {"data": [...]}}
-    if isinstance(data, dict) and "data" in data and len(y_axes) == 1:
-        # Single axis response - wrap it
-        metric_name = y_axes[0]
+    # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
+    metric_is_single = len(y_axes) == 1
+    metric_name = y_axes[0] if metric_is_single else None
+
+    # Handle grouped data with single metric: wrap each group's data in the metric name
+    if group_by and metric_is_single:
+        return {
+            group_value: (
+                {metric_name: group_data}
+                if isinstance(group_data, dict) and "data" in group_data
+                else group_data
+            )
+            for group_value, group_data in data.items()
+        }
+
+    # Handle non-grouped data with single metric: wrap data in the metric name
+    if metric_is_single and isinstance(data, dict) and "data" in data:
         return {metric_name: data}
 
     return data
