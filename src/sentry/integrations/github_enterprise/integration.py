@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
@@ -19,7 +18,6 @@ from sentry.integrations.base import (
     IntegrationFeatures,
     IntegrationMetadata,
 )
-from sentry.integrations.credentials_service.types import CredentialLeasable
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssuesSpec
@@ -154,7 +152,7 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, CredentialLeasable
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration
 ):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -189,35 +187,6 @@ class GitHubEnterpriseIntegration(
             return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
         else:
             return ERR_INTERNAL
-
-    # CredentialLeasableMixin methods
-
-    def get_maximum_lease_duration_seconds(self) -> int:
-        return 60 * 60  # Access tokens are valid for an hour by default.
-
-    def refresh_access_token_with_minimum_validity_time(
-        self, token_minimum_validity_time: timedelta
-    ) -> str:
-        access_token_data = self.get_client().get_access_token(
-            token_minimum_validity_time=token_minimum_validity_time
-        )
-
-        assert access_token_data is not None, "Expected Integration to have an access token"
-        return access_token_data["access_token"]
-
-    def force_refresh_access_token(self) -> str:
-        raise NotImplementedError("Force refresh access token is not supported for GitHub")
-
-    def get_active_access_token(self) -> str:
-        access_token_data = self.get_client().get_access_token()
-        assert access_token_data is not None, "Expected Integration to have an access token"
-        return access_token_data["access_token"]
-
-    def get_current_access_token_expiration(self) -> datetime | None:
-        expiration = self.model.metadata.get("expires_at")
-        if not expiration:
-            return None
-        return datetime.fromisoformat(expiration)
 
     # RepositoryIntegration methods
 

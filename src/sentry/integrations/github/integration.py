@@ -40,6 +40,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
@@ -283,7 +284,8 @@ class GitHubIntegration(
         expiration_time = None
         # Annoying quirk that the underlying client may update the integration
         # model, but the model reference on this class isn't updated.
-        self.model.refresh_from_db()
+        # self.model.refresh_from_db()
+        self._update_integration_model()
         if self.model.metadata.get("expires_at"):
             expiration_time = datetime.fromisoformat(
                 self.model.metadata.get("expires_at")
@@ -294,6 +296,18 @@ class GitHubIntegration(
             permissions=self.model.metadata.get("permissions"),
             expires_at=expiration_time,
         )
+
+    def _update_integration_model(self) -> None:
+        updated_model: RpcIntegration | Integration | None = None
+        if isinstance(self.model, Integration):
+            updated_model = Integration.objects.get(id=self.model.id)
+        else:
+            updated_model = integration_service.get_integration(self.model.id)
+
+        if updated_model is None:
+            raise IntegrationError("Integration model not found")
+
+        self.model = updated_model
 
     # IntegrationInstallation methods
 
