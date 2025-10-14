@@ -238,7 +238,8 @@ def send_historical_data_to_seer(
     if not results.get("success"):
         message = results.get("message", "")
         logger.error(
-            "Error when hitting Seer store data endpoint",
+            "Error when hitting Seer store data endpoint: %s",
+            message,
             extra={
                 "detector_id": detector.id,
                 "project_id": project.id,
