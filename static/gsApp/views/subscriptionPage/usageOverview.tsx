@@ -194,7 +194,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         width: 200,
       },
       {
-        key: 'cta',
+        key: 'trialInfo',
         name: '',
         width: 50,
       },
@@ -205,7 +205,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           !column.key.endsWith('Spend') ||
           ((subscription.onDemandInvoiced || subscription.onDemandInvoicedManual) &&
             column.key === 'budgetSpend')) &&
-        (hasAnyPotentialProductTrial || column.key !== 'cta')
+        (hasAnyPotentialProductTrial || column.key !== 'trialInfo')
     );
   }, [
     hasBillingPerms,
@@ -459,13 +459,10 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           switch (column.key) {
             case 'product': {
               const title = (
-                <Text as="div" textWrap="balance">
-                  <Text bold>
-                    {!hasAccess && <IconLock locked size="xs" />} {product}
-                    {softCapType &&
-                      ` (${toTitleCase(softCapType.replace(/_/g, ' ').toLocaleLowerCase())})`}{' '}
-                  </Text>{' '}
-                  {productTrial && <ProductTrialTag trial={productTrial} />}{' '}
+                <Text bold textWrap="balance">
+                  {!hasAccess && <IconLock locked size="xs" />} {product}
+                  {softCapType &&
+                    ` (${toTitleCase(softCapType.replace(/_/g, ' ').toLocaleLowerCase())})`}{' '}
                 </Text>
               );
 
@@ -597,49 +594,55 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                 : '-';
               return <CurrencyCell>{formattedSpend}</CurrencyCell>;
             }
-            case 'cta': {
-              if (productTrial && !productTrial.isStarted) {
+            case 'trialInfo': {
+              if (productTrial) {
                 return (
-                  <Flex justify="center">
-                    <StartTrialButton
-                      organization={organization}
-                      source="usage-overview"
-                      requestData={{
-                        productTrial: {
-                          category: productTrial.category,
-                          reasonCode: productTrial.reasonCode,
-                        },
-                      }}
-                      aria-label={t('Start 14 day free %s trial', product)}
-                      priority="primary"
-                      handleClick={() => {
-                        setTrialButtonBusyState(prev => ({
-                          ...prev,
-                          [productTrial.category]: true,
-                        }));
-                      }}
-                      onTrialStarted={() => {
-                        setTrialButtonBusyState(prev => ({
-                          ...prev,
-                          [productTrial.category]: true,
-                        }));
-                      }}
-                      onTrialFailed={() => {
-                        setTrialButtonBusyState(prev => ({
-                          ...prev,
-                          [productTrial.category]: false,
-                        }));
-                      }}
-                      busy={trialButtonBusyState[productTrial.category]}
-                      disabled={trialButtonBusyState[productTrial.category]}
-                      size="xs"
-                    >
-                      <Flex align="center" gap="sm">
-                        <IconLightning size="xs" />
-                        <Container>{t('Start 14 day free trial')}</Container>
-                      </Flex>
-                    </StartTrialButton>
-                  </Flex>
+                  <Container>
+                    {productTrial.isStarted ? (
+                      <Container>
+                        <ProductTrialTag trial={productTrial} />
+                      </Container>
+                    ) : (
+                      <StartTrialButton
+                        organization={organization}
+                        source="usage-overview"
+                        requestData={{
+                          productTrial: {
+                            category: productTrial.category,
+                            reasonCode: productTrial.reasonCode,
+                          },
+                        }}
+                        aria-label={t('Start 14 day free %s trial', product)}
+                        priority="primary"
+                        handleClick={() => {
+                          setTrialButtonBusyState(prev => ({
+                            ...prev,
+                            [productTrial.category]: true,
+                          }));
+                        }}
+                        onTrialStarted={() => {
+                          setTrialButtonBusyState(prev => ({
+                            ...prev,
+                            [productTrial.category]: true,
+                          }));
+                        }}
+                        onTrialFailed={() => {
+                          setTrialButtonBusyState(prev => ({
+                            ...prev,
+                            [productTrial.category]: false,
+                          }));
+                        }}
+                        busy={trialButtonBusyState[productTrial.category]}
+                        disabled={trialButtonBusyState[productTrial.category]}
+                        size="xs"
+                      >
+                        <Flex align="center" gap="sm">
+                          <IconLightning size="xs" />
+                          <Container>{t('Start 14 day free trial')}</Container>
+                        </Flex>
+                      </StartTrialButton>
+                    )}
+                  </Container>
                 );
               }
               return <div />;
