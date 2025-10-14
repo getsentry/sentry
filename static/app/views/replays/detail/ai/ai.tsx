@@ -5,7 +5,7 @@ import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {FeatureBadge} from 'sentry/components/core/badge';
+import {Badge, FeatureBadge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -192,7 +192,7 @@ export default function Ai() {
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
             </Flex>
-            <FeatureBadge type="experimental" />
+            <FeatureBadge type="experimental" tooltipProps={{disabled: true}} />
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
