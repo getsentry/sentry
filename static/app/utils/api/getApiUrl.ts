@@ -1,4 +1,7 @@
-import type {KnownApiUrls} from 'sentry/utils/api/knownApiUrls.generated';
+import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
+import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
+
+type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
 type StripDollar<T extends string> = T extends `$${infer Name}` ? Name : T;
 

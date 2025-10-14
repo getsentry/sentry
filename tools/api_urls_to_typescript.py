@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     configure()
 
-    from getsentry.conf.urls.app import urlpatterns
+    from sentry.api.urls import urlpatterns
 
     route_patterns = sorted(set(urls_to_routes("/", urlpatterns)))
 
@@ -170,15 +170,17 @@ if __name__ == "__main__":
         for route_pattern in route_patterns:
             print(route_pattern)
     else:
-        with open("./knownApiUrls.generated.ts", "w") as f:
+        with open("static/app/utils/api/knownSentryApiUrls.generated.ts", "w") as f:
             f.writelines(
                 [
                     "/**\n",
                     " * GENERATED FILE. Do not edit manually.\n",
                     " * To update it run `python3 -m tools.api_urls_to_typescript`\n",
+                    " *\n",
+                    " * This file is the sibling to knownGetsentryApiUrls.ts.\n",
                     " */\n",
                     "\n",
-                    "export type KnownApiUrls =\n",
+                    "export type KnownSentryApiUrls =\n",
                     "\n".join([f"  | '{r}'" for r in route_patterns]) + ";\n",
                 ]
             )
