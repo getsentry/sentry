@@ -1840,6 +1840,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: 'vitals/',
+        handle: {tab: TransactionSummaryTab.WEB_VITALS},
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionVitals')
         ),

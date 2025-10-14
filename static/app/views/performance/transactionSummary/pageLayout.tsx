@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 import {Outlet} from 'react-router-dom';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
@@ -69,6 +69,7 @@ type Props = {
     location: Location;
     organization: Organization;
     shouldUseOTelFriendlyUI: boolean;
+    theme: Theme;
     transactionName: string;
   }) => EventView;
   getDocumentTitle: (name: string) => string;
@@ -98,6 +99,7 @@ function PageLayout(props: Props) {
     projectId = filterProjects;
   }
 
+  const theme = useTheme();
   const router = useRouter();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
@@ -179,6 +181,7 @@ function PageLayout(props: Props) {
     organization,
     transactionName,
     shouldUseOTelFriendlyUI,
+    theme,
   });
 
   if (!defined(projectId)) {

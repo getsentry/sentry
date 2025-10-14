@@ -10,6 +10,7 @@ import {generateTransactionEventsEventView} from 'sentry/views/performance/trans
 import {generateTransactionOverviewEventView} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {generateTransactionReplaysEventView} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
 import {generateTransactionTagsEventView} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
+import {generateTransactionVitalsEventView} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 
 function TransactionSummaryLayout() {
   const location = useLocation();
@@ -44,6 +45,8 @@ function makeGenerateEventView(tab: Tab) {
       return generateTransactionTagsEventView;
     case Tab.REPLAYS:
       return generateTransactionReplaysEventView;
+    case Tab.WEB_VITALS:
+      return generateTransactionVitalsEventView;
     default:
       throw new Error('Unknown tab');
   }
@@ -63,6 +66,9 @@ function makeGetDocumentTitle(tab: Tab) {
       break;
     case Tab.REPLAYS:
       name = t('Replays');
+      break;
+    case Tab.WEB_VITALS:
+      name = t('Vitals');
       break;
     default:
       name = '';
