@@ -34,6 +34,7 @@ import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 
 import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
 import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
@@ -60,8 +61,8 @@ type Props = {
 function Overview({location, subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const navigate = useNavigate();
   const isNewBillingUI = hasNewBillingUI(organization);
+  const navigate = useNavigate();
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
     ? (location.query.displayMode as 'cost' | 'usage')
@@ -335,14 +336,24 @@ function Overview({location, subscription, promotionData}: Props) {
         <RecurringCredits displayType="data" planDetails={planDetails} />
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        <DisplayModeToggle
-          subscription={subscription}
-          displayMode={displayMode}
-          organization={organization}
-        />
-        {renderUsageChart(usageData)}
-        {renderUsageCards(usageData)}
-        <OnDemandSettings organization={organization} subscription={subscription} />
+        {isNewBillingUI ? (
+          <UsageOverview
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+          />
+        ) : (
+          <Fragment>
+            <DisplayModeToggle
+              subscription={subscription}
+              displayMode={displayMode}
+              organization={organization}
+            />
+            {renderUsageChart(usageData)}
+            {renderUsageCards(usageData)}
+            <OnDemandSettings organization={organization} subscription={subscription} />
+          </Fragment>
+        )}
         <TrialEnded subscription={subscription} />
       </Fragment>
     );
@@ -353,8 +364,18 @@ function Overview({location, subscription, promotionData}: Props) {
       <Fragment>
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        {renderUsageChart(usageData)}
-        {renderUsageCards(usageData)}
+        {isNewBillingUI ? (
+          <UsageOverview
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+          />
+        ) : (
+          <Fragment>
+            {renderUsageChart(usageData)}
+            {renderUsageCards(usageData)}
+          </Fragment>
+        )}
         <TrialEnded subscription={subscription} />
       </Fragment>
     );
@@ -369,6 +390,8 @@ function Overview({location, subscription, promotionData}: Props) {
           <SubscriptionHeader organization={organization} subscription={subscription} />
         ) : undefined
       }
+      useBorderTopLogic={false}
+      paddingOverride="0 2xl 3xl"
     >
       {!isNewBillingUI && (
         <SubscriptionHeader organization={organization} subscription={subscription} />

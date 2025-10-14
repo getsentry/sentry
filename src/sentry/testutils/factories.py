@@ -55,6 +55,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
@@ -1152,7 +1153,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
-        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.models.groupopenperiod import GroupOpenPeriod, should_create_open_periods
         from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
@@ -1170,7 +1171,7 @@ class Factories:
             kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
-        if create_open_period:
+        if create_open_period and should_create_open_periods(group.type):
             open_period = GroupOpenPeriod.objects.create(
                 group=group,
                 project=project,
@@ -1192,6 +1193,13 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_file(**kwargs):
         return File.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder(organization, provider, config, **kwargs):
+        return DataForwarder.objects.create(
+            organization=organization, provider=provider, config=config, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1696,9 +1704,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_incident_activity(incident, type, comment=None, user_id=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id
+            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
         )
 
     @staticmethod

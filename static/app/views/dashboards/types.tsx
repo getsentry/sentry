@@ -94,11 +94,24 @@ export type WidgetQuery = {
   selectedAggregate?: number;
 };
 
+type WidgetChangedReason = {
+  equations: Array<{
+    equation: string;
+    reason: string | string[];
+  }> | null;
+  orderby: Array<{
+    orderby: string;
+    reason: string;
+  }> | null;
+  selected_columns: string[];
+};
+
 export type Widget = {
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
@@ -158,8 +171,11 @@ export type DashboardFilters = {
 };
 
 export type GlobalFilter = {
+  // Dataset the global filter will be applied to
   dataset: WidgetType;
+  // The tag being filtered
   tag: Tag;
+  // The raw filter condition string (e.g. 'tagKey:[values,...]')
   value: string;
 };
 

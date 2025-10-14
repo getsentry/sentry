@@ -41,6 +41,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
+from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -366,16 +367,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.is_resolved()
 
         resolved_at = before_now(minutes=4)
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=group,
             project=group.project,
             type=ActivityType.SET_RESOLVED_BY_AGE.value,
             datetime=resolved_at,
-        )
-
-        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
-            resolution_time=resolved_at,
-            resolution_activity=activity,
         )
 
         manager = EventManager(
@@ -390,21 +386,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
-        regression_activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_REGRESSION.value
-        )
-
-        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
-        assert len(open_periods) == 2
-        open_period = open_periods[0]
-        assert open_period.date_started == regression_activity.datetime
-        assert open_period.date_ended is None
-        open_period = open_periods[1]
-        assert open_period.date_started == group.first_seen
-        assert open_period.date_ended == resolved_at
-
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
+    @mock.patch("sentry.models.groupopenperiod.get_group_type_by_type_id")
+    def test_unresolves_group(
+        self, mock_get_group_type: mock.MagicMock, send_robust: mock.MagicMock
+    ) -> None:
+        mock_get_group_type.return_value = MetricIssue
         ts = before_now(minutes=5).isoformat()
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -427,6 +414,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             type=ActivityType.SET_RESOLVED.value,
             datetime=resolved_at,
         )
+
         GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
             resolution_time=resolved_at,
             resolution_activity=activity,
@@ -474,7 +462,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group.save()
         assert group.is_resolved()
 
-        GroupOpenPeriod.objects.all().delete()
         manager = EventManager(
             make_event(
                 event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
@@ -486,11 +473,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
         assert send_robust.called
-
-        activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
-        assert GroupOpenPeriod.objects.filter(group=group).count() == 1
-        assert GroupOpenPeriod.objects.get(group=group).date_ended is None
-        assert GroupOpenPeriod.objects.get(group=group).date_started == activity.datetime
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
@@ -1173,15 +1155,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         resolved_at = before_now(minutes=4)
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=event.group,
             project=event.group.project,
             type=ActivityType.SET_RESOLVED.value,
             datetime=resolved_at,
-        )
-        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).close_open_period(
-            resolution_time=resolved_at,
-            resolution_activity=activity,
         )
 
         mock_is_resolved.return_value = True
@@ -1199,19 +1177,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.active_at
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
-
-        regression_activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_REGRESSION.value
-        )
-
-        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
-        assert len(open_periods) == 2
-        open_period = open_periods[0]
-        assert open_period.date_started == regression_activity.datetime
-        assert open_period.date_ended is None
-        open_period = open_periods[1]
-        assert open_period.date_started == group.first_seen
-        assert open_period.date_ended == resolved_at
 
     def test_invalid_transaction(self) -> None:
         dict_input = {"messages": "foo"}
@@ -1689,7 +1654,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["metadata"]["title"] == "foo bar"
 
     def test_error_event_type(self) -> None:
-        from sentry.models.groupopenperiod import GroupOpenPeriod
 
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
@@ -1706,13 +1670,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "value": "bar",
             "initial_priority": PriorityLevel.HIGH,
         }
-
-        open_period = GroupOpenPeriod.objects.filter(group=group)
-        assert len(open_period) == 1
-        assert open_period[0].group_id == group.id
-        assert open_period[0].project_id == self.project.id
-        assert open_period[0].date_started == group.first_seen
-        assert open_period[0].date_ended is None
 
     def test_error_event_with_minified_stacktrace(self) -> None:
         with patch(

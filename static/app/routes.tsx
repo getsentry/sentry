@@ -1972,6 +1972,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.MOBILE_VITALS},
           component: make(
             () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
           ),
@@ -2045,9 +2046,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${MOBILE_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/mobile/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           ),
@@ -2510,7 +2513,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/feedback/index')),
     withOrgPath: true,
     children: feedbackV2Children,
-    deprecatedRouteProps: true,
   };
 
   const issueTabs: SentryRouteObject[] = [
@@ -2638,7 +2640,6 @@ function buildRoutes(): RouteObject[] {
       path: 'feedback/',
       component: make(() => import('sentry/views/feedback/index')),
       children: feedbackV2Children,
-      deprecatedRouteProps: true,
     },
     {
       path: 'alerts/',

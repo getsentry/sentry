@@ -92,6 +92,11 @@ describe('Subscription > Overview', () => {
       method: 'GET',
     });
 
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/current/`,
+      method: 'GET',
+    });
+
     SubscriptionStore.set(organization.slug, {});
   });
 

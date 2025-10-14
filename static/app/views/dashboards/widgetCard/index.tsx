@@ -47,6 +47,7 @@ import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetVi
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {
   getMenuOptions,
+  useDroppedColumnsWarning,
   useIndexedEventsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
@@ -191,7 +192,11 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
-  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({widget});
+  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
+    widget,
+    selection,
+  });
+  const droppedColumnsWarning = useDroppedColumnsWarning(widget);
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
@@ -263,6 +268,7 @@ function WidgetCard(props: Props) {
     sessionDurationWarning,
     spanTimeRangeWarning,
     transactionsDeprecationWarning,
+    droppedColumnsWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
