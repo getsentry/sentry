@@ -228,6 +228,37 @@ describe('GroupStore', () => {
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
       });
+
+      it('should show generic message when itemIds is undefined (all in query selected)', () => {
+        const IndicatorStore = require('sentry/stores/indicatorStore').default;
+        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        
+        GroupStore.onDeleteSuccess('1337', undefined, {});
+
+        expect(addMessageSpy).toHaveBeenCalledWith('Deleted all selected issues', 'success', {duration: 4000});
+      });
+
+      it('should show specific count when itemIds is provided', () => {
+        const IndicatorStore = require('sentry/stores/indicatorStore').default;
+        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        
+        GroupStore.onDeleteSuccess('1337', ['1', '2'], {});
+
+        expect(addMessageSpy).toHaveBeenCalledWith('Deleted 2 Issues', 'success', {duration: 4000});
+      });
+
+      it('should show shortId for single issue deletion', () => {
+        const IndicatorStore = require('sentry/stores/indicatorStore').default;
+        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        
+        // Mock the GroupStore.get method to return a group with shortId
+        const mockGroup = g('1', {shortId: 'ABC-123'});
+        jest.spyOn(GroupStore, 'get').mockReturnValue(mockGroup);
+        
+        GroupStore.onDeleteSuccess('1337', ['1'], {});
+
+        expect(addMessageSpy).toHaveBeenCalledWith('Deleted ABC-123', 'success', {duration: 4000});
+      });
     });
 
     describe('onAssignToSuccess()', () => {
