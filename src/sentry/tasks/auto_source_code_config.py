@@ -11,7 +11,7 @@ from sentry.taskworker.retry import Retry
 @instrumented_task(
     name="sentry.tasks.auto_source_code_config",
     namespace=issues_tasks,
-    processing_deadline_duration=10 * 60,
+    processing_deadline_duration=15 * 60,
     retry=Retry(times=3, delay=60 * 10),
 )
 def auto_source_code_config(project_id: int, event_id: str, group_id: int, **kwargs: Any) -> None:
