@@ -107,7 +107,8 @@ def test_parse_replay_events_empty() -> None:
             "payload_compressed": b"",
             "replay_event": None,
             "replay_video": None,
-        }
+        },
+        True,
     )
     assert result == ParsedEventMeta([], [], [], [], [], [], [])
     assert trace_items == []
@@ -130,7 +131,8 @@ def test_parse_replay_events_invalid_json() -> None:
             "payload_compressed": b"",
             "replay_event": None,
             "replay_video": None,
-        }
+        },
+        True,
     )
     assert result is None
 

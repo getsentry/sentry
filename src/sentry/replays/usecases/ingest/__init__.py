@@ -77,7 +77,7 @@ class CustomEventData(msgspec.Struct, gc=False):
 
 
 class CustomEvent(msgspec.Struct, gc=False, tag_field="type", tag=5):
-    data: CustomEventData
+    data: CustomEventData | None = None
 
 
 RRWebEvent = (
@@ -89,6 +89,23 @@ RRWebEvent = (
     | CustomEvent
     | PluginEvent
 )
+
+
+def parse_recording_data(payload: bytes) -> list[dict]:
+    try:
+        # We're parsing with msgspec (if we can) and then transforming to the type that
+        # JSON.loads returns.
+        return [
+            {"type": 5, "data": {"tag": e.data.tag, "payload": e.data.payload}}
+            for e in msgspec.json.decode(payload, type=list[RRWebEvent])
+            if isinstance(e, CustomEvent) and e.data is not None
+        ]
+    except Exception:
+        # We're emitting a metric instead of logging in case this thing really fails hard in
+        # prod. We don't want a huge volume of logs slowing throughput. If there's a
+        # significant volume of this metric we'll test against a broader cohort of data.
+        metrics.incr("replays.recording_consumer.msgspec_decode_error")
+        return json.loads(payload)
 
 
 class DropEvent(Exception):
@@ -128,8 +145,10 @@ class ProcessedEvent:
 
 
 @sentry_sdk.trace
-def process_recording_event(message: Event) -> ProcessedEvent:
-    parsed_output = parse_replay_events(message)
+def process_recording_event(
+    message: Event, use_new_recording_parser: bool = False
+) -> ProcessedEvent:
+    parsed_output = parse_replay_events(message, use_new_recording_parser)
     if parsed_output:
         replay_events, trace_items = parsed_output
     else:
@@ -163,21 +182,11 @@ def process_recording_event(message: Event) -> ProcessedEvent:
     )
 
 
-def parse_replay_events(message: Event):
+def parse_replay_events(message: Event, use_new_recording_parser: bool):
     try:
-        try:
-            # We're parsing with msgspec (if we can) and then transforming to the type that
-            # JSON.loads returns.
-            events = [
-                {"type": 5, "data": {"tag": e.data.tag, "payload": e.data.payload}}
-                for e in msgspec.json.decode(message["payload"], type=list[RRWebEvent])
-                if isinstance(e, CustomEvent)
-            ]
-        except Exception:
-            # We're emitting a metric instead of logging in case this thing really fails hard in
-            # prod. We don't want a huge volume of logs slowing throughput. If there's a
-            # significant volume of this metric we'll test against a broader cohort of data.
-            metrics.incr("replays.recording_consumer.msgspec_decode_error")
+        if use_new_recording_parser:
+            events = parse_recording_data(message["payload"])
+        else:
             events = json.loads(message["payload"])
 
         return parse_events(
