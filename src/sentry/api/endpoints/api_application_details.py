@@ -47,6 +47,9 @@ class CustomSchemeURLField(serializers.CharField):
         if data == "":
             self.fail("invalid")
 
+        # After CharField validation and None/empty checks, data must be a string
+        assert isinstance(data, str)
+
         # Basic URL structure validation
         try:
             parsed = urlparse(data)
