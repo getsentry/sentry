@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import {Tag as TagBadge} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -25,6 +26,10 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
 ]);
 
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
+
+export function getDatasetLabel(dataset: WidgetType) {
+  return DATASET_CHOICES.get(dataset) ?? '';
+}
 
 function getTagType(tag: Tag, dataset: WidgetType | null) {
   const fieldType =
@@ -100,9 +105,11 @@ function AddFilter({onAddFilter}: AddFilterProps) {
           priority="primary"
           disabled={!selectedFilterKey}
           onClick={() => {
+            if (!selectedFilterKey || !selectedDataset) return;
+
             const newFilter: GlobalFilter = {
-              dataset: selectedDataset!,
-              tag: selectedFilterKey!,
+              dataset: selectedDataset,
+              tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
               value: '',
             };
             onAddFilter(newFilter);

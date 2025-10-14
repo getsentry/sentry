@@ -9,7 +9,7 @@ from sentry.utils import json
 
 from .span_builder import SpanBuilder
 
-_fixture_path = get_fixture_path("events", "performance_problems")
+_fixture_path = get_fixture_path("events", "issue_detection")
 
 EVENTS = {}
 PROJECT_ID = 1

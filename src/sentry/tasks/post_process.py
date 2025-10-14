@@ -1195,7 +1195,7 @@ def process_commits(job: PostProcessJob) -> None:
 
                     process_commit_context.delay(
                         event_id=event.event_id,
-                        event_platform=event.platform,
+                        event_platform=event.platform or "",
                         event_frames=event_frames,
                         group_id=event.group_id,
                         project_id=event.project_id,

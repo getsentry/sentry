@@ -553,7 +553,7 @@ class SqlFormatEventSerializerTest(TestCase):
         assert result["release"]["lastCommit"]["id"] == "917ac271787e74ff2dbe52b67e77afcff9aaa305"
 
     def test_event_db_span_formatting(self) -> None:
-        event_data = get_event("n-plus-one-in-django-new-view")
+        event_data = get_event("n-plus-one-db/n-plus-one-in-django-new-view")
         event_data["contexts"] = {
             "trace": {
                 "trace_id": "530c14e044aa464db6ddb43660e6474f",

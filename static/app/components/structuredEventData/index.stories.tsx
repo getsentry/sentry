@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 
@@ -143,14 +143,14 @@ export default Storybook.story('StructuredEventData', story => {
           customize when and how certain data types are displayed.
         </p>
         <p>Input:</p>
-        <CodeSnippet language="javascript">{`data: {nil: null, bool: 'this_should_look_like_a_boolean'}`}</CodeSnippet>
+        <CodeBlock language="javascript">{`data: {nil: null, bool: 'this_should_look_like_a_boolean'}`}</CodeBlock>
         <p>Config:</p>
-        <CodeSnippet language="javascript">
+        <CodeBlock language="javascript">
           {`const config = {
   renderNull: () => 'nulllllll',
   isBoolean: value => value === 'this_should_look_like_a_boolean',
 }`}
-        </CodeSnippet>
+        </CodeBlock>
         <p>Output:</p>
         <StructuredEventData
           data={{nil: null, bool: 'this_should_look_like_a_boolean'}}
@@ -165,13 +165,13 @@ export default Storybook.story('StructuredEventData', story => {
           any other custom formatting), you can set the <code>isString</code>
           <Storybook.JSXProperty name=" config" value /> with something like this:
         </p>
-        <CodeSnippet language="javascript">
+        <CodeBlock language="javascript">
           {`const config = {
   isString: (v: any) => {
     return typeof v === 'string';
   },
 }; `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });

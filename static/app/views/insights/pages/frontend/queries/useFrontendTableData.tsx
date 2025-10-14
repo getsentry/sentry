@@ -69,7 +69,7 @@ export const useFrontendTableData = (
   });
 
   const updateMetaIfExists = (oldField: string, newField: string) => {
-    if (response?.meta?.fields[oldField]) {
+    if (response?.meta?.fields?.[oldField]) {
       response.meta.fields[newField] = response?.meta?.fields[oldField];
     }
   };
