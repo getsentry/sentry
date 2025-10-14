@@ -236,10 +236,10 @@ def mark_projects_processed(
                 deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
                 deleted_project_ids.update(deleted)
 
-                logger.info(
-                    "process_buffered_workflows.project_ids_deleted",
-                    extra={
-                        "deleted_project_ids": sorted(deleted_project_ids),
-                        "processed_project_ids": sorted(processed_project_ids),
-                    },
-                )
+        logger.info(
+            "process_buffered_workflows.project_ids_deleted",
+            extra={
+                "deleted_project_ids": sorted(deleted_project_ids),
+                "processed_project_ids": sorted(processed_project_ids),
+            },
+        )

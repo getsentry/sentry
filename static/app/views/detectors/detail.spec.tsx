@@ -273,7 +273,7 @@ describe('DetectorDetails', () => {
       ).toBeInTheDocument();
 
       expect(screen.getByText('3 consecutive failed checks.')).toBeInTheDocument();
-      expect(screen.getByText('1 consecutive successful check.')).toBeInTheDocument();
+      expect(screen.getByText('1 successful check.')).toBeInTheDocument();
 
       // Interval
       expect(screen.getByText('Every 1 minute')).toBeInTheDocument();
