@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -255,6 +255,17 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                     app_id=f"com.test.{artifact_state.name.lower()}",
                 )
 
+                if artifact_state == PreprodArtifact.ArtifactState.PROCESSED:
+                    PreprodArtifactSizeMetrics.objects.create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                        min_download_size=1024 * 1024,
+                        max_download_size=1024 * 1024,
+                        min_install_size=2 * 1024 * 1024,
+                        max_install_size=2 * 1024 * 1024,
+                    )
+
                 _, mock_provider, client_patch, provider_patch = (
                     self._create_working_status_check_setup(preprod_artifact)
                 )
@@ -271,14 +282,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert call_kwargs["status"] == expected_status
                 assert call_kwargs["title"] == "Size Analysis"
 
-                # Note: PROCESSED without size metrics = still processing
                 if expected_status == StatusCheckStatus.SUCCESS:
                     # SUCCESS only when processed AND has completed size metrics
-                    assert "1 build" in call_kwargs["subtitle"]
+                    assert "1 app" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.IN_PROGRESS:
-                    assert "1 build processing" in call_kwargs["subtitle"]
+                    assert "1 app processing" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.FAILURE:
-                    assert "1 build errored" in call_kwargs["subtitle"]
+                    assert "1 app errored" in call_kwargs["subtitle"]
 
                 assert call_kwargs["summary"]  # Just check it exists
                 assert call_kwargs["external_id"] == str(preprod_artifact.id)
@@ -287,6 +297,16 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         """Test task handles status check API failures gracefully."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
         )
 
         _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
@@ -327,6 +347,15 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 build_number=i + 1,
                 commit_comparison=commit_comparison,
             )
+            PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=1024 * 1024,
+                max_download_size=1024 * 1024,
+                min_install_size=2 * 1024 * 1024,
+                max_install_size=2 * 1024 * 1024,
+            )
             artifacts.append(artifact)
 
         _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
@@ -342,9 +371,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert (
-            call_kwargs["subtitle"] == "3 builds processing"
-        )  # All processed but no metrics = processing
+        assert call_kwargs["subtitle"] == "3 apps analyzed"  # All processed with completed metrics
 
         summary = call_kwargs["summary"]
         assert "com.example.app0" in summary
@@ -410,7 +437,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert call_kwargs["subtitle"] == "1 build analyzed, 1 build processing, 1 build errored"
+        assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
         assert call_kwargs["status"] == StatusCheckStatus.FAILURE  # Failed takes priority
 
         summary = call_kwargs["summary"]
