@@ -11,7 +11,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
+import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -191,7 +191,6 @@ export default function Ai() {
           <SummaryLeftTitle>
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
-              <IconSeer />
             </Flex>
             <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
