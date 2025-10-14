@@ -61,8 +61,9 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 0
         assert data["performance_issues"] == 0
         assert data["span_count"] == 0
+        assert data["uptime_checks"] == 0
         assert data["span_count_map"] == {}
-        assert "uptime_checks" not in data  # Should not be present without include_uptime param
+        assert "uptime_checks" not in data  # Should not be present without feature flag
 
         # Invalid trace id
         with pytest.raises(NoReverseMatch):
@@ -162,8 +163,8 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         defaults.update(kwargs)
         return self.create_eap_uptime_result(**defaults)
 
-    def test_trace_meta_without_uptime_param(self) -> None:
-        """Test that uptime_checks field is NOT present when include_uptime is not set"""
+    def test_trace_meta_with_existing_uptime_data(self) -> None:
+        """Test that uptime_checks field shows correct count when uptime data exists"""
         self.load_trace(is_eap=True)
         uptime_result = self.create_uptime_check()
         self.store_uptime_results([uptime_result])
@@ -176,13 +177,13 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
         assert response.status_code == 200
         data = response.data
-        assert "uptime_checks" not in data
+        assert data["uptime_checks"] == 1
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
         assert data["span_count"] == 19
 
-    def test_trace_meta_with_uptime_param(self) -> None:
-        """Test that uptime_checks shows correct count when include_uptime=1"""
+    def test_trace_meta_with_uptime_data(self) -> None:
+        """Test that uptime_checks shows correct count when uptime data exists"""
         self.load_trace(is_eap=True)
 
         uptime_results = [
@@ -195,7 +196,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": "-1", "include_uptime": "1"},
+                data={"project": "-1"},
                 format="json",
             )
 
