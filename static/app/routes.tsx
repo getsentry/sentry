@@ -1817,49 +1817,53 @@ function buildRoutes(): RouteObject[] {
     )
     .filter(route => route !== null);
 
-  const transactionSummaryChildren: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionOverview')
-      ),
-      deprecatedRouteProps: true,
-    },
-    traceView,
-    {
-      path: 'replays/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionReplays')
-      ),
-    },
-    {
-      path: 'vitals/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionVitals')
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'tags/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionTags')
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'events/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionEvents')
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'profiles/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionProfiles')
-      ),
-    },
-  ];
+  const transactionSummaryRoute: SentryRouteObject = {
+    path: 'summary/',
+    component: make(() => import('sentry/views/performance/transactionSummary/layout')),
+    children: [
+      {
+        index: true,
+        component: make(
+          () => import('sentry/views/performance/transactionSummary/transactionOverview')
+        ),
+        deprecatedRouteProps: true,
+      },
+      traceView,
+      {
+        path: 'replays/',
+        component: make(
+          () => import('sentry/views/performance/transactionSummary/transactionReplays')
+        ),
+      },
+      {
+        path: 'vitals/',
+        component: make(
+          () => import('sentry/views/performance/transactionSummary/transactionVitals')
+        ),
+        deprecatedRouteProps: true,
+      },
+      {
+        path: 'tags/',
+        component: make(
+          () => import('sentry/views/performance/transactionSummary/transactionTags')
+        ),
+        deprecatedRouteProps: true,
+      },
+      {
+        path: 'events/',
+        component: make(
+          () => import('sentry/views/performance/transactionSummary/transactionEvents')
+        ),
+        deprecatedRouteProps: true,
+      },
+      {
+        path: 'profiles/',
+        component: make(
+          () => import('sentry/views/performance/transactionSummary/transactionProfiles')
+        ),
+      },
+    ],
+  };
 
   const moduleRoutes: SentryRouteObject[] = [
     {
@@ -2002,10 +2006,7 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/insights/index')),
     },
-    {
-      path: 'summary/',
-      children: transactionSummaryChildren,
-    },
+    transactionSummaryRoute,
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/`,
       component: make(() => import('sentry/views/insights/pages/frontend/layout')),
@@ -2017,10 +2018,7 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
           ),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
         ...moduleRoutes,
       ],
@@ -2036,10 +2034,7 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/insights/pages/backend/backendOverviewPage')
           ),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
         ...moduleRoutes,
       ],
@@ -2055,10 +2050,7 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           ),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
         ...moduleRoutes,
       ],
@@ -2071,10 +2063,7 @@ function buildRoutes(): RouteObject[] {
           index: true,
           component: make(() => import('sentry/views/insights/pages/agents/redirect')),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
         {
           path: `${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
@@ -2149,10 +2138,7 @@ function buildRoutes(): RouteObject[] {
       index: true,
       redirectTo: '/insights/frontend/',
     },
-    {
-      path: 'summary/',
-      children: transactionSummaryChildren,
-    },
+    transactionSummaryRoute,
     {
       path: 'vitaldetail/',
       component: make(() => import('sentry/views/performance/vitalDetail')),
