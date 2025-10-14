@@ -40,7 +40,10 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
       ...changedReason.equations.map(equation =>
         tct(`[equation] was dropped because [reason] is unsupported`, {
           equation: equation.equation,
-          reason: equation.reason,
+          reason:
+            typeof equation.reason === 'string'
+              ? equation.reason
+              : equation.reason.join(', '),
         })
       )
     );
