@@ -808,7 +808,7 @@ function Cart({
   };
 
   return (
-    <Stack data-test-id="cart" gap="xl" paddingTop="xl">
+    <Stack data-test-id="cart" gap="xl">
       <CartDiff
         activePlan={activePlan}
         formData={formData}

@@ -12,13 +12,12 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
-import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
@@ -33,7 +32,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -762,19 +760,19 @@ class AMCheckout extends Component<Props, State> {
     return (
       <Alert.Container>
         <Alert type="info">
-          <PartnerAlertContent>
-            <PartnerAlertTitle>
+          <Stack gap="md">
+            <Text bold>
               {tct('Billing handled externally through [partnerName]', {
                 partnerName: subscription.partner?.partnership.displayName,
               })}
-            </PartnerAlertTitle>
+            </Text>
             {tct(
               'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
               {
                 partnerName: subscription.partner?.partnership.displayName,
               }
             )}
-          </PartnerAlertContent>
+          </Stack>
         </Alert>
       </Alert.Container>
     );
@@ -784,11 +782,7 @@ class AMCheckout extends Component<Props, State> {
   renderParentComponent({children}: {children: React.ReactNode}) {
     const {isNewCheckout} = this.props;
     if (isNewCheckout) {
-      return (
-        <Flex direction="column" align="center" background="primary">
-          {children}
-        </Flex>
-      );
+      return <Fragment>{children}</Fragment>;
     }
     return children;
   }
@@ -920,48 +914,52 @@ class AMCheckout extends Component<Props, State> {
             ) : (
               <CheckoutOverview {...overviewProps} />
             )}
-            <Flex padding="0 0">
-              <SupportPrompt>
-                {t('Have a question?')}
-                <TextOverflow>
-                  {tct('[help:Find an answer] or [contact]', {
-                    help: (
-                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
-                    ),
-                    contact: hasZendesk() ? (
-                      <ZendeskButton borderless onClick={activateZendesk}>
-                        <Text variant="accent">{t('ask Support')}</Text>
-                      </ZendeskButton>
-                    ) : (
-                      <ZendeskLink subject="Billing Question" source="checkout">
-                        {t('ask Support')}
-                      </ZendeskLink>
-                    ),
-                  })}
-                </TextOverflow>
-              </SupportPrompt>
+            <Text>{discountInfo?.disclaimerText}</Text>
+            <Flex
+              direction="row"
+              align="center"
+              justify="between"
+              gap="md"
+              padding="xl"
+              border="primary"
+              radius="lg"
+            >
+              {t('Have a question?')}
+              <TextOverflow>
+                {tct('[help:Find an answer] or [contact]', {
+                  help: (
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                  ),
+                  contact: hasZendesk() ? (
+                    <Button borderless onClick={activateZendesk}>
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </Button>
+                  ) : (
+                    <ZendeskLink subject="Billing Question" source="checkout">
+                      {t('ask Support')}
+                    </ZendeskLink>
+                  ),
+                })}
+              </TextOverflow>
             </Flex>
-            <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
             {subscription.canCancel && (
-              <CancelSubscription>
-                <LinkButton
-                  to={`/settings/${organization.slug}/billing/cancel/`}
-                  disabled={subscription.cancelAtPeriodEnd}
-                >
-                  {subscription.cancelAtPeriodEnd
-                    ? t('Pending Cancellation')
-                    : t('Cancel Subscription')}
-                </LinkButton>
-              </CancelSubscription>
+              <LinkButton
+                to={`/settings/${organization.slug}/billing/cancel/`}
+                disabled={subscription.cancelAtPeriodEnd}
+              >
+                {subscription.cancelAtPeriodEnd
+                  ? t('Pending Cancellation')
+                  : t('Cancel Subscription')}
+              </LinkButton>
             )}
             {showAnnualTerms && (
-              <AnnualTerms>
+              <Text size="sm" align="center" variant="muted">
                 {tct(
                   `Annual subscriptions require a one-year non-cancellable commitment.
                 By using Sentry you agree to our [terms: Terms of Service].`,
                   {terms: <a href="https://sentry.io/terms/" />}
                 )}
-              </AnnualTerms>
+              </Text>
             )}
           </OverviewContainer>
         </SidePanel>
@@ -970,7 +968,13 @@ class AMCheckout extends Component<Props, State> {
 
     return this.renderParentComponent({
       children: (
-        <Flex width="100%" justify="center" background="primary">
+        <Flex
+          width="100%"
+          direction="column"
+          justify="center"
+          align="center"
+          background="primary"
+        >
           <SentryDocumentTitle
             title={t('Change Subscription')}
             orgSlug={organization.slug}
@@ -1053,11 +1057,12 @@ class AMCheckout extends Component<Props, State> {
 }
 
 const CheckoutHeader = styled('header')`
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
+  width: 100%;
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
@@ -1087,13 +1092,12 @@ const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
     p.isNewCheckout &&
     css`
-      padding: ${p.theme.space['3xl']} ${p.theme.space['2xl']};
+      padding: 0 ${p.theme.space['2xl']} ${p.theme.space['3xl']} ${p.theme.space['2xl']};
       width: 100%;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       max-width: 45rem;
-      margin-top: ${p.theme.space['3xl']};
     `}
 `;
 
@@ -1105,12 +1109,12 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
       border-top: 1px solid ${p.theme.border};
       display: flex;
       flex-direction: column;
-      padding: ${p.theme.space['2xl']};
+      padding: 0 ${p.theme.space['2xl']};
 
       @media (min-width: ${p.theme.breakpoints.md}) {
         position: sticky;
         right: 0;
-        top: 8rem;
+        top: 0;
         min-height: 100vh;
         max-width: 480px;
         border-top: none;
@@ -1151,52 +1155,12 @@ const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
       display: flex;
       flex-direction: column;
       position: relative;
+      gap: ${p.theme.space.xl};
 
       @media (min-width: ${p.theme.breakpoints.md}) {
         padding-left: ${p.theme.space['2xl']};
-        padding-right: ${p.theme.space['2xl']};
       }
     `}
-`;
-
-const SupportPrompt = styled(Panel)`
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.xl};
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  align-items: center;
-  width: 100%;
-`;
-
-const CancelSubscription = styled('div')`
-  display: grid;
-  justify-items: center;
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const PartnerAlertContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const PartnerAlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const AnnualTerms = styled(TextBlock)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
@@ -1211,11 +1175,6 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
         margin-top: ${p.theme.space.md};
       }
     `}
-`;
-
-const ZendeskButton = styled(Button)`
-  padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));
