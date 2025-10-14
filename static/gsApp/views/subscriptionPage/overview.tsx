@@ -47,7 +47,6 @@ import ReservedUsageChart from './reservedUsageChart';
 import SubscriptionHeader from './subscriptionHeader';
 import UsageAlert from './usageAlert';
 import {CombinedUsageTotals, UsageTotals} from './usageTotals';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   location: Location;
@@ -145,11 +144,6 @@ function Overview({location, subscription, promotionData}: Props) {
       );
     }
   }, [organization, location.query, subscription, promotionData, api, navigate]);
-
-  useEffect(
-    () => trackSubscriptionView(organization, subscription, 'overview'),
-    [subscription, organization]
-  );
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.

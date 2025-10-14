@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -48,7 +48,6 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 
 import {StripedTable} from './styles';
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 interface Props extends RouteComponentProps<unknown, unknown> {
   subscription: Subscription;
@@ -90,10 +89,6 @@ function UsageHistory({subscription}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const isNewBillingUI = hasNewBillingUI(organization);
-
-  useEffect(() => {
-    trackSubscriptionView(organization, subscription, 'usage');
-  }, [organization, subscription]);
 
   const {
     data: usageList,

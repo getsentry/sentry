@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
@@ -36,7 +36,6 @@ import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   organization: Organization;
@@ -56,10 +55,6 @@ enum ReceiptStatus {
 function PaymentHistory({organization, subscription}: Props) {
   const isNewBillingUI = hasNewBillingUI(organization);
   const location = useLocation();
-
-  useEffect(() => {
-    trackSubscriptionView(organization, subscription, 'receipts');
-  }, [organization, subscription]);
 
   const {
     data: payments,
