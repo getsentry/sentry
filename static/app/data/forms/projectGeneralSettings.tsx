@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -54,9 +54,9 @@ export const fields = {
     name: 'name',
     type: 'string',
     required: true,
-    label: t('Name'),
+    label: t('Slug'),
     placeholder: t('my-awesome-project'),
-    help: t('A name for this project'),
+    help: t('A unique ID used to identify this project'),
     transformInput: slugify,
     getData: (data: {name?: string}) => {
       return {
@@ -68,7 +68,7 @@ export const fields = {
     saveOnBlur: false,
     saveMessageAlertType: 'warning',
     saveMessage: t(
-      "Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully."
+      "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
   },
 
@@ -145,9 +145,9 @@ export const fields = {
       examples: (
         <Hovercard
           body={
-            <CodeSnippet hideCopyButton>
+            <CodeBlock hideCopyButton>
               {`https://example.com\n*.example.com\n*:80\n*`}
-            </CodeSnippet>
+            </CodeBlock>
           }
         >
           <Button priority="link" size="xs">

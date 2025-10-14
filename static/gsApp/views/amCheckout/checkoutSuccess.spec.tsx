@@ -6,6 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
+import {InvoiceItemType} from 'getsentry/types';
 import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 
 describe('CheckoutSuccess', () => {
@@ -66,5 +67,50 @@ describe('CheckoutSuccess', () => {
     expect(await screen.findByText('Consider it done')).toBeInTheDocument();
     expect(screen.queryByTestId('scheduled-changes')).not.toBeInTheDocument();
     expect(screen.queryByTestId('receipt')).not.toBeInTheDocument();
+  });
+
+  it('renders ondemand items in receipt', async () => {
+    const invoiceWithOnDemand = InvoiceFixture({
+      items: [
+        {
+          type: InvoiceItemType.SUBSCRIPTION,
+          description: 'Subscription to Team Plan',
+          amount: 31200,
+          data: {quantity: null},
+          periodStart: '2025-01-01T00:00:00Z',
+          periodEnd: '2026-01-01T00:00:00Z',
+        },
+        {
+          type: InvoiceItemType.ONDEMAND_ERRORS,
+          description: '4,901,066 pay-as-you-go errors',
+          amount: 94022,
+          data: {quantity: 4901066},
+          periodStart: '2025-01-01T00:00:00Z',
+          periodEnd: '2026-01-01T00:00:00Z',
+        },
+        {
+          type: InvoiceItemType.ONDEMAND_MONITOR_SEATS,
+          description: '2 pay-as-you-go cron monitors',
+          amount: 156,
+          data: {quantity: 2},
+          periodStart: '2025-01-01T00:00:00Z',
+          periodEnd: '2026-01-01T00:00:00Z',
+        },
+      ],
+    });
+
+    render(
+      <CheckoutSuccess
+        invoice={invoiceWithOnDemand}
+        basePlan={bizPlan}
+        nextQueryParams={[]}
+      />
+    );
+
+    expect(await screen.findByText('Pay-as-you-go usage')).toBeInTheDocument();
+    expect(screen.getByText('4,901,066 errors')).toBeInTheDocument();
+    expect(screen.getByText('2 cron monitors')).toBeInTheDocument();
+    expect(screen.getByText('$940.22')).toBeInTheDocument();
+    expect(screen.getByText('$1.56')).toBeInTheDocument();
   });
 });

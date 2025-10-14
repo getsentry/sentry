@@ -29,10 +29,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.login_as(user=self.user)
 
         self.detector = self.create_detector()
-        self.group = self.create_group(priority=PriorityLevel.LOW)
-        # Metric issue is the only type (currently) that has open periods
-        self.group.type = MetricIssue.type_id
-        self.group.save()
+        self.group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.LOW)
 
         # Link detector to group
         DetectorGroup.objects.create(detector=self.detector, group=self.group)
@@ -74,6 +71,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
             "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
         }
 
     def test_open_periods_group_id(self) -> None:
@@ -109,6 +107,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
             "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
         }
 
     def test_open_periods_resolved_group(self) -> None:
@@ -151,11 +150,13 @@ class OrganizationOpenPeriodsTest(APITestCase):
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
             "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
         }
         assert resp["activities"][1] == {
             "id": str(closed_gopa.id),
             "type": OpenPeriodActivityType.CLOSED.to_str(),
             "value": None,
+            "dateCreated": closed_gopa.date_added,
         }
 
     def test_open_periods_unresolved_group(self) -> None:
@@ -235,11 +236,13 @@ class OrganizationOpenPeriodsTest(APITestCase):
             "id": str(opened_gopa2.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
             "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": opened_gopa2.date_added,
         }
         assert resp["activities"][1] == {
             "id": str(closed_gopa2.id),
             "type": OpenPeriodActivityType.CLOSED.to_str(),
             "value": None,
+            "dateCreated": closed_gopa2.date_added,
         }
 
         assert resp2["id"] == str(open_period.id)
@@ -255,11 +258,13 @@ class OrganizationOpenPeriodsTest(APITestCase):
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
             "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
         }
         assert resp2["activities"][1] == {
             "id": str(closed_gopa.id),
             "type": OpenPeriodActivityType.CLOSED.to_str(),
             "value": None,
+            "dateCreated": closed_gopa.date_added,
         }
 
     def test_open_periods_limit(self) -> None:

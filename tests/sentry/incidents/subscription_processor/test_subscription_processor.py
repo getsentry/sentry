@@ -299,7 +299,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         ):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.no_alert_rule_for_subscription"
+            "incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0
         )
         assert not QuerySubscription.objects.filter(id=subscription_id).exists()
         assert SnubaQuery.objects.filter(id=snuba_query.id).exists()
@@ -324,7 +324,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         ):
             SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.no_alert_rule_for_subscription"
+            "incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0
         )
         assert not QuerySubscription.objects.filter(id=subscription_id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
@@ -3481,7 +3481,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         processor = SubscriptionProcessor(self.sub)
-        processor.alert_rule = self.dynamic_rule
+        processor._alert_rule = self.dynamic_rule
         result = get_anomaly_data_from_seer_legacy(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,

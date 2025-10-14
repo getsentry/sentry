@@ -1,6 +1,7 @@
 import type {Layout} from 'react-grid-layout';
 
 import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 
@@ -93,14 +94,28 @@ export type WidgetQuery = {
   selectedAggregate?: number;
 };
 
+type WidgetChangedReason = {
+  equations: Array<{
+    equation: string;
+    reason: string | string[];
+  }> | null;
+  orderby: Array<{
+    orderby: string;
+    reason: string;
+  }> | null;
+  selected_columns: string[];
+};
+
 export type Widget = {
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
+  exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
@@ -147,10 +162,21 @@ export type DashboardListItem = {
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
+  GLOBAL_FILTER = 'globalFilter',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
+  [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
+};
+
+export type GlobalFilter = {
+  // Dataset the global filter will be applied to
+  dataset: WidgetType;
+  // The tag being filtered
+  tag: Tag;
+  // The raw filter condition string (e.g. 'tagKey:[values,...]')
+  value: string;
 };
 
 /**

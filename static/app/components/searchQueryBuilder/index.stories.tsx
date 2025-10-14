@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -715,6 +715,50 @@ export default Storybook.story('SearchQueryBuilder', story => {
     );
   });
 
+  story('Case sensitivity', () => {
+    const [caseInsensitive, setCaseInsensitive] = useState<1 | null>(null);
+
+    return (
+      <Fragment>
+        <p>
+          Case sensitivity does not directly apply case sensitivity to the query being
+          submitted. This implementation provides the API to provide the case sensitivity
+          state, and a callback that is triggered when the user clicks on the case icon.
+        </p>
+        <p>
+          <code>caseInsensitive</code> is used to control the active state of the case
+          icon.
+        </p>
+        <p>
+          <code>onCaseInsensitiveClick</code> is called when the user clicks on the case
+          icon. The visibility of the case icon is controlled when the{' '}
+          <code>onCaseInsensitiveClick</code> prop is defined.
+        </p>
+        <p>
+          <ul>
+            <li>
+              <strong>
+                <code>caseInsensitive</code>
+              </strong>{' '}
+              value : <code>{String(caseInsensitive)}</code>
+            </li>
+          </ul>
+        </p>
+        <SearchQueryBuilder
+          initialQuery="browser.name:FiReFox"
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          caseInsensitive={caseInsensitive}
+          onCaseInsensitiveClick={value => {
+            setCaseInsensitive(value);
+            return Promise.resolve(new URLSearchParams(value ? 'caseInsensitive=1' : ''));
+          }}
+        />
+      </Fragment>
+    );
+  });
+
   story('Match key suggestions', () => {
     return (
       <Fragment>
@@ -851,7 +895,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           implementation, clicking the button will open the dropdown for the first filter
           with the <code>focusOverride</code> prop.
         </p>
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 function OpenDropdownButton() {
   const {dispatch} = useSearchQueryBuilder();
@@ -884,7 +928,7 @@ function SearchQueryBuilderExample(queryBuilderProps: SearchQueryBuilderProps) {
   )
 }
       `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>The following is the above code in action:</p>
         <SearchQueryBuilderExample />
       </Fragment>

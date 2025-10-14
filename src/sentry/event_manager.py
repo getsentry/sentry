@@ -143,6 +143,7 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -1494,6 +1495,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
             record_new_group_metrics(event)
 
             group = _create_group(project, event, **_get_group_processing_kwargs(job))
+            associate_new_group_with_detector(group)
             add_group_id_to_grouphashes(group, grouphashes)
 
             return GroupInfo(group=group, is_new=True, is_regression=False)

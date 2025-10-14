@@ -217,6 +217,10 @@ class DashboardDetail extends Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     this.checkIfShouldMountWidgetViewerModal();
 
+    if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
+      this.setState({isWidgetBuilderOpen: true});
+    }
+
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
