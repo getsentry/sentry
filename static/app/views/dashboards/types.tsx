@@ -70,6 +70,11 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
+export type LinkedDashboard = {
+  dashboardId: string;
+  field: string;
+};
+
 /**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
@@ -88,6 +93,7 @@ export type WidgetQuery = {
   // widgets.
   fields?: string[];
   isHidden?: boolean | null;
+  linkedDashboards?: string[];
   // Contains the on-demand entries for the widget query.
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder

@@ -18,6 +18,7 @@ from sentry.models.dashboard import (
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
+    DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -2951,6 +2952,57 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
             assert response.status_code == 200
+
+    def test_update_widget_with_field_links(self) -> None:
+        # Create a second dashboard to link to
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Field Links",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        widget = widgets[0]
+        queries = widget.dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+
+        # Verify field links were created
+        field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
+        assert len(field_links) == 1
+
+        field_link = field_links[0]
+        assert field_link.field == "project"
+        assert field_link.dashboard_id == linked_dashboard.id
+        assert field_link.dashboard_widget_query_id == queries[0].id
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

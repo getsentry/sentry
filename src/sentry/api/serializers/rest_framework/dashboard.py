@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -21,6 +21,7 @@ from sentry.issues.issue_search import parse_search_query
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
+    DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -142,6 +143,13 @@ class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
         return data
 
 
+class LinkedDashboardSerializer(CamelSnakeSerializer[Dashboard]):
+    field = serializers.CharField(required=True)
+    dashboard_id = serializers.CharField(required=True)
+
+    validate_dashboard_id = validate_id
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -163,6 +171,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     on_demand_extraction_disabled = serializers.BooleanField(required=False)
 
     selected_aggregate = serializers.IntegerField(required=False, allow_null=True)
+    linked_dashboards = LinkedDashboardSerializer(many=True, required=False, allow_null=True)
 
     required_for_create = {"fields", "conditions"}
 
@@ -844,7 +853,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         )
 
         new_queries = []
-        for i, query in enumerate(widget_data.pop("queries")):
+        query_data_list = widget_data.pop("queries")
+        for i, query in enumerate(query_data_list):
             new_queries.append(
                 DashboardWidgetQuery(
                     widget=widget,
@@ -862,6 +872,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             )
 
         DashboardWidgetQuery.objects.bulk_create(new_queries)
+
+        # Handle field links for each query
+        for i, query_obj in enumerate(new_queries):
+            query_data = query_data_list[i]
+            if "linked_dashboards" in query_data and query_data["linked_dashboards"]:
+                self._update_field_links(query_obj, query_data["linked_dashboards"], dashboard)
 
         if widget.widget_type in [
             DashboardWidgetTypes.DISCOVER,
@@ -891,6 +907,48 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 query_cardinality,
                 ondemand_feature,
                 current_widget_specs,
+            )
+
+    def _update_field_links(
+        self,
+        query: DashboardWidgetQuery,
+        linked_dashboards: list[dict[str, Any]],
+        dashboard: Dashboard,
+    ):
+        """
+        Update DashboardFieldLink entries for a query.
+        linked_dashboards is expected to be an array of dicts with format {"field": str, "dashboard_id": int}
+        """
+        # Get the set of fields that should exist
+        new_fields = set()
+        field_links_to_create = []
+
+        if linked_dashboards:
+            for link_data in linked_dashboards:
+                field = link_data.get("field")
+                dashboard_id = link_data.get("dashboard_id")
+                if field and dashboard_id:
+                    new_fields.add(field)
+                    field_links_to_create.append(
+                        DashboardFieldLink(
+                            dashboard_widget_query=query,
+                            field=field,
+                            dashboard_id=int(dashboard_id),
+                        )
+                    )
+
+        # Delete field links that are no longer in the request
+        DashboardFieldLink.objects.filter(dashboard_widget_query=query).exclude(
+            field__in=new_fields
+        ).delete()
+
+        # Use bulk_create with update_conflicts to upsert
+        if field_links_to_create:
+            DashboardFieldLink.objects.bulk_create(
+                field_links_to_create,
+                update_conflicts=True,
+                unique_fields=["dashboard_widget_query", "field"],
+                update_fields=["dashboard_id"],
             )
 
     def update_widget(self, widget, data):
@@ -960,6 +1018,33 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             else:
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
+
+        # Handle field links for new queries
+        for i, query_obj in enumerate(new_queries):
+            query_index = len(update_queries) + i
+            if query_index < len(data):
+                query_data = data[query_index]
+                if (
+                    "linked_dashboards" in query_data
+                    and query_data.get("linked_dashboards") is not None
+                ):
+                    self._update_field_links(
+                        query_obj, query_data["linked_dashboards"], widget.dashboard
+                    )
+
+        # Handle field links for updated queries
+        for query_obj in update_queries:
+            # Find the corresponding query_data
+            for query_data in data:
+                if query_data.get("id") == query_obj.id:
+                    if (
+                        "linked_dashboards" in query_data
+                        and query_data.get("linked_dashboards") is not None
+                    ):
+                        self._update_field_links(
+                            query_obj, query_data["linked_dashboards"], widget.dashboard
+                        )
+                    break
 
         if widget.widget_type in [
             DashboardWidgetTypes.DISCOVER,
