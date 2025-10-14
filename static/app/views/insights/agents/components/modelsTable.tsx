@@ -125,7 +125,7 @@ export function ModelsTable() {
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,internal_error)', // spans with status unknown are errors
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -147,7 +147,7 @@ export function ModelsTable() {
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
       cost: span['sum(gen_ai.usage.total_cost)'],
-      errors: span['count_if(span.status,equals,unknown)'] ?? 0,
+      errors: span['count_if(span.status,equals,internal_error)'] ?? 0,
       inputTokens: Number(span['sum(gen_ai.usage.input_tokens)']),
       inputCachedTokens: Number(span['sum(gen_ai.usage.input_tokens.cached)']),
       outputTokens: Number(span['sum(gen_ai.usage.output_tokens)']),
@@ -284,7 +284,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:unknown gen_ai.request.model:${dataRow.model}`,
+            query: `${query} span.status:internal_error gen_ai.request.model:"${dataRow.model}"`,
             organization,
             selection,
             referrer: Referrer.MODELS_TABLE,
