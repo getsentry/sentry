@@ -24,6 +24,7 @@ class SentrySDKMetricsBackend(MetricsBackend):
     def _should_send(self, key: str) -> bool:
         if self._is_denied(key):
             return False
+        # We don't want to send metrics before the cache exists to avoid excessive cache misses.
         if not options.default_store.cache:
             return False
         return in_random_rollout(self._rollout_option)
