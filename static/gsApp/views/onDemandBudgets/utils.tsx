@@ -13,18 +13,13 @@ import type {
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {
-  displayBudgetName,
-  getOnDemandCategories,
-  hasNewBillingUI,
-} from 'getsentry/utils/billing';
+import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import {hasNewCheckout} from 'getsentry/views/amCheckout/utils';
 
 export function parseOnDemandBudgetsFromSubscription(
   subscription: Subscription
@@ -198,13 +193,6 @@ export function trackOnDemandBudgetAnalytics(
   const newBudgetMode = newBudget.budgetMode;
 
   const analyticsParams: Record<string, any> = {};
-  if (prefix === 'checkout') {
-    const isNewCheckout = hasNewCheckout(organization);
-    analyticsParams.isNewCheckout = isNewCheckout;
-  } else if (prefix === 'ondemand_budget_modal') {
-    const isNewBillingUI = hasNewBillingUI(organization);
-    analyticsParams.isNewBillingUI = isNewBillingUI;
-  }
 
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
     const newBudgets: Partial<Record<`${DataCategoryExact}_budget`, number>> = {};
