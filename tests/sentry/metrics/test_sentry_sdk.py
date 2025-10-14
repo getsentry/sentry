@@ -19,7 +19,7 @@ class TestSentrySDKMetricsBackend:
             "test.foo",
             2,
             unit="count",
-            attributes={"x": "y", "stacklevel": 0},
+            attributes={"x": "y"},
         )
 
     @mock.patch("sentry_sdk._metrics.count")
@@ -31,7 +31,7 @@ class TestSentrySDKMetricsBackend:
             "test.foo",
             2,
             unit=None,
-            attributes={"x": "y", "stacklevel": 0},
+            attributes={"x": "y"},
         )
 
     @mock.patch("sentry_sdk._metrics.gauge")
@@ -43,7 +43,7 @@ class TestSentrySDKMetricsBackend:
             "test.bar",
             42.0,
             unit="bytes",
-            attributes={"x": "y", "stacklevel": 0},
+            attributes={"x": "y"},
         )
 
     @mock.patch("sentry_sdk._metrics.distribution")
@@ -55,7 +55,7 @@ class TestSentrySDKMetricsBackend:
             "test.baz",
             100.0,
             unit="millisecond",
-            attributes={"x": "y", "stacklevel": 0},
+            attributes={"x": "y"},
         )
 
     @mock.patch("sentry_sdk._metrics.count")
@@ -67,7 +67,7 @@ class TestSentrySDKMetricsBackend:
             "test.foo",
             1,
             unit=None,
-            attributes={"x": "y", "instance": "web", "stacklevel": 0},
+            attributes={"x": "y", "instance": "web"},
         )
 
     def test_timing_noop(self, backend):
