@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Select} from 'sentry/components/core/select';
