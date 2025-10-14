@@ -80,7 +80,10 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
                 organization_id=sentry_app_installation.organization_id,
                 target_object=api_token.id,
                 event=audit_log.get_event_id("INTERNAL_INTEGRATION_REMOVE_TOKEN"),
-                data={"sentry_app": sentry_app.name},
+                data={
+                    "sentry_app_slug": sentry_app.slug,
+                    "sentry_app_installation_uuid": sentry_app_installation.uuid,
+                },
             )
 
         return Response(status=204)
