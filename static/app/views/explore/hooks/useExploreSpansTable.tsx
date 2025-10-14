@@ -32,6 +32,7 @@ export function useExploreSpansTable({
   enabled,
   limit,
   query,
+  queryExtras,
 }: UseExploreSpansTableOptions) {
   const extrapolate = useQueryParamsExtrapolate();
 
@@ -46,7 +47,7 @@ export function useExploreSpansTable({
 
   return useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
-    queryHookArgs: {enabled, limit, query},
+    queryHookArgs: {enabled, limit, query, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,

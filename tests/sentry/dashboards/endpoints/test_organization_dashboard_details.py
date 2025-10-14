@@ -622,6 +622,59 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
                 '{"yAxes":["p95(span.duration)"],"chartType":1}',
             ]
 
+    def test_changed_reason_response(self) -> None:
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200
+        widget = response.data["widgets"][0]
+        assert widget["changedReason"] is None
+
+    def test_changed_reason_response_with_data(self) -> None:
+        dashboard_deprecation = Dashboard.objects.create(
+            title="Dashboard With Transaction Widget",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        widget_deprecation = DashboardWidget.objects.create(
+            dashboard=dashboard_deprecation,
+            title="line widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            changed_reason=[
+                {
+                    "orderby": [
+                        {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                    ],
+                    "equations": [],
+                    "columns": ["total.count"],
+                }
+            ],
+        )
+
+        DashboardWidgetQuery.objects.create(
+            widget=widget_deprecation,
+            fields=["query.dataset"],
+            columns=["query.dataset"],
+            aggregates=["p95(transaction.duration)"],
+            orderby="-p95(transaction.duration)",
+            conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
+            order=0,
+        )
+
+        response = self.do_request("get", self.url(dashboard_deprecation.id))
+        assert response.status_code == 200
+        widget = response.data["widgets"][0]
+        assert widget["changedReason"] is not None
+        assert isinstance(widget["changedReason"], list)
+        assert len(widget["changedReason"]) == 1
+        assert widget["changedReason"][0]["orderby"] == [
+            {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+        ]
+        assert widget["changedReason"][0]["equations"] == []
+        assert widget["changedReason"][0]["columns"] == ["total.count"]
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self) -> None:

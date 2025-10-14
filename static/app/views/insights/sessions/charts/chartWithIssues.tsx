@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Panel from 'sentry/components/panels/panel';
@@ -100,14 +100,14 @@ export default function ChartWithIssues(props: Props) {
   );
 
   const footer = hasData && recentIssues && (
-    <FooterIssues>
+    <Stack>
       {recentIssues.map(group => (
         <GroupWrapper canSelect key={group.id}>
           <EventOrGroupHeader data={group} source="session-health" />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupWrapper>
       ))}
-    </FooterIssues>
+    </Stack>
   );
 
   return (
@@ -166,11 +166,6 @@ export default function ChartWithIssues(props: Props) {
     />
   );
 }
-
-const FooterIssues = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const GroupWrapper = styled(GroupSummary)`
   border-top: 1px solid ${p => p.theme.border};

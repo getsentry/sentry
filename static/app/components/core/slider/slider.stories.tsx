@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
-import types from '!!type-loader!sentry/components/core/slider';
+// We can't seem to load types from sentry/components/core/slider/index
+// for unclear reasons.
+import types from '!!type-loader!sentry/components/core/slider/slider.chonk';
 import styled from '@emotion/styled';
 
 import {Slider} from 'sentry/components/core/slider';
