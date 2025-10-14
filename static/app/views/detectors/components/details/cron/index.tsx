@@ -1,9 +1,11 @@
 import {Fragment, useCallback, useState} from 'react';
 import sortBy from 'lodash/sortBy';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -201,7 +203,16 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             <DetectorExtraDetails>
               <KeyValueTableRow
                 keyName={t('Monitor slug')}
-                value={dataSource.queryObj.slug}
+                value={
+                  <Flex gap="xs" align="center">
+                    <Text ellipsis>{dataSource.queryObj.slug}</Text>
+                    <CopyToClipboardButton
+                      text={dataSource.queryObj.slug}
+                      size="zero"
+                      borderless
+                    />
+                  </Flex>
+                }
               />
               <KeyValueTableRow
                 keyName={t('Next check-in')}
