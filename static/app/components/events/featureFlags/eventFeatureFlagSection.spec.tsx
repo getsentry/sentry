@@ -5,7 +5,6 @@ import {
   render,
   screen,
   userEvent,
-  waitFor,
   waitForDrawerToHide,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -16,9 +15,8 @@ import {
   MOCK_DATA_SECTION_PROPS_MANY_FLAGS,
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
-  NO_FLAG_CONTEXT_SECTION_PROPS_CTA,
-  NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA,
-  NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS_NO_CTA,
+  NO_FLAG_CONTEXT_SECTION_PROPS,
+  NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS,
 } from 'sentry/components/events/featureFlags/testUtils';
 
 // Needed to mock useVirtualizer lists.
@@ -57,6 +55,7 @@ describe('EventFeatureFlagList', () => {
       body: TagsFixture(),
     });
   });
+
   it('renders a list of feature flags with a button to view more flags', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
 
@@ -220,35 +219,12 @@ describe('EventFeatureFlagList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders cta if event.contexts.flags is not set and should show cta', async () => {
-    const org = OrganizationFixture({features: ['feature-flag-cta']});
+  it('renders empty state if event.contexts.flags is not set - flags already sent', () => {
+    const org = OrganizationFixture({features: []});
 
-    render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS_CTA} />, {
+    render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS} />, {
       organization: org,
     });
-
-    const control = screen.queryByRole('button', {name: 'Sort Flags'});
-    expect(control).not.toBeInTheDocument();
-    const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
-    expect(search).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Set Up Integration'})
-    ).not.toBeInTheDocument();
-
-    // wait for the CTA to be rendered
-    expect(await screen.findByText('Set Up Feature Flags')).toBeInTheDocument();
-    expect(screen.getByText('Feature Flags')).toBeInTheDocument();
-  });
-
-  it('renders empty state if event.contexts.flags is not set but should not show cta - flags already sent', () => {
-    const org = OrganizationFixture({features: ['feature-flag-cta']});
-
-    render(
-      <EventFeatureFlagSection {...NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS_NO_CTA} />,
-      {
-        organization: org,
-      }
-    );
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
     expect(control).not.toBeInTheDocument();
@@ -262,10 +238,10 @@ describe('EventFeatureFlagList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders nothing if event.contexts.flags is not set and should not show cta - wrong platform', async () => {
-    const org = OrganizationFixture({features: ['feature-flag-cta']});
+  it('renders nothing if event.contexts.flags is not set - wrong platform', () => {
+    const org = OrganizationFixture({features: []});
 
-    render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA} />, {
+    render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS} />, {
       organization: org,
     });
 
@@ -273,36 +249,6 @@ describe('EventFeatureFlagList', () => {
     expect(control).not.toBeInTheDocument();
     const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
     expect(search).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Set Up Integration'})
-    ).not.toBeInTheDocument();
-
-    // CTA should not appear
-    await waitFor(() => {
-      expect(screen.queryByText('Set Up Feature Flags')).not.toBeInTheDocument();
-    });
-    expect(screen.queryByText('Feature Flags')).not.toBeInTheDocument();
-  });
-
-  it('renders nothing if event.contexts.flags is not set and should not show cta - no feature flag', async () => {
-    const org = OrganizationFixture({features: ['fake-feature-flag']});
-
-    render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS_CTA} />, {
-      organization: org,
-    });
-
-    const control = screen.queryByRole('button', {name: 'Sort Flags'});
-    expect(control).not.toBeInTheDocument();
-    const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
-    expect(search).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Set Up Integration'})
-    ).not.toBeInTheDocument();
-
-    // CTA should not appear
-    await waitFor(() => {
-      expect(screen.queryByText('Set Up Feature Flags')).not.toBeInTheDocument();
-    });
     expect(screen.queryByText('Feature Flags')).not.toBeInTheDocument();
   });
 });
