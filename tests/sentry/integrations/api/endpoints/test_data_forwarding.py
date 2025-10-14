@@ -61,13 +61,13 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        project_config1 = DataForwarderProject.objects.create(
+        project_config1 = self.create_data_forwarder_project(
             data_forwarder=data_forwarder,
             project=project1,
             is_enabled=True,
             overrides={"custom": "value1"},
         )
-        project_config2 = DataForwarderProject.objects.create(
+        project_config2 = self.create_data_forwarder_project(
             data_forwarder=data_forwarder,
             project=project2,
             is_enabled=False,
@@ -130,6 +130,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
             "config": {"write_key": "test_segment_key"},
             "is_enabled": True,
             "enroll_new_projects": False,
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -153,6 +154,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "access_key": "AKIAIOSFODNN7EXAMPLE",
                 "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             },
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -171,6 +173,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "source": "sentry",
                 "token": "12345678-1234-1234-1234-123456789abc",
             },
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -184,6 +187,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_key"},
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -200,6 +204,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "new_key"},
+            "project_ids": [],
         }
 
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
@@ -220,6 +225,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "access_key": "AKIAIOSFODNN7EXAMPLE",
                 "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             },
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -237,6 +243,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "invalid key"},
+            "project_ids": [],
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "config" in str(response.data).lower()
@@ -248,6 +255,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_key"},
+            "project_ids": [],
         }
 
         self.get_error_response(self.organization.slug, status_code=403, **payload)
@@ -256,6 +264,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": "invalid_provider",
             "config": {"write_key": "test_key"},
+            "project_ids": [],
         }
 
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
@@ -270,6 +279,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "new_key"},
+            "project_ids": [],
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "already exists" in str(response.data).lower()
@@ -291,6 +301,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "access_key": "AKIAIOSFODNN7EXAMPLE",
                 "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             },
+            "project_ids": [],
         }
 
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
@@ -309,6 +320,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_key"},
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)

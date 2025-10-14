@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.parameters import GlobalParams
@@ -43,6 +44,27 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        data_forwarder_id: int,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+
+        try:
+            data_forwarder = DataForwarder.objects.get(
+                id=data_forwarder_id,
+                organization=kwargs["organization"],
+            )
+        except DataForwarder.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        kwargs["data_forwarder"] = data_forwarder
+        return args, kwargs
 
     def _update_data_forwarder_config(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
