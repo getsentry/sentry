@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     configure()
 
-    from sentry.api.urls import urlpatterns
+    from getsentry.conf.urls.app import urlpatterns
 
     route_patterns = sorted(set(urls_to_routes("/", urlpatterns)))
 
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         for route_pattern in route_patterns:
             print(route_pattern)
     else:
-        with open("static/app/api/urlpatterns.generated.ts", "w") as f:
+        with open("./knownApiUrls.generated.ts", "w") as f:
             f.writelines(
                 [
                     "/**\n",

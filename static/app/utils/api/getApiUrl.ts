@@ -1,4 +1,4 @@
-import type {ApiPath} from 'sentry/api/apiDefinition';
+import type {KnownApiUrls} from 'sentry/utils/api/knownApiUrls.generated';
 
 type StripDollar<T extends string> = T extends `$${infer Name}` ? Name : T;
 
@@ -25,7 +25,7 @@ const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
 type ApiUrl = string & {__apiUrl: true};
 
-export default function getApiUrl<TApiPath extends string = ApiPath>(
+export default function getApiUrl<TApiPath extends KnownApiUrls = KnownApiUrls>(
   path: TApiPath,
   ...[options]: OptionalPathParams<TApiPath>
 ): ApiUrl {
