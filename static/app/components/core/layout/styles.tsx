@@ -61,7 +61,7 @@ export function rc<T>(
 
 function getBreakpoint(breakpoint: Breakpoint, theme: Theme) {
   if (breakpoint === '0') {
-    return '0';
+    return '0px';
   }
   return theme.breakpoints[breakpoint];
 }

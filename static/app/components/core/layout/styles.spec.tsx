@@ -68,6 +68,7 @@ describe('useResponsivePropValue', () => {
 
   it('window matches breakpoint = breakpoint value', () => {
     const cleanup = setupMediaQueries({
+      0: false,
       xs: true,
       sm: true,
       md: true,
@@ -183,6 +184,7 @@ describe('useActiveBreakpoint', () => {
   // by doing max-width and min-width and essentially establishing a min value.
   it('returns xs as fallback when no breakpoints match', () => {
     const cleanup = setupMediaQueries({
+      0: false,
       xs: false,
       sm: false,
       md: false,
@@ -194,12 +196,13 @@ describe('useActiveBreakpoint', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current).toBe('xs');
+    expect(result.current).toBe('0');
     cleanup();
   });
 
   it('returns the largest matching breakpoint', () => {
     const cleanup = setupMediaQueries({
+      0: false,
       xs: true,
       sm: true,
       md: true,
@@ -224,7 +227,8 @@ describe('useActiveBreakpoint', () => {
     });
 
     // Should create media queries for all breakpoints (in reverse order)
-    expect(matchMediaSpy).toHaveBeenCalledTimes(5);
+    expect(matchMediaSpy).toHaveBeenCalledTimes(6);
+    expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: 0px)`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.xl})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.lg})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.md})`);
@@ -234,6 +238,7 @@ describe('useActiveBreakpoint', () => {
 
   it('uses correct breakpoint order (largest first)', () => {
     const cleanup = setupMediaQueries({
+      0: false,
       xs: true,
       sm: true,
       md: true,
@@ -341,7 +346,7 @@ describe('useActiveBreakpoint', () => {
     );
 
     // Sets up listeners for all breakpoints
-    expect(addEventListenerSpy).toHaveBeenCalledTimes(5);
+    expect(addEventListenerSpy).toHaveBeenCalledTimes(6);
     unmount();
     // Removes listeners for all breakpoints
     expect(abortController.abort).toHaveBeenCalledTimes(1);
