@@ -209,7 +209,7 @@ export function getPercentilesEventView(eventView: EventView): EventView {
   return eventView.withColumns(percentileColumns);
 }
 
-export function generateEventView({
+export function generateTransactionEventsEventView({
   location,
   transactionName,
 }: {

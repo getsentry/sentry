@@ -31,6 +31,7 @@ import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
@@ -1823,6 +1824,7 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         index: true,
+        handle: {tab: TransactionSummaryTab.TRANSACTION_SUMMARY},
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionOverview')
         ),
@@ -1851,6 +1853,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: 'events/',
+        handle: {tab: TransactionSummaryTab.EVENTS},
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionEvents')
         ),
