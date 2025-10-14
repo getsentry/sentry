@@ -29,13 +29,10 @@ def _slack_list_channels(*, integration_id: int) -> list[dict[str, Any]]:
     Fetches up to the Slack API limit (1000 channels).
     Handles authentication via integration context and validates responses.
     """
+
     from sentry.integrations.slack.sdk_client import SlackSdkClient
 
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if not integration:
-        raise ApiError("Slack integration not found")
-
-    client = SlackSdkClient(integration=integration)
+    client = SlackSdkClient(integration_id=integration_id)
 
     try:
         response = client.conversations_list(
@@ -83,7 +80,7 @@ def _slack_list_channels(*, integration_id: int) -> list[dict[str, Any]]:
     return results
 
 
-def _discord_list_channels(*, integration_id: int, guild_id: str) -> list[dict[str, Any]]:
+def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
     """
     List Discord channels for a given guild that can receive messages.
 
@@ -97,11 +94,7 @@ def _discord_list_channels(*, integration_id: int, guild_id: str) -> list[dict[s
         15: "forum",
     }
 
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if not integration:
-        raise ApiError("Discord integration not found")
-
-    client = DiscordClient(integration=integration)
+    client = DiscordClient()
 
     try:
         raw_resp = client.get(
@@ -110,8 +103,7 @@ def _discord_list_channels(*, integration_id: int, guild_id: str) -> list[dict[s
         )
     except Exception as e:
         logger.warning(
-            "Discord API request failed for integration_id=%s, guild_id=%s: %s",
-            integration_id,
+            "Discord API request failed for guild_id=%s: %s",
             guild_id,
             e,
         )
@@ -119,8 +111,7 @@ def _discord_list_channels(*, integration_id: int, guild_id: str) -> list[dict[s
 
     if not isinstance(raw_resp, list):
         logger.warning(
-            "Unexpected Discord API response for integration_id=%s, guild_id=%s: %r",
-            integration_id,
+            "Unexpected Discord API response for guild_id=%s: %r",
             guild_id,
             raw_resp,
         )
@@ -247,9 +238,7 @@ class OrganizationIntegrationChannelsEndpoint(OrganizationIntegrationBaseEndpoin
                 case IntegrationProviderSlug.SLACK.value:
                     results = _slack_list_channels(integration_id=integration.id)
                 case IntegrationProviderSlug.DISCORD.value:
-                    results = _discord_list_channels(
-                        integration_id=integration.id, guild_id=str(integration.external_id)
-                    )
+                    results = _discord_list_channels(guild_id=str(integration.external_id))
                 case IntegrationProviderSlug.MSTEAMS.value:
                     results = _msteams_list_channels(
                         integration_id=integration.id,
