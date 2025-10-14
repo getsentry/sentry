@@ -155,8 +155,12 @@ type GetsentryEventParameters = {
   'growth.upsell_feature.clicked': UpsellProvider;
   'growth.upsell_feature.confirmed': UpsellProvider;
   'learn_more_link.clicked': {source?: string};
-  'ondemand_budget_modal.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
-  'ondemand_budget_modal.ondemand_budget.update': OnDemandBudgetUpdate;
+  'ondemand_budget_modal.ondemand_budget.turned_off': Record<PropertyKey, unknown> & {
+    isNewBillingUI: boolean;
+  };
+  'ondemand_budget_modal.ondemand_budget.update': OnDemandBudgetUpdate & {
+    isNewBillingUI: boolean;
+  };
   'partner_billing_migration.banner.clicked_cta': {
     daysLeft: number;
     partner: undefined | string;
@@ -172,6 +176,8 @@ type GetsentryEventParameters = {
     partner: undefined | string;
   } & HasSub;
   'past_due_modal.seen': HasSub;
+  'payg_inline_form.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
+  'payg_inline_form.ondemand_budget.update': OnDemandBudgetUpdate;
   'performance.quota_exceeded_alert.displayed': {
     referrer: string;
     traceItemDataset: string;
@@ -312,10 +318,13 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'disabled_member_view.clicked_upgrade_request':
     'Disabled Member View: Clicked Upgrade Request',
   'disabled_member_view.clicked_leave_org': 'Disabled Member View: Clicked Leave Org',
-  'ondemand_budget_modal.ondemand_budget.turned_off': 'Disabled On-demand Budget',
-  'ondemand_budget_modal.ondemand_budget.update': 'Update On-demand Budget',
-  'checkout.ondemand_budget.turned_off': 'Checkout: Disabled On-demand Budget',
-  'checkout.ondemand_budget.update': 'Checkout: Update On-demand Budget',
+  'ondemand_budget_modal.ondemand_budget.turned_off': 'Disabled PAYG Budget',
+  'ondemand_budget_modal.ondemand_budget.update': 'Update PAYG Budget',
+  'payg_inline_form.ondemand_budget.turned_off':
+    'PAYG In-line Form: Disabled PAYG Budget',
+  'payg_inline_form.ondemand_budget.update': 'PAYG In-line Form: Update PAYG Budget',
+  'checkout.ondemand_budget.turned_off': 'Checkout: Disabled PAYG Budget',
+  'checkout.ondemand_budget.update': 'Checkout: Update PAYG Budget',
   'trial_reset_notification.modal_dismissed': 'Trial Reset Notification: Modal Dismissed',
   'growth.disabled_dashboard.viewed': 'Growth: Disabled Dashboard Viewed',
   'product_unavailable_upsell_alert.viewed': 'Product Unavailable Upsell: Viewed Alert',

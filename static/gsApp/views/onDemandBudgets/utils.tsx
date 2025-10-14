@@ -13,7 +13,11 @@ import type {
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  getOnDemandCategories,
+  hasNewBillingUI,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -183,7 +187,10 @@ export function trackOnDemandBudgetAnalytics(
   organization: Organization,
   previousBudget: OnDemandBudgets,
   newBudget: OnDemandBudgets,
-  prefix: 'ondemand_budget_modal' | 'checkout' = 'ondemand_budget_modal'
+  prefix:
+    | 'ondemand_budget_modal'
+    | 'checkout'
+    | 'payg_inline_form' = 'ondemand_budget_modal'
 ) {
   const previousTotalBudget = getTotalBudget(previousBudget);
   const totalBudget = getTotalBudget(newBudget);
@@ -194,6 +201,9 @@ export function trackOnDemandBudgetAnalytics(
   if (prefix === 'checkout') {
     const isNewCheckout = hasNewCheckout(organization);
     analyticsParams.isNewCheckout = isNewCheckout;
+  } else if (prefix === 'ondemand_budget_modal') {
+    const isNewBillingUI = hasNewBillingUI(organization);
+    analyticsParams.isNewBillingUI = isNewBillingUI;
   }
 
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
