@@ -105,11 +105,29 @@ class ProjectChooser:
         """
         must_process = set[int]()
         may_process = set[int]()
+        cohort_to_elapsed = dict[int, timedelta]()
         now = fetch_time
         long_ago = now - 1000
         for co in range(self.num_cohorts):
-            last_run = cohort_updates.values.get(co, long_ago)
+            last_run = cohort_updates.values.get(co)
+            if last_run is None:
+                last_run = long_ago
+                # It's a bug if we don't know the last run outside of
+                # a few transitional periods.
+                metrics.incr(
+                    "workflow_engine.schedule.cohort_not_found",
+                    tags={"cohort": co},
+                    sample_rate=1.0,
+                )
             elapsed = timedelta(seconds=now - last_run)
+            if last_run != long_ago:
+                # Only track duration if we know the last run.
+                metrics.distribution(
+                    "workflow_engine.schedule.cohort_freshness",
+                    elapsed.total_seconds(),
+                    sample_rate=1.0,
+                )
+                cohort_to_elapsed[co] = elapsed
             if elapsed >= timedelta(minutes=1):
                 must_process.add(co)
             elif elapsed >= timedelta(seconds=60 / self.num_cohorts):
@@ -118,6 +136,13 @@ class ProjectChooser:
             choice = min(may_process, key=lambda c: (cohort_updates.values.get(c, long_ago), c))
             must_process.add(choice)
         cohort_updates.values.update({cohort_id: fetch_time for cohort_id in must_process})
+        for cohort_id, elapsed in cohort_to_elapsed.items():
+            if cohort_id in must_process:
+                metrics.distribution(
+                    "workflow_engine.schedule.processed_cohort_freshness",
+                    elapsed.total_seconds(),
+                    sample_rate=1.0,
+                )
         return [
             project_id
             for project_id in all_project_ids
