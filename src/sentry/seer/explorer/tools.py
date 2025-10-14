@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from sentry.api import client
 from sentry.models.apikey import ApiKey
@@ -75,6 +75,7 @@ def execute_trace_query_table(
     group_by: list[str] | None = None,
     y_axes: list[str] | None = None,
     per_page: int = 50,
+    mode: Literal["spans", "aggregates"] = "spans",
 ) -> dict[str, Any] | None:
     """
     Execute a trace query to get table data by calling the events endpoint.
@@ -92,9 +93,11 @@ def execute_trace_query_table(
         return None
 
     # Determine fields based on mode
-    if group_by and len(group_by) > 0:
+    if mode == "aggregates":
         # Aggregates mode: group_by fields + aggregate functions
-        fields = list(group_by)
+        fields = []
+        if group_by:
+            fields.extend(group_by)
         if y_axes:
             fields.extend(y_axes)
     else:
