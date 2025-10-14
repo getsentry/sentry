@@ -47,18 +47,26 @@ class ReplayActionsEventPayloadTap(TypedDict):
     message: str
     view_id: str
     view_class: str
+    timestamp: int
+    event_hash: str
 
 
-class ReplayActionsEventPayload(TypedDict):
+class ReplayActionsEventClickPayload(TypedDict):
     environment: str
     clicks: list[ReplayActionsEventPayloadClick]
+    replay_id: str
+    type: Literal["replay_actions"]
+
+
+class ReplayActionsEventTapPayload(TypedDict):
+    environment: str
     taps: list[ReplayActionsEventPayloadTap]
     replay_id: str
-    type: Literal["replay_actions", "replay_tap"]
+    type: Literal["replay_tap"]
 
 
 class ReplayActionsEvent(TypedDict):
-    payload: ReplayActionsEventPayload
+    payload: ReplayActionsEventClickPayload | ReplayActionsEventTapPayload
     project_id: int
     replay_id: str
     retention_days: int
@@ -85,15 +93,16 @@ def emit_tap_events(
             "message": tap.message,
             "view_id": tap.view_id,
             "view_class": tap.view_class,
+            "timestamp": tap.timestamp,
+            "event_hash": encode_as_uuid(f"{replay_id}{tap.timestamp}{tap.view_id}"),
         }
         for tap in tap_events[:event_cap]
     ]
 
-    payload: ReplayActionsEventPayload = {
+    payload: ReplayActionsEventTapPayload = {
         "environment": environment or "",
         "replay_id": replay_id,
         "type": "replay_tap",
-        "clicks": [],
         "taps": taps,
     }
 
@@ -144,12 +153,11 @@ def emit_click_events(
         for click in click_events[:event_cap]
     ]
 
-    payload: ReplayActionsEventPayload = {
+    payload: ReplayActionsEventClickPayload = {
         "environment": environment or "",
         "replay_id": replay_id,
         "type": "replay_actions",
         "clicks": clicks,
-        "taps": [],
     }
 
     action: ReplayActionsEvent = {
