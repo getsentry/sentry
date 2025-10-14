@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/core/button';
 import {Stack} from 'sentry/components/core/layout';
+import {Heading} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -544,17 +545,18 @@ function CartDiff({
       radius="lg"
       align="start"
     >
-      <Button
-        aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
-        onClick={() => onToggle(!isOpen)}
-        borderless
-        size="xs"
-        icon={<IconChevron direction={isOpen ? 'up' : 'right'} />}
-      >
-        {isOpen ? t('Hide changes') : t('Show changes')}
-      </Button>
+      <Stack direction="row" justify="between" align="center" width="100%">
+        <Heading as="h3">{t('Changes')}</Heading>
+        <Button
+          aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
+          onClick={() => onToggle(!isOpen)}
+          borderless
+          size="zero"
+          icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
+        />
+      </Stack>
       {isOpen && (
-        <Stack width="100%" paddingLeft="md">
+        <Stack width="100%">
           {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff
               currentPlan={currentPlan}

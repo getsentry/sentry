@@ -8,7 +8,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
@@ -333,7 +333,7 @@ function SubtotalSummary({
   );
 
   return (
-    <Flex direction="column" width="100%" gap="md" padding="md 0">
+    <Flex direction="column" width="100%" gap="md" padding="2xl 0" borderTop="primary">
       <Flex data-test-id="summary-item-plan-total" justify="between" align="center">
         <Text size="lg" bold>
           {t('Plan Total')}
@@ -525,7 +525,7 @@ function TotalSummary({
 
   return (
     <Stack justify="end" borderTop="primary">
-      <Stack paddingTop="2xl" gap="md">
+      <Stack paddingTop="3xl" gap="md">
         {isOpen && (
           <Fragment>
             {!previewDataLoading && (
@@ -817,24 +817,24 @@ function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <Stack border="primary" padding="xl" radius="lg" gap="lg">
+      <Stack border="primary" padding="xl" radius="lg">
         <Stack align="start" width="100%" gap="sm" height="100%">
-          <SubtotalSummary
-            activePlan={activePlan}
-            formData={formData}
-            previewDataLoading={previewState.isLoading}
-            renewalDate={previewState.renewalDate}
-            subscription={subscription}
-          />
-          <Button
-            aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
-            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-            borderless
-            size="zero"
-            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'right'} />}
+          <Stack
+            direction="row"
+            justify="between"
+            align="center"
+            width="100%"
+            paddingBottom="md"
           >
-            {summaryIsOpen ? t('Hide details') : t('Show details')}
-          </Button>
+            <Heading as="h3">{t('Plan summary')}</Heading>
+            <Button
+              aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
+              onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+              borderless
+              size="zero"
+              icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+            />
+          </Stack>
           {summaryIsOpen && (
             <Flex
               direction="column"
@@ -847,6 +847,13 @@ function Cart({
               <ItemsSummary activePlan={activePlan} formData={formData} />
             </Flex>
           )}
+          <SubtotalSummary
+            activePlan={activePlan}
+            formData={formData}
+            previewDataLoading={previewState.isLoading}
+            renewalDate={previewState.renewalDate}
+            subscription={subscription}
+          />
         </Stack>
         <TotalSummary
           isOpen={summaryIsOpen}
