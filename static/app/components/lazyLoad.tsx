@@ -78,6 +78,9 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     if (process.env.NODE_ENV === 'development') {
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleRetry);
+
+        // Reset lazyload state itself on mount / hot replacement
+        this.handleRetry();
       }
     }
   }

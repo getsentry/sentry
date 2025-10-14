@@ -2,10 +2,10 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 
 // @TODO(jonasbadalic): Not sure this needs to be its own component,
@@ -122,13 +122,14 @@ export function NumberDragInput({
           })}
           skipWrapper
         >
-          <TrailingItemsContainer
+          <Flex
+            direction={axis === 'x' ? 'row' : 'column'}
+            gap="2xs"
             onPointerDown={onPointerDown}
-            layout={axis === 'x' ? 'horizontal' : 'vertical'}
           >
             <VerySmallIconArrow direction={axis === 'x' ? 'left' : 'up'} />
             <VerySmallIconArrow direction={axis === 'x' ? 'right' : 'down'} />
-          </TrailingItemsContainer>
+          </Flex>
         </Tooltip>
       </InputGroup.TrailingItems>
     </InputGroup>
@@ -147,12 +148,4 @@ function setInputValueAndDispatchChange(input: HTMLInputElement, value: string) 
 const VerySmallIconArrow = styled(IconArrow)`
   width: 8px;
   height: 8px;
-`;
-
-const TrailingItemsContainer = styled('div')<{
-  layout: 'vertical' | 'horizontal';
-}>`
-  display: flex;
-  flex-direction: ${p => (p.layout === 'vertical' ? 'column' : 'row')};
-  gap: ${space(0.25)};
 `;
