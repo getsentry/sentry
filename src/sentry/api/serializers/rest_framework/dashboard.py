@@ -909,6 +909,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.dataset_source = new_dataset_source
         widget.detail = {"layout": data.get("layout", prev_layout)}
 
+        if (
+            new_dataset_source == DatasetSourcesTypes.USER.value
+            and widget.widget_type == DashboardWidgetTypes.SPANS
+        ):
+            widget.changed_reason = None
+
         if widget.widget_type not in [
             DashboardWidgetTypes.DISCOVER,
             DashboardWidgetTypes.TRANSACTION_LIKE,
@@ -918,12 +924,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             # a discover/errors/transactions widget
             widget.discover_widget_split = None
             widget.dataset_source = DatasetSourcesTypes.UNKNOWN.value
-
-        if (
-            new_dataset_source == DatasetSourcesTypes.USER.value
-            and widget.widget_type == DashboardWidgetTypes.SPANS
-        ):
-            widget.changed_reason = None
 
         widget.save()
 
