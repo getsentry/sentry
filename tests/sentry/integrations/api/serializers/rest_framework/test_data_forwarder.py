@@ -54,6 +54,7 @@ class DataForwarderSerializerTest(TestCase):
         validated_data: dict[str, Any] = serializer.validated_data
         assert validated_data["is_enabled"] is True  # default
         assert validated_data["enroll_new_projects"] is False  # default
+        assert validated_data["project_ids"] == []  # default
 
     def test_required_fields(self) -> None:
         # Missing organization_id
