@@ -129,6 +129,7 @@ export default function useFetchParallelPages<Data>({
           const [data, , resp] = await queryClient.fetchQuery({
             queryKey: getQueryKey({cursor, per_page: perPage}),
             queryFn: fetchDataQuery<Data>,
+            staleTime: Infinity,
           });
 
           responsePages.current.set(cursor, {
