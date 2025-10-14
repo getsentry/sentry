@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,26 +24,30 @@ export function AppSizeLegend({
   const [visibleCount, setVisibleCount] = useState<number | null>(null);
   const [isMoreHovered, setIsMoreHovered] = useState(false);
 
-  const categoryTypes = new Set<TreemapType>();
+  const sortedCategories = useMemo(() => {
+    const categoryTypes = new Set<TreemapType>();
 
-  function collectCategories(element: TreemapElement) {
-    if (element.type) {
-      categoryTypes.add(element.type);
+    function collectCategories(element: TreemapElement) {
+      if (element.type) {
+        categoryTypes.add(element.type);
+      }
+      if (element.children) {
+        element.children.forEach(child => collectCategories(child));
+      }
     }
-    if (element.children) {
-      element.children.forEach(child => collectCategories(child));
-    }
-  }
 
-  collectCategories(root);
+    collectCategories(root);
 
-  const sortedCategories = Array.from(categoryTypes).sort((a, b) => {
-    const categoryA = appSizeCategoryInfo[a];
-    const categoryB = appSizeCategoryInfo[b];
-    return (categoryA?.displayName || a).localeCompare(categoryB?.displayName || b);
-  });
+    return Array.from(categoryTypes).sort((a, b) => {
+      const categoryA = appSizeCategoryInfo[a];
+      const categoryB = appSizeCategoryInfo[b];
+      return (categoryA?.displayName || a).localeCompare(categoryB?.displayName || b);
+    });
+  }, [root, appSizeCategoryInfo]);
 
   useLayoutEffect(() => {
+    let resizeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const calculateVisibleItems = () => {
       if (!containerRef.current || sortedCategories.length === 0) {
         return;
@@ -77,20 +81,27 @@ export function AppSizeLegend({
     };
 
     const resizeObserver = new ResizeObserver(() => {
+      if (resizeTimeoutId !== null) {
+        clearTimeout(resizeTimeoutId);
+      }
       setVisibleCount(null);
-      setTimeout(calculateVisibleItems, 10);
+      resizeTimeoutId = setTimeout(calculateVisibleItems, 10);
     });
 
-    setTimeout(calculateVisibleItems, 0);
+    const initialTimeoutId = setTimeout(calculateVisibleItems, 0);
 
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
 
     return () => {
+      clearTimeout(initialTimeoutId);
+      if (resizeTimeoutId !== null) {
+        clearTimeout(resizeTimeoutId);
+      }
       resizeObserver.disconnect();
     };
-  }, [sortedCategories.length]);
+  }, [sortedCategories]);
 
   const visibleCategories =
     visibleCount === null ? sortedCategories : sortedCategories.slice(0, visibleCount);
