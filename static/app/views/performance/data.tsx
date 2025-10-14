@@ -14,11 +14,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
-import {
-  getVitalDetailTableMehStatusFunction,
-  getVitalDetailTablePoorStatusFunction,
-  vitalNameFromLocation,
-} from './vitalDetail/utils';
 
 export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
