@@ -16,6 +16,7 @@ from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_request_response_metrics,
+    emit_tap_events,
     emit_trace_items_to_eap,
     log_canvas_size,
     log_multiclick_events,
@@ -221,6 +222,15 @@ def emit_replay_events(
 
     emit_click_events(
         event_meta.click_events,
+        project.id,
+        replay_id,
+        retention_days,
+        start_time=time.time(),
+        environment=environment,
+    )
+
+    emit_tap_events(
+        event_meta.tap_events,
         project.id,
         replay_id,
         retention_days,
