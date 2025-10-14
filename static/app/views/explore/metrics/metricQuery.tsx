@@ -73,7 +73,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     metric,
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.AGGREGATE,
+      mode: json.mode,
       query,
 
       cursor: '',
@@ -100,6 +100,7 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
       return field;
     }),
     aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
+    mode: metricQuery.queryParams.mode,
   });
 }
 

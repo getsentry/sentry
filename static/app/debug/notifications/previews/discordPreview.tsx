@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {Disclosure} from '@sentry/scraps/disclosure';
 
 import {CodeBlock} from 'sentry/components/core/code';
-import {Image} from 'sentry/components/core/image/image';
+import {Image} from 'sentry/components/core/image';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
