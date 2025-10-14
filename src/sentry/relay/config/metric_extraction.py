@@ -90,6 +90,16 @@ def get_max_widget_specs(organization: Organization) -> int:
     return max_widget_specs
 
 
+def get_max_alert_specs(organization: Organization) -> int:
+    if organization.id in options.get("on_demand.extended_alert_spec_orgs") and options.get(
+        "on_demand.extended_max_alert_specs"
+    ):
+        return options.get("on_demand.extended_max_alert_specs")
+
+    max_alert_specs = options.get("on_demand.max_alert_specs")
+    return max_alert_specs
+
+
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
 def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
     """
@@ -215,7 +225,7 @@ def _get_alert_metric_specs(
 ) -> list[HashedMetricSpec]:
     specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
 
-    max_alert_specs = options.get("on_demand.max_alert_specs")
+    max_alert_specs = get_max_alert_specs(project.organization)
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs

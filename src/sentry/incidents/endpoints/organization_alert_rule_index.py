@@ -12,7 +12,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options, quotas
+from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -67,6 +67,7 @@ from sentry.monitors.models import (
 )
 from sentry.relay.config.metric_extraction import (
     get_default_version_alert_metric_specs,
+    get_max_alert_specs,
     on_demand_metrics_feature_flags,
 )
 from sentry.sentry_apps.services.app import app_service
@@ -227,7 +228,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         return Response(
             {
                 "totalOnDemandAlertSpecs": len(alert_specs),
-                "maxAllowed": options.get("on_demand.max_alert_specs"),
+                "maxAllowed": get_max_alert_specs(organization),
             },
             status=status.HTTP_200_OK,
         )
