@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import sortBy from 'lodash/sortBy';
+import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -20,13 +21,16 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import toArray from 'sentry/utils/array/toArray';
+import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getMonitorRefetchInterval} from 'sentry/views/alerts/rules/crons/utils';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {useConfigureDetectorOptions} from 'sentry/views/detectors/detectorQueryOptionsContext';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
@@ -119,6 +123,25 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
     );
     setShowUnknownLegend(hasUnknown);
   }, []);
+
+  // Configure refetch interval for the detector query
+  const queryOptions = useMemo<Partial<UseApiQueryOptions<CronDetector>>>(
+    () => ({
+      staleTime: 0,
+      refetchOnWindowFocus: true,
+      refetchInterval: query => {
+        if (!query.state.data) {
+          return false;
+        }
+        const cronDetector = query.state.data;
+        const monitor = cronDetector.dataSources[0].queryObj;
+        return getMonitorRefetchInterval(monitor, moment());
+      },
+    }),
+    []
+  );
+
+  useConfigureDetectorOptions(queryOptions);
 
   return (
     <TimezoneProvider timezone={timezoneOverride}>

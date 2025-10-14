@@ -6,12 +6,16 @@ import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorDetailsContent} from 'sentry/views/detectors/components/details';
+import {
+  DetectorQueryOptionsProvider,
+  useDetectorQueryOptions,
+} from 'sentry/views/detectors/detectorQueryOptionsContext';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 
-export default function DetectorDetails() {
-  useWorkflowEngineFeatureGate({redirect: true});
+function DetectorDetailsInner() {
   const params = useParams<{detectorId: string}>();
   const {projects, fetching: isFetchingProjects} = useProjects();
+  const queryOptions = useDetectorQueryOptions();
 
   const {
     data: detector,
@@ -19,7 +23,7 @@ export default function DetectorDetails() {
     isError,
     error,
     refetch,
-  } = useDetectorQuery(params.detectorId);
+  } = useDetectorQuery(params.detectorId, queryOptions);
 
   const project = projects.find(p => p.id === detector?.projectId);
 
@@ -44,5 +48,15 @@ export default function DetectorDetails() {
     <SentryDocumentTitle title={detector.name}>
       <DetectorDetailsContent detector={detector} project={project} />
     </SentryDocumentTitle>
+  );
+}
+
+export default function DetectorDetails() {
+  useWorkflowEngineFeatureGate({redirect: true});
+
+  return (
+    <DetectorQueryOptionsProvider>
+      <DetectorDetailsInner />
+    </DetectorQueryOptionsProvider>
   );
 }
