@@ -78,6 +78,8 @@ class FilenameMungingTestCase(unittest.TestCase):
     def test_platform_sdk_name_not_supported(self) -> None:
         assert not munged_filename_and_frames("javascript", [], "munged", "sdk.other")
 
+    # Only necessary while auto_source_code_config.multi_module_java is used
+    @pytest.mark.django_db
     def test_supported_platform_sdk_name_not_required(self) -> None:
         frames = [
             {
