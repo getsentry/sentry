@@ -1,6 +1,9 @@
 from typing import Any
 
-import sentry_sdk.metrics
+from sentry_sdk import _metrics as metrics
+
+from sentry import options
+from sentry.options.rollout import in_random_rollout
 
 from .base import MetricsBackend, Tags
 
@@ -9,7 +12,21 @@ __all__ = ["SentrySDKMetricsBackend"]
 
 class SentrySDKMetricsBackend(MetricsBackend):
     def __init__(self, **kwargs: Any) -> None:
+        self._rollout_option = kwargs.pop(
+            "rollout_option", "tracemetrics.sentry_sdk_metrics_backend_rate"
+        )
+        self._deny_list = tuple(kwargs.pop("deny_list", []))
         super().__init__(**kwargs)
+
+    def _is_denied(self, key: str) -> bool:
+        return key.startswith(self._deny_list)
+
+    def _should_send(self, key: str) -> bool:
+        if self._is_denied(key):
+            return False
+        if not options.default_store.cache:
+            return False
+        return in_random_rollout(self._rollout_option)
 
     def incr(
         self,
@@ -21,18 +38,22 @@ class SentrySDKMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
+        if not self._should_send(key):
+            return
+
         if not self._should_sample(sample_rate):
             return
 
-        metric_tags = dict(tags) if tags else {}
+        metric_attributes = dict(tags) if tags else {}
         if instance:
-            metric_tags["instance"] = instance
+            metric_attributes["instance"] = instance
+        metric_attributes["stacklevel"] = stacklevel
 
-        sentry_sdk.metrics.incr(
-            key=self._get_key(key),
-            value=amount,
-            unit=unit or "none",
-            tags=metric_tags,
+        metrics.count(
+            self._get_key(key),
+            amount,
+            unit=unit,
+            attributes=metric_attributes,
         )
 
     def timing(
@@ -56,18 +77,22 @@ class SentrySDKMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
+        if not self._should_send(key):
+            return
+
         if not self._should_sample(sample_rate):
             return
 
-        metric_tags = dict(tags) if tags else {}
+        metric_attributes = dict(tags) if tags else {}
         if instance:
-            metric_tags["instance"] = instance
+            metric_attributes["instance"] = instance
+        metric_attributes["stacklevel"] = stacklevel
 
-        sentry_sdk.metrics.gauge(
-            key=self._get_key(key),
-            value=value,
-            unit=unit or "none",
-            tags=metric_tags,
+        metrics.gauge(
+            self._get_key(key),
+            value,
+            unit=unit,
+            attributes=metric_attributes,
         )
 
     def distribution(
@@ -80,18 +105,22 @@ class SentrySDKMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
+        if not self._should_send(key):
+            return
+
         if not self._should_sample(sample_rate):
             return
 
-        metric_tags = dict(tags) if tags else {}
+        metric_attributes = dict(tags) if tags else {}
         if instance:
-            metric_tags["instance"] = instance
+            metric_attributes["instance"] = instance
+        metric_attributes["stacklevel"] = stacklevel
 
-        sentry_sdk.metrics.distribution(
-            key=self._get_key(key),
-            value=value,
-            unit=unit or "none",
-            tags=metric_tags,
+        metrics.distribution(
+            self._get_key(key),
+            value,
+            unit=unit,
+            attributes=metric_attributes,
         )
 
     def event(
