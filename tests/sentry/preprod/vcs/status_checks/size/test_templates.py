@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
@@ -54,7 +56,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 assert "1.0.0 (1)" in summary
 
     def test_processed_state_without_metrics(self):
-        """Test that processed state without size metrics is valid (size analysis is optional)."""
+        """Test that processed state without size metrics raises an error."""
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -63,15 +65,8 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             build_number=1,
         )
 
-        title, subtitle, summary = format_status_check_messages(
-            [artifact], {}, StatusCheckStatus.SUCCESS
-        )
-
-        assert title == "Size Analysis"
-        # No metrics means no counts - subtitle should be empty
-        assert subtitle == ""
-        # Table should still render but with no data rows
-        assert "| Name |" in summary  # Header exists
+        with pytest.raises(ValueError, match="No metrics exist for VCS size status check"):
+            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS)
 
     def test_processed_state_with_metrics_no_previous(self):
         """Test formatting for processed state with metrics but no previous build."""

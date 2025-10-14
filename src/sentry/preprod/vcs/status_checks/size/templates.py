@@ -58,6 +58,9 @@ def format_status_check_messages(
             # UPLOADING or UPLOADED states - artifacts can't have metrics yet
             processing_count += 1
 
+    if analyzed_count == 0 and processing_count == 0 and errored_count == 0:
+        raise ValueError("No metrics exist for VCS size status check")
+
     parts = []
     if analyzed_count > 0:
         parts.append(
