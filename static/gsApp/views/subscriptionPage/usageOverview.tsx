@@ -192,7 +192,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     const hasAnyPotentialOrActiveProductTrial = subscription.productTrials?.some(
       trial =>
         !trial.isStarted ||
-        (trial.isStarted && getDaysSinceDate(trial.endDate ?? '') <= 0)
+        (trial.isStarted && trial.endDate && getDaysSinceDate(trial.endDate) <= 0)
     );
     return [
       {key: 'product', name: t('Product'), width: 300},
