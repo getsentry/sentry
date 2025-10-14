@@ -24,7 +24,7 @@ class TestEAPDeletion(TestCase):
         )
 
         with self.options(
-            {"eventstream.eap.deletion_enabled.project_allowlist": [self.project_id]}
+            {"eventstream.eap.deletion_enabled.organization_allowlist": [self.organization_id]}
         ):
             delete_events_from_eap(
                 self.organization_id, self.project_id, self.group_ids, Dataset.Events
@@ -51,7 +51,7 @@ class TestEAPDeletion(TestCase):
         many_group_ids = [10, 20, 30, 40, 50]
 
         with self.options(
-            {"eventstream.eap.deletion_enabled.project_allowlist": [self.project_id]}
+            {"eventstream.eap.deletion_enabled.organization_allowlist": [self.organization_id]}
         ):
             delete_events_from_eap(
                 self.organization_id, self.project_id, many_group_ids, Dataset.Events
@@ -62,8 +62,8 @@ class TestEAPDeletion(TestCase):
         assert list(group_filter.comparison_filter.value.val_int_array.values) == many_group_ids
 
     @patch("sentry.eventstream.eap_delete.snuba_rpc.rpc")
-    def test_project_not_in_allowlist_skips_deletion(self, mock_rpc):
-        with self.options({"eventstream.eap.deletion_enabled.project_allowlist": [456, 789]}):
+    def test_organization_not_in_allowlist_skips_deletion(self, mock_rpc):
+        with self.options({"eventstream.eap.deletion_enabled.organization_allowlist": [456, 789]}):
             delete_events_from_eap(
                 self.organization_id, self.project_id, self.group_ids, Dataset.Events
             )
@@ -72,7 +72,7 @@ class TestEAPDeletion(TestCase):
 
     @patch("sentry.eventstream.eap_delete.snuba_rpc.rpc")
     def test_empty_allowlist_skips_deletion(self, mock_rpc):
-        with self.options({"eventstream.eap.deletion_enabled.project_allowlist": []}):
+        with self.options({"eventstream.eap.deletion_enabled.organization_allowlist": []}):
             delete_events_from_eap(
                 self.organization_id, self.project_id, self.group_ids, Dataset.Events
             )

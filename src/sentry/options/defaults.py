@@ -3540,9 +3540,9 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables deletion from EAP for a set of projects
+# The allowlist of organization IDs for which deletion from EAP is enabled.
 register(
-    "eventstream.eap.deletion_enabled.project_allowlist",
+    "eventstream.eap.deletion_enabled.organization_allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

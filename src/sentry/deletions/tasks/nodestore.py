@@ -215,8 +215,8 @@ def delete_events_from_eap(
     group_ids: Sequence[int],
     dataset: Dataset,
 ) -> None:
-    eap_deletion_allowlist = options.get("eventstream.eap.deletion_enabled.project_allowlist")
-    if project_id not in eap_deletion_allowlist:
+    eap_deletion_allowlist = options.get("eventstream.eap.deletion_enabled.organization_allowlist")
+    if organization_id not in eap_deletion_allowlist:
         return
 
     try:
