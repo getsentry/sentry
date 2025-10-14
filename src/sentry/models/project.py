@@ -504,6 +504,7 @@ class Project(Model):
             RepositoryProjectPathConfig,
         )
         from sentry.models.environment import Environment, EnvironmentProject
+        from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
@@ -638,7 +639,8 @@ class Project(Model):
             "linked_id", flat=True
         )
 
-        # Delete code mappings to prevent them from being stuck on the old org
+        # Delete issue ownership objects to prevent them from being stuck on the old org
+        ProjectCodeOwners.objects.filter(project_id=self.id).delete()
         RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
 
         for external_issues in chunked(
