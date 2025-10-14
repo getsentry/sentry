@@ -13,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
+import {formatDollars} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
@@ -20,6 +21,7 @@ import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -164,6 +166,18 @@ export function Attributes({
         },
       };
       return <StyledLink to={target}>{props.item.value}</StyledLink>;
+    },
+    [SpanFields.GEN_AI_COST_INPUT_TOKENS]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    [SpanFields.GEN_AI_USAGE_TOTAL_COST]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
     },
   };
 
