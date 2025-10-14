@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Transaction(BaseModel):
@@ -28,6 +28,18 @@ class TraceData(BaseModel):
     transaction_name: str
     total_spans: int
     spans: list[Span]
+
+
+class EAPTrace(BaseModel):
+    """
+    Based on the Seer model. `trace` can contain both span and error events (see `SerializedEvent`).
+    Spans contain connected error data in `span.errors` and `span.occurrences`.
+    Child spans are nested recursively in span.children.
+    """
+
+    trace_id: str = Field(..., description="ID of the trace")
+    org_id: int | None = Field(default=None, description="ID of the organization")
+    trace: list[dict[str, Any]] = Field(..., description="List of spans and errors in the trace")
 
 
 class ExecutionTreeNode(BaseModel):
