@@ -271,10 +271,9 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             mock_run_comparison.assert_called_once()
             call_args = mock_run_comparison.call_args[0]
             # Verify that the call was made with the correct parameters
-            assert call_args[0] == self.project.id
-            assert call_args[1] == self.organization.id
-            assert call_args[2].preprod_artifact.id == head_artifact.id
-            assert call_args[3].preprod_artifact.id == base_artifact.id
+            assert call_args[0] == self.organization.id
+            assert call_args[1].preprod_artifact.id == head_artifact.id
+            assert call_args[2].preprod_artifact.id == base_artifact.id
 
     def test_compare_preprod_artifact_size_analysis_no_matching_artifacts(self):
         """Test compare_preprod_artifact_size_analysis with no matching artifacts."""
@@ -528,7 +527,6 @@ class ManualSizeAnalysisComparisonTest(TestCase):
             )
 
             mock_run_comparison.assert_called_once_with(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -659,7 +657,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
 
         # Run comparison
         _run_size_analysis_comparison(
-            self.project.id,
             self.organization.id,
             head_size_metrics,
             base_size_metrics,
@@ -706,7 +703,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
 
         with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
             _run_size_analysis_comparison(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -745,7 +741,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
 
         with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
             _run_size_analysis_comparison(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -785,7 +780,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
 
         with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
             _run_size_analysis_comparison(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -800,7 +794,8 @@ class RunSizeAnalysisComparisonTest(TestCase):
             head_size_analysis=head_size_metrics,
             base_size_analysis=base_size_metrics,
         )
-        assert len(comparisons) == 0
+        assert len(comparisons) == 1
+        assert comparisons[0].state == PreprodArtifactSizeComparison.State.FAILED
 
     def test_run_size_analysis_comparison_missing_base_analysis_file(self):
         """Test _run_size_analysis_comparison with missing base analysis file."""
@@ -823,7 +818,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
 
         with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
             _run_size_analysis_comparison(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -838,7 +832,8 @@ class RunSizeAnalysisComparisonTest(TestCase):
             head_size_analysis=head_size_metrics,
             base_size_analysis=base_size_metrics,
         )
-        assert len(comparisons) == 0
+        assert len(comparisons) == 1
+        assert comparisons[0].state == PreprodArtifactSizeComparison.State.FAILED
 
     def test_run_size_analysis_comparison_invalid_json(self):
         """Test _run_size_analysis_comparison with invalid JSON in analysis files."""
@@ -885,7 +880,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
         # Should raise an exception due to invalid JSON
         with pytest.raises(Exception):
             _run_size_analysis_comparison(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -896,4 +890,5 @@ class RunSizeAnalysisComparisonTest(TestCase):
             head_size_analysis=head_size_metrics,
             base_size_analysis=base_size_metrics,
         )
-        assert len(comparisons) == 0
+        assert len(comparisons) == 1
+        assert comparisons[0].state == PreprodArtifactSizeComparison.State.FAILED
