@@ -30,7 +30,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   const changedReason = savedQuery.changedReason;
   if (changedReason.columns.length > 0) {
     columnsWarning.push(
-      tct(`The following fields were dropped: [columns]`, {
+      tct(`[columns] is no longer supported`, {
         columns: changedReason.columns.join(', '),
       })
     );
@@ -38,7 +38,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   if (changedReason.equations) {
     equationsWarning.push(
       ...changedReason.equations.map(equation =>
-        tct(`[equation] was dropped because [reason] is unsupported`, {
+        tct(`[equation] is no longer supported because [reason] is unsupported`, {
           equation: equation.equation,
           reason:
             typeof equation.reason === 'string'
@@ -51,10 +51,14 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   if (changedReason.orderby) {
     orderbyWarning.push(
       ...changedReason.orderby.map(equation =>
-        tct(`[orderby] was dropped because [reason]`, {
-          orderby: equation.orderby,
-          reason: equation.reason,
-        })
+        typeof equation.reason === 'string'
+          ? tct(`[orderby] is not supported in this query`, {
+              orderby: equation.orderby,
+            })
+          : tct(`[orderby] is not supported because [reason] is unsupported`, {
+              orderby: equation.orderby,
+              reason: equation.reason.join(', '),
+            })
       )
     );
   }

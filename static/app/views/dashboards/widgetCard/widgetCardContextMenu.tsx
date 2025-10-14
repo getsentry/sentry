@@ -113,54 +113,43 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
     return null;
   }
 
-  const baseWarning = t(
-    "This widget may look different from its original query. Here's why:"
-  );
-  const columnsWarning = [];
-  const equationsWarning = [];
-  const orderbyWarning = [];
+  const columnsDropped = [];
+  const equationsDropped = [];
+  const orderbyDropped = [];
   for (const changedReason of widget.changedReason) {
     if (changedReason.selected_columns.length > 0) {
-      columnsWarning.push(
-        tct(`The following fields were dropped: [columns].`, {
-          columns: changedReason.selected_columns.join(', '),
-        })
-      );
+      columnsDropped.push(changedReason.selected_columns);
     }
     if (changedReason.equations) {
-      equationsWarning.push(
-        ...changedReason.equations.map(equation =>
-          tct(`[equation] was dropped because [reason] is unsupported.`, {
-            equation: equation.equation,
-            reason:
-              typeof equation.reason === 'string'
-                ? equation.reason
-                : equation.reason.join(', '),
-          })
-        )
-      );
+      equationsDropped.push(changedReason.equations.map(equation => equation.equation));
     }
     if (changedReason.orderby) {
-      orderbyWarning.push(
-        ...changedReason.orderby.map(equation =>
-          tct(`[orderby] was dropped because [reason].`, {
-            orderby: equation.orderby,
-            reason: equation.reason,
-          })
+      orderbyDropped.push(
+        changedReason.orderby.flatMap(orderby =>
+          typeof orderby.reason === 'string' ? orderby.orderby : orderby.reason
         )
       );
     }
   }
 
-  const allWarnings = [...columnsWarning, ...equationsWarning, ...orderbyWarning];
+  const allWarningsSet = new Set(
+    ...columnsDropped,
+    ...equationsDropped,
+    ...orderbyDropped
+  );
+  const allWarnings = [...allWarningsSet];
 
   if (allWarnings.length > 0) {
     return (
-      <div style={{alignContent: 'flex-start'}}>
-        <StyledText as="p">{baseWarning}</StyledText>
-        {allWarnings.map((warning, index) => (
-          <StyledText key={index}>{warning}</StyledText>
-        ))}
+      <div>
+        <StyledText as="p">
+          {tct(
+            'This widget may look different from its original because [columns] is no longer supported',
+            {
+              columns: allWarnings.join(', '),
+            }
+          )}
+        </StyledText>
       </div>
     );
   }
