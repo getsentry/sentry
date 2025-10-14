@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Select} from 'sentry/components/core/select';
@@ -106,8 +105,10 @@ export default function MessagingIntegrationAlertRule({
             }))}
             isLoading={isPending}
             disabled={!integration}
-            value={channel ? {label: channel, value: channel} : null}
-            onChange={(option: SelectValue<string>) => setChannel(option.value)}
+            value={channel ? {label: channel, value: channel} : undefined}
+            onChange={(option: SelectValue<string> | undefined) =>
+              setChannel(option?.value)
+            }
             clearable
             // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.
             // This allows them to add a channel that is not present in the results.
