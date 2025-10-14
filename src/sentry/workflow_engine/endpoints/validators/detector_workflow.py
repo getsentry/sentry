@@ -18,7 +18,11 @@ from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 
 
-def can_edit_error_detectors(request: Request) -> bool:
+def is_system_created_detector(detector: Detector) -> bool:
+    return detector.type in (ErrorGroupType.slug,)
+
+
+def can_edit_system_created_detectors(request: Request) -> bool:
     """
     Only those with organizaiton write permissions can edit error detectors
     """
@@ -26,7 +30,7 @@ def can_edit_error_detectors(request: Request) -> bool:
 
 
 def has_alert_write_access(request: Request, project: Project) -> bool:
-    return can_edit_error_detectors(request) or request.access.has_project_scope(
+    return can_edit_system_created_detectors(request) or request.access.has_project_scope(
         project, "alerts:write"
     )
 
@@ -35,8 +39,8 @@ def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     """
     Determine if the requesting user has access to edit the given detectors.
     """
-    if any(detector.type == ErrorGroupType.slug for detector in detectors):
-        return can_edit_error_detectors(request)
+    if any(is_system_created_detector(detector) for detector in detectors):
+        return can_edit_system_created_detectors(request)
 
     projects = Project.objects.filter(
         id__in=detectors.values_list("project_id", flat=True).distinct()
@@ -51,7 +55,7 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
     in their request.
     """
-    if detector.type == ErrorGroupType.slug and not can_edit_error_detectors(request):
+    if is_system_created_detector(detector) and not can_edit_system_created_detectors(request):
         return False
 
     return has_alert_write_access(request, detector.project)
