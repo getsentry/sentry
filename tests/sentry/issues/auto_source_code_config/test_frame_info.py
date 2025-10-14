@@ -49,7 +49,9 @@ NO_EXTENSION_FRAME_FILENAMES = [
 class TestFrameInfo:
     def test_frame_filename_repr(self) -> None:
         path = "getsentry/billing/tax/manager.py"
-        assert create_frame_info({"filename": path}).__repr__() == f"FrameInfo: {path}"
+        frame_info = create_frame_info({"filename": path})
+        expected = f"FrameInfo: {path} stack_root: {frame_info.stack_root}"
+        assert frame_info.__repr__() == expected
 
     @pytest.mark.parametrize("filepath", UNSUPPORTED_FRAME_FILENAMES)
     def test_raises_unsupported(self, filepath: str) -> None:
@@ -88,6 +90,8 @@ class TestFrameInfo:
         with pytest.raises(expected_exception):
             create_frame_info(frame, "java")
 
+    # Only necessary while auto_source_code_config.multi_module_java is used
+    @pytest.mark.django_db
     @pytest.mark.parametrize(
         "frame, expected_stack_root, expected_normalized_path",
         [
