@@ -5,7 +5,16 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconChevron} from 'sentry/icons';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
+import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {
+  IconArrow,
+  IconChat,
+  IconChevron,
+  IconSeer,
+  IconStar,
+  IconTag,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -16,8 +25,11 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const enum EventNavOptions {
   RECOMMENDED = 'recommended',
@@ -118,6 +130,125 @@ export function IssueDetailsEventNavigation({
     font-weight: ${theme.fontWeight.normal};
   `;
 
+  const previousEventPath = {
+    pathname: `${baseEventsPath}${event?.previousEventID}/`,
+    query: {...location.query, referrer: 'previous-event'},
+  };
+
+  const nextEventPath = {
+    pathname: `${baseEventsPath}${event?.nextEventID}/`,
+    query: {...location.query, referrer: 'next-event'},
+  };
+
+  const {baseUrl} = useGroupDetailsRoute();
+  const traceId = event?.contexts.trace?.trace_id;
+
+  useOmniActions([
+    {
+      key: 'issue-seer-debug',
+      label: t('Ask Seer About This Issue'),
+      areaKey: 'issue',
+      section: t('Issue'),
+      actionType: 'navigate',
+      actionIcon: <IconSeer />,
+      to: {
+        pathname: baseUrl,
+        query: {
+          ...location.query,
+          seerDrawer: true,
+        },
+      },
+    },
+    {
+      key: 'issue-tags-breakdown',
+      label: t('Tag Distribution'),
+      areaKey: 'issue',
+      section: t('Issue'),
+      actionType: 'navigate',
+      actionIcon: <IconTag />,
+      to: {
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
+        query: location.query,
+      },
+    },
+    {
+      key: 'issue-activity',
+      label: t('Comments and Activity'),
+      areaKey: 'issue',
+      section: t('Issue'),
+      actionType: 'navigate',
+      actionIcon: <IconChat direction="right" />,
+      to: {
+        pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+        query: location.query,
+      },
+    },
+    ...(event && traceId
+      ? [
+          {
+            key: 'issue-full-trace-view',
+            areaKey: 'issue',
+            section: t('Debug Event'),
+            label: t('Go to Full Event Trace'),
+            actionType: 'navigate',
+            actionIcon: <IconArrow direction="right" />,
+            to: generateTraceTarget(
+              event,
+              organization,
+              {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId: event.groupID,
+                },
+              },
+              TraceViewSources.ISSUE_DETAILS
+            ),
+          },
+        ]
+      : []),
+    {
+      key: 'issue-oldest-event',
+      label: t('Go to Previous Event'),
+      areaKey: 'issue',
+      section: t('Navigate Events'),
+      actionType: 'navigate',
+      actionIcon: <IconChevron direction="left" />,
+      to: previousEventPath,
+      hidden: !defined(event?.previousEventID),
+    },
+    {
+      key: 'issue-next-event',
+      label: t('Go to Next Event'),
+      areaKey: 'issue',
+      section: t('Navigate Events'),
+      actionType: 'navigate',
+      actionIcon: <IconChevron direction="right" />,
+      to: nextEventPath,
+      hidden: !defined(event?.nextEventID),
+    },
+    ...EventNavOrder.filter(option => option !== EventNavOptions.CUSTOM).map(option => ({
+      key: `issue-${option}-event`,
+      label: t('Go to %s Event', EventNavLabels[option]),
+      areaKey: 'issue',
+      section: t('Navigate Events'),
+      actionType: 'navigate',
+      actionIcon:
+        option === EventNavOptions.RECOMMENDED ? (
+          <IconStar />
+        ) : (
+          <IconChevron
+            direction={option === EventNavOptions.OLDEST ? 'left' : 'right'}
+            isDouble
+          />
+        ),
+      to: {
+        pathname: normalizeUrl(baseEventsPath + option + '/'),
+        query: {...location.query, referrer: `${option}-event`},
+      },
+    })),
+  ]);
+
   return (
     <Fragment>
       <Navigation>
@@ -130,10 +261,7 @@ export function IssueDetailsEventNavigation({
           disabled={!defined(event?.previousEventID)}
           analyticsEventKey="issue_details.previous_event_clicked"
           analyticsEventName="Issue Details: Previous Event Clicked"
-          to={{
-            pathname: `${baseEventsPath}${event?.previousEventID}/`,
-            query: {...location.query, referrer: 'previous-event'},
-          }}
+          to={previousEventPath}
           preventScrollReset
           css={grayText}
           onMouseEnter={handleHoverPagination(
@@ -154,10 +282,7 @@ export function IssueDetailsEventNavigation({
           disabled={!defined(event?.nextEventID)}
           analyticsEventKey="issue_details.next_event_clicked"
           analyticsEventName="Issue Details: Next Event Clicked"
-          to={{
-            pathname: `${baseEventsPath}${event?.nextEventID}/`,
-            query: {...location.query, referrer: 'next-event'},
-          }}
+          to={nextEventPath}
           preventScrollReset
           css={grayText}
           onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}

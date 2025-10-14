@@ -28,6 +28,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
+import {OmniSearchProvider} from 'sentry/components/omniSearch/provider';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -245,7 +246,9 @@ function makeAllTheProviders(options: ProviderOptions) {
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
           <NuqsTestingAdapterWithNavigate query={options.query ?? ''}>
-            <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+            <OmniSearchProvider>
+              <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+            </OmniSearchProvider>
           </NuqsTestingAdapterWithNavigate>
         </QueryClientProvider>
       </CacheProvider>

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -10,6 +10,7 @@ import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFe
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OmniSearchArea} from 'sentry/components/omniSearch/areaContext';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -886,7 +887,11 @@ function GroupDetails() {
   const config = group && getConfigForIssueType(group, group.project);
 
   return (
-    <Fragment>
+    <OmniSearchArea
+      areaKey="issue"
+      label={(group ? group.shortId : null) ?? t('Issue')}
+      focused
+    >
       {isSampleError && group && (
         <SampleEventAlert project={group.project} organization={organization} />
       )}
@@ -902,7 +907,7 @@ function GroupDetails() {
           </GroupDetailsPageContent>
         </PageFiltersContainer>
       </SentryDocumentTitle>
-    </Fragment>
+    </OmniSearchArea>
   );
 }
 
