@@ -1,5 +1,4 @@
 import type {Query} from 'history';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -15,8 +14,9 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import * as utils from 'sentry/utils/useNavigate';
+import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
   makeVitalGroups,
@@ -24,12 +24,6 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 const theme = ThemeFixture();
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
-jest.mock('sentry/utils/useNavigate');
-
-const mockUseNavigate = jest.mocked(useNavigate);
 
 interface HistogramData {
   count: number;
@@ -68,6 +62,26 @@ function initialize({
   return data;
 }
 
+const renderWithLayout = (data: ReturnType<typeof initialize>) => {
+  return render(<TransactionSummaryLayout />, {
+    organization: data.organization,
+    initialRouterConfig: {
+      location: {
+        pathname: '/performance/summary/vitals/',
+        query: data.routerProps.location.query,
+      },
+      route: '/performance/summary/',
+      children: [
+        {
+          path: 'vitals',
+          handle: {tab: TransactionSummaryTab.WEB_VITALS},
+          element: <TransactionVitals />,
+        },
+      ],
+    },
+  });
+};
+
 /**
  * These values are what we expect to see on the page based on the
  * mocked api responses below.
@@ -102,10 +116,6 @@ const vitals = [
 
 describe('Performance > Web Vitals', () => {
   beforeEach(() => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
-    );
-
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
@@ -191,28 +201,21 @@ describe('Performance > Web Vitals', () => {
   });
 
   it('render no access without feature', () => {
-    const {organization, router} = initialize({
+    const data = initialize({
       features: [],
     });
 
-    render(<TransactionVitals organization={organization} location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(data);
+
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
   it('renders the basic UI components', () => {
-    const {organization, router} = initialize({
+    const data = initialize({
       transaction: '/organizations/:orgId/',
     });
 
-    render(<TransactionVitals organization={organization} location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(data);
 
     expect(screen.getByText('/organizations/:orgId/')).toBeInTheDocument();
 
@@ -222,13 +225,9 @@ describe('Performance > Web Vitals', () => {
   });
 
   it('renders the correct bread crumbs', () => {
-    const {organization, router} = initialize();
+    const data = initialize();
 
-    render(<TransactionVitals organization={organization} location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(data);
 
     expect(screen.getByRole('navigation')).toHaveTextContent(
       'InsightsTransaction Summary'
@@ -236,17 +235,10 @@ describe('Performance > Web Vitals', () => {
   });
 
   describe('renders all vitals cards correctly', () => {
-    const {organization, router} = initialize();
+    const data = initialize();
 
     it.each(vitals)('Renders %s', async vital => {
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
       expect(await screen.findByText(vital.baseline)).toBeInTheDocument();
     });
@@ -254,100 +246,67 @@ describe('Performance > Web Vitals', () => {
 
   describe('reset view', () => {
     it('disables button on default view', () => {
-      const {organization, router} = initialize();
+      const data = initialize();
 
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
     });
 
     it('enables button on left zoom', () => {
-      const {organization, router} = initialize({
+      const data = initialize({
         query: {
           lcpStart: '20',
         },
       });
 
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('enables button on right zoom', () => {
-      const {organization, router} = initialize({
+      const data = initialize({
         query: {
           fpEnd: '20',
         },
       });
 
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('enables button on left and right zoom', () => {
-      const {organization, router} = initialize({
+      const data = initialize({
         query: {
           fcpStart: '20',
           fcpEnd: '20',
         },
       });
 
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('resets view properly', async () => {
       const mockNavigate = jest.fn();
-      mockUseNavigate.mockReturnValue(mockNavigate);
-      const {organization, router} = initialize({
+      jest.spyOn(utils, 'useNavigate').mockReturnValue(mockNavigate);
+
+      const data = initialize({
         query: {
           fidStart: '20',
           lcpEnd: '20',
         },
       });
 
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
       expect(mockNavigate).toHaveBeenCalledWith({
+        pathname: '/performance/summary/vitals/',
         query: expect.not.objectContaining(
           makeZoomKeys().reduce(
             (obj, key) => {
@@ -369,20 +328,13 @@ describe('Performance > Web Vitals', () => {
         },
       });
 
-      const {organization, router} = initialize({
+      const data = initialize({
         query: {
           lcpStart: '20',
         },
       });
 
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await waitForElementToBeRemoved(() =>
         screen.queryAllByTestId('loading-placeholder')
@@ -396,20 +348,13 @@ describe('Performance > Web Vitals', () => {
     });
 
     it('does not render an info alert when data from all web vitals is present', async () => {
-      const {organization, router} = initialize({
+      const data = initialize({
         query: {
           lcpStart: '20',
         },
       });
 
-      render(
-        <TransactionVitals organization={organization} location={router.location} />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
+      renderWithLayout(data);
 
       await waitForElementToBeRemoved(() =>
         screen.queryAllByTestId('loading-placeholder')
@@ -435,17 +380,13 @@ describe('Performance > Web Vitals', () => {
       },
     });
 
-    const {organization, router} = initialize({
+    const data = initialize({
       query: {
         lcpStart: '20',
       },
     });
 
-    render(<TransactionVitals organization={organization} location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(data);
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));
 
