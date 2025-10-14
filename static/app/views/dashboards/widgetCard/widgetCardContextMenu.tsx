@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
@@ -8,6 +9,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -105,6 +107,70 @@ const createExploreUrl = (
   }
   return getExploreUrl({organization, selection, ...queryParams});
 };
+
+export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | null => {
+  if (!widget.changedReason) {
+    return null;
+  }
+
+  const baseWarning = t(
+    "This widget may look different from its original query. Here's why:"
+  );
+  const columnsWarning = [];
+  const equationsWarning = [];
+  const orderbyWarning = [];
+  for (const changedReason of widget.changedReason) {
+    if (changedReason.selected_columns.length > 0) {
+      columnsWarning.push(
+        tct(`The following fields were dropped: [columns].`, {
+          columns: changedReason.selected_columns.join(', '),
+        })
+      );
+    }
+    if (changedReason.equations) {
+      equationsWarning.push(
+        ...changedReason.equations.map(equation =>
+          tct(`[equation] was dropped because [reason] is unsupported.`, {
+            equation: equation.equation,
+            reason:
+              typeof equation.reason === 'string'
+                ? equation.reason
+                : equation.reason.join(', '),
+          })
+        )
+      );
+    }
+    if (changedReason.orderby) {
+      orderbyWarning.push(
+        ...changedReason.orderby.map(equation =>
+          tct(`[orderby] was dropped because [reason].`, {
+            orderby: equation.orderby,
+            reason: equation.reason,
+          })
+        )
+      );
+    }
+  }
+
+  const allWarnings = [...columnsWarning, ...equationsWarning, ...orderbyWarning];
+
+  if (allWarnings.length > 0) {
+    return (
+      <div style={{alignContent: 'flex-start'}}>
+        <StyledText as="p">{baseWarning}</StyledText>
+        {allWarnings.map((warning, index) => (
+          <StyledText key={index}>{warning}</StyledText>
+        ))}
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const StyledText = styled(Text)`
+  padding-bottom: ${p => p.theme.space.xs};
+`;
 
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,

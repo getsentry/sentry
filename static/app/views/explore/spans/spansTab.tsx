@@ -67,6 +67,7 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
 import {SpansExport} from 'sentry/views/explore/spans/spansExport';
@@ -369,6 +370,7 @@ function SpanTabContentSection({
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
+  const id = useExploreId();
   const [tab, setTab] = useTab();
   const [caseInsensitive] = useCaseInsensitivity();
 
@@ -487,6 +489,7 @@ function SpanTabContentSection({
           <SettingsDropdown />
         </ActionButtonsGroup>
       </OverChartButtonGroup>
+      {defined(id) && <DroppedFieldsAlert />}
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       )}
