@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
@@ -31,6 +32,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidatorTest
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
@@ -409,5 +412,75 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         with self.assertRaisesMessage(
             ValidationError,
             expected_message="Used 1/1 of allowed metric_issue monitors.",
+        ):
+            validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    def test_transaction_dataset_deprecation_transactions(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSource": {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.Transactions.value,
+                "query": "test query",
+                "aggregate": "count()",
+                "timeWindow": 3600,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+        ):
+            validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    @with_feature("organizations:mep-rollout-flag")
+    def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSource": {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+                "query": "test query",
+                "aggregate": "count()",
+                "timeWindow": 3600,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+        ):
+            validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    def test_transaction_dataset_deprecation_multiple_data_sources(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                },
+            ],
+        }
+        data.pop("dataSource", None)
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
         ):
             validator.save()

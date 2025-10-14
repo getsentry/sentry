@@ -7,6 +7,7 @@ from sentry import features, quotas
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -141,6 +142,17 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return attrs
 
+    def _validate_transaction_dataset_deprecation(self, dataset: Dataset) -> None:
+        organization = self.context.get("organization")
+        if organization is None:
+            raise serializers.ValidationError("Missing organization context")
+
+        if features.has("organizations:discover-saved-queries-deprecation", organization):
+            if dataset in [Dataset.PerformanceMetrics, Dataset.Transactions]:
+                raise serializers.ValidationError(
+                    "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+                )
+
     def get_quota(self) -> DetectorQuota:
         organization = self.context.get("organization")
         request = self.context.get("request")
@@ -221,6 +233,13 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return instance
 
     def create(self, validated_data: dict[str, Any]):
+        if "data_source" in validated_data:
+            self._validate_transaction_dataset_deprecation(validated_data["data_source"]["dataset"])
+
+        if "data_sources" in validated_data:
+            for validated_data_source in validated_data["data_sources"]:
+                self._validate_transaction_dataset_deprecation(validated_data_source["dataset"])
+
         detector = super().create(validated_data)
 
         schedule_update_project_config(detector)
