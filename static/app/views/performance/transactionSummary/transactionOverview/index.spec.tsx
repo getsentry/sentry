@@ -48,7 +48,7 @@ function initializeData({
     projects: projects ? projects : [project],
     router: {
       location: {
-        pathname: '/',
+        pathname: '/performance/summary/',
         query: {
           transaction: '/performance',
           project: project.id,
@@ -69,10 +69,7 @@ const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
   return render(<TransactionSummaryLayout />, {
     organization: data.organization,
     initialRouterConfig: {
-      location: {
-        pathname: '/performance/summary/',
-        query: data.routerProps.location.query,
-      },
+      location: data.routerProps.location,
       route: '/performance/',
       children: [
         {
@@ -684,12 +681,11 @@ describe('Performance > TransactionSummary', () => {
         replace: true,
       });
       const data = initializeData({projects});
-      const spy = jest.spyOn(data.router, 'replace');
 
       // Ensure project id is not in path
       delete data.router.location.query.project;
 
-      renderWithLayout(data);
+      const {router} = renderWithLayout(data);
 
       renderGlobalModal();
 
@@ -699,9 +695,16 @@ describe('Performance > TransactionSummary', () => {
       expect(screen.getByText('My Projects')).toBeInTheDocument();
 
       await userEvent.click(firstProjectOption);
-      expect(spy).toHaveBeenCalledWith(
-        '/organizations/org-slug/insights/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1'
-      );
+
+      await waitFor(() => {
+        expect(router.location.query).toMatchObject({
+          project: '1',
+          transaction: '/performance',
+          statsPeriod: '14d',
+          transactionCursor: '1:0:0',
+          referrer: 'performance-transaction-summary',
+        });
+      });
     });
 
     it('fetches transaction threshold', async () => {
@@ -760,9 +763,15 @@ describe('Performance > TransactionSummary', () => {
     });
 
     it('triggers a navigation on search', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/?limit=5&project=2&query=user.email%3Auhoh%2A%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d`,
+        method: 'GET',
+        body: [],
+      });
+
       const data = initializeData();
 
-      renderWithLayout(data);
+      const {router} = renderWithLayout(data);
 
       // Fill out the search box, and submit it.
       await userEvent.click(
@@ -770,20 +779,15 @@ describe('Performance > TransactionSummary', () => {
       );
       await userEvent.paste('user.email:uhoh*');
 
-      await waitFor(() => {
-        expect(data.router.push).toHaveBeenCalledTimes(1);
-      });
-
       // Check the navigation.
-      expect(data.router.push).toHaveBeenCalledWith({
-        pathname: '/',
-        query: {
+      await waitFor(() => {
+        expect(router.location.query).toMatchObject({
           transaction: '/performance',
           project: '2',
           statsPeriod: '14d',
           query: 'user.email:uhoh*',
           transactionCursor: '1:0:0',
-        },
+        });
       });
     });
 
@@ -812,7 +816,7 @@ describe('Performance > TransactionSummary', () => {
     it('triggers a navigation on transaction filter', async () => {
       const data = initializeData();
 
-      renderWithLayout(data);
+      const {router} = renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
       await waitFor(() => {
@@ -827,21 +831,19 @@ describe('Performance > TransactionSummary', () => {
       await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]!);
 
       // Check the navigation.
-      expect(data.router.push).toHaveBeenCalledWith({
-        pathname: '/',
-        query: {
+      await waitFor(() => {
+        expect(router.location.query).toMatchObject({
           transaction: '/performance',
           project: '2',
           showTransactions: 'slow',
-          transactionCursor: undefined,
-        },
+        });
       });
     });
 
     it('renders pagination buttons', async () => {
       const data = initializeData();
 
-      renderWithLayout(data);
+      const {router} = renderWithLayout(data);
 
       await screen.findByText('Transaction Summary');
 
@@ -853,13 +855,12 @@ describe('Performance > TransactionSummary', () => {
       await userEvent.click(await within(pagination).findByLabelText('Next'));
 
       // Check the navigation.
-      expect(data.router.push).toHaveBeenCalledWith({
-        pathname: '/',
-        query: {
+      await waitFor(() => {
+        expect(router.location.query).toMatchObject({
           transaction: '/performance',
           project: '2',
           transactionCursor: '2:0:0',
-        },
+        });
       });
     });
 
@@ -906,26 +907,36 @@ describe('Performance > TransactionSummary', () => {
     it('adds search condition on transaction status when clicking on status breakdown', async () => {
       const data = initializeData();
 
-      renderWithLayout(data);
+      const {router} = renderWithLayout(data);
 
       await screen.findByTestId('status-ok');
 
       await userEvent.click(screen.getByTestId('status-ok'));
 
-      expect(data.router.push).toHaveBeenCalledTimes(1);
-      expect(data.router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('transaction.status:ok'),
-          }),
-        })
-      );
+      // Check the navigation.
+      await waitFor(() => {
+        expect(router.location.query).toMatchObject({
+          query: expect.stringContaining('transaction.status:ok'),
+        });
+      });
     });
 
     it('appends tag value to existing query when clicked', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/?limit=5&project=2&query=tags%5Benvironment%5D%3Adev%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d`,
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/?limit=5&project=2&query=tags%5Benvironment%5D%3Adev%20foo%3Abar%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d`,
+        method: 'GET',
+        body: [],
+      });
+
       const data = initializeData();
 
-      renderWithLayout(data);
+      const {router} = renderWithLayout(data);
 
       await screen.findByText('Tag Summary');
 
@@ -938,6 +949,15 @@ describe('Performance > TransactionSummary', () => {
         )
       );
 
+      await waitFor(() => {
+        expect(router.location.query).toMatchObject({
+          project: '2',
+          query: 'tags[environment]:dev',
+          transaction: '/performance',
+          transactionCursor: '1:0:0',
+        });
+      });
+
       // Expand foo tag
       await userEvent.click(await screen.findByText('foo'));
       // Select bar
@@ -947,26 +967,13 @@ describe('Performance > TransactionSummary', () => {
         )
       );
 
-      expect(data.router.push).toHaveBeenCalledTimes(2);
-
-      expect(data.router.push).toHaveBeenNthCalledWith(1, {
-        pathname: '/',
-        query: {
+      await waitFor(() => {
+        expect(router.location.query).toMatchObject({
           project: '2',
-          query: 'tags[environment]:dev',
+          query: 'tags[environment]:dev foo:bar',
           transaction: '/performance',
           transactionCursor: '1:0:0',
-        },
-      });
-
-      expect(data.router.push).toHaveBeenNthCalledWith(2, {
-        pathname: '/',
-        query: {
-          project: '2',
-          query: 'foo:bar',
-          transaction: '/performance',
-          transactionCursor: '1:0:0',
-        },
+        });
       });
     });
 
