@@ -558,7 +558,15 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
 
       if (key === DashboardFilterKeys.GLOBAL_FILTER) {
         // Global filters are stored as JSON strings
-        dashboardFilters[key] = queryFilters.map(filter => JSON.parse(filter));
+        dashboardFilters[key] = queryFilters
+          .map(filter => {
+            try {
+              return JSON.parse(filter);
+            } catch (error) {
+              return null;
+            }
+          })
+          .filter(filter => filter !== null);
       } else {
         dashboardFilters[key] = queryFilters;
       }
