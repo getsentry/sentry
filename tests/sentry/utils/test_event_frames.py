@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 from sentry.testutils.cases import TestCase
 from sentry.utils.event_frames import (
     EventFrame,
@@ -76,6 +78,8 @@ class FilenameMungingTestCase(unittest.TestCase):
     def test_platform_sdk_name_not_supported(self) -> None:
         assert not munged_filename_and_frames("javascript", [], "munged", "sdk.other")
 
+    # Only necessary while auto_source_code_config.multi_module_java is used
+    @pytest.mark.django_db
     def test_supported_platform_sdk_name_not_required(self) -> None:
         frames = [
             {
@@ -88,6 +92,8 @@ class FilenameMungingTestCase(unittest.TestCase):
 
 
 class JavaFilenameMungingTestCase(unittest.TestCase):
+    # Only necessary while auto_source_code_config.multi_module_java is used
+    @pytest.mark.django_db
     def test_platform_java(self) -> None:
         frames = [
             {
@@ -140,6 +146,8 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
         munged = munged_filename_and_frames("java", [frame])
         assert munged is None
 
+    # Only necessary while auto_source_code_config.multi_module_java is used
+    @pytest.mark.django_db
     def test_platform_android_kotlin(self) -> None:
         exception_frames = [
             {
