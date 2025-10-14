@@ -4,7 +4,7 @@ import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {useIsMutating, useMutation} from 'sentry/utils/queryClient';
+import {useIsMutating, useMutation, useMutationState} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
@@ -81,4 +81,13 @@ export function useCreateProjectAndRules() {
 
 export function useIsCreatingProjectAndRules() {
   return Boolean(useIsMutating({mutationKey: [MUTATION_KEY]}));
+}
+
+export function useCreateProjectAndRulesError(): RequestError | undefined {
+  const errors = useMutationState<RequestError | undefined>({
+    filters: {mutationKey: [MUTATION_KEY]},
+    select: mutation => mutation.state.error as RequestError | undefined,
+  });
+
+  return errors.findLast((err): err is RequestError => Boolean(err));
 }
