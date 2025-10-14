@@ -108,25 +108,38 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
   const location = useLocation();
   const [openState, setOpenState] = useState<Record<string, boolean>>({});
   const {isDrawerOpen, openDrawer} = useDrawer();
+  const [highlightedRow, setHighlightedRow] = useState<number | undefined>(undefined);
   const [trialButtonBusyState, setTrialButtonBusyState] = useState<
     Partial<Record<DataCategory, boolean>>
   >({});
 
-  const handleCloseDrawer = useCallback(
-    (replace: boolean) => {
+  const handleOpenDrawer = useCallback(
+    (dataCategory: DataCategory) => {
       navigate(
         {
           pathname: location.pathname,
-          query: {
-            ...location.query,
-            drawer: undefined,
-          },
+          query: {...location.query, drawer: dataCategory},
         },
-        {replace}
+        {
+          replace: true,
+        }
       );
     },
     [navigate, location.query, location.pathname]
   );
+
+  const handleCloseDrawer = useCallback(() => {
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          drawer: undefined,
+        },
+      },
+      {replace: true}
+    );
+  }, [navigate, location.query, location.pathname]);
 
   useEffect(() => {
     Object.entries(subscription.addOns ?? {})
@@ -151,7 +164,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         title: true,
       });
       if (!categoryInfo) {
-        handleCloseDrawer(true);
+        handleCloseDrawer();
         return;
       }
       openDrawer(
@@ -170,7 +183,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           ariaLabel: t('Usage for %s', productName),
           drawerKey: 'usage-overview-drawer',
           resizable: false,
-          onClose: () => handleCloseDrawer(false),
+          onClose: () => handleCloseDrawer(),
           drawerWidth: '650px',
         }
       );
@@ -195,19 +208,23 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         (trial.isStarted && trial.endDate && getDaysSinceDate(trial.endDate) <= 0)
     );
     return [
-      {key: 'product', name: t('Product'), width: 300},
+      {key: 'product', name: t('Product'), width: 250},
       {key: 'currentUsage', name: t('Current usage'), width: 200},
       {key: 'reservedUsage', name: t('Reserved usage'), width: 200},
-      {key: 'reservedSpend', name: t('Reserved spend'), width: 200},
+      {key: 'reservedSpend', name: t('Reserved spend'), width: 150},
       {
         key: 'budgetSpend',
         name: t('%s spend', displayBudgetName(subscription.planDetails, {title: true})),
-        width: 200,
+        width: 150,
       },
       {
         key: 'trialInfo',
         name: '',
-        width: 50,
+        width: 200,
+      },
+      {
+        key: 'drawerButton',
+        name: '',
       },
     ].filter(
       column =>
@@ -232,6 +249,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     budgetSpend: number;
     currentUsage: number;
     hasAccess: boolean;
+    isClickable: boolean;
     isPaygOnly: boolean;
     isUnlimited: boolean;
     product: string;
@@ -253,6 +271,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         .filter(metricHistory => !allAddOnDataCategories.includes(metricHistory.category))
         .map(metricHistory => {
           const category = metricHistory.category;
+          const categoryInfo = getCategoryInfoFromPlural(category);
           const productName = getPlanCategoryName({
             plan: subscription.planDetails,
             category,
@@ -310,6 +329,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             reservedSpend: recurringReservedSpend,
             budgetSpend: paygTotal,
             productTrialCategory: category,
+            isClickable: categoryInfo?.tallyType === 'usage',
           };
         }),
       ...Object.entries(subscription.addOns ?? {})
@@ -369,6 +389,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           const childCategoriesData =
             openState[apiName] && hasAccess
               ? addOnInfo.dataCategories.map(addOnDataCategory => {
+                  const categoryInfo = getCategoryInfoFromPlural(addOnDataCategory);
                   const childSpend =
                     reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
                   const childPaygTotal =
@@ -394,6 +415,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                     budgetSpend: childPaygTotal,
                     currentUsage: (childSpend ?? 0) + childPaygTotal,
                     product: childProductName,
+                    isClickable: categoryInfo?.tallyType === 'usage',
                   };
                 })
               : null;
@@ -414,6 +436,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               reservedUsage: percentUsed,
               reservedSpend: recurringReservedSpend,
               budgetSpend: paygTotal,
+              isClickable: hasAccess,
             },
             ...(childCategoriesData ?? []),
           ];
@@ -456,6 +479,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             softCapType,
             toggleKey,
             productTrialCategory,
+            isClickable,
           } = row;
 
           const productTrial = productTrialCategory
@@ -485,28 +509,10 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 
               if (toggleKey) {
                 return (
-                  <Container>
-                    <StyledButton
-                      borderless
-                      icon={
-                        isOpen ? (
-                          <IconChevron direction="up" />
-                        ) : (
-                          <IconChevron direction="down" />
-                        )
-                      }
-                      aria-label={
-                        isOpen
-                          ? t('Collapse %s details', product)
-                          : t('Expand %s details', product)
-                      }
-                      onClick={() =>
-                        setOpenState(prev => ({...prev, [toggleKey as string]: !isOpen}))
-                      }
-                    >
-                      {title}
-                    </StyledButton>
-                  </Container>
+                  <Flex align="center" gap="sm">
+                    <IconChevron direction={isOpen ? 'up' : 'down'} />
+                    {title}
+                  </Flex>
                 );
               }
               return (
@@ -550,7 +556,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                   : `${formattedTotal} / ${formattedReservedTotal}`;
 
               return (
-                <Flex align="center" gap="sm">
+                <Flex align="center" gap="sm" width="max-content">
                   <Text as="div" textWrap="balance">
                     {isUnlimited ? UNLIMITED : formattedCurrentUsage}{' '}
                     {!(isPaygOnly || isChildProduct) && (
@@ -664,31 +670,59 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               }
               return <div />;
             }
+            case 'drawerButton': {
+              if (isClickable && dataCategory) {
+                return (
+                  <Container>
+                    <Button
+                      aria-label={t('View %s usage', product)}
+                      icon={<IconChevron direction="right" />}
+                      onClick={() => handleOpenDrawer(dataCategory)}
+                    />
+                  </Container>
+                );
+              }
+              return <div />;
+            }
             default:
               return row[column.key as keyof typeof row];
           }
         },
       }}
-      isRowClickable={row =>
-        !!row.dataCategory &&
-        getCategoryInfoFromPlural(row.dataCategory)?.tallyType === 'usage'
-      }
+      isRowClickable={row => row.isClickable}
+      onRowMouseOver={(row, key) => {
+        if (row.isClickable) {
+          setHighlightedRow(key);
+        }
+      }}
+      onRowMouseOut={() => {
+        setHighlightedRow(undefined);
+      }}
+      highlightedRowKey={highlightedRow}
       onRowClick={row => {
-        if (row.dataCategory) {
-          const categoryInfo = getCategoryInfoFromPlural(row.dataCategory);
-          if (categoryInfo?.tallyType === 'usage') {
-            navigate({
-              pathname: location.pathname,
-              query: {...location.query, drawer: row.dataCategory},
-            });
+        if (row.isClickable) {
+          if (row.dataCategory) {
+            handleOpenDrawer(row.dataCategory);
+          } else if (row.addOnCategory) {
+            setOpenState(prev => ({
+              ...prev,
+              [row.addOnCategory as string]: !prev[row.addOnCategory as string],
+            }));
           }
         }
       }}
       getRowAriaLabel={row => {
-        if (row.dataCategory) {
-          const categoryInfo = getCategoryInfoFromPlural(row.dataCategory);
-          if (categoryInfo?.tallyType === 'usage') {
-            return t('View %s usage', row.product);
+        if (row.isClickable) {
+          if (row.dataCategory) {
+            const categoryInfo = getCategoryInfoFromPlural(row.dataCategory);
+            if (categoryInfo?.tallyType === 'usage') {
+              return t('View %s usage', row.product);
+            }
+          } else if (row.addOnCategory) {
+            const isOpen = openState[row.addOnCategory as string];
+            return isOpen
+              ? t('Collapse %s details', row.product)
+              : t('Expand %s details', row.product);
           }
         }
         return undefined;
@@ -762,10 +796,6 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
 }
 
 export default UsageOverview;
-
-const StyledButton = styled(Button)`
-  padding: 0;
-`;
 
 const Bar = styled('div')<{
   fillPercentage: number;
