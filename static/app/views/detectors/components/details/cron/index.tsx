@@ -2,8 +2,11 @@ import {Fragment, useCallback, useState} from 'react';
 import sortBy from 'lodash/sortBy';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import useDrawer from 'sentry/components/globalDrawer';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -26,6 +29,7 @@ import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/de
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
+import MonitorQuickStartGuide from 'sentry/views/insights/crons/components/monitorQuickStartGuide';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
 import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/crons/types';
@@ -53,6 +57,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
+  const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
 
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
@@ -205,17 +210,42 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <DetectorExtraDetails.LastModified detector={detector} />
             </DetectorExtraDetails>
             {dataSource.queryObj.isUpserting && (
-              <Alert.Container>
-                <Alert type="muted" icon={<IconJson />}>
-                  {t(
-                    'This monitor is managed in code and updates automatically with each check-in.'
-                  )}
-                </Alert>
-              </Alert.Container>
+              <Alert type="muted" icon={<IconJson />}>
+                {t(
+                  'This monitor is managed in code and updates automatically with each check-in.'
+                )}
+              </Alert>
+            )}
+            {hasCheckedIn && (
+              <Flex>
+                <Button size="xs" onClick={openDocsPanel}>
+                  {t('Show Setup Docs')}
+                </Button>
+              </Flex>
             )}
           </DetailLayout.Sidebar>
         </DetailLayout.Body>
       </DetailLayout>
     </TimezoneProvider>
   );
+}
+
+function useDocsPanel(monitorSlug: string, project: Project) {
+  const {openDrawer} = useDrawer();
+
+  const contents = (
+    <Fragment>
+      <DrawerHeader hideBar />
+      <DrawerBody>
+        <MonitorQuickStartGuide project={project} monitorSlug={monitorSlug} />
+      </DrawerBody>
+    </Fragment>
+  );
+
+  return () =>
+    openDrawer(() => contents, {
+      ariaLabel: t('See Setup Docs'),
+      drawerKey: 'cron-docs',
+      resizable: true,
+    });
 }

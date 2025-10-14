@@ -203,4 +203,59 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(utcTimezoneText).toBe('Jan 1, 2025 12:00:01 AM UTC');
     });
   });
+
+  describe('setup docs button', () => {
+    it('shows setup docs button when monitor has checked in', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.slug}/keys/`,
+        body: ProjectKeysFixture(),
+      });
+
+      render(<CronDetectorDetails detector={detector} project={project} />);
+
+      // Wait for component to load
+      await screen.findByText('Recent Check-Ins');
+
+      // Click the button to open the drawer
+      await userEvent.click(screen.getByRole('button', {name: 'Show Setup Docs'}));
+
+      // Verify drawer opens with quick start guide content
+      expect(await screen.findByText(/integration method/i)).toBeInTheDocument();
+    });
+
+    it('does not show setup docs button when monitor has not checked in', async () => {
+      const noCheckInDataSource = CronMonitorDataSourceFixture({
+        queryObj: {
+          ...CronMonitorDataSourceFixture().queryObj,
+          environments: [
+            CronMonitorEnvironmentFixture({
+              lastCheckIn: null,
+              nextCheckIn: null,
+            }),
+          ],
+        },
+      });
+
+      const noCheckInDetector = CronDetectorFixture({
+        id: '2',
+        projectId: project.id,
+        dataSources: [noCheckInDataSource],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.slug}/keys/`,
+        body: ProjectKeysFixture(),
+      });
+
+      render(<CronDetectorDetails detector={noCheckInDetector} project={project} />);
+
+      // Wait for onboarding to load
+      await screen.findByRole('heading', {name: 'Instrument your monitor'});
+
+      // Button should not be visible when showing onboarding
+      expect(
+        screen.queryByRole('button', {name: 'Show Setup Docs'})
+      ).not.toBeInTheDocument();
+    });
+  });
 });
