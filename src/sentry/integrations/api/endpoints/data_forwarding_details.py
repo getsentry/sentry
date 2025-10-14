@@ -89,7 +89,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def _update_data_forwarder_config(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
-        data = request.data
+        # Create a mutable copy of request.data to avoid immutability errors
+        data = dict(request.data)
         data["organization_id"] = organization.id
 
         serializer = DataForwarderSerializer(data_forwarder, data=data)

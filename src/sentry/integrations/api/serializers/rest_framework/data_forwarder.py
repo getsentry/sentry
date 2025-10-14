@@ -181,7 +181,7 @@ class DataForwarderSerializer(Serializer):
         return config
 
     def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
-        project_ids: list[int] = validated_data.get("project_ids", [])
+        project_ids: list[int] = validated_data["project_ids"]
         data = {k: v for k, v in validated_data.items() if k != "project_ids"}
         data_forwarder = DataForwarder.objects.create(**data)
 
