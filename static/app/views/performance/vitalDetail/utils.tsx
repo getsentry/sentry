@@ -1,10 +1,6 @@
-import type {Location} from 'history';
-
 import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type {Color} from 'sentry/utils/theme';
 
 export const webVitalPoor = {
