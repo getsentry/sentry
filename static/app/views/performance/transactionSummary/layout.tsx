@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
@@ -23,7 +23,7 @@ function TransactionSummaryLayout() {
   const handle = useMatches().at(-1)?.handle as {tab?: Tab} | undefined;
 
   if (!handle?.tab) {
-    return null;
+    return <Outlet />;
   }
 
   return (
