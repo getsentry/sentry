@@ -8,6 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   decodeMetricsQueryParams,
+  DEFAULT_METRIC_ID,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type BaseMetricQuery,
@@ -128,7 +129,7 @@ function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQ
   if (metricQueries.length) {
     return metricQueries;
   }
-  return [defaultMetricQuery('a')];
+  return [defaultMetricQuery(DEFAULT_METRIC_ID)];
 }
 
 export function useMultiMetricsQueryParams() {
@@ -160,7 +161,7 @@ export function useAddMetricQuery() {
 
 export function getNextMetricId(lastMetricId: string | undefined): string {
   if (lastMetricId === undefined || lastMetricId === '') {
-    return 'a';
+    return DEFAULT_METRIC_ID;
   }
   return String.fromCharCode(lastMetricId.charCodeAt(0) + 1);
 }
