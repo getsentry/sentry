@@ -285,13 +285,15 @@ class GitHubIntegration(
         # model, but the model reference on this class isn't updated.
         # self.model.refresh_from_db()
         self._update_integration_model()
-        if self.model.metadata.get("expires_at"):
-            expiration_time = datetime.fromisoformat(
-                self.model.metadata.get("expires_at")
-            ).astimezone(UTC)
+        model_expiration_str = self.model.metadata.get("expires_at")
+        if model_expiration_str:
+            expiration_time = datetime.fromisoformat(model_expiration_str).astimezone(UTC)
+
+        access_token = self.model.metadata.get("access_token")
+        assert access_token is not None, "Expected Integration to have an access token"
 
         return CredentialLease(
-            access_token=self.model.metadata.get("access_token"),
+            access_token=access_token,
             permissions=self.model.metadata.get("permissions"),
             expires_at=expiration_time,
         )
