@@ -65,8 +65,13 @@ def send_new_detector_data(detector: Detector) -> None:
         )
     except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
         # there should only ever be one data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
+        dcg_id = (
+            detector.workflow_condition_group.id
+            if detector.workflow_condition_group is not None
+            else None
+        )
         raise DetectorException(
-            f"Could not create detector, data condition {detector.workflow_condition_group.id} not found or too many found."
+            f"Could not create detector, data condition {dcg_id} not found or too many found."
         )
     try:
         handle_send_historical_data_to_seer(
