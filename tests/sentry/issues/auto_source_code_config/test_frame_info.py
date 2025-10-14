@@ -90,8 +90,6 @@ class TestFrameInfo:
         with pytest.raises(expected_exception):
             create_frame_info(frame, "java")
 
-    # Only necessary while auto_source_code_config.multi_module_java is used
-    @pytest.mark.django_db
     @pytest.mark.parametrize(
         "frame, expected_stack_root, expected_normalized_path",
         [
