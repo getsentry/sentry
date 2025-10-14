@@ -43,7 +43,7 @@ def submit(consumer: ProcessingStrategy[KafkaPayload], message: dict[str, Any]) 
     consumer.terminate()
 
 
-@mock.patch("sentry.replays.usecases.ingest.event_parser.options.get")
+@mock.patch("sentry.options.get")
 def test_recording_consumer(options_get, consumer: ProcessingStrategy[KafkaPayload]) -> None:
     options_get.return_value = True
 
