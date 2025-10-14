@@ -823,11 +823,7 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
     follows_semver = follows_semver_versioning_scheme(
         org_id=project.organization_id, project_id=project.id
     )
-    return (
-        greatest_semver_release(project, packages=[])
-        if follows_semver
-        else most_recent_release(project)
-    )
+    return greatest_semver_release(project) if follows_semver else most_recent_release(project)
 
 
 def most_recent_release(project: Project) -> Release | None:
