@@ -185,10 +185,9 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             mock_run_comparison.assert_called_once()
             call_args = mock_run_comparison.call_args[0]
             # Verify that the call was made with the correct parameters
-            assert call_args[0] == self.project.id
-            assert call_args[1] == self.organization.id
-            assert call_args[2].preprod_artifact.id == head_artifact.id
-            assert call_args[3].preprod_artifact.id == base_artifact.id
+            assert call_args[0] == self.organization.id
+            assert call_args[1].preprod_artifact.id == head_artifact.id
+            assert call_args[2].preprod_artifact.id == base_artifact.id
 
     def test_compare_preprod_artifact_size_analysis_success_as_base(self):
         """Test compare_preprod_artifact_size_analysis with artifact as base."""
