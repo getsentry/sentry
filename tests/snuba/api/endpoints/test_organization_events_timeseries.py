@@ -94,7 +94,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         data = response.data
         assert "timeSeries" in data
         assert len(data["timeSeries"]) == 0
-        assert data["meta"] == {}
+        assert "meta" not in data
 
     @pytest.mark.querybuilder
     def test_simple(self) -> None:
