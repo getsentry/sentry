@@ -9,7 +9,7 @@ METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
 SUPPORTED_INTEGRATIONS = [IntegrationProviderSlug.GITHUB.value]
 STACK_ROOT_MAX_LEVEL = 4
-# Stacktrace roots that match one of these will have three levels of granularity
+# Stacktrace roots that match one of these will have an extra level of granularity
 # com.au, co.uk, org.uk, gov.uk, net.uk, edu.uk, ct.uk
 # This list does not have to be exhaustive as the fallback is two levels of granularity
 SECOND_LEVEL_TLDS = ("com", "co", "org", "gov", "net", "edu")
