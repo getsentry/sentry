@@ -181,8 +181,31 @@ class DataForwarderSerializer(Serializer):
         return config
 
     def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
+        project_ids: list[int] = validated_data.get("project_ids", [])
         data = {k: v for k, v in validated_data.items() if k != "project_ids"}
-        return DataForwarder.objects.create(**data)
+        data_forwarder = DataForwarder.objects.create(**data)
+
+        # If project_ids is empty, auto-enroll all organization projects
+        if not project_ids:
+            organization_projects = Project.objects.filter(
+                organization_id=data_forwarder.organization_id
+            ).values_list("id", flat=True)
+            for project_id in organization_projects:
+                DataForwarderProject.objects.create(
+                    data_forwarder=data_forwarder,
+                    project_id=project_id,
+                    is_enabled=True,
+                )
+        else:
+            # Enroll specified projects
+            for project_id in project_ids:
+                DataForwarderProject.objects.create(
+                    data_forwarder=data_forwarder,
+                    project_id=project_id,
+                    is_enabled=True,
+                )
+
+        return data_forwarder
 
     def update(self, instance: DataForwarder, validated_data: Mapping[str, Any]) -> DataForwarder:
         project_ids: list[int] = validated_data["project_ids"]

@@ -23,6 +23,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "old_key"},
             is_enabled=True,
+            project_ids=[self.project.id],
         )
 
         payload = {
@@ -30,6 +31,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             "config": {"write_key": "new_key"},
             "is_enabled": False,
             "enroll_new_projects": True,
+            "project_ids": [self.project.id],
         }
 
         response = self.get_success_response(
@@ -134,7 +136,11 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 
         user = self.create_user()
         self.create_member(
-            user=user, organization=self.organization, role="member", teams=[self.team]
+            user=user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
         )
         self.login_as(user=user)
 
@@ -177,7 +183,11 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 
         user = self.create_user()
         self.create_member(
-            user=user, organization=self.organization, role="member", teams=[self.team]
+            user=user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
         )
         self.login_as(user=user)
 
