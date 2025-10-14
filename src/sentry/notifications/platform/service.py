@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import Final
+from typing import Any, Final
 
 from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
@@ -9,6 +9,11 @@ from sentry.notifications.platform.metrics import (
 )
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
+from sentry.notifications.platform.target import (
+    GenericNotificationTarget,
+    IntegrationNotificationTarget,
+    NotificationTargetType,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -32,20 +37,6 @@ class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
 
-    def _get_and_validate_provider(
-        self, target: NotificationTarget
-    ) -> type[NotificationProvider[T]]:
-        provider = provider_registry.get(target.provider_key)
-        provider.validate_target(target=target)
-        return provider
-
-    def _render_template[RenderableT](
-        self, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
-    ) -> RenderableT:
-        rendered_template = template.render(data=self.data)
-        renderer = provider.get_renderer(data=self.data, category=template.category)
-        return renderer.render(data=self.data, rendered_template=rendered_template)
-
     def notify_target(
         self, *, target: NotificationTarget
     ) -> None | dict[NotificationProviderKey, list[str]]:
@@ -67,12 +58,13 @@ class NotificationService[T: NotificationData]:
             notification_provider=target.provider_key,
         ).capture() as lifecycle:
             # Step 1: Get the provider, and validate the target against it
-            provider = self._get_and_validate_provider(target=target)
+            provider = provider_registry.get(target.provider_key)
+            provider.validate_target(target=target)
 
             # Step 2: Render the template
             template_cls = template_registry.get(self.data.source)
             template = template_cls()
-            renderable = self._render_template(template=template, provider=provider)
+            renderable = _render_template(data=self.data, template=template, provider=provider)
 
             # Step 3: Send the notification
             try:
@@ -81,42 +73,6 @@ class NotificationService[T: NotificationData]:
                 lifecycle.record_failure(failure_reason=e, create_issue=False)
                 raise
             return None
-
-    @instrumented_task(
-        name="src.sentry.notifications.platform.service.notify_target_async",
-        namespace=notifications_tasks,
-        processing_deadline_duration=30,
-        silo_mode=SiloMode.REGION,
-    )
-    def notify_target_async(self, *, target: NotificationTarget) -> None:
-        """
-        Send a notification directly to a target asynchronously.
-        NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
-              using this method directly to prevent unwanted noise associated with your notifications.
-        """
-        if not self.data:
-            raise NotificationServiceError(
-                "Notification service must be initialized with data before sending!"
-            )
-
-        with NotificationEventLifecycleMetric(
-            interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
-            notification_source=self.data.source,
-            notification_provider=target.provider_key,
-        ).capture() as lifecycle:
-            # Step 1: Get the provider, and validate the target against it
-            provider = self._get_and_validate_provider(target=target)
-
-            # Step 2: Render the template
-            template_cls = template_registry.get(self.data.source)
-            template = template_cls()
-            renderable = self._render_template(template=template, provider=provider)
-
-            # Step 3: Send the notification
-            try:
-                provider.send(target=target, renderable=renderable)
-            except ApiError as e:
-                lifecycle.record_failure(failure_reason=e, create_issue=False)
 
     def notify(
         self,
@@ -150,5 +106,64 @@ class NotificationService[T: NotificationData]:
 
         else:
             for target in targets:
-                self.notify_target_async.delay(self, target=target)
+                target_dict = target.to_dict()
+                notify_target_async.delay(
+                    data=self.data,
+                    target_type=target_dict["type"],
+                    target_dict=target_dict,
+                )
         return None
+
+
+def _render_template[RenderableT, T: NotificationData](
+    data: T, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
+) -> RenderableT:
+    rendered_template = template.render(data=data)
+    renderer = provider.get_renderer(data=data, category=template.category)
+    return renderer.render(data=data, rendered_template=rendered_template)
+
+
+@instrumented_task(
+    name="src.sentry.notifications.platform.service.notify_target_async",
+    namespace=notifications_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.REGION,
+)
+def notify_target_async[T: NotificationData](
+    *,
+    data: T,
+    target_type: str,
+    target_dict: dict[str, Any],
+) -> None:
+    """
+    Send a notification directly to a target asynchronously.
+    NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
+            using this method directly to prevent unwanted noise associated with your notifications.
+    """
+
+    if target_type == NotificationTargetType.GENERIC:
+        target = GenericNotificationTarget.from_dict(target_dict)
+    elif target_type == NotificationTargetType.INTEGRATION:
+        target = IntegrationNotificationTarget.from_dict(target_dict)
+    else:
+        raise NotificationServiceError(f"Invalid target type: {target_type}")
+
+    with NotificationEventLifecycleMetric(
+        interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
+        notification_source=data.source,
+        notification_provider=target.provider_key,
+    ).capture() as lifecycle:
+        # Step 1: Get the provider, and validate the target against it
+        provider = provider_registry.get(target.provider_key)
+        provider.validate_target(target=target)
+
+        # Step 2: Render the template
+        template_cls = template_registry.get(data.source)
+        template = template_cls()
+        renderable = _render_template(data=data, template=template, provider=provider)
+
+        # Step 3: Send the notification
+        try:
+            provider.send(target=target, renderable=renderable)
+        except ApiError as e:
+            lifecycle.record_failure(failure_reason=e, create_issue=False)

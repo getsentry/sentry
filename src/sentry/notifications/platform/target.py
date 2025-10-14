@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from enum import StrEnum
 from functools import cached_property
-from typing import Any
+from typing import Any, Self
 
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration.model import (
@@ -26,6 +27,11 @@ INTEGRATION_PROVIDER_KEYS = [
 ]
 
 
+class NotificationTargetType(StrEnum):
+    GENERIC = "generic"
+    INTEGRATION = "integration"
+
+
 @dataclass(kw_only=True, frozen=True)
 class GenericNotificationTarget(NotificationTarget):
     """
@@ -49,6 +55,20 @@ class GenericNotificationTarget(NotificationTarget):
     If all targets use the same payload, please add this to the NotificationTemplate instead.
     """
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "type": NotificationTargetType.GENERIC,
+            **asdict(self),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        if "type" in data:
+            data.pop("type")
+        if "is_prepared" in data:
+            data.pop("is_prepared")
+        return cls(**data)
+
 
 @dataclass(kw_only=True, frozen=True)
 class IntegrationNotificationTarget(GenericNotificationTarget):
@@ -59,6 +79,16 @@ class IntegrationNotificationTarget(GenericNotificationTarget):
 
     integration_id: int
     organization_id: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "type": NotificationTargetType.INTEGRATION,
+            **asdict(self),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        return super().from_dict(data)
 
 
 @dataclass(kw_only=True, frozen=True)
