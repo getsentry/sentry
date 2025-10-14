@@ -30,6 +30,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
+from sentry.workflow_engine.types import DetectorException
 
 logger = logging.getLogger(__name__)
 
@@ -43,24 +44,30 @@ def send_new_detector_data(detector: Detector) -> None:
     # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
     data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
     if not data_source_detector:
-        raise Exception("Could not create detector, data source not found.")
+        raise DetectorException("Could not create detector, data source not found.")
     data_source = data_source_detector.data_source
 
     try:
         query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
     except QuerySubscription.DoesNotExist:
-        raise Exception("Could not create detector, query subscription not found.")
+        raise DetectorException(
+            f"Could not create detector, query subscription {data_source.source_id} not found."
+        )
     try:
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
     except SnubaQuery.DoesNotExist:
-        raise Exception("Could not create detector, snuba query not found.")
+        raise DetectorException(
+            f"Could not create detector, snuba query {query_subscription.snuba_query_id} not found."
+        )
     try:
         data_condition = DataCondition.objects.get(
             condition_group=detector.workflow_condition_group
         )
     except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
         # there should only ever be one data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
-        raise Exception("Could not create detector, data condition not found or too many found.")
+        raise DetectorException(
+            f"Could not create detector, data condition {detector.workflow_condition_group.id} not found or too many found."
+        )
     try:
         handle_send_historical_data_to_seer(
             detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
@@ -184,8 +191,9 @@ def send_historical_data_to_seer(
         raise TimeoutError
 
     if response.status > 400:
+        status_code_error_string = "Error when hitting Seer store data endpoint"
         logger.error(
-            "Error when hitting Seer store data endpoint",
+            status_code_error_string,
             extra={
                 "ad_config": anomaly_detection_config,
                 "detector": detector.id,
@@ -193,7 +201,7 @@ def send_historical_data_to_seer(
                 "response_code": response.status,
             },
         )
-        raise Exception("Error when hitting Seer store data endpoint")
+        raise Exception(status_code_error_string)
 
     try:
         decoded_data = response.data.decode("utf-8")
