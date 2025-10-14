@@ -95,6 +95,7 @@ dependencies = [
     "statsd>=3.3.0",
     "structlog>=22.1.0",
     "symbolic>=12.14.1",
+    "tiktoken>=0.8.0",
     "tokenizers>=0.22.0",
     "tldextract>=5.1.2",
     "toronado>=0.1.0",
