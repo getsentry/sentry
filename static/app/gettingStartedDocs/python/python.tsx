@@ -579,7 +579,7 @@ sentry_sdk.init(
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK - the GoogleGenAIIntegration will be enabled automatically:',
+            'Import and initialize the Sentry SDK - add the GoogleGenAIIntegration to your integrations list:',
             {code: <code />}
           ),
         },
