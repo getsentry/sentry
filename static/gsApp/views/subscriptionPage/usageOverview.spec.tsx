@@ -142,7 +142,7 @@ describe('UsageOverview', () => {
         name: 'Start 14 day free Continuous Profile Hours trial',
       })
     ).toBeInTheDocument();
-    expect(screen.getByText('Trial available')).toBeInTheDocument();
+    expect(screen.queryByText('Trial available')).not.toBeInTheDocument();
 
     // Replays product trial active
     expect(screen.getByText('20 days left')).toBeInTheDocument();
