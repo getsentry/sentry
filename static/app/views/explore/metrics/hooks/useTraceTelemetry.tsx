@@ -150,7 +150,7 @@ export function useTraceTelemetry({
     if (errorsResult.data) {
       errorsResult.data.data.forEach((row: TableDataRow) => {
         const traceId = row.trace as string;
-        const count = row['count(id)'] as number;
+        const count = row['count()'] as number;
         if (dataMap.has(traceId)) {
           dataMap.get(traceId)!.errorsCount = count;
         }
