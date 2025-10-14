@@ -218,6 +218,7 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredTotalsEndpoint,
 )
 from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
+from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from sentry.integrations.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
@@ -1409,6 +1410,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/forwarding/$",
         DataForwardingIndexEndpoint.as_view(),
         name="sentry-api-0-organization-forwarding",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/forwarding/(?P<data_forwarder_id>[^/]+)/$",
+        DataForwardingDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-forwarding-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/codeowners-associations/$",

@@ -50,6 +50,7 @@ class DataForwarderSerializer(Serializer):
         ]
     )
     config = serializers.DictField(child=serializers.CharField(allow_blank=False), default=dict)
+    project_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
         provider = self.initial_data.get("provider")
@@ -180,25 +181,51 @@ class DataForwarderSerializer(Serializer):
         return config
 
     def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
-        data_forwarder = DataForwarder.objects.create(**validated_data)
+        data = {k: v for k, v in validated_data.items() if k != "project_ids"}
+        return DataForwarder.objects.create(**data)
 
-        # Auto-enroll all existing projects in the organization
-        project_ids = Project.objects.filter(
-            organization_id=validated_data["organization_id"]
-        ).values_list("id", flat=True)
+    def update(self, instance: DataForwarder, validated_data: Mapping[str, Any]) -> DataForwarder:
+        project_ids: list[int] = validated_data["project_ids"]
 
-        if project_ids:
-            project_configs = [
-                DataForwarderProject(
-                    data_forwarder=data_forwarder,
-                    project_id=project_id,
-                    is_enabled=True,
-                )
-                for project_id in project_ids
-            ]
-            DataForwarderProject.objects.bulk_create(project_configs, ignore_conflicts=True)
+        for attr, value in validated_data.items():
+            if attr != "project_ids":
+                setattr(instance, attr, value)
+        instance.save()
 
-        return data_forwarder
+        # Unenroll all projects
+        if not project_ids:
+            DataForwarderProject.objects.filter(data_forwarder=instance).delete()
+            return instance
+
+        valid_project_ids = set(
+            Project.objects.filter(
+                organization_id=instance.organization_id, id__in=project_ids
+            ).values_list("id", flat=True)
+        )
+
+        if len(valid_project_ids) != len(project_ids):
+            invalid_ids = set(project_ids) - valid_project_ids
+            raise ValidationError(
+                f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
+            )
+
+        # Enroll specified projects
+        project_configs = [
+            DataForwarderProject(
+                data_forwarder=instance,
+                project_id=project_id,
+                is_enabled=True,
+            )
+            for project_id in valid_project_ids
+        ]
+        DataForwarderProject.objects.bulk_create(project_configs, ignore_conflicts=True)
+
+        # Unenroll projects not in the list
+        DataForwarderProject.objects.filter(data_forwarder=instance).exclude(
+            project_id__in=valid_project_ids
+        ).delete()
+
+        return instance
 
 
 class DataForwarderProjectSerializer(Serializer):
@@ -253,3 +280,15 @@ class DataForwarderProjectSerializer(Serializer):
         project = validated_data.pop("project")
         validated_data["project_id"] = project.id
         return DataForwarderProject.objects.create(**validated_data)
+
+    def update(
+        self, instance: DataForwarderProject, validated_data: MutableMapping[str, Any]
+    ) -> DataForwarderProject:
+        project = validated_data.pop("project", None)
+        if project:
+            validated_data["project_id"] = project.id
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
