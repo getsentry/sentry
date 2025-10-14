@@ -216,10 +216,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   applyDashboardFilters(widget: Widget): Widget {
     const {dashboardFilters, skipDashboardFilterParens} = this.props;
 
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      widget.widgetType
-    );
+    const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
     widget.queries.forEach(query => {
       if (dashboardFilterConditions) {
         // If there is no base query, there's no need to add parens

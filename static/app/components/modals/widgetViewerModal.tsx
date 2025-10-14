@@ -395,10 +395,7 @@ function WidgetViewerModal(props: Props) {
   const queryOptions = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
-    const dashboardFiltersString = dashboardFiltersToString(
-      dashboardFilters,
-      widget.widgetType
-    );
+    const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
     const parsedQuery =
       !name && !!conditions
         ? parseSearch(
