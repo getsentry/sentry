@@ -22,6 +22,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
+import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 
 import FilterSelector from './globalFilter/filterSelector';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -69,19 +70,18 @@ export default function FiltersBar({
   );
 
   const invalidateStarredDashboards = useInvalidateStarredDashboards();
+  const dashboardFiltersFromURL = getDashboardFiltersFromURL(location);
 
   const selectedReleases =
-    (defined(location.query?.[DashboardFilterKeys.RELEASE])
-      ? decodeList(location.query[DashboardFilterKeys.RELEASE])
-      : filters?.[DashboardFilterKeys.RELEASE]) ?? [];
+    dashboardFiltersFromURL?.[DashboardFilterKeys.RELEASE] ??
+    filters?.[DashboardFilterKeys.RELEASE] ??
+    [];
 
   const globalFilters: GlobalFilter[] = useMemo(() => {
     return (
-      (defined(location.query?.[DashboardFilterKeys.GLOBAL_FILTER])
-        ? decodeList(location.query[DashboardFilterKeys.GLOBAL_FILTER]).map(filter =>
-            JSON.parse(filter)
-          )
-        : filters?.[DashboardFilterKeys.GLOBAL_FILTER]) ?? []
+      dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
+      filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
+      []
     );
     // Ignore location.query dependency to avoid reading query params when possible (and instead use local state)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,6 +89,14 @@ export default function FiltersBar({
 
   const [activeGlobalFilters, setActiveGlobalFilters] =
     useState<GlobalFilter[]>(globalFilters);
+
+  const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
+    setActiveGlobalFilters(newGlobalFilters);
+    onDashboardFilterChange({
+      release: selectedReleases,
+      globalFilter: newGlobalFilters,
+    });
+  };
 
   return (
     <Wrapper>
@@ -126,7 +134,10 @@ export default function FiltersBar({
           <ReleasesProvider organization={organization} selection={selection}>
             <ReleasesSelectControl
               handleChangeFilter={activeFilters => {
-                onDashboardFilterChange(activeFilters);
+                onDashboardFilterChange({
+                  ...activeFilters,
+                  globalFilter: activeGlobalFilters,
+                });
                 trackAnalytics('dashboards2.filter.change', {
                   organization,
                   filter_type: 'release',
@@ -140,37 +151,25 @@ export default function FiltersBar({
           {organization.features.includes('dashboards-global-filters') && (
             <Fragment>
               <AddFilter
-                onAddFilter={filter => {
-                  setActiveGlobalFilters([...activeGlobalFilters, filter]);
-                  onDashboardFilterChange({
-                    ...filters,
-                    globalFilter: [...activeGlobalFilters, filter],
-                  });
+                onAddFilter={newFilter => {
+                  updateGlobalFilters([...activeGlobalFilters, newFilter]);
                 }}
               />
               {activeGlobalFilters.map(filter => (
                 <FilterSelector
                   key={filter.tag.key}
                   globalFilter={filter}
-                  onUpdateFilter={newFilter => {
-                    const newFilters = activeGlobalFilters.map(f =>
-                      f.tag.key === newFilter.tag.key ? newFilter : f
+                  onUpdateFilter={updatedFilter => {
+                    updateGlobalFilters(
+                      activeGlobalFilters.map(f =>
+                        f.tag.key === updatedFilter.tag.key ? updatedFilter : f
+                      )
                     );
-                    setActiveGlobalFilters(newFilters);
-                    onDashboardFilterChange({
-                      ...filters,
-                      globalFilter: newFilters,
-                    });
                   }}
-                  onRemoveFilter={currentFilter => {
-                    const newFilters = activeGlobalFilters.filter(
-                      f => f.tag.key !== currentFilter.tag.key
+                  onRemoveFilter={removedFilter => {
+                    updateGlobalFilters(
+                      activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
                     );
-                    setActiveGlobalFilters(newFilters);
-                    onDashboardFilterChange({
-                      ...filters,
-                      globalFilter: newFilters,
-                    });
                   }}
                 />
               ))}
