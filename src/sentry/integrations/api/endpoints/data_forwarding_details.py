@@ -128,7 +128,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         self, projects: list[Project], project_ids: list[int]
     ) -> Response | None:
         if len(projects) != len(project_ids):
-            found_ids = set(projects.values_list("id", flat=True))
+            found_ids = {project.id for project in projects}
             invalid_ids = set(project_ids) - found_ids
             return self.respond(
                 {
@@ -165,7 +165,9 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         is_enabled: bool | None,
     ) -> None:
         for project_id in project_ids:
-            defaults = {"is_enabled": is_enabled if is_enabled is not None else True}
+            defaults: dict[str, Any] = {
+                "is_enabled": is_enabled if is_enabled is not None else True
+            }
             if overrides:
                 defaults["overrides"] = overrides
 

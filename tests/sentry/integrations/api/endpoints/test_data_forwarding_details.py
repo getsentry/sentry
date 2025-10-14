@@ -219,7 +219,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
-        payload = {"project_ids": []}
+        payload: dict[str, list[int]] = {"project_ids": []}
 
         self.get_success_response(
             self.organization.slug, data_forwarder.id, status_code=200, **payload
