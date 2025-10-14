@@ -34,39 +34,45 @@ def format_status_check_messages(
 
     for artifact in artifacts:
         if artifact.state == PreprodArtifact.ArtifactState.FAILED:
+            # Failure summary shows one row per artifact, not per metric
             errored_count += 1
         elif artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
-            # Check if size analysis is completed using preloaded metrics
+            # Success summaries show one row per metric
             size_metrics_list = size_metrics_map.get(artifact.id, [])
-            if size_metrics_list and all(
-                metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-                for metrics in size_metrics_list
-            ):
-                analyzed_count += 1
-            else:
-                # Artifact is processed but analysis is still pending -> count as processing
-                processing_count += 1
+
+            if size_metrics_list:
+                for metrics in size_metrics_list:
+                    match metrics.state:
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
+                            processing_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
+                            processing_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+                            analyzed_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+                            errored_count += 1
+                        case _:
+                            raise ValueError(f"Unknown size analysis state: {metrics.state}")
+
         else:
-            # UPLOADING or UPLOADED states
+            # UPLOADING or UPLOADED states - artifacts can't have metrics yet
             processing_count += 1
 
-    # Build subtitle with counts
     parts = []
     if analyzed_count > 0:
         parts.append(
-            ngettext("1 build analyzed", "{} builds analyzed", analyzed_count).format(
-                analyzed_count
-            )
+            ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
+            % {"count": analyzed_count}
         )
     if processing_count > 0:
         parts.append(
-            ngettext("1 build processing", "{} builds processing", processing_count).format(
-                processing_count
-            )
+            ngettext("%(count)d app processing", "%(count)d apps processing", processing_count)
+            % {"count": processing_count}
         )
     if errored_count > 0:
         parts.append(
-            ngettext("1 build errored", "{} builds errored", errored_count).format(errored_count)
+            ngettext("%(count)d app errored", "%(count)d apps errored", errored_count)
+            % {"count": errored_count}
         )
 
     subtitle = ", ".join(parts)
@@ -205,8 +211,10 @@ def _format_success_summary(
             size_metrics.metrics_artifact_type if size_metrics else None
         )
         if metric_type_display:
-            app_id = f"{artifact.app_id or '--'} {metric_type_display}"
+            app_name = f"{artifact.app_name or '--'} {metric_type_display}"
+            app_id = artifact.app_id or "--"
         else:
+            app_name = artifact.app_name or "--"
             app_id = artifact.app_id or "--"
 
         artifact_url = get_preprod_artifact_url(artifact)
@@ -246,16 +254,19 @@ def _format_success_summary(
             download_change = "-"
             install_change = "-"
 
-        app_id_link = f"[`{app_id}`]({artifact_url})"
+        name_text = f"[`{app_name}`<br>{app_id}]({artifact_url})"
+        configuration_text = (
+            f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
+        )
         na_text = str(_("N/A"))
         table_rows.append(
-            f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {na_text} |"
+            f"| {name_text} | {configuration_text} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {na_text} |"
         )
 
     install_label = str(_("Uncompressed")) if artifact.is_android() else str(_("Install"))
     return _(
-        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
-        "|------|---------|----------|--------|---------|--------|----------|\n"
+        "| Name | Configuration | Version | Download | Change | {install_label} | Change | Approval |\n"
+        "|------|---------------|---------|----------|--------|-----------------|--------|----------|\n"
         "{table_rows}"
     ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
