@@ -374,6 +374,55 @@ class FeatureManager(RegisteredFeatureManager):
                 sentry_sdk.capture_exception(e)
             return None
 
+    def batch_has_for_organizations(
+        self,
+        feature_names: Sequence[str],
+        organizations: Sequence[Organization],
+        actor: User | RpcUser | AnonymousUser | None = None,
+    ) -> dict[str, dict[str, bool | None]] | None:
+        """
+        Check the same set of feature flags for multiple organizations at once.
+
+        This method optimizes the case where you need to check the same features
+        for many different organizations by delegating to the entity handler if
+        available, or falling back to individual checks.
+
+        Args:
+            feature_names: List of feature names to check
+            organizations: List of organizations to check the features for
+            actor: Optional actor for feature checks
+
+        Returns:
+            Mapping from organization keys (format: "organization:{id}") to
+            feature name to result mapping. Returns None if no handler is available
+            or on error.
+        """
+        try:
+            if self._entity_handler and hasattr(
+                self._entity_handler, "has_batch_for_organizations"
+            ):
+                with metrics.timer("features.batch_has_for_organizations", sample_rate=0.01):
+                    return self._entity_handler.has_batch_for_organizations(
+                        feature_names, actor, organizations
+                    )
+            else:
+                org_features = [name for name in feature_names if name.startswith("organizations:")]
+                if not org_features:
+                    return None
+
+                results: dict[str, dict[str, bool | None]] = {}
+                for organization in organizations:
+                    org_results = results[f"organization:{organization.id}"] = {}
+                    for feature_name in org_features:
+                        org_results[feature_name] = self.has(
+                            feature_name, organization, actor=actor
+                        )
+                return results
+        except Exception as e:
+            if in_random_rollout("features.error.capture_rate"):
+                sentry_sdk.capture_exception(e)
+            return None
+
     @staticmethod
     def _shim_feature_strategy(
         entity_feature_strategy: bool | FeatureHandlerStrategy,

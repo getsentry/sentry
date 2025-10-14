@@ -64,6 +64,38 @@ class FeatureHandler:
     ) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError
 
+    def has_batch_for_organizations(
+        self,
+        feature_names: Sequence[str],
+        actor: User | RpcUser | AnonymousUser | None,
+        organizations: Sequence[Organization],
+    ) -> dict[str, dict[str, bool | None]] | None:
+        """
+        Check the same set of feature flags for multiple organizations at once.
+
+        Default implementation iterates through organizations individually.
+        Subclasses in getsentry can override this for optimized batch checking.
+
+        Args:
+            feature_names: List of feature names to check
+            actor: Optional actor for feature checks
+            organizations: List of organizations to check the features for
+
+        Returns:
+            Mapping from organization keys (format: "organization:{id}") to
+            feature name to result mapping
+        """
+        from sentry.features.base import OrganizationFeature
+
+        results: dict[str, dict[str, bool | None]] = {}
+        for organization in organizations:
+            org_key = f"organization:{organization.id}"
+            org_results = results[org_key] = {}
+            for feature_name in feature_names:
+                feature = OrganizationFeature(feature_name, organization)
+                org_results[feature_name] = self.has(feature, actor)
+        return results
+
 
 class BatchFeatureHandler(FeatureHandler):
     """
