@@ -23,11 +23,7 @@ from sentry.apidocs.examples.explore_saved_query_examples import ExploreExamples
 from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
-from sentry.explore.models import (
-    ExploreSavedQuery,
-    ExploreSavedQueryDataset,
-    ExploreSavedQueryLastVisited,
-)
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
 from sentry.models.organization import Organization
 
 
@@ -133,9 +129,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             name=data["name"],
             query=data["query"],
             dataset=data["dataset"],
-            changed_reason=(
-                None if data["dataset"] == ExploreSavedQueryDataset.SPANS else query.changed_reason
-            ),
+            changed_reason=None,
         )
 
         query.set_projects(data["project_ids"])
