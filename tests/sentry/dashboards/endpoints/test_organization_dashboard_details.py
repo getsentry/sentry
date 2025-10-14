@@ -1760,6 +1760,57 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Invalid conditions" in response.content
 
+    def test_update_migrated_spans_widget_reset_changed_reason(self) -> None:
+        new_dashboard = Dashboard.objects.create(
+            title="New dashboard",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        spans_widget = DashboardWidget.objects.create(
+            dashboard=new_dashboard,
+            title="Spans widget",
+            widget_type=DashboardWidgetTypes.SPANS,
+            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            changed_reason=[
+                {
+                    "orderby": [
+                        {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                    ],
+                    "equations": [],
+                    "columns": ["total.count"],
+                }
+            ],
+        )
+
+        data = {
+            "title": "New dashboard",
+            "widgets": [
+                {
+                    "id": str(spans_widget.id),
+                    "title": "updated spans widget",
+                    "widgetType": "spans",
+                    "datasetSource": "user",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count(span.duration)"],
+                            "columns": [],
+                            "aggregates": ["count(span.duration)"],
+                            "conditions": "",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        response = self.do_request("put", self.url(new_dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["changedReason"] is None
+        spans_widget.refresh_from_db()
+        assert spans_widget.changed_reason is None
+
     def test_remove_widgets(self) -> None:
         data = {
             "title": "First dashboard",

@@ -128,6 +128,8 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             organization=organization,
             name=data["name"],
             query=data["query"],
+            dataset=data["dataset"],
+            changed_reason=None,
         )
 
         query.set_projects(data["project_ids"])
