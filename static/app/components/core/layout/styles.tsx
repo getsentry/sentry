@@ -43,15 +43,15 @@ export function rc<T>(
       if (first) {
         first = false;
         return css`
-          @media (min-width: ${theme.breakpoints[breakpoint]}),
-            (max-width: ${theme.breakpoints[breakpoint]}) {
+          @media (min-width: ${getBreakpoint(breakpoint, theme)}),
+            (max-width: ${getBreakpoint(breakpoint, theme)}) {
             ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
           }
         `;
       }
 
       return css`
-        @media (min-width: ${theme.breakpoints[breakpoint]}) {
+        @media (min-width: ${getBreakpoint(breakpoint, theme)}) {
           ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
         }
       `;
@@ -59,13 +59,27 @@ export function rc<T>(
   `;
 }
 
-const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
+function getBreakpoint(breakpoint: Breakpoint, theme: Theme) {
+  if (breakpoint === '0') {
+    return '0';
+  }
+  return theme.breakpoints[breakpoint];
+}
+
+const BREAKPOINT_ORDER: ReadonlyArray<Breakpoint | '0'> = [
+  '0',
+  'xs',
+  'sm',
+  'md',
+  'lg',
+  'xl',
+];
 
 // We alias None -> 0 to make it slighly more terse and easier to read.
 export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
 export type SpacingSize = keyof Theme['space'];
 export type Border = keyof Theme['tokens']['border'];
-export type Breakpoint = keyof Theme['breakpoints'];
+export type Breakpoint = keyof Theme['breakpoints'] | '0';
 
 /**
  * Prefer using padding or gap instead.
@@ -257,12 +271,12 @@ export function useActiveBreakpoint(): Breakpoint {
 
       queries.push({
         breakpoint: bp,
-        query: window.matchMedia(`(min-width: ${theme.breakpoints[bp]})`),
+        query: window.matchMedia(`(min-width: ${getBreakpoint(bp, theme)})`),
       });
     }
 
     return queries;
-  }, [theme.breakpoints]);
+  }, [theme]);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
@@ -303,7 +317,7 @@ function findLargestBreakpoint(
     return query.breakpoint;
   }
 
-  // Since we use min width, the only remaining breakpoint that we might have missed is <xs,
-  // in which case we return xs, which is in line with behavior of rc() function.
-  return 'xs';
+  // Since we use min width, the only remaining breakpoint that we might have missed is <0,
+  // in which case we return 0, which is in line with behavior of rc() function.
+  return '0';
 }

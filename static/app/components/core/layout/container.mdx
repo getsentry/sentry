@@ -168,6 +168,21 @@ Set positioning for absolute/relative layouts:
 </Container>
 ```
 
+#### 0 breakpoint
+
+The `0` breakpoint is a breakpoint that applies from 0 to the smallest defined breakpoint size.
+
+<Storybook.Demo>
+  <Container display={{'0': 'none', sm: 'block'}}>
+    This content is hidden below the sm breakpoint
+  </Container>
+</Storybook.Demo>
+```jsx
+<Container display={{'0': 'none', sm: 'block'}}>
+  This content is hidden below the sm breakpoint
+</Container>
+```
+
 ### Grid Integration
 
 The `area` prop supports CSS Grid integration:
