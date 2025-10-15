@@ -4,8 +4,8 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -25,7 +25,7 @@ import {
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
+export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
