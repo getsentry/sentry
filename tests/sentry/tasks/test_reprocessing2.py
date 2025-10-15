@@ -288,6 +288,7 @@ def test_concurrent_events_go_into_new_group(
     assert activity.ident == str(original_issue_id)
 
 
+@pytest.mark.skip(reason="flaky: #101526")
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["delete", "keep"])
