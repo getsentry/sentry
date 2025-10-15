@@ -1,10 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
-
 import {Select} from 'sentry/components/core/select';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -114,26 +111,6 @@ export default function MessagingIntegrationAlertRule({
             // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.
             // This allows them to add a channel that is not present in the results.
             creatable
-            getNewOptionData={(inputValue: string, optionLabel: string) => {
-              return {
-                __isNew__: true,
-                value: inputValue,
-                label: optionLabel,
-                trailingItems: (
-                  <Tooltip
-                    title={t(
-                      "Slack only returns a limited number of channels. This one isn't listed, but you can still use it. It will be validated when saving."
-                    )}
-                  >
-                    <IconWarning
-                      data-test-id="icon-warning"
-                      size="xs"
-                      color="yellow300"
-                    />
-                  </Tooltip>
-                ),
-              };
-            }}
           />
         ),
       })}
