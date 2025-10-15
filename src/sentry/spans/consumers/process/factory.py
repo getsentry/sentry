@@ -179,6 +179,14 @@ def process_batch(
             ):
                 continue
 
+            # This is a bug in Relay (INC-1453)
+            #
+            # Add some assertions here to protect against downstream crashes.
+            # These will be caught by the wrapping except block. Not doing
+            # those assertions here but later will crash the consumer and is
+            # also violating mypy types.
+            assert val["end_timestamp"] is not None
+
             span = Span(
                 trace_id=val["trace_id"],
                 span_id=val["span_id"],
