@@ -528,10 +528,6 @@ importers:
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
-    optionalDependencies:
-      fsevents:
-        specifier: ^2.3.2
-        version: 2.3.3
     devDependencies:
       '@codecov/webpack-plugin':
         specifier: ^1.9.0
@@ -674,6 +670,10 @@ importers:
       typescript-eslint:
         specifier: 8.39.0
         version: 8.39.0(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2)
+    optionalDependencies:
+      fsevents:
+        specifier: ^2.3.2
+        version: 2.3.3
 
 packages:
 
