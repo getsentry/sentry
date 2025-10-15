@@ -142,9 +142,6 @@ export function CommandPaletteContent() {
 
   const handleSelect = useCallback(
     (action: CommandPaletteAction) => {
-      if (action.disabled) {
-        return;
-      }
       if (action.children && action.children.length > 0) {
         selectAction(action);
         return;

@@ -1,17 +1,20 @@
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
 
-import type {
-  CommandPaletteAction,
-  CommandPaletteConfig,
-  CommandPaletteStore,
-} from './types';
+import type {CommandPaletteAction} from './types';
 
 type CommandPaletteProviderProps = {children: React.ReactNode};
 
-export const CommandPaletteConfigContext = createContext<CommandPaletteConfig | null>(
-  null
-);
-export const CommandPaletteStoreContext = createContext<CommandPaletteStore | null>(null);
+type CommandPaletteStore = {
+  actions: CommandPaletteAction[];
+};
+
+type CommandPaletteConfig = {
+  registerActions: (actions: CommandPaletteAction[]) => void;
+  unregisterActions: (keys: string[]) => void;
+};
+
+const CommandPaletteConfigContext = createContext<CommandPaletteConfig | null>(null);
+const CommandPaletteStoreContext = createContext<CommandPaletteStore | null>(null);
 
 export function useCommandPaletteConfiguration(): CommandPaletteConfig {
   const ctx = useContext(CommandPaletteConfigContext);
@@ -30,30 +33,29 @@ export function useCommandPaletteStore(): CommandPaletteStore {
 }
 
 export function CommandPaletteProvider({children}: CommandPaletteProviderProps) {
-  const [actions, setActions] = useState<CommandPaletteAction[]>([]);
+  // We store the actions in a ref to prevent re-rendering when actions are registered.
+  // This means that actions registered while the palette is open will not be displayed,
+  // but this is something that we probably don't need to support.
+  const actionsRef = useRef<CommandPaletteAction[]>([]);
 
   const registerActions = useCallback((newActions: CommandPaletteAction[]) => {
-    setActions(prev => {
-      const result = [...prev];
+    for (const newAction of newActions) {
+      const existingIndex = actionsRef.current.findIndex(
+        action => action.key === newAction.key
+      );
 
-      for (const newAction of newActions) {
-        const existingIndex = result.findIndex(action => action.key === newAction.key);
-
-        if (existingIndex >= 0) {
-          result[existingIndex] = newAction;
-        } else {
-          result.push(newAction);
-        }
+      if (existingIndex >= 0) {
+        actionsRef.current[existingIndex] = newAction;
+      } else {
+        actionsRef.current.push(newAction);
       }
+    }
 
-      return result;
-    });
+    return actionsRef.current;
   }, []);
 
   const unregisterActions = useCallback((keys: string[]) => {
-    setActions(prev => {
-      return prev.filter(action => !keys.includes(action.key));
-    });
+    actionsRef.current = actionsRef.current.filter(action => !keys.includes(action.key));
   }, []);
 
   const config = useMemo<CommandPaletteConfig>(
@@ -66,9 +68,9 @@ export function CommandPaletteProvider({children}: CommandPaletteProviderProps) 
 
   const store = useMemo<CommandPaletteStore>(
     () => ({
-      actions,
+      actions: actionsRef.current,
     }),
-    [actions]
+    []
   );
 
   return (
