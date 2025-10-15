@@ -87,7 +87,7 @@ class TableRequest:
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
     for row in timeseries:
         for axis in y_axes:
-            if row[axis] > 0:
+            if row[axis] and row[axis] != 0:
                 return True
     return False
 
