@@ -64,12 +64,13 @@ export default function DataConditionNodeList({
         state.triggers.conditions.map(condition => condition.type)
       );
 
-      // Disable already selected trigger condition types instead of filtering them out
-      return dataConditionHandlers.map(handler => ({
-        value: handler.type,
-        label: dataConditionNodesMap.get(handler.type)?.label || handler.type,
-        disabled: selectedTriggerTypes.has(handler.type),
-      }));
+      // Filter out already selected trigger condition types
+      return dataConditionHandlers
+        .filter(handler => !selectedTriggerTypes.has(handler.type))
+        .map(handler => ({
+          value: handler.type,
+          label: dataConditionNodesMap.get(handler.type)?.label || handler.type,
+        }));
     }
 
     const issueAttributeOptions: Option[] = [];
@@ -171,15 +172,18 @@ export default function DataConditionNodeList({
         ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
           conflictingConditions.size > 0) ||
           conflictingConditions.size > 1) && <Alert type="error">{conflictReason}</Alert>}
-      <StyledSelectControl
-        options={options}
-        onChange={(obj: any) => {
-          onAddRow(obj.value);
-        }}
-        placeholder={placeholder}
-        value={null}
-        aria-label={label}
-      />
+      {/* Only show dropdown if there are available options */}
+      {options.length > 0 && (
+        <StyledSelectControl
+          options={options}
+          onChange={(obj: any) => {
+            onAddRow(obj.value);
+          }}
+          placeholder={placeholder}
+          value={null}
+          aria-label={label}
+        />
+      )}
     </Fragment>
   );
 }
