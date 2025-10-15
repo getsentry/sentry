@@ -883,7 +883,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             query_data = query_data_list[i]
             if "linked_dashboards" in query_data and query_data["linked_dashboards"]:
                 self._update_or_create_field_links(
-                    query_obj, query_data["linked_dashboards"], dashboard
+                    query_obj, query_data["linked_dashboards"], widget
                 )
 
         if widget.widget_type in [
@@ -1002,6 +1002,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
     def update_widget_queries(self, widget, data):
         query_ids = [query["id"] for query in data if "id" in query]
+        all_query_array = []
         self.remove_missing_queries(widget.id, query_ids)
 
         existing = DashboardWidgetQuery.objects.filter(widget=widget, id__in=query_ids)
@@ -1015,55 +1016,38 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         for i, query_data in enumerate(data):
             query_id = query_data.get("id")
             if query_id and query_id in existing_map:
-                update_queries.append(
-                    self.update_widget_query(existing_map[query_id], query_data, next_order + i)
+                update_query = self.update_widget_query(
+                    existing_map[query_id], query_data, next_order + i
                 )
+                all_query_array.append({"query_obj": update_query, "query_data": query_data})
+                update_queries.append(update_query)
             elif not query_id:
-                new_queries.append(
-                    DashboardWidgetQuery(
-                        widget=widget,
-                        fields=query_data["fields"],
-                        aggregates=query_data.get("aggregates"),
-                        columns=query_data.get("columns"),
-                        field_aliases=query_data.get("field_aliases"),
-                        conditions=query_data["conditions"],
-                        name=query_data.get("name", ""),
-                        is_hidden=query_data.get("is_hidden", False),
-                        orderby=query_data.get("orderby", ""),
-                        order=next_order + i,
-                        selected_aggregate=query_data.get("selected_aggregate"),
-                    )
+                new_query = DashboardWidgetQuery(
+                    widget=widget,
+                    fields=query_data["fields"],
+                    aggregates=query_data.get("aggregates"),
+                    columns=query_data.get("columns"),
+                    field_aliases=query_data.get("field_aliases"),
+                    conditions=query_data["conditions"],
+                    name=query_data.get("name", ""),
+                    is_hidden=query_data.get("is_hidden", False),
+                    orderby=query_data.get("orderby", ""),
+                    order=next_order + i,
+                    selected_aggregate=query_data.get("selected_aggregate"),
                 )
+                new_queries.append(new_query)
+                all_query_array.append({"query_obj": new_query, "query_data": query_data})
             else:
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
-        # Handle field links for new queries
-        for i, query_obj in enumerate(new_queries):
-            query_index = len(update_queries) + i
-            if query_index < len(data):
-                query_data = data[query_index]
-                if (
-                    "linked_dashboards" in query_data
-                    and query_data.get("linked_dashboards") is not None
-                ):
-                    self._update_or_create_field_links(
-                        query_obj, query_data["linked_dashboards"], widget
-                    )
-
-        # Handle field links for updated queries
-        for query_obj in update_queries:
-            # Find the corresponding query_data
-            for query_data in data:
-                if query_data.get("id") == query_obj.id:
-                    if (
-                        "linked_dashboards" in query_data
-                        and query_data.get("linked_dashboards") is not None
-                    ):
-                        self._update_or_create_field_links(
-                            query_obj, query_data["linked_dashboards"], widget
-                        )
-                    break
+        for query_data in all_query_array:
+            if "linked_dashboards" in query_data["query_data"]:
+                self._update_or_create_field_links(
+                    query_data["query_obj"],
+                    query_data["query_data"].get("linked_dashboards"),
+                    widget,
+                )
 
         if widget.widget_type in [
             DashboardWidgetTypes.DISCOVER,
