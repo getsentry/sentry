@@ -26,6 +26,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -245,7 +246,9 @@ function makeAllTheProviders(options: ProviderOptions) {
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
           <NuqsTestingAdapterWithNavigate query={options.query ?? ''}>
-            <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+            <CommandPaletteProvider>
+              <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+            </CommandPaletteProvider>
           </NuqsTestingAdapterWithNavigate>
         </QueryClientProvider>
       </CacheProvider>

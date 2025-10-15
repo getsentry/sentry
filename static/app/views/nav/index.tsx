@@ -2,7 +2,14 @@ import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {
+  openCommandPalette,
+  openCommandPaletteDeprecated,
+} from 'sentry/actionCreators/modal';
+import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {space} from 'sentry/styles/space';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -21,6 +28,29 @@ function NavContent() {
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavGroup();
+
+  // TODO: Extract this to its own hook
+  const organization = useOrganization();
+  const {visible: isModalOpen} = useGlobalModal();
+  // Command palette global-shortcut
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+            callback: () => {
+              if (organization.features.includes('cmd-k-supercharged')) {
+                openCommandPalette();
+              } else {
+                openCommandPaletteDeprecated();
+              }
+            },
+          },
+        ]
+  );
+
+  useGlobalCommandPaletteActions();
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
