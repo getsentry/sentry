@@ -60,7 +60,7 @@ def compare_preprod_artifact_size_analysis(
         return
 
     comparisons = []
-    preprod_artifact_status_check_updates = []
+    preprod_artifact_status_check_updates = [artifact.id]
 
     # Create all comparisons with artifact as head
     base_artifact = artifact.get_base_artifact_for_commit().first()
@@ -110,7 +110,6 @@ def compare_preprod_artifact_size_analysis(
                     comparisons.append(
                         {"head_metric": matching_head_size_metric, "base_metric": base_metric},
                     )
-                    preprod_artifact_status_check_updates.append(artifact.id)
                 else:
                     logger.info(
                         "preprod.size_analysis.compare.no_matching_base_size_metric",
@@ -202,6 +201,7 @@ def compare_preprod_artifact_size_analysis(
                     "preprod_artifact_id": artifact_id,
                 }
             )
+
 
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",

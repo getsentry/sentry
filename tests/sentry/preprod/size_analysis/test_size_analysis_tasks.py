@@ -1,8 +1,6 @@
 from io import BytesIO
 from unittest.mock import patch
 
-import pytest
-
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.preprod.models import (
@@ -288,14 +286,9 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             head_artifact, analysis_data
         )
 
-        with (
-            patch(
-                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
-            ) as mock_run_comparison,
-            patch(
-                "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
-            ) as mock_status_check_task,
-        ):
+        with patch(
+            "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+        ) as mock_status_check_task:
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
