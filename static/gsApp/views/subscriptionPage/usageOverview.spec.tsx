@@ -174,16 +174,14 @@ describe('UsageOverview', () => {
       />
     );
     expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Collapse Seer details'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Collapse Seer details'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
 
     // Org has Prevent flag but did not buy Prevent add on
     expect(screen.getByRole('cell', {name: 'Prevent'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Collapse Prevent details'})
+      screen.queryByRole('row', {name: 'Collapse Prevent details'})
     ).not.toBeInTheDocument();
     // We test it this way to ensure we don't show the cell with the proper display name or the raw DataCategory
     expect(screen.queryByRole('cell', {name: /Prevent*Users/})).not.toBeInTheDocument();
