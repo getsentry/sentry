@@ -37,8 +37,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             project=self.project,
         )
 
+    @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_single_match(self, mock_get_trees_for_org: Any) -> None:
+    def test_get_single_match(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
         config_data = {
             "stacktraceFilename": "stack/root/file.py",
         }
@@ -66,8 +67,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == expected_matches
 
+    @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_frame_with_module(self, mock_get_trees_for_org: Any) -> None:
+    def test_get_frame_with_module(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
         config_data = {
             "absPath": "Billing.kt",
             "module": "com.waffleware.billing.Billing$1",
@@ -93,12 +95,14 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 files=["app/src/main/java/com/waffleware/billing/Billing.kt"],
             )
         }
+        mock_check_file.return_value = True
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 200, response.content
         assert response.data == expected_matches
 
+    @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_start_with_backslash(self, mock_get_trees_for_org: Any) -> None:
+    def test_get_start_with_backslash(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
         file = "stack/root/file.py"
         config_data = {"stacktraceFilename": f"/{file}"}
         expected_matches = [
@@ -119,13 +123,15 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 files=["stack/root/file.py"],
             )
         }
+        mock_check_file.return_value = True
         response = self.client.get(self.url, data=config_data, format="json")
         assert mock_get_trees_for_org.call_count == 1
         assert response.status_code == 200, response.content
         assert response.data == expected_matches
 
+    @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_multiple_matches(self, mock_get_trees_for_org: Any) -> None:
+    def test_get_multiple_matches(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
         config_data = {
             "stacktraceFilename": "stack/root/file.py",
         }
@@ -162,8 +168,10 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 files=["stack/root/file.py"],
             ),
         }
+        mock_check_file.return_value = True
         response = self.client.get(self.url, data=config_data, format="json")
         assert mock_get_trees_for_org.call_count == 1
+        assert mock_check_file.call_count == 2  # Called twice, once for each repo
         assert response.status_code == 200, response.content
         assert response.data == expected_matches
 
@@ -180,8 +188,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
 
+    @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_unsupported_frame_info(self, mock_get_trees_for_org: Any) -> None:
+    def test_get_unsupported_frame_info(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
         config_data = {
             "stacktraceFilename": "top_level_file.py",
         }
@@ -197,6 +206,56 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         }
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 400, response.content
+
+    @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_file_not_found_on_github(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
+        """Test that files not found on GitHub API are excluded from matches"""
+        config_data = {
+            "stacktraceFilename": "stack/root/file.py",
+        }
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                ),
+                files=["stack/root/file.py"],
+            )
+        }
+        # Simulate GitHub API returning that file doesn't exist
+        mock_check_file.return_value = None
+        response = self.client.get(self.url, data=config_data, format="json")
+        # Should return 204 (no content) since no valid matches were found
+        assert response.status_code == 204, response.content
+        assert response.data == []
+
+    @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_github_api_error(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
+        """Test that when GitHub API check raises an error, the file is excluded from matches"""
+        from sentry.shared_integrations.exceptions import ApiError
+
+        config_data = {
+            "stacktraceFilename": "stack/root/file.py",
+        }
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                ),
+                files=["stack/root/file.py"],
+            )
+        }
+        # Simulate GitHub API raising an error
+        mock_check_file.side_effect = ApiError("Not found", code=404)
+        response = self.client.get(self.url, data=config_data, format="json")
+        # Should return 204 (no content) since the file check failed
+        assert response.status_code == 204, response.content
+        assert response.data == []
 
     def test_non_project_member_permissions(self) -> None:
         config_data = {

@@ -94,9 +94,21 @@ class CodeMappingTreesHelper:
 
         return list(self.code_mappings.values())
 
-    def get_file_and_repo_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
+    def get_file_and_repo_matches(
+        self, frame_filename: FrameInfo, installation: RepoTreesIntegration | None = None
+    ) -> list[dict[str, str]]:
         """List all the files in a repo that match the frame_filename"""
         file_matches = []
+        
+        # Get client if installation is provided for file verification
+        client = None
+        if installation is not None:
+            try:
+                client = installation.get_client()
+            except Exception:
+                logger.exception("Failed to get client from installation for file verification")
+                client = None
+        
         for repo_full_name in self.trees.keys():
             repo_tree = self.trees[repo_full_name]
             matches = [
@@ -123,6 +135,31 @@ class CodeMappingTreesHelper:
                         extra=extra,
                     )
                 else:
+                    # Verify file exists on GitHub before adding to matches
+                    if client is not None:
+                        try:
+                            # Create a minimal object with name attribute for check_file
+                            class RepoStub:
+                                def __init__(self, name: str):
+                                    self.name = name
+                            
+                            repo_stub = RepoStub(repo_tree.repo.name)
+                            # Check if file exists using GitHub API
+                            result = client.check_file(repo_stub, source_path, repo_tree.repo.branch)
+                            if not result:
+                                logger.info(
+                                    "File not found on GitHub, skipping match",
+                                    extra={**extra, "repo_name": repo_tree.repo.name, "branch": repo_tree.repo.branch}
+                                )
+                                continue
+                        except Exception as e:
+                            # If check fails, log and continue (don't add to matches)
+                            logger.info(
+                                "GitHub API check failed for file, skipping match",
+                                extra={**extra, "repo_name": repo_tree.repo.name, "error": str(e)}
+                            )
+                            continue
+                    
                     file_matches.append(
                         {
                             "filename": file,

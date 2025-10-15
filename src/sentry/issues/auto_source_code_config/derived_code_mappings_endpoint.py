@@ -22,7 +22,7 @@ def get_file_and_repo_matches(request: Request, organization: Organization) -> l
         return []
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
-    return trees_helper.get_file_and_repo_matches(frame_info)
+    return trees_helper.get_file_and_repo_matches(frame_info, installation=installation)
 
 
 def get_frame_info_from_request(request: Request) -> FrameInfo:
