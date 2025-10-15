@@ -3,6 +3,8 @@ from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any, Final
 
+import sentry_sdk
+
 from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
     NotificationInteractionType,
@@ -121,6 +123,9 @@ class NotificationService[T: NotificationData]:
                 self.notify_target(target=target)
             except ApiError as e:
                 errors[target.provider_key].append(e.text)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
         return errors
 
     def _validate_strategy_and_targets(
