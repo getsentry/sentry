@@ -6,8 +6,8 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.exceptions import quiet_redis_noise
 from sentry.workflow_engine.utils import log_context
-from sentry.workflow_engine.utils.sentry_level_utils import quiet_redis_noise
 
 logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows")
 
