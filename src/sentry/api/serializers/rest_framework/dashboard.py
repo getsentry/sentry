@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -58,6 +58,11 @@ DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_
 class QueryWarning(TypedDict):
     queries: list[str | None]
     columns: dict[str, str]
+
+
+class LinkedDashboard(TypedDict):
+    field: str
+    dashboard_id: int
 
 
 def is_equation(field: str) -> bool:
@@ -914,7 +919,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     def _update_or_create_field_links(
         self,
         query: DashboardWidgetQuery,
-        linked_dashboards: list[dict[str, Any]],
+        linked_dashboards: list[LinkedDashboard],
         widget: DashboardWidget,
     ):
         """
