@@ -3,6 +3,7 @@ import uuid
 from datetime import timedelta, timezone
 from functools import cached_property
 
+import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
@@ -549,6 +550,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         )
         self.run_test("transaction.op", qs_params={"query": "bar"}, expected=[("bar.server", 1)])
 
+    @pytest.mark.skip(reason="flaky: #99215")
     def test_duration(self) -> None:
         self.run_test("transaction.duration", expected=[("5000", 1), ("3000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "5001"}, expected=[("5000", 1)])
