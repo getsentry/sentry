@@ -171,11 +171,6 @@ function useNavigationActions() {
             label: t('Coverage'),
             to: `${prefix}/prevent/coverage/commits/`,
           },
-          {
-            key: 'nav-prevent-tests',
-            label: t('Tests'),
-            to: `${prefix}/prevent/tests/`,
-          },
         ]
       : []),
     ...(organization.features.includes('prevent-test-analytics')
