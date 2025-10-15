@@ -1392,8 +1392,8 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         )
 
         # Verify detector was not modified
-        self.detector.refresh_from_db()
-        assert self.detector.enabled is True
+        self.error_detector.refresh_from_db()
+        assert self.error_detector.enabled is True
 
     def test_update_detectors_org_manager_permission(self) -> None:
         self.login_as(user=self.org_manager_user)
@@ -1448,9 +1448,9 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
 
         # Verify neither detector was modified
         self.user_detector.refresh_from_db()
-        self.detector.refresh_from_db()
+        self.error_detector.refresh_from_db()
         assert self.user_detector.enabled is True
-        assert self.detector.enabled is True
+        assert self.error_detector.enabled is True
 
 
 @region_silo_test

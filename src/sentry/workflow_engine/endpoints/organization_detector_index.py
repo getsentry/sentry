@@ -419,7 +419,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_detectors(request, organization)
 
         # If explicitly filtering by IDs and some were not found, return 400
-        if request.GET.getlist("id") and len(queryset) != len(request.GET.getlist("id")):
+        if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
             return Response(
                 {
                     "detail": "Some detectors were not found or you do not have permission to update them."
@@ -491,7 +491,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_detectors(request, organization)
 
         # If explicitly filtering by IDs and some were not found, return 400
-        if request.GET.getlist("id") and len(queryset) != len(request.GET.getlist("id")):
+        if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
             return Response(
                 {
                     "detail": "Some detectors were not found or you do not have permission to delete them."
