@@ -6,17 +6,18 @@ import {
   normalizeDateTimeParams,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import type {Project} from 'sentry/types/project';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
 import {
   fetchMutation,
   useMutation,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
+import useDeleteReplayHasAccess from 'sentry/utils/replays/hooks/useDeleteReplayHasAccess';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 interface Props {
-  projectSlug: string;
+  project: Project | null | undefined;
 }
 
 export type ReplayBulkDeletePayload = {
@@ -28,18 +29,14 @@ export type ReplayBulkDeletePayload = {
 
 type Vars = [ReplayBulkDeletePayload];
 
-export default function useDeleteReplays({projectSlug}: Props) {
+export default function useDeleteReplays({project}: Props) {
   const organization = useOrganization();
-  const project = useProjectFromSlug({organization, projectSlug});
-  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
-  const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
-
-  const hasAccess = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
+  const hasAccess = useDeleteReplayHasAccess({project});
 
   const {mutate} = useMutation({
     mutationFn: ([data]: Vars) => {
-      if (!projectSlug) {
-        throw new Error('Project ID or slug is required');
+      if (!project) {
+        throw new Error('Project is required');
       }
       if (!hasAccess) {
         throw new Error('User does not have permission to delete replays');
@@ -49,7 +46,7 @@ export default function useDeleteReplays({projectSlug}: Props) {
       const payload = {data};
       return fetchMutation({
         method: 'POST',
-        url: `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
+        url: `/projects/${organization.slug}/${project.slug}/replays/jobs/delete/`,
         options,
         data: payload,
       });
