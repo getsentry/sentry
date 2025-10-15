@@ -877,7 +877,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         for i, query_obj in enumerate(new_queries):
             query_data = query_data_list[i]
             if "linked_dashboards" in query_data and query_data["linked_dashboards"]:
-                self._update_field_links(query_obj, query_data["linked_dashboards"], dashboard)
+                self._update_or_create_field_links(
+                    query_obj, query_data["linked_dashboards"], dashboard
+                )
 
         if widget.widget_type in [
             DashboardWidgetTypes.DISCOVER,
@@ -909,7 +911,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 current_widget_specs,
             )
 
-    def _update_field_links(
+    def _update_or_create_field_links(
         self,
         query: DashboardWidgetQuery,
         linked_dashboards: list[dict[str, Any]],
@@ -918,6 +920,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         """
         Update DashboardFieldLink entries for a query.
         linked_dashboards is expected to be an array of dicts with format {"field": str, "dashboard_id": int}
+        This can be further optimized, currently we are doing one bulk update for every widget query, but we could do one bulk update for all widget queries at once.
+        In practice a table typically has only one query, so this is not a big deal.
         """
 
         organization = self.context["organization"]
@@ -952,7 +956,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             field__in=new_fields
         ).delete()
 
-        # Use bulk_create with update_conflicts to upsert
+        # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
         if field_links_to_create:
             DashboardFieldLink.objects.bulk_create(
                 field_links_to_create,
@@ -1038,7 +1042,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     "linked_dashboards" in query_data
                     and query_data.get("linked_dashboards") is not None
                 ):
-                    self._update_field_links(query_obj, query_data["linked_dashboards"], widget)
+                    self._update_or_create_field_links(
+                        query_obj, query_data["linked_dashboards"], widget
+                    )
 
         # Handle field links for updated queries
         for query_obj in update_queries:
@@ -1049,7 +1055,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                         "linked_dashboards" in query_data
                         and query_data.get("linked_dashboards") is not None
                     ):
-                        self._update_field_links(query_obj, query_data["linked_dashboards"], widget)
+                        self._update_or_create_field_links(
+                            query_obj, query_data["linked_dashboards"], widget
+                        )
                     break
 
         if widget.widget_type in [
