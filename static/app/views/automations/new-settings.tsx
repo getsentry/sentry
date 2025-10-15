@@ -143,7 +143,13 @@ export default function AutomationNewSettings() {
                 mutationErrors: error?.responseJSON,
               }}
             >
-              <AutomationBuilderContext.Provider value={{state, actions}}>
+              <AutomationBuilderContext.Provider
+                value={{
+                  state,
+                  actions,
+                  showTriggerLogicTypeSelector: false,
+                }}
+              >
                 <AutomationForm model={model} />
               </AutomationBuilderContext.Provider>
             </AutomationBuilderErrorContext.Provider>

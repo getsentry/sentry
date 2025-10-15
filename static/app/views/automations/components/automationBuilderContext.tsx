@@ -170,6 +170,8 @@ interface AutomationActions {
 
 export const AutomationBuilderContext = createContext<{
   actions: AutomationActions;
+  // Selector is only shown for existing automations with the "All" logic type
+  showTriggerLogicTypeSelector: boolean;
   state: AutomationBuilderState;
 } | null>(null);
 
