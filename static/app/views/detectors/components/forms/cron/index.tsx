@@ -16,13 +16,7 @@ import {CronDetectorFormResolveSection} from 'sentry/views/detectors/components/
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 
-function CronDetectorForm({
-  detector,
-  isEditing,
-}: {
-  isEditing: boolean;
-  detector?: CronDetector;
-}) {
+function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const dataSource = detector?.dataSources[0];
 
   return (
@@ -34,7 +28,7 @@ function CronDetectorForm({
           )}
         </Alert>
       )}
-      <CronDetectorFormDetectSection isEditing={isEditing} />
+      <CronDetectorFormDetectSection />
       <CronDetectorFormResolveSection />
       <AssignSection />
       <AutomateSection />
@@ -51,7 +45,7 @@ export function NewCronDetectorForm() {
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
     >
-      <CronDetectorForm isEditing={false} />
+      <CronDetectorForm />
     </NewDetectorLayout>
   );
 }
@@ -63,7 +57,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
     >
-      <CronDetectorForm isEditing detector={detector} />
+      <CronDetectorForm detector={detector} />
     </EditDetectorLayout>
   );
 }

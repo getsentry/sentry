@@ -13,6 +13,7 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
 from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_DISALLOWED_BY_ROBOTS,
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUS_SUCCESS,
@@ -522,6 +523,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
+
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
+    def test_disallowed(self) -> None:
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+        ]
+        result = self.create_uptime_result(
+            self.subscription.subscription_id, status=CHECKSTATUS_DISALLOWED_BY_ROBOTS
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature(features),
+        ):
+            assert self.detector.enabled
+
+            self.send_result(result)
+
+            logger.info.assert_any_call(
+                "disallowed_by_robots",
+                extra={**result},
+            )
+
+            self.detector.refresh_from_db()
+            assert not self.detector.enabled
 
     def test_onboarding_failure(self) -> None:
         features = [

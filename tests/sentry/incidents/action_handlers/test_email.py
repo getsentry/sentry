@@ -26,6 +26,7 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializer,
     DetailedIncidentSerializerResponse,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -277,6 +278,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(type=MetricIssue.type_id)
+
     def serialize_incident(self, incident: Incident) -> DetailedIncidentSerializerResponse:
         return serialize(incident, None, DetailedIncidentSerializer())
 

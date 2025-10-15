@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -32,6 +33,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * If true, the query will exclude the "other" group.
    */
   excludeOther?: boolean;
+  /**
+   * Whether the request should enable aggregate extrapolation. Extrapolation is on by default.
+   */
+  extrapolate?: boolean;
   /**
    * An array of tags by which to group the results. e.g., passing `["transaction"]` will group the results by the `"transaction"` tag. `["env", "transaction"]` will group by both the `"env"` and `"transaction"` tags.
    */
@@ -90,6 +95,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     excludeOther,
     enabled,
     groupBy,
+    extrapolate,
     query,
     sampling,
     pageFilters,
@@ -136,6 +142,11 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           topEvents,
           groupBy,
           sort: sort ? encodeSort(sort) : undefined,
+          disableAggregateExtrapolation: defined(extrapolate)
+            ? extrapolate
+              ? '0'
+              : '1'
+            : undefined,
         },
       },
     ],
@@ -151,10 +162,10 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
 }
 
 type EventsTimeSeriesResponse = {
-  meta: {
+  timeSeries: TimeSeries[];
+  meta?: {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
   };
-  timeSeries: TimeSeries[];
 };

@@ -25,6 +25,9 @@ interface InitializeOrgOptions<RouterParams> {
   organization?: Partial<Organization>;
   project?: Partial<Project>;
   projects?: Array<Partial<Project>>;
+  /**
+   * @deprecated Use `initialRouterConfig` and the router returned from `render` instead.
+   */
   router?: PartialInjectedRouter<RouterParams>;
 }
 
@@ -77,6 +80,9 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     organization,
     project: project!,
     projects,
+    /**
+     * @deprecated Use `initialRouterConfig` and the router returned from `render` instead.
+     */
     router,
     routerProps,
   };

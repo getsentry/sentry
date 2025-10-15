@@ -54,9 +54,11 @@ describe('SubscriptionHeader', () => {
     organization,
     hasNextBillCard,
     hasBillingInfoCard,
+    hasPaygCard,
   }: {
     hasBillingInfoCard: boolean;
     hasNextBillCard: boolean;
+    hasPaygCard: boolean;
     organization: Organization;
   }) {
     await screen.findByRole('heading', {name: 'Subscription'});
@@ -79,6 +81,16 @@ describe('SubscriptionHeader', () => {
       ).not.toBeInTheDocument();
     }
 
+    if (hasPaygCard) {
+      await screen.findByRole('heading', {name: 'Pay-as-you-go'});
+      screen.getByRole('button', {name: 'Set limit'});
+    } else {
+      expect(
+        screen.queryByRole('heading', {name: 'Pay-as-you-go'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Set limit'})).not.toBeInTheDocument();
+    }
+
     const hasBillingPerms = organization.access?.includes('org:billing');
 
     // all subscriptions have links card
@@ -96,7 +108,7 @@ describe('SubscriptionHeader', () => {
     }
   }
 
-  it('renders new header cards for self-serve customers', async () => {
+  it('renders new header cards for self-serve free customers', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -111,12 +123,34 @@ describe('SubscriptionHeader', () => {
     );
     await assertNewHeaderCards({
       organization,
-      hasNextBillCard: true,
+      hasNextBillCard: false,
       hasBillingInfoCard: true,
+      hasPaygCard: false,
     });
   });
 
-  it('renders new header cards for self-serve partner customers', async () => {
+  it('renders new header cards for self-serve paid customers', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: true,
+      hasBillingInfoCard: true,
+      hasPaygCard: true,
+    });
+  });
+
+  it('renders new header cards for self-serve free partner customers', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -132,8 +166,31 @@ describe('SubscriptionHeader', () => {
     );
     await assertNewHeaderCards({
       organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: false,
+      hasPaygCard: false,
+    });
+  });
+
+  it('renders new header cards for self-serve paid partner customers', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isSelfServePartner: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
       hasNextBillCard: true,
       hasBillingInfoCard: false,
+      hasPaygCard: true,
     });
   });
 
@@ -144,8 +201,9 @@ describe('SubscriptionHeader', () => {
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am3_f',
+      plan: 'am3_business_ent_auf',
       canSelfServe: false,
+      supportsOnDemand: false,
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
@@ -155,19 +213,20 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: false,
       hasBillingInfoCard: false,
+      hasPaygCard: false,
     });
   });
 
-  it('renders new header cards for managed customers with legacy invoiced OD', async () => {
+  it('renders new header cards for managed customers with OD supported', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am3_f',
+      plan: 'am3_business_ent_auf',
       canSelfServe: false,
-      onDemandInvoiced: true,
+      supportsOnDemand: true,
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
@@ -177,6 +236,7 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: false,
       hasBillingInfoCard: true,
+      hasPaygCard: true,
     });
   });
 
@@ -196,6 +256,7 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: false,
       hasBillingInfoCard: false,
+      hasPaygCard: false,
     });
   });
 
