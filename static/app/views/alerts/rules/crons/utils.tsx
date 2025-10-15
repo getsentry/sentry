@@ -47,7 +47,8 @@ const WAITING_FIRST_CHECK_IN_INTERVAL_MS = 5_000;
  * - Time until next check-in if it's in the future
  * - Backoff interval based on how late the check-in is
  */
-export function getMonitorRefetchInterval(monitor: Monitor, now: moment.Moment) {
+export function getMonitorRefetchInterval(monitor: Monitor, now: Date) {
+  const nowMoment = moment(now);
   const env = sortBy(monitor.environments, e => e.nextCheckIn)[0];
   const nextCheckIn = env?.nextCheckIn ?? null;
 
@@ -58,12 +59,12 @@ export function getMonitorRefetchInterval(monitor: Monitor, now: moment.Moment) 
   const nextCheckInMoment = moment(nextCheckIn);
 
   // Interval is the time until we expect the next check-in
-  if (nextCheckInMoment.isAfter(now)) {
-    return nextCheckInMoment.diff(now, 'milliseconds');
+  if (nextCheckInMoment.isAfter(nowMoment)) {
+    return nextCheckInMoment.diff(nowMoment, 'milliseconds');
   }
 
   // Check-in is late - use exponential backoff
-  const minutesLate = now.diff(nextCheckInMoment, 'minutes');
+  const minutesLate = nowMoment.diff(nextCheckInMoment, 'minutes');
 
   if (minutesLate < 1) {
     return 5_000;
