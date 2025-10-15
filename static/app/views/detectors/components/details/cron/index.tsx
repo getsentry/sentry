@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import sortBy from 'lodash/sortBy';
+import moment from 'moment-timezone';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -218,7 +219,15 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 keyName={t('Next check-in')}
                 value={
                   dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
-                    <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
+                    moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
+                      <TimeSince
+                        unitStyle="regular"
+                        liveUpdateInterval="second"
+                        date={monitorEnv.nextCheckIn}
+                      />
+                    ) : (
+                      t('Expected Now')
+                    )
                   ) : (
                     '-'
                   )
@@ -228,7 +237,11 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 keyName={t('Last check-in')}
                 value={
                   monitorEnv?.lastCheckIn ? (
-                    <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+                    <TimeSince
+                      unitStyle="regular"
+                      liveUpdateInterval="second"
+                      date={monitorEnv.lastCheckIn}
+                    />
                   ) : (
                     '-'
                   )
