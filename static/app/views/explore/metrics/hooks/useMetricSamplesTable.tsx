@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
