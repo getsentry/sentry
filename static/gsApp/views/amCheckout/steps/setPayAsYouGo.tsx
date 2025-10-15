@@ -95,7 +95,6 @@ function SetPayAsYouGo({
           plan: formData.plan,
           cents: totalBudget || 0,
           method: fromButton ? 'button' : 'textbox',
-          isNewCheckout: false,
         });
       }
       setCurrentBudget(totalBudget);
