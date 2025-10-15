@@ -2,10 +2,13 @@ from collections.abc import Callable
 from typing import Any
 from unittest.mock import Mock, patch
 
+from rediscluster.exceptions import RedisClusterException
+
 from sentry.taskworker.state import CurrentTaskState
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils.exceptions import (
     exception_grouping_context,
+    quiet_redis_noise,
     set_sentry_exception_levels,
     timeout_grouping_context,
 )
@@ -447,3 +450,26 @@ class TestSetSentryExceptionLevels:
             # Verify the level was changed and other data preserved
             assert result["level"] == "warning"
             assert result["other_data"] == "preserved"
+
+
+class TestQuietRedisNoise:
+    def test_redis_cluster_exception_captured_and_reraised(self) -> None:
+
+        with patch("sentry_sdk.capture_exception") as mock_capture:
+            try:
+                with quiet_redis_noise():
+                    raise RedisClusterException("Cannot connect to Redis")
+            except RedisClusterException:
+                mock_capture.assert_called_once()
+            else:
+                assert False, "RedisClusterException was not re-raised"
+
+    def test_other_exceptions_not_captured(self) -> None:
+        with patch("sentry_sdk.capture_exception") as mock_capture:
+            try:
+                with quiet_redis_noise():
+                    raise ValueError("Some other error")
+            except ValueError:
+                mock_capture.assert_not_called()
+            else:
+                assert False, "ValueError was not re-raised"
