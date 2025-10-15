@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import mapValues from 'lodash/mapValues';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -88,7 +89,10 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
-import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {
+  useSortedTimeSeries,
+  type SeriesMap,
+} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -171,9 +175,12 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
+
+  const _swappedTimeSeries = swapGroupByAndYAxis(_timeseriesResult);
+
   const timeseriesResult = useStreamingTimeseriesResult(
     tableData,
-    _timeseriesResult,
+    _swappedTimeSeries,
     timeseriesIngestDelay
   );
   const aggregatesTableResult = useLogsAggregatesQuery({
@@ -443,4 +450,43 @@ export function LogsTabContent({
       </ToolbarAndBodyContainer>
     </SearchQueryBuilderProvider>
   );
+}
+
+/**
+ * Takes a `SeriesMap`, and updates every `TimeSeries` by taking its `groupBy`
+ * value and putting it into the `yAxis`. e.g., if a `TimeSeries` has a
+ * `yAxis` of `"count(spans)"` and a `groupBy` of `[{key: "env", value:
+ * "prod"}]`, this changes the `yAxis` to `"prod"`. This loses Y axis
+ * information, but conforms to the older format of the data that
+ * `useStreamingTimeSeriesResult` needs to work correctly.
+ *
+ * A more involved fix is needed in `useStreamingTimeSeriesResult` to remove
+ * this awkward helper.
+ *
+ */
+function swapGroupByAndYAxis(
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+): ReturnType<typeof useSortedTimeSeries> {
+  if (!timeseriesResult.data) {
+    return timeseriesResult;
+  }
+
+  const newSeriesMap = mapValues(timeseriesResult.data, timeSeriesOfGroup => {
+    return timeSeriesOfGroup.map(ts => {
+      if (!ts.groupBy) {
+        return ts;
+      }
+
+      return {
+        ...ts,
+        yAxis: ts.groupBy.map(groupBy => groupBy.value).join(','),
+        groupBy: null,
+      };
+    });
+  }) as SeriesMap;
+
+  return {
+    ...timeseriesResult,
+    data: newSeriesMap,
+  };
 }

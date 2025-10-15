@@ -50,7 +50,7 @@ import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 const {warn} = Sentry.logger;
 
-type SeriesMap = Record<string, TimeSeries[]>;
+export type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
   caseInsensitive?: CaseInsensitive;
