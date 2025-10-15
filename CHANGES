@@ -1,3 +1,35 @@
+25.10.0
+-------
+
+### Various fixes & improvements
+
+- fix(sub v3): Rework usage and reserved columns (#101514) by @isabellaenriquez
+- feat(ai_grouping): Send token length metrics on stacktraces sent to Seer (#101477) by @yuvmen
+- fix(aci): conditionally show trigger logic type selector on automation edit (#100711) by @ameliahsu
+- feat(aci): Hide transactions dataset option (#101497) by @scttcper
+- perf(replays): Optimize memory usage and deserialization performance (#101195) by @cmanallen
+- fix(aci): Return empty list from open periods endpoint when detector has no linked group  (#101046) by @malwilley
+- fix(spans-migration): changed type and wording of dropped fields warnings (#101479) by @nikkikapadia
+- fix(tracemetrics): Switch experimental backend to kwarg rate (#101520) by @k-fish
+- fix(alert): Delete IncidentTrigger as child of AlertRuleTrigger (#101460) by @kcons
+- fix(replay) - fix use fetch parallel pages (#101462) by @jerryzhou196
+- feat(tracemetrics): Add extrapolation warning iff we scan partial data (#101517) by @narsaynorath
+- fix(inc-1453): Do not crash hard if end_timestamp violates the schema (#101512) by @untitaker
+- chore(timeseries): Mark `TimeSeries` meta property as optional (#101463) by @gggritso
+- fix(ai-insights): llm calls count (#101509) by @obostjancic
+- feat(tracemetrics): Update UX to separate query builder from charts (#101465) by @narsaynorath
+- fix(spans-migration): changed reason format (#101466) by @nikkikapadia
+- chore(sub v3): prep for EA (#101437) by @isabellaenriquez
+- fix(ui): Make build details more like release details (#101348) by @chromy
+- fix(sub v3): Misc feedback + bugs (#101474) by @isabellaenriquez
+- fix(sub v3): Make row clickability more obvious (#101467) by @isabellaenriquez
+- feat(agent-spans): Display used tools (#101506) by @ArthurKnaus
+- feat(sdk): Enable HTTP request source (#101502) by @alexander-alderman-webb
+- feat(auto_source): Use consistent stack trace granularity (#101432) by @armenzg
+- chore(search-bar): Default to contains for filtering strings (#101450) by @nsdeschenes
+
+_Plus 1679 more_
+
 25.9.0
 ------
 
