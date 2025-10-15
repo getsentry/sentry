@@ -346,6 +346,34 @@ describe('DetectorEdit', () => {
         })
       );
     });
+
+    it('hides transactions dataset when deprecateTransactionAlerts feature flag is enabled for new detectors', async () => {
+      const organizationWithDeprecation = OrganizationFixture({
+        features: [
+          'workflow-engine-ui',
+          'visibility-explore-view',
+          'discover-saved-queries-deprecation',
+        ],
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithDeprecation,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      // Open dataset dropdown
+      await userEvent.click(screen.getByText('Spans'));
+
+      // Verify transactions option is not available for new detectors
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Transactions'})
+      ).not.toBeInTheDocument();
+
+      // Verify other datasets are still available
+      expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+    });
   });
 
   describe('Uptime Detector', () => {
