@@ -8,6 +8,8 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.db import router
+from sentry.eventtypes import transaction
 from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
     PreprodArtifactApiSizeAnalysisComparePostEvent,
@@ -390,12 +392,14 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         for key, head_metric in head_metrics_map.items():
             base_metric = base_metrics_map.get(key)
             if base_metric:
-                comparison = PreprodArtifactSizeComparison.objects.create(
-                    head_size_analysis=head_metric,
-                    base_size_analysis=base_metric,
-                    organization_id=project.organization_id,
-                    state=PreprodArtifactSizeComparison.State.PENDING,
-                )
+                with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+                    comparison = PreprodArtifactSizeComparison.objects.create(
+                        head_size_analysis=head_metric,
+                        base_size_analysis=base_metric,
+                        organization_id=project.organization_id,
+                        state=PreprodArtifactSizeComparison.State.PENDING,
+                    )
+                    comparison.save()
                 created_comparisons.append(
                     SizeAnalysisComparison(
                         head_size_metric_id=head_metric.id,
