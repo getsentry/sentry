@@ -2,8 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {CodeBlock} from 'sentry/components/core/code';
+import {Image} from 'sentry/components/core/image/image';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
@@ -12,7 +13,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
@@ -43,7 +43,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 const formatter = new SQLishFormatter();
@@ -114,27 +113,17 @@ export function SpanDescription({
         project_id={node.event?.projectID}
         organization={organization}
       />
-      <StyledLink
-        to={
-          hasExploreEnabled
-            ? getSearchInExploreTarget(
-                organization,
-                location,
-                node.event?.projectID,
-                SpanFields.SPAN_DESCRIPTION,
-                span.description!,
-                TraceDrawerActionKind.INCLUDE
-              )
-            : spanDetailsRouteWithQuery({
-                organization,
-                transaction: node.event?.title ?? '',
-                query: location.query,
-                spanSlug: {op: span.op!, group: groupHash},
-                projectID: node.event?.projectID,
-              })
-        }
-        onClick={() => {
-          if (hasExploreEnabled) {
+      {hasExploreEnabled && (
+        <StyledLink
+          to={getSearchInExploreTarget(
+            organization,
+            location,
+            node.event?.projectID,
+            SpanFields.SPAN_DESCRIPTION,
+            span.description!,
+            TraceDrawerActionKind.INCLUDE
+          )}
+          onClick={() => {
             traceAnalytics.trackExploreSearch(
               organization,
               SpanFields.SPAN_DESCRIPTION,
@@ -142,25 +131,12 @@ export function SpanDescription({
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
-          } else if (hasNewSpansUIFlag) {
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            });
-          } else {
-            trackAnalytics('trace.trace_layout.view_similar_spans', {
-              organization,
-              module: resolvedModule,
-              source: 'span_description',
-            });
-          }
-        }}
-      >
-        <IconGraph type="scatter" size="xs" />
-        {hasNewSpansUIFlag || hasExploreEnabled
-          ? t('More Samples')
-          : t('View Similar Spans')}
-      </StyledLink>
+          }}
+        >
+          <IconGraph type="scatter" size="xs" />
+          {t('More Samples')}
+        </StyledLink>
+      )}
     </BodyContentWrapper>
   ) : null;
 
@@ -222,8 +198,8 @@ export function SpanDescription({
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
-        organization,
         attributes: span.data,
+        spanId: span.span_id,
         op: span.op,
       })}
     />
@@ -309,16 +285,15 @@ function ResourceImage(props: {
       </FilenameContainer>
       {showImage && !hasError ? (
         <ImageWrapper>
-          <img
+          <Image
             data-test-id="sample-image"
+            alt="Resource Image"
             onError={() => setHasError(true)}
             src={src}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              objectPosition: 'center',
-            }}
+            objectFit="contain"
+            objectPosition="center"
+            width="100%"
+            height="100%"
           />
         </ImageWrapper>
       ) : (
@@ -362,7 +337,7 @@ const BodyContentWrapper = styled('div')<{padding: string}>`
   padding: ${p => p.padding};
 `;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   code {
     text-wrap: wrap;
   }

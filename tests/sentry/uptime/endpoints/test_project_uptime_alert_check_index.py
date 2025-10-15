@@ -1,16 +1,16 @@
 import uuid
 from abc import abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.cases import UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
-from sentry.uptime.models import get_detector
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
-from tests.sentry.uptime.endpoints.test_base import MOCK_DATETIME, UptimeResultEAPTestCase
+
+MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
 
 class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
@@ -24,10 +24,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
-        )
-        self.detector = get_detector(self.subscription)
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
         test_scenarios: list[dict] = [
             {"check_status": "success", "scheduled_check_time": before_now(minutes=10)},
@@ -184,8 +181,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             subscription = self.create_uptime_subscription(
                 url="https://example.com", subscription_id=None
             )
-            self.create_project_uptime_subscription(uptime_subscription=subscription)
-            detector = get_detector(subscription)
+            detector = self.create_uptime_detector(uptime_subscription=subscription)
 
             response = self.get_success_response(
                 self.organization.slug,

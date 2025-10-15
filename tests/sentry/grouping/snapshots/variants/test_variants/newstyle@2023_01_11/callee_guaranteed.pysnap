@@ -1,12 +1,13 @@
 ---
-created: '2025-05-12T23:40:58.067213+00:00'
+created: '2025-10-07T20:41:46.547574+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "4ef1fb44d656c3be2a146971f2a222dc"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     app*
       exception*
         stacktrace*
@@ -123,14 +124,17 @@ app:
               "stripped_application_code"
         type*
           "<redacted>"
-        ns-error*
-          "<redacted>"
-          2
+        ns_error*
+          domain*
+            "<redacted>"
+          code*
+            2
 --------------------------------------------------------------------------
 system:
   hash: "47481871aa8d5ab5729cf2db78ce3032"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     system*
       exception*
         stacktrace*
@@ -247,6 +251,8 @@ system:
               "stripped_application_code"
         type*
           "<redacted>"
-        ns-error*
-          "<redacted>"
-          2
+        ns_error*
+          domain*
+            "<redacted>"
+          code*
+            2

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import logging
 from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
 from typing import Any, cast
@@ -52,6 +53,8 @@ from sentry.utils.dates import get_interval_from_range, get_rollup_from_request,
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 
+logger = logging.getLogger(__name__)
+
 
 def get_query_columns(columns: list[str], rollup: int) -> list[str]:
     """
@@ -92,7 +95,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             features.has("organizations:discover-basic", organization, actor=request.user)
             or features.has("organizations:performance-view", organization, actor=request.user)
             or features.has(
-                "organizations:performance-issues-all-events-tab", organization, actor=request.user
+                "organizations:visibility-explore-view", organization, actor=request.user
             )
         )
 
@@ -169,6 +172,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 query_string=query,
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and "debug" in request.GET,
+                case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
             )
             return params
 
@@ -328,10 +332,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
                 return "1/minute", field_type
             else:
+                logger.warning(
+                    "sentry.api.bases.organization_events.get_unit_and_type encountered an unknown rate type",
+                    extra={"field": field, "field_type": field_type},
+                )
                 return None, field_type
         elif field_type == "duration":
             return "millisecond", field_type
         else:
+            # There's no unit for integers for example
             return None, field_type
 
     def handle_results_with_meta(

@@ -62,7 +62,7 @@ function useOnboardingProject() {
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
-  const [refetchKey, setRefetchKey] = useState(0);
+  const [shouldRefetch, setShouldRefetch] = useState(true);
 
   const request = useSpans(
     {
@@ -71,7 +71,7 @@ function useAiSpanWaiter(project: Project) {
       limit: 1,
       enabled: !!project,
       useQueryOptions: {
-        additonalQueryKey: [`refetch-${refetchKey}`],
+        refetchInterval: shouldRefetch ? 5000 : undefined,
       },
       pageFilters: {
         ...selection,
@@ -89,17 +89,11 @@ function useAiSpanWaiter(project: Project) {
 
   const hasEvents = Boolean(request.data?.length);
 
-  // Create a custom key that changes every 5 seconds to trigger refetch
-  // TODO(aknaus): remove this and add refetchInterval to useEAPSpans
   useEffect(() => {
-    if (hasEvents) return () => {};
-
-    const interval = setInterval(() => {
-      setRefetchKey(prev => prev + 1);
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [hasEvents]);
+    if (hasEvents && shouldRefetch) {
+      setShouldRefetch(false);
+    }
+  }, [hasEvents, shouldRefetch]);
 
   return request;
 }
@@ -256,14 +250,17 @@ export function Onboarding() {
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'OpenAI Agents SDK', value: 'openai_agents'},
             {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'LangChain', value: 'langchain'},
             {label: 'LangGraph', value: 'langgraph'},
+            {label: 'LiteLLM', value: 'litellm'},
             {label: 'Manual', value: 'manual'},
           ]
         : [
-            {label: 'Vercel AI SDK', value: 'vercelai'},
+            {label: 'Vercel AI SDK', value: 'vercel_ai'},
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'Manual', value: 'manual'},
           ],
     },
@@ -384,17 +381,17 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   position: relative;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   z-index: 10;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.pink400};
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const PulseSpacer = styled('div')`
-  height: ${space(4)};
+  height: ${p => p.theme.space['3xl']};
 `;
 
 const PulsingIndicator = styled('div')`
@@ -403,7 +400,7 @@ const PulsingIndicator = styled('div')`
 `;
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -414,19 +411,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -440,11 +437,11 @@ const HeaderText = styled('div')`
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -457,7 +454,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -474,7 +471,7 @@ const Body = styled('div')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;

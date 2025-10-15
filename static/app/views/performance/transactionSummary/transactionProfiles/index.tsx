@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -56,7 +55,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
     return conditions.formatString();
   }, [transaction, rawQuery]);
 
-  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
+  const handleSearch = useCallback(
     (searchQuery: string) => {
       navigate({
         ...location,

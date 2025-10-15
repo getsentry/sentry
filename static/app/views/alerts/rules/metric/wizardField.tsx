@@ -180,15 +180,19 @@ export default function WizardField({
           },
         ]
       : []),
-    {
-      label: t('CUSTOM'),
-      options: [
-        {
-          label: AlertWizardAlertNames.custom_transactions,
-          value: 'custom_transactions',
-        },
-      ],
-    },
+    ...((deprecateTransactionAlerts(organization)
+      ? []
+      : [
+          {
+            label: t('CUSTOM'),
+            options: [
+              {
+                label: AlertWizardAlertNames.custom_transactions,
+                value: 'custom_transactions',
+              },
+            ],
+          },
+        ]) as GroupedMenuOption[]),
   ];
 
   return (
@@ -277,7 +281,6 @@ export default function WizardField({
 }
 
 // swaps out custom percentile values for known percentiles, used while we fade out custom percentiles in metric alerts
-// TODO(telemetry-experience): remove once we migrate all custom percentile alerts
 const getFieldValue = (aggregate: string | undefined, model: any) => {
   const fieldValue = explodeFieldString(aggregate ?? '');
 

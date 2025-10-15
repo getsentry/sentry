@@ -132,7 +132,6 @@ MUTATE_ISSUE_RESULT: MutateIssueResponse = {
         "ignoreUserCount": 10,
         "ignoreUserWindow": 60,
         "inNextRelease": False,
-        "inUpcomingRelease": False,
         "inRelease": "1.0.0",
         "inCommit": {
             "commit": "123def456abc",

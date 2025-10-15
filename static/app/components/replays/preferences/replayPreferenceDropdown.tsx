@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {Flex} from 'sentry/components/core/layout';
+import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,8 +11,6 @@ import formatDuration from 'sentry/utils/duration/formatDuration';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-
-const timestampOptions: Array<'relative' | 'absolute'> = ['relative', 'absolute'];
 
 export default function ReplayPreferenceDropdown({
   speedOptions,
@@ -79,6 +78,7 @@ export default function ReplayPreferenceDropdown({
                   <DurationDisplay>{durationDisplay}</DurationDisplay>
                 </Flex>
               ),
+              textValue: baseLabel,
               value: option,
             };
           }
@@ -93,7 +93,7 @@ export default function ReplayPreferenceDropdown({
         label={t('Timestamps')}
         value={prefs.timestampType}
         onChange={opt => setPrefs({timestampType: opt.value})}
-        options={timestampOptions.map(option => ({
+        options={REPLAY_TIMESTAMP_OPTIONS.map(option => ({
           label: `${toTitleCase(option)}`,
           value: option,
         }))}

@@ -1,6 +1,5 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tn} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {
   Automation,
@@ -154,7 +153,7 @@ export function useCreateAutomation() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({type: 'error', message: t('Unable to create automation')});
+      addErrorMessage(t('Unable to create automation'));
     },
   });
 }
@@ -221,7 +220,7 @@ export function useUpdateAutomation() {
 
   return useMutation<
     Automation,
-    void,
+    RequestError,
     Partial<NewAutomation> & {id: Automation['id']; name: NewAutomation['name']}
   >({
     mutationFn: data =>
@@ -242,7 +241,7 @@ export function useUpdateAutomation() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({type: 'error', message: t('Unable to update automation')});
+      addErrorMessage(t('Unable to update automation'));
     },
   });
 }

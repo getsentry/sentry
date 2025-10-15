@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -7,8 +7,8 @@ import omit from 'lodash/omit';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -24,11 +24,8 @@ import {TransactionSearchQueryBuilder} from 'sentry/components/performance/trans
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
@@ -36,7 +33,8 @@ import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withProjects from 'sentry/utils/withProjects';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useProjects from 'sentry/utils/useProjects';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
@@ -59,8 +57,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
-  router: InjectedRouter;
   vitalName: WebVital;
 };
 
@@ -71,9 +67,10 @@ function getSummaryConditions(query: string) {
   return parsed.formatString();
 }
 
-function VitalDetailContent(props: Props) {
+export default function VitalDetailContent(props: Props) {
   const theme = useTheme();
-  const [error, setError] = useState<string | undefined>(undefined);
+  const navigate = useNavigate();
+  const {projects} = useProjects();
   function handleSearch(query: string) {
     const {location} = props;
 
@@ -85,14 +82,14 @@ function VitalDetailContent(props: Props) {
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: searchQueryParams,
     });
   }
 
   function renderCreateAlertButton() {
-    const {eventView, organization, projects, vitalName} = props;
+    const {eventView, organization, vitalName} = props;
 
     return (
       <CreateAlertFromViewButton
@@ -121,7 +118,7 @@ function VitalDetailContent(props: Props) {
           key: newVitalName,
           label: vitalAbbreviations[newVitalName],
           onAction: function switchWebVital() {
-            browserHistory.push({
+            navigate({
               pathname: location.pathname,
               query: {
                 ...location.query,
@@ -162,20 +159,8 @@ function VitalDetailContent(props: Props) {
     );
   }
 
-  function renderError() {
-    if (!error) {
-      return null;
-    }
-
-    return (
-      <Alert.Container>
-        <Alert type="error">{error}</Alert>
-      </Alert.Container>
-    );
-  }
-
   function renderContent(vital: WebVital) {
-    const {location, organization, eventView, projects} = props;
+    const {location, organization, eventView} = props;
 
     const {start, end, statsPeriod, environment, project} = eventView;
 
@@ -245,7 +230,6 @@ function VitalDetailContent(props: Props) {
                   projects={projects}
                   organization={organization}
                   location={location}
-                  setError={setError}
                   summaryConditions={summaryConditions}
                 />
               </TeamKeyTransactionManager.Provider>
@@ -283,19 +267,18 @@ function VitalDetailContent(props: Props) {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        {renderError()}
         <Layout.Main fullWidth>
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
           <SupportedBrowsers>
             {Object.values(Browser).map(browser => (
-              <BrowserItem key={browser}>
+              <Flex key={browser} align="center" gap="md">
                 {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
                   <IconCheckmark color="successText" size="sm" />
                 ) : (
                   <IconClose color="dangerText" size="sm" />
                 )}
                 {browser}
-              </BrowserItem>
+              </Flex>
             ))}
           </SupportedBrowsers>
           {renderContent(vital)}
@@ -304,8 +287,6 @@ function VitalDetailContent(props: Props) {
     </Fragment>
   );
 }
-
-export default withProjects(VitalDetailContent);
 
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
@@ -320,12 +301,6 @@ const SupportedBrowsers = styled('div')`
   display: inline-flex;
   gap: ${space(2)};
   margin-bottom: ${space(3)};
-`;
-
-const BrowserItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const FilterActions = styled('div')`

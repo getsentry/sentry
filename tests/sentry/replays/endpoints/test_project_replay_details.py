@@ -1,6 +1,6 @@
 import datetime
 from io import BytesIO
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 from django.urls import reverse
@@ -240,7 +240,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         assert storage.get(metadata3) is not None
 
     @patch("sentry.replays.usecases.delete.make_signed_seer_api_request")
-    def test_delete_replay_from_seer(self, mock_seer_api_request) -> None:
+    def test_delete_replay_from_seer(self, mock_seer_api_request: MagicMock) -> None:
         """Test delete method deletes from Seer if summaries are enabled."""
         kept_replay_id = uuid4().hex
 

@@ -68,16 +68,17 @@ const settingsRoutes = (): SentryRouteObject => ({
         },
         {
           path: 'notifications/',
-          name: 'Notifications',
+          name: 'Spend Notifications',
           component: make(() => import('../views/subscriptionPage/notifications')),
           deprecatedRouteProps: true,
         },
         {
           path: 'details/',
-          name: 'Billing Details',
-          component: make(() => import('../views/subscriptionPage/billingDetails')),
+          name: 'Billing Information',
+          component: make(() => import('../views/subscriptionPage/billingInformation')),
           deprecatedRouteProps: true,
         },
+        // TODO(sub-v3): We're keeping both routes for now, but we should remove the usage-log route once we're confident in keeping the new name
         {
           path: 'usage-log/',
           name: 'Usage Log',
@@ -85,8 +86,14 @@ const settingsRoutes = (): SentryRouteObject => ({
           deprecatedRouteProps: true,
         },
         {
+          path: 'activity-logs/',
+          name: 'Activity Logs',
+          component: make(() => import('../views/subscriptionPage/usageLog')),
+          deprecatedRouteProps: true,
+        },
+        {
           path: 'receipts/:invoiceGuid/',
-          name: 'Invoice Details',
+          name: 'Receipt Details',
           component: errorHandler(SubscriptionContext),
           deprecatedRouteProps: true,
           children: [
@@ -103,21 +110,6 @@ const settingsRoutes = (): SentryRouteObject => ({
       path: 'spike-protection/',
       name: 'Spike Protection',
       component: make(() => import('../views/spikeProtection')),
-    },
-    {
-      path: 'seer/',
-      name: 'Seer Automation',
-      children: [
-        {
-          index: true,
-          component: make(() => import('../views/seerAutomation')),
-        },
-        {
-          path: 'onboarding/',
-          name: 'Configure Seer for All Projects',
-          component: make(() => import('../views/seerAutomation/onboarding')),
-        },
-      ],
     },
     {
       path: 'subscription/spend-allocations/',

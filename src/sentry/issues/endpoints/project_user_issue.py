@@ -94,7 +94,10 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
     def create_fingerprint(self) -> list[str]:
         vital = self.data.get("vital", "")
         transaction = self.data.get("transaction", "")
-        return [f"insights-web-vitals-{vital}-{transaction}"]
+        # We add a uuid to force uniqueness on the fingerprint
+        # This is because we do not want historic autofix runs to be connected to new issue events
+        uuid = uuid4().hex
+        return [f"insights-web-vitals-{vital}-{transaction}-{uuid}"]
 
     def get_tags(self) -> dict:
         vital = self.data.get("vital", "")
@@ -103,6 +106,7 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
             "transaction": transaction,
             "web_vital": vital,
             "score": str(self.data.get("score")),
+            vital: str(self.data.get("value", "")),
         }
 
     def get_evidence(self) -> tuple[dict, list[IssueEvidence]]:
@@ -110,11 +114,13 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
         score = self.data.get("score")
         transaction = self.data.get("transaction", "")
         trace_id = self.data.get("traceId")
+        vital_value = self.data.get("value")
 
         evidence_data = {
             "transaction": transaction,
             "vital": vital,
             "score": score,
+            vital: vital_value,
         }
 
         evidence_display = [
@@ -131,6 +137,11 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
             IssueEvidence(
                 name="Score",
                 value=str(score),
+                important=True,
+            ),
+            IssueEvidence(
+                name=vital.upper(),
+                value=str(vital_value),
                 important=True,
             ),
         ]
@@ -163,6 +174,7 @@ class ProjectUserIssueRequestSerializer(serializers.Serializer):
 class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
     score = serializers.IntegerField(required=True, min_value=0, max_value=100)
     vital = serializers.ChoiceField(required=True, choices=["lcp", "fcp", "cls", "inp", "ttfb"])
+    value = serializers.IntegerField(required=True)
 
 
 class ProjectUserIssuePermission(ProjectPermission):

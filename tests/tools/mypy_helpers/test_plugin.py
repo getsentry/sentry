@@ -270,3 +270,43 @@ Found 2 errors in 1 file (checked 1 source file)
 
     ret, out = call_mypy(src)
     assert ret == 0
+
+
+def test_base_cache_adjusted_version_type() -> None:
+    src = """\
+from django.core.cache import cache
+
+cache.set(key='123', value='456', version='deadbeef')
+"""
+
+    expected = """\
+<string>:3: error: Argument "version" to "set" of "BaseCache" has incompatible type "str"; expected "int | None"  [arg-type]
+Found 1 error in 1 file (checked 1 source file)
+"""
+
+    ret, out = call_mypy(src, plugins=[])
+    assert ret
+    assert out == expected
+
+    ret, out = call_mypy(src)
+    assert ret == 0
+
+
+def test_base_cache_incr_decr_version_removed() -> None:
+    src = """\
+from django.core.cache import cache
+
+cache.incr_version('123')
+"""
+
+    expected = """\
+<string>:3: error: removed method  [misc]
+Found 1 error in 1 file (checked 1 source file)
+"""
+
+    ret, out = call_mypy(src, plugins=[])
+    assert ret == 0
+
+    ret, out = call_mypy(src)
+    assert ret
+    assert out == expected

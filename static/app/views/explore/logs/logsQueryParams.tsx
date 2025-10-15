@@ -33,6 +33,12 @@ import {updateNullableLocation} from 'sentry/views/explore/queryParams/location'
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  getIdFromLocation,
+  getTitleFromLocation,
+  ID_KEY,
+  TITLE_KEY,
+} from 'sentry/views/explore/queryParams/savedQuery';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -40,6 +46,8 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 
 const LOGS_MODE_KEY = 'mode';
 export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
+const LOGS_ID_KEY = ID_KEY;
+const LOGS_TITLE_KEY = TITLE_KEY;
 
 export function isDefaultFields(location: Location): boolean {
   return getFieldsFromLocation(location, LOGS_FIELDS_KEY) ? false : true;
@@ -65,7 +73,11 @@ export function getReadableQueryParamsFromLocation(
       aggregateFields
     ) ?? defaultAggregateSortBys(aggregateFields);
 
+  const id = getIdFromLocation(location, LOGS_ID_KEY);
+  const title = getTitleFromLocation(location, LOGS_TITLE_KEY);
+
   return new ReadableQueryParams({
+    extrapolate: true,
     mode,
     query,
 
@@ -76,6 +88,9 @@ export function getReadableQueryParamsFromLocation(
     aggregateCursor,
     aggregateFields,
     aggregateSortBys,
+
+    id,
+    title,
   });
 }
 
@@ -86,6 +101,7 @@ export function getTargetWithReadableQueryParams(
   const target: Location = {...location, query: {...location.query}};
 
   updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
+  updateNullableLocation(target, LOGS_QUERY_KEY, writableQueryParams.query);
 
   updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, writableQueryParams.fields);
@@ -110,6 +126,15 @@ export function getTargetWithReadableQueryParams(
     writableQueryParams.aggregateFields?.map(aggregateField =>
       JSON.stringify(aggregateField)
     )
+  );
+  updateNullableLocation(
+    target,
+    LOGS_AGGREGATE_SORT_BYS_KEY,
+    writableQueryParams.aggregateSortBys === null
+      ? null
+      : writableQueryParams.aggregateSortBys?.map(
+          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
+        )
   );
 
   // when using aggregate fields, we want to make sure to delete the params

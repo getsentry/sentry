@@ -161,25 +161,34 @@ class PushEventWebhook(Webhook):
                     for fname in commit["added"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="A"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="A",
                             )
                         )
 
                     for fname in commit["removed"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="D"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="D",
                             )
                         )
                     for fname in commit["modified"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="M"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="M",
                             )
                         )
 
                     if file_changes:
-                        bulk_create_commit_file_changes(organization, file_changes)
+                        bulk_create_commit_file_changes(file_changes)
 
             except IntegrityError:
                 pass

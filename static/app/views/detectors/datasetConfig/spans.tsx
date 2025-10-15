@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -15,6 +16,10 @@ import {
   getEapTimePeriodsForInterval,
   MetricDetectorInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+import {
+  translateAggregateTag,
+  translateAggregateTagBack,
+} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 
 import type {DetectorDatasetConfig} from './base';
 
@@ -23,6 +28,7 @@ type SpansSeriesResponse = EventsStats;
 const DEFAULT_EVENT_TYPES = [EventTypes.TRACE_ITEM_SPAN];
 
 export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
+  name: t('Spans'),
   SearchBar: TraceSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: SpansConfig.defaultField,
@@ -31,6 +37,7 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
     return getDiscoverSeriesQueryOptions({
       ...options,
       dataset: DetectorSpansConfig.getDiscoverDataset(),
+      aggregate: translateAggregateTag(options.aggregate),
     });
   },
   getIntervals: ({detectionType}) => {
@@ -64,8 +71,12 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
-  fromApiAggregate: aggregate => aggregate,
-  toApiAggregate: aggregate => aggregate,
+  fromApiAggregate: aggregate => {
+    return translateAggregateTag(aggregate);
+  },
+  toApiAggregate: aggregate => {
+    return translateAggregateTagBack(aggregate);
+  },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   getDiscoverDataset: () => DiscoverDatasets.SPANS,
 };

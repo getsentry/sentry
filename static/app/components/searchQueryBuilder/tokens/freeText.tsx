@@ -26,6 +26,7 @@ import {
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
+  FilterType,
   InvalidReason,
   parseSearch,
   Token,
@@ -33,7 +34,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -98,12 +98,13 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  hasWildcardOperators: boolean
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    getInitialFilterText(key, getFieldDefinition(key), hasWildcardOperators)
   );
 }
 
@@ -131,13 +132,22 @@ function countPreviousItemsOfType({
 
 function calculateNextFocusForFilter(
   state: ListState<ParseResultToken>,
-  definition: FieldDefinition | null
+  definition: FieldDefinition | null,
+  key: string | null,
+  hasInputChangeFlows: boolean
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
-  const part =
-    definition && definition.kind === FieldKind.FUNCTION && definition.parameters?.length
-      ? 'key'
-      : 'value';
+
+  let part: FocusOverride['part'] = hasInputChangeFlows ? 'op' : 'value';
+  if (
+    definition &&
+    definition.kind === FieldKind.FUNCTION &&
+    definition.parameters?.length
+  ) {
+    part = 'key';
+  } else if (key === FilterType.IS || key === FilterType.HAS) {
+    part = 'value';
+  }
 
   return {
     itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
@@ -242,12 +252,19 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
-  const organization = useOrganization();
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
+
+  const organization = useOrganization();
+  const hasInputChangeFlows = organization.features.includes(
+    'search-query-builder-input-flow-changes'
+  );
+  const hasWildcardOperators =
+    organization.features.includes('search-query-builder-wildcard-operators') &&
+    organization.features.includes('search-query-builder-default-to-contains');
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -370,7 +387,7 @@ function SearchQueryBuilderInputInternal({
         .trim();
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: [token],
         text: clipboardText,
       });
@@ -416,7 +433,7 @@ function SearchQueryBuilderInputInternal({
 
           if (option.type === 'raw-search') {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
               text: option.value,
               shouldCommitQuery: true,
@@ -427,7 +444,7 @@ function SearchQueryBuilderInputInternal({
 
           if (option.type === 'filter-value' && option.textValue) {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
               text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
               focusOverride: calculateNextFocusForInsertedToken(item),
@@ -439,7 +456,7 @@ function SearchQueryBuilderInputInternal({
 
           if (option.type === 'raw-search-filter-is-value' && option.textValue) {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
               text: option.textValue,
               focusOverride: calculateNextFocusForInsertedToken(item),
@@ -452,15 +469,21 @@ function SearchQueryBuilderInputInternal({
           const value = option.value;
 
           dispatch({
-            type: 'UPDATE_FREE_TEXT',
+            type: 'UPDATE_FREE_TEXT_ON_SELECT',
             tokens: [token],
             text: replaceFocusedWordWithFilter(
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition
+              getFieldDefinition,
+              hasWildcardOperators
             ),
-            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
+            focusOverride: calculateNextFocusForFilter(
+              state,
+              getFieldDefinition(value),
+              value,
+              hasInputChangeFlows
+            ),
             shouldCommitQuery: false,
           });
           resetInputValue();
@@ -479,7 +502,7 @@ function SearchQueryBuilderInputInternal({
         }}
         onCustomValueBlurred={value => {
           dispatch({
-            type: 'UPDATE_FREE_TEXT',
+            type: 'UPDATE_FREE_TEXT_ON_BLUR',
             tokens: [token],
             text: value,
             focusOverride: calculateNextFocusForCommittedCustomValue({
@@ -499,7 +522,7 @@ function SearchQueryBuilderInputInternal({
 
           // Otherwise, commit the query (which will trigger a search)
           dispatch({
-            type: 'UPDATE_FREE_TEXT',
+            type: 'UPDATE_FREE_TEXT_ON_COMMIT',
             tokens: [token],
             text: value,
             focusOverride: calculateNextFocusForCommittedCustomValue({
@@ -513,7 +536,7 @@ function SearchQueryBuilderInputInternal({
         onExit={() => {
           if (inputValue !== token.value.trim()) {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_EXIT',
               tokens: [token],
               text: inputValue,
               shouldCommitQuery: false,
@@ -550,17 +573,20 @@ function SearchQueryBuilderInputInternal({
                 getFieldDefinition(maybeFunction.value)?.kind === FieldKind.FUNCTION
               ) {
                 dispatch({
-                  type: 'UPDATE_FREE_TEXT',
+                  type: 'UPDATE_FREE_TEXT_ON_FUNCTION',
                   tokens: [token],
                   text: replaceFocusedWordWithFilter(
                     inputValue,
                     selectionIndex,
                     filterValue,
-                    getFieldDefinition
+                    getFieldDefinition,
+                    hasWildcardOperators
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
-                    getFieldDefinition(filterValue)
+                    getFieldDefinition(filterValue),
+                    null,
+                    hasInputChangeFlows
                   ),
                   shouldCommitQuery: false,
                 });
@@ -571,7 +597,7 @@ function SearchQueryBuilderInputInternal({
 
             // It's not a function so treat it as just a parenthesis
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_PARENTHESIS',
               tokens: [token],
               text: e.target.value,
               focusOverride: calculateNextFocusForInsertedToken(item),
@@ -591,17 +617,20 @@ function SearchQueryBuilderInputInternal({
             const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_COLON',
               tokens: [token],
               text: replaceFocusedWordWithFilter(
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition
+                getFieldDefinition,
+                hasWildcardOperators
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
-                getFieldDefinition(filterKey)
+                getFieldDefinition(filterKey),
+                filterKey,
+                hasInputChangeFlows
               ),
               shouldCommitQuery: false,
             });
@@ -716,8 +745,8 @@ const Row = styled('div')`
     [data-hidden-text='true']::before {
       content: '';
       position: absolute;
-      left: ${space(0.5)};
-      right: ${space(0.5)};
+      left: ${p => p.theme.space.xs};
+      right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
       background-color: ${p => p.theme.gray100};
@@ -733,7 +762,7 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space.xs};
     min-width: 9px;
     width: 100%;
   }
@@ -749,7 +778,7 @@ const PositionedTooltip = styled(InvalidTokenTooltip)`
 const InvisibleText = styled('div')`
   position: relative;
   color: transparent;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
   min-width: 9px;
   height: 100%;
 `;

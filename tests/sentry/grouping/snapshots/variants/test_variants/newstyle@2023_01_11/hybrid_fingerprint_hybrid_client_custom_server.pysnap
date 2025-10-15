@@ -1,167 +1,168 @@
 ---
-created: '2025-07-18T18:34:35.801984+00:00'
+created: '2025-10-07T20:41:48.475725+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: exception
-  component:
-    app (custom server fingerprint takes precedence)
+  hint: ignored because custom server fingerprint takes precedence
+  root_component:
+    app (ignored because custom server fingerprint takes precedence)
       exception*
         stacktrace*
           frame* (marked in-app by the client)
             module*
               "sentry.tasks.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "_wrapped"
-            context-line*
+            context_line*
               "result = func(*args, **kwargs)"
           frame* (marked in-app by the client)
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "process_event"
-            context-line*
+            context_line*
               "return _do_process_event(cache_key, start_time, event_id, process_event)"
           frame* (marked in-app by the client)
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "_do_process_event"
-            context-line*
+            context_line*
               "new_data = process_stacktraces(data)"
           frame* (marked in-app by the client)
             module*
               "sentry.stacktraces"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "stacktraces.py"
             function*
               "process_stacktraces"
-            context-line*
+            context_line*
               "if processor.preprocess_step(processing_task):"
           frame* (marked in-app by the client)
             module*
               "sentry.lang.native.plugin"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "plugin.py"
             function*
               "preprocess_step"
-            context-line*
+            context_line*
               "referenced_images=referenced_images,"
           frame* (marked in-app by the client)
             module*
               "sentry.lang.native.symbolizer"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "symbolizer.py"
             function*
               "__init__"
-            context-line*
+            context_line*
               "with_conversion_errors=True)"
           frame* (marked in-app by the client)
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "get_symcaches"
-            context-line*
+            context_line*
               "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
           frame* (marked in-app by the client)
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "_load_cachefiles_via_fs"
-            context-line*
+            context_line*
               "model.cache_file.save_to(cachefile_path)"
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "save_to"
-            context-line*
+            context_line*
               "delete=False).detach_tempfile()"
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_get_chunked_blob"
-            context-line*
+            context_line*
               "delete=delete"
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "__init__"
-            context-line*
+            context_line*
               "self._prefetch(prefetch_to, delete)"
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_prefetch"
-            context-line*
+            context_line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
           frame (marked out of app by the client)
             module*
               "concurrent.futures._base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "_base.py"
             function*
               "__exit__"
-            context-line*
+            context_line*
               "self.shutdown(wait=True)"
           frame (marked out of app by the client)
             module*
               "concurrent.futures.thread"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "thread.py"
             function*
               "shutdown"
-            context-line*
+            context_line*
               "t.join(sys.maxint)"
           frame (marked out of app by the client)
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "join"
-            context-line*
+            context_line*
               "self.__block.wait(delay)"
           frame (marked out of app by the client)
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "wait"
-            context-line*
+            context_line*
               "_sleep(delay)"
           frame (marked out of app by the client)
             module*
               "billiard.pool"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "pool.py"
             function*
               "soft_timeout_sighandler"
-            context-line*
+            context_line*
               "raise SoftTimeLimitExceeded()"
         type*
           "SoftTimeLimitExceeded"
@@ -176,162 +177,163 @@ custom_fingerprint:
 system:
   hash: null
   contributing component: exception
-  component:
-    system (custom server fingerprint takes precedence)
+  hint: ignored because custom server fingerprint takes precedence
+  root_component:
+    system (ignored because custom server fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
             module*
               "sentry.tasks.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "_wrapped"
-            context-line*
+            context_line*
               "result = func(*args, **kwargs)"
           frame*
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "process_event"
-            context-line*
+            context_line*
               "return _do_process_event(cache_key, start_time, event_id, process_event)"
           frame*
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "_do_process_event"
-            context-line*
+            context_line*
               "new_data = process_stacktraces(data)"
           frame*
             module*
               "sentry.stacktraces"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "stacktraces.py"
             function*
               "process_stacktraces"
-            context-line*
+            context_line*
               "if processor.preprocess_step(processing_task):"
           frame*
             module*
               "sentry.lang.native.plugin"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "plugin.py"
             function*
               "preprocess_step"
-            context-line*
+            context_line*
               "referenced_images=referenced_images,"
           frame*
             module*
               "sentry.lang.native.symbolizer"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "symbolizer.py"
             function*
               "__init__"
-            context-line*
+            context_line*
               "with_conversion_errors=True)"
           frame*
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "get_symcaches"
-            context-line*
+            context_line*
               "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
           frame*
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "_load_cachefiles_via_fs"
-            context-line*
+            context_line*
               "model.cache_file.save_to(cachefile_path)"
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "save_to"
-            context-line*
+            context_line*
               "delete=False).detach_tempfile()"
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_get_chunked_blob"
-            context-line*
+            context_line*
               "delete=delete"
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "__init__"
-            context-line*
+            context_line*
               "self._prefetch(prefetch_to, delete)"
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_prefetch"
-            context-line*
+            context_line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
           frame*
             module*
               "concurrent.futures._base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "_base.py"
             function*
               "__exit__"
-            context-line*
+            context_line*
               "self.shutdown(wait=True)"
           frame*
             module*
               "concurrent.futures.thread"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "thread.py"
             function*
               "shutdown"
-            context-line*
+            context_line*
               "t.join(sys.maxint)"
           frame*
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "join"
-            context-line*
+            context_line*
               "self.__block.wait(delay)"
           frame*
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "wait"
-            context-line*
+            context_line*
               "_sleep(delay)"
           frame*
             module*
               "billiard.pool"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "pool.py"
             function*
               "soft_timeout_sighandler"
-            context-line*
+            context_line*
               "raise SoftTimeLimitExceeded()"
         type*
           "SoftTimeLimitExceeded"

@@ -19,46 +19,45 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 import {
-  setUptimeRuleData,
-  useUptimeRule,
-} from 'sentry/views/insights/uptime/utils/useUptimeRule';
+  makeDetectorDetailsQueryKey,
+  useDetectorQuery,
+} from 'sentry/views/detectors/hooks';
+import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
-import {CheckStatus, type CheckStatusBucket, type UptimeRule} from './types';
+import {CheckStatus, type CheckStatusBucket} from './types';
 import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
-interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{detectorId: string; projectId: string}> {}
+export default function UptimeAlertDetails() {
+  const {detectorId, projectId} = useParams<{detectorId: string; projectId: string}>();
 
-export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-
-  const {projectId, detectorId} = params;
 
   const {projects, fetching: loadingProject} = useProjects({slugs: [projectId]});
   const project = projects.find(({slug}) => slug === projectId);
 
   const {
-    data: uptimeRule,
+    data: detector,
     isPending,
     isError,
-  } = useUptimeRule({projectSlug: projectId, detectorId});
+  } = useDetectorQuery<UptimeDetector>(detectorId);
 
   const {data: uptimeSummaries} = useUptimeMonitorSummaries({detectorIds: [detectorId]});
-  const summary = uptimeSummaries?.[detectorId];
+  const summary =
+    uptimeSummaries === undefined ? undefined : (uptimeSummaries?.[detectorId] ?? null);
 
   // Only display the missed window legend when there are visible missed window
   // check-ins in the timeline
@@ -95,18 +94,25 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     );
   }
 
-  const handleUpdate = async (data: Partial<UptimeRule>) => {
-    const resp = await updateUptimeRule(api, organization, uptimeRule, data);
+  const toggleStatus = async ({enabled}: Partial<UptimeDetector>) => {
+    // XXX(epurkhiser): We're not yet able to use the detector APIs to enable /
+    // disable uptime monitors. The detector APIs are not yet connected to
+    // billing or remote uptime subscription updates, so we need to continue
+    // using the legacy uptime rule APIs.
+    const resp = await updateUptimeRule(api, organization, project, detector, {
+      status: enabled ? 'active' : 'disabled',
+    });
 
     if (resp !== null) {
-      setUptimeRuleData({
+      setApiQueryData<UptimeDetector>(
         queryClient,
-        organizationSlug: organization.slug,
-        projectSlug: projectId,
-        uptimeRule: resp,
-      });
+        makeDetectorDetailsQueryKey({orgSlug: organization.slug, detectorId}),
+        prev => Object.assign({}, prev, {enabled})
+      );
     }
   };
+
+  const uptimeSub = detector.dataSources[0].queryObj;
 
   const canEdit = hasEveryAccess(['alerts:write'], {organization, project});
   const permissionTooltipText = tct(
@@ -116,7 +122,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
 
   return (
     <Layout.Page>
-      <SentryDocumentTitle title={`${uptimeRule.name} — Alerts`} />
+      <SentryDocumentTitle title={`${detector.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -140,14 +146,14 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               hideName
               avatarProps={{hasTooltip: true, tooltip: project.slug}}
             />
-            {uptimeRule.name}
+            {detector.name}
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
             <StatusToggleButton
-              uptimeRule={uptimeRule}
-              onToggleStatus={status => handleUpdate({status})}
+              uptimeDetector={detector}
+              onToggleStatus={data => toggleStatus(data)}
               size="sm"
               disabled={!canEdit}
               {...(canEdit ? {} : {title: permissionTooltipText})}
@@ -172,15 +178,15 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           <StyledPageFilterBar condensed>
             <DatePageFilter />
           </StyledPageFilterBar>
-          {uptimeRule.status === 'disabled' && (
+          {!detector.enabled && (
             <Alert.Container>
               <Alert
                 type="muted"
                 trailingItems={
                   <StatusToggleButton
-                    uptimeRule={uptimeRule}
+                    uptimeDetector={detector}
                     size="xs"
-                    onToggleStatus={status => handleUpdate({status})}
+                    onToggleStatus={data => toggleStatus(data)}
                   >
                     {t('Enable')}
                   </StatusToggleButton>
@@ -190,19 +196,19 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               </Alert>
             </Alert.Container>
           )}
-          <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
-          <UptimeIssues project={project} uptimeRule={uptimeRule} />
+          <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
+          <UptimeIssues project={project} uptimeDetector={detector} />
           <SectionHeading>{t('Checks List')}</SectionHeading>
           <UptimeChecksTable
-            detectorId={String(uptimeRule.detectorId)}
-            projectSlug={uptimeRule.projectSlug}
-            traceSampling={uptimeRule.traceSampling}
+            detectorId={detector.id}
+            projectSlug={project.slug}
+            traceSampling={uptimeSub.traceSampling}
           />
         </Layout.Main>
         <Layout.Side>
           <UptimeDetailsSidebar
             summary={summary}
-            uptimeRule={uptimeRule}
+            uptimeDetector={detector}
             showMissedLegend={showMissedLegend}
           />
         </Layout.Side>

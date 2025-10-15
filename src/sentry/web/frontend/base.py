@@ -264,7 +264,7 @@ class OrganizationMixin:
     ) -> Project | None:
         try:
             project = Project.objects.get(
-                slug__id_or_slug=project_id_or_slug, organization=organization
+                slug__id_or_slug=project_id_or_slug, organization_id=organization.id
             )
         except Project.DoesNotExist:
             return None

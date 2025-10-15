@@ -464,6 +464,8 @@ class SearchResolver:
             elif term.operator == "NOT IN":
                 operator = ComparisonFilter.OP_NOT_LIKE
                 is_list = True
+            else:
+                raise InvalidSearchQuery(f"Cannot use operator: {term.operator} with wildcards")
 
             if is_list:
                 raw_value = cast(list[str], term.value.raw_value)
@@ -564,6 +566,8 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                     op=operator,
                     value=self._resolve_search_value(resolved_column, term.operator, value),
+                    ignore_case=self.params.case_insensitive
+                    and resolved_column.search_type == "string",
                 )
             ),
             context_definition,

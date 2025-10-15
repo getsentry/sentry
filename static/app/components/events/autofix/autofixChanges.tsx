@@ -422,6 +422,7 @@ const ChangesContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.xl};
+  background: ${p => p.theme.background};
 `;
 
 const Content = styled('div')`

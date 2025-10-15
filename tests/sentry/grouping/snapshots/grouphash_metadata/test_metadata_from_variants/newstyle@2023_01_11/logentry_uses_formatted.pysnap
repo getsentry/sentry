@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:40.978341+00:00'
+created: '2025-10-07T20:42:05.575171+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,7 +24,8 @@ contributing variants:
   default*
     hash: "329b29efcf1f77067a063e34f56e7791"
     contributing component: message
-    component:
+    hint: None
+    root_component:
       default*
         message*
           "Hello there world!"

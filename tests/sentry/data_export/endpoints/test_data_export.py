@@ -24,7 +24,9 @@ class DataExportTest(APITestCase):
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.login_as(user=self.user)
 
-    def make_payload(self, payload_type, extras=None, overwrite=False):
+    def make_payload(
+        self, payload_type: str, extras: dict[str, Any] | None = None, overwrite: bool = False
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         if payload_type == "issue":
             payload = {
@@ -56,9 +58,14 @@ class DataExportTest(APITestCase):
     def test_authorization(self) -> None:
         payload = self.make_payload("issue")
 
+        payload_explore = self.make_payload("explore")
+
         # Without the discover-query feature, the endpoint should 404
         with self.feature({"organizations:discover-query": False}):
             self.get_error_response(self.org.slug, status_code=404, **payload)
+
+        with self.feature({"organizations:discover-query": False}):
+            self.get_success_response(self.org.slug, status_code=201, **payload_explore)
 
         # With the right permissions, the endpoint should 201
         with self.feature("organizations:discover-query"):

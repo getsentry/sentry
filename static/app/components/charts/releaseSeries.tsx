@@ -98,6 +98,9 @@ type State = {
   releases: ReleaseMetaBasic[] | null;
 };
 
+/**
+ * @deprecated use useReleaseBubbles instead
+ */
 class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   state: State = {
     releases: null,
@@ -237,9 +240,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     } = this.props;
 
     const query = {...queryExtra};
-    if (organization.features.includes('global-views')) {
-      query.project = router.location.query.project;
-    }
+    query.project = router.location.query.project;
     if (preserveQueryParams) {
       query.environment = [...environments];
       query.start = start ? getUtcDateString(start) : undefined;
@@ -329,4 +330,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   }
 }
 
+/**
+ * @deprecated use useReleaseBubbles instead
+ */
 export default withSentryRouter(withOrganization(withApi(withTheme(ReleaseSeries))));

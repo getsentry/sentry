@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Callable
 from unittest import mock
 
 import pytest
@@ -9,18 +10,24 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.conf.types.kafka_definition import Topic
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
+    emit_tap_events,
     emit_trace_items_to_eap,
     gen_rage_clicks,
     log_multiclick_events,
     log_rage_click_events,
 )
-from sentry.replays.usecases.ingest.event_parser import ClickEvent, MultiClickEvent, ParsedEventMeta
+from sentry.replays.usecases.ingest.event_parser import (
+    ClickEvent,
+    MultiClickEvent,
+    ParsedEventMeta,
+    TapEvent,
+)
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
 def test_gen_rage_clicks() -> None:
     # No clicks.
-    meta = ParsedEventMeta([], [], [], [], [], [], [])
+    meta = ParsedEventMeta([], [], [], [], [], [], [], [])
     assert len(list(gen_rage_clicks(meta, 1, "1", {"a": "b"}))) == 0
 
     # Not a rage click and not URL.
@@ -83,6 +90,32 @@ def test_emit_click_events_environment_handling() -> None:
 
 
 @thread_leak_allowlist(reason="replays", issue=97033)
+def test_emit_tap_events_environment_handling() -> None:
+    tap_events = [
+        TapEvent(
+            timestamp=1,
+            message="add_attachment",
+            view_class="androidx.appcompat.widget.AppCompatButton",
+            view_id="add_attachment",
+        )
+    ]
+
+    with mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce") as producer:
+        emit_tap_events(
+            tap_events=tap_events,
+            project_id=1,
+            replay_id=uuid.uuid4().hex,
+            retention_days=30,
+            start_time=1,
+            environment="prod",
+        )
+        assert producer.called
+        assert producer.call_args is not None
+        assert producer.call_args.args[0].name == "ingest-replay-events"
+        assert producer.call_args.args[1].value is not None
+
+
+@thread_leak_allowlist(reason="replays", issue=97033)
 @mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
 def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
     timestamp = Timestamp()
@@ -115,7 +148,9 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 1), (lambda: False, 0)])
-def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
+def test_log_multiclick_events(
+    mock_logger: mock.MagicMock, should_sample: Callable[[], bool], expected_calls: int
+) -> None:
     """Test that multiclick events are logged correctly based on sampling."""
     multiclick_events = [
         MultiClickEvent(
@@ -140,7 +175,7 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expec
             click_count=4,
         )
     ]
-    meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [])
+    meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [], [])
 
     log_multiclick_events(
         meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
@@ -157,9 +192,11 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expec
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @pytest.mark.parametrize("should_sample", [lambda: False, lambda: True])
-def test_log_multiclick_events_empty(mock_logger: mock.MagicMock, should_sample) -> None:
+def test_log_multiclick_events_empty(
+    mock_logger: mock.MagicMock, should_sample: Callable[[], bool]
+) -> None:
     """Test that multiclick events logger is not called if there are no multiclick events."""
-    meta = ParsedEventMeta([], [], [], [], [], [], [])
+    meta = ParsedEventMeta([], [], [], [], [], [], [], [])
     log_multiclick_events(
         meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
     )
@@ -168,7 +205,9 @@ def test_log_multiclick_events_empty(mock_logger: mock.MagicMock, should_sample)
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 2), (lambda: False, 0)])
-def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
+def test_log_rage_click_events(
+    mock_logger: mock.MagicMock, should_sample: Callable[[], bool], expected_calls: int
+) -> None:
     """Test that rage click events are logged correctly based on sampling."""
     click_events = [
         ClickEvent(
@@ -226,7 +265,7 @@ def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expec
             title="Regular click",
         ),
     ]
-    meta = ParsedEventMeta([], click_events, [], [], [], [], [])
+    meta = ParsedEventMeta([], click_events, [], [], [], [], [], [])
 
     log_rage_click_events(
         meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample

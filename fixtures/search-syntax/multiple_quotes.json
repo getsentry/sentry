@@ -12,8 +12,7 @@
         "value": {
           "type": "valueText",
           "value": "",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": " "},
@@ -26,8 +25,7 @@
         "value": {
           "type": "valueText",
           "value": "Chrome",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}
@@ -46,8 +44,7 @@
         "value": {
           "type": "valueText",
           "value": "\\\"",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": " "},
@@ -60,8 +57,7 @@
         "value": {
           "type": "valueText",
           "value": "Chrome",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}

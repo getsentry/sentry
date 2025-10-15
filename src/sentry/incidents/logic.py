@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
+import sentry_sdk
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.db.models.signals import post_save
@@ -24,6 +25,7 @@ from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
+from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
@@ -174,12 +176,16 @@ def create_incident(
             incident, IncidentActivityType.DETECTED, user=user, date_added=date_started
         )
         create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
-        analytics.record(
-            "incident.created",
-            incident_id=incident.id,
-            organization_id=incident.organization_id,
-            incident_type=incident_type.value,
-        )
+        try:
+            analytics.record(
+                IncidentCreatedEvent(
+                    incident_id=incident.id,
+                    organization_id=incident.organization_id,
+                    incident_type=incident_type.value,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     return incident
 
@@ -220,14 +226,18 @@ def update_incident_status(
 
         incident.update(**kwargs)
 
-        analytics.record(
-            "incident.status_change",
-            incident_id=incident.id,
-            organization_id=incident.organization_id,
-            incident_type=incident.type,
-            prev_status=prev_status,
-            status=incident.status,
-        )
+        try:
+            analytics.record(
+                IncidentStatusUpdatedEvent(
+                    incident_id=incident.id,
+                    organization_id=incident.organization_id,
+                    incident_type=incident.type,
+                    prev_status=prev_status,
+                    status=incident.status,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if status == IncidentStatus.CLOSED and (
             status_method == IncidentStatusMethod.MANUAL
@@ -633,10 +643,6 @@ def create_alert_rule(
             **_owner_kwargs_from_actor(owner),
         )
 
-        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            send_new_rule_data(alert_rule, projects[0], snuba_query)
-
         if user:
             create_audit_entry_from_user(
                 user,
@@ -653,6 +659,10 @@ def create_alert_rule(
 
         # NOTE: This constructs the query in snuba
         subscribe_projects_to_alert_rule(alert_rule, projects)
+
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            # NOTE: if adding a new metric alert type, take care to check that it's handled here
+            send_new_rule_data(alert_rule, projects[0], snuba_query)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -1825,6 +1835,7 @@ EAP_FUNCTIONS = [
     "epm",
     "failure_rate",
     "eps",
+    "apdex",
 ]
 
 

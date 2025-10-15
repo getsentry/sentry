@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
@@ -12,6 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuditLog} from 'sentry/types/organization';
@@ -22,13 +23,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
+import {hasNewBillingUI} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 const avatarStyle = {
   width: 36,
@@ -67,7 +70,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
 }
 
 const formatEntryTitle = (name: string) => {
-  const spaceName = name.replace(/\-|\./gm, ' ');
+  const spaceName = name.replace(/-|\./gm, ' ');
   let capitalizeName = spaceName.replace(/(^\w)|([-\s]\w)/g, match =>
     match.toUpperCase()
   );
@@ -147,25 +150,20 @@ function UsageLog({location, subscription}: Props) {
     });
   };
 
-  useEffect(() => {
-    trackSubscriptionView(organization, subscription, 'usagelog');
-  }, [organization, subscription]);
-
   const eventNameOptions =
     eventNames?.map(type => ({
       label: formatEntryTitle(type),
       value: type,
     })) ?? [];
   const selectedEventName = decodeScalar(location.query.event);
+  const isNewBillingUI = hasNewBillingUI(organization);
 
-  return (
+  const usageLogContent = (
     <Fragment>
-      <SubscriptionHeader subscription={subscription} organization={organization} />
       <UsageLogContainer>
         <CompactSelect
           searchable
           clearable
-          triggerLabel={selectedEventName ? undefined : t('Select Action')}
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}
           defaultValue={selectedEventName}
@@ -173,7 +171,10 @@ function UsageLog({location, subscription}: Props) {
           onChange={option => {
             handleEventFilter(option.value);
           }}
-          triggerProps={{size: 'sm'}}
+          triggerProps={{
+            size: 'sm',
+            children: selectedEventName ? undefined : t('Select Action'),
+          }}
         />
         {isError ? (
           <LoadingError onRetry={refetch} />
@@ -213,10 +214,26 @@ function UsageLog({location, subscription}: Props) {
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
     </Fragment>
   );
+
+  if (!isNewBillingUI) {
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <SubscriptionHeader subscription={subscription} organization={organization} />
+        {usageLogContent}
+      </SubscriptionPageContainer>
+    );
+  }
+
+  return (
+    <SubscriptionPageContainer background="primary" organization={organization}>
+      <SentryDocumentTitle title={t('Activity Logs')} orgSlug={organization.slug} />
+      <SettingsPageHeader title={t('Activity Logs')} />
+      {usageLogContent}
+    </SubscriptionPageContainer>
+  );
 }
 
 export default withSubscription(UsageLog);
-/** @internal exported for tests only */
 export {UsageLog};
 
 const SentryAvatar = styled(ActivityAvatar)`

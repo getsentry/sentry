@@ -592,6 +592,42 @@ class EqualOrRemovedComparator(JSONScrubbingComparator):
         return findings
 
 
+class OptionValueComparator(JSONScrubbingComparator):
+    """
+    Some exports from earlier sentry versions encode simple option values
+    as string integers, while newer versions of sentry encode those values as string.
+
+    If either side is a string, cast both to strings and compare.
+    """
+
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            left_field = left["fields"].get(f)
+            right_field = right["fields"].get(f)
+
+            if left_field == right_field:
+                continue
+
+            if isinstance(left_field, str):
+                right_field = str(right_field)
+            elif isinstance(right_field, str):
+                left_field = str(left_field)
+
+            if left_field != right_field:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({left_field}) of `{f}` was not equal to the right value ({right_field})""",
+                    )
+                )
+        return findings
+
+
 class SecretHexComparator(RegexComparator):
     """Certain 16-byte hexadecimal API keys are regenerated during an import operation."""
 
@@ -801,6 +837,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated"),
             ],
+            "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
+            "sentry.dataforwarderproject": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
             "sentry.groupsearchviewlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated")
@@ -819,6 +857,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
             "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
+            "sentry.dashboardfieldlink": [DateUpdatedComparator("date_added", "date_updated")],
             "sentry.email": [DateUpdatedComparator("date_added")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
@@ -879,6 +918,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 # we only really want to compare the IP address itself.
                 IgnoredComparator("country_code", "region_code"),
             ],
+            "sentry.useroption": [OptionValueComparator("value")],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
             "workflow_engine.action": [DateUpdatedComparator("date_updated", "date_added")],

@@ -8,6 +8,7 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const defaultReadableQueryParamsOptions: ReadableQueryParamsOptions = {
+  extrapolate: true,
   aggregateCursor: '',
   aggregateFields: [{groupBy: ''}, new VisualizeFunction('avg(foo)')],
   aggregateSortBys: [],
@@ -39,6 +40,56 @@ describe('deriveUpdatedManagedFields', () => {
       ...defaultReadableQueryParamsOptions,
     });
     const writableQueryParams: WritableQueryParams = {};
+    const {updatedManagedFields} = deriveUpdatedManagedFields(
+      managedFields,
+      readableQueryParams,
+      writableQueryParams
+    );
+    expect(updatedManagedFields).toEqual(new Set());
+  });
+
+  it('should manage new group by field', () => {
+    const managedFields = new Set<string>();
+    const readableQueryParams = new ReadableQueryParams({
+      ...defaultReadableQueryParamsOptions,
+    });
+    const writableQueryParams: WritableQueryParams = {
+      aggregateFields: [{groupBy: 'baz'}, {yAxes: ['avg(foo)']}],
+    };
+    const {updatedManagedFields} = deriveUpdatedManagedFields(
+      managedFields,
+      readableQueryParams,
+      writableQueryParams
+    );
+    expect(updatedManagedFields).toEqual(new Set(['baz']));
+  });
+
+  it('should keep managing unchanged group by field', () => {
+    const managedFields = new Set<string>(['baz']);
+    const readableQueryParams = new ReadableQueryParams({
+      ...defaultReadableQueryParamsOptions,
+      aggregateFields: [{groupBy: 'baz'}, new VisualizeFunction('avg(foo)')],
+    });
+    const writableQueryParams: WritableQueryParams = {
+      aggregateFields: [{groupBy: 'baz'}, {yAxes: ['avg(foo)']}],
+    };
+    const {updatedManagedFields} = deriveUpdatedManagedFields(
+      managedFields,
+      readableQueryParams,
+      writableQueryParams
+    );
+    expect(updatedManagedFields).toEqual(new Set(['baz']));
+  });
+
+  it('should stop managing removed group by field', () => {
+    const managedFields = new Set<string>(['baz']);
+    const readableQueryParams = new ReadableQueryParams({
+      ...defaultReadableQueryParamsOptions,
+      aggregateFields: [{groupBy: 'baz'}, new VisualizeFunction('avg(foo)')],
+    });
+    const writableQueryParams: WritableQueryParams = {
+      aggregateFields: [{groupBy: ''}, {yAxes: ['avg(foo)']}],
+    };
     const {updatedManagedFields} = deriveUpdatedManagedFields(
       managedFields,
       readableQueryParams,
@@ -121,7 +172,7 @@ describe('deriveUpdatedManagedFields', () => {
     expect(updatedManagedFields).toEqual(new Set());
   });
 
-  it('should keep managing when there is still a visualized field', () => {
+  it('should keep managing when there is still a visualized or group by field', () => {
     const managedFields = new Set<string>(['foo']);
     const readableQueryParams = new ReadableQueryParams({
       ...defaultReadableQueryParamsOptions,
@@ -142,7 +193,7 @@ describe('deriveUpdatedManagedFields', () => {
     expect(updatedManagedFields).toEqual(new Set(['foo']));
   });
 
-  it('should not managed field already in fields', () => {
+  it('should not manage visualized field already in fields', () => {
     const managedFields = new Set<string>();
     const readableQueryParams = new ReadableQueryParams({
       ...defaultReadableQueryParamsOptions,

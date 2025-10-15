@@ -1,27 +1,24 @@
-import {Component} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import type EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {generatePerformanceVitalDetailView} from 'sentry/views/performance/data';
 import {
   addRoutePerformanceContext,
@@ -32,104 +29,83 @@ import {
 
 import VitalDetailContent from './vitalDetailContent';
 
-type Props = RouteComponentProps & {
-  api: Client;
-  loadingProjects: boolean;
-  organization: Organization;
-  projects: Project[];
-  selection: PageFilters;
-};
+export default function VitalDetail() {
+  const api = useApi();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
 
-type State = {
-  eventView: EventView;
-};
+  useRouteAnalyticsEventNames(
+    'performance_views.vital_detail.view',
+    'Performance Views: Vital Detail viewed'
+  );
+  useRouteAnalyticsParams({
+    project_platforms: getSelectedProjectPlatforms(location, projects),
+  });
 
-class VitalDetail extends Component<Props, State> {
-  state: State = {
-    eventView: generatePerformanceVitalDetailView(this.props.location),
-  };
+  const eventView = useMemo(
+    () => generatePerformanceVitalDetailView(location),
+    [location]
+  );
 
-  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    return {
-      ...prevState,
-      eventView: generatePerformanceVitalDetailView(nextProps.location),
-    };
-  }
+  const documentTitle = useMemo(() => {
+    const name = getTransactionName(location);
+    const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
+    if (hasTransactionName) {
+      return [String(name).trim(), t('Performance')].join(' — ');
+    }
+    return [t('Vital Detail'), t('Performance')].join(' — ');
+  }, [location]);
 
-  componentDidMount() {
-    const {api, organization, selection, location, projects} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-
-    trackAnalytics('performance_views.vital_detail.view', {
-      organization,
-      project_platforms: getSelectedProjectPlatforms(location, projects),
-    });
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {api, organization, selection} = this.props;
-
+  const prevSelectionRef = useRef<PageFilters | null>(null);
+  useEffect(() => {
+    const prev = prevSelectionRef.current;
     if (
-      !isEqual(prevProps.selection.projects, selection.projects) ||
-      !isEqual(prevProps.selection.datetime, selection.datetime)
+      !prev ||
+      !isEqual(prev.projects, selection.projects) ||
+      !isEqual(prev.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
-  }
+    prevSelectionRef.current = selection;
+  }, [api, organization.slug, selection]);
 
-  getDocumentTitle(): string {
-    const name = getTransactionName(this.props.location);
-
-    const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
-
-    if (hasTransactionName) {
-      return [String(name).trim(), t('Performance')].join(' — ');
-    }
-
-    return [t('Vital Detail'), t('Performance')].join(' — ');
-  }
-
-  render() {
-    const {organization, location, router, api} = this.props;
-    const {eventView} = this.state;
-    if (!eventView) {
-      browserHistory.replace(
-        normalizeUrl({
-          pathname: getPerformanceBaseUrl(organization.slug),
-          query: {
-            ...location.query,
-          },
-        })
-      );
-      return null;
-    }
-
-    const vitalNameQuery = decodeScalar(location.query.vitalName);
-    const vitalName = Object.values(WebVital).includes(vitalNameQuery as WebVital)
-      ? (vitalNameQuery as WebVital)
-      : undefined;
-
-    return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
-          <PageFiltersContainer>
-            <Layout.Page>
-              <VitalDetailContent
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                router={router}
-                vitalName={vitalName || WebVital.LCP}
-                api={api}
-              />
-            </Layout.Page>
-          </PageFiltersContainer>
-        </PerformanceEventViewProvider>
-      </SentryDocumentTitle>
+  if (!eventView) {
+    navigate(
+      normalizeUrl({
+        pathname: getPerformanceBaseUrl(organization.slug),
+        query: {
+          ...location.query,
+        },
+      }),
+      {replace: true}
     );
+    return null;
   }
-}
 
-export default withApi(withPageFilters(withProjects(withOrganization(VitalDetail))));
+  const vitalNameQuery = decodeScalar(location.query.vitalName);
+  const vitalName = Object.values(WebVital).includes(vitalNameQuery as WebVital)
+    ? (vitalNameQuery as WebVital)
+    : undefined;
+
+  return (
+    <SentryDocumentTitle title={documentTitle} orgSlug={organization.slug}>
+      <PerformanceEventViewProvider value={{eventView}}>
+        <PageFiltersContainer>
+          <Layout.Page>
+            <VitalDetailContent
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              vitalName={vitalName || WebVital.LCP}
+              api={api}
+            />
+          </Layout.Page>
+        </PageFiltersContainer>
+      </PerformanceEventViewProvider>
+    </SentryDocumentTitle>
+  );
+}

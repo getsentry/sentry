@@ -1,35 +1,29 @@
-import {Button} from 'sentry/components/core/button';
-import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
+import {ExploreExport} from 'sentry/views/explore/components/exploreExport';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type ExploreExportProps = {
+type SpansExportProps = {
   aggregatesTableResult: AggregatesTableResult;
   spansTableResult: SpansTableResult;
 };
 
 const PAGINATION_LIMIT = 50;
 
-export function ExploreExport({
-  aggregatesTableResult,
-  spansTableResult,
-}: ExploreExportProps) {
+export function SpansExport({aggregatesTableResult, spansTableResult}: SpansExportProps) {
+  const [tab] = useTab();
   const location = useLocation();
-  const [tab, _setTab] = useTab();
 
-  let eventView: EventView | null = null;
+  let eventView = null;
   let results = null;
   let isPending = false;
-  let error: QueryError | null = null;
+  let error = null;
   let data = [];
+
   switch (tab) {
     case Tab.SPAN:
       eventView = spansTableResult.eventView;
@@ -61,41 +55,29 @@ export function ExploreExport({
     results === null ||
     eventView === null;
 
-  // TODO(nikki): track analytics
+  const hasReachedCSVLimit = data.length >= PAGINATION_LIMIT;
+  const isDataEmpty = !data || data.length === 0;
+  const isDataLoading = isPending;
+  const isDataError = error !== null;
 
-  if (data.length < PAGINATION_LIMIT) {
-    return (
-      <Button
-        size="xs"
-        disabled={disabled}
-        onClick={() =>
-          downloadAsCsv(results, eventView?.getColumns(), ExportQueryType.EXPLORE)
-        }
-        icon={<IconOpen />}
-        title={
-          disabled
-            ? undefined
-            : t(
-                "There aren't that many results, start your export and it'll download immediately."
-              )
-        }
-      >
-        {t('Export')}
-      </Button>
-    );
-  }
+  const handleDownloadAsCsv = () => {
+    if (results && eventView) {
+      downloadAsCsv(results, eventView.getColumns(), 'Traces');
+    }
+  };
+
+  const queryInfo = eventView?.getEventsAPIPayload(location);
 
   return (
-    <DataExport
-      size="xs"
-      payload={{
-        queryType: ExportQueryType.EXPLORE,
-        queryInfo: eventView?.getEventsAPIPayload(location),
-      }}
+    <ExploreExport
+      traceItemDataset={TraceItemDataset.SPANS}
       disabled={disabled}
-      icon={<IconOpen />}
-    >
-      {t('Export')}
-    </DataExport>
+      hasReachedCSVLimit={hasReachedCSVLimit}
+      queryInfo={queryInfo}
+      isDataEmpty={isDataEmpty}
+      isDataLoading={isDataLoading}
+      isDataError={isDataError}
+      downloadAsCsv={handleDownloadAsCsv}
+    />
   );
 }

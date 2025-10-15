@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:32:03.784088+00:00'
+created: '2025-10-07T20:42:03.373784+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -26,7 +26,8 @@ contributing variants:
   system*
     hash: "fe92cff6711f8a0a30cabb8b9245b1d6"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       system*
         exception*
           stacktrace*
@@ -35,7 +36,7 @@ contributing variants:
                 "router.js"
               function*
                 "handleRequest"
-              context-line*
+              context_line*
                 "return handler(request);"
           type*
             "FailedToFetchError"

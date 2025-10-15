@@ -83,7 +83,7 @@ export function FrontendVersionProvider({children, force, releaseVersion}: Props
     // We do not make stale version assessments when running deployment
     // previews, these are inherinetly a differning version from what is
     // deployed in production SAAS.
-    DEPLOY_PREVIEW_CONFIG === undefined;
+    !DEPLOY_PREVIEW_CONFIG;
 
   const {data: frontendVersionData} = useApiQuery<FrontendVersionResponse>(
     ['/internal/frontend-version/'],

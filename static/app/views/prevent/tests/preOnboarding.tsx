@@ -5,7 +5,8 @@ import testsAnalyticsSummary from 'sentry-images/features/test-analytics-summary
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -14,33 +15,16 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const INSTRUCTIONS_TEXT = {
-  noOrgs: {
-    header: t('Get Started by installing the GitHub Sentry App'),
-    subtext: t(
-      "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
-    ),
-    mainCTA: t('Add installation'),
-    mainCTALink: '/settings/integrations/github',
-  },
-  hasOrgs: {
-    header: t('Request Updated Permissions on your Integrated Organization'),
-    subtext: t(
-      "Sentry is requesting updated permissions access to your integrated organization(s). Admin required. If you're not an admin, reach out to your organization's owner to update the Sentry app permissions."
-    ),
-    mainCTA: t('Review permissions'),
-    mainCTALink: '/settings/integrations/github',
-  },
+  header: t('Get Started by installing the GitHub Sentry App'),
+  subtext: t(
+    "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
+  ),
+  mainCTA: t('Add installation'),
+  mainCTALink: 'https://github.com/apps/sentry-io',
 } as const;
 
-// TODO: this should come from the backend
-const HAS_INTEGRATED_ORGS = false;
-
-export default function TestPreOnboardingPage() {
+export default function TestsPreOnboardingPage() {
   const organization = useOrganization();
-  const instructionSet = HAS_INTEGRATED_ORGS
-    ? INSTRUCTIONS_TEXT.hasOrgs
-    : INSTRUCTIONS_TEXT.noOrgs;
-
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
 
@@ -53,7 +37,7 @@ export default function TestPreOnboardingPage() {
         <Alert.Container>
           <Alert type="info">
             {t(
-              'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+              'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
             )}
           </Alert>
         </Alert.Container>
@@ -64,7 +48,7 @@ export default function TestPreOnboardingPage() {
             <img src={isDarkMode ? testsAnalyticsSummaryDark : testsAnalyticsSummary} />
           </ImgContainer>
           <StyledDiv>
-            <h2>{t('Keep test problems from slowing you down')}</h2>
+            <h2>{t('Keep Test Problems From Slowing You Down')}</h2>
             <SpacedParagraph>
               {t('Get testing data that keeps your CI running smoothly')}
             </SpacedParagraph>
@@ -75,9 +59,9 @@ export default function TestPreOnboardingPage() {
               </li>
               <li>
                 {t('Identify the most problematic tests and prioritize fixes.')}{' '}
-                <Link to="https://docs.sentry.io/product/test-analytics/">
+                <ExternalLink href="https://docs.sentry.io/product/test-analytics/">
                   {t('Learn more')}
-                </Link>
+                </ExternalLink>
               </li>
             </ul>
           </StyledDiv>
@@ -86,16 +70,20 @@ export default function TestPreOnboardingPage() {
       {isUSStorage && (
         <Panel>
           <InstructionsSection>
-            <h2>{instructionSet.header}</h2>
-            <SubtextParagraph>{instructionSet.subtext}</SubtextParagraph>
-            <ButtonBar>
-              <LinkButton priority="primary" href={instructionSet.mainCTA}>
-                {instructionSet.mainCTA}
+            <h2>{INSTRUCTIONS_TEXT.header}</h2>
+            <SubtextParagraph>{INSTRUCTIONS_TEXT.subtext}</SubtextParagraph>
+            <Flex gap="xl">
+              <LinkButton
+                external
+                priority="primary"
+                href={INSTRUCTIONS_TEXT.mainCTALink}
+              >
+                {INSTRUCTIONS_TEXT.mainCTA}
               </LinkButton>
               <LinkButton priority="default" href="/settings/integrations/github">
                 Learn more
               </LinkButton>
-            </ButtonBar>
+            </Flex>
           </InstructionsSection>
         </Panel>
       )}
@@ -155,11 +143,6 @@ const InstructionsSection = styled('div')`
   display: flex;
   flex-direction: column;
   padding: 24px 40px;
-`;
-
-const ButtonBar = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
 `;
 
 const SubtextParagraph = styled('p')`

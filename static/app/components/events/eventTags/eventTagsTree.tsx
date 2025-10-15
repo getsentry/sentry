@@ -99,6 +99,7 @@ function getTagTreeRows({
   uniqueKey,
   event,
   project,
+  isLast,
 }: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
   const subtreeTags = Object.keys(content.subtree);
   const subtreeRows = subtreeTags.reduce<React.ReactNode[]>((rows, tag, i) => {
@@ -123,6 +124,7 @@ function getTagTreeRows({
       data-test-id="tag-tree-row"
       event={event}
       project={project}
+      isLast={isLast}
     />,
     ...subtreeRows,
   ];

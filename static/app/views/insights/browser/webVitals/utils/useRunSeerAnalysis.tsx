@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import {IssueType} from 'sentry/types/group';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import type {ProjectData} from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {useInvalidateWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
@@ -21,11 +22,13 @@ type WebVitalTraceSamples = {
 // TODO: Add logic to actually initiate running autofix for each issue. Right now we rely on the project config to automatically run autofix for each issue.
 export function useRunSeerAnalysis({
   projectScore,
+  projectData,
   transaction,
   webVitalTraceSamples,
 }: {
   transaction: string;
   webVitalTraceSamples: WebVitalTraceSamples;
+  projectData?: ProjectData;
   projectScore?: ProjectScore;
 }) {
   const {mutateAsync: createIssueAsync} = useCreateIssue();
@@ -34,7 +37,7 @@ export function useRunSeerAnalysis({
   });
 
   const runSeerAnalysis = useCallback(async (): Promise<string[]> => {
-    if (!projectScore) {
+    if (!projectScore || !projectData) {
       return [];
     }
     const underPerformingWebVitals = ORDER.filter(webVital => {
@@ -47,9 +50,9 @@ export function useRunSeerAnalysis({
           issueType: IssueType.WEB_VITALS,
           vital: webVital,
           score: projectScore[`${webVital}Score`],
+          value: Math.round(projectData[`p75(measurements.${webVital})`]),
           transaction,
           traceId: webVitalTraceSamples[webVital]?.trace,
-          timestamp: webVitalTraceSamples[webVital]?.timestamp,
         });
         return result.event_id;
       } catch (error) {
@@ -64,6 +67,7 @@ export function useRunSeerAnalysis({
   }, [
     createIssueAsync,
     projectScore,
+    projectData,
     transaction,
     invalidateWebVitalsIssuesQuery,
     webVitalTraceSamples,

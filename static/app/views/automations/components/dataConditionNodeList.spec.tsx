@@ -47,6 +47,7 @@ describe('DataConditionNodeList', () => {
     onDeleteRow: mockOnDeleteRow,
     placeholder: 'Any event',
     updateCondition: mockUpdateCondition,
+    label: 'Add condition',
   };
   const defaultConflictContextProps = {
     conflictingConditionGroups: {},
@@ -54,6 +55,7 @@ describe('DataConditionNodeList', () => {
   };
   const defaultErrorContextProps = {
     errors: {},
+    mutationErrors: undefined,
     setErrors: jest.fn(),
     removeError: jest.fn(),
   };
@@ -233,9 +235,7 @@ describe('DataConditionNodeList', () => {
 
   it('shows warning message for occurrence-based monitors', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
           <DataConditionNodeList {...defaultProps} />
         </AutomationBuilderConflictContext.Provider>

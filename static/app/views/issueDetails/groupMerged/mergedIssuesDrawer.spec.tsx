@@ -28,6 +28,7 @@ describe('MergedIssuesDrawer', () => {
           latestEvent: event,
           state: 'unlocked',
           id: '2c4887696f708c476a81ce4e834c4b02',
+          mergedBySeer: true,
         },
       ],
       method: 'GET',

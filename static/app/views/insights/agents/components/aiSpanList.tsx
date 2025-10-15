@@ -9,7 +9,6 @@ import {IconChevron, IconCode, IconFire} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
-import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {getIsAiRunNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
@@ -18,6 +17,8 @@ import {
   getIsAiCreateAgentSpan,
   getIsAiGenerationSpan,
   getIsAiRunSpan,
+  getIsExecuteToolSpan,
+  getIsHandoffSpan,
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -356,13 +357,13 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[2];
-  } else if (op === 'gen_ai.execute_tool') {
+  } else if (getIsExecuteToolSpan({op})) {
     const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.title = toolName || truncatedOp;
     nodeInfo.subtitle = toolName ? truncatedOp : '';
     nodeInfo.color = colors[5];
-  } else if (op === 'gen_ai.handoff') {
+  } else if (getIsHandoffSpan({op})) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
@@ -384,9 +385,12 @@ function hasError(node: AITraceSpanNode) {
     return true;
   }
 
-  // spans with status unknown are errors
   if (isEAPSpanNode(node)) {
-    return node.value.additional_attributes?.[SpanFields.SPAN_STATUS] === 'unknown';
+    const status = node.value.additional_attributes?.[SpanFields.SPAN_STATUS];
+    if (typeof status === 'string') {
+      return status.includes('error');
+    }
+    return false;
   }
 
   return false;
@@ -395,8 +399,8 @@ function hasError(node: AITraceSpanNode) {
 const TraceListContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space['2xs']};
   overflow: hidden;
 `;
 
@@ -407,7 +411,7 @@ const ListItemContainer = styled('div')<{
 }>`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(0.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
@@ -428,7 +432,7 @@ const ListItemContainer = styled('div')<{
 const ListItemIcon = styled('div')<{color: string}>`
   display: flex;
   align-items: center;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   color: ${p => p.color};
 `;
 
@@ -438,7 +442,7 @@ const ListItemContent = styled('div')`
 `;
 
 const ListItemHeader = styled(Flex)`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const ListItemTitle = styled('div')`

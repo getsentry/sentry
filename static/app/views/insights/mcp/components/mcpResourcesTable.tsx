@@ -43,6 +43,7 @@ const rightAlignColumns = new Set([
 
 export function McpResourcesTable() {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -87,11 +88,10 @@ export function McpResourcesTable() {
     [handleSort]
   );
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case SpanFields.MCP_RESOURCE_URI:
           return <McpResourceCell resource={dataRow[SpanFields.MCP_RESOURCE_URI]} />;
@@ -102,6 +102,7 @@ export function McpResourcesTable() {
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
                 query: `${query} span.status:internal_error ${SpanFields.MCP_RESOURCE_URI}:${dataRow[SpanFields.MCP_RESOURCE_URI]}`,
+                selection,
                 organization,
                 referrer: MCPReferrer.MCP_RESOURCE_TABLE,
               })}
@@ -116,7 +117,7 @@ export function McpResourcesTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query]
+    [organization, query, selection]
   );
 
   return (
@@ -124,7 +125,7 @@ export function McpResourcesTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,

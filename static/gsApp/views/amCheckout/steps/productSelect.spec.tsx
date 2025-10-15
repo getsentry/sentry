@@ -3,7 +3,10 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithSeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -12,7 +15,7 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('ProductSelect', () => {
   const api = new MockApiClient();
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['seer-billing']});
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
@@ -51,6 +54,10 @@ describe('ProductSelect', () => {
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       method: 'GET',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
     });
   });
 
@@ -104,9 +111,7 @@ describe('ProductSelect', () => {
     expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // +1 for credits included
     expect(screen.getAllByTestId(/product-option/)).toHaveLength(4); // +1 for credits included
     expect(screen.queryByText('Add to plan')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('checkbox', {name: /Add seer AI agent to plan/})
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox', {name: /Add Seer to plan/})).toHaveLength(2); // role is on entire box + checkbox within box
   });
 
   it('does not render products if flags are missing', async () => {
@@ -147,12 +152,9 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    expect(await screen.findByTestId('product-option-seer')).toHaveTextContent('$20/mo');
-    expect(
-      screen.getByText(
-        'Detect and fix issues faster with $25/mo in credits towards our AI agent'
-      )
-    ).toBeInTheDocument();
+    const seerProduct = await screen.findByTestId('product-option-seer');
+    expect(seerProduct).toHaveTextContent('$20/mo');
+    expect(seerProduct).toHaveTextContent('$25/mo in credits towards');
   });
 
   it('renders with correct annual price and monthly credits for products', async () => {
@@ -173,17 +175,14 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    expect(await screen.findByTestId('product-option-seer')).toHaveTextContent('$216/yr');
-    expect(
-      screen.getByText(
-        'Detect and fix issues faster with $25/mo in credits towards our AI agent'
-      )
-    ).toBeInTheDocument();
+    const seerProduct = await screen.findByTestId('product-option-seer');
+    expect(seerProduct).toHaveTextContent('$216/yr');
+    expect(seerProduct).toHaveTextContent('$25/mo in credits towards');
   });
 
   it('renders with product selected based on current subscription', async () => {
-    subscription.reservedBudgets = [SeerReservedBudgetFixture({id: '2'})];
-    SubscriptionStore.set(organization.slug, subscription);
+    const seerSubscription = SubscriptionWithSeerFixture({organization});
+    SubscriptionStore.set(organization.slug, seerSubscription);
 
     render(
       <AMCheckout

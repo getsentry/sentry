@@ -30,7 +30,7 @@ class _AccessLogMetaData:
         return time.time() - self.request_start_time
 
 
-def _get_request_auth(request: Request) -> AuthenticatedToken | None:
+def _get_request_auth(request: Request) -> AuthenticatedToken | str | None:
     if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
         return None
     # may not be present if request was rejected by a middleware between this
@@ -94,6 +94,12 @@ def _create_api_access_log(
             view = request.resolver_match._func_path
 
         request_auth = _get_request_auth(request)
+        if isinstance(request_auth, str):
+            # RPC authenticator currently set auth to a string.
+            # a) Those are also system tokens and should be ignored.
+            # b) _get_token_name raises on non AuthenticatedToken
+            return
+
         token_type = _get_token_name(request_auth)
         if token_type == "system":
             # if its an internal request, no need to log

@@ -12,8 +12,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
-from sentry.uptime.models import UptimeStatus, get_detector
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -446,10 +446,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         three_alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project2]
         )
-        proj_uptime_monitor = self.create_project_uptime_subscription(project=self.project)
-        proj2_uptime_monitor = self.create_project_uptime_subscription(project=self.project2)
-        uptime_detector = get_detector(proj_uptime_monitor.uptime_subscription)
-        uptime_detector2 = get_detector(proj2_uptime_monitor.uptime_subscription)
+        uptime_detector = self.create_uptime_detector(project=self.project)
+        uptime_detector2 = self.create_uptime_detector(project=self.project2)
 
         proj_cron_monitor = self.create_monitor(project=self.project)
         proj2_cron_monitor = self.create_monitor(project=self.project2)
@@ -643,14 +641,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert len(result) == 2
 
-        team_uptime_monitor = self.create_project_uptime_subscription(
-            owner=self.team, name="Uptime owned"
-        )
-        team_uptime_detector = get_detector(team_uptime_monitor.uptime_subscription)
-        unowned_uptime_monitor = self.create_project_uptime_subscription(
-            name="Uptime unowned",
-        )
-        unowned_uptime_detector = get_detector(unowned_uptime_monitor.uptime_subscription)
+        team_uptime_detector = self.create_uptime_detector(owner=self.team, name="Uptime owned")
+        unowned_uptime_detector = self.create_uptime_detector(name="Uptime unowned")
 
         team_cron_monitor = self.create_monitor(
             owner_user_id=None,
@@ -808,10 +800,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def test_name_filter(self) -> None:
         self.setup_rules()
-        uptime_monitor = self.create_project_uptime_subscription(name="Uptime")
-        uptime_detector = get_detector(uptime_monitor.uptime_subscription)
-        another_uptime_monitor = self.create_project_uptime_subscription(name="yet another Uptime")
-        another_uptime_detector = get_detector(another_uptime_monitor.uptime_subscription)
+        uptime_detector = self.create_uptime_detector(name="Uptime")
+        another_uptime_detector = self.create_uptime_detector(name="yet another Uptime")
         cron_monitor = self.create_monitor(name="Cron")
         another_cron_monitor = self.create_monitor(name="yet another Cron")
 
@@ -1008,12 +998,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             alert_rule_trigger=trigger3,
             status=TriggerStatus.ACTIVE.value,
         )
-        uptime_monitor = self.create_project_uptime_subscription()
-        uptime_detector = get_detector(uptime_monitor.uptime_subscription)
-        failed_uptime_monitor = self.create_project_uptime_subscription(
-            uptime_status=UptimeStatus.FAILED,
+
+        uptime_detector = self.create_uptime_detector()
+        failed_uptime_detector = self.create_uptime_detector(
+            detector_state=DetectorPriorityLevel.HIGH,
         )
-        failed_uptime_detector = get_detector(failed_uptime_monitor.uptime_subscription)
         ok_cron_monitor = self.create_monitor(
             name="OK Monitor",
         )
@@ -1126,13 +1115,9 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def test_uptime_feature(self) -> None:
         self.setup_rules()
-        uptime_monitor = self.create_project_uptime_subscription(name="Uptime Monitor")
-        uptime_detector = get_detector(uptime_monitor.uptime_subscription)
-        other_uptime_monitor = self.create_project_uptime_subscription(
-            name="Other Uptime Monitor",
-        )
-        other_uptime_detector = get_detector(other_uptime_monitor.uptime_subscription)
-        self.create_project_uptime_subscription(
+        uptime_detector = self.create_uptime_detector(name="Uptime Monitor")
+        other_uptime_detector = self.create_uptime_detector(name="Other Uptime Monitor")
+        self.create_uptime_detector(
             name="Onboarding Uptime monitor",
             mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
         )
@@ -1150,11 +1135,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def test_uptime_feature_name_sort(self) -> None:
         self.setup_rules()
-        self.create_project_uptime_subscription(name="Uptime Monitor")
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(name="Uptime Monitor")
+        self.create_uptime_detector(
             name="Other Uptime Monitor",
         )
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(
             name="Onboarding Uptime monitor",
             mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
         )
@@ -1325,8 +1310,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "date_added": before_now(minutes=4),
             }
         )
-        uptime_monitor = self.create_project_uptime_subscription(project=self.project)
-        uptime_rule = get_detector(uptime_monitor.uptime_subscription)
+        uptime_rule = self.create_uptime_detector(project=self.project)
         cron_rule = self.create_monitor(project=self.project)
 
         features = [

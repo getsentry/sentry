@@ -52,11 +52,81 @@ export function useBuildDetailsActions({
     });
   };
 
+  const handleDownloadAction = async () => {
+    const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+
+    try {
+      const response = await fetch(downloadUrl, {
+        method: 'HEAD',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Download failed (${response.status})`;
+
+        let errorResponse: Response;
+        try {
+          errorResponse = await fetch(downloadUrl, {
+            method: 'GET',
+            credentials: 'include',
+          });
+        } catch {
+          if (response.status === 403) {
+            errorMessage = 'Access denied. You may need to re-authenticate as staff.';
+          } else if (response.status === 404) {
+            errorMessage = 'Build file not found.';
+          } else if (response.status === 401) {
+            errorMessage = 'Unauthorized.';
+          }
+          addErrorMessage(t('Download failed: %s', errorMessage));
+          return;
+        }
+
+        if (!errorResponse.ok) {
+          const errorText = await errorResponse.text();
+          let errorJson: any;
+          try {
+            errorJson = JSON.parse(errorText);
+          } catch {
+            addErrorMessage(t('Download failed: %s', errorText || errorMessage));
+            return;
+          }
+
+          if (errorJson.detail) {
+            if (typeof errorJson.detail === 'string') {
+              errorMessage = errorJson.detail;
+            } else if (errorJson.detail.message) {
+              errorMessage = errorJson.detail.message;
+            } else if (errorJson.detail.code) {
+              errorMessage = `${errorJson.detail.code}: ${errorJson.detail.message || 'Authentication required'}`;
+            }
+          }
+        }
+
+        addErrorMessage(t('Download failed: %s', errorMessage));
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `preprod_artifact_${artifactId}.zip`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      addSuccessMessage(t('Build download started'));
+    } catch (error) {
+      addErrorMessage(t('Download failed: %s', String(error)));
+    }
+  };
+
   return {
     // State
     isDeletingArtifact,
 
     // Actions
     handleDeleteAction,
+    handleDownloadAction,
   };
 }

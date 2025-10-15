@@ -6,6 +6,7 @@ import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvat
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
@@ -267,155 +268,149 @@ export function WizardProjectSelection({
 
   const projectNameField = (
     <FieldWrapper>
-      <label>{t('Project Name')}</label>
+      <label>{t('Project Slug')}</label>
       <Input
         value={newProjectName}
         onChange={event => setNewProjectName(event.target.value)}
-        placeholder={t('Enter a project name')}
+        placeholder={t('Enter a project slug')}
       />
     </FieldWrapper>
   );
 
   return (
-    <StyledForm onSubmit={handleSubmit}>
-      <Heading>{t('Select your Sentry project')}</Heading>
-      <FieldWrapper>
-        <label>{t('Organization')}</label>
-        <StyledCompactSelect
-          autoFocus
-          value={selectedOrgId as string}
-          searchable
-          options={orgOptions}
-          triggerProps={{
-            icon: selectedOrg ? (
-              <OrganizationAvatar size={16} organization={selectedOrg} />
-            ) : null,
-          }}
-          triggerLabel={
-            selectedOrg ? (
-              getOrgDisplayName(selectedOrg)
-            ) : (
-              <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
-            )
-          }
-          onChange={({value}) => {
-            if (value !== selectedOrgId) {
-              setSelectedOrgId(value as string);
-              setSelectedProjectId(null);
-              clearProjectOptions();
-            }
-          }}
-        />
-      </FieldWrapper>
-      <FieldWrapper>
-        <label>{t('Project')}</label>
-        {orgProjectsRequest.error instanceof RequestError ? (
-          <ProjectLoadingError
-            error={orgProjectsRequest.error}
-            onRetry={orgProjectsRequest.refetch}
-          />
-        ) : (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="xl">
+        <Heading>{t('Select your Sentry project')}</Heading>
+        <FieldWrapper>
+          <label>{t('Organization')}</label>
           <StyledCompactSelect
-            // Remount the component when the org changes to reset the component state
-            key={selectedOrgId}
-            onSearch={setSearch}
-            onClose={() => setSearch('')}
-            disabled={!selectedOrgId}
-            value={selectedProjectId as string}
+            autoFocus
+            value={selectedOrgId as string}
             searchable
-            options={sortedProjectOptions}
+            options={orgOptions}
             triggerProps={{
-              icon: isCreateProjectSelected ? (
-                <IconAdd isCircled />
-              ) : selectedProject ? (
-                <ProjectBadge avatarSize={16} project={selectedProject} hideName />
+              icon: selectedOrg ? (
+                <OrganizationAvatar size={16} organization={selectedOrg} />
               ) : null,
+              children: selectedOrg ? (
+                getOrgDisplayName(selectedOrg)
+              ) : (
+                <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
+              ),
             }}
-            triggerLabel={
-              isCreateProjectSelected
-                ? t('Create Project')
-                : selectedProject?.slug || (
-                    <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
-                  )
-            }
             onChange={({value}) => {
-              setSelectedProjectId(value as string);
+              if (value !== selectedOrgId) {
+                setSelectedOrgId(value as string);
+                setSelectedProjectId(null);
+                clearProjectOptions();
+              }
             }}
-            emptyMessage={emptyMessage}
-            menuFooter={
-              isCreationEnabled
-                ? ({closeOverlay}) => (
-                    <AlignRight>
-                      <Button
-                        size="xs"
-                        onClick={() => {
-                          setSelectedProjectId(CREATE_PROJECT_VALUE);
-                          closeOverlay();
-                        }}
-                        icon={<IconAdd isCircled />}
-                      >
-                        {t('Create Project')}
-                      </Button>
-                    </AlignRight>
-                  )
-                : undefined
-            }
           />
-        )}
-      </FieldWrapper>
-      {isCreateProjectSelected &&
-        (isOrgMemberWithNoAccess ? (
-          projectNameField
-        ) : (
-          <Columns>
-            {projectNameField}
-            <FieldWrapper>
-              <label>{t('Team')}</label>
-              <StyledCompactSelect
-                value={newProjectTeam as string}
-                options={
-                  selectableTeams?.map(team => ({
-                    value: team.slug,
-                    label: `#${team.slug}`,
-                    leadingItems: <IdBadge team={team} hideName />,
-                    searchKey: team.slug,
-                  })) || []
-                }
-                triggerLabel={selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
-                triggerProps={{
-                  icon: selectedTeam ? (
-                    <IdBadge avatarSize={16} team={selectedTeam} hideName />
-                  ) : null,
-                }}
-                onChange={({value}) => {
-                  setNewProjectTeam(value as string);
-                }}
-              />
-            </FieldWrapper>
-          </Columns>
-        ))}
-      <SubmitButton disabled={!isFormValid || isPending} priority="primary" type="submit">
-        {t('Continue')}
-      </SubmitButton>
-    </StyledForm>
+        </FieldWrapper>
+        <FieldWrapper>
+          <label>{t('Project')}</label>
+          {orgProjectsRequest.error instanceof RequestError ? (
+            <ProjectLoadingError
+              error={orgProjectsRequest.error}
+              onRetry={orgProjectsRequest.refetch}
+            />
+          ) : (
+            <StyledCompactSelect
+              // Remount the component when the org changes to reset the component state
+              key={selectedOrgId}
+              onSearch={setSearch}
+              onClose={() => setSearch('')}
+              disabled={!selectedOrgId}
+              value={selectedProjectId as string}
+              searchable
+              options={sortedProjectOptions}
+              triggerProps={{
+                icon: isCreateProjectSelected ? (
+                  <IconAdd isCircled />
+                ) : selectedProject ? (
+                  <ProjectBadge avatarSize={16} project={selectedProject} hideName />
+                ) : null,
+                children: isCreateProjectSelected
+                  ? t('Create Project')
+                  : selectedProject?.slug || (
+                      <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
+                    ),
+              }}
+              onChange={({value}) => {
+                setSelectedProjectId(value as string);
+              }}
+              emptyMessage={emptyMessage}
+              menuFooter={
+                isCreationEnabled
+                  ? ({closeOverlay}) => (
+                      <Flex justify="end">
+                        <Button
+                          size="xs"
+                          onClick={() => {
+                            setSelectedProjectId(CREATE_PROJECT_VALUE);
+                            closeOverlay();
+                          }}
+                          icon={<IconAdd isCircled />}
+                        >
+                          {t('Create Project')}
+                        </Button>
+                      </Flex>
+                    )
+                  : undefined
+              }
+            />
+          )}
+        </FieldWrapper>
+        {isCreateProjectSelected &&
+          (isOrgMemberWithNoAccess ? (
+            projectNameField
+          ) : (
+            <Columns>
+              {projectNameField}
+              <FieldWrapper>
+                <label>{t('Team')}</label>
+                <StyledCompactSelect
+                  value={newProjectTeam as string}
+                  options={
+                    selectableTeams?.map(team => ({
+                      value: team.slug,
+                      label: `#${team.slug}`,
+                      leadingItems: <IdBadge team={team} hideName />,
+                      searchKey: team.slug,
+                    })) || []
+                  }
+                  triggerProps={{
+                    icon: selectedTeam ? (
+                      <IdBadge avatarSize={16} team={selectedTeam} hideName />
+                    ) : null,
+                    children: selectedTeam ? `#${selectedTeam.slug}` : t('Select a team'),
+                  }}
+                  onChange={({value}) => {
+                    setNewProjectTeam(value as string);
+                  }}
+                />
+              </FieldWrapper>
+            </Columns>
+          ))}
+        <SubmitButton
+          disabled={!isFormValid || isPending}
+          priority="primary"
+          type="submit"
+        >
+          {t('Continue')}
+        </SubmitButton>
+      </Stack>
+    </form>
   );
 }
-
-const StyledForm = styled('form')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const Heading = styled('h5')`
   margin-bottom: ${space(0.5)};
 `;
 
-const FieldWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
+function FieldWrapper(props: React.ComponentProps<typeof Stack>) {
+  return <Stack gap="xs" {...props} />;
+}
 
 const Columns = styled('div')`
   display: grid;
@@ -433,11 +428,6 @@ const StyledCompactSelect = styled(CompactSelect)`
   & > button {
     width: 100%;
   }
-`;
-
-const AlignRight = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 const SelectPlaceholder = styled('span')`

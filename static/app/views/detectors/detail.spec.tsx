@@ -1,3 +1,4 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
@@ -28,9 +29,9 @@ describe('DetectorDetails', () => {
   const ownerTeam = TeamFixture();
   const dataSource = SnubaQueryDataSourceFixture({
     queryObj: {
-      ...defaultDataSource.queryObj!,
+      ...defaultDataSource.queryObj,
       snubaQuery: {
-        ...defaultDataSource.queryObj!.snubaQuery,
+        ...defaultDataSource.queryObj.snubaQuery,
         query: 'test',
         environment: 'test-environment',
       },
@@ -79,6 +80,10 @@ describe('DetectorDetails', () => {
       url: '/organizations/org-slug/open-periods/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
+    });
   });
 
   describe('metric detectors', () => {
@@ -86,7 +91,7 @@ describe('DetectorDetails', () => {
       id: '1',
       projectId: project.id,
       dataSources: [dataSource],
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -113,13 +118,16 @@ describe('DetectorDetails', () => {
         await screen.findByRole('heading', {name: snubaQueryDetector.name})
       ).toBeInTheDocument();
       // Displays the snuba query
-      expect(screen.getByText('event.type:error test')).toBeInTheDocument();
+      expect(screen.getByLabelText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
       expect(
-        screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
+        screen.getByText(dataSource.queryObj.snubaQuery.environment!)
       ).toBeInTheDocument();
       // Displays the owner team
-      expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
+      expect(screen.getByText('Assign to')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: `#${ownerTeam.slug}`})
+      ).toBeInTheDocument();
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {
@@ -216,7 +224,7 @@ describe('DetectorDetails', () => {
     const uptimeDetector = UptimeDetectorFixture({
       id: '1',
       projectId: project.id,
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -264,17 +272,13 @@ describe('DetectorDetails', () => {
         await screen.findByRole('heading', {name: uptimeDetector.name})
       ).toBeInTheDocument();
 
-      expect(screen.getByText('Three consecutive failed checks.')).toBeInTheDocument();
-      expect(
-        screen.getByText('Three consecutive successful checks.')
-      ).toBeInTheDocument();
+      expect(screen.getByText('3 consecutive failed checks.')).toBeInTheDocument();
+      expect(screen.getByText('1 successful check.')).toBeInTheDocument();
 
       // Interval
       expect(screen.getByText('Every 1 minute')).toBeInTheDocument();
-      // URL
-      expect(screen.getByText('https://example.com')).toBeInTheDocument();
-      // Method
-      expect(screen.getByText('GET')).toBeInTheDocument();
+      // URL + Method
+      expect(screen.getByText('GET https://example.com')).toBeInTheDocument();
       // Environment
       expect(screen.getByText('production')).toBeInTheDocument();
 
@@ -297,27 +301,16 @@ describe('DetectorDetails', () => {
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
 
       // Verify check-in data is displayed
-      expect(screen.getByText('Uptime')).toBeInTheDocument();
+      expect(screen.getAllByText('Uptime')).toHaveLength(2); // timeline legend + check-in row
       expect(screen.getByText('200')).toBeInTheDocument();
       expect(screen.getByText('US East')).toBeInTheDocument();
-      expect(screen.getByText('Failure')).toBeInTheDocument();
+      expect(screen.getAllByText('Failure')).toHaveLength(2); // timeline legend + check-in row
       expect(screen.getByText('500')).toBeInTheDocument();
       expect(screen.getByText('US West')).toBeInTheDocument();
     });
   });
 
   describe('cron detectors', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/monitors/test-monitor/checkins/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
-        body: cronDetector,
-      });
-    });
-
     const cronMonitorDataSource = CronMonitorDataSourceFixture({
       queryObj: {
         ...CronMonitorDataSourceFixture().queryObj,
@@ -332,9 +325,24 @@ describe('DetectorDetails', () => {
     const cronDetector = CronDetectorFixture({
       id: '1',
       projectId: project.id,
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'],
       dataSources: [cronMonitorDataSource],
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/monitors/test-monitor/checkins/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
+        body: cronDetector,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.id}/monitors/${cronMonitorDataSource.queryObj.slug}/processing-errors/`,
+        body: [],
+      });
     });
 
     it('displays correct detector details', async () => {

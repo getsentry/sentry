@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {EventsStats} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -15,6 +16,10 @@ import {
   BASE_INTERVALS,
   getStandardTimePeriodsForInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+import {
+  translateAggregateTag,
+  translateAggregateTagBack,
+} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
@@ -70,6 +75,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 const DEFAULT_EVENT_TYPES = [EventTypes.ERROR, EventTypes.DEFAULT];
 
 export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> = {
+  name: t('Errors'),
   SearchBar: EventsSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: DEFAULT_FIELD,
@@ -78,6 +84,7 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
     return getDiscoverSeriesQueryOptions({
       ...options,
       dataset: DetectorErrorsConfig.getDiscoverDataset(),
+      aggregate: translateAggregateTag(options.aggregate),
     });
   },
   getIntervals: ({detectionType}) => {
@@ -90,8 +97,12 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
-  fromApiAggregate: aggregate => aggregate,
-  toApiAggregate: aggregate => aggregate,
+  fromApiAggregate: aggregate => {
+    return translateAggregateTag(aggregate);
+  },
+  toApiAggregate: aggregate => {
+    return translateAggregateTagBack(aggregate);
+  },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   toSnubaQueryString: snubaQuery => {
     if (!snubaQuery) {

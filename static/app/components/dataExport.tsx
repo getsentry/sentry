@@ -25,6 +25,8 @@ interface DataExportProps {
   children?: React.ReactNode;
   disabled?: boolean;
   icon?: React.ReactNode;
+  onClick?: () => void;
+  overrideFeatureFlags?: boolean;
   size?: 'xs' | 'sm' | 'md';
 }
 
@@ -97,6 +99,8 @@ function DataExport({
   payload,
   icon,
   size = 'sm',
+  overrideFeatureFlags,
+  onClick,
 }: DataExportProps): React.ReactElement {
   const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
@@ -126,8 +130,13 @@ function DataExport({
     };
   }, []);
 
+  const handleClick = () => {
+    debounce(handleDataExport, 500)();
+    onClick?.();
+  };
+
   return (
-    <Feature features="organizations:discover-query">
+    <Feature features={overrideFeatureFlags ? [] : 'organizations:discover-query'}>
       {inProgress ? (
         <Button
           size={size}
@@ -142,7 +151,7 @@ function DataExport({
         </Button>
       ) : (
         <Button
-          onClick={debounce(handleDataExport, 500)}
+          onClick={handleClick}
           disabled={disabled || false}
           size={size}
           priority="default"

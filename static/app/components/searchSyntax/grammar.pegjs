@@ -196,10 +196,22 @@ is_filter
 
 // in filter key:[val1, val2]
 text_in_filter
-  = negation:negation? key:text_key sep value:text_in_list &{
+  = negation:negation?
+    key:text_key
+    sep
+    wildcard_op:wildcard_op?
+    value:text_in_list &{
       return tc.predicateFilter(FilterType.TEXT_IN, key)
     } {
-      return tc.tokenFilter(FilterType.TEXT_IN, key, value, opDefault, !!negation);
+      const wildcard = wildcard_op ? wildcard_op.join("") : undefined;
+      return tc.tokenFilter(
+        FilterType.TEXT_IN,
+        key,
+        value,
+        opDefault,
+        !!negation,
+        wildcard,
+      );
     }
 
 // standard key:val filter
@@ -211,11 +223,20 @@ text_filter
   = negation:negation?
     key:text_key
     sep
+    wildcard_op:wildcard_op?
     op:(operator &{ return tc.predicateTextOperator(key); })?
     value:search_value &{
       return tc.predicateFilter(FilterType.TEXT, key)
     } {
-      return tc.tokenFilter(FilterType.TEXT, key, value, op ? op[0] : opDefault, !!negation);
+      const wildcard = wildcard_op ? wildcard_op.join("") : undefined;
+      return tc.tokenFilter(
+        FilterType.TEXT,
+        key,
+        value,
+        op ? op[0] : opDefault,
+        !!negation,
+        wildcard,
+      );
     }
 
 // Filter keys
@@ -350,6 +371,11 @@ numeric_in_list
       return tc.tokenValueNumberList(item1, items);
     }
 
+wildcard_op
+  = wildcard_unicode
+    (contains / starts_with / ends_with )
+    wildcard_unicode
+
 // See: https://stackoverflow.com/a/39617181/790169
 in_value_termination
   = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -423,6 +449,10 @@ open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"
 negation       = "!"
+wildcard_unicode     = [\uF00D]
+contains             = "Contains"
+starts_with          = "StartsWith"
+ends_with            = "EndsWith"
 comma          = ","
 spaces         = " "* { return tc.tokenSpaces(text()) }
 

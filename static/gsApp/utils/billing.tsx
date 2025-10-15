@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
+import {IconBuilding, IconGroup, IconPrevent, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -18,19 +18,30 @@ import {
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
-import type {
-  BillingConfig,
-  BillingMetricHistory,
-  BillingStatTotal,
-  EventBucket,
-  Plan,
-  ProductTrial,
-  Subscription,
+import {
+  AddOnCategory,
+  InvoiceItemType,
+  OnDemandBudgetMode,
+  PlanName,
+  PlanTier,
+  ReservedBudgetCategoryType,
+  type BillingConfig,
+  type BillingDetails,
+  type BillingMetricHistory,
+  type BillingStatTotal,
+  type EventBucket,
+  type InvoiceItem,
+  type Plan,
+  type PreviewInvoiceItem,
+  type ProductTrial,
+  type Subscription,
 } from 'getsentry/types';
-import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
-import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -311,6 +322,14 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
+// TODO(isabella): clean this up after GA
+export const hasNewBillingUI = (organization: Organization) =>
+  organization.features.includes('subscriptions-v3');
+
+// TODO(isabella): clean this up after GA
+export const hasStripeComponentsFeature = (organization: Organization) =>
+  organization.features.includes('stripe-components');
+
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
 export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);
@@ -356,13 +375,20 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
 export const displayBudgetName = (
   plan?: Plan | null,
   options: {
+    abbreviated?: boolean;
     pluralOndemand?: boolean;
     title?: boolean;
     withBudget?: boolean;
   } = {}
 ) => {
-  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const budgetTerm = plan?.budgetTerm ?? 'pay-as-you-go';
   const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.abbreviated) {
+    if (budgetTerm === 'pay-as-you-go') {
+      return 'PAYG';
+    }
+    return 'OD';
+  }
   if (options.title) {
     if (budgetTerm === 'on-demand') {
       if (options.withBudget) {
@@ -395,9 +421,11 @@ export const getOnDemandCategories = ({
 }) => {
   if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return plan.onDemandCategories.filter(category => {
-      return Object.values(plan.availableReservedBudgetTypes).every(
-        budgetType => !budgetType.dataCategories.includes(category)
-      );
+      const categoryInfo = getCategoryInfoFromPlural(category);
+      if (!categoryInfo) {
+        return false;
+      }
+      return categoryInfo.hasPerCategory;
     });
   }
 
@@ -558,10 +586,12 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: SelectableProduct, size?: IconSize) {
+export function getProductIcon(product: AddOnCategory, size?: IconSize) {
   switch (product) {
-    case SelectableProduct.SEER:
+    case AddOnCategory.SEER:
       return <IconSeer size={size} />;
+    case AddOnCategory.PREVENT:
+      return <IconPrevent size={size} />;
     default:
       return null;
   }
@@ -704,4 +734,124 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
+}
+
+export function getPercentage(quantity: number, total: number | null) {
+  if (typeof total === 'number' && total > 0) {
+    return (Math.min(quantity, total) / total) * 100;
+  }
+  return 0;
+}
+
+export function displayPercentage(quantity: number, total: number | null) {
+  const percentage = getPercentage(quantity, total);
+  return percentage.toFixed(0) + '%';
+}
+
+/**
+ * Returns true if some billing details are set.
+ */
+export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined) {
+  if (!billingDetails) {
+    return false;
+  }
+  return (
+    billingDetails &&
+    Object.entries(billingDetails)
+      .filter(
+        ([key, _]) =>
+          key !== 'billingEmail' && key !== 'companyName' && key !== 'taxNumber'
+      )
+      .some(([_, value]) => defined(value))
+  );
+}
+
+export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) {
+  switch (addOnCategory) {
+    case AddOnCategory.SEER:
+      return ReservedBudgetCategoryType.SEER;
+    default:
+      return null;
+  }
+}
+
+// There are the data categories whose retention settings
+// are exposed in Relay and can be set in _admin
+export const RETENTION_SETTINGS_CATEGORIES = new Set([
+  DataCategory.SPANS,
+  DataCategory.LOG_BYTE,
+]);
+
+export function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        InvoiceItemType.DISCOUNT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+}
+
+/**
+ * Returns the credit applied to an invoice or preview data.
+ * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
+ * the invoice/preview data already accounts for the credit applied, so we return 0.
+ */
+export function getCreditApplied({
+  creditApplied,
+  invoiceItems,
+}: {
+  creditApplied: number;
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  const credits = getCredits({invoiceItems});
+  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+    return 0;
+  }
+  return creditApplied;
+}
+
+/**
+ * Returns extra fees included in the invoice or preview data, such as tax
+ * or cancellation fees.
+ */
+export function getFees({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+  );
+}
+
+/**
+ * Returns ondemand invoice items from the invoice or preview data.
+ */
+export function getOnDemandItems({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(item => item.type.startsWith('ondemand'));
+}
+
+/**
+ * Removes the budget term (pay-as-you-go/on-demand) from an ondemand item description.
+ */
+export function formatOnDemandDescription(
+  description: string,
+  plan?: Plan | null
+): string {
+  const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
+  return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
 }

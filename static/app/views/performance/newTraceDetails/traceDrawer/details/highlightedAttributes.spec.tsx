@@ -7,17 +7,6 @@ jest.mock('@sentry/react', () => ({
   captureMessage: jest.fn(),
 }));
 
-// Mock organization
-const mockOrganization = {
-  features: ['insights-agent-monitoring'],
-} as any;
-
-// Mock the features utility
-jest.mock('sentry/views/insights/agents/utils/features', () => ({
-  hasAgentInsightsFeature: jest.fn(() => true),
-  hasMCPInsightsFeature: jest.fn(() => false),
-}));
-
 // Mock the query utility
 jest.mock('sentry/views/insights/agents/utils/query', () => ({
   getIsAiSpan: jest.fn(({op}) => op?.startsWith('gen_ai.')),
@@ -36,7 +25,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 
@@ -69,7 +58,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 
@@ -83,7 +72,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 
@@ -98,7 +87,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'http.request',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 

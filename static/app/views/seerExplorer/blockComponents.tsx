@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Stack} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 
 import type {Block} from './types';
+import {getToolsStringFromBlock} from './utils';
 
 interface BlockProps {
   block: Block;
@@ -15,7 +18,19 @@ interface BlockProps {
   ref?: React.Ref<HTMLDivElement>;
 }
 
+function hasValidContent(content: string): boolean {
+  if (!content) {
+    return false;
+  }
+  const trimmed = content.trim();
+  return trimmed.length > 0 && trimmed !== '.'; // sometimes the LLM just says '.' when calling a tool
+}
+
 function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
+  const toolsUsed = getToolsStringFromBlock(block);
+  const hasTools = toolsUsed.length > 0;
+  const hasContent = hasValidContent(block.message.content);
+
   return (
     <Block ref={ref} isLast={isLast} onClick={onClick}>
       <AnimatePresence>
@@ -27,12 +42,26 @@ function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
           {block.message.role === 'user' ? (
             <BlockRow>
               <BlockChevronIcon direction="right" size="sm" />
-              <UserBlockContent>{block.message.content}</UserBlockContent>
+              <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
             </BlockRow>
           ) : (
             <BlockRow>
-              <ResponseDot isLoading={block.loading} />
-              <BlockContent text={block.message.content} />
+              <ResponseDot
+                isLoading={block.loading}
+                hasOnlyTools={!hasContent && hasTools}
+              />
+              <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
+                {hasContent && <BlockContent text={block.message.content} />}
+                {hasTools && (
+                  <Stack gap="md">
+                    {toolsUsed.map(tool => (
+                      <Text key={tool} size="xs" variant="muted" monospace>
+                        {tool}
+                      </Text>
+                    ))}
+                  </Stack>
+                )}
+              </BlockContentWrapper>
             </BlockRow>
           )}
           {isFocused && <FocusIndicator />}
@@ -50,7 +79,6 @@ export default BlockComponent;
 const Block = styled('div')<{isLast?: boolean}>`
   width: 100%;
   border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
-  min-height: 40px;
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
   cursor: pointer;
@@ -70,11 +98,11 @@ const BlockChevronIcon = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-const ResponseDot = styled('div')<{isLoading?: boolean}>`
+const ResponseDot = styled('div')<{hasOnlyTools?: boolean; isLoading?: boolean}>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-top: 22px;
+  margin-top: ${p => (p.hasOnlyTools ? '12px' : '22px')};
   margin-left: ${space(2)};
   flex-shrink: 0;
   background: ${p => (p.isLoading ? p.theme.pink400 : p.theme.purple400)};
@@ -91,12 +119,18 @@ const ResponseDot = styled('div')<{isLoading?: boolean}>`
   `}
 `;
 
+const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
+  padding: ${p =>
+    p.hasOnlyTools ? `${p.theme.space.md} ${p.theme.space.xl}` : p.theme.space.xl};
+`;
+
 const BlockContent = styled(MarkedText)`
   width: 100%;
-  padding: ${space(2)};
   color: ${p => p.theme.textColor};
   white-space: pre-wrap;
   word-wrap: break-word;
+  padding-bottom: 0;
+  margin-bottom: -${space(1)};
 
   p,
   li,

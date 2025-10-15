@@ -8,11 +8,9 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import WebVitalMetersWithIssues from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
@@ -25,13 +23,11 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 const WEB_VITALS_COUNT = 5;
 
 function WebVitalsLandingPage() {
-  const organization = useOrganization();
   const location = useLocation();
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
@@ -69,14 +65,8 @@ function WebVitalsLandingPage() {
     }
   });
 
-  const useWebVitalsIssues = organization.features.includes(
-    'performance-web-vitals-issues'
-  );
-
   return (
     <React.Fragment>
-      <FrontendHeader module={ModuleName.VITAL} />
-
       <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -101,19 +91,11 @@ function WebVitalsLandingPage() {
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>
                   {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-                  {useWebVitalsIssues ? (
-                    <WebVitalMetersWithIssues
-                      projectData={projectData}
-                      projectScore={projectScore}
-                      onClick={webVital => setState({...state, webVital})}
-                    />
-                  ) : (
-                    <WebVitalMeters
-                      projectData={projectData}
-                      projectScore={projectScore}
-                      onClick={webVital => setState({...state, webVital})}
-                    />
-                  )}
+                  <WebVitalMetersWithIssues
+                    projectData={projectData}
+                    projectScore={projectScore}
+                    onClick={webVital => setState({...state, webVital})}
+                  />
                 </WebVitalMetersContainer>
                 <PagePerformanceTable />
                 <PagesTooltipContainer>

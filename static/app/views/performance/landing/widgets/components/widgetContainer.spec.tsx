@@ -75,6 +75,11 @@ describe('Performance > Widgets > WidgetContainer', () => {
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {},
+    });
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events/`,
@@ -272,6 +277,14 @@ describe('Performance > Widgets > WidgetContainer', () => {
         detail: 'Request did not work :(',
       },
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      statusCode: 400,
+      body: {
+        detail: 'Request did not work :(',
+      },
+    });
 
     wrapper = render(
       <PageAlertProvider>
@@ -368,6 +381,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
         isMetricsData: true,
       },
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {
+        timeSeries: [],
+      },
+    });
 
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -423,6 +443,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
         isMetricsData: undefined,
       },
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {
+        timeSeries: [],
+      },
+    });
 
     wrapper = render(
       <WrappedComponent
@@ -456,6 +483,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
       body: {
         data: [],
         isMetricsData: false,
+      },
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {
+        timeSeries: [],
       },
     });
 
@@ -983,7 +1017,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            '!sentry.normalized_description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
+            'has:sentry.normalized_description !sentry.normalized_description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),

@@ -2,12 +2,14 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.constants import ObjectStatus
-from sentry.models.environment import Environment
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
-from sentry.uptime.models import get_project_subscription
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.models import get_uptime_subscription
+from sentry.uptime.types import (
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
+    UptimeMonitorMode,
+)
 from sentry.workflow_engine.models import Detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -31,16 +33,15 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             timeout_ms=1500,
             body=None,
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        uptime_subscription = uptime_monitor.uptime_subscription
-        assert uptime_monitor.name == "test"
-        assert uptime_monitor.environment == Environment.get_or_create(
-            project=self.project, name="uptime-prod"
-        )
-        assert uptime_monitor.owner_user_id == self.user.id
-        assert uptime_monitor.owner_team_id is None
-        assert uptime_monitor.mode == UptimeMonitorMode.MANUAL
+        detector = Detector.objects.get(id=resp.data["id"])
+        uptime_subscription = get_uptime_subscription(detector)
+        assert detector.name == "test"
+        assert detector.config["environment"] == "uptime-prod"
+        assert detector.owner_user_id == self.user.id
+        assert detector.owner_team_id is None
+        assert detector.config["mode"] == UptimeMonitorMode.MANUAL
+        assert detector.config["recovery_threshold"] == DEFAULT_RECOVERY_THRESHOLD
+        assert detector.config["downtime_threshold"] == DEFAULT_DOWNTIME_THRESHOLD
         assert uptime_subscription.url == "http://sentry.io"
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == 1500
@@ -60,10 +61,26 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             body=None,
             trace_sampling=True,
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        uptime_subscription = uptime_monitor.uptime_subscription
+        detector = Detector.objects.get(id=resp.data["id"])
+        uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.trace_sampling is True
+
+    def test_custom_thresholds(self) -> None:
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            environment="uptime-prod",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            recovery_threshold=2,
+            downtime_threshold=5,
+        )
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.config["recovery_threshold"] == 2
+        assert detector.config["downtime_threshold"] == 5
 
     def test_no_environment(self) -> None:
         resp = self.get_success_response(
@@ -76,9 +93,8 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             timeout_ms=1000,
             body=None,
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        assert uptime_monitor.environment is None
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.config.get("environment") is None
 
     def test_no_owner(self) -> None:
         resp = self.get_success_response(
@@ -91,10 +107,9 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             timeout_ms=1000,
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        assert uptime_monitor.owner_user_id is None
-        assert uptime_monitor.owner_team_id is None
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id is None
 
         # Test without passing the owner
         resp = self.get_success_response(
@@ -106,10 +121,9 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             timeout_ms=1000,
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        assert uptime_monitor.owner_user_id is None
-        assert uptime_monitor.owner_team_id is None
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id is None
 
     def test_mode_no_superadmin(self) -> None:
         resp = self.get_error_response(
@@ -141,13 +155,12 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             timeout_ms=1000,
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        uptime_subscription = uptime_monitor.uptime_subscription
-        assert uptime_monitor.name == "test"
-        assert uptime_monitor.owner_user_id == self.user.id
-        assert uptime_monitor.owner_team_id is None
-        assert uptime_monitor.mode == UptimeMonitorMode.AUTO_DETECTED_ACTIVE
+        detector = Detector.objects.get(id=resp.data["id"])
+        uptime_subscription = get_uptime_subscription(detector)
+        assert detector.name == "test"
+        assert detector.owner_user_id == self.user.id
+        assert detector.owner_team_id is None
+        assert detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE
         assert uptime_subscription.url == "http://sentry.io"
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == 1000
@@ -166,9 +179,8 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             body='{"key": "value"}',
             headers=[["header", "value"]],
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        uptime_subscription = uptime_monitor.uptime_subscription
+        detector = Detector.objects.get(id=resp.data["id"])
+        uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.body == '{"key": "value"}'
         assert uptime_subscription.headers == [["header", "value"]]
 
@@ -186,8 +198,8 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             body='{"key": "value"}',
             headers=[["header", "value"]],
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
+        detector = Detector.objects.get(id=resp.data["id"])
+        uptime_subscription = get_uptime_subscription(detector)
         new_proj = self.create_project()
         resp = self.get_success_response(
             self.organization.slug,
@@ -202,10 +214,10 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             body='{"key": "value"}',
             headers=[["header", "value"]],
         )
-        new_detector = Detector.objects.get(id=resp.data["detectorId"])
-        new_uptime_monitor = get_project_subscription(new_detector)
-        assert uptime_monitor.uptime_subscription_id != new_uptime_monitor.uptime_subscription_id
-        assert new_uptime_monitor.project_id != uptime_monitor.project_id
+        new_detector = Detector.objects.get(id=resp.data["id"])
+        new_uptime_subscription = get_uptime_subscription(new_detector)
+        assert uptime_subscription.id != new_uptime_subscription.id
+        assert new_detector.project_id != detector.project_id
         resp = self.get_success_response(
             self.organization.slug,
             new_proj.slug,
@@ -219,11 +231,9 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             body='{"key": "value"}',
             headers=[["header", "different value"]],
         )
-        newer_detector = Detector.objects.get(id=resp.data["detectorId"])
-        newer_uptime_monitor = get_project_subscription(newer_detector)
-        assert (
-            newer_uptime_monitor.uptime_subscription_id != new_uptime_monitor.uptime_subscription_id
-        )
+        newer_detector = Detector.objects.get(id=resp.data["id"])
+        newer_uptime_subscription = get_uptime_subscription(newer_detector)
+        assert newer_uptime_subscription.id != new_uptime_subscription.id
 
     def test_headers_invalid_format(self) -> None:
         resp = self.get_error_response(
@@ -307,9 +317,8 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             timeout_ms=1000,
             owner=f"user:{self.user.id}",
         )
-        detector = Detector.objects.get(id=resp.data["detectorId"])
-        uptime_monitor = get_project_subscription(detector)
-        assert uptime_monitor.status == ObjectStatus.DISABLED
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.enabled is False
 
     def test_timeout_too_large(self) -> None:
         resp = self.get_error_response(

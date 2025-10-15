@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -198,7 +199,8 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300
 
-    def test_update(self) -> None:
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    def test_update(self, mock_schedule_update_project_config: mock.MagicMock) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -224,6 +226,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
+        mock_schedule_update_project_config.assert_called_once_with(detector)
 
     def test_update_add_data_condition(self) -> None:
         """
@@ -297,7 +300,12 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.owner.identifier == self.user.get_actor_identifier()
 
         # Verify serialized response includes owner
-        assert response.data["owner"] == self.user.get_actor_identifier()
+        assert response.data["owner"] == {
+            "email": self.user.email,
+            "id": str(self.user.id),
+            "name": self.user.get_username(),
+            "type": "user",
+        }
 
     def test_update_owner_to_team(self) -> None:
         # Set initial user owner
@@ -328,7 +336,11 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.owner.identifier == f"team:{team.id}"
 
         # Verify serialized response includes team owner
-        assert response.data["owner"] == f"team:{team.id}"
+        assert response.data["owner"] == {
+            "id": str(team.id),
+            "name": team.slug,
+            "type": "team",
+        }
 
     def test_update_clear_owner(self) -> None:
         # Set initial owner
@@ -669,7 +681,10 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
-    def test_simple(self) -> None:
+    @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
+    )
+    def test_simple(self, mock_schedule_update_project_config) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
@@ -684,6 +699,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
             ).exists()
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
+        mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
     def test_error_group_type(self) -> None:
         """

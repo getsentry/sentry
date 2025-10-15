@@ -2,25 +2,17 @@ import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import NotFound from 'sentry/components/errors/notFound';
-import Footer from 'sentry/components/footer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Sidebar from 'sentry/components/sidebar';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
-import OrganizationLayout from 'sentry/views/organizationLayout';
 
-type Props = RouteComponentProps;
-
-function RouteNotFound({location}: Props) {
+function RouteNotFound() {
   const navigate = useNavigate();
-  const {pathname, search, hash} = location;
+  const {pathname, search, hash} = useLocation();
   const lastKnownRoute = useLastKnownRoute();
-  const prefersStackedNav = usePrefersStackedNav();
-
   const isMissingSlash = pathname[pathname.length - 1] !== '/';
 
   useLayoutEffect(() => {
@@ -43,27 +35,11 @@ function RouteNotFound({location}: Props) {
     return null;
   }
 
-  if (!prefersStackedNav) {
-    return (
-      <SentryDocumentTitle title={t('Page Not Found')}>
-        <div className="app">
-          <Sidebar />
-          <Layout.Page withPadding>
-            <NotFound />
-          </Layout.Page>
-          <Footer />
-        </div>
-      </SentryDocumentTitle>
-    );
-  }
-
   return (
     <SentryDocumentTitle title={t('Page Not Found')}>
-      <OrganizationLayout>
-        <Layout.Page withPadding>
-          <NotFound />
-        </Layout.Page>
-      </OrganizationLayout>
+      <Layout.Page withPadding>
+        <NotFound />
+      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

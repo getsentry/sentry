@@ -144,6 +144,7 @@ export const WEB_VITAL_PERFORMANCE_ISSUES: Record<
   Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>
 > = {
   lcp: [
+    'web_vitals',
     'performance_render_blocking_asset_span',
     'performance_uncompressed_assets',
     'performance_http_overhead',
@@ -153,6 +154,7 @@ export const WEB_VITAL_PERFORMANCE_ISSUES: Record<
     'performance_p95_endpoint_regression',
   ],
   fcp: [
+    'web_vitals',
     'performance_render_blocking_asset_span',
     'performance_uncompressed_assets',
     'performance_http_overhead',
@@ -162,12 +164,13 @@ export const WEB_VITAL_PERFORMANCE_ISSUES: Record<
     'performance_p95_endpoint_regression',
   ],
   inp: [
+    'web_vitals',
     'performance_http_overhead',
     'performance_consecutive_http',
     'performance_n_plus_one_api_calls',
     'performance_large_http_payload',
     'performance_p95_endpoint_regression',
   ],
-  cls: [],
-  ttfb: ['performance_http_overhead'],
+  cls: ['web_vitals'],
+  ttfb: ['web_vitals', 'performance_http_overhead'],
 } as const;

@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
@@ -131,6 +132,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if not request.access.has_project_access(project):
             return Response(status=404)
 
+        referrer = request.GET.get("referrer")
+
+        if referrer is not None:
+            sentry_sdk.set_tag("referrer", referrer)
+
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
         with handle_query_errors():
@@ -143,9 +149,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if (
             all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
             and len(average_columns) > 0
-            and features.has(
-                "organizations:insights-initial-modules", organization, actor=request.user
-            )
+            and features.has("organizations:insight-modules", organization, actor=request.user)
         ):
             add_comparison_to_event(event=event, average_columns=average_columns, request=request)
 

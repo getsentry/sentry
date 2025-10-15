@@ -13,12 +13,15 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
+import {formatDollars} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
+import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -36,15 +39,6 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
-const JSON_ATTRIBUTES = [
-  'gen_ai.request.messages',
-  'gen_ai.response.messages',
-  'gen_ai.response.tool_calls',
-  'gen_ai.response.object',
-  'gen_ai.prompt',
-  'gen_ai.request.available_tools',
-  'ai.prompt',
-];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text'];
 
 function tryParseJson(value: unknown) {
@@ -173,13 +167,19 @@ export function Attributes({
       };
       return <StyledLink to={target}>{props.item.value}</StyledLink>;
     },
+    [SpanFields.GEN_AI_COST_INPUT_TOKENS]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    [SpanFields.GEN_AI_USAGE_TOTAL_COST]: (props: CustomRenderersProps) => {
+      return formatDollars(+Number(props.item.value).toFixed(10));
+    },
   };
-
-  // Some semantic attributes are known to contain JSON-encoded arrays or
-  // JSON-encoded objects. Add a JSON renderer for those attributes.
-  for (const attribute of JSON_ATTRIBUTES) {
-    customRenderers[attribute] = jsonRenderer;
-  }
 
   // Some attributes (semantic or otherwise) look like they contain JSON-encoded
   // arrays. Use a JSON renderer for any value that looks suspiciously like it's
@@ -188,7 +188,8 @@ export function Attributes({
   sortedAndFilteredAttributes.forEach(attribute => {
     if (Object.hasOwn(customRenderers, attribute.name)) return;
     if (attribute.type !== 'str') return;
-    if (!looksLikeAJSONArray(attribute.value)) return;
+    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value))
+      return;
 
     customRenderers[attribute.name] = jsonRenderer;
   });

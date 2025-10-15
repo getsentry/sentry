@@ -11,14 +11,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 
-jest.mock(
-  'sentry/components/sidebar',
-  () =>
-    function () {
-      return <div />;
-    }
-);
-
 describe('OrganizationLayout', () => {
   beforeEach(() => {
     OrganizationStore.reset();
@@ -55,14 +47,9 @@ describe('OrganizationLayout', () => {
       });
       OrganizationStore.onUpdate(organization);
 
-      render(
-        <OrganizationLayout>
-          <div />
-        </OrganizationLayout>,
-        {
-          organization,
-        }
-      );
+      render(<OrganizationLayout />, {
+        organization,
+      });
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
       expect(screen.getByLabelText('Restore Organization')).toBeInTheDocument();
@@ -83,14 +70,9 @@ describe('OrganizationLayout', () => {
       });
       OrganizationStore.onUpdate(organization);
 
-      render(
-        <OrganizationLayout>
-          <div />
-        </OrganizationLayout>,
-        {
-          organization,
-        }
-      );
+      render(<OrganizationLayout />, {
+        organization,
+      });
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
 
@@ -112,14 +94,9 @@ describe('OrganizationLayout', () => {
     });
     OrganizationStore.onUpdate(organization);
 
-    render(
-      <OrganizationLayout>
-        <div />
-      </OrganizationLayout>,
-      {
-        organization,
-      }
-    );
+    render(<OrganizationLayout />, {
+      organization,
+    });
 
     const inProgress = await screen.findByText(
       'currently in the process of being deleted from Sentry.',
@@ -140,11 +117,7 @@ describe('OrganizationLayout', () => {
       url: '/internal/health/',
     });
 
-    render(
-      <OrganizationLayout>
-        <div />
-      </OrganizationLayout>
-    );
+    render(<OrganizationLayout />);
 
     expect(
       await screen.findByText(/Celery workers have not checked in/)
@@ -153,14 +126,6 @@ describe('OrganizationLayout', () => {
 
   describe('new navigation layout', () => {
     beforeEach(() => {
-      ConfigStore.set('user', {
-        ...ConfigStore.get('user'),
-        options: {
-          ...ConfigStore.get('user').options,
-          prefersStackedNavigation: true,
-        },
-      });
-
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/starred/',
         body: [],
@@ -176,9 +141,7 @@ describe('OrganizationLayout', () => {
 
       render(
         <OrganizationContext.Provider value={null}>
-          <OrganizationLayout>
-            <div />
-          </OrganizationLayout>
+          <OrganizationLayout />
         </OrganizationContext.Provider>
       );
 

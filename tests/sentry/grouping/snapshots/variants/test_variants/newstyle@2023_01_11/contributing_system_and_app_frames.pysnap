@@ -1,12 +1,13 @@
 ---
-created: '2025-05-12T23:40:58.821209+00:00'
+created: '2025-10-07T20:41:46.637094+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "161ce02ecc5d6685a72e8e520ab726b3"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     app*
       exception*
         stacktrace*
@@ -15,28 +16,28 @@ app:
               "app.js"
             function*
               "runApp"
-            context-line*
+            context_line*
               "return server.serve(port);"
           frame (marked out of app by stack trace rule (function:handleRequest -app))
             filename*
               "router.js"
             function*
               "handleRequest"
-            context-line*
+            context_line*
               "return handler(request);"
           frame (marked in-app by stack trace rule (function:recordMetrics +app) but ignored by stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
               "recordMetrics"
-            context-line*
+            context_line*
               "return withMetrics(handler, metricName, tags);"
           frame* (marked in-app by stack trace rule (function:playFetch +app))
             filename*
               "dogpark.js"
             function*
               "playFetch"
-            context-line*
+            context_line*
               "raise FailedToFetchError('Charlie didn't bring the ball back!');"
         type*
           "FailedToFetchError"
@@ -46,7 +47,8 @@ app:
 system:
   hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     system*
       exception*
         stacktrace*
@@ -55,28 +57,28 @@ system:
               "app.js"
             function*
               "runApp"
-            context-line*
+            context_line*
               "return server.serve(port);"
           frame*
             filename*
               "router.js"
             function*
               "handleRequest"
-            context-line*
+            context_line*
               "return handler(request);"
           frame (ignored by stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
               "recordMetrics"
-            context-line*
+            context_line*
               "return withMetrics(handler, metricName, tags);"
           frame*
             filename*
               "dogpark.js"
             function*
               "playFetch"
-            context-line*
+            context_line*
               "raise FailedToFetchError('Charlie didn't bring the ball back!');"
         type*
           "FailedToFetchError"

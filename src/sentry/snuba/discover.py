@@ -10,6 +10,7 @@ import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Function, Op
 
+from sentry.api.endpoints.timeseries import GroupBy
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
@@ -415,17 +416,17 @@ def create_result_key(
 
 def create_groupby_dict(
     result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
-) -> list[dict[str, str]]:
+) -> list[GroupBy]:
     values = []
     for field in fields:
         if field == "issue.id":
             issue_id = issues.get(result_row["issue.id"], "unknown")
             if issue_id is None:
                 issue_id = "unknown"
-            values.append({"key": field, "value": issue_id})
+            values.append(GroupBy(key=field, value=issue_id))
         elif field == "transaction.status":
             values.append(
-                {"key": field, "value": SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")}
+                GroupBy(key=field, value=SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
             )
         else:
             value = result_row.get(field)
@@ -434,11 +435,11 @@ def create_groupby_dict(
                     # Even though frontend renders only the last element, this can cause key overlaps
                     # For now lets just render this as a list to avoid that problem
                     # TODO: timeseries can handle this correctly since this value isn't used as a dict key
-                    filtered_value = [val if val is not None else NO_VALUE for val in value]
+                    filtered_value = [str(val) if val is not None else NO_VALUE for val in value]
                     value = f"[{','.join(filtered_value)}]"
                 else:
                     value = ""
-            values.append({"key": field, "value": str(value)})
+            values.append(GroupBy(key=field, value=str(value)))
     return values
 
 

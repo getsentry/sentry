@@ -9,16 +9,10 @@ import sentry_sdk
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.component import (
-    AppGroupingComponent,
-    BaseGroupingComponent,
-    ContributingComponent,
-    DefaultGroupingComponent,
-    SystemGroupingComponent,
-)
+from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
-    Enhancements,
+    EnhancementsConfig,
     get_enhancements_version,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -33,7 +27,6 @@ from sentry.grouping.utils import (
 )
 from sentry.grouping.variants import (
     BaseVariant,
-    BuiltInFingerprintVariant,
     ChecksumVariant,
     ComponentVariant,
     CustomFingerprintVariant,
@@ -47,7 +40,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import FingerprintingConfig
     from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
@@ -120,7 +113,7 @@ class GroupingConfigLoader:
                     if enhancements_string
                     else derived_enhancements
                 )
-            base64_enhancements = Enhancements.from_rules_text(
+            base64_enhancements = EnhancementsConfig.from_rules_text(
                 enhancements_string,
                 bases=[enhancements_base] if enhancements_base else [],
                 version=enhancements_version,
@@ -186,7 +179,7 @@ def _get_default_base64_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
     if config_id is not None and config_id in GROUPING_CONFIG_CLASSES.keys():
         base = GROUPING_CONFIG_CLASSES[config_id].enhancements_base
-    return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
+    return EnhancementsConfig.from_rules_text("", bases=[base] if base else []).base64_string
 
 
 def _get_default_fingerprinting_bases_for_project(
@@ -224,7 +217,7 @@ def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyC
     if config_id not in GROUPING_CONFIG_CLASSES:
         config_dict = get_default_grouping_config_dict()
         config_id = config_dict["id"]
-    return GROUPING_CONFIG_CLASSES[config_id](enhancements=config_dict["enhancements"])
+    return GROUPING_CONFIG_CLASSES[config_id](base64_enhancements=config_dict["enhancements"])
 
 
 def _load_default_grouping_config() -> StrategyConfiguration:
@@ -233,19 +226,19 @@ def _load_default_grouping_config() -> StrategyConfiguration:
 
 def get_fingerprinting_config_for_project(
     project: Project, config_id: str | None = None
-) -> FingerprintingRules:
+) -> FingerprintingConfig:
     """
     Returns the fingerprinting rules for a project.
     Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
     """
 
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import FingerprintingConfig
     from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 
     bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")
     if not raw_rules:
-        return FingerprintingRules([], bases=bases)
+        return FingerprintingConfig([], bases=bases)
 
     from sentry.utils.cache import cache
     from sentry.utils.hashlib import md5_text
@@ -253,18 +246,18 @@ def get_fingerprinting_config_for_project(
     cache_key = "fingerprinting-rules:" + md5_text(raw_rules).hexdigest()
     config_json = cache.get(cache_key)
     if config_json is not None:
-        return FingerprintingRules.from_json(config_json, bases=bases)
+        return FingerprintingConfig.from_json(config_json, bases=bases)
 
     try:
-        rules = FingerprintingRules.from_config_string(raw_rules, bases=bases)
+        rules = FingerprintingConfig.from_config_string(raw_rules, bases=bases)
     except InvalidFingerprintingConfig:
-        rules = FingerprintingRules([], bases=bases)
+        rules = FingerprintingConfig([], bases=bases)
     cache.set(cache_key, rules.to_json())
     return rules
 
 
 def apply_server_side_fingerprinting(
-    event: MutableMapping[str, Any], fingerprinting_config: FingerprintingRules
+    event: MutableMapping[str, Any], fingerprinting_config: FingerprintingConfig
 ) -> None:
     """
     Check the given event against the given rules and set various event values. Note that this does
@@ -310,7 +303,7 @@ def _get_variants_from_strategies(
 ) -> dict[str, ComponentVariant]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent[Any]]] = {}
+    all_strategies_components_by_variant: dict[str, list[ContributingComponent]] = {}
     winning_strategy_components_by_variant = {}
 
     # `iter_strategies` presents strategies in priority order, which allows us to go with the first
@@ -342,9 +335,9 @@ def _get_variants_from_strategies(
                             if component.contributes
                         )
                     )
-                    precedence_hint = "{} take{} precedence".format(
+                    precedence_hint = "ignored because {} take{} precedence".format(
                         (
-                            f"{strategy.name} of {variant_descriptor}"
+                            f"{variant_descriptor} {strategy.name}"
                             if variant_name != "default"
                             else strategy.name
                         ),
@@ -358,12 +351,7 @@ def _get_variants_from_strategies(
     variants = {}
 
     for variant_name, components in all_strategies_components_by_variant.items():
-        component_class_by_variant = {
-            "app": AppGroupingComponent,
-            "default": DefaultGroupingComponent,
-            "system": SystemGroupingComponent,
-        }
-        root_component = component_class_by_variant[variant_name](values=components)
+        root_component = RootGroupingComponent(variant_name=variant_name, values=components)
 
         # The root component will pull its `contributes` value from the components it wraps - if
         # none of them contributes, it will also be marked as non-contributing. But those components
@@ -380,7 +368,7 @@ def _get_variants_from_strategies(
         )
 
         variants[variant_name] = ComponentVariant(
-            component=root_component,
+            root_component=root_component,
             contributing_component=contributing_component,
             strategy_config=context.config,
         )
@@ -433,23 +421,21 @@ def get_grouping_variants_for_event(
     # If it's hybrid, we'll replace the existing variants with "salted" versions which include
     # the fingerprint.
     if fingerprint_type == "custom":
-        matched_rule = fingerprint_info.get("matched_rule", {})
+        matched_rule = fingerprint_info.get("matched_rule")
+        is_built_in_fingerprint = bool(matched_rule and matched_rule.get("is_builtin"))
 
-        if matched_rule and matched_rule.get("is_builtin") is True:
-            additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
-                resolved_fingerprint, fingerprint_info
-            )
-            fingerprint_source = "built-in"
-        else:
-            additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
-                resolved_fingerprint, fingerprint_info
-            )
-            fingerprint_source = "custom server" if matched_rule else "custom client"
+        fingerprint_source = (
+            "custom client"
+            if not matched_rule
+            else "built-in" if is_built_in_fingerprint else "custom server"
+        )
+        hint = f"ignored because {fingerprint_source} fingerprint takes precedence"
 
-        hint = f"{fingerprint_source} fingerprint takes precedence"
+        fingerprint_variant = CustomFingerprintVariant(resolved_fingerprint, fingerprint_info)
+        additional_variants[fingerprint_variant.key] = fingerprint_variant
 
         for variant in strategy_component_variants.values():
-            variant.component.update(contributes=False, hint=hint)
+            variant.root_component.update(contributes=False, hint=hint)
 
     elif fingerprint_type == "hybrid":
         for variant_name, variant in strategy_component_variants.items():

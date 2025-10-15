@@ -31,7 +31,7 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
           },
         },
       ],
-      {staleTime: Infinity}
+      {staleTime: Infinity, enabled: params.enabled}
     );
 
   return {

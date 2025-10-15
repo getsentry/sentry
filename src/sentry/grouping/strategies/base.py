@@ -9,7 +9,11 @@ from sentry.grouping.component import (
     FrameGroupingComponent,
     StacktraceGroupingComponent,
 )
-from sentry.grouping.enhancer import DEFAULT_ENHANCEMENTS_BASE, ENHANCEMENT_BASES, Enhancements
+from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
+    ENHANCEMENT_BASES,
+    EnhancementsConfig,
+)
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import DEFAULT_GROUPING_FINGERPRINTING_BASES
 from sentry.interfaces.base import Interface
@@ -29,10 +33,10 @@ ContextValue = Any
 ContextDict = dict[str, ContextValue]
 
 
-# TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
-# probably turn `ReturnedVariants` into a Mapping (immutable), since in practice it's read-only.
+# TODO: Hack to make `ComponentsByVariant` covariant. At some point we should probably turn
+# `ComponentsByVariant` into a Mapping (immutable), since in practice it's read-only.
 GroupingComponent = TypeVar("GroupingComponent", bound=BaseGroupingComponent[Any])
-ReturnedVariants = dict[str, GroupingComponent]
+ComponentsByVariant = dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
 
@@ -43,13 +47,13 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         event: Event,
         context: GroupingContext,
         **kwargs: Any,
-    ) -> ReturnedVariants: ...
+    ) -> ComponentsByVariant: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
-        self, variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-    ) -> ReturnedVariants: ...
+        self, variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+    ) -> ComponentsByVariant: ...
 
 
 def strategy(
@@ -150,7 +154,7 @@ class GroupingContext:
 
     def get_grouping_components_by_variant(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ReturnedVariants:
+    ) -> ComponentsByVariant:
         """
         Called by a strategy to invoke delegates on its child interfaces.
 
@@ -193,7 +197,7 @@ class GroupingContext:
 
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ReturnedVariants:
+    ) -> ComponentsByVariant:
         """
         Apply a delegate strategy to the given interface to get a dictionary of grouping components
         keyed by variant name.
@@ -244,15 +248,15 @@ class Strategy(Generic[ConcreteInterface]):
         return f"<{self.__class__.__name__} id={self.id!r}>"
 
     def _invoke(
-        self, func: Callable[..., ReturnedVariants], *args: Any, **kwargs: Any
-    ) -> ReturnedVariants:
+        self, func: Callable[..., ComponentsByVariant], *args: Any, **kwargs: Any
+    ) -> ComponentsByVariant:
         # We forcefully override strategy here. This lets a strategy
         # function always access its metadata and directly forward it to
         # subcomponents.
         kwargs["strategy"] = self
         return func(*args, **kwargs)
 
-    def __call__(self, *args: Any, **kwargs: Any) -> ReturnedVariants:
+    def __call__(self, *args: Any, **kwargs: Any) -> ComponentsByVariant:
         return self._invoke(self.func, *args, **kwargs)
 
     def variant_processor(self, func: VariantProcessor) -> VariantProcessor:
@@ -262,7 +266,9 @@ class Strategy(Generic[ConcreteInterface]):
         self.variant_processor_func = func
         return func
 
-    def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
+    def get_grouping_components(
+        self, event: Event, context: GroupingContext
+    ) -> ComponentsByVariant:
         """
         Return a dictionary, keyed by variant name, of components produced by this strategy.
         """
@@ -293,14 +299,14 @@ class Strategy(Generic[ConcreteInterface]):
             final_components_by_variant[variant_name] = component
 
         # Mark any non-priority duplicates of priority hashes as non-contributing
-        for variant_name in non_priority_contributing_variants:
-            component = final_components_by_variant[variant_name]
-            hash_value = component.get_hash()
-            duplicate_of = priority_contributing_variants_by_hash.get(hash_value)
-            if duplicate_of is not None:
-                component.update(
+        for non_priority_variant_name in non_priority_contributing_variants:
+            non_priority_component = final_components_by_variant[non_priority_variant_name]
+            hash_value = non_priority_component.get_hash()
+            matching_hash_variant_name = priority_contributing_variants_by_hash.get(hash_value)
+            if matching_hash_variant_name is not None:
+                non_priority_component.update(
                     contributes=False,
-                    hint="ignored because hash matches %s variant" % duplicate_of,
+                    hint="ignored because hash matches %s variant" % matching_hash_variant_name,
                 )
 
         if self.variant_processor_func is not None:
@@ -322,23 +328,23 @@ class StrategyConfiguration:
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: str | None = None):
-        if enhancements is None:
-            enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
+    def __init__(self, base64_enhancements: str | None = None):
+        if base64_enhancements is None:
+            enhancements_config = EnhancementsConfig.from_rules_text("", referrer="strategy_config")
         else:
             # If the enhancements string has been loaded from an existing event, it may be from an
             # obsolete enhancements version, in which case we just use the default enhancements for
             # this grouping config
             try:
-                enhancements_instance = Enhancements.from_base64_string(
-                    enhancements, referrer="strategy_config"
+                enhancements_config = EnhancementsConfig.from_base64_string(
+                    base64_enhancements, referrer="strategy_config"
                 )
             except InvalidEnhancerConfig:
-                enhancements_instance = ENHANCEMENT_BASES[
+                enhancements_config = ENHANCEMENT_BASES[
                     self.enhancements_base or DEFAULT_ENHANCEMENTS_BASE
                 ]
 
-        self.enhancements = enhancements_instance
+        self.enhancements = enhancements_config
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.id!r}>"
@@ -461,7 +467,7 @@ def produces_variants(
     def decorator(
         strategy_func: StrategyFunc[ConcreteInterface],
     ) -> StrategyFunc[ConcreteInterface]:
-        def inner(*args: Any, **kwargs: Any) -> ReturnedVariants:
+        def inner(*args: Any, **kwargs: Any) -> ComponentsByVariant:
             return call_with_variants(strategy_func, variants, *args, **kwargs)
 
         return inner
@@ -470,11 +476,11 @@ def produces_variants(
 
 
 def call_with_variants(
-    strategy_func: Callable[..., ReturnedVariants],
+    strategy_func: Callable[..., ComponentsByVariant],
     variants_to_produce: Sequence[str],
     *args: Any,
     **kwargs: Any,
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     context = kwargs["context"]
     incoming_variant_name = context.get("variant_name")
 

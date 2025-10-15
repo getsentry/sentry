@@ -20,16 +20,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
   const {gaveSeerConsent, displayAskSeerFeedback} = useSearchQueryBuilder();
+
   const isMutating = useIsMutating({
     mutationKey: [setupCheckQueryKey(organization.slug)],
   });
-
   const isPendingSetupCheck =
     useIsFetching({
       queryKey: makeOrganizationSeerSetupQueryKey(organization.slug),
     }) > 0;
+  const loadingState = Boolean(isPendingSetupCheck || isMutating);
 
-  if (isPendingSetupCheck || isMutating) {
+  if (loadingState) {
     return (
       <Feature features="organizations:gen-ai-explore-traces-consent-ui">
         <AskSeerPane>
@@ -53,7 +54,6 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
       </Feature>
     );
   }
-
   if (gaveSeerConsent) {
     return (
       <AskSeerPane>

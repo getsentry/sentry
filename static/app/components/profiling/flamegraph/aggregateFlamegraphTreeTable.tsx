@@ -21,7 +21,10 @@ import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirt
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {
+  VirtualizedTreeRenderedRow,
+  VirtualizedTreeRenderedRowHandlers,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -71,13 +74,17 @@ function makeSortFunction(
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return b.node.node.aggregate_duration_ns - a.node.node.aggregate_duration_ns;
+          const avgA = a.node.frame.averageCallDuration || 0;
+          const avgB = b.node.frame.averageCallDuration || 0;
+          return avgB - avgA;
         }
       : (
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return a.node.node.aggregate_duration_ns - b.node.node.aggregate_duration_ns;
+          const avgA = a.node.frame.averageCallDuration || 0;
+          const avgB = b.node.frame.averageCallDuration || 0;
+          return avgA - avgB;
         };
   }
 
@@ -114,6 +121,7 @@ interface AggregateFlamegraphTreeTableProps {
 }
 
 export function AggregateFlamegraphTreeTable({
+  canvasPoolManager,
   expanded,
   profileType,
   recursion,
@@ -210,14 +218,14 @@ export function AggregateFlamegraphTreeTable({
   const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r: any,
+        r: VirtualizedTreeRenderedRow<FlamegraphFrame>,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }: any
+        }: VirtualizedTreeRenderedRowHandlers<FlamegraphFrame>
       ) => {
         return (
           <CallTreeTableRow
@@ -245,6 +253,15 @@ export function AggregateFlamegraphTreeTable({
                   abbreviation
                 />
               }
+              showAvg
+              avgWeight={
+                defined(r.item.node.frame.averageCallDuration) ? (
+                  <PerformanceDuration
+                    nanoseconds={r.item.node.frame.averageCallDuration}
+                    abbreviation
+                  />
+                ) : undefined
+              }
               selfWeight={r.item.node.node.totalWeight.toFixed(0)}
               relativeSelfWeight={relativeWeight(
                 referenceNode.node.totalWeight,
@@ -265,14 +282,14 @@ export function AggregateFlamegraphTreeTable({
   const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r: any,
+        r: VirtualizedTreeRenderedRow<FlamegraphFrame>,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }: any
+        }: VirtualizedTreeRenderedRowHandlers<FlamegraphFrame>
       ) => {
         return (
           <CallTreeTableRow
@@ -330,13 +347,14 @@ export function AggregateFlamegraphTreeTable({
     containerStyles: fixedContainerStyles,
     handleSortingChange,
     handleExpandTreeNode,
-    handleRowClick,
+    handleRowClick: _handleRowClick,
     handleRowKeyDown,
     handleRowMouseEnter,
     selectedNodeIndex,
-    clickedGhostRowRef: clickedGhostRowRef,
-    hoveredGhostRowRef: hoveredGhostRowRef,
-  } = useVirtualizedTree({
+    clickedGhostRowRef,
+    hoveredGhostRowRef,
+    getNodeAtIndex,
+  } = useVirtualizedTree<FlamegraphFrame>({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
@@ -346,6 +364,20 @@ export function AggregateFlamegraphTreeTable({
     tree,
     virtualizedTree,
   });
+
+  const handleRowClick = useCallback(
+    (index: number) => {
+      const handler = _handleRowClick(index);
+      return function (evt: React.MouseEvent<HTMLElement>) {
+        const frame: FlamegraphFrame | undefined = getNodeAtIndex(index);
+        if (frame) {
+          canvasPoolManager.dispatch('highlight frame', [[frame], 'selected']);
+        }
+        handler(evt);
+      };
+    },
+    [canvasPoolManager, _handleRowClick, getNodeAtIndex]
+  );
 
   const onSortChange = useCallback(
     (newSort: 'sample count' | 'duration' | 'name') => {
@@ -405,9 +437,9 @@ export function AggregateFlamegraphTreeTable({
             <CallTreeTableHeaderButton onClick={onSortByDuration}>
               <InteractionStateLayer />
               <span>
-                {t('Duration')}{' '}
+                {t('Average Duration')}{' '}
                 <QuestionTooltip
-                  title={t('Aggregated duration of this frame across different samples')}
+                  title={t('Average duration of this frame across different samples.')}
                   size="sm"
                   position="top"
                 />

@@ -4,11 +4,33 @@
 {% load sentry_assets %}
 {% load sentry_avatars %}
 
-{% block header %}
-  {% block action %}
-    <a href="{{ link }}" class="btn">View on Sentry</a>
-  {% endblock %}
+{% block head %}
   {{ block.super }}
+  <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+      /* Hide CTA in header on mobile */
+      .header-buttons .integration-link {
+        display: none !important;
+      }
+      .banner {
+        display: none !important;
+      }
+    }
+    @media only screen and (max-device-width: 768px) {
+      .text-desktop-only {
+        display: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    <div class="header-buttons">
+      <a href="{{ link }}" class="btn view-on-sentry">View on Sentry</a>
+    </div>
+  </div>
 {% endblock %}
 
 {% block preheader %}
@@ -19,9 +41,10 @@
   {% endif %}
 {% endblock %}
 
-{% block main %}
-
-  {% block activity %}
+{% block content %}
+<div class="container">
+  <div class="inner">
+      {% block activity %}
 
     <h2>{{ title }}</h2>
 
@@ -29,16 +52,17 @@
 
   {% endblock %}
 
-  {% if group and not enhanced_privacy %}
-    {% include "sentry/emails/group_header.html" %}
-  {% endif %}
+    {% if group and not enhanced_privacy %}
+      {% include "sentry/emails/group_header.html" %}
+    {% endif %}
 
-  {% include "sentry/emails/_suspect_commits.html" %}
+    {% include "sentry/emails/_suspect_commits.html" %}
 
-  {% if reason %}
-    <p class="via">
-      You are receiving this email because you {{ reason }}.
-    </p>
-  {% endif %}
-
+    {% if reason %}
+      <p class="info-box">
+        This email was triggered because you {{ reason }}.
+      </p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

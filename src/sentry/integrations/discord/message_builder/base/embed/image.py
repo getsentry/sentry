@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+from typing import NotRequired, TypedDict
+
+
+class DiscordMessageEmbedImageDict(TypedDict):
+    url: str
+    proxy_url: NotRequired[str]
+    height: NotRequired[int]
+    width: NotRequired[int]
+
 
 class DiscordMessageEmbedImage:
     def __init__(
@@ -14,6 +23,14 @@ class DiscordMessageEmbedImage:
         self.height = height
         self.width = width
 
-    def build(self) -> dict[str, str]:
-        attributes = vars(self).items()
-        return {k: v for k, v in attributes if v}
+    def build(self) -> DiscordMessageEmbedImageDict:
+        embed_image = DiscordMessageEmbedImageDict(url=self.url)
+
+        if self.proxy_url is not None:
+            embed_image["proxy_url"] = self.proxy_url
+        if self.height is not None:
+            embed_image["height"] = self.height
+        if self.width is not None:
+            embed_image["width"] = self.width
+
+        return embed_image

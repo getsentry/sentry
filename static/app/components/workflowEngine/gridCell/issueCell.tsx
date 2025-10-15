@@ -45,7 +45,7 @@ export function IssueCell({group, className}: IssueCellProps) {
             time: (
               <TimeSince
                 date={group.lastSeen}
-                liveUpdateInterval={'second'}
+                liveUpdateInterval="second"
                 unitStyle="short"
                 disabledAbsoluteTooltip
               />

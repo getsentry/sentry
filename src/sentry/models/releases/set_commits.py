@@ -149,13 +149,13 @@ def set_commit(idx, data, release):
         file_changes = [
             CommitFileChange(
                 organization_id=release.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=patched_file["path"],
                 type=patched_file["type"],
             )
             for patched_file in patch_set
         ]
-        bulk_create_commit_file_changes(release.organization, file_changes)
+        bulk_create_commit_file_changes(file_changes)
 
     try:
         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):

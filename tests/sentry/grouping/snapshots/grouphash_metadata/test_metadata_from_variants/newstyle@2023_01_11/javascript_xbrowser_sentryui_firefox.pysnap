@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:24:37.866024+00:00'
+created: '2025-10-07T20:42:05.486218+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -26,83 +26,85 @@ contributing variants:
   app*
     hash: "4a3cf3893b6485428dd02da116c8370e"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       app*
         exception*
           stacktrace*
             frame* (marked in-app by the client)
               module*
                 "app/components/lazyLoad"
-              context-line*
+              context_line*
                 "this.setState({"
             frame* (marked in-app by the client)
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "this.fetchData();"
             frame* (marked in-app by the client)
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
             frame* (marked in-app by the client)
               module*
                 "app/api"
-              context-line*
+              context_line*
                 "const preservedError = new Error();"
           type*
             "NotFoundError"
   system*
     hash: "d5456487ea8dccfe96c1968b19870978"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       system*
         exception*
           stacktrace*
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask"
-              context-line*
+              context_line*
                 "fn();"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
-              context-line*
+              context_line*
                 "while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
-              context-line*
+              context_line*
                 "result = handler(value); // may throw"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
-              context-line*
+              context_line*
                 "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
-              context-line*
+              context_line*
                 "var info = gen[key](arg);"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
-              context-line*
+              context_line*
                 "return this._invoke(method, arg);"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
-              context-line*
+              context_line*
                 "var record = tryCatch(innerFn, self, context);"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
-              context-line*
+              context_line*
                 "return { type: \"normal\", arg: fn.call(obj, arg) };"
             frame*
               module*
                 "app/components/lazyLoad"
-              context-line*
+              context_line*
                 "this.setState({"
             frame*
               module*
@@ -137,17 +139,17 @@ contributing variants:
             frame*
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "this.fetchData();"
             frame*
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
             frame*
               module*
                 "app/api"
-              context-line*
+              context_line*
                 "const preservedError = new Error();"
           type*
             "NotFoundError"

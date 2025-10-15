@@ -1,11 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import moment from 'moment-timezone';
 
-import {
-  deleteMonitorProcessingErrorByType,
-  updateMonitor,
-} from 'sentry/actionCreators/monitors';
+import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -30,18 +28,13 @@ import {MonitorIssues} from 'sentry/views/insights/crons/components/monitorIssue
 import {MonitorStats} from 'sentry/views/insights/crons/components/monitorStats';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
-import type {
-  CheckinProcessingError,
-  Monitor,
-  MonitorBucket,
-  ProcessingErrorType,
-} from 'sentry/views/insights/crons/types';
+import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
+import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
-const DEFAULT_POLL_INTERVAL_MS = 5000;
+import {getMonitorRefetchInterval} from './utils';
 
 type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
 
@@ -73,15 +66,14 @@ function MonitorDetails({params, location}: Props) {
         return false;
       }
       const [monitorData] = query.state.data;
-      return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
+      return getMonitorRefetchInterval(monitorData, moment());
     },
   });
 
-  const {data: checkinErrors, refetch: refetchErrors} = useApiQuery<
-    CheckinProcessingError[]
-  >(makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug), {
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+  const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
+    organization,
+    projectId: params.projectId,
+    monitorSlug: params.monitorSlug,
   });
 
   function onUpdate(data: Monitor) {
@@ -105,17 +97,6 @@ function MonitorDetails({params, location}: Props) {
       onUpdate(resp);
     }
   };
-
-  function handleDismissError(errortype: ProcessingErrorType) {
-    deleteMonitorProcessingErrorByType(
-      api,
-      organization.slug,
-      params.projectId,
-      params.monitorSlug,
-      errortype
-    );
-    refetchErrors();
-  }
 
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
@@ -184,12 +165,16 @@ function MonitorDetails({params, location}: Props) {
               </Alert.Container>
             )}
             {!!checkinErrors?.length && (
-              <MonitorProcessingErrors
-                checkinErrors={checkinErrors}
-                onDismiss={handleDismissError}
-              >
-                {t('Errors were encountered while ingesting check-ins for this monitor')}
-              </MonitorProcessingErrors>
+              <Alert.Container>
+                <MonitorProcessingErrors
+                  checkinErrors={checkinErrors}
+                  onDismiss={handleDismissError}
+                >
+                  {t(
+                    'Errors were encountered while ingesting check-ins for this monitor'
+                  )}
+                </MonitorProcessingErrors>
+              </Alert.Container>
             )}
             {hasLastCheckIn(monitor) ? (
               <Fragment>

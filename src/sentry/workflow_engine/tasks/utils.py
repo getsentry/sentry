@@ -13,7 +13,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, scopedstats
 
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
@@ -60,6 +60,7 @@ class EventNotFoundError(Exception):
         super().__init__(msg)
 
 
+@scopedstats.timer()
 def build_workflow_event_data_from_event(
     project_id: int,
     event_id: str,
@@ -81,8 +82,8 @@ def build_workflow_event_data_from_event(
         raise EventNotFoundError(event_id, project_id)
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
-    # TODO(iamrajjoshi): Should we use get_from_cache here?
-    group = Group.objects.get(id=group_id)
+
+    group = Group.objects.get_from_cache(id=group_id)
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 

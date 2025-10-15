@@ -7,7 +7,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
@@ -126,9 +125,7 @@ const Container = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 100px auto auto auto;
-
-  margin-bottom: ${space(2)};
+  grid-template-columns: 1fr 100px minmax(0, 0.8fr) auto auto;
 
   /*
     The connected column can be added/removed depending on props, so in order to

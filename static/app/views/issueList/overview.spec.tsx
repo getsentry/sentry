@@ -8,7 +8,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -22,7 +21,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
@@ -39,24 +37,11 @@ const project = ProjectFixture({
   firstEvent: new Date().toISOString(),
 });
 
-const {organization, projects, router} = initializeOrg({
-  organization: {
-    id: '1337',
-    slug: 'org-slug',
-    features: ['global-views'],
-    access: [],
-  },
-  router: {
-    location: {query: {query: DEFAULT_QUERY}},
-    params: {},
-  },
-  projects: [project],
+const organization = OrganizationFixture({
+  id: '1337',
+  slug: 'org-slug',
+  access: [],
 });
-
-const routerProps = {
-  params: router.params,
-  location: router.location,
-} as RouteComponentProps<Record<PropertyKey, string | undefined>, {searchId?: string}>;
 
 const initialRouterConfig = {
   routes: [
@@ -82,13 +67,6 @@ describe('IssueList', () => {
   const tags = TagsFixture();
   const group = GroupFixture({project});
   const groupStats = GroupStatsFixture();
-  const savedSearch = SearchFixture({
-    id: '789',
-    query: 'is:unresolved TypeError',
-    sort: 'date',
-    name: 'Unresolved TypeErrors',
-  });
-
   let fetchMembersRequest: jest.Mock;
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
@@ -105,10 +83,6 @@ describe('IssueList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -155,14 +129,11 @@ describe('IssueList', () => {
       body: [project],
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(projects[0]!.id, 10)],
-        environments: [],
-        datetime: {period: '14d', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
 
     TagStore.init?.();
   });
@@ -182,10 +153,6 @@ describe('IssueList', () => {
         method: 'GET',
         body: [],
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [savedSearch],
-      });
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [group],
@@ -196,7 +163,7 @@ describe('IssueList', () => {
     });
 
     it('loads group uses the provided initial query when no query is in the URL', async () => {
-      render(<IssueListOverview {...routerProps} initialQuery="is:unresolved" />, {
+      render(<IssueListOverview initialQuery="is:unresolved" />, {
         organization,
 
         initialRouterConfig: {
@@ -238,7 +205,7 @@ describe('IssueList', () => {
         ],
       });
 
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: merge({}, initialRouterConfig, {
@@ -272,16 +239,13 @@ describe('IssueList', () => {
         },
       });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d', start: null, end: null, utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
 
-      const {unmount} = render(<IssueListOverview {...routerProps} />, {
+      const {unmount} = render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig,
@@ -294,7 +258,7 @@ describe('IssueList', () => {
       unmount();
 
       // Mount component again, getting from cache
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig,
@@ -315,7 +279,7 @@ describe('IssueList', () => {
         },
       });
 
-      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+      const {router: testRouter} = render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig,
@@ -396,7 +360,7 @@ describe('IssueList', () => {
         },
       });
 
-      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+      const {router: testRouter} = render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -417,7 +381,7 @@ describe('IssueList', () => {
   });
 
   it('fetches members', async () => {
-    render(<IssueListOverview {...routerProps} />, {
+    render(<IssueListOverview />, {
       initialRouterConfig,
     });
 
@@ -440,34 +404,19 @@ describe('IssueList', () => {
     });
 
     it('fetches data on selection change', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+      const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '24h', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        })
       );
 
-      rerender(<IssueListOverview {...routerProps} />);
-
-      await waitFor(() => {
-        expect(fetchDataMock).toHaveBeenCalled();
-      });
-    });
-
-    it('fetches data on savedSearch change', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        initialRouterConfig,
-      });
-
-      rerender(<IssueListOverview {...routerProps} />);
+      rerender(<IssueListOverview />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenCalled();
@@ -475,7 +424,7 @@ describe('IssueList', () => {
     });
 
     it('uses correct statsPeriod when fetching issues list and no datetime given', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+      const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -486,23 +435,20 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '14d', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        })
       );
 
-      rerender(<IssueListOverview {...routerProps} />);
+      rerender(<IssueListOverview />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
           })
         );
       });
@@ -511,7 +457,7 @@ describe('IssueList', () => {
 
   describe('componentDidUpdate fetching members', () => {
     it('fetches memberlist on project change', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+      const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig,
       });
       // Called during componentDidMount
@@ -520,16 +466,13 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '24h', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        })
       );
-      rerender(<IssueListOverview {...routerProps} />);
+      rerender(<IssueListOverview />);
 
       await waitFor(() => {
         expect(fetchMembersRequest).toHaveBeenCalledWith(
@@ -551,7 +494,7 @@ describe('IssueList', () => {
         status: 500,
         statusCode: 500,
       });
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -566,7 +509,7 @@ describe('IssueList', () => {
           Link: DEFAULT_LINKS_HEADER,
         },
       });
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -584,7 +527,7 @@ describe('IssueList', () => {
         },
       });
 
-      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+      const {router: testRouter} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -606,18 +549,60 @@ describe('IssueList', () => {
 
       expect(await screen.findByText(/No issues match your search/i)).toBeInTheDocument();
     });
+
+    it('sets statsLoading to false when fetchStats returns early with empty groupIds', async () => {
+      // Start with some groups to trigger stats loading
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      const statsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-stats/',
+        body: [groupStats],
+        asyncDelay: 5000,
+      });
+
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      // Verify stats request was made
+      await waitFor(() => {
+        expect(statsRequest).toHaveBeenCalled();
+      });
+
+      // Now simulate a query that returns empty results
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      // Trigger a new search that returns empty results
+      await userEvent.click(getSearchInput());
+      await userEvent.keyboard('void{enter}');
+
+      // Wait for the empty state to appear (not loading skeleton)
+      await waitFor(() => {
+        expect(screen.getByText(/No issues match your search/i)).toBeInTheDocument();
+      });
+    });
   });
 
   describe('Error Robot', () => {
     beforeEach(() => {
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d', start: null, end: null, utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
     });
 
     const createWrapper = async (moreProps: any) => {
@@ -629,7 +614,7 @@ describe('IssueList', () => {
         },
       });
 
-      render(<IssueListOverview {...routerProps} {...moreProps} />, {
+      render(<IssueListOverview {...moreProps} />, {
         organization,
 
         initialRouterConfig,
@@ -840,7 +825,7 @@ describe('IssueList', () => {
       },
     });
 
-    const {rerender} = render(<IssueListOverview {...routerProps} />, {
+    const {rerender} = render(<IssueListOverview />, {
       organization,
 
       initialRouterConfig: merge({}, initialRouterConfig, {
@@ -869,7 +854,7 @@ describe('IssueList', () => {
         href: '',
       },
     });
-    rerender(<IssueListOverview {...routerProps} />);
+    rerender(<IssueListOverview />);
 
     await waitFor(() => {
       expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
@@ -884,7 +869,7 @@ describe('IssueList', () => {
     it('does not render event processing alert', async () => {
       act(() => ProjectsStore.loadInitialData([project]));
 
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -896,6 +881,10 @@ describe('IssueList', () => {
 
   describe('new view page', () => {
     beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [],
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture(),
@@ -915,7 +904,7 @@ describe('IssueList', () => {
       });
 
       const {router: testRouter} = render(
-        <IssueListOverview {...routerProps} initialQuery="" shouldFetchOnMount={false} />,
+        <IssueListOverview initialQuery="" shouldFetchOnMount={false} />,
         {
           initialRouterConfig: {
             ...initialRouterConfig,

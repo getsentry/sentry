@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -12,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {mockMatchMedia} from 'sentry-test/utils';
 
+import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Nav from 'sentry/views/nav';
@@ -35,7 +37,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
-  'enforce-stacked-navigation',
   'visibility-explore-view',
 ];
 
@@ -86,14 +87,6 @@ describe('Nav', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/`,
       body: [],
-    });
-
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      options: {
-        ...ConfigStore.get('user').options,
-        prefersStackedNavigation: true,
-      },
     });
     mockUsingCustomerDomain.mockReturnValue(true);
   });
@@ -338,6 +331,82 @@ describe('Nav', () => {
     });
   });
 
+  describe('frontend version handling', () => {
+    it('does not reload page on navigation when frontend is current', () => {
+      render(
+        <FrontendVersionProvider releaseVersion="frontend@abc123" force="current">
+          <NavContextProvider>
+            <Nav />
+            <div id="main" />
+          </NavContextProvider>
+        </FrontendVersionProvider>,
+        {
+          organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/issues/',
+              query: {query: 'is:unresolved'},
+            },
+          },
+        }
+      );
+
+      const exploreLink = screen.getByRole('link', {name: 'Explore'});
+
+      const event = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => exploreLink.dispatchEvent(event));
+
+      // React Router prevented default - normal navigation
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it('reloads page on primary navigation when frontend is stale', async () => {
+      render(
+        <FrontendVersionProvider releaseVersion="frontend@abc123" force="stale">
+          <NavContextProvider>
+            <Nav />
+            <div id="main" />
+          </NavContextProvider>
+        </FrontendVersionProvider>,
+        {
+          organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/issues/',
+              query: {query: 'is:unresolved'},
+            },
+          },
+        }
+      );
+
+      const exploreLink = screen.getByRole('link', {name: 'Explore'});
+
+      // XXX(epurkhiser): Clicking the anchor is going to trigger a jsdom
+      // error: Error: Not implemented: navigation (except hash changes). I'm
+      // having a really hard time figuring out how to stop it from doing this
+      // unfortunately.
+      //
+      // This test is mostly a copy from
+      // https://github.com/remix-run/react-router/blob/20d8307d4a51c219f6e13e0b66461e7162d944e4/packages/react-router/__tests__/dom/link-click-test.tsx#L246-L278
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+
+      const event = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => exploreLink.dispatchEvent(event));
+      await tick();
+
+      // React Router did not prevent default - page will reload
+      expect(event.defaultPrevented).toBe(false);
+    });
+  });
+
   describe('mobile navigation', () => {
     beforeEach(() => {
       mockMatchMedia(true);
@@ -440,9 +509,7 @@ describe('Nav', () => {
       });
 
       renderGlobalModal();
-      renderNav({
-        features: ALL_AVAILABLE_FEATURES.concat('enforce-stacked-navigation'),
-      });
+      renderNav();
       await screen.findByRole('navigation', {name: 'Primary Navigation'});
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });

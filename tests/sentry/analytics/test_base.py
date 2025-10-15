@@ -1,5 +1,6 @@
 from sentry.analytics import Analytics
 from sentry.analytics.event import EventEnvelope
+from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.testutils.cases import TestCase
 
 
@@ -18,7 +19,13 @@ class AnalyticsTest(TestCase):
     def test_record(self) -> None:
         organization = self.create_organization()
         provider = DummyAnalytics()
-        provider.record("organization.created", organization)
+        provider.record(
+            OrganizationCreatedEvent(
+                id=organization.id,
+                name=organization.name,
+                slug=organization.slug,
+            )
+        )
         assert len(provider.events) == 1
         event = provider.events.pop(0)
         envelope = provider.event_envelopes.pop(0)
@@ -26,15 +33,3 @@ class AnalyticsTest(TestCase):
         assert event.type == "organization.created"
         assert event.slug == organization.slug
         assert not event.actor_id
-
-    def test_record_with_attrs(self) -> None:
-        organization = self.create_organization()
-        provider = DummyAnalytics()
-        provider.record("organization.created", organization, actor_id=1)
-        assert len(provider.events) == 1
-        event = provider.events.pop(0)
-        envelope = provider.event_envelopes.pop(0)
-        assert event.type == "organization.created"
-        assert envelope.datetime
-        assert event.slug == organization.slug
-        assert event.actor_id == 1

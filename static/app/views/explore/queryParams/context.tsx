@@ -1,18 +1,24 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import type {
   AggregateField,
   WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
   isVisualize,
   isVisualizeEquation,
@@ -79,7 +85,7 @@ export function useQueryParams() {
   return queryParams;
 }
 
-function useSetQueryParams() {
+export function useSetQueryParams() {
   const {
     managedFields,
     setManagedFields,
@@ -108,6 +114,7 @@ function useSetQueryParams() {
         writableQueryParams.cursor = null;
         writableQueryParams.aggregateCursor = null;
       }
+
       setQueryParams(writableQueryParams);
     },
     [managedFields, setManagedFields, readableQueryParams, setQueryParams]
@@ -137,6 +144,60 @@ export function useSetQueryParamsMode() {
       setQueryParams({mode});
     },
     [setQueryParams]
+  );
+}
+
+export function useQueryParamsQuery(): string {
+  const queryParams = useQueryParams();
+  return queryParams.query;
+}
+
+export function useSetQueryParamsQuery() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (query: string) => {
+      setQueryParams({query});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsSearch(): MutableSearch {
+  const queryParams = useQueryParams();
+  return queryParams.search;
+}
+
+export function useSetQueryParamsSearch() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (search: MutableSearch) => {
+      setQueryParams({query: search.formatString()});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useAddSearchFilter() {
+  const setSearch = useSetQueryParamsSearch();
+  const search = useQueryParamsSearch();
+
+  return useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setSearch(newSearch);
+    },
+    [setSearch, search]
   );
 }
 
@@ -327,6 +388,17 @@ export function useQueryParamsAggregateSortBys(): readonly Sort[] {
   return queryParams.aggregateSortBys;
 }
 
+export function useSetQueryParamsAggregateSortBys() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (aggregateSortBys: Sort[]) => {
+      setQueryParams({aggregateSortBys});
+    },
+    [setQueryParams]
+  );
+}
+
 export function useQueryParamsAggregateCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.aggregateCursor;
@@ -346,4 +418,47 @@ export function useSetQueryParamsAggregateCursor() {
 export function useQueryParamsCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.cursor;
+}
+
+export function useQueryParamsExtrapolate() {
+  const queryParams = useQueryParams();
+  return queryParams.extrapolate;
+}
+
+export function useSetQueryParamsExtrapolate() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (extrapolate: boolean) => {
+      setQueryParams({extrapolate});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsId() {
+  const queryParams = useQueryParams();
+  return queryParams.id;
+}
+
+export function useQueryParamsTitle() {
+  const queryParams = useQueryParams();
+  return queryParams.title;
+}
+
+export function useSetQueryParamsSavedQuery() {
+  // This by-passes the context entirely because wrapping the modal in the context
+  // is not practical. Instead, we directly use `useLocation` and `useNavigate` to
+  // set the `id` and `title`.
+  const location = useLocation();
+  const navigate = useNavigate();
+  return useCallback(
+    (id: string, title: string) => {
+      const target: Location = {...location, query: {...location.query}};
+      updateNullableLocation(target, ID_KEY, id);
+      updateNullableLocation(target, TITLE_KEY, title);
+      navigate(target);
+    },
+    [location, navigate]
+  );
 }

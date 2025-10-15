@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -18,7 +17,6 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsnooze import GroupSnooze
@@ -26,12 +24,10 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -311,64 +307,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
-
-    @with_feature("organizations:issue-open-periods")
-    def test_open_periods(self) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
-
-        # test a new group has an open period
-        group.type = MetricIssue.type_id
-        group.save()
-
-        GroupOpenPeriod.objects.all().delete()
-
-        alert_rule = self.create_alert_rule(
-            organization=self.organization,
-            projects=[self.project],
-            name="Test Alert Rule",
-        )
-        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
-
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        open_periods = response.data["openPeriods"]
-        assert len(open_periods) == 1
-        open_period = open_periods[0]
-        assert open_period["start"] == group.first_seen
-        assert open_period["end"] is None
-        assert open_period["duration"] is None
-        assert open_period["isOpen"] is True
-        assert open_period["lastChecked"] > time
-
-    @with_feature("organizations:issue-open-periods")
-    def test_group_open_periods(self) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
-
-        # test a new group has an open period
-        group.type = MetricIssue.type_id
-        group.save()
-
-        alert_rule = self.create_alert_rule(
-            organization=self.organization,
-            projects=[self.project],
-            name="Test Alert Rule",
-        )
-        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
-
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        open_periods = response.data["openPeriods"]
-        assert len(open_periods) == 1
-        open_period = open_periods[0]
-        assert open_period["start"] == group.first_seen
-        assert open_period["end"] is None
-        assert open_period["duration"] is None
-        assert open_period["isOpen"] is True
-        assert open_period["lastChecked"] > time
 
 
 class GroupUpdateTest(APITestCase):
@@ -770,48 +708,6 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=False
         ).exists()
 
-    @with_feature("organizations:team-workflow-notifications")
-    def test_team_subscription(self) -> None:
-        group = self.create_group()
-        team = self.create_team(organization=group.project.organization, members=[self.user])
-
-        # subscribe the team
-        GroupSubscription.objects.create(
-            team=team,
-            group=group,
-            project=group.project,
-            is_active=True,
-            reason=GroupSubscriptionReason.team_mentioned,
-        )
-
-        self.login_as(user=self.user)
-
-        url = f"/api/0/issues/{group.id}/"
-        response = self.client.get(url)
-
-        assert response.status_code == 200
-        assert len(response.data["participants"]) == 1
-        assert response.data["participants"][0]["type"] == "team"
-
-        # add the user as a subscriber
-        GroupSubscription.objects.create(
-            user_id=self.user.id,
-            group=group,
-            project=group.project,
-            is_active=True,
-            reason=GroupSubscriptionReason.comment,
-        )
-
-        response = self.client.get(url)
-        assert response.status_code == 200
-
-        # both the user and their team should be subscribed separately
-        assert len(response.data["participants"]) == 2
-        assert (
-            response.data["participants"][0]["type"] == "user"
-        )  # user participants are processed first
-        assert response.data["participants"][1]["type"] == "team"
-
     def test_discard(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
@@ -879,10 +775,7 @@ class GroupDeleteTest(APITestCase):
 
         # Deletion was deferred, so it should still exist
         assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-        # BUT the hash should be gone
-        assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
+        assert GroupHash.objects.filter(group_id=group.id).exists()
 
     def test_delete_and_tasks_run(self) -> None:
         self.login_as(user=self.user)

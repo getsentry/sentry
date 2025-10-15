@@ -1,5 +1,5 @@
 ---
-created: '2025-08-11T23:13:29.871161+00:00'
+created: '2025-10-07T20:42:04.704731+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -26,11 +26,12 @@ contributing variants:
   system*
     hash: "60e0a667027bef0d0b7c4882891df7e8"
     contributing component: stacktrace
-    component:
+    hint: None
+    root_component:
       system*
         stacktrace*
           frame*
             filename*
               "foo.py"
-            context-line*
+            context_line*
               "foo bar"

@@ -55,9 +55,6 @@ class UptimeSubscriptionSerializer(Serializer):
 
 class UptimeDetectorSerializerResponse(UptimeSubscriptionSerializerResponse):
     id: str
-    # TODO(epurkhiser): Should be removed once the frontend is using `id`
-    # instead of `detectorId`
-    detectorId: int
     projectSlug: str
     environment: str | None
     name: str
@@ -65,6 +62,8 @@ class UptimeDetectorSerializerResponse(UptimeSubscriptionSerializerResponse):
     uptimeStatus: int
     mode: int
     owner: ActorSerializerResponse
+    recoveryThreshold: int
+    downtimeThreshold: int
 
 
 class UptimeDetectorSerializer(Serializer):
@@ -121,16 +120,13 @@ class UptimeDetectorSerializer(Serializer):
             uptime_subscription
         )
 
-        if detector_state and detector_state.state in DETECTOR_PRIORITY_TO_UPTIME_STATUS:
-            uptime_status = DETECTOR_PRIORITY_TO_UPTIME_STATUS[detector_state.state]
+        if detector_state and detector_state.priority_level in DETECTOR_PRIORITY_TO_UPTIME_STATUS:
+            uptime_status = DETECTOR_PRIORITY_TO_UPTIME_STATUS[detector_state.priority_level]
         else:
             uptime_status = UptimeStatus.OK
 
         return {
             "id": str(obj.id),
-            # TODO(epurkhiser): Should be removed once the frontend is using `id`
-            # instead of `detectorId`
-            "detectorId": obj.id,
             "projectSlug": obj.project.slug,
             "environment": obj.config.get("environment"),
             "name": obj.name or f"Uptime Monitoring for {uptime_subscription.url}",
@@ -138,6 +134,8 @@ class UptimeDetectorSerializer(Serializer):
             "uptimeStatus": uptime_status,
             "mode": obj.config.get("mode", 1),  # Default to MANUAL mode
             "owner": attrs["owner"],
+            "recoveryThreshold": obj.config["recovery_threshold"],
+            "downtimeThreshold": obj.config["downtime_threshold"],
             **serialized_subscription,
         }
 
