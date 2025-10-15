@@ -73,7 +73,7 @@ export function SpanDescription({
   hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
-    eventId: node.event?.eventID,
+    eventId: node.value.transaction_id,
     projectSlug: project?.slug,
   });
   const span = node.value;
@@ -143,7 +143,7 @@ export function SpanDescription({
           to={getSearchInExploreTarget(
             organization,
             location,
-            node.event?.projectID,
+            project?.id,
             exploreAttributeName,
             exploreAttributeValue,
             TraceDrawerActionKind.INCLUDE
@@ -169,6 +169,8 @@ export function SpanDescription({
   const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
   const codeFunction = findSpanAttributeValue(attributes, 'code.function');
 
+  const requestMethod = findSpanAttributeValue(attributes, 'http.request.method');
+
   // `"url.full"` is semantic, but `"url"` is common
   const spanURL =
     findSpanAttributeValue(attributes, 'url.full') ??
@@ -185,7 +187,7 @@ export function SpanDescription({
         </StyledCodeSnippet>
         {codeFilepath ? (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={project?.id}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -198,11 +200,11 @@ export function SpanDescription({
         )}
       </CodeSnippetWrapper>
     ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
-      <Flex direction="column">
+      <Flex direction="column" width="100%">
         <Flex align="start" justify="between" gap="xs" padding="md">
           <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
             <Flex gap="xs">
-              <Text>{findSpanAttributeValue(attributes, 'http.request.method')}</Text>
+              {requestMethod && <Text>{requestMethod}</Text>}
               <Text wordBreak="break-word">{spanURL}</Text>
             </Flex>
             <LinkHint value={spanURL} />
@@ -216,7 +218,7 @@ export function SpanDescription({
         </Flex>
         {codeFilepath && (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={project?.id}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -330,7 +332,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug ?? node.event?.projectSlug}
+          projectSlug={span.project_slug}
         />
       )}
     </StyledDescriptionWrapper>
