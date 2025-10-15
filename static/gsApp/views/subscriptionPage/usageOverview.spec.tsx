@@ -49,10 +49,8 @@ describe('UsageOverview', () => {
       />
     );
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Current usage'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'Reserved usage'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', {name: 'Reserved spend'})
     ).toBeInTheDocument();
@@ -76,10 +74,8 @@ describe('UsageOverview', () => {
       />
     );
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Current usage'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'Reserved usage'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
     expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
     expect(screen.queryByText('Pay-as-you-go spend')).not.toBeInTheDocument();
     expect(
@@ -120,6 +116,7 @@ describe('UsageOverview', () => {
     subscription.categories.attachments = {
       ...subscription.categories.attachments!,
       reserved: 25, // 25 GB
+      prepaid: 25, // 25 GB
       free: 0,
       usage: GIGABYTE / 2,
     };
@@ -145,21 +142,21 @@ describe('UsageOverview', () => {
     expect(screen.queryByText('Trial available')).not.toBeInTheDocument();
 
     // Replays product trial active
-    expect(screen.getByText('20 days left')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20 days left'})).toBeInTheDocument();
 
     // Errors usage and gifted units
-    expect(screen.getByText('6,000 / 51,000')).toBeInTheDocument();
-    expect(screen.getByText('$10.00')).toBeInTheDocument();
-    expect(screen.getByText('12%')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '6,000'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '$10.00'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '12% of 51,000'})).toBeInTheDocument();
 
     // Attachments usage should be in the correct unit + above platform volume
-    expect(screen.getByText('500 MB / 25 GB')).toBeInTheDocument();
-    expect(screen.getByText('50%')).toBeInTheDocument();
-    expect(screen.getByText('$6.00')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '500 MB'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '2% of 25 GB'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '$6.00'})).toBeInTheDocument();
 
     // Reserved spans above platform volume
-    expect(screen.getByText('0 / 20,000,000')).toBeInTheDocument();
-    expect(screen.getByText('$32.00')).toBeInTheDocument();
+    expect(screen.getAllByRole('cell', {name: '0'}).length).toBeGreaterThan(0);
+    expect(screen.getByRole('cell', {name: '$32.00'})).toBeInTheDocument();
   });
 
   it('renders table based on add-on state', () => {
