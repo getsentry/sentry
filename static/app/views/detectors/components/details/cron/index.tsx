@@ -42,7 +42,9 @@ import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboardi
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
 import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type CronDetectorDetailsProps = {
   detector: CronDetector;
@@ -207,6 +209,18 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               )}
             </Section>
             <DetectorDetailsAssignee owner={detector.owner} />
+            <Section title={t('Schedule')}>
+              <div>
+                {scheduleAsText(dataSource.queryObj.config)}{' '}
+                {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB &&
+                  `(${dataSource.queryObj.config.timezone}) `}
+                {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB && (
+                  <Text variant="muted" monospace>
+                    ({dataSource.queryObj.config.schedule})
+                  </Text>
+                )}
+              </div>
+            </Section>
             <Section title={t('Legend')}>
               <DetailsTimelineLegend
                 checkInMargin={dataSource.queryObj.config.checkin_margin}
