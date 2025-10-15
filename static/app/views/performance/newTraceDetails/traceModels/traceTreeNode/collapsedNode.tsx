@@ -22,8 +22,6 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     this.id = uuid4();
     this.type = 'collapsed';
     this.canShowDetails = false;
-
-    this.parent?.children.push(this);
   }
 
   get drawerTabsTitle(): string {

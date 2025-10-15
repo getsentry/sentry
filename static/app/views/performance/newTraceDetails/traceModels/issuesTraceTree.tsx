@@ -77,7 +77,7 @@ export class IssuesTraceTree extends TraceTree {
 
     if (node) {
       if (node.canFetchChildren) {
-        return node.fetchChildren(true, tree, options).then(() => {});
+        return tree.fetchNodeSubTree(true, node, options).then(() => {});
       }
       node.expand(true, tree);
     }

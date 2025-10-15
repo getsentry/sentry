@@ -123,7 +123,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // By order of priority, we want to find the error node, then the span node, then the transaction node.
     // This is because the error node as standalone is the most specific one, otherwise we look for the span that
     // the error may have been attributed to, otherwise we look at the transaction.
-    const node = nodes.sort((a, b) => a.searchPriority - b.searchPriority)[0];
+    const node = nodes.sort((a, b) => b.searchPriority - a.searchPriority)[0];
 
     const index = node ? IssuesTraceTree.EnforceVisibility(props.tree, node) : -1;
 

@@ -432,6 +432,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         if (index !== -1) {
           tree.list.splice(index + 1, 0, ...this.visibleChildren);
         }
+
+        this.invalidate();
+        this.forEachChild(child => child.invalidate());
+
         return data;
       })
       .catch(_e => {
