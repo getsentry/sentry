@@ -36,10 +36,12 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
-  if (
-    (subscription.planDetails.allowOnDemand || subscription.onDemandInvoiced) &&
-    hasBillingPerms
-  ) {
+  const canUpdatePayg =
+    subscription.planDetails.allowOnDemand &&
+    subscription.supportsOnDemand &&
+    hasBillingPerms;
+
+  if (canUpdatePayg) {
     cards.push(
       <PaygCard key="payg" subscription={subscription} organization={organization} />
     );
@@ -47,7 +49,8 @@ function getCards(organization: Organization, subscription: Subscription) {
 
   if (
     hasBillingPerms &&
-    (subscription.canSelfServe || subscription.onDemandInvoiced) &&
+    (canUpdatePayg ||
+      (subscription.canSelfServe && isDeveloperPlan(subscription.planDetails))) &&
     !subscription.isSelfServePartner
   ) {
     cards.push(

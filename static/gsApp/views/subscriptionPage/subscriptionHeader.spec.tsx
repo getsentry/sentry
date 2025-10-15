@@ -201,7 +201,7 @@ describe('SubscriptionHeader', () => {
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am3_f',
+      plan: 'am3_business_ent_auf',
       canSelfServe: false,
       supportsOnDemand: false,
     });
@@ -224,9 +224,8 @@ describe('SubscriptionHeader', () => {
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am3_f',
+      plan: 'am3_business_ent_auf',
       canSelfServe: false,
-      onDemandInvoiced: true,
       supportsOnDemand: true,
     });
     SubscriptionStore.set(organization.slug, subscription);

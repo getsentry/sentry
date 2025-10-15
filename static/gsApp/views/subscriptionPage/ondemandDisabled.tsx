@@ -59,32 +59,30 @@ function OnDemandDisabled({subscription}: Props) {
   }
 
   return (
-    <Alert.Container>
-      <Alert type="error" data-test-id="ondemand-disabled-alert" showIcon={false}>
-        <span>
-          {tct(
-            "[Name] billing is disabled for your organization due to an unpaid [lowercase_name] invoice. This may impact your organization's ability to accept data into Sentry. [docs_link:Learn more about this process].",
-            {
-              Name: name,
-              lowercase_name: name.toLowerCase(),
-              docs_link: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23622477256987-We-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract-What-happens" />
-              ),
-            }
-          )}
-        </span>{' '}
-        <span>
-          {tct(
-            'Please contact [contact_link:support@sentry.io] to pay [receipts_link:closed/outstanding invoices] to re-enable [lowercase_name] billing.',
-            {
-              lowercase_name: name.toLowerCase(),
-              receipts_link: <NavLink to="/settings/billing/receipts/" />,
-              contact_link: <a href="mailto:support@sentry.io" />,
-            }
-          )}
-        </span>
-      </Alert>
-    </Alert.Container>
+    <Alert type="error" data-test-id="ondemand-disabled-alert" showIcon={false}>
+      <span>
+        {tct(
+          "[Name] billing is disabled for your organization due to an unpaid [lowercase_name] invoice. This may impact your organization's ability to accept data into Sentry. [docs_link:Learn more about this process].",
+          {
+            Name: name,
+            lowercase_name: name.toLowerCase(),
+            docs_link: (
+              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23622477256987-We-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract-What-happens" />
+            ),
+          }
+        )}
+      </span>{' '}
+      <span>
+        {tct(
+          'Please contact [contact_link:support@sentry.io] to pay [receipts_link:closed/outstanding invoices] to re-enable [lowercase_name] billing.',
+          {
+            lowercase_name: name.toLowerCase(),
+            receipts_link: <NavLink to="/settings/billing/receipts/" />,
+            contact_link: <a href="mailto:support@sentry.io" />,
+          }
+        )}
+      </span>
+    </Alert>
   );
 }
 
