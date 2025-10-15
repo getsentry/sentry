@@ -67,6 +67,12 @@ def compare_preprod_artifact_size_analysis(
                 "preprod.size_analysis.compare.artifact_different_build_configurations",
                 extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
             )
+            # Update the status check even though we can't compare to avoid leaving it in a loading state
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact_id,
+                }
+            )
             return
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
