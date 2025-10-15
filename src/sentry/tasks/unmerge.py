@@ -36,6 +36,8 @@ from sentry.utils.eventuser import EventUser
 from sentry.utils.query import task_run_batch_query
 
 logger = logging.getLogger(__name__)
+# Module-level cache to persist across task iterations
+_global_caches = None
 
 
 def cache(function: Callable[..., Any]) -> Callable[..., Any]:
@@ -60,24 +62,27 @@ def cache(function: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def get_caches() -> dict[str, Callable[..., Any]]:
-    return {
-        "Environment": cache(
-            lambda organization_id, name: Environment.objects.get(
-                organization_id=organization_id, name=name
-            )
-        ),
-        "GroupRelease": cache(
-            lambda group_id, environment, release_id: GroupRelease.objects.get(
-                group_id=group_id, environment=environment, release_id=release_id
-            )
-        ),
-        "Project": cache(lambda id: Project.objects.get(id=id)),
-        "Release": cache(
-            lambda organization_id, version: Release.objects.get(
-                organization_id=organization_id, version=version
-            )
-        ),
-    }
+    global _global_caches
+    if _global_caches is None:
+        _global_caches = {
+            "Environment": cache(
+                lambda organization_id, name: Environment.objects.get(
+                    organization_id=organization_id, name=name
+                )
+            ),
+            "GroupRelease": cache(
+                lambda group_id, environment, release_id: GroupRelease.objects.get(
+                    group_id=group_id, environment=environment, release_id=release_id
+                )
+            ),
+            "Project": cache(lambda id: Project.objects.get(id=id)),
+            "Release": cache(
+                lambda organization_id, version: Release.objects.get(
+                    organization_id=organization_id, version=version
+                )
+            ),
+        }
+    return _global_caches
 
 
 def merge_mappings(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -104,18 +109,16 @@ initial_fields = {
 
 
 backfill_fields = {
-    "platform": lambda caches, data, event: event.platform,
-    "logger": lambda caches, data, event: event.get_tag("logger") or DEFAULT_LOGGER_NAME,
-    "first_seen": lambda caches, data, event: event.datetime,
-    "active_at": lambda caches, data, event: event.datetime,
-    "first_release": lambda caches, data, event: (
-        caches["Release"](
-            caches["Project"](event.project_id).organization_id, event.get_tag("sentry:release")
-        )
+    "platform": lambda caches, data, event, project: event.platform,
+    "logger": lambda caches, data, event, project: event.get_tag("logger") or DEFAULT_LOGGER_NAME,
+    "first_seen": lambda caches, data, event, project: event.datetime,
+    "active_at": lambda caches, data, event, project: event.datetime,
+    "first_release": lambda caches, data, event, project: (
+        caches["Release"](project.organization_id, event.get_tag("sentry:release"))
         if event.get_tag("sentry:release")
         else data.get("first_release", None)
     ),
-    "times_seen": lambda caches, data, event: data["times_seen"] + 1,
+    "times_seen": lambda caches, data, event, project: data["times_seen"] + 1,
 }
 
 
@@ -123,11 +126,12 @@ def get_group_creation_attributes(
     caches: Mapping[str, Any],
     group: Group,
     events: Sequence[GroupEvent],
+    project: Project,
 ) -> dict[str, Any]:
     latest_event = events[0]
     return reduce(
         lambda data, event: merge_mappings(
-            [data, {name: f(caches, data, event) for name, f in backfill_fields.items()}]
+            [data, {name: f(caches, data, event, project) for name, f in backfill_fields.items()}]
         ),
         events,
         {name: f(latest_event, group) for name, f in initial_fields.items()},
@@ -135,13 +139,19 @@ def get_group_creation_attributes(
 
 
 def get_group_backfill_attributes(
-    caches: Mapping[str, Any], group: Group, events: Sequence[GroupEvent]
+    caches: Mapping[str, Any],
+    group: Group,
+    events: Sequence[GroupEvent],
+    project: Project,
 ) -> dict[str, Any]:
     return {
         k: v
         for k, v in reduce(
             lambda data, event: merge_mappings(
-                [data, {name: f(caches, data, event) for name, f in backfill_fields.items()}]
+                [
+                    data,
+                    {name: f(caches, data, event, project) for name, f in backfill_fields.items()},
+                ]
             ),
             events,
             {
@@ -192,7 +202,7 @@ def migrate_events(
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(caches, source, events),
+            **get_group_creation_attributes(caches, source, events, project),
         )
 
         destination_id = destination.id
@@ -200,7 +210,7 @@ def migrate_events(
         # Update the existing destination group.
         destination_id = opt_destination_id
         destination = Group.objects.get(id=destination_id)
-        destination.update(**get_group_backfill_attributes(caches, destination, events))
+        destination.update(**get_group_backfill_attributes(caches, destination, events, project))
 
     update_open_periods(source, destination)
     logger.info("migrate_events.migrate", extra={**extra, "destination_id": destination_id})
@@ -286,7 +296,7 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
         instance.delete()
 
     environment_ids = list(
-        Environment.objects.filter(projects=group.project).values_list("id", flat=True)
+        Environment.objects.filter(projects=project).values_list("id", flat=True)
     )
 
     tsdb.backend.delete([TSDBModel.group], [group.id], environment_ids=environment_ids)
@@ -550,10 +560,15 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         batch_size=args.batch_size,
         state=last_event,
         referrer="unmerge",
-        tenant_ids={"organization_id": source.project.organization_id},
+        tenant_ids={"organization_id": project.organization_id},
     )
+
     # Convert Event objects to GroupEvent objects
     events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
+    # Cache project on each event to prevent N+1 queries during unmerge processing
+    for event in events:
+        event._project_cache = project
+
     # Log info related to this unmerge
     logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
 
@@ -582,10 +597,10 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
 
     if source_events:
         if not source_fields_reset:
-            source.update(**get_group_creation_attributes(caches, source, source_events))
+            source.update(**get_group_creation_attributes(caches, source, source_events, project))
             source_fields_reset = True
         else:
-            source.update(**get_group_backfill_attributes(caches, source, source_events))
+            source.update(**get_group_backfill_attributes(caches, source, source_events, project))
 
     destinations = dict(args.destinations)
     # Log info related to this unmerge
