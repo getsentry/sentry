@@ -183,3 +183,12 @@ class SumLengthField(ColumnField[int]):
         return Function(
             "sum", parameters=[Function("length", parameters=[Column(self.column_name)])]
         )
+
+
+class StrictEqualityStringColumnField(StringColumnField):
+
+    def apply(self, search_filter: SearchFilter) -> Condition:
+        if search_filter.operator not in ("IN", "="):
+            raise OperatorNotSupported(f"Unsupported operator: '{search_filter.operator}'")
+
+        return ExpressionField(self.expression, self.parse, self.query).apply(search_filter)
