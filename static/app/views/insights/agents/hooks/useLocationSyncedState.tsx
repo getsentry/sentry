@@ -82,7 +82,7 @@ export function useLocationSyncedState<T extends Decoder>(key: string, decoder: 
           query: {
             ...prevLocation.query,
             // make sure to clear all cursors every time the query is updated
-            ...unsetQueryCursors(prevLocation.query),
+            ...(key === 'query' ? unsetQueryCursors(prevLocation.query) : {}),
             [key]: value,
           },
         };
