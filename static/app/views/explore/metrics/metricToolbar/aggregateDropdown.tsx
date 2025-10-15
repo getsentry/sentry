@@ -84,16 +84,16 @@ const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   gauge: 'avg',
 };
 
-export function AggregateDropdown({type}: {type: string | undefined}) {
+export function AggregateDropdown({type}: {type: string}) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
   const previousType = usePrevious(type);
 
   useEffect(() => {
-    if (previousType !== type) {
+    if (previousType !== type && defined(DEFAULT_YAXIS_BY_TYPE[type])) {
       setVisualize(
         visualize.replace({
-          yAxis: `${DEFAULT_YAXIS_BY_TYPE[type ?? '']}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
+          yAxis: `${DEFAULT_YAXIS_BY_TYPE[type]}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
         })
       );
     }
@@ -104,9 +104,7 @@ export function AggregateDropdown({type}: {type: string | undefined}) {
       triggerProps={{
         prefix: t('Agg'),
       }}
-      options={
-        defined(type) && defined(OPTIONS_BY_TYPE[type]) ? OPTIONS_BY_TYPE[type] : []
-      }
+      options={defined(OPTIONS_BY_TYPE[type]) ? OPTIONS_BY_TYPE[type] : []}
       value={visualize.parsedFunction?.name ?? ''}
       onChange={option => {
         setVisualize(
