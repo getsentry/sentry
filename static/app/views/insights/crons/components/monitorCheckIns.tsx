@@ -1,11 +1,11 @@
 import {Fragment, useEffect} from 'react';
-import sortBy from 'lodash/sortBy';
 
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
 
@@ -23,10 +23,10 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  // Use the nextCheckIn timestamp as a key for forcing a refetch of the
-  // check-in list. We do this since we know when this value changes there are
-  // new check-ins present.
-  const nextCheckIn = sortBy(monitorEnvs, e => e.nextCheckIn)[0]?.nextCheckIn;
+  // Use the nextCheckIn timestamp from the earliest scheduled environment as a
+  // key for forcing a refetch of the check-in list. We do this since we know
+  // when this value changes there are new check-ins present.
+  const nextCheckIn = getNextCheckInEnv(monitorEnvs)?.nextCheckIn;
 
   const {
     data: checkInList,

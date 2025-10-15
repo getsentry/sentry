@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import sortBy from 'lodash/sortBy';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -24,6 +23,7 @@ import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import toArray from 'sentry/utils/array/toArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
@@ -45,12 +45,8 @@ type CronDetectorDetailsProps = {
 };
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
-  const dataSource = detector.dataSources[0];
-  const envsSortedByLastCheck = sortBy(
-    dataSource.queryObj.environments,
-    e => e.lastCheckIn
-  );
-  return envsSortedByLastCheck[envsSortedByLastCheck.length - 1];
+  const environments = detector.dataSources[0].queryObj.environments;
+  return getNextCheckInEnv(environments);
 }
 
 function hasLastCheckIn(envs: MonitorEnvironment[]) {
