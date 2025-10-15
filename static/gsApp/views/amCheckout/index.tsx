@@ -496,7 +496,7 @@ class AMCheckout extends Component<Props, State> {
           // When introducing a new category before backfilling, the reserved value from the billing metric
           // history is not available, so we default to 0.
           // Skip trial volumes - don't pre-fill with trial reserved amounts
-          let events = (!subscription.isTrial && currentHistory?.reserved) || 0;
+          let events = (!isTrialPlan(planDetails.id) && currentHistory?.reserved) || 0;
 
           if (canComparePrices) {
             const price = getBucket({events, buckets: eventBuckets}).price;

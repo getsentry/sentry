@@ -1285,9 +1285,9 @@ describe('AM2 Checkout', () => {
      */
     const trialSub = SubscriptionFixture({
       organization,
-      plan: 'am2_business',
+      plan: 'am2_t',
       planTier: 'am2',
-      isTrial: true,
+      isTrial: true, // This is true for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 500_000}), // High trial volume
@@ -1892,6 +1892,83 @@ describe('AM3 Checkout', () => {
     expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
   });
 
+  it('prefills with existing subscription data with plan trial', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      planTier: PlanTier.AM3,
+      categories: {
+        errors: MetricHistoryFixture({reserved: 100_000}),
+        attachments: MetricHistoryFixture({reserved: 25}),
+        replays: MetricHistoryFixture({reserved: 50}),
+        monitorSeats: MetricHistoryFixture({reserved: 1}),
+        spans: MetricHistoryFixture({reserved: 20_000_000}),
+        profileDuration: MetricHistoryFixture({reserved: 1}),
+      },
+      onDemandBudgets: {
+        onDemandSpendUsed: 0,
+        sharedMaxBudget: 2000,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        enabled: true,
+      },
+      onDemandMaxSpend: 2000,
+      supportsOnDemand: true,
+      isFree: false,
+      isTrial: true, // isTrial is true for both subscription trials and plan trials
+    });
+
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
+    // TODO: Can better write this once we have
+    // https://github.com/testing-library/jest-dom/issues/478
+    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
+      'aria-valuetext',
+      '100000'
+    );
+    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
+      'aria-valuetext',
+      '50'
+    );
+    expect(screen.getByRole('slider', {name: 'Spans'})).toHaveAttribute(
+      'aria-valuetext',
+      '20000000'
+    );
+    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
+      'aria-valuetext',
+      '25'
+    );
+
+    expect(
+      screen.queryByRole('slider', {name: 'Accepted Spans'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', {name: 'Stored Spans'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
+  });
+
   it('allows setting PAYG for customers switching to AM3', async () => {
     const sub = SubscriptionFixture({
       organization,
@@ -2062,9 +2139,9 @@ describe('AM3 Checkout', () => {
 
     const trialSub = SubscriptionFixture({
       organization,
-      plan: 'am3_business',
+      plan: 'am3_t',
       planTier: PlanTier.AM3,
-      isTrial: true, // This is the key - subscription is in trial mode
+      isTrial: true, // This is true for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume
@@ -2102,10 +2179,8 @@ describe('AM3 Checkout', () => {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
-    // For AM3, first step is pay-as-you-go budget
-    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
-
-    // Continue to Reserved Volumes step
+    // Continue to Reserved Volumes step (step 3 in AM3 checkout)
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
 
