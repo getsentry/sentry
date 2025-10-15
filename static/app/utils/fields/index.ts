@@ -3113,6 +3113,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 };
 
 export enum FeedbackFieldKey {
+  AI_CATEGORIZATION_LABELS = 'ai_categorization.labels',
   BROWSER_NAME = 'browser.name',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
@@ -3193,6 +3194,12 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     desc: t('URL of the page that the feedback is triggered on'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
+    desc: t('AI-generated labels for categorizing feedback'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: true,
   },
 };
 
