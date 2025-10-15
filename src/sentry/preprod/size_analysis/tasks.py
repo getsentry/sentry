@@ -177,10 +177,10 @@ def compare_preprod_artifact_size_analysis(
                 )
 
     # Create PENDING comparison records in DB and run comparisons
-    for comparison in comparisons:
-        head_metric = comparison["head_metric"]
-        base_metric = comparison["base_metric"]
-        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+        for comparison in comparisons:
+            head_metric = comparison["head_metric"]
+            base_metric = comparison["base_metric"]
             comparison = PreprodArtifactSizeComparison.objects.create(
                 head_size_analysis=head_metric,
                 base_size_analysis=base_metric,
@@ -189,11 +189,11 @@ def compare_preprod_artifact_size_analysis(
             )
             comparison.save()
 
-        logger.info(
-            "preprod.size_analysis.compare.running_comparisonn",
-            extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
-        )
-        _run_size_analysis_comparison(org_id, head_metric, base_metric)
+            logger.info(
+                "preprod.size_analysis.compare.running_comparison",
+                extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
+            )
+            _run_size_analysis_comparison(org_id, head_metric, base_metric)
 
         for artifact_id in preprod_artifact_status_check_updates:
             # Update all artifact's status check with the new comparison
@@ -316,13 +316,6 @@ def _run_size_analysis_comparison(
     head_size_metric: PreprodArtifactSizeMetrics,
     base_size_metric: PreprodArtifactSizeMetrics,
 ):
-    logger.info(
-        "preprod.size_analysis.compare._run_size_analysis_comparison",
-        extra={
-            "head_artifact_size_metric_id": head_size_metric.id,
-            "base_artifact_size_metric_id": base_size_metric.id,
-        },
-    )
     comparison = None
     try:
         comparison = PreprodArtifactSizeComparison.objects.get(
@@ -395,18 +388,11 @@ def _run_size_analysis_comparison(
             comparison.save()
         return
 
-    logger.info(
-        "preprod.size_analysis.compare.running_comparisonss",
-        extra={
-            "head_artifact_size_metric_id": head_size_metric.id,
-            "base_artifact_size_metric_id": base_size_metric.id,
-        },
-    )
     head_size_analysis_results = SizeAnalysisResults.parse_raw(head_analysis_file.getfile().read())
     base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile().read())
 
     logger.info(
-        "preprod.size_analysis.compare.running_comparisonssss",
+        "preprod.size_analysis.compare.running_comparison",
         extra={
             "head_artifact_size_metric_id": head_size_metric.id,
             "base_artifact_size_metric_id": base_size_metric.id,

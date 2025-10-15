@@ -1,5 +1,6 @@
 import logging
 
+from django.db import transaction
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +10,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.db import router
-from sentry.eventtypes import transaction
 from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
     PreprodArtifactApiSizeAnalysisComparePostEvent,
@@ -389,10 +389,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         base_metrics_map = build_size_metrics_map(base_size_metrics)
 
         created_comparisons = []
-        for key, head_metric in head_metrics_map.items():
-            base_metric = base_metrics_map.get(key)
-            if base_metric:
-                with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            for key, head_metric in head_metrics_map.items():
+                base_metric = base_metrics_map.get(key)
+                if base_metric:
                     comparison = PreprodArtifactSizeComparison.objects.create(
                         head_size_analysis=head_metric,
                         base_size_analysis=base_metric,
@@ -400,18 +400,19 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                         state=PreprodArtifactSizeComparison.State.PENDING,
                     )
                     comparison.save()
-                created_comparisons.append(
-                    SizeAnalysisComparison(
-                        head_size_metric_id=head_metric.id,
-                        base_size_metric_id=base_metric.id,
-                        metrics_artifact_type=head_metric.metrics_artifact_type,
-                        identifier=head_metric.identifier,
-                        state=PreprodArtifactSizeComparison.State.PENDING,
-                        comparison_id=None,
-                        error_code=None,
-                        error_message=None,
+
+                    created_comparisons.append(
+                        SizeAnalysisComparison(
+                            head_size_metric_id=head_metric.id,
+                            base_size_metric_id=base_metric.id,
+                            metrics_artifact_type=head_metric.metrics_artifact_type,
+                            identifier=head_metric.identifier,
+                            state=PreprodArtifactSizeComparison.State.PENDING,
+                            comparison_id=None,
+                            error_code=None,
+                            error_message=None,
+                        )
                     )
-                )
 
         logger.info(
             "preprod.size_analysis.compare.api.post.running_comparison",
