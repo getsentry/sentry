@@ -584,6 +584,7 @@ def run_bulk_deletes_in_deletes(
     models_attempted: set[str],
 ) -> None:
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.models.eventattachment import EventAttachment
 
     debug_output("Running bulk deletes in DELETES")
     for model_tp, dtfield, order_by in deletes:
@@ -603,7 +604,9 @@ def run_bulk_deletes_in_deletes(
                 order_by=order_by,
             )
 
-            for chunk in q.iterator(chunk_size=100):
+            # Use smaller batch size for EventAttachment to avoid query timeouts on massive tables
+            batch_size = 100 if model_tp == EventAttachment else 1000
+            for chunk in q.iterator(chunk_size=100, batch_size=batch_size):
                 task_queue.put((imp, chunk))
 
     # Ensure all tasks are completed before exiting
