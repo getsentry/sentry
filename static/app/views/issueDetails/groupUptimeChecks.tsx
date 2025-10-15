@@ -1,6 +1,5 @@
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -53,14 +52,12 @@ export default function GroupUptimeChecks() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  if (isGroupPending || uptimeChecks === undefined || uptimeDetector === undefined) {
-    return <LoadingIndicator />;
-  }
-
+  const isPending =
+    isGroupPending || uptimeChecks === undefined || uptimeDetector === undefined;
   const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
   const previousDisabled = links?.previous?.results === false;
   const nextDisabled = links?.next?.results === false;
-  const pageCount = uptimeChecks.length;
+  const pageCount = uptimeChecks?.length ?? 0;
 
   return (
     <EventListTable
@@ -74,8 +71,10 @@ export default function GroupUptimeChecks() {
       }}
     >
       <UptimeChecksGrid
-        traceSampling={uptimeDetector.dataSources[0].queryObj.traceSampling}
+        traceSampling={uptimeDetector?.dataSources[0].queryObj.traceSampling ?? false}
+        isPending={isPending}
         uptimeChecks={uptimeChecks}
+        resizable
       />
     </EventListTable>
   );
