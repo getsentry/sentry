@@ -257,6 +257,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           <AppSizeTreemap
             root={filteredTreemapData.root}
             searchQuery={searchQuery || ''}
+            unfilteredRoot={appSizeData.treemap.root}
+            onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
           <Alert type="info">No files found matching "{searchQuery}"</Alert>
@@ -266,7 +268,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       );
   } else {
     visualizationContent = filteredTreemapData ? (
-      <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery || ''} />
+      <AppSizeTreemap
+        root={filteredTreemapData.root}
+        searchQuery={searchQuery || ''}
+        unfilteredRoot={appSizeData.treemap.root}
+        onSearchChange={value => setSearchQuery(value || undefined)}
+      />
     ) : (
       <Alert type="info">No files found matching "{searchQuery}"</Alert>
     );
