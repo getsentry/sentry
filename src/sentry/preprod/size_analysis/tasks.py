@@ -178,9 +178,9 @@ def compare_preprod_artifact_size_analysis(
 
     # Create PENDING comparison records in DB and run comparisons
     with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-        for comparison in comparisons:
-            head_metric = comparison["head_metric"]
-            base_metric = comparison["base_metric"]
+        for comp in comparisons:
+            head_metric = comp["head_metric"]
+            base_metric = comp["base_metric"]
             comparison = PreprodArtifactSizeComparison.objects.create(
                 head_size_analysis=head_metric,
                 base_size_analysis=base_metric,
