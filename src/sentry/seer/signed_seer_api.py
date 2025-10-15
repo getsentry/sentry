@@ -55,15 +55,19 @@ def make_signed_seer_api_request(
 
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:
     auth_headers: dict[str, str] = {}
-    if random() < options.get("seer.api.use-shared-secret"):
-        if settings.SEER_API_SHARED_SECRET:
-            signature = hmac.new(
-                settings.SEER_API_SHARED_SECRET.encode("utf-8"),
-                body,
-                hashlib.sha256,
-            ).hexdigest()
-            auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
-        else:
+    # Always add auth headers when secret is available, since Seer requires authentication
+    # The seer.api.use-shared-secret option is kept for backwards compatibility but no longer
+    # controls whether auth headers are added - it only affects metrics/logging behavior
+    if settings.SEER_API_SHARED_SECRET:
+        signature = hmac.new(
+            settings.SEER_API_SHARED_SECRET.encode("utf-8"),
+            body,
+            hashlib.sha256,
+        ).hexdigest()
+        auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
+    else:
+        # Only log warning if the probabilistic setting suggests auth should be used
+        if random() < options.get("seer.api.use-shared-secret"):
             logger.warning(
                 "Seer.api.use-shared-secret is set but secret is not set. Unable to add auth headers for call to Seer."
             )
