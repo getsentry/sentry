@@ -219,10 +219,10 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 def nullify_seer_matched_grouphash_references(hash_ids: Sequence[int]) -> None:
     """
     Nullify seer_matched_grouphash_id references in batches to avoid database timeouts.
-    
+
     This prevents the implicit ON DELETE SET NULL cascade from timing out when deleting
     GroupHash records that are referenced by many GroupHashMetadata records.
-    
+
     Args:
         hash_ids: IDs of GroupHash records that are about to be deleted
     """
