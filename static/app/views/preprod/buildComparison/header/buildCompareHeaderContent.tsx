@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,59 +47,68 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   ];
 
   return (
-    <Flex direction="column" gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
-      <Breadcrumbs crumbs={breadcrumbs} />
-      <Heading as="h1">Build comparison</Heading>
-      <Flex gap="lg" wrap="wrap" align="center">
-        <Flex gap="sm" align="center">
-          <AppIcon>
-            <AppIconPlaceholder>
-              {buildDetails.app_info.name?.charAt(0) || ''}
-            </AppIconPlaceholder>
-          </AppIcon>
-          <Text>{buildDetails.app_info.name}</Text>
-        </Flex>
-        <Flex gap="sm" align="center">
-          <InfoIcon>
-            {buildDetails.app_info.platform ? (
-              <PlatformIcon
-                platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
-              />
-            ) : null}
-          </InfoIcon>
-          <Text>
-            {buildDetails.app_info.platform
-              ? getReadablePlatformLabel(buildDetails.app_info.platform)
-              : ''}
-          </Text>
-        </Flex>
-        <Flex gap="sm" align="center">
-          <InfoIcon>
-            <IconJson />
-          </InfoIcon>
-          <Text>{buildDetails.app_info.app_id}</Text>
-        </Flex>
-        {buildDetails.app_info.build_configuration && (
+    <Flex justify="between" align="center" gap="lg">
+      <Stack gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
+        <Breadcrumbs crumbs={breadcrumbs} />
+        <Heading as="h1">Build comparison</Heading>
+        <Flex gap="lg" wrap="wrap" align="center">
           <Flex gap="sm" align="center">
-            <IconMobile size="sm" color="gray300" />
-            <Tooltip title={t('Build configuration')}>
-              <Text monospace>{buildDetails.app_info.build_configuration}</Text>
-            </Tooltip>
+            <AppIcon>
+              <AppIconPlaceholder>
+                {buildDetails.app_info.name?.charAt(0) || ''}
+              </AppIconPlaceholder>
+            </AppIcon>
+            <Text>{buildDetails.app_info.name}</Text>
           </Flex>
-        )}
-        {isSizeInfoCompleted(buildDetails.size_info) && (
           <Flex gap="sm" align="center">
-            <IconDownload size="sm" color="gray300" />
-            <Text>{formattedDownloadSize(buildDetails)}</Text>
+            <InfoIcon>
+              {buildDetails.app_info.platform ? (
+                <PlatformIcon
+                  platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
+                />
+              ) : null}
+            </InfoIcon>
+            <Text>
+              {buildDetails.app_info.platform
+                ? getReadablePlatformLabel(buildDetails.app_info.platform)
+                : ''}
+            </Text>
           </Flex>
-        )}
-        {isSizeInfoCompleted(buildDetails.size_info) && (
           <Flex gap="sm" align="center">
-            <IconCode size="sm" color="gray300" />
-            <Text>{formattedInstallSize(buildDetails)}</Text>
+            <InfoIcon>
+              <IconJson />
+            </InfoIcon>
+            <Text>{buildDetails.app_info.app_id}</Text>
           </Flex>
-        )}
-      </Flex>
+          {buildDetails.app_info.build_configuration && (
+            <Flex gap="sm" align="center">
+              <IconMobile size="sm" color="gray300" />
+              <Tooltip title={t('Build configuration')}>
+                <Text monospace>{buildDetails.app_info.build_configuration}</Text>
+              </Tooltip>
+            </Flex>
+          )}
+          {isSizeInfoCompleted(buildDetails.size_info) && (
+            <Flex gap="sm" align="center">
+              <IconDownload size="sm" color="gray300" />
+              <Text>{formattedDownloadSize(buildDetails)}</Text>
+            </Flex>
+          )}
+          {isSizeInfoCompleted(buildDetails.size_info) && (
+            <Flex gap="sm" align="center">
+              <IconCode size="sm" color="gray300" />
+              <Text>{formattedInstallSize(buildDetails)}</Text>
+            </Flex>
+          )}
+        </Flex>
+      </Stack>
+      <FeedbackWidgetButton
+        optionOverrides={{
+          tags: {
+            'feedback.source': 'preprod.buildDetails',
+          },
+        }}
+      />
     </Flex>
   );
 }
