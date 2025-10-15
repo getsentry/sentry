@@ -15,6 +15,7 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -176,7 +177,14 @@ function AutomationEditForm({automation}: {automation: Automation}) {
                 mutationErrors: error?.responseJSON,
               }}
             >
-              <AutomationBuilderContext.Provider value={{state, actions}}>
+              <AutomationBuilderContext.Provider
+                value={{
+                  state,
+                  actions,
+                  showTriggerLogicTypeSelector:
+                    state.triggers.logicType === DataConditionGroupLogicType.ALL,
+                }}
+              >
                 <AutomationForm model={model} />
               </AutomationBuilderContext.Provider>
             </AutomationBuilderErrorContext.Provider>

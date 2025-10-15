@@ -57,6 +57,12 @@ class ThresholdType(TypedDict):
     unit: str
 
 
+class WidgetChangedReasonType(TypedDict):
+    orderby: list[dict[str, str]] | None
+    equations: list[dict[str, str | list[str]]] | None
+    selected_columns: list[str]
+
+
 class DashboardWidgetResponse(TypedDict):
     id: str
     title: str
@@ -72,6 +78,7 @@ class DashboardWidgetResponse(TypedDict):
     layout: dict[str, int] | None
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
+    changedReason: list[WidgetChangedReasonType] | None
 
 
 class DashboardPermissionsResponse(TypedDict):
@@ -304,6 +311,7 @@ class DashboardWidgetSerializer(Serializer):
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
+            "changedReason": obj.changed_reason,
         }
 
         if explore_urls:
@@ -446,7 +454,7 @@ class DashboardFiltersMixin:
             page_filters["utc"] = dashboard_filters["utc"]
 
         tag_filters: DashboardFilters = {}
-        for filter_key in ("release", "releaseId"):
+        for filter_key in ("release", "releaseId", "globalFilter"):
             if dashboard_filters.get(camel_to_snake_case(filter_key)):
                 tag_filters[filter_key] = dashboard_filters[camel_to_snake_case(filter_key)]
 
@@ -563,6 +571,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 class DashboardFilters(TypedDict, total=False):
     release: list[str]
     releaseId: list[str]
+    globalFilter: list[dict[str, Any]]
 
 
 class DashboardDetailsResponseOptional(TypedDict, total=False):
@@ -608,6 +617,14 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
+
+        if "globalFilter" in tag_filters and not features.has(
+            "organizations:dashboards-global-filters",
+            organization=obj.organization,
+            actor=user,
+        ):
+            tag_filters["globalFilter"] = []
+
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
             "title": obj.title,

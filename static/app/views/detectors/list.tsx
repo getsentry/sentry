@@ -135,11 +135,8 @@ function Actions() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  let project: number | undefined;
-  if (selection.projects) {
-    // Find the first selected project id that is not the all access project
-    project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
-  }
+  // Pass the first selected project id that is not the all access project
+  const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
 
   return (
     <Flex gap="sm">
@@ -147,7 +144,7 @@ function Actions() {
       <LinkButton
         to={{
           pathname: makeMonitorCreatePathname(organization.slug),
-          query: project ? {project} : undefined,
+          query: {project},
         }}
         priority="primary"
         icon={<IconAdd />}

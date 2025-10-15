@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import status
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -128,10 +127,8 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
             )
         )
         if not target_group:
-            return Response(
-                {"detail": "Group not found. Could not query open periods."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return self.paginate(request=request, queryset=[])
+
         limit = None
         per_page = request.GET.get("per_page")
         if per_page:
