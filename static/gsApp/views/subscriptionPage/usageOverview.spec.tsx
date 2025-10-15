@@ -13,6 +13,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {DataCategory} from 'sentry/types/core';
 
+import {GIGABYTE} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
@@ -116,6 +117,12 @@ describe('UsageOverview', () => {
       usage: 6000,
       onDemandSpendUsed: 10_00,
     };
+    subscription.categories.attachments = {
+      ...subscription.categories.attachments!,
+      reserved: 25, // 25 GB
+      free: 0,
+      usage: GIGABYTE / 2,
+    };
     subscription.categories.spans = {
       ...subscription.categories.spans!,
       reserved: 20_000_000,
@@ -135,7 +142,7 @@ describe('UsageOverview', () => {
         name: 'Start 14 day free Continuous Profile Hours trial',
       })
     ).toBeInTheDocument();
-    expect(screen.getByText('Trial available')).toBeInTheDocument();
+    expect(screen.queryByText('Trial available')).not.toBeInTheDocument();
 
     // Replays product trial active
     expect(screen.getByText('20 days left')).toBeInTheDocument();
@@ -143,6 +150,12 @@ describe('UsageOverview', () => {
     // Errors usage and gifted units
     expect(screen.getByText('6,000 / 51,000')).toBeInTheDocument();
     expect(screen.getByText('$10.00')).toBeInTheDocument();
+    expect(screen.getByText('12%')).toBeInTheDocument();
+
+    // Attachments usage should be in the correct unit + above platform volume
+    expect(screen.getByText('500 MB / 25 GB')).toBeInTheDocument();
+    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getByText('$6.00')).toBeInTheDocument();
 
     // Reserved spans above platform volume
     expect(screen.getByText('0 / 20,000,000')).toBeInTheDocument();
@@ -161,16 +174,14 @@ describe('UsageOverview', () => {
       />
     );
     expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Collapse Seer details'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Collapse Seer details'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
 
     // Org has Prevent flag but did not buy Prevent add on
     expect(screen.getByRole('cell', {name: 'Prevent'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Collapse Prevent details'})
+      screen.queryByRole('row', {name: 'Collapse Prevent details'})
     ).not.toBeInTheDocument();
     // We test it this way to ensure we don't show the cell with the proper display name or the raw DataCategory
     expect(screen.queryByRole('cell', {name: /Prevent*Users/})).not.toBeInTheDocument();
