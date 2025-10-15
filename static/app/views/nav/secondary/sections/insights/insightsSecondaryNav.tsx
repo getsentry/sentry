@@ -8,7 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   AGENTS_LANDING_SUB_PATH,
-  getAISidebarLabel,
+  AI_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/agents/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
@@ -74,7 +74,7 @@ export function InsightsSecondaryNav() {
             analyticsItemName="insights_agents"
             trailingItems={<FeatureBadge type="new" />}
           >
-            {getAISidebarLabel(organization)}
+            {AI_SIDEBAR_LABEL}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-monitors">

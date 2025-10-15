@@ -980,31 +980,43 @@ describe('SearchQueryBuilder', () => {
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
       render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
+        organization: {
+          features: [
+            'search-query-builder-input-flow-changes',
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
       });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
-      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: `browser.name:${WildcardOperators.CONTAINS}""`})
+      ).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
 
       // Should have focus on the operator option
-      const operatorOption = await screen.findByRole('option', {name: 'is'});
+      const operatorOption = await screen.findByRole('option', {name: 'contains'});
       expect(operatorOption).toHaveFocus();
       await userEvent.click(operatorOption);
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
-      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        })
+      ).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
-        'browser.name:Firefox',
+        `browser.name:${WildcardOperators.CONTAINS}Firefox`,
         expect.anything()
       );
     });
@@ -1127,7 +1139,15 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('converts text to filter when typing <filter>:', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-input-flow-changes',
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(getLastInput());
 
       await userEvent.type(
@@ -1135,7 +1155,9 @@ describe('SearchQueryBuilder', () => {
         'browser.name:'
       );
 
-      const browserNameFilter = await screen.findByRole('row', {name: 'browser.name:""'});
+      const browserNameFilter = await screen.findByRole('row', {
+        name: `browser.name:${WildcardOperators.CONTAINS}""`,
+      });
       expect(browserNameFilter).toBeInTheDocument();
     });
 
@@ -1155,16 +1177,28 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('selects [Filtered] from dropdown', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-input-flow-changes',
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(getLastInput());
 
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
         'message:'
       );
+      await userEvent.keyboard('{enter}');
       await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
+
       expect(
-        await screen.findByRole('row', {name: 'message:"[Filtered]"'})
+        await screen.findByRole('row', {
+          name: `message:${WildcardOperators.CONTAINS}"[Filtered]"`,
+        })
       ).toBeInTheDocument();
     });
   });
@@ -4133,6 +4167,21 @@ describe('SearchQueryBuilder', () => {
       ).toHaveTextContent('bar');
 
       expect(screen.getByLabelText('avg(tags[bar,number]):>0')).toBeInTheDocument();
+    });
+  });
+
+  describe('case sensitivity', () => {
+    it('renders the case sensitivity toggle when the feature is enabled', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive={1}
+          onCaseInsensitiveClick={() => Promise.resolve(new URLSearchParams())}
+        />,
+        {organization: {features: ['search-query-builder-case-insensitivity']}}
+      );
+
+      expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
     });
   });
 

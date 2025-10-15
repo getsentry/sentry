@@ -268,11 +268,11 @@ export function WizardProjectSelection({
 
   const projectNameField = (
     <FieldWrapper>
-      <label>{t('Project Name')}</label>
+      <label>{t('Project Slug')}</label>
       <Input
         value={newProjectName}
         onChange={event => setNewProjectName(event.target.value)}
-        placeholder={t('Enter a project name')}
+        placeholder={t('Enter a project slug')}
       />
     </FieldWrapper>
   );

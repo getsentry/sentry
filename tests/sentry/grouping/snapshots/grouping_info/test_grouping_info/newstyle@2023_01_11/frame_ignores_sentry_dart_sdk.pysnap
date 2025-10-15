@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T22:58:46.290367+00:00'
+created: '2025-10-06T21:57:34.006146+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -75,7 +75,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "in-app",
+    "description": "event-level stacktrace — in-app frames",
     "hash": null,
     "hint": null,
     "key": "app_stacktrace",
@@ -83,7 +83,7 @@ source: tests/sentry/grouping/test_grouping_info.py
   },
   "fallback": {
     "contributes": true,
-    "description": "fallback",
+    "description": "fallback grouping",
     "hash": "d41d8cd98f00b204e9800998ecf8427e",
     "hint": null,
     "key": "fallback",
@@ -160,7 +160,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "system",
+    "description": "event-level stacktrace — all frames",
     "hash": null,
     "hint": null,
     "key": "system_stacktrace",

@@ -19,7 +19,6 @@ from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_uptime_subscription,
@@ -93,6 +92,7 @@ def check_uptime_subscription_limit(organization_id: int) -> None:
     """
     manual_subscription_count = Detector.objects.filter(
         status=ObjectStatus.ACTIVE,
+        enabled=True,
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization_id=organization_id,
         config__mode=UptimeMonitorMode.MANUAL,
@@ -128,7 +128,6 @@ def create_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     trace_sampling: bool = False,
-    uptime_status: UptimeStatus = UptimeStatus.OK,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -152,7 +151,6 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
-        uptime_status=uptime_status,
     )
 
     # Associate active regions with this subscription
@@ -280,7 +278,6 @@ def create_uptime_detector(
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=UptimeStatus.OK,
         )
         owner_user_id = None
         owner_team_id = None

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call, patch
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import get_seer_similar_issues
 from sentry.grouping.variants import BaseVariant
@@ -59,7 +59,7 @@ def create_new_event(
     )
 
     if stacktrace_string is None:
-        stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+        stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
     event.data["stacktrace_string"] = stacktrace_string
 
     return (event, variants, grouphash, stacktrace_string)

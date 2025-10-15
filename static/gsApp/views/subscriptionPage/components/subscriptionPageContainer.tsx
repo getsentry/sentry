@@ -1,7 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Container} from 'sentry/components/core/layout';
+import type {ContainerProps} from 'sentry/components/core/layout/container';
 import type {Organization} from 'sentry/types/organization';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 
@@ -11,14 +14,27 @@ function SubscriptionPageContainer({
   background,
   organization,
   dataTestId,
+  useBorderTopLogic = true,
+  paddingOverride,
 }: {
   children: React.ReactNode;
   organization: Organization;
   background?: 'primary' | 'secondary';
   dataTestId?: string;
   header?: React.ReactNode;
+  paddingOverride?: ContainerProps['padding'];
+  useBorderTopLogic?: boolean;
 }) {
+  useEffect(() => {
+    // record replays for all usage and billing settings pages
+    Sentry.getReplay()?.start();
+  }, []);
+
   const isNewBillingUI = hasNewBillingUI(organization);
+  useRouteAnalyticsParams({
+    isNewBillingUI,
+  });
+
   if (!isNewBillingUI) {
     if (dataTestId) {
       return <Container data-test-id={dataTestId}>{children}</Container>;
@@ -29,11 +45,13 @@ function SubscriptionPageContainer({
     <Fragment>
       {header}
       <Container
-        padding={{xs: 'xl', md: '3xl'}}
+        padding={paddingOverride ?? {xs: 'xl', md: '3xl'}}
         background={background}
-        height="100%"
+        flexGrow={1}
         data-test-id={dataTestId}
-        borderTop={background === 'secondary' ? 'primary' : undefined}
+        borderTop={
+          useBorderTopLogic && background === 'secondary' ? 'primary' : undefined
+        }
       >
         {children}
       </Container>

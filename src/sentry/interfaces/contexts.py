@@ -203,7 +203,12 @@ class BrowserContextType(ContextType):
 @contexttype
 class OsContextType(ContextType):
     type = "os"
-    context_to_tag_mapping = {"": "{os}", "name": "{name}", "rooted": "{rooted}"}
+    context_to_tag_mapping = {
+        "": "{os}",
+        "name": "{name}",
+        "rooted": "{rooted}",
+        "build": "{build}",
+    }
     # build, rooted
 
 

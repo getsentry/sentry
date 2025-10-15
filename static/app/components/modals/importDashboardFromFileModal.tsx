@@ -6,8 +6,8 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -121,7 +121,7 @@ function ImportDashboardFromFileModal({
           <Wrapper>
             <h4>{t('Preview')}</h4>
           </Wrapper>
-          <CodeSnippet language="json">{dashboardData}</CodeSnippet>
+          <CodeBlock language="json">{dashboardData}</CodeBlock>
         </Fragment>
       )}
     </Fragment>

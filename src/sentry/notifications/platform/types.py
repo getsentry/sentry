@@ -27,7 +27,7 @@ NOTIFICATION_SOURCE_MAP = {
         "test",
         "error-alert-service",
         "deployment-service",
-        "security-monitoring",
+        "slow-load-metric-alert",
         "performance-monitoring",
         "team-communication",
     ],
