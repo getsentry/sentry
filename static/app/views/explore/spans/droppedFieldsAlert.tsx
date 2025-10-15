@@ -5,6 +5,7 @@ import {Text} from 'sentry/components/core/text';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useExploreId} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
@@ -39,7 +40,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
     equationsWarning.push(
       ...changedReason.equations.map(equation =>
         tct(`[equation] is no longer supported because [reason] is unsupported`, {
-          equation: equation.equation,
+          equation: stripEquationPrefix(equation.equation),
           reason:
             typeof equation.reason === 'string'
               ? equation.reason
@@ -50,16 +51,23 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   }
   if (changedReason.orderby) {
     orderbyWarning.push(
-      ...changedReason.orderby.map(equation =>
-        typeof equation.reason === 'string'
-          ? tct(`[orderby] is not supported in this query`, {
-              orderby: equation.orderby,
+      ...changedReason.orderby.map(orderby => {
+        const orderbyWithoutPrefix = orderby.orderby.startsWith('-')
+          ? orderby.orderby.replace('-', '')
+          : orderby.orderby;
+        const reasonText =
+          typeof orderby.reason === 'string' ? orderby.reason : orderby.reason.join(', ');
+
+        // make sure that the reason and the orderby aren't the same and word it correctly
+        return typeof orderby.reason === 'string' || orderbyWithoutPrefix === reasonText
+          ? tct(`sorting by [orderby] is no longer supported`, {
+              orderby: orderbyWithoutPrefix,
             })
-          : tct(`[orderby] is not supported because [reason] is unsupported`, {
-              orderby: equation.orderby,
-              reason: equation.reason.join(', '),
-            })
-      )
+          : tct(`sorting by [orderby] is not supported because [reason] is unsupported`, {
+              orderby: orderby.orderby,
+              reason: reasonText,
+            });
+      })
     );
   }
 
