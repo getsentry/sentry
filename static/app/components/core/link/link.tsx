@@ -75,7 +75,7 @@ export const Link = styled(({disabled, to, ...props}: LinkProps) => {
   const location = useLocation();
 
   if (disabled || !location) {
-    return <Anchor {...props} />;
+    return <Anchor {...props} aria-disabled={disabled} />;
   }
 
   return (
