@@ -89,13 +89,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
     error: null,
   })),
 }));
-jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
-  useTopNSpanSeries: jest.fn(() => ({
-    data: [mockDiscoverSeries('transaction_a,abc123')],
-    isPending: false,
-    error: null,
-  })),
-}));
 jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
   useFetchSpanTimeSeries: jest.fn(({groupBy}: {groupBy?: string[]}) => ({
     data: {
