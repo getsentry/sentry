@@ -103,7 +103,8 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreUsingName = shouldUseOTelFriendlyUI && span.name !== span.op;
+  const exploreUsingName =
+    shouldUseOTelFriendlyUI && !span.description && span.name !== span.op;
   const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
