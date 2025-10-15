@@ -39,10 +39,29 @@ const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
 `;
 
-const StyledBody = styled(Layout.Body)`
+const HeaderInner = styled('div')<{maxWidth?: string}>`
+  display: contents;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: ${p => p.maxWidth};
+    width: 100%;
+  }
+`;
+
+const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
   display: flex;
   flex-direction: column;
   gap: ${space(3)};
+  padding: 0;
+  margin: ${space(2)};
+  max-width: ${p => p.maxWidth};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+    margin: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
+  }
 `;
 
 const FullWidthContent = styled('div')`
@@ -60,8 +79,12 @@ interface HeaderProps extends RequiredChildren {
   noActionWrap?: boolean;
 }
 
-function Header({children, noActionWrap}: HeaderProps) {
-  return <StyledLayoutHeader noActionWrap={noActionWrap}>{children}</StyledLayoutHeader>;
+function Header({children, noActionWrap, maxWidth}: HeaderProps & {maxWidth?: string}) {
+  return (
+    <StyledLayoutHeader noActionWrap={noActionWrap}>
+      <HeaderInner maxWidth={maxWidth}>{children}</HeaderInner>
+    </StyledLayoutHeader>
+  );
 }
 
 function HeaderContent({children}: RequiredChildren) {
@@ -89,9 +112,9 @@ function HeaderFields({children}: RequiredChildren) {
   return <FullWidthContent>{children}</FullWidthContent>;
 }
 
-function Body({children}: RequiredChildren) {
+function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {
   return (
-    <StyledBody>
+    <StyledBody maxWidth={maxWidth}>
       <Layout.Main fullWidth>{children}</Layout.Main>
     </StyledBody>
   );
@@ -99,18 +122,21 @@ function Body({children}: RequiredChildren) {
 
 interface FooterProps extends RequiredChildren {
   label?: string;
+  maxWidth?: string;
 }
 
-function Footer({children, label}: FooterProps) {
+function Footer({children, label, maxWidth}: FooterProps) {
   return (
     <StickyFooter>
-      {label && (
-        <Text variant="muted" size="md">
-          {label}
-        </Text>
-      )}
-      <Flex gap="md" flex={label ? undefined : 1} justify="end">
-        {children}
+      <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+        {label && (
+          <Text variant="muted" size="md">
+            {label}
+          </Text>
+        )}
+        <Flex gap="md" flex={label ? undefined : 1} justify="end">
+          {children}
+        </Flex>
       </Flex>
     </StickyFooter>
   );
