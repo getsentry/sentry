@@ -636,6 +636,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
+        isFeedback = (
+            self.group.issue_category == GroupCategory.FEEDBACK
+            or self.group.issue_category_v2 == GroupCategory.FEEDBACK
+        )
+        streamlineFeedbackAlert = features.has(
+            "organizations:user-feedback-streamline-alerts", self.group.organization
+        )
+
         self.issue_summary = fetch_issue_summary(self.group)
 
         # XXX(dcramer): options are limited to 100 choices, even when nested
@@ -722,20 +730,23 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
-        # set up block id
-        block_id = {"issue": self.group.id}
-        if rule_id:
-            block_id["rule"] = rule_id
+        if isFeedback and streamlineFeedbackAlert:
+            pass
+        else:
+            # set up block id
+            block_id = {"issue": self.group.id}
+            if rule_id:
+                block_id["rule"] = rule_id
 
-        # build tags block
-        tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
-        if tags:
-            blocks.append(self.get_tags_block(tags, block_id))
+            # build tags block
+            tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
+            if tags:
+                blocks.append(self.get_tags_block(tags, block_id))
 
-        # add event count, user count, substate, first seen
-        context = get_context(self.group, self.rules)
-        if context:
-            blocks.append(self.get_context_block(context))
+            # add event count, user count, substate, first seen
+            context = get_context(self.group, self.rules)
+            if context:
+                blocks.append(self.get_context_block(context))
 
         # build actions
         actions = []
@@ -766,19 +777,22 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
 
-        # suggested assignees
-        suggested_assignees = []
-        if event_for_tags:
-            suggested_assignees = get_suggested_assignees(
-                self.group.project, event_for_tags, assignee
-            )
-        if len(suggested_assignees) > 0:
-            blocks.append(self.get_suggested_assignees_block(suggested_assignees))
+        if isFeedback and streamlineFeedbackAlert:
+            pass
+        else:
+            # suggested assignees
+            suggested_assignees = []
+            if event_for_tags:
+                suggested_assignees = get_suggested_assignees(
+                    self.group.project, event_for_tags, assignee
+                )
+            if len(suggested_assignees) > 0:
+                blocks.append(self.get_suggested_assignees_block(suggested_assignees))
 
-        # add suspect commit info
-        suspect_commit_text = get_suspect_commit_text(self.group)
-        if suspect_commit_text:
-            blocks.append(self.get_context_block(suspect_commit_text))
+            # add suspect commit info
+            suspect_commit_text = get_suspect_commit_text(self.group)
+            if suspect_commit_text:
+                blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
