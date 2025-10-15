@@ -53,3 +53,28 @@ class RegistryTest(TestCase):
 
         test_registry.register("something else")(registered_func)
         assert test_registry.get("something else") == registered_func
+
+    def test_allow_reregistration(self) -> None:
+        test_registry = Registry[Callable[[], None]](allow_reregistration=True)
+
+        @test_registry.register("something")
+        def registered_func():
+            raise NotImplementedError
+
+        test_registry.register("something")(registered_func)
+        assert test_registry.get("something") == registered_func
+        assert test_registry.get_key(registered_func) == "something"
+
+        test_registry.register("something")(registered_func)
+
+    def test_allow_reregistration_with_reverse_lookup(self) -> None:
+        test_registry = Registry[Callable[[], None]](
+            enable_reverse_lookup=True, allow_reregistration=True
+        )
+
+        @test_registry.register("something")
+        def registered_func():
+            raise NotImplementedError
+
+        with pytest.raises(AlreadyRegisteredError):
+            test_registry.register("something 2")(registered_func)
