@@ -14,6 +14,14 @@ type HeadingProps = {
   children: React.ReactNode;
 };
 
+const calloutToAlertType: Record<string, AlertProps['type']> = {
+  tip: 'muted',
+  note: 'info',
+  important: 'success',
+  warning: 'warning',
+  caution: 'error',
+};
+
 // Heading levels shifted N+1 for proper semantics on /stories pages
 export const storyMdxComponents = {
   h1: (props: HeadingProps) => <StoryHeading as="h2" size="2xl" {...props} />,
@@ -24,13 +32,6 @@ export const storyMdxComponents = {
   h6: (props: HeadingProps) => <StoryHeading as="h6" size="xs" {...props} />,
   code: (props: HTMLProps<HTMLElement>) => <InlineCode {...props} />,
   Callout: (props: PropsWithChildren<CalloutProps>) => {
-    const calloutToAlertType: Record<string, AlertProps['type']> = {
-      tip: 'muted',
-      note: 'info',
-      important: 'success',
-      warning: 'warning',
-      caution: 'error',
-    };
     /** Drop leading title node since it is duplicated */
     const children = React.Children.toArray(props.children).slice(2);
     const expand = props.isFoldable ? children : undefined;
