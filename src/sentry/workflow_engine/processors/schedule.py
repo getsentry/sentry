@@ -97,7 +97,7 @@ class ProjectChooser:
         return hashlib.sha256(project_id.to_bytes(8)).digest()[0] % self.num_cohorts
 
     def project_ids_to_process(
-        self, fetch_time: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
+        self, now: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
     ) -> list[int]:
         """
         Given the time, the cohort update history, and the list of project ids in need of processing,
@@ -106,8 +106,19 @@ class ProjectChooser:
         must_process = set[int]()
         may_process = set[int]()
         cohort_to_elapsed = dict[int, timedelta]()
-        now = fetch_time
         long_ago = now - 1000
+        target_max_age = timedelta(minutes=1)  # must run
+        min_scheduling_age = timedelta(seconds=50)  # can run
+        # The cohort choice algorithm is essentially:
+        # 1. Any cohort that hasn't been run recently enough (based on target_max_age)
+        #   must be run.
+        # 2. If no cohort _must_ be run, pick the most stale cohort that hasn't
+        #  been run too recently (based on min_scheduling_age). To guarantee even distribution,
+        #  min_scheduling_age should be <= the scheduling interval.
+        #
+        # With this, we distribute cohorts across runs, but ensure we don't process them
+        # too frequently or too late, while not being too dependent on number of cohorts or
+        # frequency of scheduling.
         for co in range(self.num_cohorts):
             last_run = cohort_updates.values.get(co)
             if last_run is None:
@@ -128,14 +139,14 @@ class ProjectChooser:
                     sample_rate=1.0,
                 )
                 cohort_to_elapsed[co] = elapsed
-            if elapsed >= timedelta(minutes=1):
+            if elapsed >= target_max_age:
                 must_process.add(co)
-            elif elapsed >= timedelta(seconds=60 / self.num_cohorts):
+            elif elapsed >= min_scheduling_age:
                 may_process.add(co)
         if may_process and not must_process:
             choice = min(may_process, key=lambda c: (cohort_updates.values.get(c, long_ago), c))
             must_process.add(choice)
-        cohort_updates.values.update({cohort_id: fetch_time for cohort_id in must_process})
+        cohort_updates.values.update({cohort_id: now for cohort_id in must_process})
         for cohort_id, elapsed in cohort_to_elapsed.items():
             if cohort_id in must_process:
                 metrics.distribution(
