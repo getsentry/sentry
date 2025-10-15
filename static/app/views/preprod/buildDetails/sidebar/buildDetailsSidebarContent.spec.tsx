@@ -36,19 +36,19 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
 
 function TestComponent({
   artifactId,
-  projectId,
+  projectSlug,
   buildDetailsData,
   isBuildDetailsPending,
 }: {
   artifactId: string;
-  projectId: string;
-  buildDetailsData?: BuildDetailsApiResponse | null;
+  projectSlug: string;
+  buildDetailsData?: BuildDetailsApiResponse;
   isBuildDetailsPending?: boolean;
 }) {
   return (
     <BuildDetailsSidebarContent
       artifactId={artifactId}
-      projectId={projectId}
+      projectSlug={projectSlug}
       buildDetailsData={buildDetailsData}
       isBuildDetailsPending={isBuildDetailsPending}
     />
@@ -62,7 +62,7 @@ describe('BuildDetailsSidebarContent', () => {
 
   const defaultProps = {
     artifactId: '123',
-    projectId: 'test-project',
+    projectSlug: 'test-project',
   };
 
   beforeEach(() => {

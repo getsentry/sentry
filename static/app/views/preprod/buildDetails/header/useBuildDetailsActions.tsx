@@ -9,11 +9,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface UseBuildDetailsActionsProps {
   artifactId: string;
-  projectId: string;
+  projectSlug: string;
 }
 
 export function useBuildDetailsActions({
-  projectId,
+  projectSlug,
   artifactId,
 }: UseBuildDetailsActionsProps) {
   const organization = useOrganization();
@@ -25,14 +25,14 @@ export function useBuildDetailsActions({
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/delete/`,
+        url: `/projects/${organization.slug}/${projectSlug}/preprodartifacts/${artifactId}/delete/`,
         method: 'DELETE',
       });
     },
     onSuccess: () => {
       addSuccessMessage(t('Build deleted successfully'));
       // TODO(preprod): navigate back to the release page once built?
-      navigate(`/organizations/${organization.slug}/preprod/${projectId}/`);
+      navigate(`/organizations/${organization.slug}/preprod/${projectSlug}/`);
     },
     onError: () => {
       addErrorMessage(t('Failed to delete build'));
@@ -53,7 +53,7 @@ export function useBuildDetailsActions({
   };
 
   const handleDownloadAction = async () => {
-    const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+    const downloadUrl = `/api/0/internal/${organization.slug}/${projectSlug}/files/preprodartifacts/${artifactId}/`;
 
     try {
       const response = await fetch(downloadUrl, {

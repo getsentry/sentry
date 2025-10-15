@@ -20,13 +20,18 @@ import {
 
 interface BuildDetailsSidebarContentProps {
   artifactId: string;
-  projectId: string | null;
-  buildDetailsData?: BuildDetailsApiResponse | null;
+  buildDetailsData?: BuildDetailsApiResponse;
   isBuildDetailsPending?: boolean;
+  projectSlug?: string;
 }
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {buildDetailsData, isBuildDetailsPending = false, artifactId, projectId} = props;
+  const {
+    buildDetailsData,
+    isBuildDetailsPending = false,
+    artifactId,
+    projectSlug,
+  } = props;
 
   if (isBuildDetailsPending || !buildDetailsData) {
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
@@ -126,7 +131,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
         <BuildDetailsSidebarAppInfo
           appInfo={buildDetailsData.app_info}
           sizeInfo={buildDetailsData.size_info}
-          projectId={projectId}
+          projectSlug={projectSlug}
           artifactId={artifactId}
         />
       )}
