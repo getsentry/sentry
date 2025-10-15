@@ -6,8 +6,8 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry
-from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils.sentry_level_utils import quiet_redis_noise
 
 logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows")
 
@@ -27,6 +27,7 @@ def process_delayed_workflows(
     """
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
     from sentry.workflow_engine.processors.delayed_workflow import (
         process_delayed_workflows as _process_delayed_workflows,
     )
@@ -34,4 +35,5 @@ def process_delayed_workflows(
     log_context.add_extras(project_id=project_id)
     batch_client = DelayedWorkflowClient()
 
-    _process_delayed_workflows(batch_client, project_id, batch_key)
+    with quiet_redis_noise():
+        _process_delayed_workflows(batch_client, project_id, batch_key)
