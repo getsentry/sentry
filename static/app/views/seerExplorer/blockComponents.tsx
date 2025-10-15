@@ -147,7 +147,6 @@ function BlockComponent({
   }, [
     hasValidLinks,
     validToolLinks,
-    selectedLinkIndex,
     organization.slug,
     navigate,
     onRegisterEnterHandler,
