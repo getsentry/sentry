@@ -208,7 +208,7 @@ def compare_preprod_artifact_size_analysis(
     e2e_size_analysis_compare_duration = time_now - artifact.date_created
     metrics.distribution(
         "preprod.size_analysis.compare.results_e2e",
-        e2e_size_analysis_compare_duration,
+        e2e_size_analysis_compare_duration.total_seconds(),
         tags={"project_id": project_id, "organization_id": org_id},
     )
 
