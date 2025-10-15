@@ -27,7 +27,7 @@ class NotificationServiceTest(TestCase):
 
     def test_basic_notify(self) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
-        service.notify(targets=[self.target], sync_send=True)
+        service.notify_sync(targets=[self.target])
 
     @mock.patch("sentry.notifications.platform.service.logger")
     def test_validation_on_notify(self, mock_logger: mock.MagicMock) -> None:
@@ -36,16 +36,16 @@ class NotificationServiceTest(TestCase):
             NotificationServiceError,
             match="Must provide either a strategy or targets. Strategy is preferred.",
         ):
-            service.notify()
+            service.notify_sync()
 
         strategy = MockStrategy(targets=[])
         with pytest.raises(
             NotificationServiceError,
             match="Cannot provide both strategy and targets, only one is permitted. Strategy is preferred.",
         ):
-            service.notify(strategy=strategy, targets=[self.target])
+            service.notify_sync(strategy=strategy, targets=[self.target])
 
-        service.notify(strategy=strategy)
-        mock_logger.info.assert_called_once_with(
+        service.notify_sync(strategy=strategy)
+        mock_logger.warning.assert_called_once_with(
             "Strategy '%s' did not yield targets", strategy.__class__.__name__
         )

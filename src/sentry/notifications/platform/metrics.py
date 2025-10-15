@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycleMetric
-from sentry.notifications.platform.types import NotificationProviderKey
+from sentry.notifications.platform.types import NotificationCategory, NotificationProviderKey
 
 
 class NotificationInteractionType(StrEnum):
@@ -19,7 +19,9 @@ class NotificationEventLifecycleMetric(EventLifecycleMetric):
     # The template/source of the notification
     notification_source: str
     # The sender of the notification
-    notification_provider: NotificationProviderKey | None
+    notification_provider: NotificationProviderKey | None = None
+    # The category of the notification
+    notification_category: NotificationCategory | None = None
 
     def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
         tokens = ("notifications", "slo", str(outcome))
@@ -33,4 +35,7 @@ class NotificationEventLifecycleMetric(EventLifecycleMetric):
 
         if self.notification_provider:
             tags["notification_provider"] = self.notification_provider
+        if self.notification_category:
+            tags["category"] = self.notification_category
+
         return tags
