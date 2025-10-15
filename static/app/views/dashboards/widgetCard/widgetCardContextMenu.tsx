@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   MEPState,
   useMEPSettingContext,
@@ -113,54 +114,55 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
     return null;
   }
 
-  const baseWarning = t(
-    "This widget may look different from its original query. Here's why:"
-  );
-  const columnsWarning = [];
-  const equationsWarning = [];
-  const orderbyWarning = [];
+  const columnsDropped = [];
+  const equationsDropped = [];
+  const orderbyDropped = [];
   for (const changedReason of widget.changedReason) {
     if (changedReason.selected_columns.length > 0) {
-      columnsWarning.push(
-        tct(`The following fields were dropped: [columns].`, {
-          columns: changedReason.selected_columns.join(', '),
-        })
-      );
+      columnsDropped.push(...changedReason.selected_columns);
     }
     if (changedReason.equations) {
-      equationsWarning.push(
-        ...changedReason.equations.map(equation =>
-          tct(`[equation] was dropped because [reason] is unsupported.`, {
-            equation: equation.equation,
-            reason:
-              typeof equation.reason === 'string'
-                ? equation.reason
-                : equation.reason.join(', '),
-          })
-        )
+      equationsDropped.push(
+        ...changedReason.equations.map(equation => equation.equation)
       );
     }
     if (changedReason.orderby) {
-      orderbyWarning.push(
-        ...changedReason.orderby.map(equation =>
-          tct(`[orderby] was dropped because [reason].`, {
-            orderby: equation.orderby,
-            reason: equation.reason,
-          })
+      orderbyDropped.push(
+        ...changedReason.orderby.flatMap(orderby =>
+          typeof orderby.reason === 'string' ? orderby.orderby : orderby.reason
         )
       );
     }
   }
 
-  const allWarnings = [...columnsWarning, ...equationsWarning, ...orderbyWarning];
+  const orderbyDroppedWithoutNegation = orderbyDropped.map(orderby =>
+    orderby.startsWith('-') ? orderby.replace('-', '') : orderby
+  );
+  const equationsDroppedParsed = equationsDropped.map(equation => {
+    if (isEquation(equation)) {
+      return stripEquationPrefix(equation);
+    }
+    return equation;
+  });
+  const combinedWarnings = [
+    ...columnsDropped,
+    ...equationsDroppedParsed,
+    ...orderbyDroppedWithoutNegation,
+  ];
+  const allWarningsSet = new Set(combinedWarnings);
+  const allWarnings = [...allWarningsSet];
 
   if (allWarnings.length > 0) {
     return (
-      <div style={{alignContent: 'flex-start'}}>
-        <StyledText as="p">{baseWarning}</StyledText>
-        {allWarnings.map((warning, index) => (
-          <StyledText key={index}>{warning}</StyledText>
-        ))}
+      <div>
+        <StyledText as="p">
+          {tct(
+            'This widget looks different because it was migrated to the spans dataset and [columns] is not supported.',
+            {
+              columns: allWarnings.join(', '),
+            }
+          )}
+        </StyledText>
       </div>
     );
   }
