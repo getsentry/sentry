@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {Flex} from 'sentry/components/core/layout';
 
 const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -15,23 +15,24 @@ export const getQuerySymbol = (index: number) => {
 };
 
 function QuerySymbol({index}: {index: number}) {
-  return <Symbol>{getQuerySymbol(index)}</Symbol>;
+  return (
+    <SymbolContainer justify="center" align="center">
+      {getQuerySymbol(index)}
+    </SymbolContainer>
+  );
 }
 
 export default QuerySymbol;
 
-export const Symbol = styled('span')`
-  display: flex;
+const SymbolContainer = styled(Flex)`
   width: 36px;
   height: 36px;
   line-height: 16px;
-  padding: ${space(0.5)};
-  justify-content: center;
-  align-items: center;
-  flex-shrink: 0;
+  padding: ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.borderRadius};
-  font-weight: 500;
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.white};
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSize.sm};
   background: ${p => p.theme.purple300};
+  flex-shrink: 0;
 `;
