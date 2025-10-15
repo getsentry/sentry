@@ -905,8 +905,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             "discover_widget_split", widget.discover_widget_split
         )
         widget.limit = data.get("limit", widget.limit)
-        widget.dataset_source = data.get("dataset_source", widget.dataset_source)
+        new_dataset_source = data.get("dataset_source", widget.dataset_source)
+        widget.dataset_source = new_dataset_source
         widget.detail = {"layout": data.get("layout", prev_layout)}
+
+        if (
+            new_dataset_source == DatasetSourcesTypes.USER.value
+            and widget.widget_type == DashboardWidgetTypes.SPANS
+        ):
+            widget.changed_reason = None
 
         if widget.widget_type not in [
             DashboardWidgetTypes.DISCOVER,

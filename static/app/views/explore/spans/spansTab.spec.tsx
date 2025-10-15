@@ -261,7 +261,7 @@ describe('SpansTabContent', () => {
       );
 
       const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Toggle case sensitivity',
+        name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
     });
@@ -275,7 +275,7 @@ describe('SpansTabContent', () => {
       );
 
       const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Toggle case sensitivity',
+        name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
       await userEvent.click(caseSensitivityToggle);
@@ -304,7 +304,7 @@ describe('SpansTabContent', () => {
       );
 
       const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Toggle case sensitivity',
+        name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
       await userEvent.click(caseSensitivityToggle);

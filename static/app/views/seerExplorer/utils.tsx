@@ -19,7 +19,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
   telemetry_index_dependencies: (args, isLoading) => {
     const title = args.title || 'item';
-    const truncatedTitle = title.length > 50 ? title.slice(0, 50) + '...' : title;
+    const truncatedTitle = title.length > 75 ? title.slice(0, 75) + '...' : title;
     return isLoading
       ? `Tracing the flow of ${truncatedTitle}...`
       : `Traced the flow of ${truncatedTitle}`;
@@ -28,6 +28,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   google_search: (args, isLoading) => {
     const question = args.question || 'query';
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
+  },
+
+  trace_explorer_query: (args, isLoading) => {
+    const question = args.question || 'spans';
+    return isLoading ? `Querying spans: '${question}'` : `Queried spans: '${question}'`;
   },
 };
 
