@@ -176,6 +176,7 @@ interface AudioCompressionInsightResult extends FilesInsightResult {}
 interface VideoCompressionInsightResult extends FilesInsightResult {}
 
 export interface AppleInsightResults {
+  alternate_icons_optimization?: ImageOptimizationInsightResult;
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
   hermes_debug_info?: HermesDebugInfoInsightResult;
