@@ -3,6 +3,7 @@ import {useCallback, useEffect, useReducer, type Reducer} from 'react';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {
   convertTokenTypeToValueType,
+  escapeTagValue,
   getArgsToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -19,6 +20,7 @@ import {
   FilterType,
   TermOperator,
   Token,
+  WildcardOperators,
   type AggregateFilter,
   type ParseResultToken,
   type TokenResult,
@@ -133,7 +135,7 @@ type UpdateFreeTextActionOnColon = {
   focusOverride?: FocusOverride;
 };
 
-type ReplaceTokensWithTextOnPasteAction = {
+export type ReplaceTokensWithTextOnPasteAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
@@ -654,6 +656,114 @@ function updateFilterKey(
     query: newQuery,
     committedQuery: newQuery,
   };
+}
+
+function isReplaceToken(
+  token: TokenResult<Token>,
+  primarySearchKey: string
+): token is TokenResult<Token.FILTER> {
+  return (
+    token.type === Token.FILTER &&
+    token.text.includes(primarySearchKey) &&
+    token.operator === TermOperator.CONTAINS
+  );
+}
+
+/**
+ * This function is used to replace free text tokens with the specified
+ * `replaceRawSearchKeys` prop from `SearchQueryBuilder`. This function also handles
+ * escaping values, as well as merging the previously created filter.
+ *
+ * Example, `replaceRawSearchKeys` set to `['span.description']`
+ *
+ * 1. User types `text` -> `span.description:*text*`
+ * 2. User types `some text` -> `span.description:"*some text*"`
+ * 3. `span.description:*test*` already exists, user types `some text` -> `span.
+ * description:[*test*,"*some text*"]`
+ */
+export function replaceFreeTextTokens(
+  action: ReplaceTokensWithTextOnPasteAction,
+  getFieldDefinition: FieldDefinitionGetter,
+  replaceRawSearchKeys: string[],
+  currentQuery: string
+) {
+  if (!action.text || action.text === '' || replaceRawSearchKeys.length === 0) {
+    return undefined;
+  }
+
+  const actionTokens = parseQueryBuilderValue(action.text, getFieldDefinition) ?? [];
+  if (actionTokens.every(token => token.type !== Token.FREE_TEXT)) {
+    return undefined;
+  }
+
+  const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
+  if (tokens.length === 0) {
+    return undefined;
+  }
+
+  const primarySearchKey = replaceRawSearchKeys[0] ?? '';
+  let replaceToken: TokenResult<Token.FILTER> | undefined;
+  const freeTextToken = actionTokens.find(
+    token => token.type === Token.FREE_TEXT && /\w/.test(token.value)
+  );
+
+  for (const token of tokens) {
+    if (isReplaceToken(token, primarySearchKey)) {
+      replaceToken = token;
+      break;
+    }
+  }
+
+  const valueText = freeTextToken?.text.trim();
+  if (!valueText) {
+    return undefined;
+  }
+  const values = escapeTagValue(valueText);
+
+  const filteredTokens = new Set<string>();
+  actionTokens.forEach(token => {
+    const isNotFreeText = token.type !== Token.FREE_TEXT;
+
+    if (isNotFreeText && !isReplaceToken(token, primarySearchKey)) {
+      filteredTokens.add(token.text);
+    }
+  });
+
+  tokens.forEach(token => {
+    const isNotFreeText = token.type !== Token.FREE_TEXT;
+    if (isNotFreeText && !isReplaceToken(token, primarySearchKey)) {
+      filteredTokens.add(token.text);
+    }
+  });
+
+  // case when there is a replace key and value present
+  if (replaceToken) {
+    const previousValue =
+      replaceToken.value.type === Token.VALUE_TEXT_LIST
+        ? replaceToken.value.text.slice(1, -1)
+        : replaceToken.value.text;
+
+    filteredTokens.add(
+      `${primarySearchKey}:${WildcardOperators.CONTAINS}[${previousValue},${values}]`
+    );
+  } else {
+    filteredTokens.add(`${primarySearchKey}:${WildcardOperators.CONTAINS}${values}`);
+  }
+
+  const newQuery = Array.from(filteredTokens).join(' ');
+
+  const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition) ?? [];
+  const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
+  const focusedToken = newParsedQuery?.findLast(
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+  );
+
+  const focusOverride = focusedToken
+    ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+    : null;
+
+  return {newQuery, focusOverride};
 }
 
 export function useQueryBuilderState({
