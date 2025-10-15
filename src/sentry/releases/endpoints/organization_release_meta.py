@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TypedDict
 
+from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -57,8 +58,8 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         commit_files_changed = (
             CommitFileChange.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
-                    "commit_id", flat=True
+                Exists(
+                    ReleaseCommit.objects.filter(release=release, commit_id=OuterRef("commit_id"))
                 )
             )
             .values("filename")
