@@ -8,8 +8,7 @@ export function ContextContainer(props: FlexProps) {
   return <Stack {...props} />;
 }
 
-export const ContextHeader = styled('div')`
-  display: flex;
+export const ContextHeader = styled(Flex)`
   align-items: center;
   margin-bottom: ${space(0.75)};
 `;

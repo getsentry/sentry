@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
@@ -129,7 +130,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             css={grayText}
             aria-label={t('Event timestamp')}
           />
-          <JsonLinkWrapper className="hidden-xs">
+          <Flex align="center" gap="xs" className="hidden-xs">
             <Divider />
             <JsonLink
               href={jsonUrl}
@@ -145,7 +146,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             </JsonLink>
             <Divider />
             <GroupMarkdownButton group={group} event={event} />
-          </JsonLinkWrapper>
+          </Flex>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
               <Divider />
@@ -216,12 +217,6 @@ const ProcessingErrorButton = styled(Button)`
   :hover {
     color: ${p => p.theme.red300};
   }
-`;
-
-const JsonLinkWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const JsonLink = styled(ExternalLink)`

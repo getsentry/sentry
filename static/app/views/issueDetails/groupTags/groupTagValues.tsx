@@ -208,7 +208,7 @@ export function GroupTagValues() {
 
       return (
         <Fragment key={tagValueIdx}>
-          <NameColumn>
+          <NameColumn align="center">
             <NameWrapper data-test-id="group-tag-value">
               <GlobalSelectionLink
                 to={{
@@ -242,12 +242,16 @@ export function GroupTagValues() {
               </StyledExternalLink>
             )}
           </NameColumn>
-          <RightAlignColumn>{pct}</RightAlignColumn>
-          <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
-          <RightAlignColumn>
+          <Flex align="center" justify="end">
+            {pct}
+          </Flex>
+          <Flex align="center" justify="end">
+            {tagValue.count.toLocaleString()}
+          </Flex>
+          <Flex align="center" justify="end">
             <TimeSince date={tagValue.lastSeen} />
-          </RightAlignColumn>
-          <RightAlignColumn>
+          </Flex>
+          <Flex align="center" justify="end">
             <DropdownMenu
               size="sm"
               position="bottom-end"
@@ -283,7 +287,7 @@ export function GroupTagValues() {
                 },
               ]}
             />
-          </RightAlignColumn>
+          </Flex>
         </Fragment>
       );
     });
@@ -411,7 +415,6 @@ function RightAlignColumn(props: FlexProps) {
 
 const NameColumn = styled(Column)`
   ${p => p.theme.overflowEllipsis};
-  display: flex;
   min-width: 320px;
 `;
 
