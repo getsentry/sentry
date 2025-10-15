@@ -182,12 +182,7 @@ export function TransactionNodeDetails({
         />
 
         {event.projectSlug ? (
-          <Entries
-            definedEvent={event}
-            projectSlug={event.projectSlug}
-            group={undefined}
-            organization={organization}
-          />
+          <Entries definedEvent={event} projectSlug={event.projectSlug} />
         ) : null}
 
         <TraceDrawerComponents.EventTags

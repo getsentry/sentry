@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
+  isBrowserRequestNode,
   isEAPSpan,
   isEAPSpanNode,
   isEAPTransaction,
@@ -18,6 +19,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
+  id: string;
+  type: TraceTree.NodeType;
+
   reparentedEAPTransactions = new Set<EapSpanNode>();
   /**
    * The breakdown of the node's children's operations by count.
@@ -36,6 +40,9 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       : parent;
 
     super(parentNode, value, extra);
+
+    this.id = value.event_id;
+    this.type = 'span';
 
     this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;
@@ -68,23 +75,16 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   private _updateAncestorOpsBreakdown(node: EapSpanNode, op: string) {
     let current = node.parent;
     while (current) {
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       if (isEAPSpanNode(current)) {
-        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         const existing = current.opsBreakdown.find(b => b.op === op);
         if (existing) {
           existing.count++;
         } else {
-          // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
           current.opsBreakdown.push({op, count: 1});
         }
       }
       current = current.parent;
     }
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'span';
   }
 
   get description(): string | undefined {
@@ -108,44 +108,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     };
   }
 
-  get directChildren(): Array<BaseNode<TraceTree.NodeValue>> {
+  get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
     if (isEAPTransaction(this.value) && !this.expanded) {
       // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
       // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
       return this.children.filter(child => isEAPTransaction(child.value));
     }
 
-    return this.children;
-  }
-
-  get visibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
-    const queue: BaseNode[] = [];
-    const visibleChildren: BaseNode[] = [];
-
-    if (this.expanded || isEAPTransaction(this.value)) {
-      const children = this.directChildren;
-
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
-
-    while (queue.length > 0) {
-      const node = queue.pop()!;
-
-      visibleChildren.push(node);
-
-      // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded || isEAPTransaction(node.value)) {
-        const children = node.directChildren;
-
-        for (let i = children.length - 1; i >= 0; i--) {
-          queue.push(children[i]!);
-        }
-      }
-    }
-
-    return visibleChildren;
+    return super.directVisibleChildren;
   }
 
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
@@ -160,7 +130,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
@@ -212,18 +181,13 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
           }
         }
 
-        const browserRequestSpan = this.children.find(
-          c =>
-            c.op === 'browser.request' ||
-            (c.op === 'browser' && c.description === 'request')
-        );
+        const browserRequestSpan = this.children.find(c => isBrowserRequestNode(c));
         if (browserRequestSpan) {
           this._reparentSSRUnderBrowserRequestSpan(browserRequestSpan);
         }
       }
 
       // Flip expanded so that we can collect visible children
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
@@ -257,7 +221,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
       // When transaction nodes are collapsed, they still render child transactions
       if (this.value.is_transaction) {
-        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         tree.list.splice(index + 1, 0, ...this.visibleChildren);
       }
     }
@@ -287,7 +250,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceSpanRow {...props} node={props.node} />;
   }
 
