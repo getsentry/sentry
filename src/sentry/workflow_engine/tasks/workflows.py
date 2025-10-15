@@ -15,6 +15,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
+from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.tasks.utils import (
@@ -23,7 +24,6 @@ from sentry.workflow_engine.tasks.utils import (
 )
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context, scopedstats
-from sentry.workflow_engine.utils.sentry_level_utils import quiet_redis_noise
 
 logger = log_context.get_logger(__name__)
 
