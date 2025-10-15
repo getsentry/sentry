@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -47,8 +46,18 @@ export type TableStat = {
   total: number;
 };
 
-class UsageTable extends Component<Props> {
-  getErrorMessage = (errorMessage: any) => {
+function UsageTable({
+  isEmpty,
+  isLoading,
+  isError,
+  errors,
+  headers,
+  usageStats,
+  dataCategory,
+  showStoredOutcome,
+  router,
+}: Props) {
+  const getErrorMessage = (errorMessage: any) => {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
         <EmptyMessage
@@ -65,16 +74,15 @@ class UsageTable extends Component<Props> {
     return <IconWarning color="gray300" legacySize="48px" />;
   };
 
-  loadProject(projectId: number) {
-    updateProjects([projectId], this.props.router, {
+  const loadProject = (projectId: number) => {
+    updateProjects([projectId], router, {
       save: true,
       environments: [], // Clear environments when switching projects
     });
     window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
-  }
+  };
 
-  renderTableRow(stat: TableStat & {project: Project}) {
-    const {dataCategory, showStoredOutcome} = this.props;
+  const renderTableRow = (stat: TableStat & {project: Project}) => {
     const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
       stat;
 
@@ -142,7 +150,7 @@ class UsageTable extends Component<Props> {
             data-test-id={project.slug}
             size="xs"
             onClick={() => {
-              this.loadProject(parseInt(stat.project.id, 10));
+              loadProject(parseInt(stat.project.id, 10));
             }}
           >
             {t('View Stats')}
@@ -157,25 +165,21 @@ class UsageTable extends Component<Props> {
         </ButtonBar>
       </CellStat>,
     ];
-  }
+  };
 
-  render() {
-    const {isEmpty, isLoading, isError, errors, headers, usageStats} = this.props;
-
-    if (isError) {
-      return (
-        <Panel>
-          <ErrorPanel height="256px">{this.getErrorMessage(errors)}</ErrorPanel>
-        </Panel>
-      );
-    }
-
+  if (isError) {
     return (
-      <StyledPanelTable isLoading={isLoading} isEmpty={isEmpty} headers={headers}>
-        {usageStats.map(s => this.renderTableRow(s))}
-      </StyledPanelTable>
+      <Panel>
+        <ErrorPanel height="256px">{getErrorMessage(errors)}</ErrorPanel>
+      </Panel>
     );
   }
+
+  return (
+    <StyledPanelTable isLoading={isLoading} isEmpty={isEmpty} headers={headers}>
+      {usageStats.map(s => renderTableRow(s))}
+    </StyledPanelTable>
+  );
 }
 
 export default withSentryRouter(UsageTable);
