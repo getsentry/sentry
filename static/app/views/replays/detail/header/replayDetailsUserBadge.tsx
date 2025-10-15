@@ -14,6 +14,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -73,6 +74,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const {startSummaryRequest} = useReplaySummaryContext();
 
   const handleRefresh = () => {
+    trackAnalytics('replay.details-refresh-clicked', {organization});
     queryClient
       .refetchQueries({
         queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
