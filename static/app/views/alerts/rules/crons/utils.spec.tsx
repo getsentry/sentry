@@ -5,7 +5,11 @@ import {MonitorFixture} from 'sentry-fixture/monitor';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {MonitorStatus} from 'sentry/views/insights/crons/types';
 
-import {getAggregateEnvStatus, getMonitorRefetchInterval} from './utils';
+import {
+  getAggregateEnvStatus,
+  getMonitorRefetchInterval,
+  getNextCheckInEnv,
+} from './utils';
 
 describe('getAggregateEnvStatus', () => {
   it('returns ERROR when any environment has ERROR status', () => {
@@ -38,6 +42,70 @@ describe('getAggregateEnvStatus', () => {
 
   it('returns ACTIVE for empty array', () => {
     expect(getAggregateEnvStatus([])).toBe(MonitorStatus.ACTIVE);
+  });
+});
+
+describe('getNextCheckInEnv', () => {
+  it('prioritizes by status (OK > ERROR > DISABLED > ACTIVE) then by earliest nextCheckIn', () => {
+    const now = moment('2024-01-01T12:00:00Z');
+
+    // Set up environments with all statuses
+    const okEarlier = CronMonitorEnvironmentFixture({
+      name: 'ok-earlier',
+      status: MonitorStatus.OK,
+      nextCheckIn: moment(now).add(5, 'minutes').toISOString(),
+      lastCheckIn: moment(now).subtract(10, 'minutes').toISOString(),
+    });
+    const okLater = CronMonitorEnvironmentFixture({
+      name: 'ok-later',
+      status: MonitorStatus.OK,
+      nextCheckIn: moment(now).add(15, 'minutes').toISOString(),
+      lastCheckIn: moment(now).subtract(10, 'minutes').toISOString(),
+    });
+    const errorEarlier = CronMonitorEnvironmentFixture({
+      name: 'error-earlier',
+      status: MonitorStatus.ERROR,
+      nextCheckIn: moment(now).add(3, 'minutes').toISOString(),
+      lastCheckIn: moment(now).subtract(1, 'hour').toISOString(),
+    });
+    const errorLater = CronMonitorEnvironmentFixture({
+      name: 'error-later',
+      status: MonitorStatus.ERROR,
+      nextCheckIn: moment(now).add(20, 'minutes').toISOString(),
+      lastCheckIn: moment(now).subtract(1, 'hour').toISOString(),
+    });
+    const disabled = CronMonitorEnvironmentFixture({
+      name: 'disabled',
+      status: MonitorStatus.DISABLED,
+      nextCheckIn: moment(now).add(1, 'minute').toISOString(),
+      lastCheckIn: moment(now).subtract(2, 'hours').toISOString(),
+    });
+    const active = CronMonitorEnvironmentFixture({
+      name: 'active',
+      status: MonitorStatus.ACTIVE,
+      nextCheckIn: null,
+      lastCheckIn: null,
+    });
+
+    // Test: OK beats everything, selects earliest OK
+    expect(
+      getNextCheckInEnv([errorEarlier, okLater, disabled, okEarlier, active])?.name
+    ).toBe('ok-earlier');
+
+    // Test: When no OK, ERROR beats DISABLED/ACTIVE, selects earliest ERROR
+    expect(getNextCheckInEnv([disabled, errorLater, errorEarlier, active])?.name).toBe(
+      'error-earlier'
+    );
+
+    // Test: When no OK/ERROR, DISABLED beats ACTIVE
+    expect(getNextCheckInEnv([active, disabled])?.name).toBe('disabled');
+
+    // Test: ACTIVE is selected when it's the only option
+    expect(getNextCheckInEnv([active])?.name).toBe('active');
+
+    // Test: Status priority overrides nextCheckIn timing
+    // (DISABLED has earliest nextCheckIn but OK should still win)
+    expect(getNextCheckInEnv([disabled, okLater])?.name).toBe('ok-later');
   });
 });
 

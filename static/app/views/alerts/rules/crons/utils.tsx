@@ -26,6 +26,39 @@ export function getAggregateEnvStatus(environments: MonitorEnvironment[]): Monit
 }
 
 /**
+ * Priority order for selecting which environment to display/use.
+ * Prefers healthy environments over failing ones.
+ */
+const MONITOR_ENVIRONMENT_SORT_ORDER = [
+  MonitorStatus.OK,
+  MonitorStatus.ERROR,
+  MonitorStatus.DISABLED,
+  MonitorStatus.ACTIVE,
+];
+
+/**
+ * Gets the environment with the earliest upcoming check-in, prioritized by status.
+ *
+ * Priority order:
+ * 1. OK status - prefer actively healthy environments
+ * 2. ERROR status - fall back to failing environments
+ * 3. DISABLED status - disabled environments
+ * 4. ACTIVE status - least priority (no check-ins yet)
+ *
+ * Note: ACTIVE status means no check-ins yet, so it won't have nextCheckIn/lastCheckIn.
+ *
+ * Within each status group, selects the environment with the earliest nextCheckIn.
+ * This is useful for both display and for determining when to refetch data.
+ */
+export function getNextCheckInEnv(environments: MonitorEnvironment[]) {
+  return sortBy(
+    environments,
+    e => MONITOR_ENVIRONMENT_SORT_ORDER.indexOf(e.status),
+    e => e.nextCheckIn
+  )[0];
+}
+
+/**
  * Interval for polling the monitor when we're waiting for the very first
  * check-in.
  */
@@ -49,7 +82,7 @@ const WAITING_FIRST_CHECK_IN_INTERVAL_MS = 5_000;
  */
 export function getMonitorRefetchInterval(monitor: Monitor, now: Date) {
   const nowMoment = moment(now);
-  const env = sortBy(monitor.environments, e => e.nextCheckIn)[0];
+  const env = getNextCheckInEnv(monitor.environments);
   const nextCheckIn = env?.nextCheckIn ?? null;
 
   if (!nextCheckIn) {
