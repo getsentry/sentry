@@ -235,7 +235,10 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI && span.name && span.name !== span.op ? (
+    ) : shouldUseOTelFriendlyUI &&
+      !span.description &&
+      span.name &&
+      span.name !== span.op ? (
       <DescriptionWrapper>
         <FormattedDescription>{span.name}</FormattedDescription>
         <CopyToClipboardButton
