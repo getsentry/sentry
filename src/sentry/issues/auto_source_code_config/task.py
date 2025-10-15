@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
-from google.api_core.exceptions import DeadlineExceeded
+from google.api_core.exceptions import DeadlineExceeded, RetryError
 from sentry_sdk import set_tag, set_user
 
 from sentry.integrations.base import IntegrationInstallation
@@ -110,7 +110,7 @@ def fetch_event(
         event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
         if event is None:
             failure_reason = "event_not_found"
-    except DeadlineExceeded:
+    except (DeadlineExceeded, RetryError):
         failure_reason = "nodestore_deadline_exceeded"
     except Exception:
         logger.exception("Error fetching event.", extra=extra)
