@@ -3124,6 +3124,7 @@ export enum FeedbackFieldKey {
 }
 
 export const FEEDBACK_FIELDS = [
+  FeedbackFieldKey.AI_CATEGORIZATION_LABELS,
   FieldKey.ASSIGNED,
   FeedbackFieldKey.BROWSER_NAME,
   FieldKey.DEVICE_BRAND,
@@ -3154,10 +3155,15 @@ export const FEEDBACK_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
-  FeedbackFieldKey.AI_CATEGORIZATION_LABELS,
 ];
 
 const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+  [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
+    desc: t('AI-generated labels for categorizing feedback'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: true,
+  },
   [FeedbackFieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
@@ -3195,12 +3201,6 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     desc: t('URL of the page that the feedback is triggered on'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
-    desc: t('AI-generated labels for categorizing feedback'),
-    kind: FieldKind.TAG,
-    valueType: FieldValueType.STRING,
-    allowWildcard: true,
   },
 };
 
