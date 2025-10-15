@@ -1,7 +1,6 @@
 from unittest import mock
 
 from sentry.metrics.dualwrite import DualWriteMetricsBackend
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
@@ -36,7 +35,6 @@ def test_dualwrite_distribution(distribution, timing):
     distribution.assert_not_called()
 
 
-@override_options({"tracemetrics.sentry_sdk_metrics_backend_rate": 1.0})
 @mock.patch("sentry_sdk._metrics.count")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.increment")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
@@ -44,7 +42,7 @@ def test_dualwrite_experimental_backend(dogstatsd_incr, sentry_sdk_incr):
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
-        experimental_args={"deny_list": ["denied"]},
+        experimental_args={"deny_list": ["denied"], "experimental_sample_rate": 1.0},
     )
 
     backend.incr("allowed", tags={"test": "tag"}, unit="none")
@@ -59,7 +57,6 @@ def test_dualwrite_experimental_backend(dogstatsd_incr, sentry_sdk_incr):
     sentry_sdk_incr.assert_not_called()
 
 
-@override_options({"tracemetrics.sentry_sdk_metrics_backend_rate": 0.0})
 @mock.patch("sentry_sdk._metrics.gauge")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.gauge")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
@@ -67,7 +64,7 @@ def test_dualwrite_experimental_backend_rollout_disabled(dogstatsd_gauge, sentry
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
-        experimental_args={"deny_list": []},
+        experimental_args={"deny_list": [], "experimental_sample_rate": 0.0},
     )
 
     backend.gauge("metric", 42, tags={"test": "tag"}, unit="none")

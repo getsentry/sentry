@@ -1,9 +1,7 @@
+from random import random
 from typing import Any
 
 from sentry_sdk import _metrics as metrics
-
-from sentry import options
-from sentry.options.rollout import in_random_rollout
 
 from .base import MetricsBackend, Tags
 
@@ -12,9 +10,7 @@ __all__ = ["SentrySDKMetricsBackend"]
 
 class SentrySDKMetricsBackend(MetricsBackend):
     def __init__(self, **kwargs: Any) -> None:
-        self._rollout_option = kwargs.pop(
-            "rollout_option", "tracemetrics.sentry_sdk_metrics_backend_rate"
-        )
+        self._experimental_sample_rate = kwargs.pop("experimental_sample_rate", 0.0)
         self._deny_list = tuple(kwargs.pop("deny_list", []))
         super().__init__(**kwargs)
 
@@ -24,10 +20,11 @@ class SentrySDKMetricsBackend(MetricsBackend):
     def _should_send(self, key: str) -> bool:
         if self._is_denied(key):
             return False
-        # We don't want to send metrics before the cache exists to avoid excessive cache misses.
-        if not options.default_store.cache:
-            return False
-        return in_random_rollout(self._rollout_option)
+        return self._should_sample_experimental()
+
+    def _should_sample_experimental(self) -> bool:
+        """Sample based on passed in sample rate, can't use options as they hit the db too much."""
+        return self._experimental_sample_rate >= 1.0 or random() < self._experimental_sample_rate
 
     def incr(
         self,

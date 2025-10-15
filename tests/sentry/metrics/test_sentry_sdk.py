@@ -8,7 +8,7 @@ from sentry.metrics.sentry_sdk import SentrySDKMetricsBackend
 class TestSentrySDKMetricsBackend:
     @pytest.fixture
     def backend(self):
-        return SentrySDKMetricsBackend(prefix="test.")
+        return SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=1.0)
 
     @mock.patch("sentry_sdk._metrics.count")
     def test_incr(self, mock_count, backend):
@@ -77,9 +77,18 @@ class TestSentrySDKMetricsBackend:
         backend.event("title", "message")
 
     @mock.patch("sentry_sdk._metrics.count")
-    def test_incr_sampling(self, mock_count, backend):
-        with mock.patch.object(backend, "_should_send", return_value=True):
-            with mock.patch.object(backend, "_should_sample", return_value=False):
-                backend.incr("foo", amount=1)
-
+    def test_incr_sampling(self, mock_count):
+        backend = SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=0.0)
+        backend.incr("foo", amount=1)
         mock_count.assert_not_called()
+
+    @mock.patch("sentry_sdk._metrics.count")
+    def test_incr_deny_list(self, mock_count):
+        backend = SentrySDKMetricsBackend(
+            prefix="test.", experimental_sample_rate=1.0, deny_list=["denied"]
+        )
+        backend.incr("denied.metric", amount=1)
+        mock_count.assert_not_called()
+
+        backend.incr("allowed.metric", amount=1)
+        mock_count.assert_called_once()
