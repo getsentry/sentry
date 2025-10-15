@@ -214,25 +214,35 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     handleCloseDrawer,
   ]);
 
-  const allAddOnDataCategories = Object.values(subscription.planDetails.addOnCategories)
-    .filter(
-      // filter out data categories that are part of add-on that have at least one unlimited sub-category
-      addOn =>
-        !addOn.dataCategories.some(
-          category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+  const allAddOnDataCategories = useMemo(
+    () =>
+      Object.values(subscription.planDetails.addOnCategories)
+        .filter(
+          // filter out data categories that are part of add-on that have at least one unlimited sub-category
+          addOn =>
+            !addOn.dataCategories.some(
+              category =>
+                subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+            )
         )
-    )
-    .flatMap(addOn => addOn.dataCategories);
+        .flatMap(addOn => addOn.dataCategories),
+    [subscription.planDetails.addOnCategories, subscription.categories]
+  );
 
-  const addOnsToShow = Object.entries(subscription.addOns ?? {}).filter(
-    // show add-ons regardless of whether they're enabled
-    // as long as they're launched for the org
-    // and none of their sub-categories are unlimited
-    ([_, addOnInfo]) =>
-      (!addOnInfo.billingFlag || organization.features.includes(addOnInfo.billingFlag)) &&
-      !addOnInfo.dataCategories.some(
-        category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
-      )
+  const addOnsToShow = useMemo(
+    () =>
+      Object.entries(subscription.addOns ?? {}).filter(
+        // show add-ons regardless of whether they're enabled
+        // as long as they're launched for the org
+        // and none of their sub-categories are unlimited
+        ([_, addOnInfo]) =>
+          (!addOnInfo.billingFlag ||
+            organization.features.includes(addOnInfo.billingFlag)) &&
+          !addOnInfo.dataCategories.some(
+            category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+          )
+      ),
+    [subscription.addOns, organization.features, subscription.categories]
   );
 
   const columnOrder: GridColumnOrder[] = useMemo(() => {
