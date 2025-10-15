@@ -157,7 +157,7 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
       <div>
         <StyledText as="p">
           {tct(
-            'This widget may look different from its original because [columns] is no longer supported',
+            'This widget may look different from its original because [columns] is no longer supported.',
             {
               columns: allWarnings.join(', '),
             }
