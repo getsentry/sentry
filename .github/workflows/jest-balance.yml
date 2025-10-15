@@ -6,7 +6,7 @@ on:
 jobs:
   jest-balance:
     # Buckle up, this may take a while
-    timeout-minutes: 60
+    timeout-minutes: 90
     # Make sure this matches the runner that runs frontend tests
     runs-on: ubuntu-24.04
     steps:
