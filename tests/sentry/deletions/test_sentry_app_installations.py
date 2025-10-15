@@ -3,9 +3,11 @@ from django.db import router
 from django.db.transaction import get_connection
 
 from sentry import deletions
+from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
@@ -17,6 +19,8 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @control_silo_test
@@ -106,3 +110,28 @@ class TestSentryAppInstallationDeletionTask(TestCase):
         )
 
         assert c.fetchone()[0] == 1
+
+    def test_disables_actions(self) -> None:
+        action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": self.install.uuid,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+        other_action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": "1234567890",
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+        deletions.exec_sync(self.install)
+
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.DISABLED
+
+        other_action.refresh_from_db()
+        assert other_action.status == ObjectStatus.ACTIVE
