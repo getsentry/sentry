@@ -2,6 +2,8 @@ import {useEffect, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -32,13 +34,7 @@ function getReplayTabs({
       !isVideoReplay ? (
         <Flex align="center" gap="sm">
           {t('AI Summary')}
-          <Tooltip
-            title={t(
-              'This feature is experimental! Try it out and let us know what you think. No promises!'
-            )}
-          >
-            <IconLab isSolid />
-          </Tooltip>
+          <FeatureBadge type="beta" />
         </Flex>
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),

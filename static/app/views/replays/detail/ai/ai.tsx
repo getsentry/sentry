@@ -192,7 +192,6 @@ export default function Ai() {
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
             </Flex>
-            <FeatureBadge type="experimental" tooltipProps={{disabled: true}} />
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
