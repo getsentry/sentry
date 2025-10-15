@@ -28,7 +28,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -215,7 +214,6 @@ class RegionJiraIntegrationTest(APITestCase):
             ]
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_get_create_issue_config_with_none_issue(self) -> None:
         # Mock the paginated projects response
         responses.add(
@@ -277,7 +275,6 @@ class RegionJiraIntegrationTest(APITestCase):
         assert project_field["type"] == "select"
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_get_create_issue_config_paginated_projects(self) -> None:
         """Test that projects are fetched using pagination when the feature flag is enabled"""
         event = self.store_event(
