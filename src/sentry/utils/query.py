@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 import click
 from django.db import connections, router
+from django.db.models import F, Func, Value
 from django.db.models.fields import Field
+from django.db.models.lookups import BuiltinLookup
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from django.db.models.sql.constants import ROW_COUNT
@@ -24,6 +26,17 @@ _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 class InvalidQuerySetError(ValueError):
     pass
+
+
+class Tuple(Func):
+    """PostgreSQL ROW constructor for tuple expressions."""
+
+    function = ""  # Empty string renders as (expr, ...) without function name
+
+    def __init__(self, *expressions: Any, output_field: Field | None = None, **extra: Any) -> None:
+        if output_field is None:
+            output_field = Field()
+        super().__init__(*expressions, output_field=output_field, **extra)
 
 
 class TaskBulkQueryState(TypedDict):
@@ -95,7 +108,10 @@ class RangeQuerySetWrapper[V]:
     Iterates through a queryset by chunking results by ``step`` and using GREATER THAN
     and LESS THAN queries on the primary key.
 
-    Very efficient, but ORDER BY statements will not work.
+    Supports compound ordering for efficient multi-column pagination:
+        RangeQuerySetWrapper(qs, order_by=("project_id", "id"))
+
+    The final field in a compound ordering must be unique.
     """
 
     def __init__[M: Model](
@@ -105,7 +121,7 @@ class RangeQuerySetWrapper[V]:
         step: int = 1000,
         limit: int | None = None,
         min_id: int | None = None,
-        order_by: str = "pk",
+        order_by: str | tuple[str, ...] = "pk",
         callbacks: Sequence[Callable[[list[V]], None]] = (),
         result_value_getter: Callable[[V], int] | None = None,
         override_unique_safety_check: bool = False,
@@ -133,13 +149,27 @@ class RangeQuerySetWrapper[V]:
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
 
-        order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
+        self.order_by_fields: tuple[str, ...] = (
+            (order_by,) if isinstance(order_by, str) else order_by
+        )
+
+        if not self.order_by_fields:
+            raise InvalidQuerySetError("order_by cannot be empty")
+
+        # For compound ordering, only the final field needs to be unique
+        final_field = self.order_by_fields[-1]
+        order_by_col = queryset.model._meta.get_field(final_field if final_field != "pk" else "id")
         if not override_unique_safety_check and (
             not isinstance(order_by_col, Field) or not order_by_col.unique
         ):
             # TODO: Ideally we could fix this bug and support ordering by a non unique col
+            field_desc = (
+                f"Final field '{final_field}'"
+                if len(self.order_by_fields) > 1
+                else "Order by column"
+            )
             raise InvalidQuerySetError(
-                "Order by column must be unique, otherwise this wrapper can get "
+                f"{field_desc} must be unique, otherwise this wrapper can get "
                 "stuck in an infinite loop. If you're sure your data is unique, "
                 "you can disable this by passing "
                 "`override_unique_safety_check=True`"
@@ -147,18 +177,17 @@ class RangeQuerySetWrapper[V]:
 
     def __iter__(self) -> Iterator[V]:
         if self.min_value is not None:
-            cur_value = self.min_value
+            # For compound ordering, min_value applies to the final field only
+            cur_values = [None] * (len(self.order_by_fields) - 1) + [self.min_value]
         else:
-            cur_value = None
+            cur_values = [None] * len(self.order_by_fields)
 
         num = 0
         limit = self.limit
 
-        queryset = self.queryset
-        if self.desc:
-            queryset = queryset.order_by("-%s" % self.order_by)
-        else:
-            queryset = queryset.order_by(self.order_by)
+        queryset = self.queryset.order_by(
+            *(f"-{field}" if self.desc else field for field in self.order_by_fields)
+        )
 
         # we implement basic cursor pagination for columns that are not unique
         last_object_pk: int | None = None
@@ -169,12 +198,11 @@ class RangeQuerySetWrapper[V]:
 
             start = num
 
-            if cur_value is None:
+            if all(v is None for v in cur_values):
                 results_qs = queryset
-            elif self.desc:
-                results_qs = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
             else:
-                results_qs = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
+                # Build compound cursor condition
+                results_qs = queryset.filter(self._build_cursor_filter(cur_values))
 
             results = list(results_qs[0 : self.step])
 
@@ -197,18 +225,35 @@ class RangeQuerySetWrapper[V]:
                 # to `None` causing the loop to exit early.
                 num += 1
                 last_object_pk = pk
-                cur_value = (
-                    self.result_value_getter(result)
-                    if self.result_value_getter
-                    else getattr(result, self.order_by)
-                )
+
+                cur_values = [
+                    (
+                        self.result_value_getter(result)
+                        if self.result_value_getter and field == self.order_by_fields[-1]
+                        else getattr(result, field)
+                    )
+                    for field in self.order_by_fields
+                ]
 
                 yield result
 
-            if cur_value is None:
+            if all(v is None for v in cur_values):
                 break
 
             has_results = num > start
+
+    def _build_cursor_filter(self, cur_values: list[Any]) -> Q:
+        """Build cursor filter using PostgreSQL tuple comparison."""
+        if len(self.order_by_fields) == 1:
+            op = "lte" if self.desc else "gte"
+            return Q(**{f"{self.order_by_fields[0]}__{op}": cur_values[0]})
+
+        lookup = BuiltinLookup(
+            Tuple(*[F(field) for field in self.order_by_fields]),
+            Tuple(*[Value(v) for v in cur_values]),
+        )
+        lookup.lookup_name = "lte" if self.desc else "gte"
+        return Q(lookup)
 
 
 class RangeQuerySetWrapperWithProgressBar[V](RangeQuerySetWrapper[V]):

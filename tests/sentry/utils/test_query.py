@@ -68,15 +68,65 @@ class RangeQuerySetWrapperTest(TestCase):
         self.range_wrapper(qs, order_by="name", override_unique_safety_check=True)
 
     def test_order_by_unique(self) -> None:
-        self.create_user()
+        total = 10
+        for _ in range(total):
+            self.create_user()
+
         qs = User.objects.all()
-        self.range_wrapper(qs, order_by="username")
-        assert len(list(self.range_wrapper(qs, order_by="username", step=2))) == 1
+
+        wrapper = self.range_wrapper(qs, order_by="username", step=3)
+        assert len(list(wrapper)) == total
 
     def test_wrapper_over_values_list(self) -> None:
         self.create_user()
         qs = User.objects.all().values_list("id")
         assert list(qs) == list(self.range_wrapper(qs, result_value_getter=lambda r: r[0]))
+
+    def test_compound_order_by_tuple(self) -> None:
+        """Test that tuple order_by is accepted and works correctly."""
+        total = 5
+        for _ in range(total):
+            self.create_user()
+
+        qs = User.objects.all()
+
+        wrapper = self.range_wrapper(qs, order_by=("date_joined", "id"), step=2)
+        results = list(wrapper)
+        assert len(results) == total
+
+    def test_compound_order_by_unique_final_field(self) -> None:
+        """Test that compound order_by requires final field to be unique."""
+        qs = User.objects.all()
+
+        # Should fail with non-unique final field
+        with pytest.raises(InvalidQuerySetError, match="Final field"):
+            self.range_wrapper(qs, order_by=("date_joined", "name"))
+
+    def test_compound_order_by_descending(self) -> None:
+        """Test that compound order_by works with descending order."""
+        total = 5
+        for _ in range(total):
+            self.create_user()
+
+        qs = User.objects.all()
+
+        # Test descending order with negative step
+        wrapper = self.range_wrapper(qs, order_by=("date_joined", "id"), step=-2)
+        results = list(wrapper)
+        assert len(results) == total
+
+        for i in range(len(results) - 1):
+            assert (results[i].date_joined, results[i].id) >= (
+                results[i + 1].date_joined,
+                results[i + 1].id,
+            )
+
+    def test_order_by_empty_tuple(self) -> None:
+        """Test that empty order_by tuple raises an error."""
+        qs = User.objects.all()
+
+        with pytest.raises(InvalidQuerySetError, match="order_by cannot be empty"):
+            self.range_wrapper(qs, order_by=())
 
 
 @no_silo_test
