@@ -104,11 +104,6 @@ def _ensure_monitor_with_config(
     except Monitor.DoesNotExist:
         monitor = None
 
-    # Monitor was previously marked as upserting, but no config is provided for
-    # this check-in, therefore it's no longer upserting.
-    if not config and monitor and monitor.is_upserting:
-        monitor.update(is_upserting=False)
-
     if not config:
         return (monitor, non_fatal_processing_error)
 
@@ -897,8 +892,8 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 # denormalize the monitor configration into the check-in.
                 # Useful to show details about the configuration of the
                 # monitor at the time of the check-in
-                monitor_config = monitor.get_validated_config()
-                timeout_at = get_timeout_at(monitor_config, status, start_time)
+                checkin_monitor_config = monitor.get_validated_config()
+                timeout_at = get_timeout_at(checkin_monitor_config, status, start_time)
 
                 # The "date_clock" is recorded as the "clock time" of when the
                 # check-in was processed. The clock time is derived from the
@@ -922,7 +917,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                         "date_in_progress": date_in_progress,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
-                        "monitor_config": monitor_config,
+                        "monitor_config": checkin_monitor_config,
                         "trace_id": trace_id,
                     },
                     project_id=project_id,
@@ -957,6 +952,12 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},
                     )
+
+                    # When creating a brand new check-in (not updating an existing one),
+                    # if no monitor config was provided and the monitor was previously
+                    # marked as upserting, mark it as no longer upserting.
+                    if not monitor_config and monitor.is_upserting:
+                        monitor.update(is_upserting=False)
 
             track_outcome(
                 org_id=project.organization_id,
