@@ -5,6 +5,8 @@ from unittest.mock import call, patch
 
 from django.utils import timezone
 
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -26,6 +28,21 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         Verify that an alert can trigger.
         """
         self.send_update(self.critical_threshold + 1)
+        assert self.get_detector_state(self.metric_detector) == DetectorPriorityLevel.HIGH
+
+    def test_simple_no_rule(self) -> None:
+        """
+        Verify that an alert can trigger without a rule.
+        """
+        # Delete any AlertRule.
+        for data_source in self.metric_detector.data_sources.all():
+            AlertRule.objects.filter(
+                snuba_query__subscriptions=QuerySubscription.objects.get(id=data_source.source_id)
+            ).delete()
+        self.send_update(self.critical_threshold + 1)
+        assert QuerySubscription.objects.filter(
+            id=self.metric_detector.data_sources.first().source_id
+        ).exists()
         assert self.get_detector_state(self.metric_detector) == DetectorPriorityLevel.HIGH
 
     def test_resolve(self) -> None:
