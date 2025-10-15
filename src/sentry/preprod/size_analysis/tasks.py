@@ -1,8 +1,8 @@
 import logging
-from datetime import timezone
 from io import BytesIO
 
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.models.files.file import File
 from sentry.preprod.models import (
