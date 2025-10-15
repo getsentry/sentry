@@ -222,10 +222,12 @@ function HighlightedTools({
   spanId: string;
 }) {
   const toolNames = availableTools.map(tool => tool.name).filter(Boolean);
+  const hasToolNames = toolNames.length > 0;
   const toolSpansQuery = useSpans(
     {
       search: `parent_span:${spanId} has:${SpanFields.GEN_AI_TOOL_NAME} ${getToolSpansFilter()}`,
       fields: [SpanFields.GEN_AI_TOOL_NAME],
+      enabled: hasToolNames,
     },
     Referrer.TRACE_DRAWER_TOOL_USAGE
   );
@@ -235,11 +237,14 @@ function HighlightedTools({
     const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
     usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);
   });
-  if (toolNames.length === 0) {
+
+  // Fall back to showing formatted JSON if tool names cannot be parsed
+  if (!hasToolNames) {
     return (
       <StructuredData value={availableTools} withAnnotatedText maxDefaultDepth={0} />
     );
   }
+
   return (
     <Flex direction="row" gap="xs" wrap="wrap">
       {toolNames.sort().map(tool => {
