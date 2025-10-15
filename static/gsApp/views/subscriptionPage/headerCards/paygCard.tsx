@@ -16,7 +16,11 @@ import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
+import {
+  OnDemandBudgetMode,
+  type OnDemandBudgets,
+  type Subscription,
+} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -24,6 +28,7 @@ import {
   getTotalBudget,
   getTotalSpend,
   parseOnDemandBudgetsFromSubscription,
+  trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/onDemandBudgets/utils';
 import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/modal';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
@@ -59,7 +64,8 @@ function PaygCard({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_data: OnDemandBudgets) => {
+      trackOnDemandBudgetAnalytics(organization, paygBudget, _data, 'payg_inline_form');
       SubscriptionStore.loadData(subscription.slug);
       setIsEditing(false);
     },

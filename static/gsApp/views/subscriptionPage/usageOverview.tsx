@@ -64,6 +64,7 @@ import {
   isContinuousProfiling,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
 import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
@@ -126,6 +127,11 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 
   const handleOpenDrawer = useCallback(
     (dataCategory: DataCategory) => {
+      trackGetsentryAnalytics('subscription_page.usage_overview.row_clicked', {
+        organization,
+        subscription,
+        dataCategory,
+      });
       navigate(
         {
           pathname: location.pathname,
@@ -136,7 +142,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         }
       );
     },
-    [navigate, location.query, location.pathname]
+    [navigate, location.query, location.pathname, organization, subscription]
   );
 
   const handleCloseDrawer = useCallback(() => {
@@ -732,6 +738,14 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               [row.addOnCategory as AddOnCategory]:
                 !prev[row.addOnCategory as AddOnCategory],
             }));
+
+            const isOpen = openState[row.addOnCategory];
+            trackGetsentryAnalytics('subscription_page.usage_overview.add_on_toggled', {
+              organization,
+              subscription,
+              addOnCategory: row.addOnCategory,
+              isOpen: !!isOpen,
+            });
           }
         }
       }}
@@ -800,6 +814,10 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
               aria-label={t('Download as CSV')}
               disabled={isPending || isError}
               onClick={() => {
+                trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
+                  organization,
+                  reportType: 'summary',
+                });
                 if (currentHistory) {
                   window.open(currentHistory.links.csv, '_blank');
                 }

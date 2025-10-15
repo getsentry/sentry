@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
@@ -32,7 +32,6 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 const avatarStyle = {
   width: 36,
@@ -150,10 +149,6 @@ function UsageLog({location, subscription}: Props) {
       query: {...location.query, cursor: resultsCursor},
     });
   };
-
-  useEffect(() => {
-    trackSubscriptionView(organization, subscription, 'usagelog');
-  }, [organization, subscription]);
 
   const eventNameOptions =
     eventNames?.map(type => ({

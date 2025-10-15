@@ -19,7 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import LegacyBillingDetailsForm from 'getsentry/components/billingDetails/legacyForm';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
-import {hasNewBillingUI, hasStripeComponentsFeature} from 'getsentry/utils/billing';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
 import type {TaxFieldInfo} from 'getsentry/utils/salesTax';
 import {
@@ -167,7 +167,6 @@ function BillingDetailsForm({
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
   const hasStripeComponents = hasStripeComponentsFeature(organization);
-  const isNewBillingUI = hasNewBillingUI(organization);
   const location = useLocation();
 
   const taxFieldInfo = useMemo(
@@ -228,7 +227,6 @@ function BillingDetailsForm({
     if (analyticsEvent) {
       trackGetsentryAnalytics(analyticsEvent, {
         organization,
-        isNewBillingUI,
         isStripeComponent: hasStripeComponents,
         referrer: decodeScalar(location.query?.referrer),
       });

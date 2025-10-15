@@ -22,6 +22,7 @@ import {
   getPlanCategoryName,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {
   ProductUsageChart,
   selectedTransform,
@@ -84,12 +85,20 @@ function CategoryUsageDrawer({
             title={t('Type')}
             selected={transform}
             options={CHART_OPTIONS_DATA_TRANSFORM}
-            onChange={(val: string) =>
+            onChange={(val: string) => {
+              trackGetsentryAnalytics(
+                'subscription_page.usage_overview.transform_changed',
+                {
+                  organization,
+                  subscription,
+                  transform: val,
+                }
+              );
               navigate({
                 pathname: location.pathname,
                 query: {...location.query, transform: val},
-              })
-            }
+              });
+            }}
           />
         </InlineContainer>
       </ChartControls>
