@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   MEPState,
   useMEPSettingContext,
@@ -118,25 +119,37 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
   const orderbyDropped = [];
   for (const changedReason of widget.changedReason) {
     if (changedReason.selected_columns.length > 0) {
-      columnsDropped.push(changedReason.selected_columns);
+      columnsDropped.push(...changedReason.selected_columns);
     }
     if (changedReason.equations) {
-      equationsDropped.push(changedReason.equations.map(equation => equation.equation));
+      equationsDropped.push(
+        ...changedReason.equations.map(equation => equation.equation)
+      );
     }
     if (changedReason.orderby) {
       orderbyDropped.push(
-        changedReason.orderby.flatMap(orderby =>
+        ...changedReason.orderby.flatMap(orderby =>
           typeof orderby.reason === 'string' ? orderby.orderby : orderby.reason
         )
       );
     }
   }
 
-  const allWarningsSet = new Set(
-    ...columnsDropped,
-    ...equationsDropped,
-    ...orderbyDropped
+  const orderbyDroppedWithoutNegation = orderbyDropped.map(orderby =>
+    orderby.startsWith('-') ? orderby.replace('-', '') : orderby
   );
+  const equationsDroppedParsed = equationsDropped.map(equation => {
+    if (isEquation(equation)) {
+      return stripEquationPrefix(equation);
+    }
+    return equation;
+  });
+  const combinedWarnings = [
+    ...columnsDropped,
+    ...equationsDroppedParsed,
+    ...orderbyDroppedWithoutNegation,
+  ];
+  const allWarningsSet = new Set(combinedWarnings);
   const allWarnings = [...allWarningsSet];
 
   if (allWarnings.length > 0) {
