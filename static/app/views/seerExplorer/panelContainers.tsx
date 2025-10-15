@@ -4,76 +4,58 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
-import MinimizedStrip from './minimizedStrip';
-import type {Block, PanelSize} from './types';
+import type {PanelSize} from './types';
 
 interface PanelContainersProps {
-  blocks: Block[];
   children: React.ReactNode;
+  isMinimized: boolean;
   isOpen: boolean;
-  isPolling: boolean;
-  onClear: () => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onMinSize: () => void;
-  onSubmit: (message: string) => void;
   panelSize: PanelSize;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 function PanelContainers({
   isOpen,
+  isMinimized,
   panelSize,
   children,
-  blocks,
-  onSubmit,
-  isPolling,
-  onMaxSize,
-  onMedSize,
-  onMinSize,
-  onClear,
+  ref,
 }: PanelContainersProps) {
   return (
     <AnimatePresence>
       {isOpen && (
         <Fragment>
-          {panelSize === 'min' ? (
-            <MinimizedStrip
-              key="minimized"
-              blocks={blocks}
-              onSubmit={onSubmit}
-              isPolling={isPolling}
-              onMaxSize={onMaxSize}
-              onMedSize={onMedSize}
-              onMinSize={onMinSize}
-              onClear={onClear}
+          {panelSize === 'max' && (
+            <Backdrop
+              key="backdrop"
+              initial={{opacity: 0}}
+              animate={{opacity: isMinimized ? 0 : 1}}
+              exit={{opacity: 0}}
+              transition={{duration: 0.1}}
             />
-          ) : (
-            <Fragment>
-              {panelSize === 'max' && (
-                <Backdrop
-                  key="backdrop"
-                  initial={{opacity: 0}}
-                  animate={{opacity: 1}}
-                  exit={{opacity: 0}}
-                  transition={{duration: 0.1}}
-                />
-              )}
-              <PanelContainer
-                panelSize={panelSize}
-                initial={{
-                  opacity: 0,
-                  y: 50,
-                  scale: 0.1,
-                  transformOrigin: 'bottom center',
-                }}
-                animate={{opacity: 1, y: 0, scale: 1, transformOrigin: 'bottom center'}}
-                exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-                transition={{duration: 0.1, ease: 'easeOut'}}
-              >
-                <PanelContent data-seer-explorer-root="">{children}</PanelContent>
-              </PanelContainer>
-            </Fragment>
           )}
+          <PanelContainer
+            panelSize={panelSize}
+            isMinimized={isMinimized}
+            initial={{
+              opacity: 0,
+              y: 50,
+              scale: 0.1,
+              transformOrigin: 'bottom center',
+            }}
+            animate={{
+              opacity: 1,
+              y: isMinimized ? 'calc(100% - 60px)' : 0,
+              scale: 1,
+              transformOrigin: 'bottom center',
+            }}
+            exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
+            transition={{duration: 0.1, ease: 'easeInOut'}}
+          >
+            <PanelContent ref={ref} data-seer-explorer-root="">
+              {children}
+            </PanelContent>
+          </PanelContainer>
         </Fragment>
       )}
     </AnimatePresence>
@@ -93,7 +75,10 @@ const Backdrop = styled(motion.div)`
   pointer-events: auto;
 `;
 
-const PanelContainer = styled(motion.div)<{panelSize: 'max' | 'med'}>`
+const PanelContainer = styled(motion.div)<{
+  isMinimized: boolean;
+  panelSize: 'max' | 'med';
+}>`
   position: fixed;
   bottom: ${space(2)};
   left: 50%;
