@@ -35,11 +35,23 @@ const EXCLUDED_TAGS: string[] = [
   'os',
   'user',
   FieldKey.PLATFORM,
+  'ai_categorization.label.0',
+  'ai_categorization.label.1',
+  'ai_categorization.label.2',
+  'ai_categorization.label.3',
+  'ai_categorization.label.4',
+  'ai_categorization.label.5',
+  'ai_categorization.label.6',
+  'ai_categorization.label.7',
+  'ai_categorization.label.8',
+  'ai_categorization.label.9',
+  'ai_categorization.label.10',
+  'ai_categorization.label.11',
+  'ai_categorization.label.12',
+  'ai_categorization.label.13',
+  'ai_categorization.label.14',
+  'ai_categorization.label.15',
 ];
-
-const isTagExcluded = (tagKey: string): boolean => {
-  return EXCLUDED_TAGS.includes(tagKey) || tagKey.startsWith('ai_categorization.label.');
-};
 
 const NON_TAG_FIELDS: string[] = [
   FieldKey.ASSIGNED,
@@ -53,7 +65,7 @@ const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'fee
 function getHasFieldValues(supportedTags: TagCollection): string[] {
   const customTagKeys = Object.values(supportedTags)
     .map(tag => tag.key)
-    .filter(key => !isTagExcluded(key));
+    .filter(key => !EXCLUDED_TAGS.includes(key));
 
   // Ensure suggested fields are included.
   const feedbackFieldKeys = FEEDBACK_FIELDS.map(String).filter(
@@ -73,7 +85,7 @@ function getFeedbackFilterKeys(
   const allTags = {
     ...Object.fromEntries(
       Object.keys(supportedTags)
-        .filter(key => !isTagExcluded(key))
+        .filter(key => !EXCLUDED_TAGS.includes(key))
         .map(key => [
           key,
           {
@@ -161,7 +173,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
       tag.kind === FieldKind.TAG &&
-      !isTagExcluded(tag.key) &&
+      !EXCLUDED_TAGS.includes(tag.key) &&
       !(FEEDBACK_FIELDS as string[]).includes(tag.key) // Sections can't overlap.
   );
 

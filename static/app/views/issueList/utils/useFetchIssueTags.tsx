@@ -56,11 +56,26 @@ const PREDEFINED_FIELDS = {
 };
 
 // "environment" is excluded because it should be handled by the environment page filter
-const EXCLUDED_TAGS = ['environment'];
-
-const isTagExcluded = (tagKey: string): boolean => {
-  return EXCLUDED_TAGS.includes(tagKey) || tagKey.startsWith('ai_categorization.label.');
-};
+const EXCLUDED_TAGS = [
+  'environment',
+  'ai_categorization.label.0',
+  'ai_categorization.label.1',
+  'ai_categorization.label.2',
+  'ai_categorization.label.3',
+  'ai_categorization.label.4',
+  'ai_categorization.label.5',
+  'ai_categorization.label.6',
+  'ai_categorization.label.7',
+  'ai_categorization.label.8',
+  'ai_categorization.label.9',
+  'ai_categorization.label.10',
+  'ai_categorization.label.11',
+  'ai_categorization.label.12',
+  'ai_categorization.label.13',
+  'ai_categorization.label.14',
+  'ai_categorization.label.15',
+  'ai_categorization.labels',
+];
 
 const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
   category => category !== IssueCategory.FEEDBACK
@@ -183,11 +198,9 @@ export const useFetchIssueTags = ({
       }
     });
 
-    Object.keys(allTagsCollection).forEach(tagKey => {
-      if (isTagExcluded(tagKey)) {
-        delete allTagsCollection[tagKey];
-      }
-    });
+    for (const excludedTag of EXCLUDED_TAGS) {
+      delete allTagsCollection[excludedTag];
+    }
 
     const renamedTags = renameConflictingTags(allTagsCollection);
 

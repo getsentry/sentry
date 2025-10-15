@@ -59,11 +59,26 @@ function IssueListSearchBar({
 
 export default IssueListSearchBar;
 
-const EXCLUDED_TAGS = ['environment'];
-
-const isTagExcluded = (tagKey: string): boolean => {
-  return EXCLUDED_TAGS.includes(tagKey) || tagKey.startsWith('ai_categorization.label.');
-};
+const EXCLUDED_TAGS = [
+  'environment',
+  'ai_categorization.label.0',
+  'ai_categorization.label.1',
+  'ai_categorization.label.2',
+  'ai_categorization.label.3',
+  'ai_categorization.label.4',
+  'ai_categorization.label.5',
+  'ai_categorization.label.6',
+  'ai_categorization.label.7',
+  'ai_categorization.label.8',
+  'ai_categorization.label.9',
+  'ai_categorization.label.10',
+  'ai_categorization.label.11',
+  'ai_categorization.label.12',
+  'ai_categorization.label.13',
+  'ai_categorization.label.14',
+  'ai_categorization.label.15',
+  'ai_categorization.labels',
+];
 
 export function useIssueListSearchBarDataProvider(
   props: SearchBarDataProviderProps
@@ -74,7 +89,9 @@ export function useIssueListSearchBarDataProvider(
   const filterKeys = useIssueListFilterKeys();
 
   const getFilterKeySections = useCallback((tags: TagCollection): FilterKeySection[] => {
-    const allTags: Tag[] = Object.values(tags).filter(tag => !isTagExcluded(tag.key));
+    const allTags: Tag[] = Object.values(tags).filter(
+      tag => !EXCLUDED_TAGS.includes(tag.key)
+    );
 
     const issueFields = orderBy(
       allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
