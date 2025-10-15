@@ -23,7 +23,11 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    IntegrationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -59,6 +63,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_IDENTITY = "invalid_identity"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
+    CONFIGURATION_ERROR = "configuration_error"
     UNKNOWN_ERROR = "unknown_error"
     FAILED_VALIDATION = "failed_validation"
 
@@ -327,6 +332,16 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
             return self.respond(status=exc.code)
+        elif isinstance(exc, IntegrationConfigurationError):
+            logger.info(
+                "hybrid_cloud.integration_proxy.configuration_error",
+                extra={**self.log_extra, "error_message": str(exc)},
+            )
+            self._add_failure_metric(IntegrationProxyFailureMetricType.CONFIGURATION_ERROR)
+            # Return 403 to indicate a configuration issue that needs customer intervention
+            return self.respond(
+                {"error": str(exc), "error_type": "configuration_error"}, status=403
+            )
 
         self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
