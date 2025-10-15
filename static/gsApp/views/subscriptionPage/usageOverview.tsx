@@ -214,9 +214,26 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     handleCloseDrawer,
   ]);
 
-  const allAddOnDataCategories = Object.values(
-    subscription.planDetails.addOnCategories
-  ).flatMap(addOn => addOn.dataCategories);
+  const allAddOnDataCategories = Object.values(subscription.planDetails.addOnCategories)
+    .filter(
+      // filter out data categories that are part of add-on that have at least one unlimited sub-category
+      addOn =>
+        !addOn.dataCategories.some(
+          category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+        )
+    )
+    .flatMap(addOn => addOn.dataCategories);
+
+  const addOnsToShow = Object.entries(subscription.addOns ?? {}).filter(
+    // show add-ons regardless of whether they're enabled
+    // as long as they're launched for the org
+    // and none of their sub-categories are unlimited
+    ([_, addOnInfo]) =>
+      (!addOnInfo.billingFlag || organization.features.includes(addOnInfo.billingFlag)) &&
+      !addOnInfo.dataCategories.some(
+        category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+      )
+  );
 
   const columnOrder: GridColumnOrder[] = useMemo(() => {
     const hasAnyPotentialOrActiveProductTrial = subscription.productTrials?.some(
@@ -286,11 +303,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
   }> = useMemo(() => {
     return [
       ...sortCategories(subscription.categories)
-        .filter(
-          metricHistory =>
-            !allAddOnDataCategories.includes(metricHistory.category) ||
-            metricHistory.reserved === UNLIMITED_RESERVED
-        )
+        .filter(metricHistory => !allAddOnDataCategories.includes(metricHistory.category))
         .map(metricHistory => {
           const category = metricHistory.category;
           const categoryInfo = getCategoryInfoFromPlural(category);
@@ -312,7 +325,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             category
           );
 
-          const isPaygOnly = reserved === 0;
+          const isPaygOnly = reserved === 0 && subscription.supportsOnDemand;
           const hasAccess = activeProductTrial
             ? true
             : isPaygOnly
@@ -354,121 +367,109 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             isClickable: categoryInfo?.tallyType === 'usage',
           };
         }),
-      ...Object.entries(subscription.addOns ?? {})
-        .filter(
-          // show add-ons regardless of whether they're enabled
-          // as long as they're launched for the org
-          ([_, addOnInfo]) =>
-            (!addOnInfo.billingFlag ||
-              organization.features.includes(addOnInfo.billingFlag)) &&
-            !addOnInfo.dataCategories.some(
-              category =>
-                subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+      ...addOnsToShow.flatMap(([apiName, addOnInfo]) => {
+        const addOnName = toTitleCase(addOnInfo.productName, {
+          allowInnerUpperCase: true,
+        });
+
+        const paygTotal = addOnInfo.dataCategories.reduce((acc, category) => {
+          return acc + (subscription.categories[category]?.onDemandSpendUsed ?? 0);
+        }, 0);
+        const addOnDataCategories = addOnInfo.dataCategories;
+        const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
+          apiName as AddOnCategory
+        );
+        const reservedBudget = reservedBudgetCategory
+          ? subscription.reservedBudgets?.find(
+              budget => (budget.apiName as string) === reservedBudgetCategory
             )
-        )
-        .flatMap(([apiName, addOnInfo]) => {
-          const addOnName = toTitleCase(addOnInfo.productName, {
-            allowInnerUpperCase: true,
-          });
+          : undefined;
+        const percentUsed = reservedBudget?.reservedBudget
+          ? getPercentage(
+              reservedBudget?.totalReservedSpend,
+              reservedBudget?.reservedBudget
+            )
+          : undefined;
+        const activeProductTrial = getActiveProductTrial(
+          subscription.productTrials ?? [],
+          addOnDataCategories[0] as DataCategory
+        );
+        const hasAccess = addOnInfo.enabled;
 
-          const paygTotal = addOnInfo.dataCategories.reduce((acc, category) => {
-            return acc + (subscription.categories[category]?.onDemandSpendUsed ?? 0);
-          }, 0);
-          const addOnDataCategories = addOnInfo.dataCategories;
-          const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
-            apiName as AddOnCategory
-          );
-          const reservedBudget = reservedBudgetCategory
-            ? subscription.reservedBudgets?.find(
-                budget => (budget.apiName as string) === reservedBudgetCategory
-              )
-            : undefined;
-          const percentUsed = reservedBudget?.reservedBudget
-            ? getPercentage(
-                reservedBudget?.totalReservedSpend,
-                reservedBudget?.reservedBudget
-              )
-            : undefined;
-          const activeProductTrial = getActiveProductTrial(
-            subscription.productTrials ?? [],
-            addOnDataCategories[0] as DataCategory
-          );
-          const hasAccess = addOnInfo.enabled;
-
-          let bucket: EventBucket | undefined = undefined;
-          if (hasAccess) {
-            // NOTE: this only works for reserved budget add-ons,
-            // returning the first sub-category bucket that has a price
-            // for the reserved budget tier (RESERVED_BUDGET_QUOTA)
-            let i = 0;
-            while (!bucket?.price && i < addOnDataCategories.length) {
-              bucket = getBucket({
-                buckets: subscription.planDetails.planCategories[addOnDataCategories[i]!],
-                events: RESERVED_BUDGET_QUOTA,
-              });
-              i++;
-            }
+        let bucket: EventBucket | undefined = undefined;
+        if (hasAccess) {
+          // NOTE: this only works for reserved budget add-ons,
+          // returning the first sub-category bucket that has a price
+          // for the reserved budget tier (RESERVED_BUDGET_QUOTA)
+          let i = 0;
+          while (!bucket?.price && i < addOnDataCategories.length) {
+            bucket = getBucket({
+              buckets: subscription.planDetails.planCategories[addOnDataCategories[i]!],
+              events: RESERVED_BUDGET_QUOTA,
+            });
+            i++;
           }
-          const recurringReservedSpend = bucket?.price ?? 0;
+        }
+        const recurringReservedSpend = bucket?.price ?? 0;
 
-          // Only show child categories if the add-on is open and enabled
-          const childCategoriesData =
-            openState[apiName as AddOnCategory] && hasAccess
-              ? addOnInfo.dataCategories.map(addOnDataCategory => {
-                  const categoryInfo = getCategoryInfoFromPlural(addOnDataCategory);
-                  const childSpend =
-                    reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
-                  const childPaygTotal =
-                    subscription.categories[addOnDataCategory]?.onDemandSpendUsed ?? 0;
-                  const childProductName = getPlanCategoryName({
-                    plan: subscription.planDetails,
-                    category: addOnDataCategory,
-                    title: true,
-                  });
-                  const metricHistory = subscription.categories[addOnDataCategory];
-                  const softCapType =
-                    metricHistory?.softCapType ??
-                    (metricHistory?.trueForward ? 'TRUE_FORWARD' : undefined);
-                  return {
-                    addOnCategory: apiName as AddOnCategory,
-                    dataCategory: addOnDataCategory,
-                    isChildProduct: true,
-                    isOpen: openState[apiName as AddOnCategory],
-                    hasAccess: true,
-                    isPaygOnly: false,
-                    isUnlimited: !!activeProductTrial,
-                    softCapType: softCapType ?? undefined,
-                    budgetSpend: childPaygTotal,
-                    totalUsage: (childSpend ?? 0) + childPaygTotal,
-                    product: childProductName,
-                    isClickable: categoryInfo?.tallyType === 'usage',
-                  };
-                })
-              : null;
+        // Only show child categories if the add-on is open and enabled
+        const childCategoriesData =
+          openState[apiName as AddOnCategory] && hasAccess
+            ? addOnInfo.dataCategories.map(addOnDataCategory => {
+                const categoryInfo = getCategoryInfoFromPlural(addOnDataCategory);
+                const childSpend =
+                  reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
+                const childPaygTotal =
+                  subscription.categories[addOnDataCategory]?.onDemandSpendUsed ?? 0;
+                const childProductName = getPlanCategoryName({
+                  plan: subscription.planDetails,
+                  category: addOnDataCategory,
+                  title: true,
+                });
+                const metricHistory = subscription.categories[addOnDataCategory];
+                const softCapType =
+                  metricHistory?.softCapType ??
+                  (metricHistory?.trueForward ? 'TRUE_FORWARD' : undefined);
+                return {
+                  addOnCategory: apiName as AddOnCategory,
+                  dataCategory: addOnDataCategory,
+                  isChildProduct: true,
+                  isOpen: openState[apiName as AddOnCategory],
+                  hasAccess: true,
+                  isPaygOnly: false,
+                  isUnlimited: !!activeProductTrial,
+                  softCapType: softCapType ?? undefined,
+                  budgetSpend: childPaygTotal,
+                  totalUsage: (childSpend ?? 0) + childPaygTotal,
+                  product: childProductName,
+                  isClickable: categoryInfo?.tallyType === 'usage',
+                };
+              })
+            : null;
 
-          return [
-            {
-              addOnCategory: apiName as AddOnCategory,
-              hasAccess,
-              free: reservedBudget?.freeBudget ?? 0,
-              reserved: reservedBudget?.reservedBudget ?? 0,
-              isPaygOnly: !reservedBudget,
-              isOpen: openState[apiName as AddOnCategory],
-              toggleKey: hasAccess ? (apiName as AddOnCategory) : undefined,
-              isUnlimited: !!activeProductTrial,
-              productTrialCategory: addOnDataCategories[0] as DataCategory,
-              product: addOnName,
-              totalUsage: (reservedBudget?.totalReservedSpend ?? 0) + paygTotal,
-              percentUsed,
-              reservedSpend: recurringReservedSpend,
-              budgetSpend: paygTotal,
-              isClickable: hasAccess,
-            },
-            ...(childCategoriesData ?? []),
-          ];
-        }),
+        return [
+          {
+            addOnCategory: apiName as AddOnCategory,
+            hasAccess,
+            free: reservedBudget?.freeBudget ?? 0,
+            reserved: reservedBudget?.reservedBudget ?? 0,
+            isPaygOnly: !reservedBudget,
+            isOpen: openState[apiName as AddOnCategory],
+            toggleKey: hasAccess ? (apiName as AddOnCategory) : undefined,
+            isUnlimited: !!activeProductTrial,
+            productTrialCategory: addOnDataCategories[0] as DataCategory,
+            product: addOnName,
+            totalUsage: (reservedBudget?.totalReservedSpend ?? 0) + paygTotal,
+            percentUsed,
+            reservedSpend: recurringReservedSpend,
+            budgetSpend: paygTotal,
+            isClickable: hasAccess,
+          },
+          ...(childCategoriesData ?? []),
+        ];
+      }),
     ];
-  }, [subscription, allAddOnDataCategories, organization.features, openState]);
+  }, [subscription, allAddOnDataCategories, openState, addOnsToShow]);
 
   return (
     <GridEditable

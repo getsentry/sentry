@@ -211,6 +211,9 @@ describe('UsageOverview', () => {
     // issue fixes is unlimited
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getAllByRole('cell', {name: UNLIMITED})).toHaveLength(2);
+    // issue scans is 0
+    expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
+    expect(screen.getAllByRole('cell', {name: '0'}).length).toBeGreaterThan(0);
 
     // add-on is not rendered since at least one of its sub-categories is unlimited
     expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
@@ -221,8 +224,7 @@ describe('UsageOverview', () => {
       screen.queryByRole('row', {name: 'Collapse Seer details'})
     ).not.toBeInTheDocument();
 
-    // issue scans is not rendered because it's not unlimited
-    expect(screen.queryByRole('cell', {name: 'Issue Scans'})).not.toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
   });
 
   it('can open drawer for data categories but not add ons', async () => {
@@ -292,6 +294,44 @@ describe('UsageOverview', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('complementary', {name: 'Usage for Errors'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders PAYG tags only if PAYG is supported', () => {
+    const sub = SubscriptionFixture({
+      plan: 'am3_f',
+      organization,
+      supportsOnDemand: true,
+    });
+
+    render(
+      <UsageOverview
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(
+      screen.getAllByRole('cell', {name: 'Pay-as-you-go only'}).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('does not render PAYG tags if PAYG is not supported', () => {
+    const sub = SubscriptionFixture({
+      plan: 'am3_f',
+      organization,
+      supportsOnDemand: false,
+    });
+
+    render(
+      <UsageOverview
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(
+      screen.queryByRole('cell', {name: 'Pay-as-you-go only'})
     ).not.toBeInTheDocument();
   });
 });
