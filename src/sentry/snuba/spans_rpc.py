@@ -11,7 +11,7 @@ from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import handle_downsample_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -42,6 +42,7 @@ class Spans(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -55,6 +56,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 sampling_mode=sampling_mode,
                 page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
+                additional_queries=additional_queries,
             ),
             params.debug,
         )
