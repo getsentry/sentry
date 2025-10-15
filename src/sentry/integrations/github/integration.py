@@ -269,11 +269,13 @@ class GitHubIntegration(
         raise NotImplementedError("Force refresh access token is not supported for GitHub")
 
     def get_active_access_token(self) -> CredentialLease:
+        self._update_integration_model()
         access_token_data = self.get_client().get_access_token()
         assert access_token_data is not None, "Expected Integration to have an access token"
         return self._credential_lease_from_model()
 
     def get_current_access_token_expiration(self) -> datetime | None:
+        self._update_integration_model()
         expiration = self.model.metadata.get("expires_at")
         if not expiration:
             return None
