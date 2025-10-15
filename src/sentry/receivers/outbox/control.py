@@ -45,7 +45,20 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
 def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
+    if (
+        sentry_app := maybe_process_tombstone(
+            model=SentryApp, object_identifier=object_identifier, region_name=region_name
+        )
+    ) is None:
+        return
 
+    # Spawn a task to clear caches, as there can be 1000+ installations
+    # for a sentry app.
+    clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=region_name)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_DELETE)
+def process_sentry_app_deletes(object_identifier: int, region_name: str, **kwds: Any):
     # This function should only be used when the sentry app is being deleted.
     # Currently this receiver is only used for deletion.
     if options.get("workflow_engine.sentry-app-actions-outbox"):
@@ -61,17 +74,6 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
             status=ObjectStatus.DISABLED,
             sentry_app_id=object_identifier,
         )
-
-    if (
-        sentry_app := maybe_process_tombstone(
-            model=SentryApp, object_identifier=object_identifier, region_name=region_name
-        )
-    ) is None:
-        return
-
-    # Spawn a task to clear caches, as there can be 1000+ installations
-    # for a sentry app.
-    clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=region_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
