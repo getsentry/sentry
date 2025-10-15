@@ -90,7 +90,11 @@ export function AggregateDropdown({type}: {type: string}) {
   const previousType = usePrevious(type);
 
   useEffect(() => {
-    if (previousType !== type && defined(DEFAULT_YAXIS_BY_TYPE[type])) {
+    if (
+      defined(previousType) &&
+      previousType !== type &&
+      defined(DEFAULT_YAXIS_BY_TYPE[type])
+    ) {
       setVisualize(
         visualize.replace({
           yAxis: `${DEFAULT_YAXIS_BY_TYPE[type]}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
