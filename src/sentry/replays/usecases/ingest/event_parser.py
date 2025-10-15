@@ -740,12 +740,12 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
 
 
 def parse_tap_event(payload: dict[str, Any]) -> TapEvent | None:
-    payload_data = payload["data"]
+    payload_data = payload.get("data", {})
     return TapEvent(
         timestamp=int(payload["timestamp"]),
-        message=payload["message"],
-        view_class=payload_data["view.class"],
-        view_id=payload_data["view.id"],
+        message=payload.get("message", ""),
+        view_class=payload_data.get("view.class", ""),
+        view_id=payload_data.get("view.id", ""),
     )
 
 
