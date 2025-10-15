@@ -1,4 +1,5 @@
 import type {HTMLProps, PropsWithChildren} from 'react';
+import React from 'react';
 import {type Callout as CalloutProps} from '@r4ai/remark-callout';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
@@ -32,8 +33,16 @@ export const storyMdxComponents = {
   h6: (props: HeadingProps) => <StoryHeading as="h6" size="xs" {...props} />,
   code: (props: HTMLProps<HTMLElement>) => <InlineCode {...props} />,
   Callout: (props: PropsWithChildren<CalloutProps>) => {
-    /** Drop leading title node since it is duplicated */
-    const children = React.Children.toArray(props.children).slice(2);
+    const children = React.Children.toArray(props.children).filter(value => {
+      if (React.isValidElement(value)) {
+        if (value.props && typeof value.props === 'object') {
+          // data-callout-title child added by @r4ai/remark-callout
+          // but we want to style `props.title` differently
+          return !('data-callout-title' in value.props);
+        }
+      }
+      return true;
+    });
     const expand = props.isFoldable ? children : undefined;
     return (
       <Alert
