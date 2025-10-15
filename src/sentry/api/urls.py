@@ -243,11 +243,11 @@ from sentry.integrations.api.endpoints.organization_coding_agents import (
 from sentry.integrations.api.endpoints.organization_config_integrations import (
     OrganizationConfigIntegrationsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization_integration_channels import (
-    OrganizationIntegrationChannelsEndpoint,
-)
 from sentry.integrations.api.endpoints.organization_integration_channel_validate import (
     OrganizationIntegrationChannelValidateEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_channels import (
+    OrganizationIntegrationChannelsEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
