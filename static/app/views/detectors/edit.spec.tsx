@@ -741,5 +741,73 @@ describe('DetectorEdit', () => {
         });
       });
     });
+
+    it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
+      const organizationWithDeprecation = OrganizationFixture({
+        features: [
+          'workflow-engine-ui',
+          'visibility-explore-view',
+          'discover-saved-queries-deprecation',
+        ],
+      });
+
+      const existingTransactionsDetector = MetricDetectorFixture({
+        id: '123',
+        name: 'Transactions Detector',
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'count()',
+                dataset: Dataset.GENERIC_METRICS,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRANSACTION],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organizationWithDeprecation.slug}/detectors/123/`,
+        body: existingTransactionsDetector,
+      });
+
+      const editRouterConfig = {
+        route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+        location: {
+          pathname: `/organizations/${organizationWithDeprecation.slug}/issues/monitors/123/edit/`,
+        },
+      };
+
+      render(<DetectorEdit />, {
+        organization: organizationWithDeprecation,
+        initialRouterConfig: editRouterConfig,
+      });
+
+      // Wait for the detector to load
+      expect(
+        await screen.findByRole('link', {name: 'Transactions Detector'})
+      ).toBeInTheDocument();
+
+      // Open dataset dropdown
+      const datasetField = screen.getByLabelText('Dataset');
+      await userEvent.click(datasetField);
+
+      // Verify transactions option IS available when editing existing transactions detector
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Transactions'})
+      ).toBeInTheDocument();
+
+      // Verify other datasets are also available
+      expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+    });
   });
 });
