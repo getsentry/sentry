@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -24,8 +23,8 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
@@ -47,15 +46,10 @@ import SummaryContent, {OTelSummaryContent} from './content';
 // as string | number
 type TotalValues = Record<string, number>;
 
-type Props = {
-  organization: Organization;
-  selection: PageFilters;
-};
-
-function TransactionOverview(props: Props) {
+function TransactionOverview() {
   const api = useApi();
-
-  const {selection, organization} = props;
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
@@ -390,4 +384,4 @@ function getEAPTotalsEventView(
   return eventView.withColumns([...totalsColumns]);
 }
 
-export default withPageFilters(withOrganization(TransactionOverview));
+export default TransactionOverview;
