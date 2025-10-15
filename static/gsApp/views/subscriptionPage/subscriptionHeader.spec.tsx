@@ -108,7 +108,7 @@ describe('SubscriptionHeader', () => {
     }
   }
 
-  it('renders new header cards for self-serve customers', async () => {
+  it('renders new header cards for self-serve free customers', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -123,13 +123,34 @@ describe('SubscriptionHeader', () => {
     );
     await assertNewHeaderCards({
       organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: true,
+      hasPaygCard: false,
+    });
+  });
+
+  it('renders new header cards for self-serve paid customers', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
       hasNextBillCard: true,
       hasBillingInfoCard: true,
       hasPaygCard: true,
     });
   });
 
-  it('renders new header cards for self-serve partner customers', async () => {
+  it('renders new header cards for self-serve free partner customers', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -137,6 +158,28 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
+      isSelfServePartner: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: false,
+      hasPaygCard: false,
+    });
+  });
+
+  it('renders new header cards for self-serve paid partner customers', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
       isSelfServePartner: true,
     });
     SubscriptionStore.set(organization.slug, subscription);
