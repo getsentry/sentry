@@ -102,7 +102,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
 
     @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_start_with_backslash(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
+    def test_get_start_with_backslash(
+        self, mock_get_trees_for_org: Any, mock_check_file: Any
+    ) -> None:
         file = "stack/root/file.py"
         config_data = {"stacktraceFilename": f"/{file}"}
         expected_matches = [
@@ -190,7 +192,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
 
     @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_unsupported_frame_info(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
+    def test_get_unsupported_frame_info(
+        self, mock_get_trees_for_org: Any, mock_check_file: Any
+    ) -> None:
         config_data = {
             "stacktraceFilename": "top_level_file.py",
         }
@@ -209,7 +213,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
 
     @patch("sentry.integrations.github.client.GitHubBaseClient.check_file")
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_file_not_found_on_github(self, mock_get_trees_for_org: Any, mock_check_file: Any) -> None:
+    def test_get_file_not_found_on_github(
+        self, mock_get_trees_for_org: Any, mock_check_file: Any
+    ) -> None:
         """Test that files not found on GitHub API are excluded from matches"""
         config_data = {
             "stacktraceFilename": "stack/root/file.py",
