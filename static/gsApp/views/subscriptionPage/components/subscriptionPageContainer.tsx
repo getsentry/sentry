@@ -25,12 +25,15 @@ function SubscriptionPageContainer({
   paddingOverride?: ContainerProps['padding'];
   useBorderTopLogic?: boolean;
 }) {
+  const isNewBillingUI = hasNewBillingUI(organization);
+
   useEffect(() => {
     // record replays for all usage and billing settings pages
-    Sentry.getReplay()?.start();
-  }, []);
+    if (isNewBillingUI) {
+      Sentry.getReplay()?.start();
+    }
+  }, [isNewBillingUI]);
 
-  const isNewBillingUI = hasNewBillingUI(organization);
   useRouteAnalyticsParams({
     isNewBillingUI,
   });
