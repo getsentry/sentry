@@ -17,6 +17,7 @@ from django.db import router as db_router
 from django.db.models import Model, QuerySet
 from django.utils import timezone
 
+from sentry import options
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
@@ -224,6 +225,15 @@ def _cleanup(
 
             deletes = models_which_use_deletions_code_path()
 
+            if options.get("cleanup.delete-old-groups.enabled") and model == ("sentry.Group",):
+                with metrics.timer("cleanup.stage", instance=router, tags={"stage": "old_groups"}):
+                    try:
+                        delete_groups_older_than_days(
+                            days=options.get("cleanup.delete-old-groups.days")
+                        )
+                    except Exception:
+                        logger.exception("Error in delete_groups_older_than_days")
+
             # Track timing for each deletion stage to monitor execution progress and identify bottlenecks
             with metrics.timer(
                 "cleanup.stage", instance=router, tags={"stage": "specialized_cleanups"}
@@ -296,6 +306,80 @@ def _cleanup(
                 _report_models_never_attempted(
                     model_list, models_attempted, models_legitimately_filtered
                 )
+
+
+def delete_groups_older_than_days(days: int) -> None:
+    """
+    Delete old groups based on last_seen timestamp.
+
+    Since there's no index with last_seen as the leading column, we get all project_ids
+    (which is fast via the primary key index), then process each project using the
+    (project_id, last_seen) index.
+
+    Uses batching to avoid long-running transactions and table locks.
+    """
+    from sentry import options
+    from sentry.models.group import Group
+    from sentry.models.project import Project
+    from sentry.utils import metrics
+
+    metrics_key = "cleanup.delete-old-groups"
+
+    cutoff_date = timezone.now() - timedelta(days=days)
+
+    # Get all project_ids (uses Project primary key index, very fast)
+    project_ids = list(Project.objects.values_list("id", flat=True))
+
+    # Track total iterations to respect the configured limit
+    total_iterations = 0
+    max_iterations = options.get("cleanup.delete-old-groups.iterations")
+    batch_size = options.get("cleanup.delete-old-groups.batch-size")
+
+    # Process each project using the (project_id, last_seen) index
+    for project_id in project_ids:
+        # This query efficiently uses sentry_groupedmessage_project_id_last_seen index
+        # by filtering on project_id first (leading column), then last_seen
+        # ORDER BY last_seen DESC, id DESC matches the index for optimal performance
+        # CREATE INDEX sentry_groupedmessage_project_id_last_seen ON public.sentry_groupedmessage USING btree (project_id, last_seen DESC)
+        while True:
+            # Check iteration limit
+            if total_iterations >= max_iterations:
+                logger.info(
+                    "Reached iteration limit, stopping deletion",
+                    extra={"max_iterations": max_iterations},
+                )
+                return
+
+            with metrics.timer(f"{metrics_key}.delete_groups_for_project"):
+                try:
+                    # Use order_by to ensure consistent ordering that matches index
+                    # This helps PostgreSQL use the index efficiently
+                    group_ids = list(
+                        Group.objects.filter(project_id=project_id, last_seen__lt=cutoff_date)
+                        .order_by("-last_seen", "-id")
+                        .values_list("id", flat=True)[:batch_size]
+                    )
+
+                    if not group_ids:
+                        # No more groups to delete for this project
+                        break
+
+                    deleted_count, _ = Group.objects.filter(id__in=group_ids).delete()
+                    metrics.incr(f"{metrics_key}.deleted_count", deleted_count)
+                    total_iterations += 1
+
+                    # If we deleted fewer groups than batch size, we're done with this project
+                    if len(group_ids) < batch_size:
+                        break
+
+                except Exception:
+                    logger.exception("Error in delete_groups_batch")
+                    break
+
+            # Check killswitch after each batch
+            if not options.get("cleanup.delete-old-groups.enabled"):
+                logger.info("Killswitch disabled, stopping deletion")
+                return
 
 
 def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
