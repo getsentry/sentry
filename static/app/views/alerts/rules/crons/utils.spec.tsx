@@ -51,7 +51,7 @@ describe('getMonitorRefetchInterval', () => {
   }
 
   it('returns WAITING_FIRST_CHECK_IN_INTERVAL_MS when no environments exist', () => {
-    const now = moment('2024-01-01T12:00:00Z');
+    const now = moment('2024-01-01T12:00:00Z').toDate();
     const monitor = makeMonitorWithNextCheckIns([]);
 
     expect(getMonitorRefetchInterval(monitor, now)).toBe(5_000);
@@ -62,7 +62,7 @@ describe('getMonitorRefetchInterval', () => {
     const futureTime = moment(now).add(10, 'minutes');
     const monitor = makeMonitorWithNextCheckIns([futureTime.toISOString()]);
 
-    const result = getMonitorRefetchInterval(monitor, now);
+    const result = getMonitorRefetchInterval(monitor, now.toDate());
     // Should be exactly 10 minutes (600_000ms)
     expect(result).toBe(600_000);
   });
@@ -72,14 +72,14 @@ describe('getMonitorRefetchInterval', () => {
     const pastTime = moment(now).subtract(30, 'seconds');
     const monitor = makeMonitorWithNextCheckIns([pastTime.toISOString()]);
 
-    expect(getMonitorRefetchInterval(monitor, now)).toBe(5_000);
+    expect(getMonitorRefetchInterval(monitor, now.toDate())).toBe(5_000);
   });
 
   it('returns 5 seconds when check-in is exactly now', () => {
     const now = moment('2024-01-01T12:00:00Z');
     const monitor = makeMonitorWithNextCheckIns([now.toISOString()]);
 
-    expect(getMonitorRefetchInterval(monitor, now)).toBe(5_000);
+    expect(getMonitorRefetchInterval(monitor, now.toDate())).toBe(5_000);
   });
 
   it('returns 30 seconds when check-in is 1-5 minutes late', () => {
@@ -87,7 +87,7 @@ describe('getMonitorRefetchInterval', () => {
     const pastTime = moment(now).subtract(3, 'minutes');
     const monitor = makeMonitorWithNextCheckIns([pastTime.toISOString()]);
 
-    expect(getMonitorRefetchInterval(monitor, now)).toBe(30_000);
+    expect(getMonitorRefetchInterval(monitor, now.toDate())).toBe(30_000);
   });
 
   it('returns 2 minutes when check-in is 5-15 minutes late', () => {
@@ -95,7 +95,7 @@ describe('getMonitorRefetchInterval', () => {
     const pastTime = moment(now).subtract(10, 'minutes');
     const monitor = makeMonitorWithNextCheckIns([pastTime.toISOString()]);
 
-    expect(getMonitorRefetchInterval(monitor, now)).toBe(2 * 60_000);
+    expect(getMonitorRefetchInterval(monitor, now.toDate())).toBe(2 * 60_000);
   });
 
   it('returns 5 minutes when check-in is 15-30 minutes late', () => {
@@ -103,7 +103,7 @@ describe('getMonitorRefetchInterval', () => {
     const pastTime = moment(now).subtract(20, 'minutes');
     const monitor = makeMonitorWithNextCheckIns([pastTime.toISOString()]);
 
-    expect(getMonitorRefetchInterval(monitor, now)).toBe(5 * 60_000);
+    expect(getMonitorRefetchInterval(monitor, now.toDate())).toBe(5 * 60_000);
   });
 
   it('returns 10 minutes (cap) when check-in is more than 30 minutes late', () => {
@@ -111,7 +111,7 @@ describe('getMonitorRefetchInterval', () => {
     const pastTime = moment(now).subtract(2, 'hours');
     const monitor = makeMonitorWithNextCheckIns([pastTime.toISOString()]);
 
-    expect(getMonitorRefetchInterval(monitor, now)).toBe(10 * 60_000);
+    expect(getMonitorRefetchInterval(monitor, now.toDate())).toBe(10 * 60_000);
   });
 
   it('uses the earliest nextCheckIn when multiple environments exist', () => {
@@ -123,7 +123,7 @@ describe('getMonitorRefetchInterval', () => {
       earlierTime.toISOString(),
     ]);
 
-    const result = getMonitorRefetchInterval(monitor, now);
+    const result = getMonitorRefetchInterval(monitor, now.toDate());
     // Should be exactly 5 minutes (300_000ms)
     expect(result).toBe(300_000);
   });
@@ -133,7 +133,7 @@ describe('getMonitorRefetchInterval', () => {
     const futureTime = moment(now).add(10, 'minutes');
     const monitor = makeMonitorWithNextCheckIns([null, futureTime.toISOString()]);
 
-    const result = getMonitorRefetchInterval(monitor, now);
+    const result = getMonitorRefetchInterval(monitor, now.toDate());
     // Should use the non-null nextCheckIn
     expect(result).toBe(600_000);
   });
