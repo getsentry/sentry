@@ -44,7 +44,7 @@ def submit(consumer: ProcessingStrategy[KafkaPayload], message: dict[str, Any]) 
 
 
 @mock.patch("sentry.options.get")
-def test_recording_consumer(options_get, consumer: ProcessingStrategy[KafkaPayload]) -> None:
+def test_recording_consumer(options_get, consumer: ProcessingStrategy[KafkaPayload]) -> None:  # type: ignore[no-untyped-def]
     options_get.return_value = True
 
     headers = json.dumps({"segment_id": 42}).encode()
