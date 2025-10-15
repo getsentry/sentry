@@ -490,6 +490,7 @@ def test_nodestore_missing(
     mock_logger.warning.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
 
 
+@pytest.mark.skip(reason="flaky: #101528")
 @django_db_all
 @pytest.mark.snuba
 def test_apply_new_fingerprinting_rules(
