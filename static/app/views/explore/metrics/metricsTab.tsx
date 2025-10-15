@@ -76,7 +76,7 @@ function MetricsTabBodySection() {
         {metricQueries.map((metricQuery, index) => {
           return (
             <MetricsQueryParamsProvider
-              key={index}
+              key={`queryBuilder-${index}`}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               setTraceMetric={metricQuery.setTraceMetric}
@@ -98,7 +98,7 @@ function MetricsTabBodySection() {
         {metricQueries.map((metricQuery, index) => {
           return (
             <MetricsQueryParamsProvider
-              key={index}
+              key={`queryPanel-${index}`}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               setTraceMetric={metricQuery.setTraceMetric}
