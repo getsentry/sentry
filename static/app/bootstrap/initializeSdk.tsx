@@ -8,7 +8,7 @@ import {
 import type {Event} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
+import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
