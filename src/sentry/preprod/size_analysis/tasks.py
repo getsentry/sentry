@@ -12,6 +12,7 @@ from sentry.preprod.models import (
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
@@ -66,6 +67,12 @@ def compare_preprod_artifact_size_analysis(
                 "preprod.size_analysis.compare.artifact_different_build_configurations",
                 extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
             )
+            # Update the status check even though we can't compare to avoid leaving it in a loading state
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact_id,
+                }
+            )
             return
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -114,6 +121,13 @@ def compare_preprod_artifact_size_analysis(
                 extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
             )
 
+    # Update the current artifact's status check with the new comparison
+    create_preprod_status_check_task.apply_async(
+        kwargs={
+            "preprod_artifact_id": artifact_id,
+        }
+    )
+
     # Also run comparisons with artifact as base
     head_artifacts = artifact.get_head_artifacts_for_commit()
     for head_artifact in head_artifacts:
@@ -148,9 +162,11 @@ def compare_preprod_artifact_size_analysis(
         head_metrics_map = build_size_metrics_map(head_size_metrics)
         base_metrics_map = build_size_metrics_map(base_size_metrics)
 
+        should_update_status_check = False
         for key, head_metric in head_metrics_map.items():
             matching_base_size_metric = base_metrics_map.get(key)
             if matching_base_size_metric:
+                should_update_status_check = True
                 logger.info(
                     "preprod.size_analysis.compare.running_comparison",
                     extra={"base_artifact_id": artifact_id, "head_artifact_id": head_artifact.id},
@@ -161,6 +177,14 @@ def compare_preprod_artifact_size_analysis(
                     "preprod.size_analysis.compare.no_matching_base_size_metric",
                     extra={"head_artifact_id": head_artifact.id, "size_metric_id": head_metric.id},
                 )
+
+        if should_update_status_check:
+            # Update the head artifact's status check with the new comparison
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": head_artifact.id,
+                }
+            )
 
 
 @instrumented_task(
