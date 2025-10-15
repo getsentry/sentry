@@ -219,7 +219,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert new_explore_query.changed_reason["orderby"] == [
             {
                 "orderby": "-count_miserable(users)",
-                "reason": "fields were dropped: count_miserable(users)",
+                "reason": ["count_miserable(users)"],
             }
         ]
 
