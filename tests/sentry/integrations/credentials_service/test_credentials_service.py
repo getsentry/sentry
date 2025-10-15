@@ -137,7 +137,7 @@ class TestCredentialsService(TestCase):
             integration_provider="github",
             token_minimum_validity_seconds=10,
             resource_type=ResourceType.SENTRY_INSTALLATION,
-            resource_identifier=installation.id,
+            resource_identifier=str(installation.id),
         )
         assert credentials == "<fake_encrypted_data>"
 
@@ -163,7 +163,7 @@ class TestCredentialsService(TestCase):
                 integration_provider="github",
                 token_minimum_validity_seconds=10,
                 resource_type=ResourceType.SENTRY_INSTALLATION,
-                resource_identifier=installation.id,
+                resource_identifier=str(installation.id),
             )
 
     @responses.activate

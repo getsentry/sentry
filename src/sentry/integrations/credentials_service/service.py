@@ -142,8 +142,9 @@ class ScmIntegrationCredentialsService:
             return org_integration.integration
 
         elif resource_type == ResourceType.SENTRY_INSTALLATION:
+            install_id = int(resource_identifier)
             installation = installation_query.filter(
-                id=resource_identifier,
+                id=install_id,
             ).get()
             return installation.integration
 
