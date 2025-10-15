@@ -286,7 +286,11 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
   }> = useMemo(() => {
     return [
       ...sortCategories(subscription.categories)
-        .filter(metricHistory => !allAddOnDataCategories.includes(metricHistory.category))
+        .filter(
+          metricHistory =>
+            !allAddOnDataCategories.includes(metricHistory.category) ||
+            metricHistory.reserved === UNLIMITED_RESERVED
+        )
         .map(metricHistory => {
           const category = metricHistory.category;
           const categoryInfo = getCategoryInfoFromPlural(category);
@@ -316,7 +320,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                 OnDemandBudgetMode.PER_CATEGORY
                 ? metricHistory.onDemandBudget > 0
                 : subscription.onDemandMaxSpend > 0
-              : reserved > 0;
+              : reserved > 0 || reserved === UNLIMITED_RESERVED;
 
           const bucket = getBucket({
             events: reserved, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
@@ -355,8 +359,12 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           // show add-ons regardless of whether they're enabled
           // as long as they're launched for the org
           ([_, addOnInfo]) =>
-            !addOnInfo.billingFlag ||
-            organization.features.includes(addOnInfo.billingFlag)
+            (!addOnInfo.billingFlag ||
+              organization.features.includes(addOnInfo.billingFlag)) &&
+            !addOnInfo.dataCategories.some(
+              category =>
+                subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+            )
         )
         .flatMap(([apiName, addOnInfo]) => {
           const addOnName = toTitleCase(addOnInfo.productName, {
@@ -587,7 +595,9 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                         position="top"
                         title={
                           isUnlimited
-                            ? t('Unlimited usage during your product trial')
+                            ? reserved === UNLIMITED_RESERVED
+                              ? t('Unlimited usage')
+                              : t('Unlimited usage during your product trial')
                             : tct('[formattedReserved] reserved[freeString]', {
                                 formattedReserved,
                                 freeString: free
