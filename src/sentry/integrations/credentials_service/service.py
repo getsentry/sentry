@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import StrEnum
 from typing import Protocol
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class LeasedCredentials:
     access_token: str
     permissions: dict[str, str] | None
-    expires_at: datetime | None
+    expires_at: str | None
     lease_duration_seconds: int
     sentry_organization_id: str
     external_installation_id: str
@@ -198,7 +198,9 @@ class ScmIntegrationCredentialsService:
         return LeasedCredentials(
             access_token=credential_lease.access_token,
             permissions=credential_lease.permissions,
-            expires_at=credential_lease.expires_at,
+            expires_at=(
+                credential_lease.expires_at.isoformat() if credential_lease.expires_at else None
+            ),
             lease_duration_seconds=token_minimum_validity_seconds,
             sentry_organization_id=str(sentry_organization_id),
             external_installation_id=integration.external_id,
@@ -221,8 +223,8 @@ class ScmIntegrationCredentialsService:
 
         return encrypted_data.decode("utf-8")
 
-    def _get_fernet_key_for_encryption(self) -> str:
-        key = settings.INTEGRATION_CREDENTIALS_LEASE_ENCRYPTION_KEY.encode("utf-8")
+    def _get_fernet_key_for_encryption(self) -> bytes:
+        key = settings.INTEGRATION_CREDENTIALS_LEASE_ENCRYPTION_KEY
         if not key:
             raise ValueError("INTEGRATION_CREDENTIALS_LEASE_ENCRYPTION_KEY is not set")
-        return key
+        return key.encode("utf-8")

@@ -322,7 +322,11 @@ class TestCredentialsService(TestCase):
         assert decrypted_credentials == LeasedCredentials(
             access_token=refreshed_credential_lease.access_token,
             permissions=refreshed_credential_lease.permissions,
-            expires_at=refreshed_credential_lease.expires_at.isoformat(),
+            expires_at=(
+                refreshed_credential_lease.expires_at.isoformat()
+                if refreshed_credential_lease.expires_at
+                else None
+            ),
             lease_duration_seconds=10,
             sentry_organization_id=str(self.organization.id),
             external_installation_id="123",
