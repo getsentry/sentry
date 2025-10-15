@@ -205,7 +205,7 @@ def compare_preprod_artifact_size_analysis(
             )
 
     time_now = timezone.now()
-    e2e_size_analysis_compare_duration = time_now - artifact.date_created
+    e2e_size_analysis_compare_duration = time_now - artifact.date_added
     metrics.distribution(
         "preprod.size_analysis.compare.results_e2e",
         e2e_size_analysis_compare_duration.total_seconds(),

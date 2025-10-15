@@ -449,7 +449,7 @@ def _assemble_preprod_artifact_size_analysis(
         raise
 
     time_now = timezone.now()
-    e2e_size_analysis_duration = time_now - preprod_artifact.date_created
+    e2e_size_analysis_duration = time_now - preprod_artifact.date_added
     metrics.distribution(
         "preprod.size_analysis.results_e2e",
         e2e_size_analysis_duration.total_seconds(),
