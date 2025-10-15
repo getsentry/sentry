@@ -5,10 +5,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry import options
 from sentry.integrations.source_code_management.repo_trees import get_extension
 
-from .constants import SECOND_LEVEL_TLDS, STACK_ROOT_MAX_LEVEL
+from .constants import STACK_ROOT_MAX_LEVEL
 from .errors import (
     DoesNotFollowJavaPackageNamingConvention,
     MissingModuleOrAbsPath,
@@ -157,25 +156,19 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
 
 def get_granularity(parts: Sequence[str]) -> int:
-    # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
+    # a.Bar, Bar.kt -> stack_root: a/, file_path: a/Bar.kt
     granularity = 1
 
     if len(parts) > 1:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
-        #    stack_root: com/example/foo/
+        #    stack_root: com/example/foo/bar/
         #    file_path:  com/example/foo/bar/Baz.kt
-        granularity = STACK_ROOT_MAX_LEVEL - 1
-
-        if parts[1] in SECOND_LEVEL_TLDS:
-            # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
-            #    stack_root: uk/co/example/foo/
-            #    file_path:  uk/co/example/foo/bar/Baz.kt
-            granularity = STACK_ROOT_MAX_LEVEL
-
-        elif options.get("auto_source_code_config.multi_module_java"):
-            # com.example.multi.foo.bar.Baz$InnerClass, Baz.kt ->
-            #    stack_root: com/example/multi/foo/
-            #    file_path:  com/example/multi/foo/bar/Baz.kt
-            granularity = STACK_ROOT_MAX_LEVEL
+        # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
+        #    stack_root: uk/co/example/foo/
+        #    file_path:  uk/co/example/foo/bar/Baz.kt
+        # com.example.multi.foo.bar.Baz$InnerClass, Baz.kt ->
+        #    stack_root: com/example/multi/foo/
+        #    file_path:  com/example/multi/foo/bar/Baz.kt
+        granularity = STACK_ROOT_MAX_LEVEL
 
     return granularity
