@@ -28,15 +28,13 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction> | null;
-  missingInstrumentationNode: MissingInstrumentationNode;
+  missingInstrumentationNode: NoInstrumentationNode;
   profileID: string | undefined;
   profilerID: string | undefined;
   project: Project | undefined;
@@ -73,21 +71,17 @@ export function ProfilePreview({
     return null;
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
-  const transactionHasProfile = useMemo(() => {
-    return isEAPSpanNode(missingInstrumentationNode.previous)
-      ? (TraceTree.ParentEAPTransaction(missingInstrumentationNode)?.profiles?.length ??
-          0) > 0
-      : (TraceTree.ParentTransaction(missingInstrumentationNode)?.profiles?.length ?? 0) >
-          0;
+  const parentHasProfile = useMemo(() => {
+    return missingInstrumentationNode.findParent(p => p.profiles.size > 0);
   }, [missingInstrumentationNode]);
 
   const flamegraph = useMemo(() => {
-    if (!transactionHasProfile || !profile) {
+    if (!parentHasProfile || !profile) {
       return FlamegraphModel.Example();
     }
 
     return new FlamegraphModel(profile, {});
-  }, [transactionHasProfile, profile]);
+  }, [parentHasProfile, profile]);
 
   const target = useMemo(() => {
     if (project?.slug) {
@@ -149,11 +143,11 @@ export function ProfilePreview({
   // the next best thing.
   const startTimestamp = profile?.timestamp ?? event?.startTimestamp;
   const relativeStartTimestamp =
-    transactionHasProfile && defined(startTimestamp)
+    parentHasProfile && defined(startTimestamp)
       ? missingInstrumentationNode.value.start_timestamp - startTimestamp
       : 0;
   const relativeStopTimestamp =
-    transactionHasProfile && defined(startTimestamp)
+    parentHasProfile && defined(startTimestamp)
       ? missingInstrumentationNode.value.timestamp - startTimestamp
       : flamegraph.configSpace.width;
 
@@ -168,7 +162,7 @@ export function ProfilePreview({
     <TextBlock>{t('Or, see if profiling can provide more context on this:')}</TextBlock>
   );
 
-  if (target && transactionHasProfile) {
+  if (target && parentHasProfile) {
     return (
       <FlamegraphThemeProvider>
         {message}

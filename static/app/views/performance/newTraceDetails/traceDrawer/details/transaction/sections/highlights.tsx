@@ -16,13 +16,12 @@ import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTr
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 type HighlightProps = {
   event: EventTransaction;
-  node: TraceTreeNode<TraceTree.Transaction>;
+  node: TransactionNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;

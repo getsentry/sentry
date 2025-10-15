@@ -2,18 +2,16 @@ import {useEffect, useState} from 'react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {
   isEAPSpanNode,
   isSpanNode,
-  isTransactionNode,
   isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -69,29 +67,19 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
         tree.build();
 
-        const fetchableTransactions = TraceTree.FindAll(tree.root, node => {
-          return isTransactionNode(node) && node.canFetch && node.value !== null;
-        }).filter((node): node is TraceTreeNode<TraceTree.Transaction> =>
-          isTransactionNode(node)
-        );
-
-        const uniqueTransactions = fetchableTransactions.filter(
-          (node, index, array) =>
-            index === array.findIndex(tx => tx.value.event_id === node.value.event_id)
-        );
-
-        const zoomPromises = uniqueTransactions.map(node =>
-          tree.zoom(node, true, {
+        const fetchableNodes = tree.root.findAllChildren(node => node.canFetchChildren);
+        const fetchPromises = fetchableNodes.map(node =>
+          tree.fetchNodeSubTree(true, node, {
             api,
             organization,
             preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
           })
         );
 
-        await Promise.all(zoomPromises);
+        await Promise.all(fetchPromises);
 
         // Keep only transactions that include AI spans and the AI spans themselves
-        const flattenedNodes = TraceTree.FindAll(tree.root, node => {
+        const flattenedNodes = tree.root.findAllChildren(node => {
           if (
             !isTransactionNodeEquivalent(node) &&
             !isSpanNode(node) &&
@@ -100,7 +88,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
             return false;
           }
 
-          return getIsAiNode(node);
+          return getIsAiSpan({op: node.op});
         }) as AITraceSpanNode[];
 
         setNodes(flattenedNodes);

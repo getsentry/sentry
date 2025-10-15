@@ -2,17 +2,12 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {ErrorNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/errorNode';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
 
-export function ErrorNodeDetails(
-  props: TraceTreeNodeDetailsProps<
-    TraceTreeNode<TraceTree.TraceError> | TraceTreeNode<TraceTree.EAPError>
-  >
-) {
+export function ErrorNodeDetails(props: TraceTreeNodeDetailsProps<ErrorNode>) {
   const {node, organization, onTabScrollToNode} = props;
   const issues = useMemo(() => {
     return [...node.errors];

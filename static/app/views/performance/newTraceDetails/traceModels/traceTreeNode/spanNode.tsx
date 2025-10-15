@@ -49,6 +49,12 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return this.value.description;
   }
 
+  get projectSlug(): string {
+    // The span value does not have a project slug, so we need to find a parent that has one.
+    // If we don't find one, we return the default project slug.
+    return this.findParent(p => !!p.projectSlug)?.projectSlug ?? 'default';
+  }
+
   get endTimestamp(): number {
     return this.value.timestamp;
   }
@@ -94,15 +100,13 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={props.node} />;
+    return <TraceSpanRow {...props} node={this} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <SpanNodeDetails {...props} node={props.node as TraceTreeNode<TraceTree.Span>} />
-    );
+    return <SpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

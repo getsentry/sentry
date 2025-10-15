@@ -33,13 +33,7 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return (
-      <TraceSpanRow
-        {...props}
-        // Won't need this cast once we use BaseNode type for props.node
-        node={this as unknown as TraceTreeNode<TraceTree.UptimeCheckTiming>}
-      />
-    );
+    return <TraceSpanRow {...props} node={this} />;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(

@@ -3,9 +3,9 @@ import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface UseTransactionProps {
-  event_id: string;
+  event_id: string | undefined;
   organization: Organization;
-  project_slug: string;
+  project_slug: string | undefined;
 }
 
 export function useTransaction(props: UseTransactionProps) {

@@ -179,7 +179,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   renderWaterfallRow<T extends TraceTree.Node>(props: TraceRowProps<T>): React.ReactNode {
-    return <TraceTransactionRow {...props} node={props.node} />;
+    return <TraceTransactionRow {...props} node={this} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
@@ -189,7 +189,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       <TransactionNodeDetails
         {...props}
         // Won't need this cast once we use BaseNode type for props.node
-        node={props.node as TraceTreeNode<TraceTree.Transaction>}
+        node={this}
       />
     );
   }
@@ -432,6 +432,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         if (index !== -1) {
           tree.list.splice(index + 1, 0, ...this.visibleChildren);
         }
+
+        this.invalidate();
+        this.forEachChild(child => child.invalidate());
+
         return data;
       })
       .catch(_e => {

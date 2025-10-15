@@ -11,19 +11,16 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {
-  isAutogroupedNode,
-  isEAPErrorNode,
   isEAPSpanNode,
   isSpanNode,
-  isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 export type TraceSearchResult = {
   index: number;
-  value: TraceTreeNode<TraceTree.NodeValue>;
+  value: BaseNode;
 };
 
 const {info, fmt} = Sentry.logger;
@@ -41,11 +38,11 @@ const {info, fmt} = Sentry.logger;
 export function searchInTraceTreeTokens(
   tree: TraceTree,
   tokens: Array<TokenResult<Token>>,
-  previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
+  previousNode: BaseNode | null,
   cb: (
     results: [
       readonly TraceSearchResult[],
-      Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+      Map<BaseNode, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
   ) => void
@@ -117,25 +114,20 @@ export function searchInTraceTreeTokens(
     return handle;
   }
 
-  let result_map: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
+  let result_map: Map<BaseNode, number> = new Map();
 
   let ti = 0;
   let li = 0;
   let ri = 0;
 
   let bool: TokenResult<Token.LOGIC_BOOLEAN> | null = null;
-  let leftToken:
-    | ProcessedTokenResult
-    | Map<TraceTreeNode<TraceTree.NodeValue>, number>
-    | null = null;
+  let leftToken: ProcessedTokenResult | Map<BaseNode, number> | null = null;
   let rightToken: ProcessedTokenResult | null = null;
 
-  const left: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
-  const right: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
+  const left: Map<BaseNode, number> = new Map();
+  const right: Map<BaseNode, number> = new Map();
 
-  const stack: Array<
-    ProcessedTokenResult | Map<TraceTreeNode<TraceTree.NodeValue>, number>
-  > = [];
+  const stack: Array<ProcessedTokenResult | Map<BaseNode, number>> = [];
 
   function search(): void {
     const ts = performance.now();
@@ -271,11 +263,11 @@ export function searchInTraceTreeTokens(
 export function searchInTraceTreeText(
   tree: TraceTree,
   query: string,
-  previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
+  previousNode: BaseNode | null,
   cb: (
     results: [
       readonly TraceSearchResult[],
-      Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+      Map<BaseNode, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
   ) => void
@@ -292,14 +284,14 @@ export function searchInTraceTreeText(
   let matchCount = 0;
 
   function search() {
-    enforceVisibilityForAllMatches(tree, node => evaluateNodeFreeText(query, node));
+    enforceVisibilityForAllMatches(tree, node => node.matchWithFreeText(query));
 
     const count = tree.list.length;
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
       const node = tree.list[i]!;
 
-      if (evaluateNodeFreeText(query, node)) {
+      if (node.matchWithFreeText(query)) {
         results.push({index: i, value: node});
         resultLookup.set(node, matchCount);
 
@@ -362,10 +354,10 @@ function evaluateTokenForValue(token: ProcessedTokenResult, value: any): boolean
 }
 
 function booleanResult(
-  left: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
-  right: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+  left: Map<BaseNode, number>,
+  right: Map<BaseNode, number>,
   operator: BooleanOperator
-): Map<TraceTreeNode<TraceTree.NodeValue>, number> {
+): Map<BaseNode, number> {
   if (operator === BooleanOperator.AND) {
     const result = new Map();
     for (const [key, value] of left) {
@@ -469,10 +461,7 @@ const SPAN_DURATION_ALIASES = new Set(['duration', 'span.duration', 'span.total_
 const SPAN_SELF_TIME_ALIASES = new Set(['span.self_time', 'span.exclusive_time']);
 
 // Pulls the value from the node based on the key in the token
-function resolveValueFromKey(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  token: ProcessedTokenResult
-): any | null {
+function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any | null {
   const value = node.value;
 
   if (!value) {
@@ -538,7 +527,7 @@ function resolveValueFromKey(
             return node.errors.size > 0 || node.occurrences.size > 0;
           case 'profile':
           case 'profiles':
-            return node.profiles.length > 0;
+            return node.profiles.size > 0;
           default: {
             break;
           }
@@ -589,87 +578,11 @@ function resolveValueFromKey(
   return null;
 }
 
-/**
- * Evaluates the node based on freetext. This is a simple search that checks if the query
- * is present in a very small subset of the node's properties.
- */
-function evaluateNodeFreeText(
-  query: string,
-  node: TraceTreeNode<TraceTree.NodeValue>
-): boolean {
-  if (isSpanNode(node) || isEAPSpanNode(node)) {
-    if (node.value.op?.includes(query)) {
-      return true;
-    }
-    if (node.value.description?.includes(query)) {
-      return true;
-    }
-    if (
-      'name' in node.value &&
-      typeof node.value.name === 'string' &&
-      node.value.name.includes(query)
-    ) {
-      return true;
-    }
-
-    const spanId = 'span_id' in node.value ? node.value.span_id : node.value.event_id;
-    if (spanId && spanId === query) {
-      return true;
-    }
-  }
-
-  if (isTransactionNode(node)) {
-    if (node.value['transaction.op']?.includes(query)) {
-      return true;
-    }
-    if (node.value.transaction?.includes(query)) {
-      return true;
-    }
-    if (node.value.event_id && node.value.event_id === query) {
-      return true;
-    }
-  }
-
-  if (isAutogroupedNode(node)) {
-    if (node.value.op?.includes(query)) {
-      return true;
-    }
-    if (node.value.description?.includes(query)) {
-      return true;
-    }
-    if (
-      'name' in node.value &&
-      typeof node.value.name === 'string' &&
-      node.value.name.includes(query)
-    ) {
-      return true;
-    }
-  }
-
-  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
-    if (node.value.level === query) {
-      return true;
-    }
-    if (
-      isTraceErrorNode(node) &&
-      (node.value.title?.includes(query) || node.value.message?.includes(query))
-    ) {
-      return true;
-    }
-
-    if (isEAPErrorNode(node) && node.value.description?.includes(query)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 function enforceVisibilityForAllMatches(
   tree: TraceTree,
-  predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
+  predicate: (node: BaseNode) => boolean
 ): void {
-  TraceTree.ForEachChild(tree.root, node => {
+  tree.root.forEachChild(node => {
     if (predicate(node)) {
       TraceTree.EnforceVisibility(tree, node);
     }

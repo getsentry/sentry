@@ -79,7 +79,7 @@ export function Meta(props: MetaProps) {
       ? props.tree.eap_spans_count
       : (props.meta?.span_count ?? 0);
 
-  const uniqueIssuesCount = traceNode ? TraceTree.UniqueIssues(traceNode).length : 0;
+  const uniqueIssuesCount = traceNode ? traceNode.uniqueIssues.length : 0;
 
   // If there is no trace data, use the timestamp from the query params as an approximation for
   // the age of the trace.

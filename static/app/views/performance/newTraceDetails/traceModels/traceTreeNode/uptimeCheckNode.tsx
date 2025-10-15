@@ -141,18 +141,13 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={props.node} />;
+    return <TraceSpanRow {...props} node={this} />;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return (
-      <UptimeNodeDetails
-        {...props}
-        node={props.node as TraceTreeNode<TraceTree.UptimeCheck>}
-      />
-    );
+    return <UptimeNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

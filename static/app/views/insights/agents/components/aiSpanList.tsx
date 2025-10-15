@@ -12,8 +12,6 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
-import {getIsAiRunNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import {
   getIsAiCreateAgentSpan,
   getIsAiGenerationSpan,
@@ -29,8 +27,9 @@ import {
   isTransactionNode,
   isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   let startTime = 0;
@@ -52,11 +51,9 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   } else {
     if (!node.value) return {startTime: 0, endTime: 0, duration: 0};
 
-    startTime = node.value.start_timestamp;
-    if (isTransactionNode(node) || isSpanNode(node)) {
-      endTime = node.value.timestamp;
-    } else if (isEAPSpanNode(node)) {
-      endTime = node.value.end_timestamp;
+    if (node.startTimestamp && node.endTimestamp) {
+      startTime = node.startTimestamp;
+      endTime = node.endTimestamp;
     }
   }
 
@@ -69,16 +66,6 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   };
 }
 
-function getClosestNode<T extends AITraceSpanNode>(
-  node: AITraceSpanNode,
-  predicate: (node: TraceTreeNode) => node is T
-): T | null {
-  if (predicate(node)) {
-    return node;
-  }
-  return TraceTree.ParentNode(node, predicate) as T | null;
-}
-
 export function AISpanList({
   nodes,
   selectedNodeKey,
@@ -89,12 +76,11 @@ export function AISpanList({
   selectedNodeKey: string | null;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<
-      TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>,
-      AITraceSpanNode[]
-    > = new Map();
+    const result: Map<TransactionNode | EapSpanNode, AITraceSpanNode[]> = new Map();
     for (const node of nodes) {
-      const transaction = getClosestNode(node, isTransactionNodeEquivalent);
+      const transaction = node.findParent(isTransactionNodeEquivalent) as
+        | TransactionNode
+        | EapSpanNode;
       if (!transaction) {
         continue;
       }
@@ -107,7 +93,7 @@ export function AISpanList({
   return (
     <TraceListContainer>
       {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
-        <Fragment key={getNodeId(transaction)}>
+        <Fragment key={transaction.id}>
           <TransactionWrapper
             canCollapse={nodesByTransaction.size > 1}
             transaction={transaction}
@@ -132,19 +118,19 @@ function TransactionWrapper({
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
-  transaction: TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>;
+  transaction: TransactionNode | EapSpanNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const theme = useTheme();
   const colors = [...theme.chart.getColorPalette(5), theme.red300];
   const timeBounds = getNodeTimeBounds(nodes);
 
-  const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
-    const parents: Record<string, AITraceSpanNode> = {};
+  const nodeAiRunParentsMap = useMemo<Record<string, BaseNode>>(() => {
+    const parents: Record<string, BaseNode> = {};
     for (const node of nodes) {
-      const parent = getClosestNode(node, getIsAiRunNode);
+      const parent = node.findParent(p => getIsAiRunSpan({op: p.op}));
       if (parent) {
-        parents[getNodeId(node)] = parent;
+        parents[node.id] = parent;
       }
     }
     return parents;
@@ -171,12 +157,12 @@ function TransactionWrapper({
       </TransactionButton>
       {isExpanded &&
         nodes.map(node => {
-          const aiRunNode = nodeAiRunParentsMap[getNodeId(node)];
+          const aiRunNode = nodeAiRunParentsMap[node.id];
 
           // Only indent if the node is not the ai run node
           const shouldIndent = aiRunNode && aiRunNode !== node;
 
-          const uniqueKey = getNodeId(node);
+          const uniqueKey = node.id;
           return (
             <TraceListItem
               indent={shouldIndent ? 1 : 0}
@@ -242,22 +228,16 @@ interface TraceBounds {
 }
 
 function calculateRelativeTiming(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   traceBounds: TraceBounds
 ): {leftPercent: number; widthPercent: number} {
   if (!node.value) return {leftPercent: 0, widthPercent: 0};
 
   let startTime: number, endTime: number;
 
-  if (isTransactionNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.timestamp;
-  } else if (isSpanNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.timestamp;
-  } else if (isEAPSpanNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.end_timestamp;
+  if (node.startTimestamp && node.endTimestamp) {
+    startTime = node.startTimestamp;
+    endTime = node.endTimestamp;
   } else {
     return {leftPercent: 0, widthPercent: 0};
   }

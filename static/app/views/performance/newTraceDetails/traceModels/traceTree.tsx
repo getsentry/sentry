@@ -459,6 +459,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
 
         tree.eap_spans_count++;
+
+        // We only want to add transactions as profiled events.
+        if ((node as EapSpanNode).value.is_transaction && node.profiles.size > 0) {
+          tree.profiled_events.add(node);
+        }
       } else if (isUptimeCheck(value)) {
         node = new UptimeCheckNode(parent, value, {
           organization: options.organization,
@@ -475,6 +480,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           replayTraceSlug: options.replayTraceSlug,
           meta: options.meta,
         });
+
+        // We only want to add transactions as profiled events.
+        if (node.profiles.size > 0) {
+          tree.profiled_events.add(node);
+        }
       }
 
       if (node.canFetchChildren || !node.expanded) {
@@ -505,10 +515,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       for (const occurrence of c.occurrences) {
         traceNode.occurrences.add(occurrence);
-      }
-
-      if (c.profiles.size > 0) {
-        tree.profiled_events.add(c);
       }
 
       if (c.value && 'measurements' in c.value) {
@@ -626,6 +632,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (options.preferences) {
         TraceTree.ApplyPreferences(node, options);
       }
+
+      this.build();
     }
   }
 
@@ -842,7 +850,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
-      const children = node.parent.directVisibleChildren;
+      const children = isParentAutogroupedNode(node.parent)
+        ? node.parent.tail.children
+        : node.parent.children;
       const index = children.indexOf(node);
       if (index === -1) {
         throw new Error('Node is not a child of its parent');
@@ -912,7 +922,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       queue.push(...node.getNextTraversalNodes());
 
-      if (node.children.length < 5) {
+      if (node.children.length < 5 || !node.canAutogroup) {
         continue;
       }
 

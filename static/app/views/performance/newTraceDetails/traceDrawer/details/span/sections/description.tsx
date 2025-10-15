@@ -42,7 +42,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 const formatter = new SQLishFormatter();
@@ -55,7 +55,7 @@ export function SpanDescription({
   hideNodeActions,
 }: {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: SpanNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
@@ -226,7 +226,7 @@ function ResourceImageDescription({
   node,
 }: {
   formattedDescription: string;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: SpanNode;
 }) {
   const projectID = node.event?.projectID ? Number(node.event?.projectID) : undefined;
   const span = node.value;

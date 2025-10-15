@@ -2,12 +2,11 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ensureAttributeObject} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 const TOOL_OUTPUT_ATTRIBUTE = 'mcp.tool.result.content';
 const PROMPT_OUTPUT_PREFIX = 'mcp.prompt.result.';
@@ -17,7 +16,7 @@ export function MCPOutputSection({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: AITraceSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {

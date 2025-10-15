@@ -3,15 +3,12 @@ import {Fragment} from 'react';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {
-  getIsAiNode,
-  getTraceNodeAttribute,
-} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {getTraceNodeAttribute} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 function isJson(value: string) {
   try {
@@ -31,7 +28,7 @@ function renderAIResponse(text: string) {
 }
 
 export function hasAIOutputAttribute(
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  node: AITraceSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
@@ -48,11 +45,11 @@ export function AIOutputSection({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: AITraceSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  if (!getIsAiNode(node) || !hasAIOutputAttribute(node, attributes, event)) {
+  if (!getIsAiSpan({op: node.op}) || !hasAIOutputAttribute(node, attributes, event)) {
     return null;
   }
 
