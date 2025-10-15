@@ -1,11 +1,11 @@
-import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import type {CommandPaletteAction} from './types';
 
 type CommandPaletteProviderProps = {children: React.ReactNode};
 
 type CommandPaletteStore = {
-  actionsRef: React.RefObject<CommandPaletteAction[]>;
+  actions: CommandPaletteAction[];
 };
 
 type CommandPaletteConfig = {
@@ -33,29 +33,30 @@ export function useCommandPaletteStore(): CommandPaletteStore {
 }
 
 export function CommandPaletteProvider({children}: CommandPaletteProviderProps) {
-  // We store the actions in a ref to prevent re-rendering when actions are registered.
-  // This means that actions registered while the palette is open will not be displayed,
-  // but this is something that we probably don't need to support.
-  const actionsRef = useRef<CommandPaletteAction[]>([]);
+  const [actions, setActions] = useState<CommandPaletteAction[]>([]);
 
   const registerActions = useCallback((newActions: CommandPaletteAction[]) => {
-    for (const newAction of newActions) {
-      const existingIndex = actionsRef.current.findIndex(
-        action => action.key === newAction.key
-      );
+    setActions(prev => {
+      const result = [...prev];
 
-      if (existingIndex >= 0) {
-        actionsRef.current[existingIndex] = newAction;
-      } else {
-        actionsRef.current.push(newAction);
+      for (const newAction of newActions) {
+        const existingIndex = result.findIndex(action => action.key === newAction.key);
+
+        if (existingIndex >= 0) {
+          result[existingIndex] = newAction;
+        } else {
+          result.push(newAction);
+        }
       }
-    }
 
-    return actionsRef.current;
+      return result;
+    });
   }, []);
 
   const unregisterActions = useCallback((keys: string[]) => {
-    actionsRef.current = actionsRef.current.filter(action => !keys.includes(action.key));
+    setActions(prev => {
+      return prev.filter(action => !keys.includes(action.key));
+    });
   }, []);
 
   const config = useMemo<CommandPaletteConfig>(
@@ -68,9 +69,9 @@ export function CommandPaletteProvider({children}: CommandPaletteProviderProps) 
 
   const store = useMemo<CommandPaletteStore>(
     () => ({
-      actionsRef,
+      actions,
     }),
-    []
+    [actions]
   );
 
   return (

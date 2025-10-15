@@ -21,8 +21,8 @@ function GlobalActionsComponent({
   return (
     <CommandPaletteProvider>
       <RegisterActions actions={actions} />
-      {children}
       <CommandPaletteContent />
+      {children}
     </CommandPaletteProvider>
   );
 }

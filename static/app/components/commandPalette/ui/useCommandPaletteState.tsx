@@ -1,26 +1,98 @@
 import {useMemo, useState} from 'react';
+import type Fuse from 'fuse.js';
 
 import {useCommandPaletteStore} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {strGetFn} from 'sentry/components/search/sources/utils';
+import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-export function useCommandPaletteState() {
-  const {actionsRef} = useCommandPaletteStore();
-  const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
+interface CommandPaletteActionWithPriority extends CommandPaletteAction {
+  priority: number;
+}
 
-  const displayedActions = useMemo(() => {
-    if (selectedAction?.children?.length) {
-      return selectedAction.children?.filter(action => !action.hidden);
+const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> = {
+  keys: ['label', 'details'],
+  getFn: strGetFn,
+  shouldSort: true,
+  minMatchCharLength: 1,
+  includeScore: true,
+  threshold: 0.2,
+  ignoreLocation: true,
+};
+
+/**
+ * Brings up child actions to make them directly searchable.
+ *
+ * e.g. With parent "Change theme" and children "Light", "Dark", the result will be three actions:
+ * - Change theme
+ * - Change theme → Light
+ * - Change theme → Dark
+ */
+function flattenActions(
+  actions: CommandPaletteAction[],
+  parentLabel?: string
+): CommandPaletteActionWithPriority[] {
+  const flattened: CommandPaletteActionWithPriority[] = [];
+
+  for (const action of actions) {
+    // For child actions, prefix with parent label
+    if (parentLabel) {
+      flattened.push({
+        ...action,
+        label: `${parentLabel} → ${action.label}`,
+        priority: 1,
+      });
+    } else {
+      flattened.push({
+        ...action,
+        priority: 0,
+      });
     }
 
-    return actionsRef.current;
-  }, [selectedAction?.children, actionsRef]);
+    if (action.children && action.children.length > 0) {
+      const childParentLabel = parentLabel
+        ? `${parentLabel} → ${action.label}`
+        : action.label;
+      flattened.push(...flattenActions(action.children, childParentLabel));
+    }
+  }
+
+  return flattened;
+}
+
+export function useCommandPaletteState() {
+  const [query, setQuery] = useState('');
+  const {actions} = useCommandPaletteStore();
+  const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
+
+  const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
+    if (selectedAction?.children?.length) {
+      return flattenActions(selectedAction.children);
+    }
+
+    return flattenActions(actions);
+  }, [actions, selectedAction]);
+
+  const fuseSearch = useFuzzySearch(displayedActions, FUZZY_SEARCH_CONFIG);
+  const filteredActions = useMemo(() => {
+    if (!fuseSearch || query.length === 0) {
+      // Do not display child actions before search
+      return displayedActions.filter(a => a.priority === 0);
+    }
+    return fuseSearch
+      .search(query)
+      .map(a => a.item)
+      .toSorted((a, b) => a.priority - b.priority);
+  }, [fuseSearch, query, displayedActions]);
 
   return {
-    actions: displayedActions,
+    actions: filteredActions,
     selectedAction,
     selectAction: setSelectedAction,
     clearSelection: () => {
       setSelectedAction(null);
     },
+    query,
+    setQuery,
   };
 }

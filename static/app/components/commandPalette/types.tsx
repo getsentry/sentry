@@ -12,8 +12,6 @@ export type CommandPaletteAction = {
   children?: CommandPaletteAction[];
   /** Additional context or description */
   details?: string;
-  /** Whether this action should be hidden from results */
-  hidden?: boolean;
   /** Whether this action should keep the modal open after execution */
   keepOpen?: boolean;
   /** Optional keywords to improve searchability */

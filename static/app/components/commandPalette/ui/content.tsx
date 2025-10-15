@@ -1,21 +1,14 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
-import type Fuse from 'fuse.js';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
-import {strGetFn} from 'sentry/components/search/sources/utils';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-interface CommandPaletteActionWithPriority extends CommandPaletteAction {
-  priority: number;
-}
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
@@ -26,50 +19,6 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
 // We need to limit the number of displayed actions for performance reasons
 // TODO: Consider other options, like limiting large sections directly or virtualizing the list
 const MAX_ACTIONS_PER_SECTION = 10;
-
-const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> = {
-  keys: ['label', 'fullLabel', 'details'],
-  getFn: strGetFn,
-  shouldSort: true,
-  minMatchCharLength: 1,
-  includeScore: true,
-  threshold: 0.2,
-  ignoreLocation: true,
-};
-
-/**
- * Recursively flattens an array of actions, including all their children
- * Child actions will have their labels prefixed with parent title and arrow
- */
-function flattenActions(
-  actions: CommandPaletteAction[],
-  parentLabel?: string
-): CommandPaletteAction[] {
-  const flattened: CommandPaletteAction[] = [];
-
-  for (const action of actions) {
-    // For child actions, prefix with parent label
-    if (parentLabel) {
-      flattened.push({
-        ...action,
-        label: `${parentLabel} → ${action.label}`,
-      });
-    } else {
-      // For top-level actions, add them as-is
-      flattened.push(action);
-    }
-
-    if (action.children && action.children.length > 0) {
-      // Use the original action label (not the prefixed one) as parent context
-      const childParentLabel = parentLabel
-        ? `${parentLabel} → ${action.label}`
-        : action.label;
-      flattened.push(...flattenActions(action.children, childParentLabel));
-    }
-  }
-
-  return flattened;
-}
 
 function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMenuItem {
   return {
@@ -86,42 +35,15 @@ function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMen
 }
 
 export function CommandPaletteContent() {
-  const {
-    actions: availableActions,
-    selectedAction,
-    selectAction,
-    clearSelection,
-  } = useCommandPaletteState();
-  const [query, setQuery] = useState('');
+  const {actions, selectedAction, selectAction, clearSelection, query, setQuery} =
+    useCommandPaletteState();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const searchableActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
-    if (selectedAction?.children?.length) {
-      return [...selectedAction.children.map(a => ({...a, priority: 0}))];
-    }
-
-    return [...flattenActions(availableActions).map(a => ({...a, priority: 1}))];
-  }, [selectedAction?.children, availableActions]);
-
-  const fuseSearch = useFuzzySearch(searchableActions, FUZZY_SEARCH_CONFIG);
-  const filteredAvailableActions = useMemo(() => {
-    if (!fuseSearch) {
-      return [];
-    }
-    if (query.length === 0) {
-      return availableActions;
-    }
-    return fuseSearch
-      .search(query)
-      .map(a => a.item)
-      .sort((a, b) => a.priority - b.priority);
-  }, [fuseSearch, query, availableActions]);
 
   const groupedMenuItems = useMemo<CommandPaletteActionMenuItem[]>(() => {
     // Group by section label
     const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
-    for (const action of filteredAvailableActions) {
+    for (const action of actions) {
       const sectionLabel = action.section ?? '';
       const list = itemsBySection.get(sectionLabel) ?? [];
       list.push(actionToMenuItem(action));
@@ -138,7 +60,7 @@ export function CommandPaletteContent() {
         };
       })
       .filter(section => section.children.length > 0);
-  }, [filteredAvailableActions]);
+  }, [actions]);
 
   const handleSelect = useCallback(
     (action: CommandPaletteAction) => {
@@ -166,19 +88,19 @@ export function CommandPaletteContent() {
       setQuery('');
       inputRef.current?.focus();
     }
-  }, [selectedAction]);
+  }, [selectedAction, setQuery]);
 
   const handleActionByKey = useCallback(
     (selectionKey: React.Key | null | undefined) => {
       if (selectionKey === null || selectionKey === undefined) {
         return;
       }
-      const action = searchableActions.find(a => a.key === selectionKey);
+      const action = actions.find(a => a.key === selectionKey);
       if (action) {
         handleSelect(action);
       }
     },
-    [searchableActions, handleSelect]
+    [actions, handleSelect]
   );
 
   return (
