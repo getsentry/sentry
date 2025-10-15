@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
@@ -218,6 +219,18 @@ class FetchGroupToEventDataTest(CreateEventTestCase):
         assert data["event_id"] == "event-456"
 
 
+def run_to_timestamp(run: int, interval_sec: int, jitter: bool = True) -> float:
+    """
+    Helper to provide timestamps for 'run every X seconds' scenarios.
+    If jitter_sec is provided, it will add a random jitter to the timestamp.
+    """
+    value = float(run * interval_sec)
+    if jitter:
+        # +/- 2 seconds; not unreasonable for our scheduling crons.
+        value += random.choice((0, 2, -2))
+    return value
+
+
 class TestProjectChooser:
     @pytest.fixture
     def mock_buffer(self):
@@ -336,7 +349,7 @@ class TestProjectChooser:
 
         # Simulate 5 minutes of processing (5 runs, once per minute)
         for minute in range(5):
-            fetch_time = float(minute * 60)  # Every 60 seconds
+            fetch_time = run_to_timestamp(minute, interval_sec=60, jitter=False)
 
             processed_projects = project_chooser.project_ids_to_process(
                 fetch_time, cohort_updates, all_project_ids
@@ -353,7 +366,7 @@ class TestProjectChooser:
                 3,
                 4,
                 5,
-            }, f"Run {minute} didn't process all cohorts: {processed_cohorts}"
+            }, f"Run {minute} at {fetch_time} didn't process all cohorts: {processed_cohorts}"
 
     def test_scenario_six_times_per_minute(self, project_chooser: ProjectChooser) -> None:
         """
@@ -370,7 +383,7 @@ class TestProjectChooser:
         # Simulate 2 minutes of processing (12 runs, every 10 seconds)
         previous_cohorts = []
         for run in range(12):
-            fetch_time = float(run * 10)  # Every 10 seconds
+            fetch_time = run_to_timestamp(run, interval_sec=10, jitter=True)
 
             processed_projects = project_chooser.project_ids_to_process(
                 fetch_time, cohort_updates, all_project_ids
@@ -414,7 +427,7 @@ class TestProjectChooser:
 
         # Simulate 5 minutes of processing (5 runs, once per minute)
         for minute in range(5):
-            fetch_time = float(minute * 60)  # Every 60 seconds
+            fetch_time = run_to_timestamp(minute, interval_sec=60, jitter=True)
 
             processed_projects = chooser.project_ids_to_process(
                 fetch_time, cohort_updates, all_project_ids
