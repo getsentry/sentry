@@ -17,6 +17,7 @@ from django.db import router as db_router
 from django.db.models import Model, QuerySet
 from django.utils import timezone
 
+from sentry import options
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
@@ -459,6 +460,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
     from sentry.models.commit import Commit
     from sentry.models.eventattachment import EventAttachment
     from sentry.models.files.file import File
+    from sentry.models.group import Group
     from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.pullrequest import PullRequest
     from sentry.models.release import Release
@@ -468,7 +470,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
-    return [
+    models = [
         (EventAttachment, "date_added", "date_added"),
         (ReplayRecordingSegment, "date_added", "date_added"),
         (ArtifactBundle, "date_added", "date_added"),
@@ -480,6 +482,11 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (File, "timestamp", "timestamp"),
         (Commit, "date_added", "id"),
     ]
+    if options.get("cleanup.group-deletion-by-id"):
+        # Group deletion: filter by last_seen, but order by id to use the primary key index
+        models.append((Group, "last_seen", "id"))
+
+    return models
 
 
 def remove_cross_project_models(
@@ -707,13 +714,14 @@ def prepare_deletes_by_project(
 
     # Deletions that we run per project. In some cases we can't use an index on just the date
     # column, so as an alternative we use `(project_id, <date_col>)` instead
-    DELETES_BY_PROJECT = [
+    DELETES_BY_PROJECT = [(ProjectDebugFile, "date_accessed", "date_accessed")]
+
+    if not options.get("cleanup.group-deletion-by-id"):
         # Having an index on `last_seen` sometimes caused the planner to make a bad plan that
         # used this index instead of a more appropriate one. This was causing a lot of postgres
         # load, so we had to remove it.
-        (Group, "last_seen", "last_seen"),
-        (ProjectDebugFile, "date_accessed", "date_accessed"),
-    ]
+        DELETES_BY_PROJECT.insert(0, (Group, "last_seen", "id"))
+
     project_deletion_query = None
     to_delete_by_project = []
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
