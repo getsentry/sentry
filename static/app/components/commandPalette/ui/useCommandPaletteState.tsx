@@ -4,7 +4,7 @@ import {useCommandPaletteStore} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 
 export function useCommandPaletteState() {
-  const {actions} = useCommandPaletteStore();
+  const {actionsRef} = useCommandPaletteStore();
   const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
 
   const displayedActions = useMemo(() => {
@@ -12,8 +12,8 @@ export function useCommandPaletteState() {
       return selectedAction.children?.filter(action => !action.hidden);
     }
 
-    return actions;
-  }, [selectedAction, actions]);
+    return actionsRef.current;
+  }, [selectedAction?.children, actionsRef]);
 
   return {
     actions: displayedActions,

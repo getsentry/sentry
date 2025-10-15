@@ -20,9 +20,9 @@ export function useCommandPalette() {
             match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
             callback: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
-                openCommandPaletteDeprecated();
-              } else {
                 openCommandPalette();
+              } else {
+                openCommandPaletteDeprecated();
               }
             },
           },

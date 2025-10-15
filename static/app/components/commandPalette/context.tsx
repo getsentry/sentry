@@ -5,7 +5,7 @@ import type {CommandPaletteAction} from './types';
 type CommandPaletteProviderProps = {children: React.ReactNode};
 
 type CommandPaletteStore = {
-  actions: CommandPaletteAction[];
+  actionsRef: React.RefObject<CommandPaletteAction[]>;
 };
 
 type CommandPaletteConfig = {
@@ -68,7 +68,7 @@ export function CommandPaletteProvider({children}: CommandPaletteProviderProps) 
 
   const store = useMemo<CommandPaletteStore>(
     () => ({
-      actions: actionsRef.current,
+      actionsRef,
     }),
     []
   );
