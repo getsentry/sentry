@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
-import sortBy from 'lodash/sortBy';
+import moment from 'moment-timezone';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -24,11 +24,16 @@ import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import toArray from 'sentry/utils/array/toArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  getMonitorRefetchInterval,
+  getNextCheckInEnv,
+} from 'sentry/views/alerts/rules/crons/utils';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
@@ -45,12 +50,8 @@ type CronDetectorDetailsProps = {
 };
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
-  const dataSource = detector.dataSources[0];
-  const envsSortedByLastCheck = sortBy(
-    dataSource.queryObj.environments,
-    e => e.lastCheckIn
-  );
-  return envsSortedByLastCheck[envsSortedByLastCheck.length - 1];
+  const environments = detector.dataSources[0].queryObj.environments;
+  return getNextCheckInEnv(environments);
 }
 
 function hasLastCheckIn(envs: MonitorEnvironment[]) {
@@ -64,6 +65,19 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+
+  useDetectorQuery<CronDetector>(detector.id, {
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: query => {
+      if (!query.state.data) {
+        return false;
+      }
+      const [cronDetector] = query.state.data;
+      const monitor = cronDetector.dataSources[0].queryObj;
+      return getMonitorRefetchInterval(monitor, new Date());
+    },
+  });
 
   const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
     organization,
@@ -218,7 +232,15 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 keyName={t('Next check-in')}
                 value={
                   dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
-                    <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
+                    moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
+                      <TimeSince
+                        unitStyle="regular"
+                        liveUpdateInterval="second"
+                        date={monitorEnv.nextCheckIn}
+                      />
+                    ) : (
+                      t('Expected Now')
+                    )
                   ) : (
                     '-'
                   )
@@ -228,7 +250,11 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 keyName={t('Last check-in')}
                 value={
                   monitorEnv?.lastCheckIn ? (
-                    <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+                    <TimeSince
+                      unitStyle="regular"
+                      liveUpdateInterval="second"
+                      date={monitorEnv.lastCheckIn}
+                    />
                   ) : (
                     '-'
                   )
