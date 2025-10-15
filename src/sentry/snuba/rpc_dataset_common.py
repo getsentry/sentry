@@ -84,6 +84,14 @@ class TableRequest:
     columns: list[AnyResolved]
 
 
+def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
+    for row in timeseries:
+        for axis in y_axes:
+            if row[axis] > 0:
+                return True
+    return False
+
+
 class RPCBase:
     """Utility Methods"""
 
@@ -760,19 +768,20 @@ class RPCBase:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries]
             )
-            final_result[OTHER_KEY] = SnubaTSResult(
-                {
-                    "data": result.timeseries,
-                    "processed_timeseries": result,
-                    "order": limit,
-                    "meta": final_meta,
-                    "groupby": None,
-                    "is_other": True,
-                },
-                params.start,
-                params.end,
-                params.granularity_secs,
-            )
+            if check_timeseries_has_data(result.timeseries, y_axes):
+                final_result[OTHER_KEY] = SnubaTSResult(
+                    {
+                        "data": result.timeseries,
+                        "processed_timeseries": result,
+                        "order": index + 1,
+                        "meta": final_meta,
+                        "groupby": None,
+                        "is_other": True,
+                    },
+                    params.start,
+                    params.end,
+                    params.granularity_secs,
+                )
         return final_result
 
     """ Other Methods """
