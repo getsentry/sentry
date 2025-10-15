@@ -33,14 +33,6 @@ class NotificationServiceError(Exception):
     pass
 
 
-def _render_template[T: NotificationData, RenderableT](
-    data: T, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
-) -> RenderableT:
-    rendered_template = template.render(data=data)
-    renderer = provider.get_renderer(data=data, category=template.category)
-    return renderer.render(data=data, rendered_template=rendered_template)
-
-
 class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
@@ -58,11 +50,13 @@ class NotificationService[T: NotificationData]:
                 "Notification service must be initialized with data before sending!"
             )
 
-        with NotificationEventLifecycleMetric(
+        event_lifecycle = NotificationEventLifecycleMetric(
             interaction_type=NotificationInteractionType.NOTIFY_TARGET_SYNC,
             notification_source=self.data.source,
             notification_provider=target.provider_key,
-        ).capture() as lifecycle:
+        )
+
+        with event_lifecycle.capture() as lifecycle:
             # Step 1: Get the provider, and validate the target against it
             provider = provider_registry.get(target.provider_key)
             provider.validate_target(target=target)
@@ -70,23 +64,70 @@ class NotificationService[T: NotificationData]:
             # Step 2: Render the template
             template_cls = template_registry.get(self.data.source)
             template = template_cls()
-            renderable = _render_template(data=self.data, template=template, provider=provider)
+
+            # Update the lifecycle with the notification category now that we know it
+            event_lifecycle.notification_category = template.category
+            renderable = NotificationService.render_template(
+                data=self.data, template=template, provider=provider
+            )
 
             # Step 3: Send the notification
             try:
                 provider.send(target=target, renderable=renderable)
-            except ApiError as e:
+            except Exception as e:
                 lifecycle.record_failure(failure_reason=e, create_issue=False)
                 raise
             return None
 
-    def notify(
+    @classmethod
+    def render_template[RenderableT](
+        cls,
+        data: T,
+        template: NotificationTemplate[T],
+        provider: type[NotificationProvider[RenderableT]],
+    ) -> RenderableT:
+        rendered_template = template.render(data=data)
+        renderer = provider.get_renderer(data=data, category=template.category)
+        return renderer.render(data=data, rendered_template=rendered_template)
+
+    def notify_async(
         self,
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
-        sync_send: bool = False,
-    ) -> None | Mapping[NotificationProviderKey, list[ApiError]]:
+    ) -> None:
+        """
+        Send a notification directly to a target via task, if you care about using the result of the notification, use notify_sync instead.
+        """
+        self._validate_strategy_and_targets(strategy=strategy, targets=targets)
+        targets = self._get_targets(strategy=strategy, targets=targets)
+
+        for target in targets:
+            notify_target_async(target=target)
+
+    def notify_sync(
+        self,
+        *,
+        strategy: NotificationStrategy | None = None,
+        targets: list[NotificationTarget] | None = None,
+    ) -> Mapping[NotificationProviderKey, list[str]]:
+        self._validate_strategy_and_targets(strategy=strategy, targets=targets)
+        targets = self._get_targets(strategy=strategy, targets=targets)
+
+        errors = defaultdict(list)
+        for target in targets:
+            try:
+                self.notify_target(target=target)
+            except ApiError as e:
+                errors[target.provider_key].append(e.text)
+        return errors
+
+    def _validate_strategy_and_targets(
+        self,
+        *,
+        strategy: NotificationStrategy | None = None,
+        targets: list[NotificationTarget] | None = None,
+    ) -> None:
         if not strategy and not targets:
             raise NotificationServiceError(
                 "Must provide either a strategy or targets. Strategy is preferred."
@@ -95,30 +136,19 @@ class NotificationService[T: NotificationData]:
             raise NotificationServiceError(
                 "Cannot provide both strategy and targets, only one is permitted. Strategy is preferred."
             )
+
+    def _get_targets(
+        self,
+        *,
+        strategy: NotificationStrategy | None = None,
+        targets: list[NotificationTarget] | None = None,
+    ) -> list[NotificationTarget]:
         if strategy:
             targets = strategy.get_targets()
         if not targets:
-            logger.info("Strategy '%s' did not yield targets", strategy.__class__.__name__)
-            return None
-
-        if sync_send:
-            errors = defaultdict(list)
-            for target in targets:
-                try:
-                    self.notify_target(target=target)
-                except ApiError as e:
-                    errors[target.provider_key].append(e)
-            return errors
-
-        else:
-            for target in targets:
-                target_dict = target.to_dict()
-                notify_target_async.delay(
-                    data=self.data,
-                    target_type=target_dict["type"],
-                    target_dict=target_dict,
-                )
-        return None
+            logger.warning("Strategy '%s' did not yield targets", strategy.__class__.__name__)
+            return []
+        return targets
 
 
 @instrumented_task(
@@ -158,7 +188,9 @@ def notify_target_async[T: NotificationData](
         # Step 2: Render the template
         template_cls = template_registry.get(data.source)
         template = template_cls()
-        renderable = _render_template(data=data, template=template, provider=provider)
+        renderable = NotificationService.render_template(
+            data=data, template=template, provider=provider
+        )
 
         # Step 3: Send the notification
         try:
