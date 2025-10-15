@@ -33,7 +33,7 @@ class Tuple(Func):
 
     function = ""  # Empty string renders as (expr, ...) without function name
 
-    def __init__(self, *expressions: Any, output_field: Field | None = None, **extra: Any) -> None:
+    def __init__(self, *expressions: Any, output_field: Any = None, **extra: Any) -> None:
         if output_field is None:
             output_field = Field()
         super().__init__(*expressions, output_field=output_field, **extra)
@@ -248,7 +248,7 @@ class RangeQuerySetWrapper[V]:
             op = "lte" if self.desc else "gte"
             return Q(**{f"{self.order_by_fields[0]}__{op}": cur_values[0]})
 
-        lookup = BuiltinLookup(
+        lookup: Any = BuiltinLookup(
             Tuple(*[F(field) for field in self.order_by_fields]),
             Tuple(*[Value(v) for v in cur_values]),
         )
