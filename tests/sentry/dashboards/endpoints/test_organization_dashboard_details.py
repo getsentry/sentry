@@ -2953,7 +2953,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
             assert response.status_code == 200
 
-    def test_update_widget_with_field_links(self) -> None:
+    def test_create_widget_with_field_links(self) -> None:
         # Create a second dashboard to link to
         linked_dashboard = Dashboard.objects.create(
             title="Linked Dashboard",
@@ -2985,7 +2985,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
@@ -3003,6 +3004,88 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert field_link.field == "project"
         assert field_link.dashboard_id == linked_dashboard.id
         assert field_link.dashboard_widget_query_id == queries[0].id
+
+    def test_update_widget_with_field_links(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=linked_dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "project", "environment"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id},
+                                {"field": "environment", "dashboardId": linked_dashboard.id},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        widget = widgets[0]
+        queries = widget.dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+
+        field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0]).order_by(
+            "field"
+        )
+        assert len(field_links) == 2
+
+        # Verify the field links were updated correctly
+        assert field_links[0].field == "environment"
+        assert field_links[0].dashboard_id == linked_dashboard.id
+        assert field_links[0].dashboard_widget_query_id == queries[0].id
+        assert field_links[1].field == "project"
+        assert field_links[1].dashboard_id == linked_dashboard.id
+        assert field_links[1].dashboard_widget_query_id == queries[0].id
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

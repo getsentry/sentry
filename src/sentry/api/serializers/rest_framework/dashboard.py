@@ -913,15 +913,25 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self,
         query: DashboardWidgetQuery,
         linked_dashboards: list[dict[str, Any]],
-        dashboard: Dashboard,
+        widget: DashboardWidget,
     ):
         """
         Update DashboardFieldLink entries for a query.
         linked_dashboards is expected to be an array of dicts with format {"field": str, "dashboard_id": int}
         """
+
+        organization = self.context["organization"]
+        if not features.has("organizations:dashboards-drilldown-flow", organization):
+            return
+
         # Get the set of fields that should exist
         new_fields = set()
         field_links_to_create = []
+
+        widget_display_type = widget.display_type
+
+        if widget_display_type is not DashboardWidgetDisplayTypes.TABLE:
+            raise serializers.ValidationError("Field links are only supported for table widgets")
 
         if linked_dashboards:
             for link_data in linked_dashboards:
@@ -1028,9 +1038,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     "linked_dashboards" in query_data
                     and query_data.get("linked_dashboards") is not None
                 ):
-                    self._update_field_links(
-                        query_obj, query_data["linked_dashboards"], widget.dashboard
-                    )
+                    self._update_field_links(query_obj, query_data["linked_dashboards"], widget)
 
         # Handle field links for updated queries
         for query_obj in update_queries:
@@ -1041,9 +1049,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                         "linked_dashboards" in query_data
                         and query_data.get("linked_dashboards") is not None
                     ):
-                        self._update_field_links(
-                            query_obj, query_data["linked_dashboards"], widget.dashboard
-                        )
+                        self._update_field_links(query_obj, query_data["linked_dashboards"], widget)
                     break
 
         if widget.widget_type in [
