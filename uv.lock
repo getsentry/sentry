@@ -1107,6 +1107,17 @@ wheels = [
 ]
 
 [[package]]
+name = "msgspec"
+version = "0.19.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:f12d30dd6266557aaaf0aa0f9580a9a8fbeadfa83699c487713e355ec5f0bd86" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:82b2c42c1b9ebc89e822e7e13bbe9d17ede0c23c187469fdd9505afd5a481314" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:19746b50be214a54239aab822964f2ac81e38b0055cca94808359d779338c10e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/msgspec-0.19.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:60ef4bdb0ec8e4ad62e5a1f95230c08efb1f64f32e6e8dd2ced685bcc73858b5" },
+]
+
+[[package]]
 name = "mypy"
 version = "1.17.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1944,6 +1955,7 @@ dependencies = [
     { name = "mistune", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "mmh3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "msgpack", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "msgspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "orjson", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1991,6 +2003,7 @@ dependencies = [
     { name = "stripe", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "structlog", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "symbolic", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "tiktoken", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "tldextract", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "tokenizers", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "toronado", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2107,6 +2120,7 @@ requires-dist = [
     { name = "mistune", specifier = ">=2.0.4" },
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.1.0" },
+    { name = "msgspec", specifier = ">=0.19.0" },
     { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "packaging", specifier = ">=24.1" },
@@ -2143,7 +2157,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.4.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.16" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.41.0" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.42.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
@@ -2154,6 +2168,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=12.14.1" },
+    { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
     { name = "toronado", specifier = ">=0.1.0" },
@@ -2374,14 +2389,14 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.41.0"
+version = "2.42.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "urllib3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.41.0-py2.py3-none-any.whl", hash = "sha256:343cde6540574113d13d178d1b2093e011ac21dd55abd3a1ec7e540f0d18a5bd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.42.0-py2.py3-none-any.whl", hash = "sha256:1a7986e638306ff158f52dd47d9480a4055e6c289388caa90628acb2563fe7bd" },
 ]
 
 [package.optional-dependencies]
@@ -2529,6 +2544,21 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-12.14.1-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:0b2816167383d4fcb11a2224459edaacfe092aa885168bd7e81e0564c7bf5829" },
     { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-12.14.1-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:6b5242319206d9f8165123990984f9300a3a1f75ccaee8b7da0ef28da4d99258" },
     { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-12.14.1-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:f13625d3923db47c464db12f3b78d40d6ff9d2be07d1e099d881d00be343b234" },
+]
+
+[[package]]
+name = "tiktoken"
+version = "0.8.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "regex", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:02be1666096aff7da6cbd7cdaa8e7917bfed3467cd64b38b1f112e96d3b06a24" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c94ff53c5c74b535b2cbf431d907fc13c678bbd009ee633a2aca269a04389f9a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6b231f5e8982c245ee3065cd84a4712d64692348bc609d84467c57b4b72dcbc5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/tiktoken-0.8.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4177faa809bd55f699e88c96d9bb4635d22e3f59d635ba6fd9ffedf7150b9953" },
 ]
 
 [[package]]

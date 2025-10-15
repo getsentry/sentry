@@ -1203,3 +1203,50 @@ class GetTokenCountTest(TestCase):
 
         # Should return 0 for empty variants
         assert token_count == 0
+
+    def test_generates_stacktrace_string_from_variants(self) -> None:
+        """
+        Test that get_token_count correctly generates a stacktrace string from variants
+        when no cached stacktrace_string is available.
+        """
+        # Create an event with a stacktrace but NO cached stacktrace_string
+        event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "ZeroDivisionError('division by zero')",
+                "platform": "python",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "python_onboarding.py",
+                                        "function": "divide_by_zero",
+                                        "context_line": "divide = 1/0",
+                                        "lineno": 10,
+                                        "in_app": True,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                # Explicitly no stacktrace_string cached
+            },
+        )
+
+        # Get real variants from the event
+        variants = event.get_grouping_variants(normalize_stacktraces=True)
+
+        # Call get_token_count - this should generate the stacktrace string from variants
+        token_count = get_token_count(event, variants, "python")
+
+        # The token count should be non-zero because we have a valid stacktrace
+        # Before the fix, this would return 0 due to the key mismatch bug
+        assert token_count > 0
+        # Verify we get the expected token count for this specific stacktrace
+        assert token_count == 33

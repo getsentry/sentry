@@ -8,7 +8,7 @@ from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import handle_downsample_meta
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -40,6 +40,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         debug: bool = False,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
         so we need to always order by it regardless of what is actually passed to the orderby."""
@@ -68,6 +69,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                     config=config,
                 ),
                 page_token=page_token,
+                additional_queries=additional_queries,
             ),
             debug=debug,
         )

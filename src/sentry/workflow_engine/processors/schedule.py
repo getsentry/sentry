@@ -97,7 +97,7 @@ class ProjectChooser:
         return hashlib.sha256(project_id.to_bytes(8)).digest()[0] % self.num_cohorts
 
     def project_ids_to_process(
-        self, fetch_time: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
+        self, now: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
     ) -> list[int]:
         """
         Given the time, the cohort update history, and the list of project ids in need of processing,
@@ -105,19 +105,55 @@ class ProjectChooser:
         """
         must_process = set[int]()
         may_process = set[int]()
-        now = fetch_time
+        cohort_to_elapsed = dict[int, timedelta]()
         long_ago = now - 1000
+        target_max_age = timedelta(minutes=1)  # must run
+        min_scheduling_age = timedelta(seconds=50)  # can run
+        # The cohort choice algorithm is essentially:
+        # 1. Any cohort that hasn't been run recently enough (based on target_max_age)
+        #   must be run.
+        # 2. If no cohort _must_ be run, pick the most stale cohort that hasn't
+        #  been run too recently (based on min_scheduling_age). To guarantee even distribution,
+        #  min_scheduling_age should be <= the scheduling interval.
+        #
+        # With this, we distribute cohorts across runs, but ensure we don't process them
+        # too frequently or too late, while not being too dependent on number of cohorts or
+        # frequency of scheduling.
         for co in range(self.num_cohorts):
-            last_run = cohort_updates.values.get(co, long_ago)
+            last_run = cohort_updates.values.get(co)
+            if last_run is None:
+                last_run = long_ago
+                # It's a bug if we don't know the last run outside of
+                # a few transitional periods.
+                metrics.incr(
+                    "workflow_engine.schedule.cohort_not_found",
+                    tags={"cohort": co},
+                    sample_rate=1.0,
+                )
             elapsed = timedelta(seconds=now - last_run)
-            if elapsed >= timedelta(minutes=1):
+            if last_run != long_ago:
+                # Only track duration if we know the last run.
+                metrics.distribution(
+                    "workflow_engine.schedule.cohort_freshness",
+                    elapsed.total_seconds(),
+                    sample_rate=1.0,
+                )
+                cohort_to_elapsed[co] = elapsed
+            if elapsed >= target_max_age:
                 must_process.add(co)
-            elif elapsed >= timedelta(seconds=60 / self.num_cohorts):
+            elif elapsed >= min_scheduling_age:
                 may_process.add(co)
         if may_process and not must_process:
             choice = min(may_process, key=lambda c: (cohort_updates.values.get(c, long_ago), c))
             must_process.add(choice)
-        cohort_updates.values.update({cohort_id: fetch_time for cohort_id in must_process})
+        cohort_updates.values.update({cohort_id: now for cohort_id in must_process})
+        for cohort_id, elapsed in cohort_to_elapsed.items():
+            if cohort_id in must_process:
+                metrics.distribution(
+                    "workflow_engine.schedule.processed_cohort_freshness",
+                    elapsed.total_seconds(),
+                    sample_rate=1.0,
+                )
         return [
             project_id
             for project_id in all_project_ids
@@ -211,10 +247,10 @@ def mark_projects_processed(
                 deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
                 deleted_project_ids.update(deleted)
 
-                logger.info(
-                    "process_buffered_workflows.project_ids_deleted",
-                    extra={
-                        "deleted_project_ids": sorted(deleted_project_ids),
-                        "processed_project_ids": sorted(processed_project_ids),
-                    },
-                )
+        logger.info(
+            "process_buffered_workflows.project_ids_deleted",
+            extra={
+                "deleted_project_ids": sorted(deleted_project_ids),
+                "processed_project_ids": sorted(processed_project_ids),
+            },
+        )

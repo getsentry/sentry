@@ -938,6 +938,42 @@ class MonitorConsumerTest(TestCase):
         assert not monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
+    def test_upsert_with_in_progress_completion(self) -> None:
+        """
+        Test that is_upserting stays True when an IN_PROGRESS check-in with config
+        is followed by a completing check-in without config (updating existing check-in).
+        """
+        monitor = self._create_monitor(slug="my-monitor")
+        guid = uuid.uuid4().hex
+
+        # Send IN_PROGRESS check-in with monitor config (upserts monitor)
+        self.send_checkin(
+            "my-monitor",
+            guid=guid,
+            status="in_progress",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+        )
+
+        monitor.refresh_from_db()
+        assert monitor.is_upserting
+        assert monitor.schedule.crontab == "13 * * * *"
+
+        # Send completing check-in WITHOUT config (updates existing check-in)
+        # is_upserting should STAY True since we're updating an existing check-in
+        self.send_checkin("my-monitor", guid=guid, status="ok")
+
+        monitor.refresh_from_db()
+        assert monitor.is_upserting
+        assert monitor.schedule.crontab == "13 * * * *"
+
+        # Send a NEW check-in without config (creates brand new check-in)
+        # NOW is_upserting should be reset to False
+        self.send_checkin("my-monitor")
+
+        monitor.refresh_from_db()
+        assert not monitor.is_upserting
+        assert monitor.schedule.crontab == "13 * * * *"
+
     def test_monitor_upsert_empty_timezone(self) -> None:
         self.send_checkin(
             "my-monitor",
