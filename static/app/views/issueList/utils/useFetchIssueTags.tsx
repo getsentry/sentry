@@ -58,6 +58,10 @@ const PREDEFINED_FIELDS = {
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
 
+const isTagExcluded = (tagKey: string): boolean => {
+  return EXCLUDED_TAGS.includes(tagKey) || tagKey.startsWith('ai_categorization.label.');
+};
+
 const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
   category => category !== IssueCategory.FEEDBACK
 );
@@ -179,9 +183,11 @@ export const useFetchIssueTags = ({
       }
     });
 
-    for (const excludedTag of EXCLUDED_TAGS) {
-      delete allTagsCollection[excludedTag];
-    }
+    Object.keys(allTagsCollection).forEach(tagKey => {
+      if (isTagExcluded(tagKey)) {
+        delete allTagsCollection[tagKey];
+      }
+    });
 
     const renamedTags = renameConflictingTags(allTagsCollection);
 

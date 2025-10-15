@@ -37,6 +37,10 @@ const EXCLUDED_TAGS: string[] = [
   FieldKey.PLATFORM,
 ];
 
+const isTagExcluded = (tagKey: string): boolean => {
+  return EXCLUDED_TAGS.includes(tagKey) || tagKey.startsWith('ai_categorization.label.');
+};
+
 const NON_TAG_FIELDS: string[] = [
   FieldKey.ASSIGNED,
   FieldKey.HAS,
@@ -49,7 +53,7 @@ const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'fee
 function getHasFieldValues(supportedTags: TagCollection): string[] {
   const customTagKeys = Object.values(supportedTags)
     .map(tag => tag.key)
-    .filter(key => !EXCLUDED_TAGS.includes(key));
+    .filter(key => !isTagExcluded(key));
 
   // Ensure suggested fields are included.
   const feedbackFieldKeys = FEEDBACK_FIELDS.map(String).filter(
@@ -69,7 +73,7 @@ function getFeedbackFilterKeys(
   const allTags = {
     ...Object.fromEntries(
       Object.keys(supportedTags)
-        .filter(key => !EXCLUDED_TAGS.includes(key))
+        .filter(key => !isTagExcluded(key))
         .map(key => [
           key,
           {
@@ -157,7 +161,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
       tag.kind === FieldKind.TAG &&
-      !EXCLUDED_TAGS.includes(tag.key) &&
+      !isTagExcluded(tag.key) &&
       !(FEEDBACK_FIELDS as string[]).includes(tag.key) // Sections can't overlap.
   );
 

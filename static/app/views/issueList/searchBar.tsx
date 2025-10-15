@@ -61,6 +61,10 @@ export default IssueListSearchBar;
 
 const EXCLUDED_TAGS = ['environment'];
 
+const isTagExcluded = (tagKey: string): boolean => {
+  return EXCLUDED_TAGS.includes(tagKey) || tagKey.startsWith('ai_categorization.label.');
+};
+
 export function useIssueListSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
@@ -70,9 +74,7 @@ export function useIssueListSearchBarDataProvider(
   const filterKeys = useIssueListFilterKeys();
 
   const getFilterKeySections = useCallback((tags: TagCollection): FilterKeySection[] => {
-    const allTags: Tag[] = Object.values(tags).filter(
-      tag => !EXCLUDED_TAGS.includes(tag.key)
-    );
+    const allTags: Tag[] = Object.values(tags).filter(tag => !isTagExcluded(tag.key));
 
     const issueFields = orderBy(
       allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
