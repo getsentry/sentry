@@ -772,12 +772,14 @@ export function useQueryBuilderState({
   disabled,
   displayAskSeerFeedback,
   setDisplayAskSeerFeedback,
+  replaceRawSearchKeys,
 }: {
   disabled: boolean;
   displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
+  replaceRawSearchKeys?: string[];
 }) {
   const organization = useOrganization();
   const hasWildcardOperators = organization.features.includes(
@@ -858,7 +860,6 @@ export function useQueryBuilderState({
           };
         }
         case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE':
         case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
         case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT':
         case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN':
@@ -868,6 +869,41 @@ export function useQueryBuilderState({
             focusOverride: action.focusOverride,
             getFieldDefinition,
           });
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE': {
+          const newState = replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+          });
+
+          if (
+            replaceRawSearchKeys &&
+            replaceRawSearchKeys?.length === 0 &&
+            !hasWildcardOperators
+          ) {
+            return newState;
+          }
+
+          const replacedState = replaceFreeTextTokens(
+            action,
+            getFieldDefinition,
+            replaceRawSearchKeys ?? [],
+            state.query
+          );
+
+          const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
+          const focusOverride = replacedState?.focusOverride
+            ? replacedState.focusOverride
+            : newState.focusOverride;
+
+          return {
+            ...newState,
+            query,
+            committedQuery: query,
+            focusOverride,
+          };
+        }
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
@@ -887,7 +923,13 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, displayAskSeerFeedback, getFieldDefinition, hasWildcardOperators]
+    [
+      disabled,
+      displayAskSeerFeedback,
+      getFieldDefinition,
+      hasWildcardOperators,
+      replaceRawSearchKeys,
+    ]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);
