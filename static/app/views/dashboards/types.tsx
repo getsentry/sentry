@@ -101,7 +101,7 @@ type WidgetChangedReason = {
   }> | null;
   orderby: Array<{
     orderby: string;
-    reason: string;
+    reason: string | string[];
   }> | null;
   selected_columns: string[];
 };

@@ -226,8 +226,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     );
     return [
       {key: 'product', name: t('Product'), width: 250},
-      {key: 'currentUsage', name: t('Current usage'), width: 200},
-      {key: 'reservedUsage', name: t('Reserved usage'), width: 200},
+      {key: 'totalUsage', name: t('Total usage'), width: 200},
+      {key: 'reservedUsage', name: t('Reserved'), width: 300},
       {key: 'reservedSpend', name: t('Reserved spend'), width: isXlScreen ? 200 : 150},
       {
         key: 'budgetSpend',
@@ -265,22 +265,22 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
   // TODO(isabella): refactor this to have better types
   const productData: Array<{
     budgetSpend: number;
-    currentUsage: number;
     hasAccess: boolean;
     isClickable: boolean;
     isPaygOnly: boolean;
     isUnlimited: boolean;
     product: string;
+    totalUsage: number;
     addOnCategory?: AddOnCategory;
     ariaLabel?: string;
     dataCategory?: DataCategory;
     free?: number;
     isChildProduct?: boolean;
     isOpen?: boolean;
+    percentUsed?: number;
     productTrialCategory?: DataCategory;
     reserved?: number;
     reservedSpend?: number;
-    reservedUsage?: number;
     softCapType?: 'ON_DEMAND' | 'TRUE_FORWARD';
     toggleKey?: DataCategory | AddOnCategory;
   }> = useMemo(() => {
@@ -346,8 +346,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             isUnlimited: !!activeProductTrial || reserved === UNLIMITED_RESERVED,
             softCapType: softCapType ?? undefined,
             product: productName,
-            currentUsage: total,
-            reservedUsage: percentUsed,
+            totalUsage: total,
+            percentUsed,
             reservedSpend: recurringReservedSpend,
             budgetSpend: paygTotal,
             productTrialCategory: category,
@@ -439,7 +439,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                     isUnlimited: !!activeProductTrial,
                     softCapType: softCapType ?? undefined,
                     budgetSpend: childPaygTotal,
-                    currentUsage: (childSpend ?? 0) + childPaygTotal,
+                    totalUsage: (childSpend ?? 0) + childPaygTotal,
                     product: childProductName,
                     isClickable: categoryInfo?.tallyType === 'usage',
                   };
@@ -458,8 +458,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               isUnlimited: !!activeProductTrial,
               productTrialCategory: addOnDataCategories[0] as DataCategory,
               product: addOnName,
-              currentUsage: (reservedBudget?.totalReservedSpend ?? 0) + paygTotal,
-              reservedUsage: percentUsed,
+              totalUsage: (reservedBudget?.totalReservedSpend ?? 0) + paygTotal,
+              percentUsed,
               reservedSpend: recurringReservedSpend,
               budgetSpend: paygTotal,
               isClickable: hasAccess,
@@ -490,7 +490,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         },
         renderBodyCell: (column, row) => {
           const {
-            currentUsage,
+            totalUsage,
             hasAccess,
             isPaygOnly,
             isUnlimited,
@@ -501,7 +501,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             isChildProduct,
             isOpen,
             reserved,
-            reservedUsage,
+            percentUsed,
             softCapType,
             toggleKey,
             productTrialCategory,
@@ -551,62 +551,19 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                 </Flex>
               );
             }
-            case 'currentUsage': {
+            case 'totalUsage': {
               const formattedTotal = addOnCategory
-                ? displayPriceWithCents({cents: currentUsage})
+                ? displayPriceWithCents({cents: totalUsage})
                 : dataCategory
-                  ? formatUsageWithUnits(currentUsage, dataCategory, {
+                  ? formatUsageWithUnits(totalUsage, dataCategory, {
                       useUnitScaling: true,
                     })
-                  : currentUsage;
-              const formattedReserved = addOnCategory
-                ? displayPriceWithCents({cents: reserved ?? 0})
-                : dataCategory
-                  ? formatReservedWithUnits(reserved ?? 0, dataCategory, {
-                      useUnitScaling: true,
-                    })
-                  : (reserved ?? 0);
-              const formattedFree = addOnCategory
-                ? displayPriceWithCents({cents: free ?? 0})
-                : dataCategory
-                  ? formatReservedWithUnits(free ?? 0, dataCategory, {
-                      useUnitScaling: true,
-                    })
-                  : (free ?? 0);
-              const formattedReservedTotal = addOnCategory
-                ? displayPriceWithCents({cents: (reserved ?? 0) + (free ?? 0)})
-                : dataCategory
-                  ? formatReservedWithUnits((reserved ?? 0) + (free ?? 0), dataCategory, {
-                      useUnitScaling: true,
-                    })
-                  : (reserved ?? 0) + (free ?? 0);
-              const formattedCurrentUsage =
-                isPaygOnly || isChildProduct
-                  ? formattedTotal
-                  : `${formattedTotal} / ${formattedReservedTotal}`;
+                  : totalUsage;
 
               return (
                 <Flex align="center" gap="sm" width="max-content">
                   <Text as="div" textWrap="balance">
-                    {isUnlimited ? UNLIMITED : formattedCurrentUsage}{' '}
-                    {!(isPaygOnly || isChildProduct) && (
-                      <QuestionTooltip
-                        size="xs"
-                        position="top"
-                        title={
-                          isUnlimited
-                            ? reserved === UNLIMITED_RESERVED
-                              ? t('Unlimited usage')
-                              : t('Unlimited usage during your product trial')
-                            : tct('[formattedReserved] reserved[freeString]', {
-                                formattedReserved,
-                                freeString: free
-                                  ? tct(' + [formattedFree] gifted', {formattedFree})
-                                  : '',
-                              })
-                        }
-                      />
-                    )}
+                    {isUnlimited ? UNLIMITED : formattedTotal}{' '}
                   </Text>
                 </Flex>
               );
@@ -630,12 +587,60 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                 return <Text>{UNLIMITED}</Text>;
               }
 
-              const percentUsed = reservedUsage;
               if (defined(percentUsed)) {
+                const formattedReserved = addOnCategory
+                  ? displayPriceWithCents({cents: reserved ?? 0})
+                  : dataCategory
+                    ? formatReservedWithUnits(reserved ?? 0, dataCategory, {
+                        useUnitScaling: true,
+                      })
+                    : (reserved ?? 0);
+                const formattedFree = addOnCategory
+                  ? displayPriceWithCents({cents: free ?? 0})
+                  : dataCategory
+                    ? formatReservedWithUnits(free ?? 0, dataCategory, {
+                        useUnitScaling: true,
+                      })
+                    : (free ?? 0);
+                const formattedReservedTotal = addOnCategory
+                  ? displayPriceWithCents({cents: (reserved ?? 0) + (free ?? 0)})
+                  : dataCategory
+                    ? formatReservedWithUnits(
+                        (reserved ?? 0) + (free ?? 0),
+                        dataCategory,
+                        {
+                          useUnitScaling: true,
+                        }
+                      )
+                    : (reserved ?? 0) + (free ?? 0);
+
                 return (
                   <Flex gap="sm" align="center">
                     <ReservedUsageBar percentUsed={percentUsed / 100} />
-                    <Text>{percentUsed.toFixed(0) + '%'}</Text>
+                    <Text>
+                      {tct('[percent]% of [formattedReservedTotal]', {
+                        percent: percentUsed.toFixed(0),
+                        formattedReservedTotal,
+                      })}
+                    </Text>
+                    {
+                      <QuestionTooltip
+                        size="xs"
+                        position="top"
+                        title={
+                          isUnlimited
+                            ? reserved === UNLIMITED_RESERVED
+                              ? t('Unlimited usage')
+                              : t('Unlimited usage during your product trial')
+                            : tct('[formattedReserved] reserved[freeString]', {
+                                formattedReserved,
+                                freeString: free
+                                  ? tct(' + [formattedFree] gifted', {formattedFree})
+                                  : '',
+                              })
+                        }
+                      />
+                    }
                   </Flex>
                 );
               }

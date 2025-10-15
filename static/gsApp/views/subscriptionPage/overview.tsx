@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -10,7 +9,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSupport} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -189,7 +187,7 @@ function Overview({location, subscription, promotionData}: Props) {
         0 || false;
 
     return (
-      <TotalsWrapper>
+      <Fragment>
         {sortCategories(subscription.categories)
           .filter(
             categoryHistory =>
@@ -307,7 +305,7 @@ function Overview({location, subscription, promotionData}: Props) {
             />
           );
         })}
-      </TotalsWrapper>
+      </Fragment>
     );
   }
 
@@ -323,8 +321,6 @@ function Overview({location, subscription, promotionData}: Props) {
         background="primary"
         radius="md"
         border="primary"
-        // TODO(isabella): move spacing to the parent
-        marginTop="xl"
       >
         <Flex align="center" gap="sm">
           <IconSupport />
@@ -437,18 +433,14 @@ function Overview({location, subscription, promotionData}: Props) {
       ) : isError ? (
         <LoadingError onRetry={refetchUsage} />
       ) : (
-        <div>
+        <Flex direction="column" gap="xl">
           {hasBillingPerms
             ? contentWithBillingPerms(usage, subscription.planDetails)
             : contentWithoutBillingPerms(usage)}
-        </div>
+        </Flex>
       )}
     </SubscriptionPageContainer>
   );
 }
 
 export default withSubscription(withPromotions(Overview));
-
-const TotalsWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-`;
