@@ -21,7 +21,7 @@ from sentry.utils import json
 
 
 @control_silo_test()
-class TestService(TestCase):
+class TestCredentialsService(TestCase):
     encryption_key = Fernet.generate_key().decode("utf-8")
 
     def setUp(self) -> None:
