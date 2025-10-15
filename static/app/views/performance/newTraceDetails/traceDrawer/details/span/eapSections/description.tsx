@@ -198,7 +198,7 @@ export function SpanDescription({
         )}
       </CodeSnippetWrapper>
     ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
-      <Flex direction="column">
+      <Flex direction="column" width="100%">
         <Flex align="start" justify="between" gap="xs" padding="md">
           <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
             <Flex gap="xs">
