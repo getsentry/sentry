@@ -25,6 +25,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
+      spanId: '123',
       attributes,
     });
 
@@ -57,6 +58,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
+      spanId: '123',
       attributes,
     });
 
@@ -70,6 +72,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
+      spanId: '123',
       attributes,
     });
 
@@ -84,6 +87,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'http.request',
+      spanId: '123',
       attributes,
     });
 

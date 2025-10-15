@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
-import moment from 'moment-timezone';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -66,7 +65,7 @@ function MonitorDetails({params, location}: Props) {
         return false;
       }
       const [monitorData] = query.state.data;
-      return getMonitorRefetchInterval(monitorData, moment());
+      return getMonitorRefetchInterval(monitorData, new Date());
     },
   });
 
