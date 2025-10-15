@@ -94,13 +94,6 @@ class NotificationServiceTest(TestCase):
         assert len(errors[NotificationProviderKey.EMAIL]) == 1
         assert "Provider error" in errors[NotificationProviderKey.EMAIL][0]
 
-    @mock.patch("sentry.notifications.platform.service.notify_target_async")
-    def test_notify_async_calls_task(self, mock_task: mock.MagicMock) -> None:
-        service = NotificationService(data=MockNotification(message="test"))
-        service.notify_async(targets=[self.target])
-
-        mock_task.assert_called_once_with(target=self.target)
-
     def test_render_template_classmethod(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
@@ -115,7 +108,7 @@ class NotificationServiceTest(TestCase):
     def test_basic_notify_target_async(self, mock_record: mock.MagicMock) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
-            service.notify(targets=[self.target], sync_send=False)
+            service.notify_async(targets=[self.target])
 
         # slo asserts
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
@@ -129,7 +122,7 @@ class NotificationServiceTest(TestCase):
         mock_send.side_effect = ApiError("API request failed", 400)
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
-            service.notify(targets=[self.target], sync_send=False)
+            service.notify_async(targets=[self.target])
 
         # slo asserts
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
@@ -142,7 +135,7 @@ class NotificationServiceTest(TestCase):
     ) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
-            service.notify(targets=[self.integration_target], sync_send=False)
+            service.notify_async(targets=[self.integration_target])
 
         # slo asserts
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
@@ -156,7 +149,7 @@ class NotificationServiceTest(TestCase):
         mock_send.side_effect = ApiError("Slack API request failed", 400)
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
-            service.notify(targets=[self.integration_target], sync_send=False)
+            service.notify_async(targets=[self.integration_target])
 
         # slo asserts
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
@@ -174,7 +167,7 @@ class NotificationServiceTest(TestCase):
         """Test sending notifications to both generic and integration targets"""
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
-            service.notify(targets=[self.target, self.integration_target], sync_send=False)
+            service.notify_async(targets=[self.target, self.integration_target])
 
         # slo asserts - should have 2 notifications sent
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 2)

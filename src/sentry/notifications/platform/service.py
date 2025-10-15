@@ -9,11 +9,7 @@ from sentry.notifications.platform.metrics import (
 )
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
-from sentry.notifications.platform.target import (
-    GenericNotificationTarget,
-    IntegrationNotificationTarget,
-    NotificationTargetType,
-)
+from sentry.notifications.platform.target import SerializedTargetType
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -103,7 +99,8 @@ class NotificationService[T: NotificationData]:
         targets = self._get_targets(strategy=strategy, targets=targets)
 
         for target in targets:
-            notify_target_async(target=target)
+            serialized_target = SerializedTargetType(target=target)
+            notify_target_async.delay(data=self.data, target_dict=serialized_target.to_dict())
 
     def notify_sync(
         self,
@@ -160,7 +157,6 @@ class NotificationService[T: NotificationData]:
 def notify_target_async[T: NotificationData](
     *,
     data: T,
-    target_type: str,
     target_dict: dict[str, Any],
 ) -> None:
     """
@@ -168,32 +164,31 @@ def notify_target_async[T: NotificationData](
     NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
             using this method directly to prevent unwanted noise associated with your notifications.
     """
-
-    if target_type == NotificationTargetType.GENERIC:
-        target = GenericNotificationTarget.from_dict(target_dict)
-    elif target_type == NotificationTargetType.INTEGRATION:
-        target = IntegrationNotificationTarget.from_dict(target_dict)
-    else:
-        raise NotificationServiceError(f"Invalid target type: {target_type}")
-
-    with NotificationEventLifecycleMetric(
+    lifecycle_metric = NotificationEventLifecycleMetric(
         interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
         notification_source=data.source,
-        notification_provider=target.provider_key,
-    ).capture() as lifecycle:
-        # Step 1: Get the provider, and validate the target against it
+    )
+
+    with lifecycle_metric.capture() as lifecycle:
+        # Step 1: Deserialize the target to a NotificationTarget
+        serialized_target = SerializedTargetType.from_dict(data=target_dict)
+        target = serialized_target.target
+        lifecycle_metric.notification_provider = target.provider_key
+
+        # Step 2: Get the provider, and validate the target against it
         provider = provider_registry.get(target.provider_key)
         provider.validate_target(target=target)
 
-        # Step 2: Render the template
+        # Step 3: Render the template
         template_cls = template_registry.get(data.source)
         template = template_cls()
+        lifecycle_metric.notification_category = template.category
         renderable = NotificationService.render_template(
             data=data, template=template, provider=provider
         )
 
-        # Step 3: Send the notification
+        # Step 4: Send the notification
         try:
             provider.send(target=target, renderable=renderable)
-        except ApiError as e:
+        except Exception as e:
             lifecycle.record_failure(failure_reason=e, create_issue=False)
