@@ -246,6 +246,9 @@ from sentry.integrations.api.endpoints.organization_config_integrations import (
 from sentry.integrations.api.endpoints.organization_integration_channels import (
     OrganizationIntegrationChannelsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_channel_validate import (
+    OrganizationIntegrationChannelValidateEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
 )
@@ -1901,6 +1904,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channels/$",
         OrganizationIntegrationChannelsEndpoint.as_view(),
         name="sentry-api-0-organization-integration-channels",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channel-validate/$",
+        OrganizationIntegrationChannelValidateEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-channel-validate",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/issues/$",
