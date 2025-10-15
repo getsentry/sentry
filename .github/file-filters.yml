@@ -30,7 +30,6 @@ typecheckable_rules_changed: &typecheckable_rules_changed
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
-  - '!**/*.generated.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
