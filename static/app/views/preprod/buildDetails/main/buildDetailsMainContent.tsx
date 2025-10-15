@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -120,20 +120,23 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
-  const [selectedCategories, setSelectedCategories] = useState<Set<TreemapType>>(
-    new Set()
-  );
+  const [selectedCategoriesParam, setSelectedCategoriesParam] =
+    useQueryParamState<string>({
+      fieldName: 'categories',
+    });
+
+  const selectedCategories: Set<TreemapType> = selectedCategoriesParam
+    ? new Set(selectedCategoriesParam.split(',') as TreemapType[])
+    : new Set();
 
   const handleToggleCategory = (category: TreemapType) => {
-    setSelectedCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
-      return next;
-    });
+    const next = new Set(selectedCategories);
+    if (next.has(category)) {
+      next.delete(category);
+    } else {
+      next.add(category);
+    }
+    setSelectedCategoriesParam(next.size > 0 ? Array.from(next).join(',') : undefined);
   };
 
   const sizeInfo = buildDetailsData?.size_info;
