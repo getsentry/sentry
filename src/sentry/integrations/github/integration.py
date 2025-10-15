@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict
 from urllib.parse import parse_qsl
@@ -30,6 +30,8 @@ from sentry.integrations.base import (
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -72,6 +74,7 @@ from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestErr
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -220,9 +223,20 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+    RepositoryIntegration,
+    GitHubIssuesSpec,
+    IssueSyncIntegration,
+    CommitContextIntegration,
+    RepoTreesIntegration,
 ):
     integration_name = IntegrationProviderSlug.GITHUB
+
+    # IssueSyncIntegration configuration keys
+    comment_key = None
+    outbound_status_key = None
+    inbound_status_key = None
+    outbound_assignee_key = None
+    inbound_assignee_key = "sync_reverse_assignment"
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -382,6 +396,93 @@ class GitHubIntegration(
                 return True
 
         return False
+
+    # IssueSyncIntegration methods
+
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: RpcUser | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Propagate a sentry issue's assignee to a linked GitHub issue's assignee.
+        If assign=True, we're assigning the issue. Otherwise, deassign.
+        """
+        # Not implemented yet
+        pass
+
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
+        """
+        Propagate a sentry issue's status to a linked GitHub issue's status.
+        """
+        # Not implemented yet
+        pass
+
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        """
+        Given webhook data, check whether the GitHub issue status changed.
+        GitHub issues only have open/closed state.
+        """
+        # Not implemented yet, so we return NOOP
+        return ResolveSyncAction.NOOP
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config = []
+
+        if features.has(
+            "organizations:integrations-github-inbound-assignee-sync", self.organization
+        ):
+            config = [
+                {
+                    "name": self.inbound_assignee_key,
+                    "type": "boolean",
+                    "label": _("Sync Github Assignment to Sentry"),
+                    "help": _(
+                        "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                    ),
+                    "default": False,
+                }
+            ]
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        """
+        Update the configuration field for an organization integration.
+        """
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         return GitHubPRCommentWorkflow(integration=self)
