@@ -1,6 +1,6 @@
 // AI Runs - equivalent to OTEL Invoke Agent span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-span
-const AI_RUN_OPS = [
+export const AI_RUN_OPS = [
   'ai.run.generateText',
   'ai.run.generateObject',
   'gen_ai.invoke_agent',
@@ -79,6 +79,10 @@ export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) 
 // All of the gen_ai.* spans that are not agent invocations, handoffs, or tool calls are considered generation spans
 export const getAIGenerationsFilter = () => {
   return `span.op:gen_ai.* !span.op:[${joinValues(NON_GENERATION_OPS)}]`;
+};
+
+export const getToolSpansFilter = () => {
+  return `span.op:"gen_ai.execute_tool"`;
 };
 
 export const getAITracesFilter = () => {
