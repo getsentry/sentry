@@ -14,6 +14,7 @@ import {
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {getQuerySymbol} from 'sentry/views/explore/metrics/metricToolbar/querySymbol';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {
@@ -24,10 +25,11 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricsGraphProps {
+  queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
+export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
@@ -40,16 +42,18 @@ export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
       visualize={visualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
+      queryIndex={queryIndex}
     />
   );
 }
 
 interface GraphProps extends MetricsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
+  queryIndex: number;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
+function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
@@ -74,7 +78,9 @@ function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
   }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
 
   const Title = (
-    <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
+    <Widget.WidgetTitle
+      title={`${getQuerySymbol(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+    />
   );
 
   const chartIcon =
