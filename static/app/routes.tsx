@@ -1828,7 +1828,6 @@ function buildRoutes(): RouteObject[] {
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionOverview')
         ),
-        deprecatedRouteProps: true,
       },
       traceView,
       {
@@ -1844,7 +1843,6 @@ function buildRoutes(): RouteObject[] {
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionVitals')
         ),
-        deprecatedRouteProps: true,
       },
       {
         path: 'tags/',
@@ -1852,7 +1850,6 @@ function buildRoutes(): RouteObject[] {
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionTags')
         ),
-        deprecatedRouteProps: true,
       },
       {
         path: 'events/',
@@ -1860,7 +1857,6 @@ function buildRoutes(): RouteObject[] {
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionEvents')
         ),
-        deprecatedRouteProps: true,
       },
       {
         path: 'profiles/',
