@@ -840,7 +840,7 @@ module = [
     "tests.sentry.templatetags.*",
     "tests.sentry.testutils.*",
     "tests.sentry.types.*",
-    "tests.sentry.uptime.detectors.*",
+    "tests.sentry.uptime.autodetect.*",
     "tests.sentry.usage_accountant.*",
     "tests.sentry.users.api.bases.*",
     "tests.sentry.users.api.serializers.*",
