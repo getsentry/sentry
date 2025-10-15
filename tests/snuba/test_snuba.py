@@ -124,24 +124,24 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        results = snuba.bulk_raw_query(
-            [
-                snuba.SnubaQueryParams(
-                    start=timezone.now() - timedelta(days=1),
-                    end=timezone.now(),
-                    selected_columns=["event_id", "group_id", "timestamp"],
-                    filter_keys={"project_id": [self.project.id], "group_id": [event_1.group.id]},
-                    tenant_ids={"referrer": "testing.test", "organization_id": 1},
-                ),
-                snuba.SnubaQueryParams(
-                    start=timezone.now() - timedelta(days=1),
-                    end=timezone.now(),
-                    selected_columns=["event_id", "group_id", "timestamp"],
-                    filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
-                    tenant_ids={"referrer": "testing.test", "organization_id": 1},
-                ),
-            ],
-        )
+        snuba_params = [
+            snuba.SnubaQueryParams(
+                start=timezone.now() - timedelta(days=1),
+                end=timezone.now(),
+                selected_columns=["event_id", "group_id", "timestamp"],
+                filter_keys={"project_id": [self.project.id], "group_id": [event_1.group.id]},
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
+            ),
+            snuba.SnubaQueryParams(
+                start=timezone.now() - timedelta(days=1),
+                end=timezone.now(),
+                selected_columns=["event_id", "group_id", "timestamp"],
+                filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
+            ),
+        ]
+        requests = snuba.convert_snuba_params_to_requests(snuba_params)
+        results = snuba.bulk_snuba_queries(requests)
         assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
             {(event_1.group.id, event_1.event_id)},
             {(event_2.group.id, event_2.event_id)},
@@ -175,8 +175,9 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
             ),
         ]
 
-        results = snuba.bulk_raw_query(
-            copy.deepcopy(params),
+        requests = snuba.convert_snuba_params_to_requests(copy.deepcopy(params))
+        results = snuba.bulk_snuba_queries(
+            requests,
             use_cache=True,
         )
         assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
@@ -192,8 +193,9 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        results = snuba.bulk_raw_query(
-            copy.deepcopy(params),
+        requests = snuba.convert_snuba_params_to_requests(copy.deepcopy(params))
+        results = snuba.bulk_snuba_queries(
+            requests,
             use_cache=True,
         )
         assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
