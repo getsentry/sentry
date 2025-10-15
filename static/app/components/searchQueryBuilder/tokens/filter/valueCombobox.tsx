@@ -589,7 +589,6 @@ export function SearchQueryBuilderValueCombobox({
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const comboboxStateRef = useRef<any>(null);
   const organization = useOrganization();
   const {
     getFieldDefinition,
@@ -1015,8 +1014,7 @@ export function SearchQueryBuilderValueCombobox({
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
-        onKeyDown={(e, {state}) => {
-          comboboxStateRef.current = state;
+        onKeyDown={e => {
           onKeyDown(e);
         }}
         onKeyUp={updateSelectionIndex}
@@ -1025,12 +1023,6 @@ export function SearchQueryBuilderValueCombobox({
           // Also capture state on click to ensure it's available for mouse selections
           if (inputRef.current) {
             inputRef.current.focus();
-          }
-        }}
-        onOpenChange={(_isOpen, state) => {
-          // Capture the combobox state so we can restore focus after selections
-          if (state) {
-            comboboxStateRef.current = state;
           }
         }}
         autoFocus
