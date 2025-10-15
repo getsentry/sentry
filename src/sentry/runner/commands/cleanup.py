@@ -100,10 +100,12 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
         model_name, chunk = j
 
-        with sentry_sdk.start_transaction(op="cleanup", name="multiprocess_worker") as transaction:
-            transaction.set_tag("model", model_name)
-            model = import_string(model_name)
-            try:
+        try:
+            with sentry_sdk.start_transaction(
+                op="cleanup", name="multiprocess_worker"
+            ) as transaction:
+                transaction.set_tag("model", model_name)
+                model = import_string(model_name)
                 task = deletions.get(
                     model=model,
                     query={"id__in": chunk},
@@ -114,11 +116,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 while True:
                     if not task.chunk(apply_filter=True):
                         break
-            except Exception:
-                metrics.incr("cleanup.error", instance=model_name)
-                logger.exception("Error in multiprocess_worker.")
-            finally:
-                task_queue.task_done()
+        except Exception:
+            metrics.incr("cleanup.error", instance=model_name)
+            logger.exception("Error in multiprocess_worker.")
+        finally:
+            task_queue.task_done()
 
 
 @click.command()
@@ -193,7 +195,6 @@ def _cleanup(
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
     with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
-        transaction.set_tag("router", router)
         try:
             from sentry.runner import configure
 
