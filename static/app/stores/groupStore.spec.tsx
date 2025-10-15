@@ -234,11 +234,9 @@ describe('GroupStore', () => {
         const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
         GroupStore.onDeleteSuccess('1337', undefined, {});
 
-        expect(addMessageSpy).toHaveBeenCalledWith(
-          'Deleted selected issues',
-          'success',
-          {duration: 4000}
-        );
+        expect(addMessageSpy).toHaveBeenCalledWith('Deleted selected issues', 'success', {
+          duration: 4000,
+        });
       });
 
       it('should show specific count when itemIds is provided', () => {
