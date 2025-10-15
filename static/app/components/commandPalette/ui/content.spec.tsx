@@ -111,7 +111,7 @@ describe('CommandPaletteContent', () => {
     expect(
       await screen.findByRole('option', {name: 'Parent action'})
     ).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Child Link'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Child action'})).not.toBeInTheDocument();
 
     expect(closeSpy).not.toHaveBeenCalled();
   });
