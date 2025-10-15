@@ -10,6 +10,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
   useMetricVisualize,
   useSetMetricVisualize,
@@ -123,11 +124,23 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
     </Fragment>
   );
 
+  // We explicitly only want to show the confidence footer if we have
+  // scanned partial data.
+  const showConfidenceFooter =
+    chartInfo.dataScanned !== 'full' && !timeseriesResult.isLoading;
   return (
     <Widget
       Title={Title}
       Actions={Actions}
       Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+      Footer={
+        showConfidenceFooter && (
+          <ConfidenceFooter
+            chartInfo={chartInfo}
+            isLoading={timeseriesResult.isLoading}
+          />
+        )
+      }
       revealActions="always"
       borderless
     />
