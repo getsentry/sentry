@@ -17,7 +17,6 @@ interface SlashCommandsProps {
   onCommandSelect: (command: SlashCommand) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
-  onMinSize: () => void;
 }
 
 function SlashCommands({
@@ -26,7 +25,6 @@ function SlashCommands({
   onClose,
   onMaxSize,
   onMedSize,
-  onMinSize,
   onClear,
 }: SlashCommandsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -50,11 +48,6 @@ function SlashCommands({
         description: 'Set panel to medium size (default)',
         handler: onMedSize,
       },
-      {
-        command: '/min-size',
-        description: 'Minimize panel to small icon',
-        handler: onMinSize,
-      },
       ...(openFeedbackForm
         ? [
             {
@@ -72,7 +65,7 @@ function SlashCommands({
           ]
         : []),
     ],
-    [onClear, onMaxSize, onMedSize, onMinSize, openFeedbackForm]
+    [onClear, onMaxSize, onMedSize, openFeedbackForm]
   );
 
   // Filter commands based on current input
@@ -191,7 +184,7 @@ const SuggestionItem = styled('div')<{isSelected: boolean}>`
 
 const CommandName = styled('div')`
   font-weight: 600;
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
