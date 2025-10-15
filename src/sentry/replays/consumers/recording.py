@@ -14,6 +14,7 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.usecases.ingest import (
     DropEvent,
@@ -97,7 +98,10 @@ def process_message(message: bytes) -> ProcessedEvent | None:
         recording_event = parse_recording_event(message)
         set_tag("org_id", recording_event["context"]["org_id"])
         set_tag("project_id", recording_event["context"]["project_id"])
-        return process_recording_event(recording_event)
+        return process_recording_event(
+            recording_event,
+            use_new_recording_parser=options.get("replay.consumer.msgspec_recording_parser"),
+        )
     except DropSilently:
         return None
     except Exception:

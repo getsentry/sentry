@@ -513,6 +513,13 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable new msgspec-based recording parser.
+register(
+    "replay.consumer.msgspec_recording_parser",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Trace sampling rates for replay summary endpoint.
 register(
     "replay.endpoints.project_replay_summary.trace_sample_rate_post",
