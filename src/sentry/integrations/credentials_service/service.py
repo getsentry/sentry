@@ -123,7 +123,6 @@ class ScmIntegrationCredentialsService:
         if resource_type == ResourceType.ORGANIZATION:
             installation_query = installation_query.filter(
                 integration__provider=integration_provider,
-                status=ObjectStatus.ACTIVE,
                 integration__name=resource_identifier,
             )
 

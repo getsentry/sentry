@@ -6,6 +6,7 @@ import responses
 from cryptography.fernet import Fernet
 from django.test import override_settings
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.credentials_service.service import (
     LeasedCredentials,
     ResourceType,
@@ -75,6 +76,50 @@ class TestCredentialsService(TestCase):
 
         assert credentials == "<fake_encrypted_data>"
 
+    @responses.activate
+    @patch.object(Integration, "get_installation")
+    @patch.object(ScmIntegrationCredentialsService, "_encrypt_credentials")
+    def test_get_credentials_by_resource__organization_disabled(
+        self, mock_encrypt_credentials, mock_get_installation
+    ) -> None:
+        mock_get_installation.return_value = self.mock_installation
+        mock_encrypt_credentials.return_value = "<fake_encrypted_data>"
+        installation = OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        ).get()
+        installation.status = ObjectStatus.DISABLED
+        installation.save()
+        service = ScmIntegrationCredentialsService()
+        with pytest.raises(OrganizationIntegration.DoesNotExist):
+            service.get_credentials_by_resource(
+                sentry_organization_id=self.organization.id,
+                integration_provider="github",
+                token_minimum_validity_seconds=10,
+                resource_type=ResourceType.ORGANIZATION,
+                resource_identifier="Test Integration",
+            )
+
+    @responses.activate
+    @patch.object(Integration, "get_installation")
+    @patch.object(ScmIntegrationCredentialsService, "_encrypt_credentials")
+    def test_get_credentials_by_resource__organization_not_found(
+        self, mock_encrypt_credentials, mock_get_installation
+    ) -> None:
+        mock_get_installation.return_value = self.mock_installation
+        mock_encrypt_credentials.return_value = "<fake_encrypted_data>"
+
+        service = ScmIntegrationCredentialsService()
+        with pytest.raises(OrganizationIntegration.DoesNotExist):
+            service.get_credentials_by_resource(
+                sentry_organization_id=self.organization.id,
+                integration_provider="github",
+                token_minimum_validity_seconds=10,
+                resource_type=ResourceType.ORGANIZATION,
+                resource_identifier="Not Real",
+            )
+
+    @responses.activate
     @patch.object(Integration, "get_installation")
     @patch.object(ScmIntegrationCredentialsService, "_encrypt_credentials")
     def test_get_credentials_by_resource__sentry_installation(
@@ -82,16 +127,46 @@ class TestCredentialsService(TestCase):
     ) -> None:
         mock_get_installation.return_value = self.mock_installation
         mock_encrypt_credentials.return_value = "<fake_encrypted_data>"
+        installation = OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        ).get()
         service = ScmIntegrationCredentialsService()
         credentials = service.get_credentials_by_resource(
             sentry_organization_id=self.organization.id,
             integration_provider="github",
             token_minimum_validity_seconds=10,
             resource_type=ResourceType.SENTRY_INSTALLATION,
-            resource_identifier=self.integration.id,
+            resource_identifier=installation.id,
         )
         assert credentials == "<fake_encrypted_data>"
 
+    @responses.activate
+    @patch.object(Integration, "get_installation")
+    @patch.object(ScmIntegrationCredentialsService, "_encrypt_credentials")
+    def test_get_credentials_by_resource__sentry_installation_disabled(
+        self, mock_encrypt_credentials, mock_get_installation
+    ) -> None:
+        mock_get_installation.return_value = self.mock_installation
+        mock_encrypt_credentials.return_value = "<fake_encrypted_data>"
+        installation = OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        ).get()
+        installation.status = ObjectStatus.DISABLED
+        installation.save()
+
+        service = ScmIntegrationCredentialsService()
+        with pytest.raises(OrganizationIntegration.DoesNotExist):
+            service.get_credentials_by_resource(
+                sentry_organization_id=self.organization.id,
+                integration_provider="github",
+                token_minimum_validity_seconds=10,
+                resource_type=ResourceType.SENTRY_INSTALLATION,
+                resource_identifier=installation.id,
+            )
+
+    @responses.activate
     @patch.object(Integration, "get_installation")
     @patch.object(ScmIntegrationCredentialsService, "_encrypt_credentials")
     def test_get_credentials_by_resource__sentry_installation_not_found(
