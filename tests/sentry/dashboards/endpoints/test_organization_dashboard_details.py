@@ -3156,6 +3156,65 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
         assert len(field_links) == 0
 
+    def test_does_not_update_non_table_dashboard_links(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=self.dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "project", "environment"],
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Field links are only supported for table widgets" in response.content
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
