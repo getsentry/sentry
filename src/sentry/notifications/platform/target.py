@@ -145,21 +145,16 @@ class SerializedTargetType:
         target_dict.pop("is_prepared", None)
 
         return {
-            "type": self.notification_type,
             **target_dict,
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SerializedTargetType":
-        target_type = data.get("type")
-        if target_type is None:
-            raise NotificationTargetError("Target type is required")
-
+    def from_dict(
+        cls, target_type: NotificationTargetType, data: dict[str, Any]
+    ) -> "SerializedTargetType":
         if target_type == NotificationTargetType.GENERIC:
             target = GenericNotificationTarget.from_dict(data)
         elif target_type == NotificationTargetType.INTEGRATION:
             target = IntegrationNotificationTarget.from_dict(data)
-        else:
-            raise NotificationTargetError(f"Unknown target type: {target_type}")
 
         return cls(target=target)

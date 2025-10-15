@@ -9,7 +9,7 @@ from sentry.notifications.platform.metrics import (
 )
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
-from sentry.notifications.platform.target import SerializedTargetType
+from sentry.notifications.platform.target import NotificationTargetType, SerializedTargetType
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -100,7 +100,11 @@ class NotificationService[T: NotificationData]:
 
         for target in targets:
             serialized_target = SerializedTargetType(target=target)
-            notify_target_async.delay(data=self.data, target_dict=serialized_target.to_dict())
+            notify_target_async.delay(
+                data=self.data,
+                target_type=serialized_target.notification_type,
+                target_dict=serialized_target.to_dict(),
+            )
 
     def notify_sync(
         self,
@@ -157,6 +161,7 @@ class NotificationService[T: NotificationData]:
 def notify_target_async[T: NotificationData](
     *,
     data: T,
+    target_type: NotificationTargetType,
     target_dict: dict[str, Any],
 ) -> None:
     """
@@ -171,7 +176,9 @@ def notify_target_async[T: NotificationData](
 
     with lifecycle_metric.capture() as lifecycle:
         # Step 1: Deserialize the target to a NotificationTarget
-        serialized_target = SerializedTargetType.from_dict(data=target_dict)
+        serialized_target = SerializedTargetType.from_dict(
+            target_type=target_type, data=target_dict
+        )
         target = serialized_target.target
         lifecycle_metric.notification_provider = target.provider_key
 
