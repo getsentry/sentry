@@ -11,6 +11,7 @@ from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodes
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
@@ -26,6 +27,9 @@ logger = logging.getLogger(__name__)
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
+# Batch size for nullifying seer_matched_grouphash_id references to avoid database timeouts
+# This is smaller than GROUP_HASH_BATCH_SIZE because the fan-out can be high
+SEER_MATCHED_GROUPHASH_BATCH_SIZE = 10
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -212,6 +216,24 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
+def nullify_seer_matched_grouphash_references(hash_ids: Sequence[int]) -> None:
+    """
+    Nullify seer_matched_grouphash_id references in batches to avoid database timeouts.
+    
+    This prevents the implicit ON DELETE SET NULL cascade from timing out when deleting
+    GroupHash records that are referenced by many GroupHashMetadata records.
+    
+    Args:
+        hash_ids: IDs of GroupHash records that are about to be deleted
+    """
+    # Process in small batches to avoid statement timeouts on high fan-out relationships
+    for i in range(0, len(hash_ids), SEER_MATCHED_GROUPHASH_BATCH_SIZE):
+        batch = hash_ids[i : i + SEER_MATCHED_GROUPHASH_BATCH_SIZE]
+        GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=batch).update(
+            seer_matched_grouphash_id=None
+        )
+
+
 def delete_project_group_hashes(project_id: int) -> None:
     groups = []
     for group in RangeQuerySetWrapper(
@@ -256,6 +278,9 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
+            # Nullify seer_matched_grouphash_id references in batches before deletion
+            # to prevent the implicit ON DELETE SET NULL cascade from timing out
+            nullify_seer_matched_grouphash_references(hash_ids)
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1
