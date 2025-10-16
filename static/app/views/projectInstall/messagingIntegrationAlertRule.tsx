@@ -1,14 +1,27 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Input} from 'sentry/components/core/input';
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+
+type Channel = {
+  display: string;
+  id: string;
+  name: string;
+  type: string;
+};
+
+type ChannelListResponse = {
+  results: Channel[];
+};
 
 export default function MessagingIntegrationAlertRule({
   channel,
@@ -19,6 +32,16 @@ export default function MessagingIntegrationAlertRule({
   setProvider,
   providersToIntegrations,
 }: IssueAlertNotificationProps) {
+  const organization = useOrganization();
+
+  const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
+    [`/organizations/${organization.slug}/integrations/${integration?.id}/channels/`],
+    {
+      staleTime: Infinity,
+      enabled: !!provider && !!integration?.id,
+    }
+  );
+
   const providerOptions = useMemo(
     () =>
       Object.keys(providersToIntegrations).map(p => ({
@@ -68,16 +91,26 @@ export default function MessagingIntegrationAlertRule({
           />
         ),
         target: (
-          <InlineInput
+          <InlineSelect
             aria-label={t('channel')}
-            type="text"
-            value={channel || ''}
             placeholder={
               providerDetails[provider as keyof typeof providerDetails]?.placeholder
             }
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setChannel(e.target.value)
+            isSearchable
+            options={channels?.results.map(ch => ({
+              label: ch.display,
+              value: ch.display,
+            }))}
+            isLoading={isPending}
+            disabled={!integration}
+            value={channel ? {label: channel, value: channel} : undefined}
+            onChange={(option: SelectValue<string> | undefined) =>
+              setChannel(option?.value)
             }
+            clearable
+            // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.
+            // This allows them to add a channel that is not present in the results.
+            creatable
           />
         ),
       })}
@@ -90,6 +123,7 @@ const Rule = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${space(1)};
 `;
@@ -98,7 +132,6 @@ const InlineSelectControl = styled(Select)`
   width: 180px;
 `;
 
-const InlineInput = styled(Input)`
-  width: auto;
-  min-height: 28px;
+const InlineSelect = styled(Select)`
+  min-width: 220px;
 `;

@@ -1,12 +1,14 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 describe('MessagingIntegrationAlertRule', () => {
+  const organization = OrganizationFixture();
   const slackIntegrations = [
     OrganizationIntegrationsFixture({
       name: "Moo Deng's Workspace",
@@ -49,6 +51,15 @@ describe('MessagingIntegrationAlertRule', () => {
     setIntegration: mockSetIntegration,
     setProvider: mockSetProvider,
   };
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channels/`,
+      body: {
+        results: [],
+      },
+    });
+  });
 
   const getComponent = () => <MessagingIntegrationAlertRule {...notificationProps} />;
 
@@ -95,5 +106,69 @@ describe('MessagingIntegrationAlertRule', () => {
       />
     );
     expect(screen.getByLabelText('integration')).toBeDisabled();
+  });
+
+  it('shows informative message when provider is Slack and channel not found', async () => {
+    render(getComponent());
+    await userEvent.type(screen.getByLabelText('channel'), 'beyond-limit-channel');
+    await userEvent.hover(await screen.findByTestId('icon-warning'));
+    expect(
+      await screen.findByText(
+        /Slack only returns a limited number of channels. This one isn't listed/
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Create "beyond-limit-channel"'));
+    expect(mockSetChannel).toHaveBeenCalledWith('beyond-limit-channel');
+  });
+
+  it('loads channels', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
+      body: {
+        nextCursor: null,
+        results: [
+          {id: '1', name: 'general', display: '#general', type: 'text'},
+          {id: '2', name: 'alerts', display: '#alerts', type: 'text'},
+        ],
+      },
+    });
+    render(
+      <MessagingIntegrationAlertRule
+        {...{
+          ...notificationProps,
+          integration: discordIntegrations[0],
+          provider: 'discord',
+        }}
+      />
+    );
+    await selectEvent.openMenu(screen.getByLabelText('channel'));
+    expect(await screen.findByText('#alerts')).toBeInTheDocument();
+    expect(screen.getByText('#general')).toBeInTheDocument();
+    await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
+    expect(mockSetChannel).toHaveBeenCalledWith('#alerts');
+  });
+
+  it('shows empty state when no channels are returned', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
+      body: {
+        nextCursor: null,
+        results: [],
+      },
+    });
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...{
+          ...notificationProps,
+          integration: discordIntegrations[0],
+          provider: 'discord',
+        }}
+      />
+    );
+
+    await selectEvent.openMenu(screen.getByLabelText('channel'));
+    expect(await screen.findByText('No options')).toBeInTheDocument();
+    expect(mockSetChannel).not.toHaveBeenCalled();
   });
 });

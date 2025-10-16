@@ -77,17 +77,24 @@ describe('CreateProject', () => {
     access: ['team:admin', 'team:write', 'team:read'],
   });
 
+  const integration = OrganizationIntegrationsFixture({
+    name: "Moo Deng's Workspace",
+  });
+
   beforeEach(() => {
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/integrations/?integrationType=messaging`,
-      body: [
-        OrganizationIntegrationsFixture({
-          name: "Moo Deng's Workspace",
-        }),
-      ],
+      body: [integration],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${integration.id}/channels/`,
+      body: {
+        results: [],
+      },
     });
   });
 
