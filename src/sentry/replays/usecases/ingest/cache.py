@@ -9,7 +9,7 @@ def _has_replays_lookup(project_id: int) -> bool:
     return project.flags.has_replays
 
 
-def _option_lookup(project_id: int, key: str) -> tuple[bool, bool]:
+def _option_lookup(project_id: int) -> tuple[bool, bool]:
     default_options = {
         "sentry:replay_hydration_error_issues": False,
         "sentry:replay_rage_click_issues": False,
@@ -17,14 +17,15 @@ def _option_lookup(project_id: int, key: str) -> tuple[bool, bool]:
 
     # We're intentionally manually looking up the options. We're avoided the project-options local
     # cache which exist on the preferred interface methods.
-    options = ProjectOption.objects.filter(project_id=project_id, key=key).values_list(
-        "key", "value"
-    )
+    options = ProjectOption.objects.filter(
+        project_id=project_id,
+        key__in=["sentry:replay_hydration_error_issues", "sentry:replay_rage_click_issues"],
+    ).values_list("key", "value")
 
     for option in options:
-        assert isinstance(option["key"], str)
-        assert isinstance(option["value"], bool)
-        default_options[option["key"]] = option["value"]
+        assert isinstance(option[0], str)
+        assert isinstance(option[1], bool)
+        default_options[option[0]] = option[1]
 
     # Skip storing the option names since they're redundant between cached entries and can be
     # inferred from index position.

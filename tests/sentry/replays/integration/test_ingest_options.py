@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.event_logger import (
@@ -8,45 +10,53 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_should_report_hydration_error_issue_no_value(default_project: Project) -> None:
-    result = _should_report_hydration_error_issue(default_project.id)
+@pytest.mark.parametrize("scheme", [True, False])
+def test_should_report_hydration_error_issue_no_value(
+    scheme: bool, default_project: Project
+) -> None:
+    result = _should_report_hydration_error_issue(default_project.id, scheme)
     assert result is False
 
 
 @django_db_all
-def test_should_report_hydration_error_issue(default_project: Project) -> None:
+@pytest.mark.parametrize("scheme", [True, False])
+def test_should_report_hydration_error_issue(scheme: bool, default_project: Project) -> None:
     ProjectOption.objects.set_value(
         project=default_project, key="sentry:replay_hydration_error_issues", value=True
     )
 
-    result = _should_report_hydration_error_issue(default_project.id)
+    result = _should_report_hydration_error_issue(default_project.id, scheme)
     assert result is True
 
 
 @django_db_all
-def test_should_report_hydration_error_issue_no_project() -> None:
-    result = _should_report_hydration_error_issue(210492104914)
+@pytest.mark.parametrize("scheme", [True, False])
+def test_should_report_hydration_error_issue_no_project(scheme: bool) -> None:
+    result = _should_report_hydration_error_issue(210492104914, scheme)
     assert result is False
 
 
 @django_db_all
-def test_should_report_rage_click_issue_no_value(default_project: Project) -> None:
-    result = _should_report_rage_click_issue(default_project.id)
+@pytest.mark.parametrize("scheme", [True, False])
+def test_should_report_rage_click_issue_no_value(scheme: bool, default_project: Project) -> None:
+    result = _should_report_rage_click_issue(default_project.id, scheme)
     assert result is False
 
 
 @django_db_all
-def test_should_report_rage_click_issue_no_project() -> None:
-    result = _should_report_rage_click_issue(210492104914)
+@pytest.mark.parametrize("scheme", [True, False])
+def test_should_report_rage_click_issue_no_project(scheme: bool) -> None:
+    result = _should_report_rage_click_issue(210492104914, scheme)
     assert result is False
 
 
 @django_db_all
-def test_should_report_rage_click_issue(default_project: Project) -> None:
+@pytest.mark.parametrize("scheme", [True, False])
+def test_should_report_rage_click_issue(scheme: bool, default_project: Project) -> None:
     ProjectOption.objects.set_value(
         project=default_project, key="sentry:replay_rage_click_issues", value=True
     )
 
-    result = _should_report_rage_click_issue(default_project.id)
+    result = _should_report_rage_click_issue(default_project.id, scheme)
     assert result is True
     assert result is True
