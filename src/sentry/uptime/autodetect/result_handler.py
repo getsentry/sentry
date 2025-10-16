@@ -10,8 +10,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry import audit_log
-from sentry.uptime.detectors.ranking import _get_cluster
-from sentry.uptime.detectors.tasks import set_failed_url
+from sentry.uptime.autodetect.ranking import _get_cluster
+from sentry.uptime.autodetect.tasks import set_failed_url
 from sentry.uptime.models import UptimeSubscription, get_audit_log_data
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
@@ -60,7 +60,7 @@ def handle_onboarding_result(
         if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
             # If we've hit too many failures during the onboarding period we stop monitoring
             delete_uptime_detector(detector)
-            # Mark the url as failed so that we don't attempt to auto-detect it for a while
+            # Mark the url as failed so that we don't attempt to autodetect it for a while
             set_failed_url(uptime_subscription.url)
             redis.delete(key)
             status_reason = "unknown"
