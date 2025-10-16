@@ -263,7 +263,6 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           listState={state}
           hasSearch={selectedSection === RECENT_SEARCH_CATEGORY_VALUE}
           hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
           overlayIsOpen
           showSectionHeaders={!selectedSection}
           size="sm"

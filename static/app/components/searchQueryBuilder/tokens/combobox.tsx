@@ -319,7 +319,6 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           listState={state}
           hasSearch={!!filterValue}
           hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
           overlayIsOpen={isOpen}
           size="sm"
         />
