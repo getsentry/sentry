@@ -1,9 +1,13 @@
 import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-
 import {Flex} from '@sentry/scraps/layout/flex';
 
+<<<<<<< HEAD
+import {Flex} from '@sentry/scraps/layout/flex';
+
+=======
+>>>>>>> 27fdb9d13aa (feat(onboarding): Add Copy DSN button to configure step)
 import {Button, ButtonBar} from 'sentry/components/core/button';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
