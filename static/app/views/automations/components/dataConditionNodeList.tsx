@@ -13,6 +13,7 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
+import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {
@@ -36,6 +37,7 @@ interface DataConditionNodeListProps {
 interface Option {
   label: string;
   value: DataConditionType;
+  disabled?: boolean;
 }
 
 export default function DataConditionNodeList({
@@ -53,13 +55,22 @@ export default function DataConditionNodeList({
     useAutomationBuilderConflictContext();
   const conflictingConditions = conflictingConditionGroups[groupId];
   const {errors} = useAutomationBuilderErrorContext();
+  const {state} = useAutomationBuilderContext();
 
   const options = useMemo(() => {
     if (handlerGroup === DataConditionHandlerGroupType.WORKFLOW_TRIGGER) {
-      return dataConditionHandlers.map(handler => ({
-        value: handler.type,
-        label: dataConditionNodesMap.get(handler.type)?.label || handler.type,
-      }));
+      // Get the types of already selected trigger conditions
+      const selectedTriggerTypes = new Set(
+        state.triggers.conditions.map(condition => condition.type)
+      );
+
+      // Filter out already selected trigger condition types
+      return dataConditionHandlers
+        .filter(handler => !selectedTriggerTypes.has(handler.type))
+        .map(handler => ({
+          value: handler.type,
+          label: dataConditionNodesMap.get(handler.type)?.label || handler.type,
+        }));
     }
 
     const issueAttributeOptions: Option[] = [];
@@ -130,7 +141,7 @@ export default function DataConditionNodeList({
         options: otherOptions,
       },
     ];
-  }, [dataConditionHandlers, handlerGroup]);
+  }, [dataConditionHandlers, handlerGroup, state.triggers.conditions]);
 
   return (
     <Fragment>
@@ -161,15 +172,18 @@ export default function DataConditionNodeList({
         ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
           conflictingConditions.size > 0) ||
           conflictingConditions.size > 1) && <Alert type="error">{conflictReason}</Alert>}
-      <StyledSelectControl
-        options={options}
-        onChange={(obj: any) => {
-          onAddRow(obj.value);
-        }}
-        placeholder={placeholder}
-        value={null}
-        aria-label={label}
-      />
+      {/* Only show dropdown if there are available options */}
+      {options.length > 0 && (
+        <StyledSelectControl
+          options={options}
+          onChange={(obj: any) => {
+            onAddRow(obj.value);
+          }}
+          placeholder={placeholder}
+          value={null}
+          aria-label={label}
+        />
+      )}
     </Fragment>
   );
 }
