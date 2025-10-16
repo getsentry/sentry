@@ -28,6 +28,7 @@ from sentry.plugins.base import plugins
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -455,6 +456,126 @@ class GroupUpdateTest(APITestCase):
         # no GroupResolution because there is no release
         assert not GroupResolution.objects.filter(group=group).exists()
         assert response.data["statusDetails"] == {}
+
+    @with_feature("organizations:resolve-in-future-release")
+    def test_resolved_in_future_existing_release(self) -> None:
+        self.login_as(user=self.user)
+
+        future_release = self.create_release(project=self.project, version="package@1.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        response = self.client.put(
+            path=f"/api/0/issues/{group.id}/",
+            data={
+                "status": "resolvedInFutureRelease",
+                "statusDetails": {"inFutureRelease": future_release.version},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inRelease"] == future_release.version
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        # GroupResolution should be resolved in_release because the release already exists
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == future_release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.future_release_version is None
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user_id=self.user.id, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.data["version"] == future_release.version
+
+    @with_feature("organizations:resolve-in-future-release")
+    def test_resolved_in_future_nonexistent_release(self) -> None:
+        self.login_as(user=self.user)
+
+        project = self.create_project_with_releases()
+        releases = [
+            Release.get_or_create(version="package@1.0+0", project=project),
+            Release.get_or_create(version="package@2.0+0", project=project),
+            Release.get_or_create(version="package@1.0+1", project=project),
+        ]
+        placeholder_release = releases[1]
+
+        nonexistent_future_release_version = "package@3.0.0"
+        group = self.create_group(
+            project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING
+        )
+
+        response = self.client.put(
+            path=f"/api/0/issues/{group.id}/",
+            data={
+                "status": "resolvedInFutureRelease",
+                "statusDetails": {"inFutureRelease": nonexistent_future_release_version},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["status"] == "resolved"
+        assert (
+            response.data["statusDetails"]["inFutureRelease"] == nonexistent_future_release_version
+        )
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        # since GroupResolution.release is non-nullable, we set a placeholder release,
+        # which is determined by get_release_to_resolve_by:
+        assert resolution.release == placeholder_release
+        assert resolution.type == GroupResolution.Type.in_future_release
+        assert resolution.status == GroupResolution.Status.pending
+        assert resolution.future_release_version == nonexistent_future_release_version
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user_id=self.user.id, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.data["future_release_version"] == nonexistent_future_release_version
+
+    def test_resolved_in_future_release_without_feature_flag(self) -> None:
+        """Test that resolving in future release fails when feature flag is disabled."""
+        self.login_as(user=self.user)
+        self.create_release(project=self.project, version="2.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        response = self.client.put(
+            path=f"/api/0/issues/{group.id}/",
+            data={
+                "status": "resolvedInFutureRelease",
+                "statusDetails": {"inFutureRelease": "2.0.0"},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Your organization does not have access to this feature." in str(response.data)
+
+        # Group should remain unresolved
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        # No GroupResolution should be created
+        assert not GroupResolution.objects.filter(group=group).exists()
 
     def test_snooze_duration(self) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED)

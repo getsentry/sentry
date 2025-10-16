@@ -416,7 +416,7 @@ def handle_resolve_in_release(
             res_type = GroupResolution.Type.in_future_release
             res_type_str = "in_future_release"
             res_status = GroupResolution.Status.pending
-            activity_data = {}  # set this in process_group_resolution
+            activity_data = {"version": ""}  # set this in process_group_resolution
 
         release = release_placeholder  # pass the placeholder to process_group_resolution
 

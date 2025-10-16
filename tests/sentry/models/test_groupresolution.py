@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.models.groupresolution import GroupResolution
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class GroupResolutionTest(TestCase):
@@ -198,6 +199,100 @@ class GroupResolutionTest(TestCase):
 
     def test_no_release_with_no_resolution(self) -> None:
         assert not GroupResolution.has_resolution(self.group, None)
+
+    @with_feature("organizations:resolve-in-future-release")
+    def test_in_future_release_with_semver_and_newer_release(self) -> None:
+        """Test that release newer than self.new_semver_release
+        has no resolution with group resolved in self.new_semver_release."""
+        newer_semver_release = self.create_release(version="foo_package@2.1")
+
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_semver_release.version,
+        )
+
+        assert not GroupResolution.has_resolution(self.group, newer_semver_release)
+
+    @with_feature("organizations:resolve-in-future-release")
+    def test_in_future_release_with_semver_and_same_release(self) -> None:
+        """Test that release same as self.new_semver_release
+        has no resolution with group resolved in self.new_semver_release."""
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_semver_release.version,
+        )
+
+        assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
+
+    @with_feature("organizations:resolve-in-future-release")
+    def test_in_future_release_with_semver_and_older_release(self) -> None:
+        """Test that release older than self.new_semver_release
+        has resolution with group resolved in self.new_semver_release."""
+        older_semver_release = self.create_release(version="foo_package@1.9")
+
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_semver_release.version,
+        )
+
+        assert GroupResolution.has_resolution(self.group, older_semver_release)
+
+    @with_feature("organizations:resolve-in-future-release")
+    def test_in_future_release_non_semver(self) -> None:
+        """Test that non-semver releases fall back to the older date-based comparison model."""
+        # Newer semver but older date
+        release_v2_older_date = self.create_release(
+            version="bar_package@2.0", date_added=timezone.now() - timedelta(minutes=60)
+        )
+        # Older semver but newer date
+        release_v1_newer_date = self.create_release(
+            version="bar_package@1.5", date_added=timezone.now() - timedelta(minutes=30)
+        )
+
+        GroupResolution.objects.create(
+            release=release_v1_newer_date,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version="non-semver-version",
+        )
+
+        # Should fall back to date-based model (because future_release_version is non-semver)
+        # v2.0 was released BEFORE v1.5 (the resolution release), so it HAS resolution
+        assert GroupResolution.has_resolution(self.group, release_v2_older_date)
+
+        # The resolution release itself should have resolution
+        assert GroupResolution.has_resolution(self.group, release_v1_newer_date)
+
+    def test_in_future_release_no_feature_flag(self) -> None:
+        """Test that without feature flag, fall back to the older date-based comparison model."""
+        # Newer semver but older date
+        release_v3_older_date = self.create_release(
+            version="baz_package@3.0", date_added=timezone.now() - timedelta(minutes=60)
+        )
+        # Older semver but newer date
+        release_v2_newer_date = self.create_release(
+            version="baz_package@2.5", date_added=timezone.now() - timedelta(minutes=30)
+        )
+
+        GroupResolution.objects.create(
+            release=release_v2_newer_date,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version="baz_package@2.8",  # 3.0 should have regression via semver logic, but not date-based
+        )
+
+        # By semver logic, 3.0 > 2.8, so no resolution
+        # By date-based logic, 3.0 released before 2.5, so resolution
+        assert GroupResolution.has_resolution(self.group, release_v3_older_date)
+
+        # The resolution release itself should have resolution
+        assert GroupResolution.has_resolution(self.group, release_v2_newer_date)
 
     def test_all_resolutions_are_implemented(self) -> None:
         resolution_types = [

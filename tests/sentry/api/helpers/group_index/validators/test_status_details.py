@@ -1,5 +1,6 @@
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.helpers.group_index.validators.group import GroupValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
 from sentry.models.release import Release
 from sentry.testutils.cases import TestCase
@@ -87,3 +88,23 @@ class StatusDetailsValidatorTest(TestCase):
                 code="invalid",
             )
         ]
+
+    @with_feature("organizations:resolve-in-future-release")
+    def test_validate_in_future_release_as_nested_serializer(self):
+        """
+        Test that _future_release_version is preserved when StatusDetailsValidator
+        is used as a nested serializer inside GroupValidator.
+        """
+        parent_validator = GroupValidator(
+            data={
+                "status": "resolvedInFutureRelease",
+                "statusDetails": {"inFutureRelease": "package@2.0.0"},
+            },
+            partial=True,
+            context={"project": self.project, "organization": self.organization},
+        )
+
+        assert parent_validator.is_valid()
+        status_details = parent_validator.validated_data.get("statusDetails", {})
+        assert status_details["inFutureRelease"] is None
+        assert status_details["_future_release_version"] == "package@2.0.0"

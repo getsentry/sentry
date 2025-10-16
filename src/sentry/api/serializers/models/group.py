@@ -89,6 +89,7 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     actor: UserSerializerResponse
     inNextRelease: bool
     inRelease: str
+    inFutureRelease: str
     inCommit: str
     pendingEvents: int
     info: Any
@@ -472,11 +473,14 @@ class GroupSerializerBase(Serializer, ABC):
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
-                res_type, res_version, _ = attrs["resolution"]
+                res_type, res_version, future_release_version, _ = attrs["resolution"]
                 if res_type in (GroupResolution.Type.in_next_release, None):
                     status_details["inNextRelease"] = True
                 elif res_type == GroupResolution.Type.in_release:
                     status_details["inRelease"] = res_version
+                elif res_type == GroupResolution.Type.in_future_release:
+                    # Use the actual future release version if available, otherwise fall back to placeholder
+                    status_details["inFutureRelease"] = future_release_version or res_version
                 status_details["actor"] = attrs["resolution_actor"]
             elif attrs["resolution_type"] == "commit":
                 status_details["inCommit"] = attrs["resolution"]
@@ -659,7 +663,7 @@ class GroupSerializerBase(Serializer, ABC):
         _release_resolutions = {
             i[0]: i[1:]
             for i in GroupResolution.objects.filter(group__in=resolved_groups).values_list(
-                "group", "type", "release__version", "actor_id"
+                "group", "type", "release__version", "future_release_version", "actor_id"
             )
         }
 

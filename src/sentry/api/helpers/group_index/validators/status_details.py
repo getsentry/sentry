@@ -139,6 +139,11 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
         """
         if "inFutureRelease" in attrs:
             initial_data = getattr(self, "initial_data", {})
+            # If this is a nested serializer, try to get the data from the parent's initial_data
+            if not initial_data and hasattr(self, "parent"):
+                parent_initial_data = getattr(self.parent, "initial_data", {})
+                initial_data = parent_initial_data.get("statusDetails", {})
+
             future_release_version = initial_data.get("inFutureRelease")
             if future_release_version:
                 attrs["_future_release_version"] = future_release_version
