@@ -1,7 +1,7 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import cached_property
-from typing import Any, NotRequired, Self, TypedDict
+from typing import Any, Self
 
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration.model import (
@@ -32,16 +32,6 @@ class NotificationTargetType(StrEnum):
     INTEGRATION = "integration"
 
 
-class SerializedNotificationTarget(TypedDict):
-    type: NotificationTargetType
-    provider_key: str
-    resource_type: str
-    resource_id: str
-    specific_data: dict[str, Any] | None
-    integration_id: NotRequired[int]
-    organization_id: NotRequired[int]
-
-
 @dataclass(kw_only=True, frozen=True)
 class GenericNotificationTarget(NotificationTarget):
     """
@@ -67,13 +57,14 @@ class GenericNotificationTarget(NotificationTarget):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            **asdict(self),
+            "provider_key": self.provider_key,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "specific_data": self.specific_data,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
-        if "type" in data:
-            data.pop("type")
         return cls(**data)
 
 
@@ -86,6 +77,20 @@ class IntegrationNotificationTarget(GenericNotificationTarget):
 
     integration_id: int
     organization_id: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "provider_key": self.provider_key,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "specific_data": self.specific_data,
+            "integration_id": self.integration_id,
+            "organization_id": self.organization_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        return cls(**data)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -140,21 +145,21 @@ class SerializedTargetType:
             raise NotificationTargetError(f"Unknown target type: {type(self.target)}")
 
     def to_dict(self) -> dict[str, Any]:
-        target_dict = self.target.to_dict()
-        # Remove fields that shouldn't be serialized
-        target_dict.pop("is_prepared", None)
-
         return {
-            **target_dict,
+            "type": self.notification_type,
+            "target": self.target.to_dict(),
         }
 
     @classmethod
-    def from_dict(
-        cls, target_type: NotificationTargetType, data: dict[str, Any]
-    ) -> "SerializedTargetType":
+    def from_dict(cls, data: dict[str, Any]) -> "SerializedTargetType":
+        target_type = data["type"]
+        target_data = data["target"]
+
         if target_type == NotificationTargetType.GENERIC:
-            target = GenericNotificationTarget.from_dict(data)
+            target = GenericNotificationTarget.from_dict(target_data)
         elif target_type == NotificationTargetType.INTEGRATION:
-            target = IntegrationNotificationTarget.from_dict(data)
+            target = IntegrationNotificationTarget.from_dict(target_data)
+        else:
+            raise NotificationTargetError(f"Unknown target type: {target_type}")
 
         return cls(target=target)
