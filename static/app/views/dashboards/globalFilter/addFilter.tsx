@@ -16,7 +16,7 @@ import type {DatasetSearchBarData} from 'sentry/views/dashboards/hooks/useSearch
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
-type SupportedDataset =
+export type SupportedDataset =
   | WidgetType.ERRORS
   | WidgetType.SPANS
   | WidgetType.LOGS

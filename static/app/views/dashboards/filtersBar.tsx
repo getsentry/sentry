@@ -18,7 +18,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
+import AddFilter, {
+  type SupportedDataset,
+} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useSearchBarData';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -150,6 +152,7 @@ export default function FiltersBar({
                 <FilterSelector
                   key={filter.tag.key}
                   globalFilter={filter}
+                  searchBarData={datasetSearchBarData[filter.dataset as SupportedDataset]}
                   onUpdateFilter={updatedFilter => {
                     updateGlobalFilters(
                       activeGlobalFilters.map(f =>
