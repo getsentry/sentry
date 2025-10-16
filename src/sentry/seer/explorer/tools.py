@@ -237,12 +237,27 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
     return trace.dict() if trace else {}
 
 
-SelectedEventType = Literal["oldest", "latest", "recommended"]
-
-
 def get_issue_details(
-    *, issue_id: int, organization_id: int, selected_event_type: SelectedEventType
-) -> dict[str, Any] | None:
+    *,
+    issue_id: int | str,
+    organization_id: int,
+    selected_event_type: Literal["oldest", "latest", "recommended"],
+) -> dict[str, int | str | dict] | None:
+    """
+    Args:
+        issue_id: The issue/group ID (integer) or short ID (string) to look up.
+        organization_id: The ID of the issue's organization.
+        selected_event_type: Which event to return - "oldest", "latest", or "recommended".
+
+    Returns:
+        A dict containing:
+            `issue`: Serialized issue with exactly one event in `issue.events`, selected
+              according to `selected_event_type`.
+            `event_trace_id`: The trace ID of the selected event.
+            `project_id`: The project ID of the issue.
+            `tags_overview`: A summary of all tags in the issue.
+        Returns None in case of errors.
+    """
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
@@ -257,7 +272,10 @@ def get_issue_details(
     ).values_list("id", flat=True)
 
     try:
-        group: Group = Group.objects.get(project_id__in=org_project_ids, id=issue_id)
+        if isinstance(issue_id, int):
+            group = Group.objects.get(project_id__in=org_project_ids, id=issue_id)
+        else:
+            group = Group.objects.by_qualified_short_id(organization_id, issue_id)
     except Group.DoesNotExist:
         logger.warning(
             "Issue does not exist for organization",

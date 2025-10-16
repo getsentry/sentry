@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.models.group import Group
 from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
@@ -483,7 +484,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_success(self, mock_get_tags, mock_get_recommended_event):
+    def _test_get_issue_details_success(
+        self, mock_get_tags, mock_get_recommended_event, use_short_id: bool
+    ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         # Create events with shared stacktrace (should have same group)
@@ -505,13 +508,13 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         mock_get_recommended_event.return_value = events[1]
 
         group = events[0].group
-        assert group is not None
+        assert isinstance(group, Group)
         assert events[1].group_id == group.id
         assert events[2].group_id == group.id
 
         for et in ["oldest", "latest", "recommended"]:
             result = get_issue_details(
-                issue_id=group.id,
+                issue_id=group.qualified_short_id if use_short_id else group.id,
                 organization_id=self.organization.id,
                 selected_event_type=et,
             )
@@ -523,6 +526,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             # Validate structure and required fields of the main issue payload.
             issue_dict: dict = result["issue"]
             IssueDetails.parse_obj(issue_dict)
+            assert "id" in issue_dict
+            assert "shortId" in issue_dict
             assert "status" in issue_dict
             assert "substatus" in issue_dict
             assert "culprit" in issue_dict
@@ -560,6 +565,12 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             else:
                 assert result["event_trace_id"] is None
 
+    def test_get_issue_details_success_int_id(self):
+        self._test_get_issue_details_success(use_short_id=False)
+
+    def test_get_issue_details_success_short_id(self):
+        self._test_get_issue_details_success(use_short_id=True)
+
     def test_get_issue_details_nonexistent_organization(self):
         """Test returns None when organization doesn't exist."""
         # Create a valid group.
@@ -567,7 +578,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
-        assert group is not None
+        assert isinstance(group, Group)
 
         # Call with nonexistent organization ID.
         result = get_issue_details(
@@ -604,7 +615,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             event = self.store_event(data=data, project_id=self.project.id)
 
         group = event.group
-        assert group is not None
+        assert isinstance(group, Group)
 
         for et in ["oldest", "latest", "recommended"]:
             result = get_issue_details(
@@ -623,7 +634,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
-        assert group is not None
+        assert isinstance(group, Group)
 
         result = get_issue_details(
             issue_id=group.id,
