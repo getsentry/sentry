@@ -1908,6 +1908,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-integration-issues",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channel-validate/$",
+        OrganizationIntegrationMigrateOpsgenieEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-channel-validate",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/migrate-opsgenie/$",
         OrganizationIntegrationMigrateOpsgenieEndpoint.as_view(),
         name="sentry-api-0-organization-integration-migrate-opsgenie",
