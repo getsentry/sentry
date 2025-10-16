@@ -687,7 +687,12 @@ export function replaceFreeTextTokens(
   replaceRawSearchKeys: string[],
   currentQuery: string
 ) {
-  if (!action.text || action.text === '' || replaceRawSearchKeys.length === 0) {
+  if (
+    !action.text ||
+    action.text === '' ||
+    replaceRawSearchKeys.length === 0 ||
+    (replaceRawSearchKeys.length !== 0 && replaceRawSearchKeys[0] === '')
+  ) {
     return undefined;
   }
 
