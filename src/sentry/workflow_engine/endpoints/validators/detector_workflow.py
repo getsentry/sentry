@@ -37,6 +37,8 @@ def can_edit_user_created_detectors(request: Request, project: Project) -> bool:
 def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     """
     Determine if the requesting user has access to edit the given detectors.
+    System created detectors lock edit access to org:write, while user created detectors
+    are more permissive.
     """
     required_scopes = (
         SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
