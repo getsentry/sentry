@@ -195,13 +195,8 @@ class RepoTreesIntegration(ABC):
         """
         key = f"{self.integration_name}:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
 
-        # A value of None means cache miss; [] (empty list) means cached repo with no files.
-        repo_files_cached: list[str] | None = cache.get(key)
-
-        cache_hit: bool = repo_files_cached is not None
-
-        # When restricted to cache-only, treat a miss as an empty list.
-        repo_files: list[str] = repo_files_cached if repo_files_cached is not None else []
+        cache_hit: bool = cache.has_key(key)
+        repo_files: list[str] = cache.get(key, [])
 
         if not cache_hit and not only_use_cache:
             # Cache miss – fetch from API
