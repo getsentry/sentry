@@ -1782,7 +1782,7 @@ class GithubIntegrationCredentialLeasingTest(IntegrationTestCase):
         self._stub_github_credentials()
         installation = self.integration.get_installation(organization_id=self.organization.id)
         assert installation is not None
-        assert installation.get_active_access_token() == CredentialLease(
+        assert installation._get_active_access_token() == CredentialLease(
             access_token=self.access_token,
             permissions={
                 "administration": "read",
@@ -1805,7 +1805,7 @@ class GithubIntegrationCredentialLeasingTest(IntegrationTestCase):
         self._stub_github_credentials()
         installation = self.integration.get_installation(organization_id=self.organization.id)
         assert installation is not None
-        assert installation.refresh_access_token_with_minimum_validity_time(
+        assert installation._refresh_access_token_with_minimum_validity_time(
             timedelta(minutes=1)
         ) == CredentialLease(
             access_token=self.access_token,

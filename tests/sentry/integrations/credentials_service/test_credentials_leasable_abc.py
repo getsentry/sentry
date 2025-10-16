@@ -9,7 +9,7 @@ class MockClass(CredentialLeasable):
     def get_maximum_lease_duration_seconds(self) -> int:
         return 3600
 
-    def refresh_access_token_with_minimum_validity_time(
+    def _refresh_access_token_with_minimum_validity_time(
         self, token_minimum_validity_time: timedelta
     ) -> CredentialLease:
         return CredentialLease(
@@ -18,14 +18,14 @@ class MockClass(CredentialLeasable):
             permissions=None,
         )
 
-    def force_refresh_access_token(self) -> CredentialLease:
+    def _force_refresh_access_token(self) -> CredentialLease:
         return CredentialLease(
             access_token="access_token",
             expires_at=datetime.now(UTC) + timedelta(hours=1),
             permissions=None,
         )
 
-    def get_active_access_token(self) -> CredentialLease:
+    def _get_active_access_token(self) -> CredentialLease:
         return CredentialLease(
             access_token="access_token",
             expires_at=datetime.now(UTC) + timedelta(hours=1),
