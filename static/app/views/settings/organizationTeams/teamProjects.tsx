@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import {useOutletContext} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -28,14 +27,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import type {TeamDetailsOutletContext} from 'sentry/views/settings/organizationTeams/teamDetails';
+import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 
 export default function TeamProjects() {
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const [query, setQuery] = useState<string>('');
-  const {team} = useOutletContext<TeamDetailsOutletContext>();
+  const {team} = useTeamDetailsOutlet();
   const {
     data: linkedProjects,
     isError: linkedProjectsError,

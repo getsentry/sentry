@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import {useOutletContext} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
@@ -37,7 +36,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import type {TeamDetailsOutletContext} from 'sentry/views/settings/organizationTeams/teamDetails';
+import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import TeamMembersRow, {
   GRID_TEMPLATE,
 } from 'sentry/views/settings/organizationTeams/teamMembersRow';
@@ -189,7 +188,7 @@ export default function TeamMembers() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const location = useLocation();
-  const {team} = useOutletContext<TeamDetailsOutletContext>();
+  const {team} = useTeamDetailsOutlet();
 
   const {
     data: teamMembers = [],

@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Outlet, useOutletContext} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,9 +20,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-export type TeamDetailsOutletContext = {
+type TeamDetailsOutletContext = {
   team: Team;
 };
+
+function TeamDetailsOutlet(props: TeamDetailsOutletContext) {
+  return <Outlet context={props} />;
+}
+
+export function useTeamDetailsOutlet() {
+  return useOutletContext<TeamDetailsOutletContext>();
+}
 
 export default function TeamDetails() {
   const api = useApi();
@@ -113,7 +121,7 @@ export default function TeamDetails() {
             </Tabs>
           </TabsContainer>
 
-          <Outlet context={{team} satisfies TeamDetailsOutletContext} />
+          <TeamDetailsOutlet team={team} />
         </div>
       ) : (
         <Alert.Container>
