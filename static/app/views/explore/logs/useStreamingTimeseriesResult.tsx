@@ -314,6 +314,16 @@ function createBufferFromTableData(
   return groupBuffers;
 }
 
+/**
+ * Extracts the group value from a TimeSeries, handling multiple group-by fields
+ */
+function getSeriesGroupValue(series: TimeSeries): string {
+  if (series.groupBy && series.groupBy.length > 0) {
+    return series.groupBy.map(group => String(group.value ?? '')).join(',');
+  }
+  return series.yAxis;
+}
+
 function createMergedDataFromBuffer(
   shouldUseStreamedData: boolean,
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
@@ -370,13 +380,13 @@ function createMergedDataFromBuffer(
     }
 
     const allGroupValues = new Set([
-      ...originalGroupedTimeSeries.map(series => series.yAxis),
+      ...originalGroupedTimeSeries.map(series => getSeriesGroupValue(series)),
       ...Object.keys(groupBuffers),
     ]);
 
     Array.from(allGroupValues).forEach(groupValue => {
       const originalSeries = originalGroupedTimeSeries.find(
-        series => series.yAxis === groupValue
+        series => getSeriesGroupValue(series) === groupValue
       );
       const groupBuffer = groupBuffers[groupValue];
 
@@ -469,7 +479,7 @@ function getStableIndex(
 ): number {
   if (originalTimeseries) {
     const originalIndex = originalTimeseries.findIndex(
-      series => series.yAxis === groupValue
+      series => getSeriesGroupValue(series) === groupValue
     );
     if (originalIndex >= 0) {
       return originalIndex;
@@ -481,7 +491,7 @@ function getStableIndex(
   }
 
   const allYAxisValues = new Set([
-    ...(originalTimeseries?.map(series => series.yAxis) ?? []),
+    ...(originalTimeseries?.map(series => getSeriesGroupValue(series)) ?? []),
     ...Object.keys(groupBuffers),
   ]);
 
