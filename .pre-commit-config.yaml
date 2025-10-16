@@ -135,12 +135,6 @@ repos:
         stages: [pre-push]
         entry: bash -c 'if [ -n "${SENTRY_KNIP_PRE_PUSH:-}" ]; then exec ./node_modules/.bin/knip; fi' --
 
-      - id: gen-ts-api-urls
-        name: gen-ts-api-urls
-        language: system
-        files: /urls\.py$
-        entry: python3 -m tools.api_urls_to_typescript
-
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
