@@ -43,10 +43,6 @@ export enum PerformanceWidgetSetting {
   TPM_AREA = 'tpm_area',
   FAILURE_RATE_AREA = 'failure_rate_area',
   USER_MISERY_AREA = 'user_misery_area',
-  WORST_LCP_VITALS = 'worst_lcp_vitals',
-  WORST_FCP_VITALS = 'worst_fcp_vitals',
-  WORST_CLS_VITALS = 'worst_cls_vitals',
-  WORST_FID_VITALS = 'worst_fid_vitals',
   MOST_CHANGED = 'most_changed',
   MOST_IMPROVED = 'most_improved',
   MOST_REGRESSED = 'most_regressed',
@@ -122,46 +118,6 @@ export const WIDGET_DEFINITIONS: ({
       fields: ['measurements.fid'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
       chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[5],
-    },
-    [PerformanceWidgetSetting.WORST_LCP_VITALS]: {
-      title: t('Worst LCP Web Vitals'),
-      titleTooltip: getTermHelp(organization, PerformanceTerm.LCP),
-      fields: ['measurements.lcp'],
-      vitalStops: {
-        poor: 4000,
-        meh: 2500,
-      },
-      dataType: GenericPerformanceWidgetDataType.VITALS,
-    },
-    [PerformanceWidgetSetting.WORST_FCP_VITALS]: {
-      title: t('Worst FCP Web Vitals'),
-      titleTooltip: getTermHelp(organization, PerformanceTerm.FCP),
-      fields: ['measurements.fcp'],
-      vitalStops: {
-        poor: 3000,
-        meh: 1000,
-      },
-      dataType: GenericPerformanceWidgetDataType.VITALS,
-    },
-    [PerformanceWidgetSetting.WORST_FID_VITALS]: {
-      title: t('Worst FID Web Vitals'),
-      titleTooltip: getTermHelp(organization, PerformanceTerm.FID),
-      fields: ['measurements.fid'],
-      vitalStops: {
-        poor: 300,
-        meh: 100,
-      },
-      dataType: GenericPerformanceWidgetDataType.VITALS,
-    },
-    [PerformanceWidgetSetting.WORST_CLS_VITALS]: {
-      title: t('Worst CLS Web Vitals'),
-      titleTooltip: getTermHelp(organization, PerformanceTerm.CLS),
-      fields: ['measurements.cls'],
-      vitalStops: {
-        poor: 0.25,
-        meh: 0.1,
-      },
-      dataType: GenericPerformanceWidgetDataType.VITALS,
     },
     [PerformanceWidgetSetting.TPM_AREA]: {
       title: t('Transactions Per Minute'),
