@@ -123,11 +123,20 @@ def test_tags_with_spaces() -> None:
 
 
 def test_tags_out_of_bounds() -> None:
+    long_key = "f" * 201  # 201 characters
+    long_value = "v" * 201  # 201 characters
     data = validate_and_normalize(
-        {"message": "foo", "tags": {"f" * 201: "value", "foo": "v" * 201, "bar": "value"}}
+        {"message": "foo", "tags": {long_key: "value", "foo": long_value, "bar": "value"}}
     )
-    assert data["tags"] == [["bar", "value"], [None, "value"], ["foo", None]]
-    assert len(data["errors"]) == 2
+
+    # Tags should be trimmed to 200 characters (197 chars + "..."), not set to None
+    # The normalizer trims long strings and adds ellipsis
+    trimmed_key = long_key[:197] + "..."  # 197 characters + "..."
+    trimmed_value = long_value[:197] + "..."  # 197 characters + "..."
+
+    expected_tags = [["bar", "value"], [trimmed_key, "value"], ["foo", trimmed_value]]
+    assert data["tags"] == expected_tags
+    assert "errors" not in data or len(data.get("errors", [])) == 0
 
 
 def test_tags_as_invalid_pair() -> None:
