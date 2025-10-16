@@ -14,6 +14,7 @@ describe('Subscription > Notifications', () => {
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/spend-notifications/`,
@@ -45,7 +46,7 @@ describe('Subscription > Notifications', () => {
     });
 
     organization.access = ['org:billing'];
-    organization.features = [];
+    organization.features = ['spend-visibility-notifications'];
     subscription.planDetails.allowOnDemand = false;
     SubscriptionStore.set(organization.slug, subscription);
   });
@@ -91,8 +92,23 @@ describe('Subscription > Notifications', () => {
     expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
   });
 
+  it('redirects without flag', () => {
+    organization.features = [];
+    const {router} = render(
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
+    );
+
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: '/settings/chum-bucket/billing/overview/',
+        query: {},
+      })
+    );
+  });
+
   it('renders for new billing UI', async () => {
-    organization.features = ['subscriptions-v3'];
+    organization.features.push('subscriptions-v3');
     render(
       <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
       {organization}
