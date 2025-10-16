@@ -26,6 +26,7 @@ import {
   displayBudgetName,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
+  isAm1Plan,
   isAm2Plan,
 } from 'getsentry/utils/billing';
 import {
@@ -184,6 +185,7 @@ export function SharedSpendLimitPriceTable({
   const baseCategories = activePlan.onDemandCategories.filter(
     category => !addOnDataCategories.includes(category)
   );
+  const isLegacy = isAm2Plan(activePlan.id) || isAm1Plan(activePlan.id);
 
   return (
     <Flex
@@ -194,7 +196,13 @@ export function SharedSpendLimitPriceTable({
       radius="md"
       padding="lg xl"
     >
-      <Grid gap="lg" columns={{xs: '1fr', md: 'repeat(2, 1fr)'}}>
+      <Grid
+        gap="lg"
+        columns={
+          // legacy plans need more space because of the longer product names (transactions, performance units)
+          isLegacy ? {xs: '1fr', xl: 'repeat(2, 1fr)'} : {xs: '1fr', md: 'repeat(2, 1fr)'}
+        }
+      >
         {baseCategories.map(category => {
           // pre-AM3 specific behavior
           const showPerformanceUnits =
@@ -372,7 +380,8 @@ function InnerSpendLimitSettings({
 
   const getPerCategoryWarning = (productName: string) => {
     return (
-      <Flex gap="xs">
+      // hardcoded height to match the input height so that all rows have the same height
+      <Flex gap="xs" height="36px" align="center">
         <IconWarning size="sm" />
         <Text variant="muted" size="sm">
           {tct(

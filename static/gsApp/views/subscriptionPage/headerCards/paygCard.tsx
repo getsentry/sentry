@@ -112,6 +112,11 @@ function PaygCard({
                     value={newBudgetDollars}
                     min={0}
                     onChange={e => setNewBudgetDollars(parseInt(e.target.value, 10) || 0)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        handleSubmit();
+                      }
+                    }}
                   />
                 </Currency>
                 <Flex justify="between" align="center">

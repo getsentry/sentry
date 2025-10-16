@@ -138,7 +138,7 @@ describe('CartDiff', () => {
     expect(paygDiff).toHaveTextContent('$10');
 
     const perCategoryDiff = await screen.findByTestId('per-category-spend-limit-diff');
-    expect(perCategoryDiff).toHaveTextContent('Per-category spend limits');
+    expect(perCategoryDiff).toHaveTextContent('Per-product spend limits');
     expect(perCategoryDiff).toHaveTextContent('Errors$10');
   });
 
@@ -175,7 +175,7 @@ describe('CartDiff', () => {
     expect(paygDiff).toHaveTextContent('$10');
 
     const perCategoryDiff = await screen.findByTestId('per-category-spend-limit-diff');
-    expect(perCategoryDiff).toHaveTextContent('Per-category spend limits');
+    expect(perCategoryDiff).toHaveTextContent('Per-product spend limits');
     expect(perCategoryDiff).toHaveTextContent('Errors$10');
     expect(perCategoryDiff).toHaveTextContent('Replays$20');
   });
@@ -227,7 +227,7 @@ describe('CartDiff', () => {
     renderCartDiff({formData});
     expect(await screen.findByText('Changes (2)')).toBeInTheDocument();
     const perCategoryDiff = await screen.findByTestId('per-category-spend-limit-diff');
-    expect(perCategoryDiff).toHaveTextContent('Per-category spend limits');
+    expect(perCategoryDiff).toHaveTextContent('Per-product spend limits');
     expect(perCategoryDiff).toHaveTextContent('Errors$10');
     expect(perCategoryDiff).toHaveTextContent('Replays$20');
     expect(perCategoryDiff).not.toHaveTextContent('$0');

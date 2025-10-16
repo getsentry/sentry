@@ -348,6 +348,10 @@ export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
+export function isAm1Plan(planId?: string) {
+  return typeof planId === 'string' && planId.startsWith('am1');
+}
+
 export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
