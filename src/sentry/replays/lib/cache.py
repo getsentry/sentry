@@ -67,11 +67,7 @@ class BoundedLRUCache(BoundedFifoCache[T, U]):
 
 class TimeLimitedCache(CacheProtocol[T, U]):
     """
-    Time limited cache implementation.
-
-    If the intent is to use this cache in a threaded environment you will need to ensure the cache
-    passed to the init method is thread-safe. This cache does not guarantee thread-safety on its
-    own.
+    Time limited cache implementation. Not thread-safe.
     """
 
     def __init__(
