@@ -154,6 +154,7 @@ const MinimizedOverlay = styled(motion.div)`
   justify-content: center;
   padding-top: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
   z-index: 1;
   cursor: pointer;
 
