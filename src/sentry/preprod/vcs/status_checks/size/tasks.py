@@ -127,7 +127,10 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     if check_id is None:
         logger.error(
             "preprod.status_checks.create.failed",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "organization_id": preprod_artifact.project.organization_id,
+            },
         )
         return
 
@@ -137,6 +140,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             "artifact_id": preprod_artifact.id,
             "status": status.value,
             "check_id": check_id,
+            "organization_id": preprod_artifact.project.organization_id,
         },
     )
 
