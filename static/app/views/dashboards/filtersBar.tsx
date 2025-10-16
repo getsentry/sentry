@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -75,18 +75,13 @@ export default function FiltersBar({
     filters?.[DashboardFilterKeys.RELEASE] ??
     [];
 
-  const globalFilters: GlobalFilter[] = useMemo(() => {
+  const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
     return (
       dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
       filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
       []
     );
-    // Ignore location.query dependency to avoid reading query params when possible (and instead use local state)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
-
-  const [activeGlobalFilters, setActiveGlobalFilters] =
-    useState<GlobalFilter[]>(globalFilters);
+  });
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
