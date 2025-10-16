@@ -226,9 +226,9 @@ def batch_nullify_group_hash_metadata_references(hash_ids: Sequence[int]) -> Non
     # Process in small batches to avoid statement timeouts on high fan-out relationships
     for i in range(0, len(hash_ids), GROUP_HASH_METADATA_BATCH_SIZE):
         batch = hash_ids[i : i + GROUP_HASH_METADATA_BATCH_SIZE]
-        GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=batch).update(
-            seer_matched_grouphash_id=None
-        )
+        GroupHashMetadata.objects.filter(
+            seer_matched_grouphash_id__in=batch, seer_matched_grouphash_id__isnull=False
+        ).update(seer_matched_grouphash_id=None)
 
 
 def delete_project_group_hashes(project_id: int) -> None:

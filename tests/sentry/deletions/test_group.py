@@ -8,7 +8,7 @@ from uuid import uuid4
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import nodestore
-from sentry.deletions.defaults.group import ErrorEventsDeletionTask
+from sentry.deletions.defaults.group import ErrorEventsDeletionTask, delete_group_hashes
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -16,6 +16,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
@@ -253,6 +254,62 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
                 "args": [self.project.id, error_group_hashes, 0]
             }
+
+    def test_batch_nullify_seer_matched_grouphash_references(self) -> None:
+        """
+        Test that seer_matched_grouphash_id references are properly nullified
+        when a GroupHash is deleted.
+        """
+        # Create two events/grouphashes with different exceptions to ensure different groups
+        # Event A will be deleted
+        event_a = self.store_event(
+            data={
+                "platform": "python",
+                "exception": {"values": [{"type": "ValueError", "value": "Error A"}]},
+            },
+            # default_event_type=EventType.DEFAULT,
+            project_id=self.project.id,
+        )
+        grouphash_a = GroupHash.objects.filter(group_id=event_a.group_id).first()
+        assert grouphash_a is not None
+        assert grouphash_a.metadata is not None
+        metadata_a_id = grouphash_a.metadata.id
+
+        # Event B will be kept - different exception to ensure different group
+        event_b = self.store_event(
+            data={
+                "platform": "python",
+                "exception": {"values": [{"type": "TypeError", "value": "Error B"}]},
+            },
+            # default_event_type=EventType.DEFAULT,
+            project_id=self.project.id,
+        )
+        grouphash_b = GroupHash.objects.filter(group_id=event_b.group_id).first()
+        assert grouphash_b is not None
+        assert grouphash_b.metadata is not None
+
+        # Ensure they are in different groups
+        assert event_a.group_id != event_b.group_id
+
+        # Pretend that Seer tells us that grouphash B is similar to grouphash A
+        grouphash_b.metadata.seer_matched_grouphash = grouphash_a
+        grouphash_b.metadata.save()
+        metadata_b_id = grouphash_b.metadata.id
+
+        assert grouphash_b.metadata.seer_matched_grouphash == grouphash_a
+        assert GroupHashMetadata.objects.filter(seer_matched_grouphash_id=grouphash_a.id).exists()
+
+        # Delete grouphash A
+        with self.tasks():
+            delete_group_hashes(self.project.id, [event_a.group_id])
+
+        # Grouphash A and its metadata should be deleted
+        assert not GroupHash.objects.filter(id=grouphash_a.id).exists()
+        assert not GroupHashMetadata.objects.filter(id=metadata_a_id).exists()
+
+        # Grouphash B's metadata should still exist, but the reference to A should be nullified
+        metadata_b = GroupHashMetadata.objects.get(id=metadata_b_id)
+        assert metadata_b.seer_matched_grouphash is None
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
