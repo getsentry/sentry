@@ -298,7 +298,7 @@ class IssueParams:
         location="path",
         required=False,
         type=str,
-        description="Issue URLs may be accessed with either `issues` or `groups`. This parameter is will be removed when building the API docs.",
+        description="Issue URLs may be accessed with either `issues` or `groups`. This parameter will be removed when building the API docs.",
     )
     ISSUE_ID = OpenApiParameter(
         name="issue_id",

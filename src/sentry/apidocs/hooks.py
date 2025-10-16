@@ -221,8 +221,37 @@ def _validate_request_body(
         )
 
 
+def _convert_request_examples_to_example(result: Any) -> None:
+    """
+    Convert plural 'examples' format to singular 'example' format in request bodies.
+
+    OpenApiExample generates the plural format with named keys, but the docs renderer
+    expects the singular format for request bodies (though plural works for responses).
+    This converts from:
+        "examples": {"ExampleName": {"value": {...}}}
+    to:
+        "example": {...}
+    """
+    for path, endpoints in result["paths"].items():
+        for method_info in endpoints.values():
+            requestBody = method_info.get("requestBody")
+            if requestBody is not None:
+                content = requestBody.get("content", {})
+                for media_type, media_content in content.items():
+                    # If there's a plural "examples" field, convert to singular "example"
+                    if "examples" in media_content and "example" not in media_content:
+                        examples = media_content["examples"]
+                        # Take the first example's value
+                        if examples:
+                            first_example = next(iter(examples.values()))
+                            media_content["example"] = first_example.get("value", {})
+                            # Remove the plural "examples" field
+                            del media_content["examples"]
+
+
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
     _fix_issue_paths(result)
+    _convert_request_examples_to_example(result)
 
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
@@ -299,11 +328,11 @@ def _fix_issue_paths(result: Any) -> Any:
     modified_paths = []
 
     for path, endpoint in items:
-        if "{var}/{issue_id}" in path:
+        if "/{var}/" in path:
             modified_paths.append(path)
 
     for path in modified_paths:
-        updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
+        updated_path = path.replace("/{var}/", "/issues/")
         if updated_path.startswith("/api/0/issues/"):
             updated_path = updated_path.replace(
                 "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
