@@ -145,6 +145,25 @@ def send_and_save_webhook_request(
             headers=app_platform_event.headers,
         )
 
+        debug_logging_enabled = (
+            app_platform_event.install.uuid
+            in options.get("sentry-apps.webhook-logging.enabled")["installation_uuid"]
+            or sentry_app.slug
+            in options.get("sentry-apps.webhook-logging.enabled")["sentry_app_slug"]
+        )
+        if debug_logging_enabled:
+            logger.info(
+                "sentry_app_webhook_sent",
+                extra={
+                    "sentry_app_slug": sentry_app.slug,
+                    "organization_id": org_id,
+                    "installation_uuid": app_platform_event.install.uuid,
+                    "event": event,
+                    "url": url,
+                    "response_code": response.status_code,
+                },
+            )
+
         if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
             lifecycle.record_halt(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
