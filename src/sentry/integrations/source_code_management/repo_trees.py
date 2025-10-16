@@ -185,7 +185,7 @@ class RepoTreesIntegration(ABC):
         only_source_code_files: bool = True,
         only_use_cache: bool = False,
     ) -> list[str]:
-        """It return all files for a repo or just source code files.
+        """It returns all files for a repo or just source code files.
 
         repo_full_name: e.g. getsentry/sentry
         tree_sha: A branch or a commit sha
@@ -195,8 +195,8 @@ class RepoTreesIntegration(ABC):
         """
         key = f"{self.integration_name}:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
 
-        cache_hit: bool = cache.has_key(key)
-        repo_files: list[str] = cache.get(key, [])
+        cache_hit = cache.has_key(key)
+        repo_files = cache.get(key, [])
 
         if not cache_hit and not only_use_cache:
             # Cache miss – fetch from API
@@ -210,15 +210,21 @@ class RepoTreesIntegration(ABC):
                 # Explicitly remember that this repo has no files so we don't call again.
                 repo_files = []
 
+            # The backend's caching will skip silently if the object size greater than 5MB
+            # (due to Memcached's max value size limit).
+            # The trees API does not return structures larger than 7MB
+            # As an example, all file paths in Sentry is about 1.3MB
+            # Larger customers may have larger repositories, however,
+            # the cost of not having the files cached
+            # repositories is a single API network request, thus,
+            # being acceptable to sometimes not having everything cached
             cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
             metrics.incr("integrations.source_code_management.get_repo_files.cache_set")
 
-        source: str = "cache" if cache_hit else "api"
+        # Determine source based on whether we actually fetched from API
+        source = "api" if (not cache_hit and not only_use_cache) else "cache"
 
-        metrics.incr(
-            "integrations.source_code_management.get_repo_files",
-            tags={"source": source},
-        )
+        metrics.incr("integrations.source_code_management.get_repo_files", tags={"source": source})
 
         return repo_files
 
