@@ -661,12 +661,7 @@ describe('Incident Rules Form', () => {
         ruleId: rule.id,
       });
 
-      await userEvent.hover(screen.getAllByText('Throughput')[1]!);
-      expect(
-        await screen.findByText(/The transaction dataset is being deprecated./)
-      ).toBeInTheDocument();
-
-      await userEvent.hover(screen.getByText('project-slug'));
+      await userEvent.hover(screen.getByText('All Environments'));
       expect(
         await screen.findByText(/The transaction dataset is being deprecated./)
       ).toBeInTheDocument();
@@ -683,6 +678,40 @@ describe('Incident Rules Form', () => {
       );
 
       await waitFor(() => expect(radio).toBeChecked());
+
+      await userEvent.click(screen.getAllByText('Throughput')[1]!);
+      await userEvent.click(await screen.findByText('Spans'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'count(span.duration)',
+            alertType: 'eap_metrics',
+            comparisonDelta: 10080,
+            dataset: 'events_analytics_platform',
+            detectionType: 'percent',
+            environment: null,
+            eventTypes: ['trace_item_span'],
+            id: '4',
+            name: 'My Incident Rule',
+            owner: undefined,
+            projects: ['project-slug'],
+            query: '',
+            queryType: 1,
+            resolveThreshold: 36,
+            seasonality: null,
+            sensitivity: null,
+            snooze: false,
+            status: 0,
+            thresholdPeriod: 1,
+            thresholdType: 0,
+            timeWindow: 60,
+          }),
+        })
+      );
     });
 
     it('switches from percent change to count', async () => {
