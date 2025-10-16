@@ -1,10 +1,18 @@
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from sentry.api import client
+from sentry.api.utils import default_start_end_dates
+from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
+from sentry.seer.sentry_data_models import EAPTrace
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace import query_trace_data
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +64,24 @@ def execute_trace_query_chart(
     )
     data = resp.data
 
-    # Normalize response format: single-axis returns flat format, multi-axis returns nested
-    # We always want the nested format {"metric": {"data": [...]}}
-    if isinstance(data, dict) and "data" in data and len(y_axes) == 1:
-        # Single axis response - wrap it
-        metric_name = y_axes[0]
-        return {metric_name: data}
+    # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
+    metric_is_single = len(y_axes) == 1
+    metric_name = y_axes[0] if metric_is_single else None
+    if metric_name and metric_is_single:
+        # Handle grouped data with single metric: wrap each group's data in the metric name
+        if group_by:
+            return {
+                group_value: (
+                    {metric_name: group_data}
+                    if isinstance(group_data, dict) and "data" in group_data
+                    else group_data
+                )
+                for group_value, group_data in data.items()
+            }
+
+        # Handle non-grouped data with single metric: wrap data in the metric name
+        if isinstance(data, dict) and "data" in data:
+            return {metric_name: data}
 
     return data
 
@@ -75,6 +95,7 @@ def execute_trace_query_table(
     group_by: list[str] | None = None,
     y_axes: list[str] | None = None,
     per_page: int = 50,
+    mode: Literal["spans", "aggregates"] = "spans",
 ) -> dict[str, Any] | None:
     """
     Execute a trace query to get table data by calling the events endpoint.
@@ -92,9 +113,11 @@ def execute_trace_query_table(
         return None
 
     # Determine fields based on mode
-    if group_by and len(group_by) > 0:
+    if mode == "aggregates":
         # Aggregates mode: group_by fields + aggregate functions
-        fields = list(group_by)
+        fields = []
+        if group_by:
+            fields.extend(group_by)
         if y_axes:
             fields.extend(y_axes)
     else:
@@ -133,3 +156,77 @@ def execute_trace_query_table(
         params=params,
     )
     return resp.data
+
+
+def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
+    """
+    Get the full span waterfall and connected errors for a trace.
+
+    Args:
+        trace_id: The ID of the trace to fetch. Can be shortened to the first 8 or 16 characters.
+        organization_id: The ID of the trace's organization
+
+    Returns:
+        The spans and errors in the trace, along with the full 32-character trace ID.
+    """
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.exception(
+            "get_trace_waterfall: Organization does not exist",
+            extra={"organization_id": organization_id, "trace_id": trace_id},
+        )
+        return None
+
+    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    start, end = default_start_end_dates()  # Last 90 days.
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+
+    # Get full trace id if a short id is provided. Queries EAP for a single span.
+    if len(trace_id) < 32:
+        subquery_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"trace:{trace_id}",
+            selected_columns=["trace", "precise.start_ts"],
+            orderby=["-precise.start_ts"],  # Get most recent trace if there's multiple.
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=SearchResolverConfig(),
+            sampling_mode="BEST_EFFORT",  # Prioritize performance to avoid timeouts - we only need 1 span.
+        )
+        full_trace_id = (
+            subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
+        )
+    else:
+        full_trace_id = trace_id
+
+    if not isinstance(full_trace_id, str):
+        logger.info(
+            "get_trace_waterfall: Trace not found from short id",
+            extra={
+                "organization_id": organization_id,
+                "trace_id": trace_id,
+            },
+        )
+        return None
+
+    # Get full trace data.
+    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
+
+    return EAPTrace(
+        trace_id=full_trace_id,
+        org_id=organization_id,
+        trace=events,
+    )
+
+
+def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
+    trace = get_trace_waterfall(trace_id, organization_id)
+    return trace.dict() if trace else {}
