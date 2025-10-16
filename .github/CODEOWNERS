@@ -572,6 +572,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/post_process.py                           @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
+/src/sentry/tasks/llm_issue_detection.py                    @getsentry/issue-detection-backend
 /static/app/components/events/contexts/                     @getsentry/issue-workflow
 /static/app/components/events/eventTags/                    @getsentry/issue-workflow
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
@@ -612,6 +613,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_llm_issue_detection.py             @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
