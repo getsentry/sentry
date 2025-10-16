@@ -21,12 +21,15 @@ export function useRemoveUrlCursorsOnSearch() {
       return;
     }
 
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        ...cleanedCursors,
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          ...cleanedCursors,
+        },
       },
-    });
+      {replace: true}
+    );
   }, [location, navigate]);
 }
