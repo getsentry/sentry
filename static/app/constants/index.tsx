@@ -590,7 +590,7 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'metric',
     titleName: t('Metrics'),
     productName: t('Metrics'),
-    uid: 31,
+    uid: 33,
     isBilledCategory: false,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
