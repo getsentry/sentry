@@ -447,21 +447,21 @@ def _assemble_preprod_artifact_size_analysis(
 
         # Re-raise to trigger further error handling if needed
         raise
+    finally:
+        time_now = timezone.now()
+        e2e_size_analysis_duration = time_now - preprod_artifact.date_added
+        metrics.distribution(
+            "preprod.size_analysis.results_e2e",
+            e2e_size_analysis_duration.total_seconds(),
+            tags={"project_id": project.id, "organization_id": org_id},
+        )
 
-    time_now = timezone.now()
-    e2e_size_analysis_duration = time_now - preprod_artifact.date_added
-    metrics.distribution(
-        "preprod.size_analysis.results_e2e",
-        e2e_size_analysis_duration.total_seconds(),
-        tags={"project_id": project.id, "organization_id": org_id},
-    )
-
-    # Always trigger status check update (success or failure)
-    create_preprod_status_check_task.apply_async(
-        kwargs={
-            "preprod_artifact_id": artifact_id,
-        }
-    )
+        # Always trigger status check update (success or failure)
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+            }
+        )
 
     # Trigger size analysis comparison if eligible
     compare_preprod_artifact_size_analysis.apply_async(
