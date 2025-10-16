@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import sentryLoader from 'sentry-images/sentry-loader.svg';
+import splashLoader from 'sentry-images/splash-loader.svg';
 
 import {space} from 'sentry/styles/space';
 import {useUser} from 'sentry/utils/useUser';
@@ -11,6 +12,16 @@ type Props = {
 
 function LoadingTriangle({children}: Props) {
   const user = useUser();
+  if (user.options.prefersChonkUI) {
+    return (
+      <LoadingTriangleWrapper data-test-id="loading-indicator">
+        <LoadingTriangleBackground>
+          <img src={splashLoader} />
+        </LoadingTriangleBackground>
+        {children && <div>{children}</div>}
+      </LoadingTriangleWrapper>
+    );
+  }
   return (
     <LoadingTriangleWrapper data-test-id="loading-indicator">
       <CircleBackground
@@ -33,6 +44,18 @@ const LoadingTriangleWrapper = styled('div')`
   flex-direction: column;
   align-items: center;
   gap: ${space(3)};
+`;
+
+const LoadingTriangleBackground = styled('div')`
+  height: 256px;
+  width: 256px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: none;
+  border: 0;
+  overflow: hidden;
+  border-radius: 0;
 `;
 
 const CircleBackground = styled('div')`
