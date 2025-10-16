@@ -4,9 +4,15 @@ from sentry.replays.lib.cache import AutoCache, BoundedLRUCache
 
 
 def _has_replays_lookup(project_id: int) -> bool:
-    project = Project.objects.get(id=project_id)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        from sentry.replays.usecases.ingest import DropEvent
+
+        raise DropEvent("Project does not exist.")
+
     assert isinstance(project, Project)
-    return project.flags.has_replays
+    return bool(project.flags.has_replays)
 
 
 def _option_lookup(project_id: int) -> tuple[bool, bool]:
