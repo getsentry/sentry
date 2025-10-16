@@ -237,8 +237,8 @@ def test_mep_to_eap_simple_selected_columns(
             [],
         ),
         pytest.param(
-            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)"],
-            [],
+            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)", "equation|"],
+            ["equation|"],
             [
                 {
                     "equation": "equation|(sum(transaction.duration) + 5) + count_miserable(user,300)",

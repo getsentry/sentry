@@ -301,6 +301,11 @@ def translate_equations(equations):
         else:
             arithmetic_equation = equation
 
+        # case where equation is empty, don't try to parse it
+        if arithmetic_equation == "":
+            translated_equations.append(equation)
+            continue
+
         # function to flatten the parsed + updated equation
         def _flatten(seq):
             for item in seq:
