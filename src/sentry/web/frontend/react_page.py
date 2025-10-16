@@ -90,10 +90,12 @@ class ReactMixin:
         react_config = get_client_config(request, org_context)
 
         user_theme = ""
+        prefers_chonk_ui = False
         if react_config.get("user", None) and react_config["user"].get("options", {}).get(
             "theme", None
         ):
             user_theme = f"theme-{react_config['user']['options']['theme']}"
+            prefers_chonk_ui = react_config["user"]["options"]["prefersChonkUI"]
 
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
@@ -109,6 +111,7 @@ class ReactMixin:
             "org_context": org_context,
             "react_config": react_config,
             "user_theme": user_theme,
+            "prefers_chonk_ui": prefers_chonk_ui,
         }
 
         # Force a new CSRF token to be generated and set in user's
