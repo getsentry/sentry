@@ -119,6 +119,8 @@ def test_internal_relays_should_receive_full_configs(
     }
     if retentions_config:
         assert safe.get_path(cfg, "config", "retentions") == retentions_config
+    else:
+        assert safe.get_path(cfg, "config", "retentions") is None
 
 
 @django_db_all
