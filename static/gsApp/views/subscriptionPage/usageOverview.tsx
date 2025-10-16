@@ -56,7 +56,6 @@ import {
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
   MILLISECONDS_IN_HOUR,
-  supportsPayg,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -336,7 +335,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             category
           );
 
-          const isPaygOnly = reserved === 0 && supportsPayg(subscription);
+          const isPaygOnly = reserved === 0 && subscription.supportsOnDemand;
           const hasAccess = activeProductTrial
             ? true
             : isPaygOnly

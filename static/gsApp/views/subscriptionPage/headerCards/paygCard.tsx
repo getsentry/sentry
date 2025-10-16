@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -48,8 +48,9 @@ function PaygCard({
     ? getTotalSpend(subscription.onDemandBudgets)
     : 0;
 
-  const [isFocused, setIsFocused] = useState(false);
+  const [isHighlighted, setIsHighlighted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const paygInput = useRef<HTMLInputElement>(null);
   const [newBudgetDollars, setNewBudgetDollars] = useState<number>(
     Math.ceil(totalBudget / 100)
   );
@@ -69,7 +70,7 @@ function PaygCard({
       trackOnDemandBudgetAnalytics(organization, paygBudget, _data, 'payg_inline_form');
       SubscriptionStore.loadData(subscription.slug);
       setIsEditing(false);
-      setIsFocused(false);
+      setIsHighlighted(false);
     },
     onError: err => {
       setError(err.message);
@@ -85,14 +86,29 @@ function PaygCard({
     );
   const hasBudgetModes = subscription.planDetails.hasOnDemandModes;
 
-  useEffect(() => {
-    if (window.location.hash === '#open-ondemand-modal') {
+  const handleEditPayg = useCallback(
+    (shouldHighlight = false) => {
       if (hasBudgetModes) {
         openOnDemandBudgetEditModal({organization, subscription, theme});
       } else {
-        setIsFocused(true);
+        if (shouldHighlight) {
+          setIsHighlighted(true);
+        }
         setIsEditing(true);
       }
+    },
+    [hasBudgetModes, organization, subscription, theme]
+  );
+
+  useEffect(() => {
+    if (paygInput.current && isEditing) {
+      paygInput.current.focus();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (window.location.hash === '#open-ondemand-modal') {
+      handleEditPayg(true);
 
       // Clear hash to prevent modal reopening or focus state on refresh
       window.history.replaceState(
@@ -101,11 +117,11 @@ function PaygCard({
         window.location.pathname + window.location.search
       );
     }
-  }, [hasBudgetModes, organization, subscription, theme]);
+  }, [handleEditPayg]);
 
   return (
     <SubscriptionHeaderCard
-      isFocused={isFocused}
+      isHighlighted={isHighlighted}
       title={
         isEditing
           ? tct('Edit [budgetTerm] limit', {
@@ -124,6 +140,7 @@ function PaygCard({
                 )}
                 <Currency>
                   <StyledInput
+                    ref={paygInput}
                     aria-label={t(
                       'Edit %s limit',
                       displayBudgetName(subscription.planDetails)
@@ -150,7 +167,7 @@ function PaygCard({
                         // reset the budget to the current total budget
                         setNewBudgetDollars(Math.ceil(totalBudget / 100));
                         setIsEditing(false);
-                        setIsFocused(false);
+                        setIsHighlighted(false);
                       }}
                     >
                       {t('Cancel')}
@@ -179,11 +196,7 @@ function PaygCard({
                 <Button
                   size="xs"
                   onClick={() => {
-                    if (hasBudgetModes) {
-                      openOnDemandBudgetEditModal({organization, subscription, theme});
-                    } else {
-                      setIsEditing(true);
-                    }
+                    handleEditPayg(false);
                   }}
                 >
                   {totalBudget > 0 ? t('Edit limit') : t('Set limit')}

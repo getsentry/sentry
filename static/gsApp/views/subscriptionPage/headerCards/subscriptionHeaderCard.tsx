@@ -5,7 +5,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 
 interface SubscriptionHeaderCardProps {
   sections: React.ReactNode[];
-  isFocused?: boolean;
+  isHighlighted?: boolean;
   isMainCard?: boolean;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
@@ -16,14 +16,14 @@ function SubscriptionHeaderCard({
   sections,
   isMainCard = false,
   subtitle,
-  isFocused = false,
+  isHighlighted = false,
 }: SubscriptionHeaderCardProps) {
   return (
     <Flex
       direction="column"
       padding="xl"
       background={isMainCard ? 'secondary' : 'primary'}
-      border={isFocused ? 'accent' : 'primary'}
+      border={isHighlighted ? 'accent' : 'primary'}
       radius="md"
       gap="lg"
     >
