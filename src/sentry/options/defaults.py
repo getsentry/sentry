@@ -2994,6 +2994,16 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Notification Options - Start
+# Options for migrating to the notification platform
+register(
+    "notifications.platform-rate.data-export",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Options - End
+
 # List of organizations with increased rate limits for organization_events API
 register(
     "api.organization_events.rate-limit-increased.orgs",
