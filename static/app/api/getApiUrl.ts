@@ -1,19 +1,10 @@
-import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
-import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
-
-type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
-
-type StripDollar<T extends string> = T extends `$${infer Name}` ? Name : T;
-
-type SplitColon<T extends string> = T extends `${infer A}:${infer B}`
-  ? StripDollar<A> | SplitColon<B>
-  : StripDollar<T>;
+import type {MaybeApiPath} from './apiDefinition';
 
 export type ExtractPathParams<TApiPath extends string> =
   TApiPath extends `${string}$${infer Param}/${infer Rest}`
-    ? SplitColon<Param> | ExtractPathParams<`/${Rest}`>
+    ? Param | ExtractPathParams<`/${Rest}`>
     : TApiPath extends `${string}$${infer Param}`
-      ? SplitColon<Param>
+      ? Param
       : never;
 
 type PathParamOptions<TApiPath extends string> =
@@ -22,13 +13,15 @@ type PathParamOptions<TApiPath extends string> =
     : {path: Record<ExtractPathParams<TApiPath>, string | number>};
 
 export type OptionalPathParams<TApiPath extends string> =
-  ExtractPathParams<TApiPath> extends never ? never[] : [PathParamOptions<TApiPath>];
+  ExtractPathParams<TApiPath> extends never
+    ? [] // eslint-disable-line @typescript-eslint/no-restricted-types
+    : [PathParamOptions<TApiPath>];
 
 const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
 type ApiUrl = string & {__apiUrl: true};
 
-export default function getApiUrl<TApiPath extends KnownApiUrls = KnownApiUrls>(
+export function getApiUrl<TApiPath extends MaybeApiPath>(
   path: TApiPath,
   ...[options]: OptionalPathParams<TApiPath>
 ): ApiUrl {
