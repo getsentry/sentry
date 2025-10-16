@@ -93,9 +93,14 @@ In application code, the changes you'll have to make may differ by the call site
 # Before
 msg = MessageBuilder(...)
 msg.send_async([user_email])
-...
 
 # After
 from sentry.notifications.platform.service import NotificationService
 
+if NotificationService.has_access(organization, "my-notification-source"):
+    target = GenericNotificationTarget(...) # from user_email
+    NotificationService(data=...).notify(targets=[target])
+else:
+    msg = MessageBuilder(...)
+    msg.send_async([user_email])
 ```
