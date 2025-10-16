@@ -66,3 +66,41 @@ To register a new provider:
 ### NotificationTemplate
 
 <!-- TODO(ecosystem): Add guidance here -->
+
+## Migrating Notifications
+
+### Setup
+
+When migrating an existing notification into the platform, we use a combination of Flagpole and Options. To access the platform, ensure the organization is opted in to the `organizations:notification-platform` flag, it acts as a gateway that must succeed in order for the individual source options to take affect.
+
+For each new notification source, we set a new option. In [`options/defaults.py`](../../../sentry/options/defaults.py), register a new option for your source in the following format:
+
+```python
+register(
+    "notifications.platform-rate.my-notification-source",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+```
+
+This will roll out the `my-notification-source` notification to 50% of the organizations with the `organizations:notification-platform`. To start it's usually best to set the default to `0.0` and issue overrides via options-automator.
+
+### Code Changes
+
+In application code, the changes you'll have to make may differ by the call site or requirements of some code path, but in general it should look something like this:
+
+```python
+# Before
+msg = MessageBuilder(...)
+msg.send_async([user_email])
+
+# After
+from sentry.notifications.platform.service import NotificationService
+
+if NotificationService.has_access(organization, "my-notification-source"):
+    target = GenericNotificationTarget(...) # from user_email
+    NotificationService(data=...).notify(targets=[target])
+else:
+    msg = MessageBuilder(...)
+    msg.send_async([user_email])
+```
