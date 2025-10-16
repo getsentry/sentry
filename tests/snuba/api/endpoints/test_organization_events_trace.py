@@ -786,13 +786,15 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_detailed_trace_with_bad_tags(self) -> None:
         """Basically test that we're actually using the event serializer's method for tags"""
         trace = uuid4().hex
+        long_tag_key = "somethinglong" * 250  # 3250 characters
+        long_tag_value = "somethinglong" * 250  # 3250 characters
         self.create_event(
             trace_id=trace,
             transaction="bad-tags",
             parent_span_id=None,
             spans=[],
             project_id=self.project.id,
-            tags=[["somethinglong" * 250, "somethinglong" * 250]],
+            tags=[[long_tag_key, long_tag_value]],
             milliseconds=3000,
             store_event_kwargs={"assert_no_errors": False},
             is_eap=True,
@@ -812,7 +814,19 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert response.status_code == 200, response.content
         root = response.data["transactions"][0]
         assert root["transaction.status"] == "ok"
-        assert {"key": None, "value": None} in root["tags"]
+
+        # Check that tags are trimmed to 200 characters, not dropped
+        trimmed_key = long_tag_key[:200]
+        trimmed_value = long_tag_value[:200]
+
+        # Find the tag in the response (may have additional fields like 'query')
+        found_tag = False
+        for tag in root["tags"]:
+            if tag["key"] == trimmed_key and tag["value"] == trimmed_value:
+                found_tag = True
+                break
+
+        assert found_tag, f"Expected tag with trimmed key/value not found. Tags: {root['tags']}"
 
     def test_bad_span_loop(self) -> None:
         """Maliciously create a loop in the span structure
