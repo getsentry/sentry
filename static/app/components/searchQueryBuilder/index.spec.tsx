@@ -1130,8 +1130,6 @@ describe('SearchQueryBuilder', () => {
       const lastInput = (await screen.findAllByTestId('query-builder-input')).at(-1);
       expect(lastInput).toHaveFocus();
 
-      await userEvent.click(getLastInput());
-
       // Should have three tokens: a, or, b
       await screen.findByRole('row', {name: /a/});
       await screen.findByRole('row', {name: /or/});
