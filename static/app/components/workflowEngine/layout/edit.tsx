@@ -53,14 +53,17 @@ const HeaderInner = styled('div')<{maxWidth?: string}>`
 const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   padding: 0;
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
   max-width: ${p => p.maxWidth};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: 0;
-    margin: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
+    margin: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
 `;
 
