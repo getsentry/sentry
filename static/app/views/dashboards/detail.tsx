@@ -35,7 +35,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -132,7 +131,6 @@ type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
-  selection: PageFilters;
   theme: Theme;
   children?: React.ReactNode;
   newWidget?: Widget;
@@ -1334,6 +1332,6 @@ function DashboardDetailWithThemeAndNavigate(props: Omit<Props, 'theme' | 'navig
   return <DashboardDetail {...props} theme={theme} navigate={navigate} />;
 }
 
-export default withPageFilters(
-  withProjects(withApi(withOrganization(DashboardDetailWithThemeAndNavigate)))
+export default withProjects(
+  withApi(withOrganization(DashboardDetailWithThemeAndNavigate))
 );
