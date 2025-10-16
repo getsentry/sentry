@@ -2958,6 +2958,16 @@ register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
 #     }
 # }
 
+# Notification Options - Start
+# Options for migrating to the notification platform
+register(
+    "notifications.platform-rate.data-export",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Options - End
+
 register(
     "feedback.filter_garbage_messages",
     type=Bool,
