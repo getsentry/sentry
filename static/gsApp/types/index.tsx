@@ -202,7 +202,9 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
-  retentions?: Partial<Record<DataCategory, {downsampled: number; standard: number}>>;
+  retentions?: Partial<
+    Record<DataCategory, {downsampled: number | null; standard: number}>
+  >;
 };
 
 type PendingChanges = {
@@ -716,6 +718,7 @@ export type BillingMetricHistory = {
   prepaid: number;
   reserved: number | null;
   sentUsageWarning: boolean;
+  // TODO(isabella): Make SoftCapType an enum
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   trueForward: boolean;
   usage: number;

@@ -109,52 +109,51 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
 
 
 @dataclass(frozen=True)
-class SecurityAlertData(NotificationData):
-    source = "security-monitoring"
+class SlowLoadMetricAlertData(NotificationData):
+    source = "slow-load-metric-alert"
     alert_type: str
     severity: str
     project_name: str
-    description: str
-    affected_users: int
     alert_url: str
     acknowledge_url: str
     escalate_url: str
+    measurement: str
+    threshold: str
+    start_time: str
+    chart_url: str
 
 
-@template_registry.register(SecurityAlertData.source)
-class SecurityAlertNotificationTemplate(NotificationTemplate[SecurityAlertData]):
+@template_registry.register(SlowLoadMetricAlertData.source)
+class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetricAlertData]):
     category = NotificationCategory.DEBUG
-    example_data = SecurityAlertData(
-        alert_type="Suspicious login pattern",
+    example_data = SlowLoadMetricAlertData(
+        alert_type="Slow Product Load",
         severity="critical",
-        project_name="my-app",
-        description="Multiple failed login attempts detected from unusual locations.",
-        affected_users=23,
-        alert_url="https://example.com/security-alert",
+        project_name="example-app",
+        measurement="5152.0 p50(measurements.lc)",
+        threshold="static",
+        start_time="2024-01-15 14:30:22 UTC",
+        chart_url="https://storage.googleapis.com/sentryio-chartcuterie-bucket/b8c05163a9474cf0ae0c6e8797e768ee.png",
         acknowledge_url="https://example.com/acknowledge",
         escalate_url="https://example.com/escalate",
+        alert_url="https://example.com/alert",
     )
 
-    def render(self, data: SecurityAlertData) -> NotificationRenderedTemplate:
+    def render(self, data: SlowLoadMetricAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=f"SECURITY ALERT: {data.alert_type} in {data.project_name}",
-            body=(
-                f"A {data.severity.upper()} security alert of type {data.alert_type} has been triggered for project {data.project_name}. "
-                f"The alert description: {data.description}. "
-                f"This security incident has affected {data.affected_users} users and requires immediate investigation and response."
+            subject=f"{data.severity.upper()}: {data.alert_type} in {data.project_name}",
+            body=(f"{data.measurement} since {data.start_time}"),
+            chart=NotificationRenderedImage(
+                url=data.chart_url,
+                alt_text="Metric alert chart",
             ),
             actions=[
                 NotificationRenderedAction(
-                    label="View Alert Details", link="https://example.com/security-alert"
-                ),
-                NotificationRenderedAction(
                     label="Acknowledge", link="https://example.com/acknowledge"
                 ),
-                NotificationRenderedAction(
-                    label="Escalate to Security Team", link="https://example.com/escalate"
-                ),
+                NotificationRenderedAction(label="Escalate", link="https://example.com/escalate"),
             ],
-            footer="This is a security alert requiring immediate attention.",
+            footer=f"Threshold: {data.threshold} | Triggered alert: {data.alert_url}",
         )
 
 

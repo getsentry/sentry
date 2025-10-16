@@ -210,7 +210,6 @@ export function MetricDetectorChart({
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
     seriesTooltip: anomalySeriesTooltip,
     markLineTooltip: anomalyMarklineTooltip,
-    intervalMs: interval * 1000,
   });
 
   // Calculate y-axis bounds to ensure all thresholds are visible

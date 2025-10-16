@@ -29,7 +29,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.eap.types import FieldsACL, SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
@@ -42,6 +42,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -497,6 +498,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             scoped_query = request.GET.get("query")
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
+            additional_queries = AdditionalQueries(
+                span=request.GET.getlist("spanQueries"),
+                log=request.GET.getlist("logQueries"),
+                metric=request.GET.getlist("metricQueries"),
+            )
 
             def get_rpc_config():
                 if scoped_dataset not in RPC_DATASETS:
@@ -514,6 +520,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
                         use_aggregate_conditions=False,
+                    )
+                elif scoped_dataset == TraceMetrics:
+                    # tracemetrics uses aggregate conditions
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
@@ -541,6 +553,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
                         page_token=page_token,
+                        additional_queries=additional_queries,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
@@ -560,6 +573,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         referrer=referrer,
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
+                        additional_queries=additional_queries,
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:
@@ -578,7 +592,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         paginator, cursor_cls = paginator_factory(dataset)
 
-        max_per_page = 9999 if dataset == OurLogs else None
+        max_per_page = 9999 if dataset in (OurLogs, TraceMetrics) else None
 
         def _handle_results(results):
             # Apply error upsampling for regular Events API

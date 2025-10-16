@@ -27,7 +27,6 @@ export function DebugNotificationsPreview({
 }
 
 const PreviewDisclosure = styled(Disclosure)`
-  flex: 0;
   pre,
   code {
     white-space: pre-wrap;

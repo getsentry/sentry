@@ -96,12 +96,16 @@ export enum SpanFields {
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
+  GEN_AI_COST_INPUT_TOKENS = 'gen_ai.cost.input_tokens',
+  GEN_AI_COST_OUTPUT_TOKENS = 'gen_ai.cost.output_tokens',
+  GEN_AI_COST_TOTAL_TOKENS = 'gen_ai.cost.total_tokens',
   GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens',
   GEN_AI_USAGE_INPUT_TOKENS_CACHED = 'gen_ai.usage.input_tokens.cached',
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS_REASONING = 'gen_ai.usage.output_tokens.reasoning',
   GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
+  GEN_AI_OPERATION_TYPE = 'gen_ai.operation.type',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -127,6 +131,8 @@ export enum SpanFields {
   APP_START_WARM = 'measurements.app_start_warm',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
   APP_START_TYPE = 'app_start_type',
+  TTID = 'sentry.ttid',
+  TTFD = 'sentry.ttfd',
 
   // Messaging fields
   MESSAGING_MESSAGE_ID = 'messaging.message.id',
@@ -226,7 +232,9 @@ export type SpanNumberFields =
   | SpanFields.PRECISE_START_TS
   | SpanFields.PRECISE_FINISH_TS
   | SpanFields.THREAD_ID
-  | SpanFields.PROJECT_ID;
+  | SpanFields.PROJECT_ID
+  | SpanFields.TTID
+  | SpanFields.TTFD;
 
 // TODO: Enforce that these fields all come from SpanFields
 export type SpanStringFields =

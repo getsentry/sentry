@@ -27,7 +27,27 @@ describe('BillingInfoCard', () => {
     render(<BillingInfoCard organization={organization} subscription={subscription} />);
 
     expect(screen.getByText('Billing information')).toBeInTheDocument();
-    await screen.findByText('Test company');
+    await screen.findByText('Test company, Display Address');
+    expect(screen.getByText('Billing email: test@gmail.com')).toBeInTheDocument();
+    expect(screen.getByText('Card ending in 4242')).toBeInTheDocument();
+  });
+
+  it('renders with some pre-existing info', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+      body: BillingDetailsFixture({billingEmail: null, companyName: null}),
+    });
+    const subscription = SubscriptionFixture({organization});
+    render(<BillingInfoCard organization={organization} subscription={subscription} />);
+
+    expect(screen.getByText('Billing information')).toBeInTheDocument();
+    await screen.findByText('Display Address');
+    expect(screen.queryByText('Test company')).not.toBeInTheDocument();
+    expect(screen.queryByText('Billing email: test@gmail.com')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('No billing email or tax number on file')
+    ).toBeInTheDocument();
     expect(screen.getByText('Card ending in 4242')).toBeInTheDocument();
   });
 
@@ -38,30 +58,5 @@ describe('BillingInfoCard', () => {
     expect(screen.getByText('Billing information')).toBeInTheDocument();
     await screen.findByText('No billing details on file');
     expect(screen.getByText('No payment method on file')).toBeInTheDocument();
-  });
-
-  it('does not render for self-serve partner customers', () => {
-    const subscription = SubscriptionFixture({organization, isSelfServePartner: true});
-    render(<BillingInfoCard organization={organization} subscription={subscription} />);
-
-    expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
-  });
-
-  it('does not render for managed customers', () => {
-    const subscription = SubscriptionFixture({organization, canSelfServe: false});
-    render(<BillingInfoCard organization={organization} subscription={subscription} />);
-
-    expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
-  });
-
-  it('renders for managed customers with legacy invoiced OD', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: false,
-      onDemandInvoiced: true,
-    });
-    render(<BillingInfoCard organization={organization} subscription={subscription} />);
-
-    expect(screen.getByText('Billing information')).toBeInTheDocument();
   });
 });

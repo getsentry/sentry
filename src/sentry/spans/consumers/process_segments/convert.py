@@ -3,7 +3,7 @@ from typing import Any, cast
 import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import _SpanLinkObject as SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
@@ -69,9 +69,8 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             attributes[eap_name] = attributes.pop(convention_name)
 
     try:
-        # TODO: Move this to Relay
         attributes["sentry.duration_ms"] = AnyValue(
-            int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))
+            int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))  # type: ignore[operator]  # checked in process-spans
         )
     except Exception:
         sentry_sdk.capture_exception()
@@ -81,7 +80,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     if links := span.get("links"):
         try:
-            sanitized_links = [_sanitize_span_link(link) for link in links]
+            sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
             attributes["sentry.links"] = _anyvalue(sanitized_links)
         except Exception:
             sentry_sdk.capture_exception()
@@ -90,10 +89,10 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
-        trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(16, "little"),
+        trace_id=span["trace_id"],  # type: ignore[arg-type]  # checked in process-spans
+        item_id=int(span["span_id"], 16).to_bytes(16, "little"),  # type: ignore[arg-type]  # checked in process-spans
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-        timestamp=_timestamp(span["start_timestamp"]),
+        timestamp=_timestamp(span["start_timestamp"]),  # type: ignore[arg-type]  # checked in process-spans
         attributes=attributes,
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
@@ -136,10 +135,11 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     attributes, so span links are stored as a JSON-encoded string. In order to
     prevent unbounded storage, we only support well-known attributes.
     """
+
     sanitized_link = cast(SpanLink, {**link})
 
     allowed_attributes = {}
-    attributes = link.get("attributes", {}) or {}
+    attributes = link.get("attributes") or {}
 
     # In the future, we want Relay to drop unsupported attributes, so there
     # might be an intermediary state where there is a pre-existing dropped

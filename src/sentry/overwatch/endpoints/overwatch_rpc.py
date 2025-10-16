@@ -161,7 +161,12 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
         return Response(
             data={
                 "organizations": [
-                    {"org_id": org.id, "has_consent": _can_use_prevent_ai_features(org)}
+                    {
+                        "org_id": org.id,
+                        "org_slug": org.slug,
+                        "org_name": org.name,
+                        "has_consent": _can_use_prevent_ai_features(org),
+                    }
                     for org in organizations
                 ]
             }

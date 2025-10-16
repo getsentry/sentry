@@ -37,6 +37,7 @@ from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import (
     can_expose_attribute,
@@ -107,6 +108,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
     feature_flags = [
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",
+        "organizations:tracemetrics-enabled",
     ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
@@ -139,23 +141,36 @@ def is_valid_item_type(item_type: str) -> bool:
 
 
 def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitions:
-    return SPAN_DEFINITIONS if item_type == SupportedTraceItemType.SPANS else OURLOG_DEFINITIONS
+    if item_type == SupportedTraceItemType.SPANS:
+        return SPAN_DEFINITIONS
+    elif item_type == SupportedTraceItemType.LOGS:
+        return OURLOG_DEFINITIONS
+    elif item_type == SupportedTraceItemType.TRACEMETRICS:
+        return TRACE_METRICS_DEFINITIONS
+
+    raise ValueError(f"Invalid item type: {item_type}")
 
 
 def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
-    return (
-        Referrer.API_SPANS_TAG_KEYS_RPC
-        if item_type == SupportedTraceItemType.SPANS.value
-        else Referrer.API_LOGS_TAG_KEYS_RPC
-    )
+    if item_type == SupportedTraceItemType.SPANS.value:
+        return Referrer.API_SPANS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.LOGS.value:
+        return Referrer.API_LOGS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
+        return Referrer.API_TRACE_METRICS_TAG_KEYS_RPC
+    else:
+        raise ValueError(f"Invalid item type: {item_type}")
 
 
 def resolve_attribute_values_referrer(item_type: str) -> Referrer:
-    return (
-        Referrer.API_SPANS_TAG_VALUES_RPC
-        if item_type == SupportedTraceItemType.SPANS.value
-        else Referrer.API_LOGS_TAG_VALUES_RPC
-    )
+    if item_type == SupportedTraceItemType.SPANS.value:
+        return Referrer.API_SPANS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.LOGS.value:
+        return Referrer.API_LOGS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
+        return Referrer.API_TRACE_METRICS_TAG_VALUES_RPC
+    else:
+        raise ValueError(f"Invalid item type: {item_type}")
 
 
 def as_attribute_key(
@@ -345,11 +360,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         max_attribute_values = options.get("explore.trace-items.values.max")
 
-        definitions = (
-            SPAN_DEFINITIONS
-            if item_type == SupportedTraceItemType.SPANS.value
-            else OURLOG_DEFINITIONS
-        )
+        definitions = get_column_definitions(SupportedTraceItemType(item_type))
 
         def data_fn(offset: int, limit: int):
             executor = TraceItemAttributeValuesAutocompletionExecutor(

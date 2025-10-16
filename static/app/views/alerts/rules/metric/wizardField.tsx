@@ -180,15 +180,19 @@ export default function WizardField({
           },
         ]
       : []),
-    {
-      label: t('CUSTOM'),
-      options: [
-        {
-          label: AlertWizardAlertNames.custom_transactions,
-          value: 'custom_transactions',
-        },
-      ],
-    },
+    ...((deprecateTransactionAlerts(organization)
+      ? []
+      : [
+          {
+            label: t('CUSTOM'),
+            options: [
+              {
+                label: AlertWizardAlertNames.custom_transactions,
+                value: 'custom_transactions',
+              },
+            ],
+          },
+        ]) as GroupedMenuOption[]),
   ];
 
   return (

@@ -166,7 +166,7 @@ def test_convert_span_to_item() -> None:
 
 def test_convert_falsy_fields() -> None:
     message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
-    message["attributes"]["sentry.is_segment"] = {"type": "boolean", "value": False}
+    message["attributes"]["sentry.is_segment"] = {"type": "boolean", "value": False}  # type: ignore[index]
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
