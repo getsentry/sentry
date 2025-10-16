@@ -6,13 +6,15 @@ logger = logging.getLogger(__name__)
 
 
 # Build a mapping of (metrics_artifact_type, identifier) -> size metric for quick lookup of matching metrics from head or base size metrics
-def build_size_metrics_map(metrics: list[PreprodArtifactSizeMetrics]):
+def build_size_metrics_map(
+    metrics: list[PreprodArtifactSizeMetrics],
+) -> dict[tuple[int | None, str | None], PreprodArtifactSizeMetrics]:
     return {(metric.metrics_artifact_type, metric.identifier): metric for metric in metrics}
 
 
 def can_compare_size_metrics(
     head_metrics: list[PreprodArtifactSizeMetrics], base_metric: list[PreprodArtifactSizeMetrics]
-):
+) -> bool:
     # Check that both lists have the same length
     if len(head_metrics) != len(base_metric):
         # TODO: Add ability to compare size metrics with different lengths

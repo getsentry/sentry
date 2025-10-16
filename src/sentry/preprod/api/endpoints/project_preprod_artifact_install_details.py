@@ -12,6 +12,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.project_preprod_build_details_models import (
@@ -30,14 +31,20 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> HttpResponseBase:
         try:
             analytics.record(
                 PreprodArtifactApiInstallDetailsEvent(
                     organization_id=project.organization_id,
                     project_id=project.id,
                     user_id=request.user.id,
-                    artifact_id=head_artifact_id,
+                    artifact_id=str(head_artifact_id),
                 )
             )
         except Exception as e:

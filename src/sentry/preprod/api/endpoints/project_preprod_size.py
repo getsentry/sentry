@@ -11,13 +11,14 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.launchpad import PutSize
 from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
 )
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,12 @@ class ProjectPreprodSizeWithIdentifierEndpoint(PreprodArtifactEndpoint):
     permission_classes = (LaunchpadRpcPermission,)
 
     def put(
-        self, request: Request, project, head_artifact_id, identifier, head_artifact
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        identifier: str,
+        head_artifact: PreprodArtifact,
     ) -> Response:
         return do_put(request, project, identifier, head_artifact)
 
@@ -64,12 +70,20 @@ class ProjectPreprodSizeEndpoint(PreprodArtifactEndpoint):
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
     permission_classes = (LaunchpadRpcPermission,)
 
-    def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
+    def put(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         identifier = None
         return do_put(request, project, identifier, head_artifact)
 
 
-def do_put(request: Request, project, identifier, head_artifact) -> Response:
+def do_put(
+    request: Request, project: Project, identifier: str | None, head_artifact: PreprodArtifact
+) -> Response:
     put: PutSize = parse_request_with_pydantic(request, cast(Any, PutSize))
 
     metrics, _ = PreprodArtifactSizeMetrics.objects.get_or_create(

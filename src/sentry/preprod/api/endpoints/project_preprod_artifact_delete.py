@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiDeleteEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
@@ -23,7 +24,13 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def delete(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
+    def delete(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         """Delete a preprod artifact and all associated data"""
 
         if not features.has(

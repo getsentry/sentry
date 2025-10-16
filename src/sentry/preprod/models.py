@@ -36,7 +36,7 @@ class PreprodArtifact(DefaultFieldsModel):
         """The artifact failed to upload or process. Read the error_code and error_message for more details."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UPLOADING, "uploading"),
                 (cls.UPLOADED, "uploaded"),
@@ -53,7 +53,7 @@ class PreprodArtifact(DefaultFieldsModel):
         """Android APK."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.XCARCHIVE, "xcarchive"),
                 (cls.AAB, "aab"),
@@ -71,7 +71,7 @@ class PreprodArtifact(DefaultFieldsModel):
         """The artifact processing failed."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UNKNOWN, "unknown"),
                 (cls.UPLOAD_TIMEOUT, "upload_timeout"),
@@ -300,7 +300,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """An embedded Android dynamic feature artifact."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.MAIN_ARTIFACT, "main_artifact"),
                 (cls.WATCH_ARTIFACT, "watch_artifact"),
@@ -318,7 +318,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """Size analysis failed. See error_code and error_message for details."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.PENDING, "pending"),
                 (cls.PROCESSING, "processing"),
@@ -337,7 +337,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """An error occurred during size analysis processing."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UNKNOWN, "unknown"),
                 (cls.TIMEOUT, "timeout"),
@@ -454,7 +454,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         """The comparison failed. See error_code and error_message for details."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.PENDING, "pending"),
                 (cls.PROCESSING, "processing"),
@@ -475,7 +475,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         """The size analysis comparison timed out."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UNKNOWN, "unknown"),
                 (cls.TIMEOUT, "timeout"),

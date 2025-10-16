@@ -1,5 +1,6 @@
 import logging
 from enum import Enum
+from typing import Any
 
 import jsonschema
 import orjson
@@ -14,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleGenericEvent
 from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
@@ -38,7 +40,9 @@ class AssembleType(Enum):
     INSTALLABLE_APP = "installable_app"
 
 
-def validate_preprod_artifact_generic_schema(request_body: bytes) -> tuple[dict, str | None]:
+def validate_preprod_artifact_generic_schema(
+    request_body: bytes,
+) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact related generic assembly requests.
 
@@ -92,7 +96,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
     permission_classes = (LaunchpadRpcPermission,)
 
-    def post(self, request: Request, project, head_artifact_id) -> Response:
+    def post(self, request: Request, project: Project, head_artifact_id: int) -> Response:
         """
         Assembles a generic file for a preprod artifact and stores it in the database.
         """
@@ -123,7 +127,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
 
             assemble_type = data.get("assemble_type")
 
-            def update_assemble_status(task: str):
+            def update_assemble_status(task: str) -> Response | None:
                 # Check current assembly status
                 state, detail = get_assemble_status(task, project.id, checksum)
                 if state is not None:
@@ -141,6 +145,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                     checksum,
                     ChunkFileState.CREATED,
                 )
+                return None
 
             if assemble_type == AssembleType.SIZE_ANALYSIS.value:
                 response = update_assemble_status(AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS)

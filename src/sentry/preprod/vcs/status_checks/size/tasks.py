@@ -270,7 +270,7 @@ class _StatusCheckProvider(ABC):
         self.organization_id = organization_id
         self.integration_id = integration_id
 
-    def _create_scm_interaction_event(self):
+    def _create_scm_interaction_event(self) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.CREATE_STATUS_CHECK,
             provider_key=self.provider_key,

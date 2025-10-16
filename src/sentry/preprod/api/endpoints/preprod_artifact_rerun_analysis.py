@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiRerunAnalysisEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import (
@@ -38,7 +39,13 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
+    def post(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         """
         User facing endpoint to rerun analysis for a specific preprod artifact.
         """
@@ -48,7 +55,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                artifact_id=head_artifact_id,
+                artifact_id=str(head_artifact_id),
             )
         )
 
@@ -89,7 +96,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         )
 
         return success_response(
-            artifact_id=head_artifact_id,
+            artifact_id=str(head_artifact_id),
             state=head_artifact.state,
         )
 

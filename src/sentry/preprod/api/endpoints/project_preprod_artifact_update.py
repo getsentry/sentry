@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Any
 
 import jsonschema
 import orjson
@@ -10,6 +11,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -23,7 +25,9 @@ from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_ch
 logger = logging.getLogger(__name__)
 
 
-def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
+def validate_preprod_artifact_update_schema(
+    request_body: bytes,
+) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact update requests.
 
@@ -94,7 +98,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
 
 
 def find_or_create_release(
-    project, package: str, version: str, build_number: int | None = None
+    project: Project, package: str, version: str, build_number: int | None = None
 ) -> Release | None:
     """
     Find or create a release based on package, version, and project.
@@ -180,7 +184,13 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
     permission_classes = (LaunchpadRpcPermission,)
 
-    def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
+    def put(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         """
         Update a preprod artifact with preprocessed data
         ```````````````````````````````````````````````

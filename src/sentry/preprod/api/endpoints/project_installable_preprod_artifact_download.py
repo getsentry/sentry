@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
@@ -22,7 +23,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
     authentication_classes = ()  # No authentication required
     permission_classes = ()
 
-    def get(self, request: Request, project, url_path) -> HttpResponseBase:
+    def get(self, request: Request, project: Project, url_path: str) -> HttpResponseBase:
         """
         Download an installable preprod artifact or its plist, if not expired.
         """

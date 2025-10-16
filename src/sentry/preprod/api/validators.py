@@ -1,9 +1,11 @@
+from typing import Any
+
 from rest_framework import serializers
 
 from sentry.preprod.models import PreprodArtifact
 
 
-class PreprodListBuildsValidator(serializers.Serializer):
+class PreprodListBuildsValidator(serializers.Serializer[Any]):
     """Validator for preprod list builds endpoint parameters."""
 
     app_id = serializers.CharField(required=False, help_text="Filter by app identifier")
@@ -39,35 +41,40 @@ class PreprodListBuildsValidator(serializers.Serializer):
     )
     cursor = serializers.CharField(required=False, help_text="Cursor for pagination")
 
-    def validate_state(self, value):
-        """Convert state string to integer if needed."""
+    def validate_state(self, value: str | None) -> int | None:
+        """Convert state string to integer enum value."""
         if value is None:
-            return value
+            return None
 
+        # Get valid integer values and string names
+        choices = PreprodArtifact.ArtifactState.as_choices()
+        valid_int_values = [choice[0] for choice in choices]
+        valid_str_names = [choice[1] for choice in choices]
+
+        # Try to convert to int (handles numeric strings like "0", "1", etc.)
         try:
             state_int = int(value)
-            valid_state_values = [
-                choice[0] for choice in PreprodArtifact.ArtifactState.as_choices()
-            ]
-            if state_int in valid_state_values:
+            if state_int in valid_int_values:
                 return state_int
         except (ValueError, TypeError):
             pass
 
-        # If it's already a valid choice, return as-is
-        valid_state_values = [choice[0] for choice in PreprodArtifact.ArtifactState.as_choices()]
-        if value in valid_state_values:
-            return value
+        # Check if it's a valid state name (like "uploading", "uploaded", etc.)
+        try:
+            index = valid_str_names.index(value)
+            return valid_int_values[index]
+        except ValueError:
+            pass
 
         raise serializers.ValidationError(f"Invalid state: {value}")
 
-    def validate_query(self, value):
+    def validate_query(self, value: str | None) -> str | None:
         """Validate search query length."""
         if value and len(value.strip()) > 100:
             raise serializers.ValidationError("Search term too long")
         return value.strip() if value else value
 
-    def validate_platform(self, value):
+    def validate_platform(self, value: str | None) -> str | None:
         """Normalize platform value."""
         if value:
             return value.lower()

@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from django.http.response import HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
@@ -10,8 +12,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.preprod.models import PreprodArtifact
 from sentry.replays.lib.http import MalformedRangeHeader, UnsatisfiableRange, parse_range_header
 
 
@@ -47,7 +51,7 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
     )
     permission_classes = (LaunchpadServiceOrStaffPermission,)
 
-    def _get_file_object(self, head_artifact):
+    def _get_file_object(self, head_artifact: PreprodArtifact) -> File:
         if head_artifact.file_id is None:
             raise ResourceDoesNotExist
 
@@ -56,10 +60,16 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         except File.DoesNotExist:
             raise ResourceDoesNotExist
 
-    def _get_filename(self, head_artifact):
+    def _get_filename(self, head_artifact: PreprodArtifact) -> str:
         return f"preprod_artifact_{head_artifact.id}.zip"
 
-    def head(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
+    def head(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> HttpResponseBase:
         file_obj = self._get_file_object(head_artifact)
         filename = self._get_filename(head_artifact)
         file_size = file_obj.size
@@ -75,7 +85,13 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
 
         return response
 
-    def get(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> HttpResponseBase:
         """
         Download a preprod artifact file
         ```````````````````````````````
@@ -138,7 +154,7 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
             except (ValueError, IndexError):
                 return HttpResponse(status=400)
 
-        def file_iterator():
+        def file_iterator() -> Iterator[bytes]:
             with file_obj.getfile() as fp:
                 while True:
                     chunk = fp.read(4096)

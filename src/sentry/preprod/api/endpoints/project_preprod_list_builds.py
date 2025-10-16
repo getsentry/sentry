@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.db.models import Q
 from rest_framework.request import Request
@@ -10,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
@@ -28,7 +30,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List preprod builds for a project
         ````````````````````````````````````````````````````
@@ -138,7 +140,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         queryset = queryset.order_by("-date_added")
 
-        def transform_results(results):
+        def transform_results(results: list[PreprodArtifact]) -> dict[str, Any]:
             build_details_list = []
             for artifact in results:
                 try:

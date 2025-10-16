@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -158,7 +159,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         client: GitHubApiClient,
         repo_name: str,
         pr_number: str,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Fetch general PR comments from GitHub.
 
@@ -185,7 +186,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         client: GitHubApiClient,
         repo_name: str,
         pr_number: str,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Fetch PR review comments from GitHub.
 
