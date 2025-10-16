@@ -9,6 +9,7 @@ from sentry.replays.testutils import (
     mock_expected_response,
     mock_replay,
     mock_replay_click,
+    mock_replay_tap,
     mock_replay_viewed,
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
@@ -1303,6 +1304,52 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
+
+    def test_get_replays_filter_taps(self) -> None:
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        self.store_replays(
+            mock_replay_tap(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                message="TappedSignIn",
+                view_class="UIButton",
+                view_id="btn_signin",
+            )
+        )
+        self.store_replays(
+            mock_replay_tap(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                message="TappedCancel",
+                view_class="UIButtonSecondary",
+                view_id="btn_cancel",
+            )
+        )
+
+        with self.feature(self.features):
+            queries = [
+                "tap.message:TappedSignIn",
+                "tap.message:TappedCancel",
+                "tap.view_class:UIButton",
+                "tap.view_class:UIButtonSecondary",
+                "tap.view_id:btn_signin",
+                "tap.view_id:btn_cancel",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
 
     def test_get_replays_click_fields(self) -> None:
         project = self.create_project(teams=[self.team])
