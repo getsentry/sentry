@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
@@ -132,6 +133,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
       <Layout.HeaderActions>
         <Flex align="center" gap="sm" flexShrink={0}>
+          <FeedbackWidgetButton
+            optionOverrides={{
+              tags: {
+                'feedback.source': 'preprod.buildDetails',
+              },
+            }}
+          />
           <Link
             to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
           >

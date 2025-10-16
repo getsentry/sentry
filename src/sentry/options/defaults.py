@@ -1118,6 +1118,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Controls whether token count metrics are collected for stacktraces sent to Seer
+register(
+    "seer.similarity.token_count_metrics_enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL,
+)
+
 # seer nearest neighbour endpoint timeout
 register(
     "embeddings-grouping.seer.nearest-neighbour-timeout",
@@ -3539,4 +3547,20 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswich for LLM issue detection
+register(
+    "issue-detection.llm-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with LLM issue detection enabled
+register(
+    "issue-detection.llm-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

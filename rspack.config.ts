@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout from '@r4ai/remark-callout';
+import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -318,7 +318,22 @@ const appConfig: Configuration = {
                 remarkFrontmatter,
                 remarkMdxFrontmatter,
                 remarkGfm,
-                remarkCallout,
+                [
+                  remarkCallout,
+                  {
+                    root: (callout: Callout) => {
+                      return {
+                        tagName: 'Callout',
+                        properties: {
+                          title: callout.title,
+                          type: callout.type.toLowerCase(),
+                          isFoldable: callout.isFoldable ?? false,
+                          defaultFolded: callout.defaultFolded ?? false,
+                        },
+                      };
+                    },
+                  },
+                ],
               ],
               rehypePlugins: [
                 [

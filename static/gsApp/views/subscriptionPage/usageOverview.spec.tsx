@@ -13,7 +13,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {GIGABYTE} from 'getsentry/constants';
+import {GIGABYTE, UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
@@ -49,10 +49,8 @@ describe('UsageOverview', () => {
       />
     );
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Current usage'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'Reserved usage'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', {name: 'Reserved spend'})
     ).toBeInTheDocument();
@@ -76,10 +74,8 @@ describe('UsageOverview', () => {
       />
     );
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Current usage'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'Reserved usage'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
     expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
     expect(screen.queryByText('Pay-as-you-go spend')).not.toBeInTheDocument();
     expect(
@@ -120,12 +116,18 @@ describe('UsageOverview', () => {
     subscription.categories.attachments = {
       ...subscription.categories.attachments!,
       reserved: 25, // 25 GB
+      prepaid: 25, // 25 GB
       free: 0,
       usage: GIGABYTE / 2,
     };
     subscription.categories.spans = {
       ...subscription.categories.spans!,
       reserved: 20_000_000,
+    };
+    subscription.categories.replays = {
+      ...subscription.categories.replays!,
+      reserved: UNLIMITED_RESERVED,
+      usage: 500_000,
     };
 
     render(
@@ -145,21 +147,24 @@ describe('UsageOverview', () => {
     expect(screen.queryByText('Trial available')).not.toBeInTheDocument();
 
     // Replays product trial active
-    expect(screen.getByText('20 days left')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20 days left'})).toBeInTheDocument();
 
     // Errors usage and gifted units
-    expect(screen.getByText('6,000 / 51,000')).toBeInTheDocument();
-    expect(screen.getByText('$10.00')).toBeInTheDocument();
-    expect(screen.getByText('12%')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '6,000'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '$10.00'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '12% of 51,000'})).toBeInTheDocument();
 
     // Attachments usage should be in the correct unit + above platform volume
-    expect(screen.getByText('500 MB / 25 GB')).toBeInTheDocument();
-    expect(screen.getByText('50%')).toBeInTheDocument();
-    expect(screen.getByText('$6.00')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '500 MB'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '2% of 25 GB'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '$6.00'})).toBeInTheDocument();
 
     // Reserved spans above platform volume
-    expect(screen.getByText('0 / 20,000,000')).toBeInTheDocument();
-    expect(screen.getByText('$32.00')).toBeInTheDocument();
+    expect(screen.getAllByRole('cell', {name: '0'}).length).toBeGreaterThan(0);
+    expect(screen.getByRole('cell', {name: '$32.00'})).toBeInTheDocument();
+
+    // Unlimited usage for Replays
+    expect(screen.getAllByRole('cell', {name: UNLIMITED})).toHaveLength(2);
   });
 
   it('renders table based on add-on state', () => {
@@ -186,6 +191,40 @@ describe('UsageOverview', () => {
     // We test it this way to ensure we don't show the cell with the proper display name or the raw DataCategory
     expect(screen.queryByRole('cell', {name: /Prevent*Users/})).not.toBeInTheDocument();
     expect(screen.queryByRole('cell', {name: /Prevent*Reviews/})).not.toBeInTheDocument();
+  });
+
+  it('renders add-on sub-categories if unlimited', () => {
+    const sub = SubscriptionFixture({organization});
+    sub.categories.seerAutofix = {
+      ...sub.categories.seerAutofix!,
+      reserved: UNLIMITED_RESERVED,
+    };
+
+    render(
+      <UsageOverview
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+
+    // issue fixes is unlimited
+    expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getAllByRole('cell', {name: UNLIMITED})).toHaveLength(2);
+    // issue scans is 0
+    expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
+    expect(screen.getAllByRole('cell', {name: '0'}).length).toBeGreaterThan(0);
+
+    // add-on is not rendered since at least one of its sub-categories is unlimited
+    expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Expand Seer details'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Collapse Seer details'})
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
   });
 
   it('can open drawer for data categories but not add ons', async () => {
@@ -255,6 +294,44 @@ describe('UsageOverview', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('complementary', {name: 'Usage for Errors'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders PAYG tags only if PAYG is supported', () => {
+    const sub = SubscriptionFixture({
+      plan: 'am3_f',
+      organization,
+      supportsOnDemand: true,
+    });
+
+    render(
+      <UsageOverview
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(
+      screen.getAllByRole('cell', {name: 'Pay-as-you-go only'}).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('does not render PAYG tags if PAYG is not supported', () => {
+    const sub = SubscriptionFixture({
+      plan: 'am3_f',
+      organization,
+      supportsOnDemand: false,
+    });
+
+    render(
+      <UsageOverview
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(
+      screen.queryByRole('cell', {name: 'Pay-as-you-go only'})
     ).not.toBeInTheDocument();
   });
 });
