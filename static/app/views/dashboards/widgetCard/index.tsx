@@ -304,8 +304,11 @@ function WidgetCard(props: Props) {
   const conflictingFilterKeys = useMemo(() => {
     const widgetFilterKeys = widget.queries.flatMap(query => {
       const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      if (!parseResult) {
+        return [];
+      }
       return parseResult
-        ?.filter(token => token.type === Token.FILTER)
+        .filter(token => token.type === Token.FILTER)
         .map(token => token.key.text);
     });
     const globalFilterKeys =
