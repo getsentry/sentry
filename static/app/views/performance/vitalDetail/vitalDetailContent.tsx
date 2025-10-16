@@ -267,7 +267,7 @@ export default function VitalDetailContent(props: Props) {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
           <SupportedBrowsers>
             {Object.values(Browser).map(browser => (

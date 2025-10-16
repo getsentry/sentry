@@ -145,45 +145,40 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
 interface MainProps extends React.ComponentProps<typeof MainSection> {
   children: React.ReactNode;
   /**
-   * Set fullWidth to true to the layout does not have a side column.
-   * Defaults to false.
+   * Set the width of the main content.
+   * - 'twothirds': The main content will span the left two-thirds of the Body. Use this for layouts with a side column.
+   * - 'full': The main content will span the width of the container. Use when the layout does not have a side column.
+   * - 'full-constrained': The main content will span the width of the container and wrapped in a 1440px wide container.
+   * Defaults to 'twothirds'.
    */
-  fullWidth?: boolean;
-  /**
-   * By default, the main content will span the width of the container.
-   * If set to 'constrained', the content will be wrapped in a 1440px wide container.
-   */
-  maxWidth?: 'constrained' | 'none';
+  width?: 'twothirds' | 'full' | 'full-constrained';
 }
 
 /**
  * Containers for left column of the 66/33 layout.
  */
-export function Main({
-  children,
-  fullWidth = false,
-  maxWidth = 'none',
-  ...props
-}: MainProps) {
-  return (
-    <MainSection fullWidth={fullWidth} {...props}>
-      {/**
-       * We need the extra DOM element here because Main is a part of a grid layout.
-       * If we apply the max width directly the right end of the page background will be missing
-       */}
-      {maxWidth === 'constrained' ? (
+export function Main({children, width = 'twothirds', ...props}: MainProps) {
+  // We need the extra DOM element when the width is constrained because Main is a part of a grid layout.
+  // If we apply the max width directly the right end of the page background will be missing
+  if (width === 'full-constrained') {
+    return (
+      <MainSection width={width} {...props}>
         <MaxWidthContainer>{children}</MaxWidthContainer>
-      ) : (
-        children
-      )}
+      </MainSection>
+    );
+  }
+
+  return (
+    <MainSection width={width} {...props}>
+      {children}
     </MainSection>
   );
 }
 
 const MainSection = styled('section')<{
-  fullWidth?: boolean;
+  width?: 'twothirds' | 'full' | 'full-constrained';
 }>`
-  grid-column: ${p => (p.fullWidth ? '1/3' : '1/2')};
+  grid-column: ${p => (p.width === 'twothirds' ? '1/2' : '1/3')};
   max-width: 100%;
 `;
 

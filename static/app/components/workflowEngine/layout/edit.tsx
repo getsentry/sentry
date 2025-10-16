@@ -92,7 +92,7 @@ function HeaderFields({children}: RequiredChildren) {
 function Body({children}: RequiredChildren) {
   return (
     <StyledBody>
-      <Layout.Main fullWidth>{children}</Layout.Main>
+      <Layout.Main width="full">{children}</Layout.Main>
     </StyledBody>
   );
 }

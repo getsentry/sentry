@@ -117,7 +117,7 @@ function ReplaysContentWrapper({
 
   if (!data) {
     return isFetching ? (
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <LoadingIndicator />
       </Layout.Main>
     ) : (
@@ -174,7 +174,7 @@ function ReplaysContent({
   const {allMobileProj} = useAllMobileProj({});
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <ReplayTable
         columns={[
           ReplaySessionColumn,
