@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -56,13 +57,40 @@ export function SamplesTab({metricName}: SamplesTabProps) {
   const location = useLocation();
   const {selection} = usePageFilters();
 
-  const {result, eventView, fields} = useMetricSamplesTable({
+  const spanQueries = useMemo(() => [new MutableSearch('has:span.description')], []);
+  const logQueries = useMemo(() => [new MutableSearch('has:message')], []);
+
+  const options = {
     enabled: Boolean(metricName),
     limit: RESULT_LIMIT,
     metricName,
     fields: ['timestamp', 'value', 'trace'],
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
+  };
+
+  const {
+    result: crossQueryResult,
+    eventView: crossQueryEventView,
+    fields: crossQueryFields,
+  } = useMetricSamplesTable({
+    ...options,
+    spanQueries,
+    logQueries,
   });
+
+  const {
+    result: anyResult,
+    eventView: anyEventView,
+    fields: anyFields,
+  } = useMetricSamplesTable({
+    ...options,
+  });
+
+  const shouldUseCrossQuery = crossQueryResult.data?.length && !crossQueryResult.isError;
+
+  const result = shouldUseCrossQuery ? crossQueryResult : anyResult;
+  const eventView = shouldUseCrossQuery ? crossQueryEventView : anyEventView;
+  const fields = shouldUseCrossQuery ? crossQueryFields : anyFields;
 
   // Extract trace IDs from the result
   const traceIds = useMemo(() => {
