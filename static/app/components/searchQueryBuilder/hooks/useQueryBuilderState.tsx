@@ -878,9 +878,8 @@ export function useQueryBuilderState({
           });
 
           if (
-            replaceRawSearchKeys &&
-            replaceRawSearchKeys?.length === 0 &&
-            !hasWildcardOperators
+            !hasWildcardOperators ||
+            (replaceRawSearchKeys && replaceRawSearchKeys.length === 0)
           ) {
             return newState;
           }
