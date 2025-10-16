@@ -21,7 +21,7 @@ import {
   type OnDemandBudgets,
   type Subscription,
 } from 'getsentry/types';
-import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {
@@ -86,10 +86,7 @@ function PaygCard({
   const hasBudgetModes = subscription.planDetails.hasOnDemandModes;
 
   useEffect(() => {
-    if (
-      window.location.hash === '#open-ondemand-modal' &&
-      hasBillingAccess(organization)
-    ) {
+    if (window.location.hash === '#open-ondemand-modal') {
       if (hasBudgetModes) {
         openOnDemandBudgetEditModal({organization, subscription, theme});
       } else {
