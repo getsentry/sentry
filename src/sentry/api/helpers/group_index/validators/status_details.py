@@ -109,18 +109,21 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
                 "Invalid release version format. Please use semver format: package@major.minor.patch[-prerelease][+build]."
             )
 
-        if not Release.is_semver_version(value):
-            raise serializers.ValidationError(
-                "Invalid semver format. Please use format: package@major.minor.patch[-prerelease][+build]"
-            )
-
         try:
+            # release doesn't have to be semver if it exists
+            # because we'll just use the resolveInRelease logic
             release = Release.objects.get(
                 projects=project, organization_id=project.organization_id, version=value
             )
-            return release
         except Release.DoesNotExist:
-            return None
+            # release must be semver if it doesn't exist
+            if not Release.is_semver_version(value):
+                raise serializers.ValidationError(
+                    "Invalid semver format. Please use format: package@major.minor.patch[-prerelease][+build]"
+                )
+            release = None
+
+        return release
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """
