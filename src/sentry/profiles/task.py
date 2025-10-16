@@ -1358,7 +1358,7 @@ def is_sdk_rejected(
 @metrics.wraps("process_profile.process_vroomrs_profile")
 def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
     if "profiler_id" in profile:
-        if _process_vroomrs_chunk_profile(profile):
+        if _process_vroomrs_chunk_profile(profile, project):
             return True
     elif "event_id" in profile or "profile_id" in profile:
         if _process_vroomrs_transaction_profile(profile):
@@ -1438,7 +1438,7 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             return False
 
 
-def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
+def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
     with sentry_sdk.start_span(op="task.profiling.process_vroomrs_chunk_profile"):
         try:
             # todo (improvement): check the feasibility of passing the profile
@@ -1477,7 +1477,7 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                     profile_functions_producer.produce(topic, payload)
             # temporary: collect metrics about rate of functions metrics to be written into EAP
             # should we loosen the constraints on the number and type of functions to be extracted.
-            if options.get("profiling.functions_metrics.eap_ingestion.enabled"):
+            if features.has("projects:profile-functions-metrics-eap-ingestion", project):
                 eap_functions = chunk.extract_functions_metrics(
                     min_depth=1,
                     filter_system_frames=True,
