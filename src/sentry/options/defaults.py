@@ -341,6 +341,12 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "cleanup.group-deletion-by-id",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
