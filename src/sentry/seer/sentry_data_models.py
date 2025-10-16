@@ -73,6 +73,15 @@ class TraceProfiles(BaseModel):
     profiles: list[ProfileData]
 
 
+class EventDetails(BaseModel):
+    title: str
+    message: str | None = None
+    transaction_name: str | None = None
+    exceptions: list[dict] = []
+    threads: list[dict] = Field(default_factory=list, exclude=False)
+    breadcrumbs: list[dict] = Field(default_factory=list, exclude=False)
+
+
 class IssueDetails(BaseModel):
     id: int
     title: str

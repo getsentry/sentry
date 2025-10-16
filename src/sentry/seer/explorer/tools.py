@@ -13,7 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.autofix.autofix import _get_all_tags_overview
+from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
@@ -266,14 +266,16 @@ def get_issue_details(
         return None
     group = cast(Group, group)
 
+    serialized_group: BaseGroupSerializerResponse = serialize(
+        group, user=None, serializer=GroupSerializer()
+    )
+
     if selected_event_type == "oldest":
         event = group.get_oldest_event()
     elif selected_event_type == "latest":
         event = group.get_latest_event()
     else:
         event = group.get_recommended_event()
-        if not event:
-            event = group.get_latest_event()
 
     if not event:
         logger.warning(
@@ -286,16 +288,13 @@ def get_issue_details(
         )
         return None
 
-    SELECTED_SERIALIZED_EVENT_FIELDS = ["id"]
     serialized_event: IssueEventSerializerResponse | None = serialize(
         event, user=None, serializer=EventSerializer()
     )
-    serialized_event_selected = {
-        k: serialized_event.get(k) for k in SELECTED_SERIALIZED_EVENT_FIELDS
-    }
+    serialized_group["events"] = [serialized_event]
 
     try:
-        tags_overview = _get_all_tags_overview(group)
+        tags_overview = get_all_tags_overview(group)
     except Exception:
         logger.exception(
             "Failed to get tags overview for issue",
@@ -303,26 +302,9 @@ def get_issue_details(
         )
         tags_overview = None
 
-    # TODO: event count, first seen last seen, status, trace_id
-
-    SELECTED_SERIALIZED_GROUP_FIELDS = ["id"]
-    serialized_group: BaseGroupSerializerResponse = serialize(
-        group, user=None, serializer=GroupSerializer(SELECTED_SERIALIZED_GROUP_FIELDS)
-    )
-    serialized_group_selected = {
-        k: serialized_group.get(k) for k in SELECTED_SERIALIZED_GROUP_FIELDS
-    }
-
     return {
-        "project_id": group.project_id,
-        "event_count": serialized_group.get("count"),
-        "user_count": serialized_group.get("userCount"),
-        # "first_seen": group.first_seen.isoformat() if group.first_seen else None,
-        # "last_seen": group.last_seen.isoformat() if group.last_seen else None,
-        # "status": group.status,  # TODO: get label
-        # "substatus": group.substatus,
-        "tags_overview": tags_overview,
-        "serialized_issue": serialized_group_selected,
         "event_trace_id": event.trace_id,
-        "serialized_event": serialized_event_selected,
+        "project_id": group.project_id,
+        "issue": serialized_group,
+        "tags_overview": tags_overview,
     }
