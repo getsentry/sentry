@@ -1820,50 +1820,61 @@ function buildRoutes(): RouteObject[] {
 
   const transactionSummaryRoute: SentryRouteObject = {
     path: 'summary/',
-    component: make(() => import('sentry/views/performance/transactionSummary/layout')),
     children: [
-      {
-        index: true,
-        handle: {tab: TransactionSummaryTab.TRANSACTION_SUMMARY},
-        component: make(
-          () => import('sentry/views/performance/transactionSummary/transactionOverview')
-        ),
-      },
       traceView,
       {
-        path: 'replays/',
-        handle: {tab: TransactionSummaryTab.REPLAYS},
         component: make(
-          () => import('sentry/views/performance/transactionSummary/transactionReplays')
+          () => import('sentry/views/performance/transactionSummary/layout')
         ),
-      },
-      {
-        path: 'vitals/',
-        handle: {tab: TransactionSummaryTab.WEB_VITALS},
-        component: make(
-          () => import('sentry/views/performance/transactionSummary/transactionVitals')
-        ),
-      },
-      {
-        path: 'tags/',
-        handle: {tab: TransactionSummaryTab.TAGS},
-        component: make(
-          () => import('sentry/views/performance/transactionSummary/transactionTags')
-        ),
-      },
-      {
-        path: 'events/',
-        handle: {tab: TransactionSummaryTab.EVENTS},
-        component: make(
-          () => import('sentry/views/performance/transactionSummary/transactionEvents')
-        ),
-      },
-      {
-        path: 'profiles/',
-        handle: {tab: TransactionSummaryTab.PROFILING},
-        component: make(
-          () => import('sentry/views/performance/transactionSummary/transactionProfiles')
-        ),
+        children: [
+          {
+            index: true,
+            handle: {tab: TransactionSummaryTab.TRANSACTION_SUMMARY},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionOverview')
+            ),
+          },
+          {
+            path: 'replays/',
+            handle: {tab: TransactionSummaryTab.REPLAYS},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionReplays')
+            ),
+          },
+          {
+            path: 'vitals/',
+            handle: {tab: TransactionSummaryTab.WEB_VITALS},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionVitals')
+            ),
+          },
+          {
+            path: 'tags/',
+            handle: {tab: TransactionSummaryTab.TAGS},
+            component: make(
+              () => import('sentry/views/performance/transactionSummary/transactionTags')
+            ),
+          },
+          {
+            path: 'events/',
+            handle: {tab: TransactionSummaryTab.EVENTS},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionEvents')
+            ),
+          },
+          {
+            path: 'profiles/',
+            handle: {tab: TransactionSummaryTab.PROFILING},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionProfiles')
+            ),
+          },
+        ],
       },
     ],
   };
