@@ -3,7 +3,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
+import {hasNewBillingUI, isDeveloperPlan} from 'getsentry/utils/billing';
 import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
@@ -22,7 +22,11 @@ function getCards(organization: Organization, subscription: Subscription) {
   const hasBillingPerms = organization.access?.includes('org:billing');
   const cards: React.ReactNode[] = [];
 
-  if (subscription.canSelfServe && hasBillingPerms) {
+  if (
+    subscription.canSelfServe &&
+    !isDeveloperPlan(subscription.planDetails) &&
+    hasBillingPerms
+  ) {
     cards.push(
       <NextBillCard
         key="next-bill"
@@ -32,7 +36,12 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
-  if (subscription.supportsOnDemand && hasBillingPerms) {
+  const canUpdatePayg =
+    subscription.planDetails.allowOnDemand &&
+    subscription.supportsOnDemand &&
+    hasBillingPerms;
+
+  if (canUpdatePayg) {
     cards.push(
       <PaygCard key="payg" subscription={subscription} organization={organization} />
     );
@@ -40,7 +49,8 @@ function getCards(organization: Organization, subscription: Subscription) {
 
   if (
     hasBillingPerms &&
-    (subscription.canSelfServe || subscription.onDemandInvoiced) &&
+    (canUpdatePayg ||
+      (subscription.canSelfServe && isDeveloperPlan(subscription.planDetails))) &&
     !subscription.isSelfServePartner
   ) {
     cards.push(

@@ -365,7 +365,9 @@ const storeConfig: GroupStoreDefinition = {
   onDeleteSuccess(_changeId, itemIds, _response) {
     const ids = this.itemIdsOrAll(itemIds);
 
-    if (ids.length > 1) {
+    if (itemIds === undefined) {
+      showAlert(t('Deleted selected issues'), 'success');
+    } else if (ids.length > 1) {
       showAlert(t('Deleted %d Issues', ids.length), 'success');
     } else {
       const shortId = ids.map(item => GroupStore.get(item)?.shortId).join('');

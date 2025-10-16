@@ -18,13 +18,6 @@ function BillingInfoCard({
   organization: Organization;
   subscription: Subscription;
 }) {
-  if (
-    subscription.isSelfServePartner ||
-    (!subscription.canSelfServe && !subscription.onDemandInvoiced)
-  ) {
-    return null;
-  }
-
   return (
     <SubscriptionHeaderCard
       title={t('Billing information')}
