@@ -36,7 +36,7 @@ class MockClass(CredentialLeasable):
         raise NotImplementedError
 
 
-class CredentialsLeasableMixinTest(TestCase):
+class CredentialsLeasableTest(TestCase):
     def setUp(self) -> None:
         self.mock_class = MockClass()
         self.patcher = mock.patch.object(
