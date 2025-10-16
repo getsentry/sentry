@@ -167,6 +167,10 @@ export function Main({
 }: MainProps) {
   return (
     <MainSection fullWidth={fullWidth} {...props}>
+      {/**
+       * We need the extra DOM element here because Main is a part of a grid layout.
+       * If we apply the max width directly the right end of the page background will be missing
+       */}
       {maxWidth === 'constrained' ? (
         <MaxWidthContainer>{children}</MaxWidthContainer>
       ) : (
