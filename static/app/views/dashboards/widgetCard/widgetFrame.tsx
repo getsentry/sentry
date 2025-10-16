@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {FilterConflictWarning} from 'sentry/views/dashboards/globalFilter/filterConflictWarning';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widget/widgetDescription';
@@ -22,6 +23,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
+  conflictingFilterKeys?: string[];
   noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
@@ -85,6 +87,10 @@ export function WidgetFrame(props: WidgetFrameProps) {
       TitleBadges={props.titleBadges}
       Actions={
         <Fragment>
+          {props.conflictingFilterKeys && props.conflictingFilterKeys.length > 0 && (
+            <FilterConflictWarning conflictingFilterKeys={props.conflictingFilterKeys} />
+          )}
+
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
             <Widget.WidgetDescription

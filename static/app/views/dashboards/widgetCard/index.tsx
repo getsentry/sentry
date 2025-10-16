@@ -1,4 +1,4 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -9,6 +9,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
@@ -19,6 +21,7 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -296,6 +299,22 @@ function WidgetCard(props: Props) {
     ? t('Widget query condition is invalid.')
     : undefined;
 
+  const conflictingFilterKeys = useMemo(() => {
+    const widgetFilterKeys = widget.queries.flatMap(query => {
+      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      return parseResult
+        ?.filter(token => token.type === Token.FILTER)
+        .map(token => token.key.text);
+    });
+    const globalFilterKeys =
+      dashboardFilters?.globalFilter
+        ?.filter(filter => filter.dataset === widget.widgetType)
+        .map(filter => filter.tag.key) ?? [];
+
+    const widgetFilterKeySet = new Set(widgetFilterKeys);
+    return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
+  }, [widget.queries, widget.widgetType, dashboardFilters]);
+
   return (
     <ErrorBoundary
       customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -314,6 +333,7 @@ function WidgetCard(props: Props) {
           warnings={warnings}
           actionsDisabled={actionsDisabled}
           error={widgetQueryError}
+          conflictingFilterKeys={conflictingFilterKeys}
           actionsMessage={actionsMessage}
           actions={actions}
           onFullScreenViewClick={
