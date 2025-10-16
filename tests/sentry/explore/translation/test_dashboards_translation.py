@@ -547,6 +547,55 @@ class DashboardTranslationTestCase(TestCase):
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
 
+    def test_widget_with_translatable_dropped_fields(self) -> None:
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            # any(transaction.duration) has transaction.duration that could be translated to span.duration but shouldn't
+            fields=["transaction", "any(transaction.duration)"],
+            columns=["transaction"],
+            field_aliases=[""],
+            aggregates=["any(transaction.duration)"],
+            conditions="title:*whatsapp*",
+            orderby="-transaction",
+            order=0,
+        )
+
+        translate_dashboard_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        assert transaction_widget.widget_snapshot
+        assert transaction_widget.changed_reason is not None
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert "any(transaction.duration)" in dropped_fields["selected_columns"]
+        assert dropped_fields["equations"] == []
+        assert len(dropped_fields["orderby"]) == 0
+
+        snapshot_queries = transaction_widget.widget_snapshot["queries"]
+        assert len(snapshot_queries) == 1
+
+        new_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
+        assert new_queries.count() == 1
+
+        new_query = new_queries.first()
+
+        assert new_query is not None
+        assert new_query.fields == ["transaction"]
+        assert new_query.conditions == "(transaction:*whatsapp*) AND is_transaction:1"
+        assert new_query.aggregates == []
+        assert new_query.columns == ["transaction"]
+
 
 class DashboardRestoreTransactionWidgetTestCase(TestCase):
     @property

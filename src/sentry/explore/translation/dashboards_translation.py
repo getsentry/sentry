@@ -23,7 +23,8 @@ def snapshot_widget(widget: DashboardWidget):
     ):
 
         serialized_widget = serialize(widget)
-        serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
+        if serialized_widget and serialized_widget["dateCreated"]:
+            serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
         widget.widget_snapshot = serialized_widget
         widget.save()
 

@@ -197,6 +197,7 @@ class DiscoverToExploreTranslationTest(TestCase):
                 "apdex()",
                 "count_miserable(users)",
                 "max(measurements.cls)",
+                "any(transaction.duration)",
             ],
             "orderby": "-count_miserable_users",
             "display": "top5",
@@ -214,6 +215,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert new_explore_query.changed_reason["columns"] == [
             "total.count",
             "count_miserable(users)",
+            "any(transaction.duration)",
         ]
         assert new_explore_query.changed_reason["equations"] == []
         assert new_explore_query.changed_reason["orderby"] == [
