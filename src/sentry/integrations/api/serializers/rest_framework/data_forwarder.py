@@ -2,6 +2,7 @@ import re
 from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
+from django import router, transaction
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
@@ -63,6 +64,24 @@ class DataForwarderSerializer(Serializer):
             return self._validate_splunk_config(config)
 
         raise ValidationError(f"Invalid provider: {provider}")
+
+    def validate_project_ids(self, project_ids: list[int]) -> list[int]:
+        if not project_ids:
+            return project_ids
+
+        valid_project_ids = set(
+            Project.objects.filter(
+                organization_id=self.context["organization"].id, id__in=project_ids
+            ).values_list("id", flat=True)
+        )
+
+        if len(valid_project_ids) != len(project_ids):
+            invalid_ids = set(project_ids) - valid_project_ids
+            raise ValidationError(
+                f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
+            )
+
+        return project_ids
 
     def _validate_all_fields_present(
         self,
@@ -183,28 +202,18 @@ class DataForwarderSerializer(Serializer):
     def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
         project_ids: list[int] = validated_data["project_ids"]
         data = {k: v for k, v in validated_data.items() if k != "project_ids"}
-        data_forwarder = DataForwarder.objects.create(**data)
 
-        # If project_ids is empty, auto-enroll all organization projects
-        if not project_ids:
-            organization_projects = Project.objects.filter(
-                organization_id=data_forwarder.organization_id
-            ).values_list("id", flat=True)
-            for project_id in organization_projects:
-                DataForwarderProject.objects.create(
-                    data_forwarder=data_forwarder,
-                    project_id=project_id,
-                    is_enabled=True,
-                )
-        else:
+        with transaction.atomic(router.db_for_write(DataForwarder)):
+            data_forwarder = DataForwarder.objects.create(**data)
+
             # Enroll specified projects
-            for project_id in project_ids:
-                DataForwarderProject.objects.create(
-                    data_forwarder=data_forwarder,
-                    project_id=project_id,
-                    is_enabled=True,
-                )
-
+            if project_ids:
+                for project_id in project_ids:
+                    DataForwarderProject.objects.create(
+                        data_forwarder=data_forwarder,
+                        project_id=project_id,
+                        is_enabled=True,
+                    )
         return data_forwarder
 
     def update(self, instance: DataForwarder, validated_data: Mapping[str, Any]) -> DataForwarder:
@@ -220,30 +229,19 @@ class DataForwarderSerializer(Serializer):
             DataForwarderProject.objects.filter(data_forwarder=instance).delete()
             return instance
 
-        valid_project_ids = set(
-            Project.objects.filter(
-                organization_id=instance.organization_id, id__in=project_ids
-            ).values_list("id", flat=True)
-        )
-
-        if len(valid_project_ids) != len(project_ids):
-            invalid_ids = set(project_ids) - valid_project_ids
-            raise ValidationError(
-                f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
-            )
-
         # Enroll or update specified projects
-        for project_id in valid_project_ids:
-            DataForwarderProject.objects.update_or_create(
-                data_forwarder=instance,
-                project_id=project_id,
-                defaults={"is_enabled": True},
-            )
+        with transaction.atomic(router.db_for_write(DataForwarderProject)):
+            for project_id in project_ids:
+                DataForwarderProject.objects.update_or_create(
+                    data_forwarder=instance,
+                    project_id=project_id,
+                    defaults={"is_enabled": True},
+                )
 
-        # Unenroll projects not in the list
-        DataForwarderProject.objects.filter(data_forwarder=instance).exclude(
-            project_id__in=valid_project_ids
-        ).delete()
+            # Unenroll projects not in the list
+            DataForwarderProject.objects.filter(data_forwarder=instance).exclude(
+                project_id__in=project_ids
+            ).delete()
 
         return instance
 

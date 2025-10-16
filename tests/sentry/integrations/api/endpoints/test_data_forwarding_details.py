@@ -25,6 +25,10 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             is_enabled=True,
         )
 
+        # Verify initial state before update
+        assert data_forwarder.config == {"write_key": "old_key"}
+        assert data_forwarder.is_enabled is True
+
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "new_key"},
@@ -54,14 +58,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 
         project = self.create_project(organization=self.organization)
 
-        # Enroll project initially with is_enabled=False
-        DataForwarderProject.objects.create(
-            data_forwarder=data_forwarder,
-            project=project,
-            is_enabled=False,
-        )
+        self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project)
 
-        # Update the data forwarder with the same project in project_ids
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_key"},
@@ -72,7 +70,6 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             self.organization.slug, data_forwarder.id, status_code=200, **payload
         )
 
-        # Verify the project is now enabled (update_or_create should update it)
         project_config = DataForwarderProject.objects.get(
             data_forwarder=data_forwarder, project=project
         )
@@ -88,9 +85,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         project2 = self.create_project(organization=self.organization)
         project3 = self.create_project(organization=self.organization)
 
-        DataForwarderProject.objects.create(
-            data_forwarder=data_forwarder, project=project1, is_enabled=True
-        )
+        self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project1)
 
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
@@ -119,12 +114,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        self.create_data_forwarder_project(
-            data_forwarder=data_forwarder, project=project1, is_enabled=True
-        )
-        DataForwarderProject.objects.create(
-            data_forwarder=data_forwarder, project=project2, is_enabled=True
-        )
+        self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project1)
+        self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project2)
 
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
@@ -205,11 +196,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 
         project = self.create_project(organization=self.organization)
 
-        DataForwarderProject.objects.create(
-            data_forwarder=data_forwarder,
-            project=project,
-            is_enabled=True,
-            overrides={"old": "value"},
+        self.create_data_forwarder_project(
+            data_forwarder=data_forwarder, project=project, overrides={"old": "value"}
         )
 
         user = self.create_user()
@@ -247,12 +235,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        self.create_data_forwarder_project(
-            data_forwarder=data_forwarder, project=project1, is_enabled=True
-        )
-        self.create_data_forwarder_project(
-            data_forwarder=data_forwarder, project=project2, is_enabled=True
-        )
+        self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project1)
+        self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project2)
 
         user = self.create_user()
         self.create_member(
@@ -285,7 +269,6 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         project1 = self.create_project(organization=self.organization, teams=[team1])
         project2 = self.create_project(organization=self.organization, teams=[team2])
 
-        # User only has access to team1
         user = self.create_user()
         self.create_member(
             user=user,

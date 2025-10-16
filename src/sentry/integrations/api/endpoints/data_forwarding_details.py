@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.db import router, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
@@ -89,7 +90,11 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def _update_data_forwarder_config(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
-        # Create a mutable copy of request.data to avoid immutability errors
+        """
+        Returns:
+            Response: 200 OK with serialized data forwarder on success,
+                     400 Bad Request with validation errors on failure
+        """
         data = dict(request.data)
         data["organization_id"] = organization.id
 
@@ -105,6 +110,11 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def _validate_project_ids_input(
         self, request: Request
     ) -> tuple[list[int] | None, Response | None]:
+        """
+        Returns:
+            tuple: (project_ids, None) if valid,
+                   (None, error_response) if invalid with 400 Bad Request
+        """
         raw_project_ids: Any = request.data.get("project_ids")
         if raw_project_ids is None or not isinstance(raw_project_ids, list):
             return None, self.respond(
@@ -116,6 +126,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def _get_accessible_projects_to_unenroll(
         self, request: Request, organization: Organization, enrolled_project_ids: list[int]
     ) -> tuple[list[int] | None, Response | None]:
+        """
+        Filter enrolled projects to only include those the user has project:write access to.
+
+        Returns:
+            tuple: (accessible_project_ids, None) - list of project IDs the user can access
+                   Note: Never returns an error response, only filters the accessible projects
+        """
         projects_to_unenroll: list[int] = []
         for project_id in enrolled_project_ids:
             try:
@@ -129,6 +146,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def _handle_unenroll_all_projects(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
+        """
+        Unenroll all projects that the user has access to from the data forwarder.
+        Called when project_ids is an empty list.
+
+        Returns:
+            Response: 200 OK with serialized data forwarder
+        """
         enrolled_projects = DataForwarderProject.objects.filter(
             data_forwarder=data_forwarder
         ).values_list("project_id", flat=True)
@@ -152,6 +176,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def _validate_project_permissions(
         self, request: Request, projects: list[Project]
     ) -> Response | None:
+        """
+        Validate that the user has project:write permission for all specified projects.
+
+        Returns:
+            None if user has access to all projects,
+            Response with 403 Forbidden if user lacks access to any project
+        """
         unauthorized_projects: list[int] = []
         for project in projects:
             if not request.access.has_project_scope(project, "project:write"):
@@ -167,37 +198,24 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             )
         return None
 
-    def _validate_projects_exist(
-        self, projects: list[Project], project_ids: list[int]
-    ) -> Response | None:
-        if len(projects) != len(project_ids):
-            found_ids = {project.id for project in projects}
-            invalid_ids = set(project_ids) - found_ids
-            return self.respond(
-                {
-                    "project_ids": [
-                        f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return None
-
     def _get_accessible_enrolled_projects(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> list[int]:
+        """
+        Get the list of currently enrolled project IDs that the user has access to.
+
+        Returns:
+            List of project IDs the user has project:write access to
+        """
         enrolled_projects = DataForwarderProject.objects.filter(
             data_forwarder=data_forwarder
         ).values_list("project_id", flat=True)
 
         accessible_enrolled_projects: list[int] = []
-        for project_id in enrolled_projects:
-            try:
-                project = Project.objects.get(id=project_id, organization_id=organization.id)
-                if request.access.has_project_scope(project, "project:write"):
-                    accessible_enrolled_projects.append(project_id)
-            except Project.DoesNotExist:
-                pass
+        projects = Project.objects.filter(organization_id=organization.id, id__in=enrolled_projects)
+        for project in projects:
+            if request.access.has_project_scope(project, "project:write"):
+                accessible_enrolled_projects.append(project.id)
         return accessible_enrolled_projects
 
     def _enroll_or_update_projects(
@@ -235,7 +253,10 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         project_ids: list[int],
     ) -> None:
         projects_to_unenroll = set(accessible_enrolled_projects) - set(project_ids)
-        if projects_to_unenroll:
+        if not projects_to_unenroll:
+            return
+
+        with transaction.atomic(router.db_for_write(DataForwarderProject)):
             DataForwarderProject.objects.filter(
                 data_forwarder=data_forwarder, project_id__in=projects_to_unenroll
             ).delete()
@@ -257,41 +278,35 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     ) -> Response:
         if request.access.has_scope("org:write"):
             return self._update_data_forwarder_config(request, organization, data_forwarder)
-        else:  # project:write permission
 
-            project_ids, error_response = self._validate_project_ids_input(request)
-            if error_response:
-                return error_response
+        # project:write permission
+        project_ids, error_response = self._validate_project_ids_input(request)
+        if error_response:
+            return error_response
 
-            overrides: dict[str, Any] = request.data.get("overrides", {})
-            is_enabled: bool | None = request.data.get("is_enabled")
+        overrides: dict[str, Any] = request.data.get("overrides", {})
+        is_enabled: bool | None = request.data.get("is_enabled")
 
-            if not project_ids:
-                return self._handle_unenroll_all_projects(request, organization, data_forwarder)
+        if not project_ids:
+            return self._handle_unenroll_all_projects(request, organization, data_forwarder)
 
-            projects = Project.objects.filter(organization_id=organization.id, id__in=project_ids)
+        projects = Project.objects.filter(organization_id=organization.id, id__in=project_ids)
 
-            error_response = self._validate_project_permissions(request, list(projects))
-            if error_response:
-                return error_response
+        error_response = self._validate_project_permissions(request, list(projects))
+        if error_response:
+            return error_response
 
-            error_response = self._validate_projects_exist(list(projects), project_ids)
-            if error_response:
-                return error_response
+        accessible_enrolled_projects = self._get_accessible_enrolled_projects(
+            request, organization, data_forwarder
+        )
 
-            accessible_enrolled_projects = self._get_accessible_enrolled_projects(
-                request, organization, data_forwarder
-            )
+        self._enroll_or_update_projects(data_forwarder, project_ids, overrides, is_enabled)
+        self._unenroll_removed_projects(data_forwarder, accessible_enrolled_projects, project_ids)
 
-            self._enroll_or_update_projects(data_forwarder, project_ids, overrides, is_enabled)
-            self._unenroll_removed_projects(
-                data_forwarder, accessible_enrolled_projects, project_ids
-            )
-
-            return Response(
-                serialize(data_forwarder, request.user),
-                status=status.HTTP_200_OK,
-            )
+        return Response(
+            serialize(data_forwarder, request.user),
+            status=status.HTTP_200_OK,
+        )
 
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
