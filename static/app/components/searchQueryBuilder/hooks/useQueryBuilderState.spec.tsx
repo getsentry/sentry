@@ -42,6 +42,42 @@ describe('replaceFreeTextTokens', () => {
         },
       },
       {
+        description: 'when the replace raw search keys is empty',
+        input: {
+          action: {
+            type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
+            text: '',
+            tokens: [],
+            focusOverride: undefined,
+          },
+          getFieldDefinition: () => null,
+          rawSearchReplacement: [],
+          currentQuery: '',
+        },
+        expected: {
+          query: undefined,
+          focusOverride: undefined,
+        },
+      },
+      {
+        description: 'when the replace raw search keys is an empty string',
+        input: {
+          action: {
+            type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
+            text: '',
+            tokens: [],
+            focusOverride: undefined,
+          },
+          getFieldDefinition: () => null,
+          rawSearchReplacement: [''],
+          currentQuery: '',
+        },
+        expected: {
+          query: undefined,
+          focusOverride: undefined,
+        },
+      },
+      {
         description: 'when there is no raw search replacement',
         input: {
           action: {
