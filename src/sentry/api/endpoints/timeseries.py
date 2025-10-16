@@ -29,7 +29,7 @@ class SeriesMeta(TypedDict):
 
 class GroupBy(TypedDict):
     key: str
-    value: str
+    value: str | None
 
 
 class TimeSeries(TypedDict):

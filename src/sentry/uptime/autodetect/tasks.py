@@ -13,7 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
-from sentry.uptime.detectors.ranking import (
+from sentry.uptime.autodetect.ranking import (
     _get_cluster,
     delete_candidate_projects_for_org,
     delete_candidate_urls_for_project,
@@ -21,8 +21,8 @@ from sentry.uptime.detectors.ranking import (
     get_candidate_projects_for_org,
     get_candidate_urls_for_project,
     get_organization_bucket,
-    should_detect_for_organization,
-    should_detect_for_project,
+    should_autodetect_for_organization,
+    should_autodetect_for_project,
 )
 from sentry.uptime.subscriptions.subscriptions import (
     create_uptime_detector,
@@ -55,9 +55,9 @@ logger = logging.getLogger("sentry.uptime-url-autodetection")
     namespace=uptime_tasks,
     processing_deadline_duration=60,
 )
-def schedule_detections():
+def schedule_autodetections():
     """
-    Runs regularly and fires off a task for each detection bucket that needs to be run since
+    Runs regularly and fires off a task for each autodetection bucket that needs to be run since
     this task last ran.
     """
     lock = locks.get(
@@ -82,7 +82,7 @@ def schedule_detections():
             for _ in range(minutes_since_last_processed):
                 metrics.incr("uptime.detectors.scheduler.scheduled_bucket")
                 last_processed = last_processed + timedelta(minutes=1)
-                process_detection_bucket.delay(last_processed.isoformat())
+                process_autodetection_bucket.delay(last_processed.isoformat())
 
             cluster.set(LAST_PROCESSED_KEY, int(last_processed.timestamp()), timedelta(hours=1))
     except UnableToAcquireLock:
@@ -95,9 +95,9 @@ def schedule_detections():
     name="sentry.uptime.detectors.tasks.process_detection_bucket",
     namespace=uptime_tasks,
 )
-def process_detection_bucket(bucket: str):
+def process_autodetection_bucket(bucket: str):
     """
-    Schedules url detection for all projects in this time bucket that saw promising urls.
+    Schedules url autodetection for all projects in this time bucket that saw promising urls.
     """
     date_bucket = parse_datetime(bucket)
 
@@ -118,17 +118,17 @@ def process_organization_url_ranking(organization_id: int):
         "uptime.process_organization",
         extra={"organization_id": org.id},
     )
-    should_detect = should_detect_for_organization(org)
+    should_autodetect = should_autodetect_for_organization(org)
 
     for project_id, project_count in get_candidate_projects_for_org(org):
         project = Project.objects.get_from_cache(id=project_id)
-        if not should_detect:
-            # We still want to clear up these urls even if we're no longer detecting
+        if not should_autodetect:
+            # We still want to clear up these urls even if we're no longer autodetecting
             delete_candidate_urls_for_project(project)
         else:
             if process_project_url_ranking(project, project_count):
                 metrics.incr("uptime.detectors.scheduler.detected_url_for_organization")
-                should_detect = False
+                should_autodetect = False
 
     delete_candidate_projects_for_org(org)
 
@@ -144,7 +144,7 @@ def process_project_url_ranking(project: Project, project_url_count: int) -> boo
             "project_url_count": project_url_count,
         },
     )
-    if not should_detect_for_project(project):
+    if not should_autodetect_for_project(project):
         metrics.incr("uptime.detectors.project_detection_skipped")
         return False
 
@@ -229,7 +229,7 @@ def process_candidate_url(
     ):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
         monitor_url_for_project(project, url)
-        # Disable auto-detection on this project and organization now that we've successfully found a hostname
+        # Disable autodetection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
         project.organization.update_option("sentry:uptime_autodetection", False)
 

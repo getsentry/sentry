@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
+import moment from 'moment-timezone';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -23,12 +24,16 @@ import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import toArray from 'sentry/utils/array/toArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
+import {
+  getMonitorRefetchInterval,
+  getNextCheckInEnv,
+} from 'sentry/views/alerts/rules/crons/utils';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
@@ -37,7 +42,9 @@ import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboardi
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
 import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type CronDetectorDetailsProps = {
   detector: CronDetector;
@@ -60,6 +67,19 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+
+  useDetectorQuery<CronDetector>(detector.id, {
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: query => {
+      if (!query.state.data) {
+        return false;
+      }
+      const [cronDetector] = query.state.data;
+      const monitor = cronDetector.dataSources[0].queryObj;
+      return getMonitorRefetchInterval(monitor, new Date());
+    },
+  });
 
   const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
     organization,
@@ -189,6 +209,18 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               )}
             </Section>
             <DetectorDetailsAssignee owner={detector.owner} />
+            <Section title={t('Schedule')}>
+              <div>
+                {scheduleAsText(dataSource.queryObj.config)}{' '}
+                {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB &&
+                  `(${dataSource.queryObj.config.timezone}) `}
+                {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB && (
+                  <Text variant="muted" monospace>
+                    ({dataSource.queryObj.config.schedule})
+                  </Text>
+                )}
+              </div>
+            </Section>
             <Section title={t('Legend')}>
               <DetailsTimelineLegend
                 checkInMargin={dataSource.queryObj.config.checkin_margin}
@@ -214,7 +246,15 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 keyName={t('Next check-in')}
                 value={
                   dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
-                    <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
+                    moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
+                      <TimeSince
+                        unitStyle="regular"
+                        liveUpdateInterval="second"
+                        date={monitorEnv.nextCheckIn}
+                      />
+                    ) : (
+                      t('Expected Now')
+                    )
                   ) : (
                     '-'
                   )
@@ -224,7 +264,11 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 keyName={t('Last check-in')}
                 value={
                   monitorEnv?.lastCheckIn ? (
-                    <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+                    <TimeSince
+                      unitStyle="regular"
+                      liveUpdateInterval="second"
+                      date={monitorEnv.lastCheckIn}
+                    />
                   ) : (
                     '-'
                   )
