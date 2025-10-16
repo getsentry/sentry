@@ -82,7 +82,7 @@ metadata = IntegrationMetadata(
 OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
     "https://api.opsgenie.com/": "app.opsgenie.com",
     "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
-    "https://api.atlassian.com/": "atlassian.net",
+    "https://api.atlassian.com/jsm/ops/integration/": "atlassian.net",
 }
 
 
@@ -92,7 +92,7 @@ class InstallationForm(forms.Form):
         choices=[
             ("https://api.opsgenie.com/", "api.opsgenie.com"),
             ("https://api.eu.opsgenie.com/", "api.eu.opsgenie.com"),
-            ("https://api.atlassian.com/", "api.atlassian.com"),
+            ("https://api.atlassian.com/jsm/ops/integration/", "api.atlassian.com (JSM)"),
         ],
     )
     provider = forms.CharField(
