@@ -307,7 +307,7 @@ def report_hydration_error(
     if (
         len(event_meta.hydration_errors) == 0
         or not replay_event
-        or not _should_report_hydration_error_issue(project_id)
+        or not _should_report_hydration_error_issue(project_id, use_new_cache_scheme)
     ):
         return None
 

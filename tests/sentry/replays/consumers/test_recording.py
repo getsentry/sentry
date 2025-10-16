@@ -120,7 +120,6 @@ class RecordingTestCase(TransactionTestCase):
         mock_record: MagicMock,
         mock_onboarding_task: MagicMock,
     ) -> None:
-        self.options
         data = [
             {
                 "type": 5,
