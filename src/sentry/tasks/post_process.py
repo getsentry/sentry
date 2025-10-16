@@ -1546,10 +1546,10 @@ def detect_new_escalation(job: PostProcessJob):
 
 
 def detect_base_urls_for_uptime(job: PostProcessJob):
-    from sentry.uptime.detectors.detector import detect_base_url_for_project
+    from sentry.uptime.autodetect.detector import autodetect_base_url_for_project
 
     url = get_path(job["event"].data, "request", "url")
-    detect_base_url_for_project(job["event"].project, url)
+    autodetect_base_url_for_project(job["event"].project, url)
 
 
 def check_if_flags_sent(job: PostProcessJob) -> None:

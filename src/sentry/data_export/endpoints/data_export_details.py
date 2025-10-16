@@ -3,7 +3,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -31,9 +30,6 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
-
-        if not features.has("organizations:discover-query", organization):
-            return Response(status=404)
 
         try:
             data_export = ExportedData.objects.get(id=data_export_id, organization=organization)

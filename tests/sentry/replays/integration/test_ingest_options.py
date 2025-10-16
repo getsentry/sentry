@@ -59,4 +59,3 @@ def test_should_report_rage_click_issue(scheme: bool, default_project: Project) 
 
     result = _should_report_rage_click_issue(default_project.id, scheme)
     assert result is True
-    assert result is True
