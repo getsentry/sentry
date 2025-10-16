@@ -14,6 +14,8 @@ from typing import Any
 
 from django.dispatch import receiver
 
+from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
 from sentry.integrations.models.integration import Integration
@@ -25,6 +27,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import clear_region_cache
+from sentry.workflow_engine.service.action.service import action_service
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,6 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
 def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
-
     if (
         sentry_app := maybe_process_tombstone(
             model=SentryApp, object_identifier=object_identifier, region_name=region_name
@@ -53,6 +55,25 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
     # Spawn a task to clear caches, as there can be 1000+ installations
     # for a sentry app.
     clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=region_name)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_DELETE)
+def process_sentry_app_deletes(object_identifier: int, region_name: str, **kwds: Any):
+    # This function should only be used when the sentry app is being deleted.
+    # Currently this receiver is only used for deletion.
+    if options.get("workflow_engine.sentry-app-actions-outbox"):
+        logger.info(
+            "sentry_app_update.update_action_status",
+            extra={
+                "region_name": region_name,
+                "sentry_app_id": object_identifier,
+            },
+        )
+        action_service.update_action_status_for_sentry_app_via_sentry_app_id(
+            region_name=region_name,
+            status=ObjectStatus.DISABLED,
+            sentry_app_id=object_identifier,
+        )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
