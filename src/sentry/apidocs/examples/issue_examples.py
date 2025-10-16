@@ -173,12 +173,6 @@ class IssueExamples:
     ]
     PROJECT_GROUP_INDEX_PUT = [
         OpenApiExample(
-            "Request to update issue status and visibility",
-            value={"isPublic": False, "status": "unresolved"},
-            request_only=True,
-            status_codes=["200"],
-        ),
-        OpenApiExample(
             "Response for updating issue status and visibility",
             value={"isPublic": False, "status": "unresolved", "statusDetails": {}},
             response_only=True,

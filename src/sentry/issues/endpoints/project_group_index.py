@@ -56,12 +56,6 @@ ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hashes' with 'query'"
 logger = logging.getLogger(__name__)
 
 
-class ProjectGroupIndexPutResponse(TypedDict):
-    isPublic: bool
-    status: Literal["resolved", "unresolved", "ignored"]
-    statusDetails: dict
-
-
 class ProjectGroupIndexMutateRequestSerializer(serializers.Serializer):
     status = serializers.CharField(
         help_text='The new status for the issues. Valid values are `"resolved"`, `"resolvedInNextRelease"`, `"unresolved"`, and `"ignored"`.',
@@ -97,11 +91,16 @@ class ProjectGroupIndexMutateRequestSerializer(serializers.Serializer):
     )
 
 
+class ProjectGroupIndexMutateResponse(TypedDict):
+    isPublic: bool
+    status: Literal["resolved", "unresolved", "ignored"]
+    statusDetails: dict
+
+
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
-    # TODO: is it alright for these to be updated to PUBLIC?
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -321,7 +320,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         request=ProjectGroupIndexMutateRequestSerializer,
         responses={
             200: inline_sentry_response_serializer(
-                "ProjectGroupIndexPutResponse", ProjectGroupIndexPutResponse
+                "ProjectGroupIndexPutResponse", ProjectGroupIndexMutateResponse
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
