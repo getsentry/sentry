@@ -203,7 +203,7 @@ class DataForwarderSerializer(Serializer):
         project_ids: list[int] = validated_data["project_ids"]
         data = {k: v for k, v in validated_data.items() if k != "project_ids"}
 
-        with transaction.atomic(router.db_for_write(DataForwarder)):
+        with transaction.atomic(using=router.db_for_write(DataForwarder)):
             data_forwarder = DataForwarder.objects.create(**data)
 
             # Enroll specified projects
@@ -219,18 +219,18 @@ class DataForwarderSerializer(Serializer):
     def update(self, instance: DataForwarder, validated_data: Mapping[str, Any]) -> DataForwarder:
         project_ids: list[int] = validated_data["project_ids"]
 
-        for attr, value in validated_data.items():
-            if attr != "project_ids":
-                setattr(instance, attr, value)
-        instance.save()
+        with transaction.atomic(using=router.db_for_write(DataForwarder)):
+            for attr, value in validated_data.items():
+                if attr != "project_ids":
+                    setattr(instance, attr, value)
+            instance.save()
 
-        # Unenroll all projects
-        if not project_ids:
-            DataForwarderProject.objects.filter(data_forwarder=instance).delete()
-            return instance
+            # Unenroll all projects
+            if not project_ids:
+                DataForwarderProject.objects.filter(data_forwarder=instance).delete()
+                return instance
 
-        # Enroll or update specified projects
-        with transaction.atomic(router.db_for_write(DataForwarderProject)):
+            # Enroll or update specified projects
             for project_id in project_ids:
                 DataForwarderProject.objects.update_or_create(
                     data_forwarder=instance,

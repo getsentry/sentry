@@ -98,7 +98,9 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         data = dict(request.data)
         data["organization_id"] = organization.id
 
-        serializer = DataForwarderSerializer(data_forwarder, data=data)
+        serializer = DataForwarderSerializer(
+            data_forwarder, data=data, context={"organization": organization}
+        )
         if serializer.is_valid():
             data_forwarder = serializer.save()
             return Response(

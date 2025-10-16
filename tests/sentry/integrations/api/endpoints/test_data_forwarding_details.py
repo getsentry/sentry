@@ -27,7 +27,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 
         # Verify initial state before update
         assert data_forwarder.config == {"write_key": "old_key"}
-        assert data_forwarder.is_enabled is True
+        assert data_forwarder.is_enabled
 
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
@@ -42,13 +42,13 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
 
         assert response.data["config"] == {"write_key": "new_key"}
-        assert response.data["isEnabled"] is False
-        assert response.data["enrollNewProjects"] is True
+        assert not response.data["isEnabled"]
+        assert response.data["enrollNewProjects"]
 
         data_forwarder.refresh_from_db()
         assert data_forwarder.config == {"write_key": "new_key"}
-        assert data_forwarder.is_enabled is False
-        assert data_forwarder.enroll_new_projects is True
+        assert not data_forwarder.is_enabled
+        assert data_forwarder.enroll_new_projects
 
     def test_update_reenrolls_previously_enrolled_project(self) -> None:
         data_forwarder = self.create_data_forwarder(
@@ -73,7 +73,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         project_config = DataForwarderProject.objects.get(
             data_forwarder=data_forwarder, project=project
         )
-        assert project_config.is_enabled is True
+        assert project_config.is_enabled
 
     def test_update_with_project_ids(self) -> None:
         data_forwarder = self.create_data_forwarder(
@@ -180,13 +180,13 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             data_forwarder=data_forwarder, project=project1
         )
         assert project_config1.overrides == {"custom": "value"}
-        assert project_config1.is_enabled is True
+        assert project_config1.is_enabled
 
         project_config2 = DataForwarderProject.objects.get(
             data_forwarder=data_forwarder, project=project2
         )
         assert project_config2.overrides == {"custom": "value"}
-        assert project_config2.is_enabled is True
+        assert project_config2.is_enabled
 
     def test_update_project_overrides_with_project_write(self) -> None:
         data_forwarder = self.create_data_forwarder(
@@ -224,7 +224,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             data_forwarder=data_forwarder, project=project
         )
         assert project_config.overrides == {"new": "value"}
-        assert project_config.is_enabled is False
+        assert not project_config.is_enabled
 
     def test_update_unenroll_projects_with_project_write(self) -> None:
         data_forwarder = self.create_data_forwarder(
