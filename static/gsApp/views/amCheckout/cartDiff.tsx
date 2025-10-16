@@ -232,7 +232,7 @@ function OnDemandDiff({
       {perCategoryOnDemandChanges.length > 0 && (
         <ChangeSection data-test-id="per-category-spend-limit-diff">
           <ChangeSectionTitle hasBottomMargin>
-            {t('Per-category spend limits')}
+            {t('Per-product spend limits')}
           </ChangeSectionTitle>
           <ChangeGrid>
             {perCategoryOnDemandChanges.map(({key, currentValue, newValue}) => {
