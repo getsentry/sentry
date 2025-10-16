@@ -28,6 +28,7 @@ function PanelContainers({
           {panelSize === 'max' && (
             <Backdrop
               key="backdrop"
+              isMinimized={isMinimized}
               initial={{opacity: 0}}
               animate={{opacity: isMinimized ? 0 : 1}}
               exit={{opacity: 0}}
@@ -64,7 +65,7 @@ function PanelContainers({
 
 export default PanelContainers;
 
-const Backdrop = styled(motion.div)`
+const Backdrop = styled(motion.div)<{isMinimized: boolean}>`
   position: fixed;
   top: 0;
   left: 0;
@@ -72,7 +73,7 @@ const Backdrop = styled(motion.div)`
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);
   z-index: 9999;
-  pointer-events: auto;
+  pointer-events: ${p => (p.isMinimized ? 'none' : 'auto')};
 `;
 
 const PanelContainer = styled(motion.div)<{
