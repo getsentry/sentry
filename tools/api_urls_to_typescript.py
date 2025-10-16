@@ -159,13 +159,9 @@ def _process_single_pattern(pattern: str) -> str:
 def main() -> int:
     import sys
 
-    try:
-        from sentry.runner import configure
+    from sentry.runner import configure
 
-        configure()
-    except ImportError:
-        # unable to import sentry.runner, so we're not in a sentry project
-        return 0
+    configure()
 
     from sentry.api.urls import urlpatterns
 

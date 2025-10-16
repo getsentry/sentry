@@ -47,9 +47,6 @@ backend_build_changes: &backend_build_changes
   - 'Makefile'
   - 'pyproject.toml'
 
-backend_api_urls: &backend_api_urls
-  - '**/.urls.py'
-
 # `backend_src` filters on files that are backend changes excluding
 # changes to the tests/ directory and changes to typescript related config files.
 # If you want to filter on *all* backend files, use the `backend_all` filter.
