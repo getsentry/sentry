@@ -212,7 +212,9 @@ def compare_preprod_artifact_size_analysis(
         tags={
             "project_id": project_id,
             "organization_id": org_id,
-            "artifact_type": artifact.artifact_type.name.lower(),
+            "artifact_type": (
+                artifact.artifact_type.name.lower() if artifact.artifact_type else "unknown"
+            ),
         },
     )
 
