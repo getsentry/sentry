@@ -82,7 +82,7 @@ metadata = IntegrationMetadata(
 OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
     "https://api.opsgenie.com/": "app.opsgenie.com",
     "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
-    "https://api.atlassian.com/": "atlassian.net",
+    "https://api.atlassian.com/jsm/ops/integration/": "atlassian.net",
 }
 
 
