@@ -179,7 +179,7 @@ def delete_organization_bucket(bucket: datetime) -> None:
     cluster.delete(key)
 
 
-def should_detect_for_organization(organization: Organization) -> bool:
+def should_autodetect_for_organization(organization: Organization) -> bool:
     if not organization.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION):
         return False
 
@@ -188,5 +188,5 @@ def should_detect_for_organization(organization: Organization) -> bool:
     return True
 
 
-def should_detect_for_project(project: Project) -> bool:
+def should_autodetect_for_project(project: Project) -> bool:
     return project.get_option("sentry:uptime_autodetection", True)

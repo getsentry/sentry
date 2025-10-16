@@ -75,7 +75,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.uptime.detectors.ranking import _get_cluster, get_organization_bucket_key
+from sentry.uptime.autodetect.ranking import _get_cluster, get_organization_bucket_key
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
