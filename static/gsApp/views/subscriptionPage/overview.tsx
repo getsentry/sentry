@@ -27,11 +27,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {
-  hasAccessToSubscriptionOverview,
-  hasBillingAccess,
-  hasNewBillingUI,
-} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
@@ -135,13 +131,9 @@ function Overview({location, subscription, promotionData}: Props) {
       openCodecovModal({organization});
     }
 
-    // Open on-demand budget modal if hash fragment present and user has billing access
-    if (
-      window.location.hash === '#open-ondemand-modal' &&
-      subscription.supportsOnDemand &&
-      hasBillingAccess(organization) &&
-      !isNewBillingUI
-    ) {
+    // Open on-demand budget modal if hash fragment present
+    // Modal logic handles checking perms
+    if (window.location.hash === '#open-ondemand-modal' && !isNewBillingUI) {
       openOnDemandBudgetEditModal({organization, subscription});
 
       // Clear hash to prevent modal reopening on refresh
