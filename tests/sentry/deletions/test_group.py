@@ -272,6 +272,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         grouphash_a = GroupHash.objects.filter(group_id=event_a.group_id).first()
         assert grouphash_a is not None
         assert grouphash_a.metadata is not None
+        assert grouphash_a.metadata.seer_matched_grouphash is None
         metadata_a_id = grouphash_a.metadata.id
 
         # Event B will be kept - different exception to ensure different group
@@ -285,14 +286,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         grouphash_b = GroupHash.objects.filter(group_id=event_b.group_id).first()
         assert grouphash_b is not None
         assert grouphash_b.metadata is not None
+        assert grouphash_b.metadata.seer_matched_grouphash is None
 
-        # Ensure they are in different groups
-        assert event_a.group_id != event_b.group_id
-
-        # Pretend that Seer tells us that grouphash B is similar to grouphash A
-        grouphash_b.metadata.seer_matched_grouphash = grouphash_a
-        grouphash_b.metadata.save()
-        metadata_b_id = grouphash_b.metadata.id
+        assert event_a.group_id == event_b.group_id
 
         assert grouphash_b.metadata.seer_matched_grouphash == grouphash_a
         assert GroupHashMetadata.objects.filter(seer_matched_grouphash_id=grouphash_a.id).exists()
