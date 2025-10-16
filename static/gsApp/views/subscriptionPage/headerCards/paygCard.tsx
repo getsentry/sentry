@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -21,7 +21,7 @@ import {
   type OnDemandBudgets,
   type Subscription,
 } from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {
@@ -48,6 +48,7 @@ function PaygCard({
     ? getTotalSpend(subscription.onDemandBudgets)
     : 0;
 
+  const [isFocused, setIsFocused] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newBudgetDollars, setNewBudgetDollars] = useState<number>(
     Math.ceil(totalBudget / 100)
@@ -68,6 +69,7 @@ function PaygCard({
       trackOnDemandBudgetAnalytics(organization, paygBudget, _data, 'payg_inline_form');
       SubscriptionStore.loadData(subscription.slug);
       setIsEditing(false);
+      setIsFocused(false);
     },
     onError: err => {
       setError(err.message);
@@ -81,10 +83,32 @@ function PaygCard({
     getDaysSinceDate(
       moment(subscription.onDemandPeriodEnd).add(1, 'days').format('YYYY-MM-DD')
     );
-  const isLegacy = subscription.planDetails.hasOnDemandModes;
+  const hasBudgetModes = subscription.planDetails.hasOnDemandModes;
+
+  useEffect(() => {
+    if (
+      window.location.hash === '#open-ondemand-modal' &&
+      hasBillingAccess(organization)
+    ) {
+      if (hasBudgetModes) {
+        openOnDemandBudgetEditModal({organization, subscription, theme});
+      } else {
+        setIsFocused(true);
+        setIsEditing(true);
+      }
+
+      // Clear hash to prevent modal reopening or focus state on refresh
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }, [hasBudgetModes, organization, subscription, theme]);
 
   return (
     <SubscriptionHeaderCard
+      isFocused={isFocused}
       title={
         isEditing
           ? tct('Edit [budgetTerm] limit', {
@@ -129,6 +153,7 @@ function PaygCard({
                         // reset the budget to the current total budget
                         setNewBudgetDollars(Math.ceil(totalBudget / 100));
                         setIsEditing(false);
+                        setIsFocused(false);
                       }}
                     >
                       {t('Cancel')}
@@ -157,7 +182,7 @@ function PaygCard({
                 <Button
                   size="xs"
                   onClick={() => {
-                    if (isLegacy) {
+                    if (hasBudgetModes) {
                       openOnDemandBudgetEditModal({organization, subscription, theme});
                     } else {
                       setIsEditing(true);

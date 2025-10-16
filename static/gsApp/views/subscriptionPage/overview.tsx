@@ -27,7 +27,11 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
+import {
+  hasAccessToSubscriptionOverview,
+  hasBillingAccess,
+  hasNewBillingUI,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
@@ -131,11 +135,12 @@ function Overview({location, subscription, promotionData}: Props) {
       openCodecovModal({organization});
     }
 
-    // Open on-demand budget modal if hash fragment present and user has access
+    // Open on-demand budget modal if hash fragment present and user has billing access
     if (
       window.location.hash === '#open-ondemand-modal' &&
       subscription.supportsOnDemand &&
-      hasAccessToSubscriptionOverview(subscription, organization)
+      hasBillingAccess(organization) &&
+      !isNewBillingUI
     ) {
       openOnDemandBudgetEditModal({organization, subscription});
 
@@ -146,7 +151,15 @@ function Overview({location, subscription, promotionData}: Props) {
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api, navigate]);
+  }, [
+    organization,
+    location.query,
+    subscription,
+    promotionData,
+    api,
+    navigate,
+    isNewBillingUI,
+  ]);
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.

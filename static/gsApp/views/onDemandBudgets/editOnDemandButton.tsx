@@ -8,7 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Theme} from 'sentry/utils/theme';
 
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
+import {hasBillingAccess, hasNewBillingUI, supportsPayg} from 'getsentry/utils/billing';
 import OnDemandBudgetEditModal from 'getsentry/views/onDemandBudgets/onDemandBudgetEditModal';
 
 interface EditOnDemandButtonProps {
@@ -23,20 +23,24 @@ export function openOnDemandBudgetEditModal({
   theme,
 }: EditOnDemandButtonProps) {
   const isNewBillingUI = hasNewBillingUI(organization);
+  const hasBillingPerms = hasBillingAccess(organization);
+  const canUsePayg = supportsPayg(subscription);
 
-  openModal(
-    modalProps => (
-      <OnDemandBudgetEditModal
-        {...modalProps}
-        subscription={subscription}
-        organization={organization}
-      />
-    ),
-    {
-      closeEvents: 'escape-key',
-      modalCss: theme && isNewBillingUI ? modalCss(theme) : undefined,
-    }
-  );
+  if (hasBillingPerms && canUsePayg) {
+    openModal(
+      modalProps => (
+        <OnDemandBudgetEditModal
+          {...modalProps}
+          subscription={subscription}
+          organization={organization}
+        />
+      ),
+      {
+        closeEvents: 'escape-key',
+        modalCss: theme && isNewBillingUI ? modalCss(theme) : undefined,
+      }
+    );
+  }
 }
 
 export function EditOnDemandButton(props: EditOnDemandButtonProps) {
