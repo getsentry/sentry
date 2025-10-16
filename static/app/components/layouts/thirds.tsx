@@ -142,10 +142,43 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   }
 `;
 
+interface MainProps extends React.ComponentProps<typeof MainSection> {
+  children: React.ReactNode;
+  /**
+   * Set fullWidth to true to the layout does not have a side column.
+   * Defaults to false.
+   */
+  fullWidth?: boolean;
+  /**
+   * By default, the main content will span the width of the container.
+   * If set to 'constrained', the content will be wrapped in a 1440px wide container.
+   */
+  maxWidth?: 'constrained' | 'none';
+}
+
 /**
  * Containers for left column of the 66/33 layout.
  */
-export const Main = styled('section')<{fullWidth?: boolean}>`
+export function Main({
+  children,
+  fullWidth = false,
+  maxWidth = 'none',
+  ...props
+}: MainProps) {
+  return (
+    <MainSection fullWidth={fullWidth} {...props}>
+      {maxWidth === 'constrained' ? (
+        <MaxWidthContainer>{children}</MaxWidthContainer>
+      ) : (
+        children
+      )}
+    </MainSection>
+  );
+}
+
+const MainSection = styled('section')<{
+  fullWidth?: boolean;
+}>`
   grid-column: ${p => (p.fullWidth ? '1/3' : '1/2')};
   max-width: 100%;
 `;
@@ -155,4 +188,8 @@ export const Main = styled('section')<{fullWidth?: boolean}>`
  */
 export const Side = styled('aside')`
   grid-column: 2/3;
+`;
+
+const MaxWidthContainer = styled('div')`
+  max-width: 1440px;
 `;
