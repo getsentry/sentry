@@ -1,7 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
 
+import {apiOptions} from 'sentry/api/apiOptions';
 import type {Release} from 'sentry/types/release';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 export function useRelease({
   orgSlug,
@@ -16,12 +16,12 @@ export function useRelease({
 }) {
   return useQuery({
     ...apiOptions.as<Release>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/',
+      '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
       {
         path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug,
-          version: releaseVersion,
+          orgSlug,
+          projectSlug,
+          releaseVersion,
         },
         staleTime: Infinity,
       }

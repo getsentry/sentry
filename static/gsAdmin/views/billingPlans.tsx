@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {apiOptions} from 'sentry/api/apiOptions';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import ResultTable from 'admin/components/resultTable';
 import formatCurrency from 'getsentry/utils/formatCurrency';
