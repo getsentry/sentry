@@ -25,7 +25,7 @@ from sentry.analytics.events.repo_linked import RepoLinkedEvent
 from sentry.analytics.events.search_saved import SearchSavedEvent
 from sentry.analytics.events.sso_enabled import SSOEnabledEvent
 from sentry.analytics.events.team_created import TeamCreatedEvent
-from sentry.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.integrations.analytics import (
     IntegrationAddedEvent,
     IntegrationIssueCreatedEvent,
