@@ -84,10 +84,14 @@ export function useIsCreatingProjectAndRules() {
 }
 
 export function useCreateProjectAndRulesError(): RequestError | undefined {
-  const errors = useMutationState<RequestError | undefined>({
+  const mutations = useMutationState<RequestError | undefined>({
     filters: {mutationKey: [MUTATION_KEY]},
     select: mutation => mutation.state.error as RequestError | undefined,
   });
 
-  return errors.findLast((err): err is RequestError => Boolean(err));
+  if (mutations.length === 0) {
+    return undefined;
+  }
+
+  return mutations[mutations.length - 1] ?? undefined;
 }
