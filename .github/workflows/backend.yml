@@ -27,6 +27,7 @@ jobs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend_all }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
     steps:
@@ -244,6 +245,25 @@ jobs:
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':snowflake: re-freeze requirements'
+
+  api-url-typescript:
+    if: needs.files-changed.outputs.backend_api_urls == 'true'
+    needs: files-changed
+    name: api url typescript generation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Generate API URL TypeScirpt enums
+        run: |
+          python3 -m tools.api_urls_to_typescript
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'

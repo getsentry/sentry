@@ -95,6 +95,8 @@ jobs:
       - name: 'Setup sentry env'
         uses: ./.github/actions/setup-sentry
         id: setup
+        with:
+          mode: backend-ci
 
       - name: Run pre-commit on PR commits
         run: |
