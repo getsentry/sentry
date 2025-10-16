@@ -1972,6 +1972,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.MOBILE_VITALS},
           component: make(
             () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
           ),
@@ -2045,9 +2046,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${MOBILE_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/mobile/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           ),
@@ -2149,10 +2152,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'summary/',
       children: transactionSummaryChildren,
-    },
-    {
-      path: 'vitaldetail/',
-      component: make(() => import('sentry/views/performance/vitalDetail')),
     },
     traceView,
     ...insightsRedirectObjects,
@@ -2965,7 +2964,6 @@ function buildRoutes(): RouteObject[] {
       legacyOrganizationRootRoutes,
       legacyOrgRedirects,
     ],
-    deprecatedRouteProps: true,
   };
 
   const legacyRedirectRoutes: SentryRouteObject = {
@@ -3139,7 +3137,16 @@ function buildRoutes(): RouteObject[] {
           authV2Routes,
           organizationRoutes,
           legacyRedirectRoutes,
-          {path: '*', component: errorHandler(RouteNotFound), deprecatedRouteProps: true},
+          {
+            path: '*',
+            component: errorHandler(OrganizationLayout),
+            children: [
+              {
+                path: '*',
+                component: errorHandler(RouteNotFound),
+              },
+            ],
+          },
         ],
       },
     ],

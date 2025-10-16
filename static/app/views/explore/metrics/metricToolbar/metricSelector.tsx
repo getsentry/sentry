@@ -51,7 +51,10 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
       onChange={option => {
         if ('type' in option) {
           const typedOption = option as MetricSelectOption;
-          setTraceMetric({name: typedOption.value, type: typedOption.type});
+          setTraceMetric({
+            name: typedOption.value,
+            type: typedOption.type,
+          });
         }
       }}
     />

@@ -29,4 +29,4 @@ class SizeAnalysisCompareGETResponse(BaseModel):
 class SizeAnalysisComparePOSTResponse(BaseModel):
     status: str
     message: str
-    existing_comparisons: list[SizeAnalysisComparison] | None
+    comparisons: list[SizeAnalysisComparison] | None

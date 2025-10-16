@@ -92,8 +92,8 @@ class TestSpansTask(TestCase):
 
         assert len(processed_spans) == len(spans)
         child_span, segment_span = processed_spans
-        child_attrs = child_span["attributes"]
-        segment_data = segment_span["attributes"]
+        child_attrs = child_span["attributes"] or {}
+        segment_data = segment_span["attributes"] or {}
 
         assert child_attrs["sentry.transaction"] == segment_data["sentry.transaction"]
         assert child_attrs["sentry.transaction.method"] == segment_data["sentry.transaction.method"]

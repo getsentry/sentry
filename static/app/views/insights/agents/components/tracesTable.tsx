@@ -14,7 +14,6 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,7 +25,6 @@ import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell, NumberPlaceholder} from 'sentry/views/insights/agents/utils/cells';
 import {
-  AI_GENERATION_OPS,
   getAgentRunsFilter,
   getAITracesFilter,
 } from 'sentry/views/insights/agents/utils/query';
@@ -76,11 +74,6 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
-// FIXME: This is potentially not correct, we need to find a way for it to work with the new filter
-const GENERATION_COUNTS = AI_GENERATION_OPS.map(
-  op => `count_if(span.op,equals,${op})` as const
-);
-
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,7 +102,7 @@ export function TracesTable() {
       search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
-        ...GENERATION_COUNTS,
+        'count_if(gen_ai.operation.type,equals,ai_client)',
         'count_if(span.op,equals,gen_ai.execute_tool)',
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.usage.total_cost)',
@@ -123,7 +116,7 @@ export function TracesTable() {
   const traceErrorRequest = useSpans(
     {
       // Get all spans with error status
-      search: `has:span.status span.status:*error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -147,14 +140,11 @@ export function TracesTable() {
     return spansRequest.data.reduce(
       (acc, span) => {
         acc[span.trace] = {
-          llmCalls: GENERATION_COUNTS.reduce<number>(
-            (sum, key) => sum + (span[key] ?? 0),
-            0
-          ),
-          toolCalls: span['count_if(span.op,equals,gen_ai.execute_tool)'] ?? 0,
+          llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
+          toolCalls: Number(span['count_if(span.op,equals,gen_ai.execute_tool)'] ?? 0),
           totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
           totalCost: Number(span['sum(gen_ai.usage.total_cost)'] ?? 0),
-          totalErrors: errors[span.trace] ?? 0,
+          totalErrors: Number(errors[span.trace] ?? 0),
         };
         return acc;
       },
@@ -288,7 +278,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:*error trace:[${dataRow.traceId}]`,
+            query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,
@@ -325,7 +315,7 @@ const BodyCell = memo(function BodyCell({
 
 const GridEditableContainer = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LoadingOverlay = styled('div')`
@@ -351,7 +341,7 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;
 

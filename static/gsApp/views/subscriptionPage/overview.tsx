@@ -1,11 +1,14 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
+import {IconSupport} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -47,7 +50,6 @@ import ReservedUsageChart from './reservedUsageChart';
 import SubscriptionHeader from './subscriptionHeader';
 import UsageAlert from './usageAlert';
 import {CombinedUsageTotals, UsageTotals} from './usageTotals';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   location: Location;
@@ -146,11 +148,6 @@ function Overview({location, subscription, promotionData}: Props) {
     }
   }, [organization, location.query, subscription, promotionData, api, navigate]);
 
-  useEffect(
-    () => trackSubscriptionView(organization, subscription, 'overview'),
-    [subscription, organization]
-  );
-
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
@@ -190,7 +187,7 @@ function Overview({location, subscription, promotionData}: Props) {
         0 || false;
 
     return (
-      <TotalsWrapper>
+      <Fragment>
         {sortCategories(subscription.categories)
           .filter(
             categoryHistory =>
@@ -308,7 +305,40 @@ function Overview({location, subscription, promotionData}: Props) {
             />
           );
         })}
-      </TotalsWrapper>
+      </Fragment>
+    );
+  }
+
+  function renderFooter() {
+    if (!subscription.canSelfServe) {
+      return null;
+    }
+    return (
+      <Flex
+        direction="column"
+        gap="sm"
+        padding="xl"
+        background="primary"
+        radius="md"
+        border="primary"
+      >
+        <Flex align="center" gap="sm">
+          <IconSupport />
+          <Text bold>{t('Having trouble?')}</Text>
+        </Flex>
+        <Text>
+          {tct('Reach out to [supportLink], or vent to a real human on [discordLink]', {
+            supportLink: (
+              <ExternalLink href="https://support.sentry.io">{t('Support')}</ExternalLink>
+            ),
+            discordLink: (
+              <ExternalLink href="https://discord.com/invite/sentry">
+                {t('Discord')}
+              </ExternalLink>
+            ),
+          })}
+        </Text>
+      </Flex>
     );
   }
 
@@ -355,6 +385,7 @@ function Overview({location, subscription, promotionData}: Props) {
           </Fragment>
         )}
         <TrialEnded subscription={subscription} />
+        {renderFooter()}
       </Fragment>
     );
   }
@@ -377,6 +408,7 @@ function Overview({location, subscription, promotionData}: Props) {
           </Fragment>
         )}
         <TrialEnded subscription={subscription} />
+        {renderFooter()}
       </Fragment>
     );
   }
@@ -401,18 +433,14 @@ function Overview({location, subscription, promotionData}: Props) {
       ) : isError ? (
         <LoadingError onRetry={refetchUsage} />
       ) : (
-        <div>
+        <Flex direction="column" gap="xl">
           {hasBillingPerms
             ? contentWithBillingPerms(usage, subscription.planDetails)
             : contentWithoutBillingPerms(usage)}
-        </div>
+        </Flex>
       )}
     </SubscriptionPageContainer>
   );
 }
 
 export default withSubscription(withPromotions(Overview));
-
-const TotalsWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-`;

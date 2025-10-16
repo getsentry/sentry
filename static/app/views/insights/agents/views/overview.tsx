@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -39,6 +40,7 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
@@ -74,8 +76,10 @@ function AgentsOverviewPage() {
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
   useDefaultToAllProjects();
+  const location = useLocation();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
+  useRemoveUrlCursorsOnSearch();
 
   useEffect(() => {
     trackAnalytics('agent-monitoring.page-view', {
@@ -153,6 +157,11 @@ function AgentsOverviewPage() {
     ? undefined
     : agentRunsRequest.data?.length > 0;
 
+  const resetParamsOnChange = useMemo(
+    () => Object.keys(location.query).filter(key => key.toLowerCase().includes('cursor')),
+    [location.query]
+  );
+
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <ModuleFeature moduleName={ModuleName.AGENTS}>
@@ -162,9 +171,14 @@ function AgentsOverviewPage() {
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <InsightsProjectSelector />
-                    <InsightsEnvironmentSelector />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <InsightsProjectSelector resetParamsOnChange={resetParamsOnChange} />
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={resetParamsOnChange}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={resetParamsOnChange}
+                    />
                   </PageFilterBar>
                   {!showOnboarding && (
                     <QueryBuilderWrapper>

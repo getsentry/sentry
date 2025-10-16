@@ -19,17 +19,23 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -48,6 +54,7 @@ import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 function MetricDetectorForm() {
   return (
@@ -212,16 +219,29 @@ function IntervalPicker() {
 function useDatasetChoices() {
   const organization = useOrganization();
 
+  const {detector} = useDetectorFormContext();
+  const savedDataset = (detector as MetricDetector | undefined)?.dataSources[0]?.queryObj
+    ?.snubaQuery?.dataset;
+  const isExistingTransactionsDetector =
+    Boolean(detector) &&
+    [Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(savedDataset as Dataset);
+  const shouldHideTransactionsDataset =
+    !isExistingTransactionsDetector && deprecateTransactionAlerts(organization);
+
   return useMemo(() => {
     const datasetChoices: Array<SelectValue<DetectorDataset>> = [
       {
         value: DetectorDataset.ERRORS,
         label: t('Errors'),
       },
-      {
-        value: DetectorDataset.TRANSACTIONS,
-        label: t('Transactions'),
-      },
+      ...(shouldHideTransactionsDataset
+        ? []
+        : [
+            {
+              value: DetectorDataset.TRANSACTIONS,
+              label: t('Transactions'),
+            },
+          ]),
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
@@ -238,7 +258,7 @@ function useDatasetChoices() {
     ];
 
     return datasetChoices;
-  }, [organization]);
+  }, [organization, shouldHideTransactionsDataset]);
 }
 
 function DetectSection() {
