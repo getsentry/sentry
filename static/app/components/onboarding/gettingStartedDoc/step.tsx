@@ -1,6 +1,7 @@
 import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+
 import {Flex} from '@sentry/scraps/layout/flex';
 
 import {Button, ButtonBar} from 'sentry/components/core/button';
