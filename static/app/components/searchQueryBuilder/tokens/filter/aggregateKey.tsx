@@ -102,6 +102,13 @@ export function AggregateKey({
                 );
               }
             }}
+            onKeyDown={(e, {state: passedState}) => {
+              // we need to force this open for aggregate filters e.g. count_if()
+              if (e.key === ',') {
+                passedState.open();
+                return;
+              }
+            }}
           />
         </Parameters>
         <UnfocusedText>{')'}</UnfocusedText>
