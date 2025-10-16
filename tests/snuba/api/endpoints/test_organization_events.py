@@ -4065,7 +4065,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert len(response.data["data"]) == 1
             data = response.data["data"]
             assert data[0]["count()"] == 8
-            assert data[0]["failure_count()"] == 6
+            assert data[0]["failure_count()"] == 7
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
