@@ -31,19 +31,19 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.uptime.autodetect.ranking import _get_cluster
+from sentry.uptime.autodetect.result_handler import (
+    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
+    ONBOARDING_MONITOR_PERIOD,
+    build_onboarding_failure_key,
+)
+from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import (
     UptimeResultsStrategyFactory,
     build_last_seen_interval_key,
     build_last_update_key,
 )
-from sentry.uptime.detectors.ranking import _get_cluster
-from sentry.uptime.detectors.result_handler import (
-    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
-    ONBOARDING_MONITOR_PERIOD,
-    build_onboarding_failure_key,
-)
-from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
@@ -604,9 +604,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
             mock.patch(
-                "sentry.uptime.detectors.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
+                "sentry.uptime.autodetect.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
             self.feature(features),
@@ -735,7 +735,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
             self.tasks(),
             self.feature(features),
         ):
@@ -811,10 +811,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.logger") as onboarding_logger,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.logger") as onboarding_logger,
             mock.patch(
-                "sentry.uptime.detectors.result_handler.update_uptime_detector",
+                "sentry.uptime.autodetect.result_handler.update_uptime_detector",
                 side_effect=UptimeMonitorNoSeatAvailable(None),
             ),
             self.tasks(),

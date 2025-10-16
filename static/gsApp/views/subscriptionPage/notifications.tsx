@@ -19,6 +19,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCheckmark, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -34,6 +35,7 @@ import type {Subscription} from 'getsentry/types';
 import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
 
 import SubscriptionHeader from './subscriptionHeader';
 
@@ -108,6 +110,10 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   };
 
   const hasBillingPerms = organization.access?.includes('org:billing');
+
+  if (!hasSpendVisibilityNotificationsFeature(organization)) {
+    return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
+  }
 
   if (!isNewBillingUI) {
     if (!hasBillingPerms) {

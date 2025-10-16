@@ -50,11 +50,11 @@ describe('useStreamingTimeseriesResult', () => {
     organization,
   }: {
     autoRefresh?: AutoRefreshState;
-    groupBy?: string;
+    groupBy?: string | string[];
     organization?: Organization;
   }) => {
     return function ({children}: {children: React.ReactNode}) {
-      const query: Record<string, string> = {};
+      const query: Record<string, string | string[]> = {};
       if (autoRefresh) {
         query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
       }
@@ -194,6 +194,7 @@ describe('useStreamingTimeseriesResult', () => {
         'count(message)': [
           {
             yAxis: 'error',
+            groupBy: [{key: 'severity', value: 'error'}],
             values: [
               {timestamp: 1000, value: 1},
               {timestamp: 2000, value: 2},
@@ -212,6 +213,7 @@ describe('useStreamingTimeseriesResult', () => {
           },
           {
             yAxis: 'warn',
+            groupBy: [{key: 'severity', value: 'warn'}],
             values: [
               {timestamp: 1000, value: 10},
               {timestamp: 2000, value: 20},
@@ -230,6 +232,7 @@ describe('useStreamingTimeseriesResult', () => {
           },
           {
             yAxis: 'info',
+            groupBy: [{key: 'severity', value: 'info'}],
             values: [
               {timestamp: 1000, value: 100},
               {timestamp: 2000, value: 200},
@@ -262,6 +265,7 @@ describe('useStreamingTimeseriesResult', () => {
         'count(message)': [
           {
             yAxis: 'error',
+            groupBy: [{key: 'severity', value: 'error'}],
             values: [
               {timestamp: 1000, value: 1},
               {timestamp: 2000, value: 2},
@@ -280,6 +284,7 @@ describe('useStreamingTimeseriesResult', () => {
           },
           {
             yAxis: 'warn',
+            groupBy: [{key: 'severity', value: 'warn'}],
             values: [
               {timestamp: 1000, value: 10},
               {timestamp: 2000, value: 20},
@@ -298,6 +303,7 @@ describe('useStreamingTimeseriesResult', () => {
           },
           {
             yAxis: 'info',
+            groupBy: [{key: 'severity', value: 'info'}],
             values: [
               {timestamp: 1000, value: 100},
               {timestamp: 2000, value: 200},
@@ -318,6 +324,7 @@ describe('useStreamingTimeseriesResult', () => {
         'avg(payload_size)': [
           {
             yAxis: 'error',
+            groupBy: [{key: 'severity', value: 'error'}],
             values: [
               {timestamp: 1000, value: 100},
               {timestamp: 2000, value: 200},
@@ -336,6 +343,7 @@ describe('useStreamingTimeseriesResult', () => {
           },
           {
             yAxis: 'warn',
+            groupBy: [{key: 'severity', value: 'warn'}],
             values: [
               {timestamp: 1000, value: 1000},
               {timestamp: 2000, value: 2000},
@@ -354,6 +362,7 @@ describe('useStreamingTimeseriesResult', () => {
           },
           {
             yAxis: 'info',
+            groupBy: [{key: 'severity', value: 'info'}],
             values: [
               {timestamp: 1000, value: 10000},
               {timestamp: 2000, value: 20000},
@@ -363,6 +372,64 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 6000, value: 60000},
               {timestamp: 7000, value: 70000},
               {timestamp: 8000, value: 80000},
+            ],
+            meta: {
+              valueType: 'integer' as const,
+              valueUnit: null,
+              interval: 1000,
+            },
+          },
+        ],
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+      meta: undefined,
+      pageLinks: undefined,
+      isLoading: false,
+    }) as any;
+
+  const getMockMultipleGroupByTimeseries = () =>
+    ({
+      data: {
+        'count(message)': [
+          {
+            yAxis: 'error,frontend',
+            groupBy: [
+              {key: 'severity', value: 'error'},
+              {key: 'component', value: 'frontend'},
+            ],
+            values: [
+              {timestamp: 1000, value: 1},
+              {timestamp: 2000, value: 2},
+              {timestamp: 3000, value: 3},
+              {timestamp: 4000, value: 0},
+              {timestamp: 5000, value: 0},
+              {timestamp: 6000, value: 6},
+              {timestamp: 7000, value: 7},
+              {timestamp: 8000, value: 8},
+            ],
+            meta: {
+              valueType: 'integer' as const,
+              valueUnit: null,
+              interval: 1000,
+            },
+          },
+          {
+            yAxis: 'warn,backend',
+            groupBy: [
+              {key: 'severity', value: 'warn'},
+              {key: 'component', value: 'backend'},
+            ],
+            values: [
+              {timestamp: 1000, value: 10},
+              {timestamp: 2000, value: 20},
+              {timestamp: 3000, value: 30},
+              {timestamp: 4000, value: 0},
+              {timestamp: 5000, value: 0},
+              {timestamp: 6000, value: 60},
+              {timestamp: 7000, value: 70},
+              {timestamp: 8000, value: 80},
             ],
             meta: {
               valueType: 'integer' as const,
@@ -535,7 +602,7 @@ describe('useStreamingTimeseriesResult', () => {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({
             autoRefresh: 'enabled',
-            groupBy: OurLogKnownFieldKey.SEVERITY,
+            groupBy: [OurLogKnownFieldKey.SEVERITY],
           }),
         }
       );
@@ -773,7 +840,7 @@ describe('useStreamingTimeseriesResult', () => {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({
             autoRefresh: 'enabled',
-            groupBy: OurLogKnownFieldKey.SEVERITY,
+            groupBy: [OurLogKnownFieldKey.SEVERITY],
           }),
         }
       );
@@ -863,6 +930,107 @@ describe('useStreamingTimeseriesResult', () => {
           {timestamp: 6000, value: 600},
           {timestamp: 7000, value: 700},
           {timestamp: 8000, value: 800},
+          {timestamp: 9000, value: 0, incomplete: true},
+        ],
+      ]);
+    });
+  });
+
+  describe('multiple group-by fields', () => {
+    it('should handle multiple group-by fields correctly', async () => {
+      const mockTimeseriesData = getMockMultipleGroupByTimeseries();
+
+      const {result, rerender} = renderHook(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          initialProps: createMockTableData([]),
+          wrapper: createWrapper({
+            autoRefresh: 'enabled',
+            groupBy: ['severity', 'component'],
+          }),
+        }
+      );
+
+      const initialValues = result.current.data['count(message)'];
+      const flatMappedInitialValues = initialValues?.flatMap(d => [d.yAxis, d.values]);
+      expect(flatMappedInitialValues).toEqual([
+        'error,frontend',
+        [
+          {timestamp: 1000, value: 1},
+          {timestamp: 2000, value: 2},
+          {timestamp: 3000, value: 3},
+          {timestamp: 4000, value: 0},
+          {timestamp: 5000, value: 0},
+          {timestamp: 6000, value: 6},
+          {timestamp: 7000, value: 7},
+          {timestamp: 8000, value: 8},
+        ],
+        'warn,backend',
+        [
+          {timestamp: 1000, value: 10},
+          {timestamp: 2000, value: 20},
+          {timestamp: 3000, value: 30},
+          {timestamp: 4000, value: 0},
+          {timestamp: 5000, value: 0},
+          {timestamp: 6000, value: 60},
+          {timestamp: 7000, value: 70},
+          {timestamp: 8000, value: 80},
+        ],
+      ]);
+
+      const mockTableData = createMockTableData([
+        LogFixture({
+          [OurLogKnownFieldKey.ID]: '1',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          [OurLogKnownFieldKey.SEVERITY]: 'error',
+          component: 'frontend',
+        }),
+        LogFixture({
+          [OurLogKnownFieldKey.ID]: '2',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8500),
+          [OurLogKnownFieldKey.SEVERITY]: 'warn',
+          component: 'backend',
+        }),
+      ]);
+
+      rerender(mockTableData);
+
+      await waitFor(() => {
+        const mergedData = result.current.data['count(message)']?.[0]?.values;
+        expect(mergedData).toBeDefined();
+      });
+
+      const flatMappedData = result.current.data['count(message)']?.flatMap(d => [
+        d.yAxis,
+        d.values,
+      ]);
+
+      expect(flatMappedData).toEqual([
+        'error,frontend',
+        [
+          {timestamp: 2000, value: 2},
+          {timestamp: 3000, value: 3},
+          {timestamp: 4000, value: 0},
+          {timestamp: 5000, value: 0},
+          {timestamp: 6000, value: 6},
+          {timestamp: 7000, value: 7},
+          {timestamp: 8000, value: 8},
+          {timestamp: 9000, value: 1, incomplete: true},
+        ],
+        'warn,backend',
+        [
+          {timestamp: 2000, value: 20},
+          {timestamp: 3000, value: 30},
+          {timestamp: 4000, value: 0},
+          {timestamp: 5000, value: 0},
+          {timestamp: 6000, value: 60},
+          {timestamp: 7000, value: 70},
+          {timestamp: 8000, value: 81},
           {timestamp: 9000, value: 0, incomplete: true},
         ],
       ]);

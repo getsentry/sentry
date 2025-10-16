@@ -547,7 +547,6 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
-  retentions: {}
   sessionMetrics:
     version: 1
   trustedRelays: []

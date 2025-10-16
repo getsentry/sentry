@@ -1,5 +1,5 @@
 from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.detectors.url_extraction import extract_base_url
+from sentry.uptime.autodetect.url_extraction import extract_base_url
 
 
 class ExtractBaseUrlTest(UptimeTestCase):
