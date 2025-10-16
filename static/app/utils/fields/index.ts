@@ -1808,6 +1808,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The event identification number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.MESSAGE]: {
     desc: t('Error message or transaction name'),
@@ -1828,6 +1829,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated profile'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.HAS]: {
@@ -1840,6 +1842,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated Session Replay'),
     kind: FieldKind.TAG,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TIMESTAMP]: {
     desc: t('The time an event finishes'),
