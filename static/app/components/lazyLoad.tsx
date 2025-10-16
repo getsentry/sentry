@@ -42,7 +42,7 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
       <Suspense
         fallback={
           loadingFallback ?? (
-            <Flex flex="1" align="center">
+            <Flex flex="1" align="center" column="1 / -1">
               <LoadingIndicator />
             </Flex>
           )
