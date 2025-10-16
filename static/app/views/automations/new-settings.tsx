@@ -5,16 +5,14 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text/text';
 import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -145,7 +143,13 @@ export default function AutomationNewSettings() {
                 mutationErrors: error?.responseJSON,
               }}
             >
-              <AutomationBuilderContext.Provider value={{state, actions}}>
+              <AutomationBuilderContext.Provider
+                value={{
+                  state,
+                  actions,
+                  showTriggerLogicTypeSelector: false,
+                }}
+              >
                 <AutomationForm model={model} />
               </AutomationBuilderContext.Provider>
             </AutomationBuilderErrorContext.Provider>
@@ -153,7 +157,9 @@ export default function AutomationNewSettings() {
         </Layout.Body>
       </Layout.Page>
       <StickyFooter>
-        <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
+        <Text variant="muted" size="md">
+          {t('Step 2 of 2')}
+        </Text>
         <Flex gap="md">
           <LinkButton
             priority="default"

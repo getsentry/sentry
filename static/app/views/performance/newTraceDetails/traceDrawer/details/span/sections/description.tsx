@@ -2,8 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {CodeBlock} from 'sentry/components/core/code';
+import {Image} from 'sentry/components/core/image/image';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
@@ -198,6 +199,7 @@ export function SpanDescription({
       hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes: span.data,
+        spanId: span.span_id,
         op: span.op,
       })}
     />
@@ -283,16 +285,15 @@ function ResourceImage(props: {
       </FilenameContainer>
       {showImage && !hasError ? (
         <ImageWrapper>
-          <img
+          <Image
             data-test-id="sample-image"
+            alt="Resource Image"
             onError={() => setHasError(true)}
             src={src}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              objectPosition: 'center',
-            }}
+            objectFit="contain"
+            objectPosition="center"
+            width="100%"
+            height="100%"
           />
         </ImageWrapper>
       ) : (
@@ -336,7 +337,7 @@ const BodyContentWrapper = styled('div')<{padding: string}>`
   padding: ${p => p.padding};
 `;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   code {
     text-wrap: wrap;
   }

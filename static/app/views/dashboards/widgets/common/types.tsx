@@ -56,8 +56,14 @@ export type TimeSeriesItem = {
    */
   incomplete?: boolean;
   incompleteReason?: IncompleteReason;
-  sampleCount?: number;
-  sampleRate?: number;
+  /**
+   * Indicates the sample count that's associated with the data point. Might be `undefined` if the data set doesn't support extrapolation, or `null` if the extrapolation data was not known.
+   */
+  sampleCount?: number | null;
+  /**
+   * Indicates the sampling rate that's associated with the data point. Might be `undefined` if the data set doesn't support extrapolation, or `null` if the extrapolation data was not known.
+   */
+  sampleRate?: number | null;
 };
 
 /**
@@ -84,9 +90,9 @@ export type TimeSeries = {
    * Represents the grouping information for the time series, if applicable.
    * e.g., if the initial request supplied a `groupBy` query param of `"span.op"`, the
    * `groupBy` of the `TimeSeries` could be `[{key: 'span.op': value: 'db' }]`
-   * If the `excludeOther` query param is `true`, an "other" time series will be part of the response. `TimeSeries.meta.isOther` specifies the "other" time series.
+   * If the `excludeOther` query param is `true`, an "other" time series will be part of the response. `TimeSeries.meta.isOther` specifies the "other" time series, and `groupBy` is `null` in that case
    */
-  groupBy?: TimeSeriesGroupBy[];
+  groupBy?: TimeSeriesGroupBy[] | null;
 };
 
 export type TabularValueType = AttributeValueType | null;
