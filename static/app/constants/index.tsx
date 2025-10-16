@@ -586,10 +586,10 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC]: {
     name: DataCategoryExact.TRACE_METRIC,
     plural: DataCategory.TRACE_METRICS,
-    singular: 'traceMetric',
-    displayName: 'trace metric',
+    singular: 'metric',
+    displayName: 'metric',
     titleName: t('Metrics'),
-    productName: t('Trace Metrics'),
+    productName: t('Metrics'),
     uid: 31,
     isBilledCategory: false,
     statsInfo: {
