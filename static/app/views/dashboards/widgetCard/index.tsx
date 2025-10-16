@@ -37,6 +37,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
+  DashboardFilterKeys,
   DisplayType,
   OnDemandExtractionState,
   WidgetType,
@@ -312,7 +313,7 @@ function WidgetCard(props: Props) {
         .map(token => token.key.text);
     });
     const globalFilterKeys =
-      dashboardFilters?.globalFilter
+      dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
         ?.filter(filter => filter.dataset === widget.widgetType)
         .map(filter => filter.tag.key) ?? [];
 
