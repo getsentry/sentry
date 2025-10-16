@@ -749,7 +749,7 @@ class RPCBase:
         # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
         for index, row in enumerate(top_events["data"]):
             result_key = create_result_key(row, groupby_columns, {})
-            result_groupby = create_groupby_dict(row, groupby_columns, {})
+            result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key])
             final_result[result_key] = SnubaTSResult(
                 {

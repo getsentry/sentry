@@ -615,7 +615,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [
-            {"key": "foo", "value": "None"},
+            {"key": "foo", "value": None},
         ]
         assert timeseries["meta"] == {
             "dataScanned": "full",
