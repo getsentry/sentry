@@ -408,7 +408,11 @@ def _should_report_hydration_error_issue(project_id: int, use_new_cache_scheme: 
     if use_new_cache_scheme:
         return options_cache[project_id][0]
     else:
-        return ProjectOption.objects.filter(project_id=project_id, key="").first()
+        return ProjectOption.objects.get_value(
+            project_id,
+            "sentry:replay_hydration_error_issues",
+            default=False,
+        )
 
 
 @sentry_sdk.trace
@@ -419,7 +423,11 @@ def _should_report_rage_click_issue(project_id: int, use_new_cache_scheme: bool)
     if use_new_cache_scheme:
         return options_cache[project_id][1]
     else:
-        return ProjectOption.objects.filter(project_id=project_id, key="").first()
+        return ProjectOption.objects.get_value(
+            project_id,
+            "sentry:replay_rage_click_issues",
+            default=False,
+        )
 
 
 def encode_as_uuid(message: str) -> str:
