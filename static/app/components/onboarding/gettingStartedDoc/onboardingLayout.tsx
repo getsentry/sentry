@@ -15,6 +15,7 @@ import {
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {injectCopyDsnButtonIntoFirstConfigureStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
@@ -110,7 +111,16 @@ export function OnboardingLayout({
       introduction: doc.introduction?.(docParams),
       steps: [
         ...doc.install(docParams),
-        ...doc.configure(docParams),
+        ...injectCopyDsnButtonIntoFirstConfigureStep({
+          configureSteps: doc.configure(docParams),
+          dsn,
+          onCopyDsn: () => {
+            trackAnalytics('onboarding.dsn-copied', {
+              organization,
+              platform: platformKey,
+            });
+          },
+        }),
         ...doc.verify(docParams),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
