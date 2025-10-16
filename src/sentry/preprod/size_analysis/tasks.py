@@ -2,6 +2,7 @@ import logging
 from io import BytesIO
 
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.models.files.file import File
 from sentry.preprod.models import (
@@ -16,6 +17,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_ch
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
+from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe
 
 logger = logging.getLogger(__name__)
@@ -201,6 +203,21 @@ def compare_preprod_artifact_size_analysis(
                     "preprod_artifact_id": artifact_id,
                 }
             )
+
+    time_now = timezone.now()
+    e2e_size_analysis_compare_duration = time_now - artifact.date_added
+    metrics.distribution(
+        "preprod.size_analysis.compare.results_e2e",
+        e2e_size_analysis_compare_duration.total_seconds(),
+        sample_rate=1.0,
+        tags={
+            "project_id": project_id,
+            "organization_id": org_id,
+            "artifact_type": (
+                artifact.artifact_type.name.lower() if artifact.artifact_type else "unknown"
+            ),
+        },
+    )
 
 
 @instrumented_task(
