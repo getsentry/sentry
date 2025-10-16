@@ -7,8 +7,8 @@ from uuid import uuid4
 
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
-from sentry import nodestore
-from sentry.deletions.defaults.group import ErrorEventsDeletionTask, delete_group_hashes
+from sentry import deletions, nodestore
+from sentry.deletions.defaults.group import ErrorEventsDeletionTask
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -301,7 +301,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         # Delete grouphash A
         with self.tasks():
-            delete_group_hashes(self.project.id, [event_a.group_id])
+            task = deletions.get(model=Group, query={"id__in": [event_a.group_id]})
+            more = task.chunk()
+            assert not more
 
         # Grouphash A and its metadata should be deleted
         assert not GroupHash.objects.filter(id=grouphash_a.id).exists()
