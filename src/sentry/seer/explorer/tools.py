@@ -1,14 +1,19 @@
 import logging
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from sentry.api import client
+from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.seer.autofix.autofix import _get_all_tags_overview
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
@@ -230,3 +235,94 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
     trace = get_trace_waterfall(trace_id, organization_id)
     return trace.dict() if trace else {}
+
+
+SelectedEventType = Literal["oldest", "latest", "recommended"]
+
+
+def get_issue_details(
+    *, issue_id: int, organization_id: int, selected_event_type: SelectedEventType
+) -> dict[str, Any] | None:
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Organization does not exist",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        return None
+
+    org_project_ids = Project.objects.filter(
+        organization=organization, status=ObjectStatus.ACTIVE
+    ).values_list("id", flat=True)
+
+    try:
+        group: Group = Group.objects.get(project_id__in=org_project_ids, id=issue_id)
+    except Group.DoesNotExist:
+        logger.warning(
+            "Issue does not exist for organization",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        return None
+    group = cast(Group, group)
+
+    if selected_event_type == "oldest":
+        event = group.get_oldest_event()
+    elif selected_event_type == "latest":
+        event = group.get_latest_event()
+    else:
+        event = group.get_recommended_event()
+        if not event:
+            event = group.get_latest_event()
+
+    if not event:
+        logger.warning(
+            "Could not find an event for the issue",
+            extra={
+                "organization_id": organization_id,
+                "issue_id": issue_id,
+                "selected_event_type": selected_event_type,
+            },
+        )
+        return None
+
+    SELECTED_SERIALIZED_EVENT_FIELDS = ["id"]
+    serialized_event: IssueEventSerializerResponse | None = serialize(
+        event, user=None, serializer=EventSerializer()
+    )
+    serialized_event_selected = {
+        k: serialized_event.get(k) for k in SELECTED_SERIALIZED_EVENT_FIELDS
+    }
+
+    try:
+        tags_overview = _get_all_tags_overview(group)
+    except Exception:
+        logger.exception(
+            "Failed to get tags overview for issue",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        tags_overview = None
+
+    # TODO: event count, first seen last seen, status, trace_id
+
+    SELECTED_SERIALIZED_GROUP_FIELDS = ["id"]
+    serialized_group: BaseGroupSerializerResponse = serialize(
+        group, user=None, serializer=GroupSerializer(SELECTED_SERIALIZED_GROUP_FIELDS)
+    )
+    serialized_group_selected = {
+        k: serialized_group.get(k) for k in SELECTED_SERIALIZED_GROUP_FIELDS
+    }
+
+    return {
+        "project_id": group.project_id,
+        "event_count": serialized_group.get("count"),
+        "user_count": serialized_group.get("userCount"),
+        # "first_seen": group.first_seen.isoformat() if group.first_seen else None,
+        # "last_seen": group.last_seen.isoformat() if group.last_seen else None,
+        # "status": group.status,  # TODO: get label
+        # "substatus": group.substatus,
+        "tags_overview": tags_overview,
+        "serialized_issue": serialized_group_selected,
+        "event_trace_id": event.trace_id,
+        "serialized_event": serialized_event_selected,
+    }
