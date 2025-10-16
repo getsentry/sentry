@@ -127,7 +127,7 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
 
 
 @dataclass
-class SerializedNotificationTargetType:
+class SerializedNotificationTarget:
     """
     A wrapper class that handles serialization/deserialization of NotificationTargets.
     """
@@ -150,7 +150,7 @@ class SerializedNotificationTargetType:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SerializedNotificationTargetType":
+    def from_dict(cls, data: dict[str, Any]) -> "SerializedNotificationTarget":
         target_type = data["type"]
         target_data = data["target"]
 
