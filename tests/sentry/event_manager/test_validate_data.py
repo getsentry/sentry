@@ -129,9 +129,10 @@ def test_tags_out_of_bounds() -> None:
         {"message": "foo", "tags": {long_key: "value", "foo": long_value, "bar": "value"}}
     )
 
-    # Tags should be trimmed to 200 characters, not set to None
-    trimmed_key = long_key[:200]  # First 200 characters
-    trimmed_value = long_value[:200]  # First 200 characters
+    # Tags should be trimmed to 200 characters (197 chars + "..."), not set to None
+    # The normalizer trims long strings and adds ellipsis
+    trimmed_key = long_key[:197] + "..."  # 197 characters + "..."
+    trimmed_value = long_value[:197] + "..."  # 197 characters + "..."
 
     expected_tags = [["bar", "value"], [trimmed_key, "value"], ["foo", trimmed_value]]
     assert data["tags"] == expected_tags
