@@ -182,7 +182,7 @@ def create_preprod_artifact(
     base_repo_name: str | None = None,
     head_ref: str | None = None,
     base_ref: str | None = None,
-    pr_number: str | None = None,
+    pr_number: int | None = None,
 ) -> PreprodArtifact | None:
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
