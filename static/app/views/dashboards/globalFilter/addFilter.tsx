@@ -33,8 +33,8 @@ export const DATASET_CHOICES = new Map<SupportedDataset, string>([
 
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
 
-export function getDatasetLabel(dataset: SupportedDataset) {
-  return DATASET_CHOICES.get(dataset);
+export function getDatasetLabel(dataset: WidgetType) {
+  return DATASET_CHOICES.get(dataset as SupportedDataset) ?? '';
 }
 
 function getTagType(tag: Tag, dataset: SupportedDataset | null) {
