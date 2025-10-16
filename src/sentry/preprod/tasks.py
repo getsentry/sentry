@@ -453,6 +453,7 @@ def _assemble_preprod_artifact_size_analysis(
         metrics.distribution(
             "preprod.size_analysis.results_e2e",
             e2e_size_analysis_duration.total_seconds(),
+            sample_rate=1.0,
             tags={
                 "project_id": project.id,
                 "organization_id": org_id,
