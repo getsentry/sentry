@@ -21,7 +21,6 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.group import Group
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
@@ -646,8 +645,6 @@ def trigger_autofix(
             "Autofix failed to start.",
             500,
         )
-
-    ProjectOption.objects.get_value(group.project, "sentry:enable_seer_coding")
 
     check_autofix_status.apply_async(
         args=[run_id, group.organization.id], countdown=timedelta(minutes=15).seconds
