@@ -15,9 +15,10 @@ import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessin
 
 interface AppSizeInsightsProps {
   processedInsights: ProcessedInsight[];
+  platform?: string;
 }
 
-export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
+export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSidebarOpen = searchParams.get('insights') === 'open';
 
@@ -95,6 +96,7 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
         processedInsights={processedInsights}
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
+        platform={platform}
       />
     </Container>
   );

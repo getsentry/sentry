@@ -315,7 +315,10 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       )}
       <ChartContainer>{visualizationContent}</ChartContainer>
       {processedInsights.length > 0 && (
-        <AppSizeInsights processedInsights={processedInsights} />
+        <AppSizeInsights
+          processedInsights={processedInsights}
+          platform={buildDetailsData?.app_info?.platform ?? undefined}
+        />
       )}
     </Flex>
   );

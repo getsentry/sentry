@@ -16,12 +16,14 @@ interface AppSizeInsightsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   processedInsights: ProcessedInsight[];
+  platform?: string;
 }
 
 export function AppSizeInsightsSidebar({
   processedInsights,
   isOpen,
   onClose,
+  platform,
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
@@ -102,6 +104,7 @@ export function AppSizeInsightsSidebar({
                     insight={insight}
                     isExpanded={expandedInsights.has(insight.name)}
                     onToggleExpanded={() => toggleExpanded(insight.name)}
+                    platform={platform}
                   />
                 ))}
               </Flex>

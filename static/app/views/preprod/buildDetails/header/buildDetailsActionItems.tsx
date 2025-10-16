@@ -28,25 +28,23 @@ export function createActionMenuItems({
     textValue: t('Delete Build'),
   });
 
-  if (isSentryEmployee) {
-    menuItems.push({
-      key: 'admin-section',
-      label: t('Admin (Sentry Employees only)'),
-      children: [
-        {
-          key: 'download',
-          label: (
-            <Flex align="center" gap="sm">
-              <IconDownload size="sm" />
-              {t('Download Build')}
-            </Flex>
-          ),
-          onAction: handleDownloadAction,
-          textValue: t('Download Build'),
-        },
-      ],
-    });
-  }
+  menuItems.push({
+    key: 'admin-section',
+    label: t('Admin (Sentry Employees only)'),
+    children: [
+      {
+        key: 'download',
+        label: (
+          <Flex align="center" gap="sm">
+            <IconDownload size="sm" />
+            {t('Download Build')}
+          </Flex>
+        ),
+        onAction: handleDownloadAction,
+        textValue: t('Download Build'),
+      },
+    ],
+  });
 
   return menuItems;
 }

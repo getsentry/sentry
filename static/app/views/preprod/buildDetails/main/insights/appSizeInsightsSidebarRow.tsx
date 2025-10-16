@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,6 +10,8 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {FixInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/fixInsightModal';
+import {OptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
 import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
 import type {
   ProcessedInsight,
@@ -30,12 +33,20 @@ export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
   onToggleExpanded,
+  platform,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
+  platform?: string;
 }) {
   const theme = useTheme();
+  const [isFixModalOpen, setIsFixModalOpen] = useState(false);
+
+  // Only show "fix this!" button for these specific insights
+  const showFixButton =
+    insight.name === 'Optimize images' || insight.name === 'Optimize alternate app icons';
+
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
       <Flex align="start" justify="between">
@@ -60,9 +71,16 @@ export function AppSizeInsightsSidebarRow({
         </Flex>
       </Flex>
 
-      <Text variant="muted" size="sm">
-        {insight.description}
-      </Text>
+      <Flex direction="column" gap="xs">
+        <Text variant="muted" size="sm">
+          {insight.description}
+        </Text>
+        {showFixButton && (
+          <LinkText onClick={() => setIsFixModalOpen(true)}>
+            {t('See how to fix this locally →')}
+          </LinkText>
+        )}
+      </Flex>
 
       <Container>
         <Button
@@ -102,6 +120,22 @@ export function AppSizeInsightsSidebarRow({
           </Container>
         )}
       </Container>
+
+      {showFixButton && insight.name === 'Optimize alternate app icons' && (
+        <FixInsightModal
+          isOpen={isFixModalOpen}
+          onClose={() => setIsFixModalOpen(false)}
+          insightName={insight.name}
+        />
+      )}
+
+      {showFixButton && insight.name === 'Optimize images' && (
+        <OptimizeImagesModal
+          isOpen={isFixModalOpen}
+          onClose={() => setIsFixModalOpen(false)}
+          platform={platform}
+        />
+      )}
     </Flex>
   );
 }
@@ -226,4 +260,17 @@ const FlexAlternatingRow = styled('div')`
   overflow: hidden;
   gap: ${({theme}) => theme.space.lg};
   padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
+`;
+
+const LinkText = styled('span')`
+  color: ${p => p.theme.purple300};
+  font-size: ${p => p.theme.fontSize.sm};
+  cursor: pointer;
+  text-decoration: underline;
+  padding: ${p => p.theme.space.xs} 0;
+  display: inline-block;
+
+  &:hover {
+    color: ${p => p.theme.purple400};
+  }
 `;
