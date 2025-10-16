@@ -41,6 +41,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -318,7 +319,6 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           listState={state}
           hasSearch={!!filterValue}
           hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
           overlayIsOpen={isOpen}
           size="sm"
         />
@@ -413,6 +413,8 @@ export function SearchQueryBuilderCombobox<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the custom menu
     shouldCloseOnBlur: false,
+    // We handle opening and closing ourselves to prevent the combobox from opening unexpectedly
+    menuTrigger: 'manual',
     ...comboBoxProps,
   });
 
@@ -439,20 +441,31 @@ export function SearchQueryBuilderCombobox<
       },
       onKeyDown: e => {
         onKeyDown?.(e, {state});
-        switch (e.key) {
-          case 'Escape':
-            state.close();
-            onExit?.();
+
+        if (e.key === 'Escape') {
+          state.close();
+          onExit?.();
+          return;
+        }
+
+        if (e.key === 'Enter') {
+          if (isOpen && state.selectionManager.focusedKey) {
             return;
-          case 'Enter':
-            if (isOpen && state.selectionManager.focusedKey) {
-              return;
-            }
-            state.close();
-            onCustomValueCommitted(inputValue);
-            return;
-          default:
-            return;
+          }
+          state.close();
+          onCustomValueCommitted(inputValue);
+          return;
+        }
+
+        if (
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowUp' ||
+          /^\w$/i.test(e.key) ||
+          e.key === ','
+        ) {
+          if (isOpen || isCtrlKeyPressed(e)) return;
+          state.open();
+          return;
         }
       },
       onKeyUp,

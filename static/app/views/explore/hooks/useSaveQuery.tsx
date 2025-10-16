@@ -30,7 +30,7 @@ export type ExploreQueryChangedReason = {
   }> | null;
   orderby: Array<{
     orderby: string;
-    reason: string;
+    reason: string | string[];
   }> | null;
 };
 

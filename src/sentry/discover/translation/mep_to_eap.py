@@ -25,7 +25,7 @@ class QueryParts(TypedDict):
 class DroppedFields(TypedDict):
     selected_columns: list[str]
     equations: list[dict[str, list[str]]]
-    orderby: list[dict[str, str]]
+    orderby: list[dict[str, str | list[str]]]
 
 
 COLUMNS_TO_DROP = (
@@ -248,7 +248,10 @@ def translate_columns(columns, need_equation=False):
     """
     translated_columns = []
 
-    for column in columns:
+    # need to drop columns after they have been translated to avoid issues with percentile()
+    final_columns, dropped_columns = drop_unsupported_columns(columns)
+
+    for column in final_columns:
         match = fields.is_function(column)
 
         if not match:
@@ -272,10 +275,7 @@ def translate_columns(columns, need_equation=False):
         new_function = add_equation_prefix_if_needed(f"{raw_function}({new_arg})", need_equation)
         translated_columns.append(new_function)
 
-    # need to drop columns after they have been translated to avoid issues with percentile()
-    final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
-
-    return final_columns, dropped_columns
+    return translated_columns, dropped_columns
 
 
 def translate_equations(equations):
@@ -300,6 +300,11 @@ def translate_equations(equations):
             arithmetic_equation = arithmetic.strip_equation(equation)
         else:
             arithmetic_equation = equation
+
+        # case where equation is empty, don't try to parse it
+        if arithmetic_equation == "":
+            translated_equations.append(equation)
+            continue
 
         # function to flatten the parsed + updated equation
         def _flatten(seq):
@@ -357,14 +362,14 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
 
             # checks if equation index is out of bounds
             if len(equations) < equation_index + 1:
-                dropped_orderby_reason = "equation at this index doesn't exist"
+                dropped_orderby_reason = "equation issue"
 
             # if there are equations
             elif len(equations) > 0:
                 selected_equation = equations[equation_index]
                 # if equation was dropped, drop the orderby too
                 if selected_equation in dropped_equations:
-                    dropped_orderby_reason = "equation was dropped"
+                    dropped_orderby_reason = "dropped"
                     decoded_orderby = (
                         selected_equation if not is_negated else f"-{selected_equation}"
                     )
@@ -376,12 +381,12 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                         new_equation_index = new_equations.index(translated_equation)
                         translated_orderby = [f"equation[{new_equation_index}]"]
                     except (IndexError, ValueError):
-                        dropped_orderby_reason = "equation was dropped"
+                        dropped_orderby_reason = "dropped"
                         decoded_orderby = (
                             selected_equation if not is_negated else f"-{selected_equation}"
                         )
             else:
-                dropped_orderby_reason = "no equations in this query"
+                dropped_orderby_reason = "no equations"
                 decoded_orderby = orderby
 
         # if orderby is an equation
@@ -390,9 +395,7 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                 [orderby_without_neg]
             )
             if len(dropped_orderby_equation) > 0:
-                dropped_orderby_reason = "fields were dropped: " + ", ".join(
-                    dropped_orderby_equation[0]["reason"]
-                )
+                dropped_orderby_reason = dropped_orderby_equation[0]["reason"]
 
         # if orderby is a field/function
         else:
@@ -400,7 +403,7 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                 [orderby_without_neg], need_equation=True
             )
             if len(dropped_orderby) > 0:
-                dropped_orderby_reason = "fields were dropped: " + ", ".join(dropped_orderby)
+                dropped_orderby_reason = dropped_orderby
 
         # add translated orderby to the list and record dropped orderbys
         if dropped_orderby_reason is None:
