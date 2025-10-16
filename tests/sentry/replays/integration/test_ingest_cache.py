@@ -8,13 +8,13 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_has_sent_replays_cache(default_project):
+def test_has_sent_replays_cache(default_project: Project) -> None:
     default_project.update(flags=F("flags").bitor(Project.flags.has_replays))
     assert has_sent_replays_cache[default_project.id] is True
 
 
 @django_db_all
-def test_has_sent_replays_cache_missing_or_false(default_project):
+def test_has_sent_replays_cache_missing_or_false(default_project: Project) -> None:
     assert has_sent_replays_cache[default_project.id] is False
 
     # False value is still cached. This is expected behavior. In the implementation we'll

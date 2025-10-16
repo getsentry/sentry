@@ -3,8 +3,8 @@ import pytest
 from sentry.replays.lib.cache import AutoCache, BoundedFifoCache, BoundedLRUCache, TimeLimitedCache
 
 
-def test_bounded_fifo_cache():
-    cache = BoundedFifoCache(maxlen=2)
+def test_bounded_fifo_cache() -> None:
+    cache: BoundedFifoCache[int, int] = BoundedFifoCache(maxlen=2)
 
     with pytest.raises(KeyError):
         cache[0]
@@ -30,8 +30,8 @@ def test_bounded_fifo_cache():
     assert 3 in cache
 
 
-def test_bounded_lru_cache():
-    cache = BoundedLRUCache(maxlen=2)
+def test_bounded_lru_cache() -> None:
+    cache: BoundedLRUCache[int, int] = BoundedLRUCache(maxlen=2)
 
     with pytest.raises(KeyError):
         cache[0]
@@ -57,26 +57,26 @@ def test_bounded_lru_cache():
     assert 3 in cache
 
 
-def test_time_limited_cache():
-    cache = TimeLimitedCache(BoundedFifoCache(maxlen=3), maxage=0)
+def test_time_limited_cache() -> None:
+    str_cache: TimeLimitedCache[str, str] = TimeLimitedCache(BoundedFifoCache(maxlen=3), maxage=0)
 
-    cache["hello"] = "world"
+    str_cache["hello"] = "world"
     with pytest.raises(KeyError):
-        cache["hello"]
+        str_cache["hello"]
 
-    cache = TimeLimitedCache(BoundedFifoCache(maxlen=3), maxage=1)
-    cache[0] = 0
-    cache[1] = 1
-    cache[2] = 2
-    cache[3] = 3
-    assert 0 not in cache
-    assert 1 in cache
-    assert 2 in cache
-    assert 3 in cache
+    int_cache: TimeLimitedCache[int, int] = TimeLimitedCache(BoundedFifoCache(maxlen=3), maxage=1)
+    int_cache[0] = 0
+    int_cache[1] = 1
+    int_cache[2] = 2
+    int_cache[3] = 3
+    assert 0 not in int_cache
+    assert 1 in int_cache
+    assert 2 in int_cache
+    assert 3 in int_cache
 
 
-def test_auto_cache():
-    cache = AutoCache(fn=lambda n: n, cache=BoundedFifoCache(maxlen=2))
+def test_auto_cache() -> None:
+    cache: AutoCache[int, int] = AutoCache(fn=lambda n: n, cache=BoundedFifoCache(maxlen=2))
     assert cache[0] == 0
     assert cache[1] == 1
     assert cache[2] == 2
