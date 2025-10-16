@@ -67,7 +67,6 @@ class EventStream(Service):
         is_new_group_environment: bool,
         primary_hash: str | None,
         skip_consume: bool = False,
-        group_states: GroupStates | None = None,
         occurrence_id: str | None = None,
         eventstream_type: str | None = None,
     ) -> None:
@@ -83,7 +82,6 @@ class EventStream(Service):
                     "primary_hash": primary_hash,
                     "cache_key": cache_key,
                     "group_id": group_id,
-                    "group_states": group_states,
                     "occurrence_id": occurrence_id,
                     "project_id": project_id,
                     "eventstream_type": eventstream_type,
@@ -121,7 +119,6 @@ class EventStream(Service):
             is_new_group_environment,
             primary_hash,
             skip_consume,
-            group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
             eventstream_type=eventstream_type,
         )
