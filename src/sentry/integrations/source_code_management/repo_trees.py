@@ -13,7 +13,7 @@ from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
-
+METRICS_KEY_PREFIX = "integrations.source_code_management"
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
@@ -64,12 +64,12 @@ class RepoTreesIntegration(ABC):
 
     def get_trees_for_org(self) -> dict[str, RepoTree]:
         trees = {}
-        with metrics.timer("integrations.source_code_management.populate_repositories.duration"):
+        with metrics.timer(f"{METRICS_KEY_PREFIX}.populate_repositories.duration"):
             repositories = self._populate_repositories()
         if not repositories:
             logger.warning("Fetching repositories returned an empty list.")
         else:
-            with metrics.timer("integrations.source_code_management.populate_trees.duration"):
+            with metrics.timer(f"{METRICS_KEY_PREFIX}.populate_trees.duration"):
                 trees = self._populate_trees(repositories)
 
         return trees
@@ -97,7 +97,7 @@ class RepoTreesIntegration(ABC):
             ]
 
         metrics.incr(
-            "integrations.source_code_management.populate_repositories",
+            f"{METRICS_KEY_PREFIX}.populate_repositories",
             tags={"cached": use_cache, "integration": self.integration_name},
         )
 
@@ -126,7 +126,7 @@ class RepoTreesIntegration(ABC):
             )
 
         metrics.incr(
-            "integrations.source_code_management.populate_trees",
+            f"{METRICS_KEY_PREFIX}.populate_trees",
             tags={"cached": use_cache, "integration": self.integration_name},
         )
 
@@ -215,12 +215,19 @@ class RepoTreesIntegration(ABC):
                 # being acceptable to sometimes not having everything cached
                 cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
 
-            metrics.incr("integrations.source_code_management.get_repo_files.cache_set")
+            metrics.incr(
+                f"{METRICS_KEY_PREFIX}.get_tree",
+                tags={"fetched": tree is not None, "integration": self.integration_name},
+            )
 
-        # Determine source based on whether we actually fetched from API
-        source = "api" if use_api else "cache"
-
-        metrics.incr("integrations.source_code_management.get_repo_files", tags={"source": source})
+        metrics.incr(
+            f"{METRICS_KEY_PREFIX}.get_repo_files",
+            tags={
+                "cached": not use_api,
+                "only_source_code_files": only_source_code_files,
+                "integration": self.integration_name,
+            },
+        )
 
         return repo_files
 
