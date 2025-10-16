@@ -33,6 +33,9 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
       .filter(entry => entry.displayName && typeof entry.displayName === 'string')
       .map(entry => [entry.displayName, {...entry, filename: this.resourcePath}])
   );
+
+  // @ts-expect-error we are accessing a private property
+  typeIndex._importPath = this._module.rawRequest;
   return callback(null, `export default ${JSON.stringify(typeIndex)}`);
 }
 
