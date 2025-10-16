@@ -2,7 +2,6 @@ import {useMemo, useRef} from 'react';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import SplitPanel from 'sentry/components/splitPanel';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -14,7 +13,6 @@ import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -23,13 +21,14 @@ import {
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricPanelProps {
+  queryIndex: number;
   traceMetric: TraceMetric;
 }
 
 const MIN_LEFT_WIDTH = 400;
 const MIN_RIGHT_WIDTH = 400;
 
-export function MetricPanel({traceMetric}: MetricPanelProps) {
+export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const visualize = useMetricVisualize();
   const groupBys = useQueryParamsGroupBys();
   const measureRef = useRef<HTMLDivElement>(null);
@@ -65,16 +64,18 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
 
   return (
     <Panel>
-      <PanelHeader>
-        <MetricToolbar traceMetric={traceMetric} />
-      </PanelHeader>
       <PanelBody>
         <div ref={measureRef}>
           {hasSize ? (
             <SplitPanel
               availableSize={width}
               left={{
-                content: <MetricsGraph timeseriesResult={timeseriesResult} />,
+                content: (
+                  <MetricsGraph
+                    timeseriesResult={timeseriesResult}
+                    queryIndex={queryIndex}
+                  />
+                ),
                 default: width * 0.65,
                 min: MIN_LEFT_WIDTH,
                 max: width - MIN_RIGHT_WIDTH,

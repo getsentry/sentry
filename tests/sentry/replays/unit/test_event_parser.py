@@ -287,6 +287,31 @@ def test_parse_highlighted_events_with_tap_event() -> None:
     assert builder.result.tap_events[0].view_id == "send_user_feedback"
 
 
+def test_parse_highlighted_events_with_tap_event_missing_fields() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {},
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 1
+    assert builder.result.tap_events[0].timestamp == int(1758523985.314)
+    assert builder.result.tap_events[0].message == "send_user_feedback"
+    assert builder.result.tap_events[0].view_class == ""
+    assert builder.result.tap_events[0].view_id == ""
+
+
 # Click parsing.
 
 

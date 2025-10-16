@@ -48,6 +48,7 @@ dependencies = [
     "maxminddb>=2.3.0",
     "mistune>=2.0.4",
     "mmh3>=4.0.0",
+    "msgspec>=0.19.0",
     "msgpack>=1.1.0",
     "openai>=1.3.5",
     "orjson>=3.10.10",
@@ -96,6 +97,7 @@ dependencies = [
     "structlog>=22.1.0",
     "symbolic>=12.14.1",
     "tiktoken>=0.8.0",
+    "tokenizers>=0.22.0",
     "tldextract>=5.1.2",
     "toronado>=0.1.0",
     "typing-extensions>=4.12.0",
@@ -294,6 +296,7 @@ module = [
     "onelogin.saml2.idp_metadata_parser.*",
     "rb.*",
     "statsd.*",
+    "tokenizers.*",
     "u2flib_server.model.*",
 ]
 ignore_missing_imports = true
