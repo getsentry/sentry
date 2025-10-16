@@ -92,6 +92,10 @@ jobs:
         run: |
           pre-commit install-hooks
 
+      - name: 'Setup sentry env'
+        uses: ./.github/actions/setup-sentry
+        id: setup
+
       - name: Run pre-commit on PR commits
         run: |
           jq '.[]' --raw-output <<< '${{steps.changes.outputs.all_files}}' |

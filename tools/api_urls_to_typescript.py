@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # flake8: noqa: S002
 
 import re
@@ -155,12 +156,16 @@ def _process_single_pattern(pattern: str) -> str:
     return route
 
 
-if __name__ == "__main__":
+def main() -> int:
     import sys
 
-    from sentry.runner import configure
+    try:
+        from sentry.runner import configure
 
-    configure()
+        configure()
+    except ImportError:
+        # unable to import sentry.runner, so we're not in a sentry project
+        return 0
 
     from sentry.api.urls import urlpatterns
 
@@ -185,3 +190,8 @@ if __name__ == "__main__":
                     "\n".join([f"  | '{r}'" for r in route_patterns]) + ";\n",
                 ]
             )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
