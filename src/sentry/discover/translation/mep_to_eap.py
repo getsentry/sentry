@@ -248,7 +248,10 @@ def translate_columns(columns, need_equation=False):
     """
     translated_columns = []
 
-    for column in columns:
+    # need to drop columns after they have been translated to avoid issues with percentile()
+    final_columns, dropped_columns = drop_unsupported_columns(columns)
+
+    for column in final_columns:
         match = fields.is_function(column)
 
         if not match:
@@ -272,10 +275,7 @@ def translate_columns(columns, need_equation=False):
         new_function = add_equation_prefix_if_needed(f"{raw_function}({new_arg})", need_equation)
         translated_columns.append(new_function)
 
-    # need to drop columns after they have been translated to avoid issues with percentile()
-    final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
-
-    return final_columns, dropped_columns
+    return translated_columns, dropped_columns
 
 
 def translate_equations(equations):

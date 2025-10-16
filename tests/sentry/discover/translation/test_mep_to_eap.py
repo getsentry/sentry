@@ -145,7 +145,7 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
         pytest.param(
             ["any(transaction.duration)", "count_miserable(user,300)", "transaction", "count()"],
             ["transaction", "count(span.duration)"],
-            ["any(span.duration)", "count_miserable(user,300)"],
+            ["any(transaction.duration)", "count_miserable(user,300)"],
         ),
         pytest.param(
             ["platform.name", "count()"],
@@ -346,7 +346,7 @@ def test_mep_to_eap_simple_equations(
                 },
                 {
                     "orderby": "any(transaction.duration)",
-                    "reason": ["any(span.duration)"],
+                    "reason": ["any(transaction.duration)"],
                 },
             ],
         ),
