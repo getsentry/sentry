@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.models.options.project_option import ProjectOption
 from sentry.replays.lib.eap.write import write_trace_items
 from sentry.replays.lib.kafka import publish_replay_event
+from sentry.replays.usecases.ingest.cache import options_cache
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta, TapEvent
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
@@ -298,6 +299,7 @@ def report_hydration_error(
     project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    use_new_cache_scheme: bool,
 ) -> None:
     metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
 
@@ -372,9 +374,10 @@ def report_rage_click(
     project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    use_new_cache_scheme: bool,
 ) -> None:
     clicks = list(gen_rage_clicks(event_meta, project_id, replay_id, replay_event))
-    if len(clicks) == 0 or not _should_report_rage_click_issue(project_id):
+    if len(clicks) == 0 or not _should_report_rage_click_issue(project_id, use_new_cache_scheme):
         return None
 
     metrics.incr("replay.rage_click_detected", amount=len(clicks))
@@ -398,27 +401,25 @@ def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
 
 
 @sentry_sdk.trace
-def _should_report_hydration_error_issue(project_id: int) -> bool:
+def _should_report_hydration_error_issue(project_id: int, use_new_cache_scheme: bool) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    return ProjectOption.objects.get_value(
-        project_id,
-        "sentry:replay_hydration_error_issues",
-        default=False,
-    )
+    if use_new_cache_scheme:
+        return options_cache[project_id][0]
+    else:
+        return ProjectOption.objects.filter(project_id=project_id, key="").first()
 
 
 @sentry_sdk.trace
-def _should_report_rage_click_issue(project_id: int) -> bool:
+def _should_report_rage_click_issue(project_id: int, use_new_cache_scheme: bool) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    return ProjectOption.objects.get_value(
-        project_id,
-        "sentry:replay_rage_click_issues",
-        default=False,
-    )
+    if use_new_cache_scheme:
+        return options_cache[project_id][1]
+    else:
+        return ProjectOption.objects.filter(project_id=project_id, key="").first()
 
 
 def encode_as_uuid(message: str) -> str:

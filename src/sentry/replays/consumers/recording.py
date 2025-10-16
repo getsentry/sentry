@@ -194,7 +194,10 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 @sentry_sdk.trace
 def commit_message(message: ProcessedEvent) -> None:
     try:
-        commit_recording_message(message)
+        commit_recording_message(
+            recording=message,
+            use_new_cache_scheme=options.get("replay.consumer.enable_new_query_caching_system"),
+        )
         track_recording_metadata(message)
         return None
     except GCS_RETRYABLE_ERRORS:
