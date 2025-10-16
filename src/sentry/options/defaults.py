@@ -3161,6 +3161,13 @@ register(
 )
 
 register(
+    "workflow_engine.sentry-app-actions-outbox",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "workflow_engine.num_cohorts",
     type=Int,
     default=1,
@@ -3555,6 +3562,14 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with LLM issue detection enabled
+register(
+    "issue-detection.llm-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
