@@ -96,6 +96,14 @@ class TableRequest:
     columns: list[AnyResolved]
 
 
+def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
+    for row in timeseries:
+        for axis in y_axes:
+            if row[axis] and row[axis] != 0:
+                return True
+    return False
+
+
 class RPCBase:
     """Utility Methods"""
 
@@ -803,7 +811,7 @@ class RPCBase:
         # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
         for index, row in enumerate(top_events["data"]):
             result_key = create_result_key(row, groupby_columns, {})
-            result_groupby = create_groupby_dict(row, groupby_columns, {})
+            result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key])
             final_result[result_key] = SnubaTSResult(
                 {
@@ -822,19 +830,20 @@ class RPCBase:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries]
             )
-            final_result[OTHER_KEY] = SnubaTSResult(
-                {
-                    "data": result.timeseries,
-                    "processed_timeseries": result,
-                    "order": limit,
-                    "meta": final_meta,
-                    "groupby": None,
-                    "is_other": True,
-                },
-                params.start,
-                params.end,
-                params.granularity_secs,
-            )
+            if check_timeseries_has_data(result.timeseries, y_axes):
+                final_result[OTHER_KEY] = SnubaTSResult(
+                    {
+                        "data": result.timeseries,
+                        "processed_timeseries": result,
+                        "order": index + 1,
+                        "meta": final_meta,
+                        "groupby": None,
+                        "is_other": True,
+                    },
+                    params.start,
+                    params.end,
+                    params.granularity_secs,
+                )
         return final_result
 
     """ Other Methods """
