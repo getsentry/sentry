@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import type {DatasetSearchBarData} from 'sentry/views/dashboards/hooks/useSearchBarData';
+import type {DatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 

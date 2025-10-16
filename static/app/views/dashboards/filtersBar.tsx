@@ -21,8 +21,8 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter, {
   type SupportedDataset,
 } from 'sentry/views/dashboards/globalFilter/addFilter';
+import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
-import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useSearchBarData';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 
 import FilterSelector from './globalFilter/filterSelector';
