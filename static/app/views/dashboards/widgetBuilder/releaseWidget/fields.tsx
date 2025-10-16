@@ -232,6 +232,50 @@ export const SESSIONS_OPERATIONS: Readonly<
       },
     ],
   },
+  unhealthy_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  abnormal_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  errored_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  unhandled_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
 };
 
 export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.status'];
