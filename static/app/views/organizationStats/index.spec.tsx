@@ -502,6 +502,36 @@ describe('OrganizationStats', () => {
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
+  it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
+      },
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg.organization,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
+  });
+
+  it('does not show Metrics category when tracemetrics-stats feature flag is disabled', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['team-insights'],
+      },
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg.organization,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
+  });
+
   it('denies access on no projects', async () => {
     act(() => ProjectsStore.loadInitialData([]));
 
