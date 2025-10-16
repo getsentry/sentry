@@ -129,7 +129,6 @@ function MonitorTypeField() {
 const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  max-width: ${p => p.theme.breakpoints.xl};
   gap: ${p => p.theme.space.xl};
 `;
 

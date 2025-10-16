@@ -5,11 +5,11 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
-export function NewDetectorFooter() {
+export function NewDetectorFooter({maxWidth}: {maxWidth?: string}) {
   const organization = useOrganization();
 
   return (
-    <EditLayout.Footer label={t('Step 2 of 2')}>
+    <EditLayout.Footer label={t('Step 2 of 2')} maxWidth={maxWidth}>
       <LinkButton
         priority="default"
         to={`${makeMonitorBasePathname(organization.slug)}new/`}

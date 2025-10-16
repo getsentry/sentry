@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -40,6 +42,8 @@ export default function DetectorNew() {
   useWorkflowEngineFeatureGate({redirect: true});
   const location = useLocation();
   const {projects} = useProjects();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
   const detectorType = location.query.detectorType as DetectorType;
 
   const projectIdFromLocation =
@@ -70,19 +74,21 @@ export default function DetectorNew() {
     <EditLayout formProps={formProps}>
       <SentryDocumentTitle title={newMonitorName} />
 
-      <EditLayout.Header>
+      <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs />
           <EditLayout.Title title={newMonitorName} />
         </EditLayout.HeaderContent>
-        <MonitorFeedbackButton />
+        <div>
+          <MonitorFeedbackButton />
+        </div>
       </EditLayout.Header>
 
-      <EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>
         <DetectorTypeForm />
       </EditLayout.Body>
 
-      <EditLayout.Footer label={t('Step 1 of 2')}>
+      <EditLayout.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
         <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
