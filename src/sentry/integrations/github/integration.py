@@ -73,6 +73,7 @@ from sentry.organizations.services.organization.model import (
 from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
+from sentry.silo.base import control_silo_function
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
@@ -264,15 +265,18 @@ class GitHubIntegration(
 
         return self._credential_lease_from_model()
 
+    @control_silo_function
     def force_refresh_access_token(self) -> CredentialLease:
         raise NotImplementedError("Force refresh access token is not supported for GitHub")
 
+    @control_silo_function
     def get_active_access_token(self) -> CredentialLease:
         self._update_integration_model()
         access_token_data = self.get_client().get_access_token()
         assert access_token_data is not None, "Expected Integration to have an access token"
         return self._credential_lease_from_model()
 
+    @control_silo_function
     def get_current_access_token_expiration(self) -> datetime | None:
         self._update_integration_model()
         expiration = self.model.metadata.get("expires_at")
@@ -280,6 +284,7 @@ class GitHubIntegration(
             return None
         return datetime.fromisoformat(expiration).astimezone(UTC)
 
+    @control_silo_function
     def _credential_lease_from_model(self) -> CredentialLease:
         expiration_time = None
         # Annoying quirk that the underlying client may update the integration
