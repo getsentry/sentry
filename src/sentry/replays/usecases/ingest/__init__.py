@@ -392,7 +392,7 @@ def _track_initial_segment_event_new(
 
     track_outcome(
         org_id=org_id,
-        project_id=project.id,
+        project_id=project_id,
         key_id=key_id,
         outcome=Outcome.ACCEPTED,
         reason=None,
