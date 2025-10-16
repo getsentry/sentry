@@ -136,6 +136,7 @@ def test_convert_span_to_item() -> None:
         "sentry.segment_id": AnyValue(string_value="8873a98879faf06d"),
         "sentry.segment.name": AnyValue(string_value="/api/0/relays/projectconfigs/"),
         "sentry.server_sample_rate": AnyValue(double_value=0.2),
+        "sentry.start_timestamp_ms": AnyValue(int_value=1721319572616),
         "sentry.start_timestamp_precise": AnyValue(double_value=1721319572.616648),
         "sentry.status_code": AnyValue(string_value="200"),
         "sentry.status": AnyValue(string_value="ok"),
