@@ -449,10 +449,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
             operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
             event_type=event,
         ).capture() as lifecycle:
+            extras = {
+                "sentry_app_id": sentry_app_id,
+                "organization_id": organization_id,
+                "action_id": action_id,
+                "incident_id": incident_id,
+                "notification_uuid": notification_uuid,
+            }
+            lifecycle.add_extras(extras)
             try:
                 sentry_app = SentryApp.objects.get(id=sentry_app_id)
             except SentryApp.DoesNotExist as e:
-                sentry_sdk.capture_exception(e)
                 lifecycle.record_failure(e)
                 return False
 
@@ -463,7 +470,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
                     status=SentryAppInstallationStatus.INSTALLED,
                 )
             except SentryAppInstallation.DoesNotExist as e:
-                sentry_sdk.capture_exception(e)
                 lifecycle.record_failure(e)
                 return False
 
@@ -482,6 +488,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         # On success, record analytic event for Metric Alert Rule UI Component
         alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
+        logger.info("sentry_app.metric_alert.sent", extra=extras)
 
         if alert_rule_action_ui_component:
             try:
