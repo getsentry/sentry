@@ -2,8 +2,15 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {
+  getDatasetConfig,
+  type SearchBarData,
+} from 'sentry/views/dashboards/datasetConfig/base';
 import AddFilter, {DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {
+  useDatasetSearchBarData,
+  type DatasetSearchBarData,
+} from 'sentry/views/dashboards/hooks/useSearchBarData';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 // Mock getDatasetConfig
@@ -34,17 +41,22 @@ describe('AddFilter', () => {
     },
   };
 
-  const mockUseSearchBarDataProvider = jest.fn(() => ({
-    getFilterKeys: () => mockFilterKeys,
-  }));
+  const createMockSearchBarData = (): SearchBarData => ({
+    getFilterKeys: jest.fn(() => mockFilterKeys),
+    getFilterKeySections: jest.fn(() => []),
+    getTagValues: jest.fn(() => Promise.resolve([])),
+  });
+
+  const mockDatasetSearchBarData: DatasetSearchBarData = {
+    [WidgetType.ERRORS]: createMockSearchBarData(),
+    [WidgetType.LOGS]: createMockSearchBarData(),
+    [WidgetType.SPANS]: createMockSearchBarData(),
+    [WidgetType.ISSUE]: createMockSearchBarData(),
+    [WidgetType.RELEASE]: createMockSearchBarData(),
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-
-    // Mock getDatasetConfig that returns a config with a mock search bar data provider
-    jest.mocked(getDatasetConfig).mockReturnValue({
-      useSearchBarDataProvider: mockUseSearchBarDataProvider,
-    } as any);
   });
 
   afterEach(() => {
@@ -52,7 +64,9 @@ describe('AddFilter', () => {
   });
 
   it('renders all dataset options', async () => {
-    render(<AddFilter onAddFilter={() => {}} />);
+    render(
+      <AddFilter datasetSearchBarData={mockDatasetSearchBarData} onAddFilter={() => {}} />
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
     for (const dataset of DATASET_CHOICES.values()) {
       expect(screen.getByText(dataset)).toBeInTheDocument();
@@ -60,20 +74,19 @@ describe('AddFilter', () => {
   });
 
   it('retrieves filter keys for each dataset', async () => {
-    render(<AddFilter onAddFilter={() => {}} />);
+    render(
+      <AddFilter datasetSearchBarData={mockDatasetSearchBarData} onAddFilter={() => {}} />
+    );
 
     // Open the add global filter drop down
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
 
-    // Verify search bar data provider was called for each dataset type
-    for (const [widgetType] of DATASET_CHOICES.entries()) {
-      expect(getDatasetConfig).toHaveBeenCalledWith(widgetType);
-    }
-    expect(mockUseSearchBarDataProvider).toHaveBeenCalledTimes(DATASET_CHOICES.size);
-
     // Verify filter keys are shown for each dataset
-    for (const datasetLabel of DATASET_CHOICES.values()) {
+    for (const [widgetType, datasetLabel] of DATASET_CHOICES.entries()) {
       await userEvent.click(screen.getByText(datasetLabel));
+
+      // Verify corresponding dataset filter key getter was called once
+      expect(mockDatasetSearchBarData[widgetType].getFilterKeys).toHaveBeenCalledTimes(1);
 
       // Should see filter key options for the dataset
       expect(screen.getByText('Select Filter Tag')).toBeInTheDocument();
@@ -86,7 +99,9 @@ describe('AddFilter', () => {
   });
 
   it('does not render unsupported filter keys', async () => {
-    render(<AddFilter onAddFilter={() => {}} />);
+    render(
+      <AddFilter datasetSearchBarData={mockDatasetSearchBarData} onAddFilter={() => {}} />
+    );
 
     // Open the dropdown and select an arbitrary dataset
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
@@ -103,7 +118,12 @@ describe('AddFilter', () => {
 
   it('calls onAddFilter with expected global filter object', async () => {
     const onAddFilter = jest.fn();
-    render(<AddFilter onAddFilter={onAddFilter} />);
+    render(
+      <AddFilter
+        datasetSearchBarData={mockDatasetSearchBarData}
+        onAddFilter={onAddFilter}
+      />
+    );
 
     // Open add global filter drop down
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
