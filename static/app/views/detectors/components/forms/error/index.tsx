@@ -100,7 +100,7 @@ export function NewErrorDetectorForm() {
   return (
     <Layout.Page>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LoadingError message={t('Error detectors cannot be created')} />
         </Layout.Main>
       </Layout.Body>

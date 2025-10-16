@@ -151,7 +151,7 @@ export function HTTPDomainSummaryPage() {
 
       <ModuleFeature moduleName={ModuleName.HTTP}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             {domain === '' && (
               <Alert.Container>
                 <Alert type="info" showIcon={false}>

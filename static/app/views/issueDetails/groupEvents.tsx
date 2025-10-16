@@ -56,7 +56,7 @@ function GroupEvents({group}: GroupEventsProps) {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <AllEventsFilters>
           <EventSearch
             environments={environments}

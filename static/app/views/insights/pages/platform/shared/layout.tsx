@@ -49,7 +49,7 @@ export function PlatformLandingPageLayout({children}: {children: React.ReactNode
       renderDisabled={NoAccess}
     >
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>

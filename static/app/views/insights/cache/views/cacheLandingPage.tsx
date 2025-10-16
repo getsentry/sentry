@@ -101,7 +101,7 @@ export function CacheLandingPage() {
     <React.Fragment>
       <ModuleFeature moduleName={ModuleName.CACHE}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ModulePageFilterBar moduleName={ModuleName.CACHE} />

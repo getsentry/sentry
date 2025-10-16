@@ -328,7 +328,7 @@ export default function ReleasesList() {
       <NoProjectMessage organization={organization}>
         <Header />
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ReleaseHealthCTA
               organization={organization}
               releases={releases}

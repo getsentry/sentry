@@ -202,7 +202,7 @@ function AlertRulesList() {
       <PageFiltersContainer>
         <AlertHeader activeTab="rules" />
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}

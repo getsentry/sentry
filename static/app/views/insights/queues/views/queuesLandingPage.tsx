@@ -73,7 +73,7 @@ function QueuesLandingPage() {
     <Fragment>
       <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ModulePageFilterBar moduleName={ModuleName.QUEUE} />

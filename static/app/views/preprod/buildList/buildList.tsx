@@ -54,7 +54,7 @@ export default function BuildList() {
         </Layout.Header>
 
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <Flex direction="column" gap="md">
               <PreprodBuildsTable
                 builds={builds}

@@ -61,7 +61,7 @@ export default function AutomationNew() {
           <AutomationFeedbackButton />
         </StyledLayoutHeader>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ConnectMonitorsContent
               initialIds={connectedIds}
               saveConnectedIds={setConnectedIds}

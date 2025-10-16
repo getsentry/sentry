@@ -226,7 +226,7 @@ export function Am1BackendOverviewPage() {
       renderDisabled={NoAccess}
     >
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>

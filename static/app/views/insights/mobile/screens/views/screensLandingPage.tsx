@@ -248,7 +248,7 @@ function ScreensLandingPage() {
         <PageAlertProvider>
           <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <Container>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector onChange={handleProjectChange} />

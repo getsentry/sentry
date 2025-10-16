@@ -84,7 +84,7 @@ export default function SavedQueriesView() {
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <SavedQueriesLandingContent />
           </Layout.Main>
         </Layout.Body>

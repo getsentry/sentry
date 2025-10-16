@@ -94,7 +94,7 @@ export default function UptimeOverview() {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <Filters>
             <PageFilterBar>
               <ProjectPageFilter resetParamsOnChange={['cursor']} />

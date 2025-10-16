@@ -134,7 +134,7 @@ export default function AutomationNewSettings() {
           <AutomationFeedbackButton />
         </StyledLayoutHeader>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,

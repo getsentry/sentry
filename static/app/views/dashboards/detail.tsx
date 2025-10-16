@@ -1140,7 +1140,7 @@ class DashboardDetail extends Component<Props, State> {
                     </Layout.HeaderActions>
                   </Layout.Header>
                   <Layout.Body>
-                    <Layout.Main fullWidth>
+                    <Layout.Main width="full">
                       <MetricsCardinalityProvider
                         organization={organization}
                         location={location}

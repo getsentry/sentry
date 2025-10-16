@@ -124,7 +124,7 @@ function GroupActivity({group}: GroupActivityProps) {
     <Fragment>
       {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
         reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ReprocessedBox
             reprocessActivity={mostRecentActivity as GroupActivityReprocess}
             groupCount={groupCount}

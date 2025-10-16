@@ -168,7 +168,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </Flex>
         </StyledLayoutHeader>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,

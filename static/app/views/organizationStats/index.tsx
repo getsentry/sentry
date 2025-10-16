@@ -386,7 +386,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
               noTeamInsightsHeader
             )}
             <div>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <HookHeader organization={organization} />
                 <ControlsWrapper>
                   {this.renderProjectPageControl()}
