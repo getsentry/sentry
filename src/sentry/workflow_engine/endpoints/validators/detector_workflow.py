@@ -17,37 +17,40 @@ from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 
+# Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
+SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
+USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
+
 
 def is_system_created_detector(detector: Detector) -> bool:
     return detector.type in (ErrorGroupType.slug,)
 
 
 def can_edit_system_created_detectors(request: Request) -> bool:
-    """
-    Only those with organization write permissions can edit system-created detectors
-    (e.g. error detectors).
-    """
-    return request.access.has_scope("org:write")
+    return request.access.has_any_scope(SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES)
 
 
-def has_alert_write_access(request: Request, project: Project) -> bool:
-    return can_edit_system_created_detectors(request) or request.access.has_project_scope(
-        project, "alerts:write"
-    )
+def can_edit_user_created_detectors(request: Request, project: Project) -> bool:
+    return request.access.has_any_project_scope(project, USER_CREATED_DETECTOR_REQUIRED_SCOPES)
 
 
 def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     """
     Determine if the requesting user has access to edit the given detectors.
     """
-    if any(is_system_created_detector(detector) for detector in detectors):
-        return can_edit_system_created_detectors(request)
+    required_scopes = (
+        SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
+        if any(is_system_created_detector(detector) for detector in detectors)
+        else USER_CREATED_DETECTOR_REQUIRED_SCOPES
+    )
 
     projects = Project.objects.filter(
         id__in=detectors.values_list("project_id", flat=True).distinct()
     )
 
-    return all(has_alert_write_access(request, project) for project in projects)
+    return all(
+        request.access.has_any_project_scope(project, required_scopes) for project in projects
+    )
 
 
 def can_edit_detector(detector: Detector, request: Request) -> bool:
@@ -59,7 +62,7 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     if is_system_created_detector(detector) and not can_edit_system_created_detectors(request):
         return False
 
-    return has_alert_write_access(request, detector.project)
+    return can_edit_user_created_detectors(request, detector.project)
 
 
 def can_edit_detector_workflow_connections(detector: Detector, request: Request) -> bool:
@@ -67,7 +70,7 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
     which is slightly different from full edit access which differs by detector type.
     """
-    return has_alert_write_access(request, detector.project)
+    return can_edit_user_created_detectors(request, detector.project)
 
 
 def validate_detectors_exist_and_have_permissions(
