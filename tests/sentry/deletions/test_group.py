@@ -267,7 +267,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 "platform": "python",
                 "exception": {"values": [{"type": "ValueError", "value": "Error A"}]},
             },
-            # default_event_type=EventType.DEFAULT,
             project_id=self.project.id,
         )
         grouphash_a = GroupHash.objects.filter(group_id=event_a.group_id).first()
@@ -281,7 +280,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 "platform": "python",
                 "exception": {"values": [{"type": "TypeError", "value": "Error B"}]},
             },
-            # default_event_type=EventType.DEFAULT,
             project_id=self.project.id,
         )
         grouphash_b = GroupHash.objects.filter(group_id=event_b.group_id).first()
