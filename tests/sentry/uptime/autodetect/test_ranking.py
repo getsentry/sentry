@@ -4,7 +4,7 @@ from unittest import mock
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.detectors.ranking import (
+from sentry.uptime.autodetect.ranking import (
     _get_cluster,
     add_base_url_to_rank,
     build_org_projects_key,
@@ -14,8 +14,8 @@ from sentry.uptime.detectors.ranking import (
     get_candidate_urls_for_project,
     get_organization_bucket,
     get_project_base_url_rank_key,
-    should_detect_for_organization,
-    should_detect_for_project,
+    should_autodetect_for_organization,
+    should_autodetect_for_project,
 )
 
 
@@ -87,8 +87,8 @@ class AddBaseUrlToRankTest(UptimeTestCase):
 
     def test_trim(self) -> None:
         with (
-            mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1),
-            mock.patch("sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2),
+            mock.patch("sentry.uptime.autodetect.ranking.RANKED_TRIM_CHANCE", new=1),
+            mock.patch("sentry.uptime.autodetect.ranking.RANKED_MAX_SIZE", new=2),
         ):
             key = get_project_base_url_rank_key(self.project)
             url_1 = "https://sentry.io"
@@ -185,24 +185,24 @@ class DeleteOrganizationBucketTest(UptimeTestCase):
 
 class ShouldDetectForProjectTest(UptimeTestCase):
     def test(self) -> None:
-        assert should_detect_for_project(self.project)
+        assert should_autodetect_for_project(self.project)
         self.project.update_option("sentry:uptime_autodetection", False)
-        assert not should_detect_for_project(self.project)
+        assert not should_autodetect_for_project(self.project)
         self.project.update_option("sentry:uptime_autodetection", True)
-        assert should_detect_for_project(self.project)
+        assert should_autodetect_for_project(self.project)
 
 
 class ShouldDetectForOrgTest(UptimeTestCase):
     def test(self) -> None:
-        assert should_detect_for_organization(self.organization)
+        assert should_autodetect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", False)
-        assert not should_detect_for_organization(self.organization)
+        assert not should_autodetect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", True)
-        assert should_detect_for_organization(self.organization)
+        assert should_autodetect_for_organization(self.organization)
 
     def test_quota(self) -> None:
-        assert should_detect_for_organization(self.organization)
+        assert should_autodetect_for_organization(self.organization)
         detector = self.create_uptime_detector()
-        assert not should_detect_for_organization(self.organization)
+        assert not should_autodetect_for_organization(self.organization)
         detector.delete()
-        assert should_detect_for_organization(self.organization)
+        assert should_autodetect_for_organization(self.organization)
