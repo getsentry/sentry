@@ -8,5 +8,7 @@ declare namespace TypeLoader {
   type ComponentDoc = import('react-docgen-typescript').ComponentDoc;
   interface ComponentDocWithFilename extends ComponentDoc {
     filename: string;
+    module: string;
+    importPath: string;
   }
 }

@@ -31,11 +31,20 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
   const typeIndex = Object.fromEntries(
     entries
       .filter(entry => entry.displayName && typeof entry.displayName === 'string')
-      .map(entry => [entry.displayName, {...entry, filename: this.resourcePath}])
+      .map(entry => {
+        const module = extractRequest(this._module);
+        return [
+          entry.displayName,
+          {
+            ...entry,
+            filename: this.resourcePath,
+            module,
+            importPath: `import { ${entry.displayName} } from '${module}'`,
+          },
+        ];
+      })
   );
 
-  // @ts-expect-error we are accessing a private property
-  typeIndex._importPath = this._module.rawRequest;
   return callback(null, `export default ${JSON.stringify(typeIndex)}`);
 }
 
@@ -52,4 +61,11 @@ export default function typeLoader(this: LoaderContext<any>, _source: string) {
   return STORYBOOK_TYPES
     ? prodTypeloader.call(this, _source)
     : noopTypeLoader.call(this, _source);
+}
+
+function extractRequest(module: LoaderContext<any>['_module']) {
+  if (!module || !('rawRequest' in module) || typeof module.rawRequest !== 'string') {
+    return '';
+  }
+  return module.rawRequest.split('!')?.at(-1) ?? '';
 }
