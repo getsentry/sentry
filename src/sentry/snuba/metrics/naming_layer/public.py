@@ -56,6 +56,14 @@ class SessionMetricKey(Enum):
     ERRORED_SET = "sessions.errored.unique"
     ANR_RATE = "session.anr_rate"
     FOREGROUND_ANR_RATE = "session.foreground_anr_rate"
+    ABNORMAL_RATE = "session.abnormal_rate"
+    ABNORMAL_USER_RATE = "session.abnormal_user_rate"
+    ERRORED_RATE = "session.errored_rate"
+    ERRORED_USER_RATE = "session.errored_user_rate"
+    UNHANDLED_RATE = "session.unhandled_rate"
+    UNHANDLED_USER_RATE = "session.unhandled_user_rate"
+    UNHEALTHY_RATE = "session.unhealthy_rate"
+    UNHEALTHY_USER_RATE = "session.unhealthy_user_rate"
 
 
 class TransactionMetricKey(Enum):
