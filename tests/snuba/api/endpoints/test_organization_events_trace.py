@@ -786,13 +786,15 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_detailed_trace_with_bad_tags(self) -> None:
         """Basically test that we're actually using the event serializer's method for tags"""
         trace = uuid4().hex
+        long_tag_key = "somethinglong" * 250  # 3250 characters
+        long_tag_value = "somethinglong" * 250  # 3250 characters
         self.create_event(
             trace_id=trace,
             transaction="bad-tags",
             parent_span_id=None,
             spans=[],
             project_id=self.project.id,
-            tags=[["somethinglong" * 250, "somethinglong" * 250]],
+            tags=[[long_tag_key, long_tag_value]],
             milliseconds=3000,
             store_event_kwargs={"assert_no_errors": False},
             is_eap=True,
@@ -812,7 +814,36 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert response.status_code == 200, response.content
         root = response.data["transactions"][0]
         assert root["transaction.status"] == "ok"
-        assert {"key": None, "value": None} in root["tags"]
+
+        # Check that tags are trimmed to 200 characters, not dropped
+        # Find the tag with the long key/value (it should be trimmed but present)
+        found_long_tag = None
+        for tag in root["tags"]:
+            # Look for a tag that starts with our long key pattern and is around 200 chars
+            if (
+                tag["key"]
+                and tag["key"].startswith("somethinglongsomethinglong")
+                and len(tag["key"]) <= 200
+                and tag["value"]
+                and tag["value"].startswith("somethinglongsomethinglong")
+                and len(tag["value"]) <= 200
+            ):
+                found_long_tag = tag
+                break
+
+        assert found_long_tag is not None, f"Expected trimmed tag not found. Tags: {root['tags']}"
+
+        # Verify the tag key and value are trimmed to approximately 200 characters
+        assert (
+            len(found_long_tag["key"]) <= 200
+        ), f"Tag key too long: {len(found_long_tag['key'])} chars"
+        assert (
+            len(found_long_tag["value"]) <= 200
+        ), f"Tag value too long: {len(found_long_tag['value'])} chars"
+
+        # Verify they start with the expected pattern (not None)
+        assert found_long_tag["key"].startswith("somethinglongsomethinglong")
+        assert found_long_tag["value"].startswith("somethinglongsomethinglong")
 
     def test_bad_span_loop(self) -> None:
         """Maliciously create a loop in the span structure
