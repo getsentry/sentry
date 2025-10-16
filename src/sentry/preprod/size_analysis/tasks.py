@@ -204,6 +204,13 @@ def compare_preprod_artifact_size_analysis(
                 }
             )
 
+    artifact_type_name = "unknown"
+    if artifact.artifact_type is not None:
+        try:
+            artifact_type_name = PreprodArtifact.ArtifactType(artifact.artifact_type).name.lower()
+        except (ValueError, AttributeError):
+            artifact_type_name = "unknown"
+
     time_now = timezone.now()
     e2e_size_analysis_compare_duration = time_now - artifact.date_added
     metrics.distribution(
@@ -213,9 +220,7 @@ def compare_preprod_artifact_size_analysis(
         tags={
             "project_id": project_id,
             "organization_id": org_id,
-            "artifact_type": (
-                artifact.artifact_type.name.lower() if artifact.artifact_type else "unknown"
-            ),
+            "artifact_type": artifact_type_name,
         },
     )
 
