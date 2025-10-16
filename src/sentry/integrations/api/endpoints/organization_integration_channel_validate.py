@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import sentry_sdk
 from django.core.exceptions import ValidationError
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from slack_sdk.errors import SlackApiError
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -48,48 +50,36 @@ class OrganizationIntegrationChannelValidateEndpoint(OrganizationIntegrationBase
         channel = serializer.validated_data["channel"].strip()
         integration = self.get_integration(organization_context.organization.id, integration_id)
 
-        try:
-            provider = integration.provider
+        provider = integration.provider
 
+        try:
             if provider == IntegrationProviderSlug.SLACK.value:
                 channel_data = get_channel_id(integration=integration, channel_name=channel)
-                if channel_data.channel_id:
-                    return Response({"valid": True})
-                return Response({"valid": False})
+                return Response({"valid": bool(channel_data.channel_id)})
 
-            if provider == IntegrationProviderSlug.MSTEAMS.value:
+            elif provider == IntegrationProviderSlug.MSTEAMS.value:
                 channel_id = msteams_find_channel_id(integration=integration, name=channel)
-                if channel_id:
-                    return Response({"valid": True})
-                return Response({"valid": False})
+                return Response({"valid": bool(channel_id)})
 
-            if provider == IntegrationProviderSlug.DISCORD.value:
-                try:
-                    channel_id = (
-                        channel if channel.isdigit() else discord_get_channel_id_from_url(channel)
-                    )
-                except ValidationError:
-                    return Response({"valid": False})
-
-                try:
-                    discord_validate_channel_id(
-                        channel_id=channel_id,
-                        guild_id=str(integration.external_id),
-                        guild_name=integration.name,
-                    )
-                except (ValidationError, ApiError) as e:
-                    return Response(
-                        {"valid": False, "detail": str(e) or "Discord channel validation failed"}
-                    )
-
+            elif provider == IntegrationProviderSlug.DISCORD.value:
+                channel_id = (
+                    channel if channel.isdigit() else discord_get_channel_id_from_url(channel)
+                )
+                discord_validate_channel_id(
+                    channel_id=channel_id,
+                    guild_id=str(integration.external_id),
+                    guild_name=integration.name,
+                )
                 return Response({"valid": True})
 
             return Response(
                 {"valid": False, "detail": "Unsupported provider"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        except (SlackApiError, ApiError, ValidationError):
+            return Response({"valid": False})
         except Exception as e:
-            return Response(
-                {"valid": False, "detail": str(e) or "Unexpected error"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            sentry_sdk.capture_message(f"Unexpected {provider} channel validation error")
+            sentry_sdk.capture_exception(e)
+            return Response({"valid": False, "detail": "Unexpected error"})

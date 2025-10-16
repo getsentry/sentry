@@ -124,8 +124,7 @@ class DiscordChannelValidateTest(BaseChannelValidateTest):
     )
     def test_discord_validate_api_error(self, _mock_validate):
         resp = self._get_response(self.integration.id, "123")
-        assert resp.data["valid"] is False
-        assert "rate limited" in resp.data.get("detail", "")
+        assert resp.data == {"valid": False}
 
 
 @control_silo_test
