@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -7,9 +9,11 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
+import type {PlatformKey, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export function getUploadSourceMapsStep({
   guideLink,
@@ -115,4 +119,55 @@ export function getAIRulesForCodeEditorStep({rules}: {rules: string}): Onboardin
       },
     ],
   };
+}
+
+function CopyDsnButton({
+  dsn,
+  onCopyDsn,
+}: {
+  dsn: ProjectKey['dsn'];
+  onCopyDsn?: () => void;
+}) {
+  const {onClick} = useCopyToClipboard({
+    text: dsn.public,
+    onCopy: onCopyDsn,
+  });
+
+  return (
+    <Button size="xs" icon={<IconCopy />} onClick={onClick}>
+      {t('Copy DSN')}
+    </Button>
+  );
+}
+
+export function injectCopyDsnButtonIntoFirstConfigureStep({
+  configureSteps,
+  dsn,
+  onCopyDsn,
+}: {
+  configureSteps: OnboardingStep[];
+  dsn: ProjectKey['dsn'];
+  onCopyDsn?: () => void;
+}): OnboardingStep[] {
+  const [firstStep, ...otherSteps] = configureSteps;
+
+  if (!firstStep) {
+    return configureSteps;
+  }
+
+  const copyDsnButton = <CopyDsnButton dsn={dsn} onCopyDsn={onCopyDsn} />;
+
+  const firstStepWithDsnButton: OnboardingStep = {
+    ...firstStep,
+    trailingItems: firstStep.trailingItems ? (
+      <Fragment>
+        {copyDsnButton}
+        {firstStep.trailingItems}
+      </Fragment>
+    ) : (
+      copyDsnButton
+    ),
+  };
+
+  return [firstStepWithDsnButton, ...otherSteps];
 }
