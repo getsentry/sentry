@@ -10,14 +10,20 @@ import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyLi
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {Tag} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {DatasetSearchBarData} from 'sentry/views/dashboards/hooks/useSearchBarData';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
-export const DATASET_CHOICES = new Map<WidgetType, string>([
+type SupportedDataset =
+  | WidgetType.ERRORS
+  | WidgetType.SPANS
+  | WidgetType.LOGS
+  | WidgetType.RELEASE
+  | WidgetType.ISSUE;
+
+export const DATASET_CHOICES = new Map<SupportedDataset, string>([
   [WidgetType.ERRORS, t('Errors')],
   [WidgetType.SPANS, t('Spans')],
   [WidgetType.LOGS, t('Logs')],
@@ -27,11 +33,11 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
 
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
 
-export function getDatasetLabel(dataset: WidgetType) {
-  return DATASET_CHOICES.get(dataset) ?? '';
+export function getDatasetLabel(dataset: SupportedDataset) {
+  return DATASET_CHOICES.get(dataset);
 }
 
-function getTagType(tag: Tag, dataset: WidgetType | null) {
+function getTagType(tag: Tag, dataset: SupportedDataset | null) {
   const fieldType =
     dataset === WidgetType.SPANS ? 'span' : dataset === WidgetType.LOGS ? 'log' : 'event';
   const fieldDefinition = getFieldDefinition(tag.key, fieldType, tag.kind);
@@ -40,14 +46,14 @@ function getTagType(tag: Tag, dataset: WidgetType | null) {
 }
 
 type AddFilterProps = {
+  datasetSearchBarData: DatasetSearchBarData;
   onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddFilter({onAddFilter}: AddFilterProps) {
-  const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
+function AddFilter({datasetSearchBarData, onAddFilter}: AddFilterProps) {
+  const [selectedDataset, setSelectedDataset] = useState<SupportedDataset | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
-  const {selection} = usePageFilters();
 
   // Dataset selection before showing filter keys
   const datasetOptions = useMemo(() => {
@@ -58,27 +64,17 @@ function AddFilter({onAddFilter}: AddFilterProps) {
     }));
   }, []);
 
-  const datasetFilterKeysMap = new Map<WidgetType, TagCollection>();
-
-  DATASET_CHOICES.forEach((_, widgetType) => {
-    const datasetConfig = getDatasetConfig(widgetType);
-    if (datasetConfig.useSearchBarDataProvider) {
-      const dataProvider = datasetConfig.useSearchBarDataProvider({
-        pageFilters: selection,
-      });
-      const filterKeys = Object.fromEntries(
-        Object.entries(dataProvider.getFilterKeys()).filter(
+  const filterKeys: Record<string, Tag> = selectedDataset
+    ? Object.fromEntries(
+        Object.entries(datasetSearchBarData[selectedDataset].getFilterKeys()).filter(
           ([key, value]) =>
             !shouldExcludeTracingKeys(key) &&
             (!value.kind || !UNSUPPORTED_FIELD_KINDS.includes(value.kind))
         )
-      );
-      datasetFilterKeysMap.set(widgetType, filterKeys);
-    }
-  });
+      )
+    : {};
 
   // Get filter keys for the selected dataset
-  const filterKeys = (selectedDataset && datasetFilterKeysMap.get(selectedDataset)) || {};
   const filterKeyOptions = Object.entries(filterKeys).map(([_, tag]) => {
     return {
       value: tag.key,
@@ -136,7 +132,7 @@ function AddFilter({onAddFilter}: AddFilterProps) {
           setSelectedFilterKey(filterKeys[option.value] ?? null);
           return;
         }
-        setSelectedDataset(option.value as WidgetType);
+        setSelectedDataset(option.value as SupportedDataset);
         setSelectedFilterKey(null);
         setIsSelectingFilterKey(true);
       }}

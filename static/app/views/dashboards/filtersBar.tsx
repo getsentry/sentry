@@ -20,6 +20,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
+import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useSearchBarData';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 
 import FilterSelector from './globalFilter/filterSelector';
@@ -59,6 +60,8 @@ export default function FiltersBar({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
+  const datasetSearchBarData = useDatasetSearchBarData();
+
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
     userTeams,
@@ -162,6 +165,7 @@ export default function FiltersBar({
                 />
               ))}
               <AddFilter
+                datasetSearchBarData={datasetSearchBarData}
                 onAddFilter={newFilter => {
                   updateGlobalFilters([...activeGlobalFilters, newFilter]);
                 }}
