@@ -1162,11 +1162,13 @@ def _get_project_config(
             config["downsampledEventRetention"] = downsampled_event_retention
     with sentry_sdk.start_span(op="get_retentions"):
         retentions = quotas.backend.get_retentions(project.organization)
-        config["retentions"] = {
+        retentions_config = {
             RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
             for c, v in retentions.items()
             if c in RETENTIONS_CONFIG_MAPPING
         }
+        if retentions_config:
+            config["retentions"] = retentions_config
 
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
