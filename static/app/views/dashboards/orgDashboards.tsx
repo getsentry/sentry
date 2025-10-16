@@ -8,8 +8,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
-import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -27,7 +25,7 @@ type OrgDashboardsChildrenProps = {
   onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
 };
 
-type Props = WithRouteAnalyticsProps & {
+type Props = {
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
@@ -216,4 +214,4 @@ function OrgDashboards(props: Props) {
   );
 }
 
-export default withRouteAnalytics(OrgDashboards);
+export default OrgDashboards;
