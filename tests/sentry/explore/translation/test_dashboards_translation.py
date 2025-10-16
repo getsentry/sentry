@@ -590,6 +590,7 @@ class DashboardTranslationTestCase(TestCase):
 
         new_query = new_queries.first()
 
+        assert new_query is not None
         assert new_query.fields == ["transaction"]
         assert new_query.conditions == "(transaction:*whatsapp*) AND is_transaction:1"
         assert new_query.aggregates == []
