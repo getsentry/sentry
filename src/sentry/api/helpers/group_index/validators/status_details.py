@@ -1,13 +1,15 @@
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.helpers.group_index.validators.in_commit import InCommitResult, InCommitValidator
 from sentry.models.release import Release
 
 
 class StatusDetailsResult(TypedDict):
+    inFutureRelease: NotRequired[bool]
     inNextRelease: NotRequired[bool]
     inRelease: NotRequired[str]
     inCommit: NotRequired[InCommitResult]
@@ -20,6 +22,12 @@ class StatusDetailsResult(TypedDict):
 
 @extend_schema_serializer()
 class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
+    inFutureRelease = serializers.CharField(
+        help_text=(
+            "The version of the semver release that the issue should be resolved in."
+            "This release can be a future release that doesn't exist yet."
+        )
+    )
     inNextRelease = serializers.BooleanField(
         help_text="If true, marks the issue as resolved in the next release."
     )
@@ -87,3 +95,48 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
             raise serializers.ValidationError(
                 "No release data present in the system to form a basis for 'Next Release'"
             )
+
+    def validate_inFutureRelease(self, value: str) -> "Release | None":
+        project = self.context["project"]
+
+        if not features.has("organizations:resolve-in-future-release", project.organization):
+            raise serializers.ValidationError(
+                "Your organization does not have access to this feature."
+            )
+
+        if not Release.is_valid_version(value):
+            raise serializers.ValidationError(
+                "Invalid release version format. Please use semver format: package@major.minor.patch[-prerelease][+build]."
+            )
+
+        if not Release.is_semver_version(value):
+            raise serializers.ValidationError(
+                "Invalid semver format. Please use format: package@major.minor.patch[-prerelease][+build]"
+            )
+
+        try:
+            release = Release.objects.get(
+                projects=project, organization_id=project.organization_id, version=value
+            )
+            return release
+        except Release.DoesNotExist:
+            return None
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Cross-field validation hook called by DRF after individual field validation.
+        """
+        return self._preserve_future_release_version(attrs)
+
+    def _preserve_future_release_version(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Store the original future release version string for inFutureRelease since the validator
+        transforms it to a Release object or None, but we need the version string for
+        process_group_resolution.
+        """
+        if "inFutureRelease" in attrs:
+            initial_data = getattr(self, "initial_data", {})
+            future_release_version = initial_data.get("inFutureRelease")
+            if future_release_version:
+                attrs["_future_release_version"] = future_release_version
+        return attrs
