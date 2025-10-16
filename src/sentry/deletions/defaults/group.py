@@ -17,6 +17,7 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -27,9 +28,8 @@ logger = logging.getLogger(__name__)
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
-# Batch size for nullifying seer_matched_grouphash_id references to avoid database timeouts
-# This is smaller than GROUP_HASH_BATCH_SIZE because the fan-out can be high
-SEER_MATCHED_GROUPHASH_BATCH_SIZE = 10
+# Batch size for nullifying group_hash_metadata.seer_matched_grouphash_id references to avoid database timeouts
+GROUP_HASH_METADATA_BATCH_SIZE = 10
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -216,19 +216,16 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
-def nullify_seer_matched_grouphash_references(hash_ids: Sequence[int]) -> None:
+def batch_nullify_group_hash_metadata_references(hash_ids: Sequence[int]) -> None:
     """
-    Nullify seer_matched_grouphash_id references in batches to avoid database timeouts.
-
-    This prevents the implicit ON DELETE SET NULL cascade from timing out when deleting
-    GroupHash records that are referenced by many GroupHashMetadata records.
-
-    Args:
-        hash_ids: IDs of GroupHash records that are about to be deleted
+    Batch nullify group_hash_metadata.seer_matched_grouphash_id references to avoid database timeouts.
     """
+    # This function call is necessary because the GroupHashMetadata model has a foreign key to the GroupHash model,
+    # and we need to nullify the seer_matched_grouphash_id field in the GroupHashMetadata model before deleting the GroupHash model
+    # to prevent the implicit ON DELETE SET NULL cascade from timing out.
     # Process in small batches to avoid statement timeouts on high fan-out relationships
-    for i in range(0, len(hash_ids), SEER_MATCHED_GROUPHASH_BATCH_SIZE):
-        batch = hash_ids[i : i + SEER_MATCHED_GROUPHASH_BATCH_SIZE]
+    for i in range(0, len(hash_ids), GROUP_HASH_METADATA_BATCH_SIZE):
+        batch = hash_ids[i : i + GROUP_HASH_METADATA_BATCH_SIZE]
         GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=batch).update(
             seer_matched_grouphash_id=None
         )
@@ -278,12 +275,19 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
-            # Nullify seer_matched_grouphash_id references in batches before deletion
+            # Nullify seer_matched_grouphash_id references in batches before deleting the GroupHash model
             # to prevent the implicit ON DELETE SET NULL cascade from timing out
-            nullify_seer_matched_grouphash_references(hash_ids)
+            batch_nullify_group_hash_metadata_references(hash_ids)
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1
+
+        if iterations == GROUP_HASH_ITERATIONS:
+            metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
+            logger.warning(
+                "Group hashes batch deletion reached the maximum number of iterations. "
+                "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
+            )
 
 
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
