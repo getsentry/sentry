@@ -505,7 +505,7 @@ describe('OrganizationStats', () => {
   it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: ['team-insights', 'tracemetrics-stats'],
+        features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
       },
     });
 
