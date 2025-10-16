@@ -299,6 +299,8 @@ function WidgetCard(props: Props) {
     ? t('Widget query condition is invalid.')
     : undefined;
 
+  // Check if widget filters conflict with global filters
+  // This is used to display a warning in the widget frame if there is a conflict
   const conflictingFilterKeys = useMemo(() => {
     const widgetFilterKeys = widget.queries.flatMap(query => {
       const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
