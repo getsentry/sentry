@@ -59,6 +59,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
 
   const spanQueries = useMemo(() => [new MutableSearch('has:span.description')], []);
   const logQueries = useMemo(() => [new MutableSearch('has:message')], []);
+  const metricQueries = useMemo(() => [new MutableSearch('has:value')], []);
 
   const options = {
     enabled: Boolean(metricName),
@@ -76,6 +77,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
     ...options,
     spanQueries,
     logQueries,
+    metricQueries,
   });
 
   const {
@@ -84,6 +86,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
     fields: anyFields,
   } = useMetricSamplesTable({
     ...options,
+    metricQueries,
   });
 
   const shouldUseCrossQuery = crossQueryResult.data?.length && !crossQueryResult.isError;
