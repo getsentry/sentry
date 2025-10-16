@@ -450,6 +450,15 @@ def _assemble_preprod_artifact_size_analysis(
     finally:
         time_now = timezone.now()
         e2e_size_analysis_duration = time_now - preprod_artifact.date_added
+        artifact_type_name = "unknown"
+        if preprod_artifact.artifact_type is not None:
+            try:
+                artifact_type_name = PreprodArtifact.ArtifactType(
+                    preprod_artifact.artifact_type
+                ).name.lower()
+            except (ValueError, AttributeError):
+                artifact_type_name = "unknown"
+
         metrics.distribution(
             "preprod.size_analysis.results_e2e",
             e2e_size_analysis_duration.total_seconds(),
@@ -457,11 +466,7 @@ def _assemble_preprod_artifact_size_analysis(
             tags={
                 "project_id": project.id,
                 "organization_id": org_id,
-                "artifact_type": (
-                    preprod_artifact.artifact_type.name.lower()
-                    if preprod_artifact.artifact_type
-                    else "unknown"
-                ),
+                "artifact_type": artifact_type_name,
             },
         )
 
