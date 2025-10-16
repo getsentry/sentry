@@ -267,15 +267,16 @@ def get_issue_details(
         )
         return None
 
-    org_project_ids = Project.objects.filter(
-        organization=organization, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-
     try:
         if isinstance(issue_id, int):
+            org_project_ids = Project.objects.filter(
+                organization=organization, status=ObjectStatus.ACTIVE
+            ).values_list("id", flat=True)
+
             group = Group.objects.get(project_id__in=org_project_ids, id=issue_id)
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+
     except Group.DoesNotExist:
         logger.warning(
             "Issue does not exist for organization",
