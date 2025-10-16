@@ -1,10 +1,9 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -91,22 +90,24 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct('Install the [strong:NuGet] package:', {
-        strong: <strong />,
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct('Install the [strong:NuGet] package:', {
+            strong: <strong />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'shell',
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'shell',
               code: getInstallSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallSnippetCoreCli(params),
             },
           ],
@@ -117,14 +118,18 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Then add Sentry to [code:MauiProgram.cs] through the [code:MauiAppBuilder]:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Then add Sentry to [code:MauiProgram.cs] through the [code:MauiAppBuilder]:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'csharp',
           code: getConfigureSnippet(params),
         },
@@ -134,82 +139,96 @@ const onboarding: OnboardingConfig = {
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'To verify your set up, you can capture a message with the SDK, anywhere in your code after the application is built, such as in a page constructor or button click event handler:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To verify your set up, you can capture a message with the SDK, anywhere in your code after the application is built, such as in a page constructor or button click event handler:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Hello Sentry");',
         },
       ],
     },
     ...(params.isPerformanceSelected
-      ? [
+      ? ([
           {
             title: t('Tracing'),
-            description: (
-              <Fragment>
-                {t(
-                  'We do not yet have automatic performance instrumentation for .NET MAUI. We will be adding that in a future release. However, if desired you can still manually instrument parts of your application.'
-                )}
-                <p>
-                  {tct(
-                    'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well:',
-                    {
-                      automaticInstrumentationLink: (
-                        <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/automatic-instrumentation/" />
-                      ),
-                    }
-                  )}
-                </p>
-              </Fragment>
-            ),
-            configurations: [
+            content: [
               {
-                description: tct(
+                type: 'text',
+                text: t(
+                  'We do not yet have automatic performance instrumentation for .NET MAUI. We will be adding that in a future release. However, if desired you can still manually instrument parts of your application.'
+                ),
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well:',
+                  {
+                    automaticInstrumentationLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/automatic-instrumentation/" />
+                    ),
+                  }
+                ),
+              },
+              {
+                type: 'text',
+                text: tct(
                   'If your app uses [code:HttpClient], you can instrument your HTTP calls by passing our HTTP message handler:',
                   {code: <code />}
                 ),
+              },
+              {
+                type: 'code',
                 language: 'csharp',
                 code: getPerformanceMessageHandlerSnippet(),
               },
               {
-                description: (
-                  <Fragment>
-                    {t(
-                      'If your app uses Entity Framework Core or SQL Client, we will automatically instrument that for you without any additional code.'
-                    )}
-                    <p>
-                      {tct(
-                        'For other parts of your code, you can use [customInstrumentationLink:custom instrumentation], such as in the following example:',
-                        {
-                          customInstrumentationLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/custom-instrumentation/" />
-                          ),
-                        }
-                      )}
-                    </p>
-                  </Fragment>
+                type: 'text',
+                text: t(
+                  'If your app uses Entity Framework Core or SQL Client, we will automatically instrument that for you without any additional code.'
                 ),
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'For other parts of your code, you can use [customInstrumentationLink:custom instrumentation], such as in the following example:',
+                  {
+                    customInstrumentationLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/custom-instrumentation/" />
+                    ),
+                  }
+                ),
+              },
+              {
+                type: 'code',
                 language: 'csharp',
                 code: getPerformanceInstrumentationSnippet(),
               },
             ],
           },
-        ]
+        ] satisfies OnboardingStep[])
       : []),
     {
       title: t('Sample Application'),
-      description: tct(
-        'See the [mauiSampleLink:MAUI Sample in the [code:sentry-dotnet] repository].',
+      content: [
         {
-          mauiSampleLink: (
-            <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Maui" />
+          type: 'text',
+          text: tct(
+            'See the [mauiSampleLink:MAUI Sample in the [code:sentry-dotnet] repository].',
+            {
+              mauiSampleLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Maui" />
+              ),
+              code: <code />,
+            }
           ),
-          code: <code />,
-        }
-      ),
+        },
+      ],
     },
   ],
 };
