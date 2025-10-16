@@ -74,31 +74,37 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
                 : ''}
             </Text>
           </Flex>
-          <Flex gap="sm" align="center">
-            <InfoIcon>
-              <IconJson />
-            </InfoIcon>
-            <Text>{buildDetails.app_info.app_id}</Text>
-          </Flex>
+          <Tooltip title={t('Application ID')}>
+            <Flex gap="sm" align="center">
+              <InfoIcon>
+                <IconJson />
+              </InfoIcon>
+              <Text>{buildDetails.app_info.app_id}</Text>
+            </Flex>
+          </Tooltip>
           {buildDetails.app_info.build_configuration && (
-            <Flex gap="sm" align="center">
-              <IconMobile size="sm" color="gray300" />
-              <Tooltip title={t('Build configuration')}>
+            <Tooltip title={t('Build configuration')}>
+              <Flex gap="sm" align="center">
+                <IconMobile size="sm" color="gray300" />
                 <Text monospace>{buildDetails.app_info.build_configuration}</Text>
-              </Tooltip>
-            </Flex>
+              </Flex>
+            </Tooltip>
           )}
           {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Flex gap="sm" align="center">
-              <IconDownload size="sm" color="gray300" />
-              <Text>{formattedDownloadSize(buildDetails)}</Text>
-            </Flex>
+            <Tooltip title={t('Install size')}>
+              <Flex gap="sm" align="center">
+                <IconCode size="sm" color="gray300" />
+                <Text>{formattedInstallSize(buildDetails)}</Text>
+              </Flex>
+            </Tooltip>
           )}
           {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Flex gap="sm" align="center">
-              <IconCode size="sm" color="gray300" />
-              <Text>{formattedInstallSize(buildDetails)}</Text>
-            </Flex>
+            <Tooltip title={t('Download size')}>
+              <Flex gap="sm" align="center">
+                <IconDownload size="sm" color="gray300" />
+                <Text>{formattedDownloadSize(buildDetails)}</Text>
+              </Flex>
+            </Tooltip>
           )}
         </Flex>
       </Stack>
