@@ -194,11 +194,10 @@ class RepoTreesIntegration(ABC):
             if any. This is useful if the remaining API requests are low
         """
         key = f"{self.integration_name}:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
-
         cache_hit = cache.has_key(key)
-        repo_files = cache.get(key, [])
-
-        if not cache_hit and not only_use_cache:
+        use_api = not cache_hit and not only_use_cache
+        repo_files: list[str] = cache.get(key, [])
+        if use_api:
             # Cache miss – fetch from API
             tree = self.get_client().get_tree(repo_full_name, tree_sha)
             if tree:
@@ -206,23 +205,20 @@ class RepoTreesIntegration(ABC):
                 repo_files = [node["path"] for node in tree if node["type"] == "blob"]
                 if only_source_code_files:
                     repo_files = filter_source_code_files(files=repo_files)
-            else:
-                # Explicitly remember that this repo has no files so we don't call again.
-                repo_files = []
+                # The backend's caching will skip silently if the object size greater than 5MB
+                # (due to Memcached's max value size limit).
+                # The trees API does not return structures larger than 7MB
+                # As an example, all file paths in Sentry is about 1.3MB
+                # Larger customers may have larger repositories, however,
+                # the cost of not having the files cached
+                # repositories is a single API network request, thus,
+                # being acceptable to sometimes not having everything cached
+                cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
 
-            # The backend's caching will skip silently if the object size greater than 5MB
-            # (due to Memcached's max value size limit).
-            # The trees API does not return structures larger than 7MB
-            # As an example, all file paths in Sentry is about 1.3MB
-            # Larger customers may have larger repositories, however,
-            # the cost of not having the files cached
-            # repositories is a single API network request, thus,
-            # being acceptable to sometimes not having everything cached
-            cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
             metrics.incr("integrations.source_code_management.get_repo_files.cache_set")
 
         # Determine source based on whether we actually fetched from API
-        source = "api" if (not cache_hit and not only_use_cache) else "cache"
+        source = "api" if use_api else "cache"
 
         metrics.incr("integrations.source_code_management.get_repo_files", tags={"source": source})
 
