@@ -24,9 +24,10 @@ def is_system_created_detector(detector: Detector) -> bool:
 
 def can_edit_system_created_detectors(request: Request) -> bool:
     """
-    Only those with organizaiton write permissions can edit error detectors
+    Only those with organization write permissions can edit system-created detectors
+    (e.g. error detectors).
     """
-    return request.access.has_scope("org:admin") or request.access.has_scope("org:write")
+    return request.access.has_scope("org:write")
 
 
 def has_alert_write_access(request: Request, project: Project) -> bool:

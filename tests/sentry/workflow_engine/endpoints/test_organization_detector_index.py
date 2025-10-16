@@ -1396,20 +1396,22 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert self.error_detector.enabled is True
 
     def test_update_detectors_org_manager_permission(self) -> None:
+        """
+        Test that an organization manager can update any type of detector, including error detectors.
+        """
         self.login_as(user=self.org_manager_user)
 
         self.get_success_response(
             self.organization.slug,
-            qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],
+            qs_params=[("id", str(self.detector.id)), ("id", str(self.error_detector.id))],
             enabled=False,
             status_code=200,
         )
 
-        # Verify detectors were updated
         self.detector.refresh_from_db()
-        self.detector_two.refresh_from_db()
+        self.error_detector.refresh_from_db()
         assert self.detector.enabled is False
-        assert self.detector_two.enabled is False
+        assert self.error_detector.enabled is False
 
     def test_update_owner_query_by_project(self) -> None:
         new_project = self.create_project(organization=self.organization)
