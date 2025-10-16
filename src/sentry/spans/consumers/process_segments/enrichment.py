@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.types import Attributes, attribute_value, get_span_op
+from sentry.spans.consumers.process_segments.types import Attribute, attribute_value, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -213,7 +213,7 @@ def _us(timestamp: float) -> int:
 def compute_breakdowns(
     spans: Sequence[SpanEvent],
     breakdowns_config: dict[str, dict[str, Any]],
-) -> Attributes:
+) -> dict[str, Attribute]:
     """
     Computes breakdowns from all spans and writes them to the segment span.
 
@@ -222,7 +222,7 @@ def compute_breakdowns(
     are converted into attributes on the span trace item.
     """
 
-    ret: Attributes = {}
+    ret: dict[str, Attribute] = {}
     for breakdown_name, breakdown_config in breakdowns_config.items():
         ty = breakdown_config.get("type")
 
