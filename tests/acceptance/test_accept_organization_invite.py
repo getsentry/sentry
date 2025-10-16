@@ -12,7 +12,7 @@ from sentry.testutils.silo import no_silo_test
 # See the accept_organization_invite.py#get_invite_state logic
 @no_silo_test
 class AcceptOrganizationInviteTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -25,7 +25,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
-    def _sign_in_user(self, email, password):
+    def _sign_in_user(self, email: str, password: str) -> None:
         """
         Helper method to sign in a user with given email and password.
         """
@@ -33,18 +33,18 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.browser.find_element(By.ID, "id_password").send_keys(password)
         self.browser.find_element(By.XPATH, "//button[contains(text(), 'Sign In')]").click()
 
-    def test_invite_simple(self):
+    def test_invite_simple(self) -> None:
         self.login_as(self.user)
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists('[data-test-id="join-organization"]')
 
-    def test_invite_not_authenticated(self):
+    def test_invite_not_authenticated(self) -> None:
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists('[data-test-id="create-account"]')
 
-    def test_invite_2fa_enforced_org(self):
+    def test_invite_2fa_enforced_org(self) -> None:
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
@@ -56,7 +56,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists_by_test_id("2fa-warning")
 
-    def test_invite_sso_org(self):
+    def test_invite_sso_org(self) -> None:
         AuthProvider.objects.create(organization_id=self.org.id, provider="google")
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
@@ -64,7 +64,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         assert self.browser.element_exists('[data-test-id="sso-login"]')
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_authenticated_user_already_member_of_an_org_accept_invite_other_org(self):
+    def test_authenticated_user_already_member_of_an_org_accept_invite_other_org(self) -> None:
         """
         Test that an authenticated user already part of an organization can accept an invite to another organization.
         """
@@ -96,7 +96,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         assert self.browser.wait_until('[aria-label="Create project"]')
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_not_authenticated_user_already_member_of_an_org_accept_invite_other_org(self):
+    def test_not_authenticated_user_already_member_of_an_org_accept_invite_other_org(self) -> None:
         """
         Test that a not authenticated user already part of an organization can accept an invite to another organization.
         """
@@ -139,7 +139,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         assert self.browser.element_exists(f"[aria-label='Join the {self.org.slug} organization']")
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_existing_user_invite_2fa_enforced_org(self):
+    def test_existing_user_invite_2fa_enforced_org(self) -> None:
         """
         Test that a user who has an existing Sentry account can accept an invite to another organization
         and is required to go through the 2FA configuration view.

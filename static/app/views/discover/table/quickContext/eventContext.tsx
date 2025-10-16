@@ -8,16 +8,12 @@ import {
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {
-  getStatusBodyText,
-  HttpStatus,
-} from 'sentry/views/performance/transactionDetails/eventMetas';
 
 import ActionDropDown, {ContextValueType} from './actionDropdown';
 import {NoContext} from './quickContextWrapper';
@@ -155,6 +151,29 @@ function EventContext(props: EventContextProps) {
     </NoContextWrapper>
   );
 }
+
+function HttpStatus({event}: {event: Event}) {
+  const {tags} = event;
+
+  const emptyStatus = <Fragment>{'\u2014'}</Fragment>;
+
+  if (!Array.isArray(tags)) {
+    return emptyStatus;
+  }
+
+  const tag = tags.find(tagObject => tagObject.key === 'http.status_code');
+
+  if (!tag) {
+    return emptyStatus;
+  }
+
+  return <Fragment>HTTP {tag.value}</Fragment>;
+}
+
+function getStatusBodyText(event: EventTransaction): string {
+  return event.contexts?.trace?.status ?? '\u2014';
+}
+
 const ErrorTitleContainer = styled(ContextContainer)`
   padding: ${space(1.5)};
 `;

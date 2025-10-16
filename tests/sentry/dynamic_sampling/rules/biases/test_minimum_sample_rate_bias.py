@@ -4,7 +4,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_generate_rules_with_different_sample_rates(default_project):
+def test_generate_rules_with_different_sample_rates(default_project) -> None:
     test_rates = [0.01, 0.05, 0.1, 0.5, 1.0]
 
     for base_sample_rate in test_rates:
@@ -15,7 +15,7 @@ def test_generate_rules_with_different_sample_rates(default_project):
         expected_rules = [
             {
                 "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
-                "type": "transaction",
+                "type": "project",
                 "condition": {
                     "inner": [],
                     "op": "and",

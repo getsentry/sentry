@@ -18,13 +18,13 @@ from sentry.utils import json
 
 class TestProcessProfileConsumerStrategy(TestCase):
     @staticmethod
-    def processing_factory():
+    def processing_factory() -> ProcessProfileStrategyFactory:
         return ProcessProfileStrategyFactory()
 
     @patch("sentry.profiles.consumers.process.factory.process_profile_task.delay")
-    def test_basic_profile_to_celery(self, process_profile_task: MagicMock) -> None:
+    def test_basic_profile_to_task(self, process_profile_task: MagicMock) -> None:
         processing_strategy = self.processing_factory().create_with_partitions(
-            commit=Mock(), partitions=None
+            commit=Mock(), partitions={}
         )
         message_dict = {
             "organization_id": 1,

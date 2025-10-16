@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
@@ -14,7 +14,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getAIRulesForCodeEditorStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
@@ -27,15 +27,17 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+const getInstallSnippet = ({isSelfHosted, organization, project}: Params) => {
   const urlParam = isSelfHosted ? '' : '--saas';
-  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${project.slug}`;
 };
 
 const getInstallConfig = (params: Params) => {
@@ -162,7 +164,7 @@ Sentry offers a consoleLoggingIntegration that can be used to log specific conso
 
 ## Configuration
 
-In NextJS the client side Sentry initialization is in \`instrumentation-client.ts\`, the server initialization is in \`sentry.edge.config.ts\` and the edge initialization is in \`sentry.server.config.ts\`
+In NextJS the client side Sentry initialization is in \`instrumentation-client.ts\`, the server initialization is in \`sentry.server.config.ts\` and the edge initialization is in \`sentry.edge.config.ts\`
 Initialization does not need to be repeated in other files, it only needs to happen the files mentioned above. You should use \`import * as Sentry from "@sentry/nextjs"\` to reference Sentry functionality
 
 ### Baseline
@@ -185,8 +187,8 @@ Sentry.init({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
 });
 \`\`\`
@@ -343,7 +345,7 @@ const feedbackOnboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <AdditionalInfoWrapper>
+        <Stack gap="lg">
           <div>
             {tct(
               'Note: The User Feedback integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
@@ -357,7 +359,7 @@ const feedbackOnboarding: OnboardingConfig = {
               link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#crash-report-modal',
             })}
           </div>
-        </AdditionalInfoWrapper>
+        </Stack>
       ),
     },
   ],
@@ -367,7 +369,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -585,15 +587,14 @@ const docs: Docs = {
   crashReportOnboarding,
   featureFlagOnboarding,
   profilingOnboarding,
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'nextjs',
+    sdkPackage: '@sentry/nextjs',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'nextjs',
+    configFileName: 'sentry.server.config.ts',
   }),
 };
 
 export default docs;
-
-const AdditionalInfoWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

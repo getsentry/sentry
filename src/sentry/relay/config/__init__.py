@@ -15,8 +15,10 @@ from sentry.constants import (
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ObjectStatus,
 )
-from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -25,6 +27,7 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
     get_generic_filters,
+    get_log_messages_generic_filter,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -36,11 +39,14 @@ from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
+from sentry.relay.datascrubbing import get_datascrubbing_settings, get_pii_config
+from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.utils import metrics
@@ -64,12 +70,15 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "projects:relay-otel-endpoint",
+    "organizations:relay-otlp-traces-endpoint",
+    "organizations:relay-otel-logs-endpoint",
+    "organizations:relay-vercel-log-drain-endpoint",
     "organizations:ourlogs-ingestion",
-    "organizations:ourlogs-meta-attributes",
+    "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
+    "projects:span-v2-experimental-processing",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -138,13 +147,23 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
+    base_generic_filters: list[GenericFilter] = []
+
     error_messages: list[str] = []
+
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
+
+        if features.has("organizations:ourlogs-ingestion", project.organization):
+            log_messages = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}") or []
+            if log_messages:
+                log_messages_filter = get_log_messages_generic_filter(log_messages)
+                if log_messages_filter:
+                    base_generic_filters.append(log_messages_filter)
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
@@ -163,7 +182,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     try:
         # At the end we compute the generic inbound filters, which are inbound filters expressible with a
         # conditional DSL that Relay understands.
-        generic_filters = get_generic_filters(project)
+        generic_filters = get_generic_filters(project, base_generic_filters)
         if generic_filters is not None:
             filter_settings["generic"] = generic_filters
     except Exception as e:
@@ -1135,9 +1154,84 @@ def _get_project_config(
         event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
+    with sentry_sdk.start_span(op="get_downsampled_event_retention"):
+        downsampled_event_retention = quotas.backend.get_downsampled_event_retention(
+            project.organization
+        )
+        if downsampled_event_retention is not None:
+            config["downsampledEventRetention"] = downsampled_event_retention
+    with sentry_sdk.start_span(op="get_retentions"):
+        retentions = quotas.backend.get_retentions(project.organization)
+        retentions_config = {
+            RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
+            for c, v in retentions.items()
+            if c in RETENTIONS_CONFIG_MAPPING
+        }
+        if retentions_config:
+            config["retentions"] = retentions_config
+
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
+
+    if features.has("organizations:log-project-config", project.organization):
+        try:
+            logger.info(
+                "log-project-config - get_project_config: Logging sampling feature flags for project %s in org %s.",
+                project.id,
+                project.organization.id,
+                extra={
+                    "project_id": str(project.id),
+                    "org_id": str(project.organization.id),
+                    "sampling_rule_count": (
+                        len(config["sampling"]["rules"]) if "sampling" in config else None
+                    ),
+                    "dynamic_sampling_feature_flag": features.has(
+                        "organizations:dynamic-sampling", project.organization
+                    ),
+                    "dynamic_sampling_custom_feature_flag": features.has(
+                        "organizations:dynamic-sampling-custom", project.organization
+                    ),
+                    "dynamic_sampling_mode": project.organization.get_option(
+                        "sentry:sampling_mode", None
+                    ),
+                    "dynamic_sampling_org_target_rate": project.organization.get_option(
+                        "sentry:target_sample_rate", None
+                    ),
+                    "dynamic_sampling_biases": project.get_option(
+                        "sentry:dynamic_sampling_biases", None
+                    ),
+                    "low_volume_projects_sample_rate": get_boost_low_volume_projects_sample_rate(
+                        org_id=project.organization.id,
+                        project_id=project.id,
+                        error_sample_rate_fallback=None,
+                    ),
+                },
+            )
+            logger.info(
+                "log-project-config - get_project_config: Logging project sampling config for project %s in org %s.",
+                project.id,
+                project.organization.id,
+                extra={
+                    "project_sampling_config": config["sampling"] if "sampling" in config else None,
+                    "project_id": str(project.id),
+                    "org_id": str(project.organization.id),
+                    "dynamic_sampling_feature_flag": features.has(
+                        "organizations:dynamic-sampling", project.organization
+                    ),
+                    "dynamic_sampling_custom_feature_flag": features.has(
+                        "organizations:dynamic-sampling-custom", project.organization
+                    ),
+                    "dynamic_sampling_mode": project.organization.get_option(
+                        "sentry:sampling_mode", None
+                    ),
+                    "dynamic_sampling_org_target_rate": project.organization.get_option(
+                        "sentry:target_sample_rate", None
+                    ),
+                },
+            )
+        except Exception:
+            capture_exception()
 
     return ProjectConfig(project, **cfg)
 

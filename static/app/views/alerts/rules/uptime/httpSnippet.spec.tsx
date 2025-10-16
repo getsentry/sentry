@@ -9,13 +9,13 @@ jest.mock('@sentry/core', () => ({
   generateSentryTraceHeader: jest.fn(() => 'sentry-trace-value'),
 }));
 
-describe('HTTPSnippet', function () {
-  it('renders', function () {
+describe('HTTPSnippet', () => {
+  it('renders', () => {
     render(
       <HTTPSnippet
         url="https://example.com/test?query=value"
         method="POST"
-        body={'{"key": "value"}'}
+        body='{"key": "value"}'
         headers={[['X-Something', 'Header Value']]}
         traceSampling={false}
       />

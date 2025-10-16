@@ -9,6 +9,7 @@ from sentry.notifications.notification_action.group_type_notification_registry.h
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
 )
+from sentry.notifications.notification_action.grouptype import SendTestNotification
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
@@ -68,7 +69,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
             self.activity.send_notification.assert_called_once_with()
 
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
-    def test_handle_metric_issue_resolution(self, mock_execute_metric_alert_handler):
+    def test_handle_metric_issue_resolution(self, mock_execute_metric_alert_handler) -> None:
         group = self.create_group(type=MetricIssue.type_id)
         activity = self.create_group_activity(
             group=group,
@@ -78,5 +79,28 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
 
         execute_via_group_type_registry(self.event_data, self.action, self.detector)
         mock_execute_metric_alert_handler.assert_called_once_with(
+            self.event_data, self.action, self.detector
+        )
+
+
+class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+        self.detector = self.create_detector(project=self.project, type=SendTestNotification.slug)
+        self.action = Action(type=Action.Type.DISCORD)
+        self.group, self.event, self.group_event = self.create_group_event(
+            group_type_id=SendTestNotification.type_id
+        )
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
+
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_issue_alert_handler")
+    def test_handle_workflow_action_no_handler(
+        self, mock_execute_via_issue_alert_handler: mock.MagicMock
+    ) -> None:
+        """Test that handle_workflow_action invokes the when no handler exists"""
+
+        execute_via_group_type_registry(self.event_data, self.action, self.detector)
+        mock_execute_via_issue_alert_handler.assert_called_once_with(
             self.event_data, self.action, self.detector
         )

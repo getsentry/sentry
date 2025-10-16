@@ -4,8 +4,8 @@ import * as useDimensions from 'sentry/utils/useDimensions';
 
 import {ContentSliderDiff} from '.';
 
-describe('ContentSliderDiff', function () {
-  it('divider can be dragged', async function () {
+describe('ContentSliderDiff', () => {
+  it('divider can be dragged', async () => {
     jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 300, height: 300});
 
     const mockDragHandleMouseDown = jest.fn();
@@ -29,7 +29,7 @@ describe('ContentSliderDiff', function () {
     expect(mockDragHandleMouseDown).toHaveBeenCalledTimes(1);
   });
 
-  it('does not render content when dimensions are zero', function () {
+  it('does not render content when dimensions are zero', () => {
     jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 0, height: 0});
 
     render(

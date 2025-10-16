@@ -213,7 +213,7 @@ describe('AlertRuleDetails', () => {
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('button', {name: 'Mute for me'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Mute for everyone'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );

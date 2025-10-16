@@ -50,8 +50,8 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 }
 
-describe('ProjectInstallPlatform', function () {
-  it('should render getting started docs for correct platform', async function () {
+describe('ProjectInstallPlatform', () => {
+  it('should render getting started docs for correct platform', async () => {
     const project = ProjectFixture({platform: 'javascript'});
 
     const {routerProps} = initializeOrg({

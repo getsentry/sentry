@@ -24,7 +24,8 @@ import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -40,6 +41,7 @@ import {isMobileRelease} from 'sentry/views/releases/utils';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesSortOptions from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
+import {validateSummaryStatsPeriod} from './utils';
 
 const RELEASE_FILTER_KEYS = [
   ...Object.values(SEMVER_TAGS),
@@ -69,7 +71,9 @@ function makeReleaseListQueryKey({
     cursor: location.query.cursor,
     query: location.query.query,
     sort: location.query.sort,
-    summaryStatsPeriod: location.query.statsPeriod,
+    summaryStatsPeriod: validateSummaryStatsPeriod(
+      decodeScalar(location.query.statsPeriod)
+    ),
     per_page: 20,
     flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
     adoptionStages: 1,
@@ -89,6 +93,26 @@ export default function ReleasesList() {
   const {selection} = usePageFilters();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // date filter should reflect updated statsPeriod value
+  useEffect(() => {
+    const currentStatsPeriod = decodeScalar(location.query.statsPeriod);
+    const validatedStatsPeriod = validateSummaryStatsPeriod(currentStatsPeriod);
+
+    // if the validated value is different from the current value, update the URL
+    if (currentStatsPeriod && currentStatsPeriod !== validatedStatsPeriod) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            statsPeriod: validatedStatsPeriod,
+          },
+        },
+        {replace: true}
+      );
+    }
+  }, [navigate, location.pathname, location.query]);
 
   const activeQuery = useMemo(() => {
     const {query: locationQuery} = location.query;
@@ -312,21 +336,12 @@ export default function ReleasesList() {
               selection={selection}
             />
             <ReleasesPageFilterBar condensed>
-              <DemoTourElement
-                id={DemoTourStep.RELEASES_COMPARE}
-                title={t('Compare releases')}
-                description={t(
-                  'Click here and select the "react" project to see how the release is trending compared to previous releases.'
-                )}
-                position="bottom-start"
-              >
-                <ProjectPageFilter />
-              </DemoTourElement>
+              <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter
                 disallowArbitraryRelativeRanges
                 menuFooterMessage={t(
-                  'Changing this date range will recalculate the release metrics.'
+                  'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
                 )}
               />
             </ReleasesPageFilterBar>
@@ -362,18 +377,27 @@ export default function ReleasesList() {
             {releasesErrorMessage ? (
               <LoadingError message={releasesErrorMessage} />
             ) : (
-              <ReleaseListInner
-                activeDisplay={activeDisplay}
-                loading={isReleasesPending}
-                organization={organization}
-                releases={releases}
-                releasesPageLinks={releasesPageLinks}
-                reloading={isReleasesRefetching}
-                selectedProject={selectedProject}
-                selection={selection}
-                shouldShowQuickstart={shouldShowQuickstart}
-                showReleaseAdoptionStages={showReleaseAdoptionStages}
-              />
+              <DemoTourElement
+                id={DemoTourStep.RELEASES_LIST}
+                title={t('Latest releases')}
+                description={t(
+                  'View the latest releases for your project. Select a release to review new and regressed issues, and business critical metrics like crash rate, and user adoption. '
+                )}
+                position="top-start"
+              >
+                <ReleaseListInner
+                  activeDisplay={activeDisplay}
+                  loading={isReleasesPending}
+                  organization={organization}
+                  releases={releases}
+                  releasesPageLinks={releasesPageLinks}
+                  reloading={isReleasesRefetching}
+                  selectedProject={selectedProject}
+                  selection={selection}
+                  shouldShowQuickstart={shouldShowQuickstart}
+                  showReleaseAdoptionStages={showReleaseAdoptionStages}
+                />
+              </DemoTourElement>
             )}
             <FloatingFeedbackWidget />
           </Layout.Main>

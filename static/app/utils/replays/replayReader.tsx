@@ -1,7 +1,7 @@
-import * as Sentry from '@sentry/react';
 import type {eventWithTime} from '@sentry-internal/rrweb';
+import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
-import {type Duration, duration} from 'moment-timezone';
+import {duration, type Duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import {domId} from 'sentry/utils/domId';
@@ -30,6 +30,7 @@ import type {
   incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
+  RawReplayError,
   RecordingFrame,
   ReplayFrame,
   serializedNodeWithId,
@@ -54,7 +55,7 @@ import {
   isWebVitalFrame,
   NodeType,
 } from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord, ReplayError} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
   /**
@@ -71,7 +72,7 @@ interface ReplayReaderParams {
    * Error instances could be frontend, backend, or come from the error platform
    * like performance-errors or replay-errors
    */
-  errors: ReplayError[] | undefined;
+  errors: RawReplayError[] | undefined;
 
   /**
    * Is replay data still fetching?
@@ -510,6 +511,13 @@ export default class ReplayReader {
     return this._replayRecord.started_at.getTime() + start;
   };
 
+  getIsLive = () => {
+    // A replay is "LIVE" when:
+    // now < startTimestampMs + 60 minutes
+    const SIXTY_MINUTES_MS = 60 * 60 * 1000;
+    return Date.now() < this.getStartTimestampMs() + SIXTY_MINUTES_MS;
+  };
+
   getReplay = () => {
     return this._replayRecord;
   };
@@ -743,6 +751,26 @@ export default class ReplayReader {
       this.getStartTimestampMs() + this.getDurationMs()
     )
   );
+
+  getSummaryChapterFrames = memoize(() => {
+    return [
+      ...this.getPerfFrames(),
+      ...this.getCustomFrames(),
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        [
+          'replay.hydrate-error',
+          'replay.mutations',
+          'feedback',
+          'device.battery',
+          'device.connectivity',
+          'device.orientation',
+          'app.foreground',
+          'app.background',
+        ].includes(frame.category)
+      ),
+      ...this._errors,
+    ].sort(sortFrames);
+  });
 
   getPerfFrames = memoize(() => {
     const crumbs = removeDuplicateClicks(

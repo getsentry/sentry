@@ -9,14 +9,14 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     endpoint = "sentry-api-0-organization-group-index-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def get_response(self, *args, **kwargs):
         return super().get_response(self.project.organization.slug, **kwargs)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -52,7 +52,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
 
-    def test_unhandled(self):
+    def test_unhandled(self) -> None:
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -80,7 +80,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "filtered" in response_data[0]
         assert "isUnhandled" in response_data[0]
 
-    def test_issue_platform_issue(self):
+    def test_issue_platform_issue(self) -> None:
         event_id = uuid.uuid4().hex
         _, group_info = self.process_occurrence(
             event_id=event_id,
@@ -114,7 +114,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
 
-    def test_issue_platform_mixed_issue_not_title(self):
+    def test_issue_platform_mixed_issue_not_title(self) -> None:
         event_id = uuid.uuid4().hex
         _, group_info = self.process_occurrence(
             event_id=event_id,
@@ -153,12 +153,12 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "lifetime" in data
             assert "filtered" in data
 
-    def test_no_matching_groups(self):
+    def test_no_matching_groups(self) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query="is:unresolved", groups=[1337])
         assert response.status_code == 400
 
-    def test_simple_with_project(self):
+    def test_simple_with_project(self) -> None:
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -183,7 +183,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 2
 
-    def test_query_timestamp(self):
+    def test_query_timestamp(self) -> None:
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -213,7 +213,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 2
 
-    def test_simple_flags(self):
+    def test_simple_flags(self) -> None:
         group_a = self.store_event(
             data={
                 "timestamp": before_now(seconds=500).isoformat(),
@@ -238,7 +238,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response_data[0]["filtered"]["count"] == "1"
         assert response_data[0]["lifetime"]["count"] == "1"
 
-    def test_error_upsampling_with_allowlisted_project(self):
+    def test_error_upsampling_with_allowlisted_project(self) -> None:
         """Test that count is upsampled for allowlisted projects in group index stats."""
         with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
             project = self.project

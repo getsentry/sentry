@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 
-describe('GroupReleaseStats', function () {
+describe('GroupReleaseStats', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const group = GroupFixture();
@@ -33,7 +33,7 @@ describe('GroupReleaseStats', function () {
       />
     );
 
-  it('renders all environments', function () {
+  it('renders all environments', () => {
     createWrapper({});
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('GroupReleaseStats', function () {
     expect(screen.getByText('123')).toBeInTheDocument();
   });
 
-  it('renders specific environments', function () {
+  it('renders specific environments', () => {
     createWrapper({
       environments: EnvironmentsFixture().map(environment => environment.displayName),
     });

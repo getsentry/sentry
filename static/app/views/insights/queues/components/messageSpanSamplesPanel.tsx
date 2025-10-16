@@ -12,6 +12,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,7 +31,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
@@ -165,17 +165,32 @@ export function MessageSpanSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search: timeseriesFilters,
+      query: timeseriesFilters,
       yAxis: [`avg(span.duration)`],
       enabled: isPanelOpen,
-      transformAliasToInputFormat: true,
     },
     timeseriesReferrer
   );
 
-  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
+  const timeSeries = durationData?.timeSeries || [];
+  const durationSeries = timeSeries.find(ts => ts.yAxis === 'avg(span.duration)');
+
+  const durationAxisMax = computeAxisMax([
+    durationSeries
+      ? {
+          seriesName: durationSeries.yAxis,
+          data: durationSeries.values.map(v => ({
+            name: v.timestamp,
+            value: v.value || 0,
+          })),
+        }
+      : {
+          seriesName: 'avg(span.duration)',
+          data: [],
+        },
+  ]);
 
   const {
     data: spanSamplesData,
@@ -312,7 +327,7 @@ export function MessageSpanSamplesPanel() {
                 title={getDurationChartTitle('queue')}
                 isLoading={isDurationDataFetching}
                 error={durationError}
-                series={[durationData[`avg(span.duration)`]]}
+                timeSeries={durationSeries ? [durationSeries] : []}
                 samples={samplesPlottable}
               />
             </ModuleLayout.Full>
@@ -384,13 +399,13 @@ function ProducerMetricsRibbon({
       <MetricReadout
         title={t('Published')}
         value={metrics?.[0]?.['count_op(queue.publish)']}
-        unit={'count'}
+        unit="count"
         isLoading={isLoading}
       />
       <MetricReadout
         title={t('Error Rate')}
         value={errorRate}
-        unit={'percentage'}
+        unit="percentage"
         isLoading={isLoading}
       />
     </ReadoutRibbon>
@@ -410,13 +425,13 @@ function ConsumerMetricsRibbon({
       <MetricReadout
         title={t('Processed')}
         value={metrics?.[0]?.['count_op(queue.process)']}
-        unit={'count'}
+        unit="count"
         isLoading={isLoading}
       />
       <MetricReadout
         title={t('Error Rate')}
         value={errorRate}
-        unit={'percentage'}
+        unit="percentage"
         isLoading={isLoading}
       />
       <MetricReadout
@@ -427,7 +442,7 @@ function ConsumerMetricsRibbon({
       />
       <MetricReadout
         title={t('Avg Processing Time')}
-        value={metrics[0]?.['avg_if(span.duration,span.op,queue.process)']}
+        value={metrics[0]?.['avg_if(span.duration,span.op,equals,queue.process)']}
         unit={DurationUnit.MILLISECOND}
         isLoading={false}
       />

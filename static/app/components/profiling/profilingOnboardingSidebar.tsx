@@ -7,22 +7,22 @@ import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
+  ProductSolution,
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
-import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -54,8 +54,8 @@ const PROFILING_ONBOARDING_STEPS = [
 
 export function useProfilingOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.PROFILING_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.PROFILING_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -79,36 +79,11 @@ export function useProfilingOnboardingDrawer() {
 function DrawerContent() {
   useLayoutEffect(() => {
     return () => {
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     };
   }, []);
 
   return <SidebarContent />;
-}
-
-/**
- * @deprecated Use useProfilingOnboardingDrawer instead.
- */
-export function LegacyProfilingOnboardingSidebar(props: CommonSidebarProps) {
-  if (props.currentPanel !== SidebarPanelKey.PROFILING_ONBOARDING) {
-    return null;
-  }
-
-  return <ProfilingOnboarding {...props} />;
-}
-
-function ProfilingOnboarding(props: CommonSidebarProps) {
-  return (
-    <TaskSidebar
-      orientation={props.orientation}
-      collapsed={props.collapsed}
-      hidePanel={() => {
-        props.hidePanel();
-      }}
-    >
-      <SidebarContent />
-    </TaskSidebar>
-  );
 }
 
 function SidebarContent() {
@@ -239,8 +214,11 @@ function SidebarContent() {
           }}
         >
           <CompactSelect
-            triggerLabel={
-              currentProject ? (
+            value={currentProject?.id}
+            onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
+            triggerProps={{
+              'aria-label': currentProject?.slug,
+              children: currentProject ? (
                 <StyledIdBadge
                   project={currentProject}
                   avatarSize={16}
@@ -249,11 +227,8 @@ function SidebarContent() {
                 />
               ) : (
                 t('Select a project')
-              )
-            }
-            value={currentProject?.id}
-            onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
-            triggerProps={{'aria-label': currentProject?.slug}}
+              ),
+            }}
             options={projectSelectOptions}
             position="bottom-end"
           />
@@ -263,8 +238,7 @@ function SidebarContent() {
             activeProductSelection={PROFILING_ONBOARDING_STEPS}
             organization={organization}
             platform={currentPlatform}
-            projectId={currentProject.id}
-            projectSlug={currentProject.slug}
+            project={currentProject}
           />
         ) : null}
       </Content>
@@ -276,8 +250,7 @@ interface ProfilingOnboardingContentProps {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
-  projectId: Project['id'];
-  projectSlug: Project['slug'];
+  project: Project;
 }
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
@@ -286,7 +259,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
 
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
-    projSlug: props.projectSlug,
+    projSlug: props.project.slug,
     platform: props.platform,
   });
 
@@ -309,16 +282,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     );
   }
 
-  if (!docs) {
-    return (
-      <LoadingError
-        message={t(
-          'The getting started documentation for this platform is currently unavailable.'
-        )}
-      />
-    );
-  }
-
   if (!dsn) {
     return (
       <LoadingError
@@ -326,6 +289,20 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
           'We encountered an issue while loading the DSN for this getting started documentation.'
         )}
         onRetry={refetch}
+      />
+    );
+  }
+
+  if (props.platform.deprecated) {
+    return <DeprecatedPlatformInfo platform={props.platform} dsn={dsn} />;
+  }
+
+  if (!docs) {
+    return (
+      <LoadingError
+        message={t(
+          'The getting started documentation for this platform is currently unavailable.'
+        )}
       />
     );
   }
@@ -347,8 +324,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     dsn,
     organization: props.organization,
     platformKey: props.platform.id,
-    projectId: props.projectId,
-    projectSlug: props.projectSlug,
+    project: props.project,
     isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,

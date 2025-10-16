@@ -17,10 +17,10 @@ import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';

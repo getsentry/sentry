@@ -46,7 +46,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    IntegrationError,
+    IntegrationConfigurationError,
     IntegrationProviderError,
 )
 from sentry.snuba.referrer import Referrer
@@ -55,7 +55,7 @@ from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
-from sentry.utils.patch_set import patch_to_file_modifications
+from sentry.utils.patch_set import PatchParseError, patch_to_file_modifications
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
@@ -132,8 +132,8 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         try:
             # eagerly populate this just for the error message
             self.default_identity
-        except Identity.DoesNotExist:
-            raise IntegrationError("Identity not found.")
+        except Identity.DoesNotExist as e:
+            raise IntegrationConfigurationError("Identity not found.") from e
         else:
             return GitLabApiClient(self)
 
@@ -157,7 +157,9 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         # TODO: define this, used to migrate repositories
         return False
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
         resp = self.get_client().search_projects(group, query)
@@ -225,10 +227,10 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
-## Suspect Issues
-This merge request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this merge request
+The following issues were detected after merging:
 
-{issue_list}"""
+{issue_list}""".rstrip()
 
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
@@ -279,7 +281,7 @@ OPEN_PR_COMMENT_BODY_TEMPLATE = """\
 ## 🔍 Existing Issues For Review
 Your merge request is modifying functions with the following pre-existing issues:
 
-{issue_tables}"""
+{issue_tables}""".rstrip()
 
 OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
 📄 File: **{filename}**
@@ -334,12 +336,24 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
 
             try:
                 file_modifications = patch_to_file_modifications(diff["diff"])
+            except PatchParseError:
+                # TODO: This is caused because of the diffs are not in the correct format.
+                # This happens for Gitlab versions older than 16.5.
+                # The fix for this is to rebuild a consistent format using the other parts of the response.
+                # https://gitlab.com/gitlab-org/gitlab/-/issues/24913#note_1015454661
+                logger.warning(
+                    _open_pr_comment_log(
+                        integration_name=self.integration.integration_name,
+                        suffix="patch_parsing_error",
+                    )
+                )
+                continue
             except Exception:
                 logger.exception(
                     _open_pr_comment_log(
                         integration_name=self.integration.integration_name,
-                        suffix="patch_parsing_error",
-                    ),
+                        suffix="unexpected_error",
+                    )
                 )
                 continue
 

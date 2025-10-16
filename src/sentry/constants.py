@@ -34,7 +34,9 @@ def get_all_languages() -> list[str]:
 
 
 MODULE_ROOT = os.path.dirname(cast(str, __import__("sentry").__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(MODULE_ROOT))
 DATA_ROOT = os.path.join(MODULE_ROOT, "data")
+STATIC_ROOT = os.path.join(PROJECT_ROOT, "static")
 
 BAD_RELEASE_CHARS = "\r\n\f\x0c\t/\\"
 MAX_VERSION_LENGTH = 200
@@ -181,6 +183,12 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "remote",
         "resources",
         "rollback",
+        "s4s",
+        "s4s1",
+        "s4s2",
+        "s4s3",
+        "s4s4",
+        "s4s5",
         "sa1",
         "sales",
         "security",
@@ -255,6 +263,7 @@ DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 
 # Default sort option for the group stream
 DEFAULT_SORT_OPTION = "date"
+
 
 # Setup languages for only available locales
 _language_map = dict(settings.LANGUAGES)
@@ -359,6 +368,7 @@ KNOWN_DIF_FORMATS: dict[str, str] = {
     "application/x-debugid-map": "uuidmap",
     "application/x-il2cpp-json": "il2cpp",
     "application/x-portable-pdb": "portablepdb",
+    "application/x-dartsymbolmap+json": "dartsymbolmap",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"
@@ -497,14 +507,26 @@ class ObjectStatus:
 
     DISABLED = 1
 
+    _CHOICES = (
+        (ACTIVE, "active"),
+        (DISABLED, "disabled"),
+        (PENDING_DELETION, "pending_deletion"),
+        (DELETION_IN_PROGRESS, "deletion_in_progress"),
+    )
+
+    _STR_TO_STATUS = {v: k for k, v in _CHOICES}
+
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
-        return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-        )
+        return cls._CHOICES
+
+    @classmethod
+    def as_str_to_status_choices(cls) -> Sequence[tuple[str, int]]:
+        return tuple((v, k) for k, v in cls._CHOICES)
+
+    @classmethod
+    def from_str(cls, status_str: str) -> int:
+        return cls._STR_TO_STATUS[status_str]
 
 
 class SentryAppStatus:
@@ -573,14 +595,17 @@ class SentryAppStatus:
 class SentryAppInstallationStatus:
     PENDING = 0
     INSTALLED = 1
+    PENDING_DELETION = 2
     PENDING_STR = "pending"
     INSTALLED_STR = "installed"
+    PENDING_DELETION_STR = "pending_deletion"
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.PENDING, cls.PENDING_STR),
             (cls.INSTALLED, cls.INSTALLED_STR),
+            (cls.PENDING_DELETION, cls.PENDING_DELETION_STR),
         )
 
     @classmethod
@@ -589,6 +614,8 @@ class SentryAppInstallationStatus:
             return cls.PENDING_STR
         elif status == cls.INSTALLED:
             return cls.INSTALLED_STR
+        elif status == cls.PENDING_DELETION:
+            return cls.PENDING_DELETION_STR
         else:
             raise ValueError(f"Not a SentryAppInstallationStatus int: {status!r}")
 
@@ -643,46 +670,7 @@ class InsightModules(Enum):
     MCP = "mcp"
 
 
-INSIGHT_MODULE_FILTERS = {
-    InsightModules.HTTP: lambda spans: any(
-        span.get("sentry_tags", {}).get("category") == "http" and span.get("op") == "http.client"
-        for span in spans
-    ),
-    InsightModules.DB: lambda spans: any(
-        span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
-        for span in spans
-    ),
-    InsightModules.ASSETS: lambda spans: any(
-        span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
-        for span in spans
-    ),
-    InsightModules.APP_START: lambda spans: any(
-        span.get("op").startswith("app.start.") for span in spans
-    ),
-    InsightModules.SCREEN_LOAD: lambda spans: any(
-        span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans
-    ),
-    InsightModules.VITAL: lambda spans: any(
-        span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans
-    ),
-    InsightModules.CACHE: lambda spans: any(
-        span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans
-    ),
-    InsightModules.QUEUE: lambda spans: any(
-        span.get("op") in ["queue.process", "queue.publish"] for span in spans
-    ),
-    InsightModules.LLM_MONITORING: lambda spans: any(
-        span.get("op").startswith("ai.pipeline") for span in spans
-    ),
-    InsightModules.AGENTS: lambda spans: any(
-        span.get("op").startswith("gen_ai.") for span in spans
-    ),
-    InsightModules.MCP: lambda spans: any(span.get("op").startswith("mcp.") for span in spans),
-}
-
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
-
-LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
 
 
 # We need to limit the range of valid timestamps of an event because that
@@ -708,8 +696,6 @@ ALL_ACCESS_PROJECTS_SLUG = "$all"
 MAX_TOP_EVENTS = 10
 
 # org option default values
-PROJECT_RATE_LIMIT_DEFAULT = 100
-ACCOUNT_RATE_LIMIT_DEFAULT = 0
 REQUIRE_SCRUB_DATA_DEFAULT = False
 REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
@@ -730,8 +716,10 @@ SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
 DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
+ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
+ENABLE_SEER_CODING_DEFAULT = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
-ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = True
+ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope

@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
 
-describe('ProjectDetail > ProjectIssues', function () {
+describe('ProjectDetail > ProjectIssues', () => {
   let endpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
     filteredEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
     newIssuesEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>;
@@ -16,7 +16,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     },
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [GroupFixture(), GroupFixture({id: '2'})],
@@ -48,12 +48,12 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
 
-  it('renders a list', async function () {
+  it('renders a list', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [GroupFixture(), GroupFixture({id: '2'})],
@@ -75,7 +75,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(await screen.findAllByTestId('group')).toHaveLength(2);
   });
 
-  it('renders a link to Issues', async function () {
+  it('renders a link to Issues', async () => {
     render(
       <ProjectIssues
         api={new MockApiClient()}
@@ -105,7 +105,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
-  it('renders a segmented control', async function () {
+  it('renders a segmented control', async () => {
     render(
       <ProjectIssues
         api={new MockApiClient()}
@@ -136,7 +136,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(newIssuesEndpointMock).toHaveBeenCalled();
   });
 
-  it('renders a link to Discover', async function () {
+  it('renders a link to Discover', async () => {
     render(
       <ProjectIssues
         api={new MockApiClient()}
@@ -156,7 +156,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/discover/results/`,
+      pathname: `/organizations/${organization.slug}/explore/discover/results/`,
       query: {
         display: 'top5',
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
@@ -169,7 +169,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
-  it('changes according to global header', async function () {
+  it('changes according to global header', async () => {
     render(
       <ProjectIssues
         organization={organization}

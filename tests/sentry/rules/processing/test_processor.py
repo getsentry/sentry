@@ -45,7 +45,7 @@ class MockConditionTrue(EventCondition):
     id = "tests.sentry.rules.processing.test_processor.MockConditionTrue"
     label = "Mock condition which always passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return True
 
 
@@ -233,12 +233,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 contexts=contexts,
             )
 
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             perf_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=True,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -252,7 +254,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{perf_event.group.id}": json.dumps(
-                {"event_id": perf_event.event_id, "occurrence_id": perf_event.occurrence_id}
+                {
+                    "event_id": perf_event.event_id,
+                    "occurrence_id": perf_event.occurrence_id,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -270,12 +276,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=False,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -289,7 +297,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
-                {"event_id": self.group_event.event_id, "occurrence_id": None}
+                {
+                    "event_id": self.group_event.event_id,
+                    "occurrence_id": None,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -356,12 +368,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=True,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -375,7 +389,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
-                {"event_id": self.group_event.event_id, "occurrence_id": None}
+                {
+                    "event_id": self.group_event.event_id,
+                    "occurrence_id": None,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -661,7 +679,7 @@ class MockFilterTrue(EventFilter):
     id = "tests.sentry.rules.processing.test_processor.MockFilterTrue"
     label = "Mock filter which always passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return True
 
 
@@ -669,7 +687,7 @@ class MockFilterFalse(EventFilter):
     id = "tests.sentry.rules.processing.test_processor.MockFilterFalse"
     label = "Mock filter which never passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return False
 
 
@@ -978,9 +996,7 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["elements"][0]["elements"][-1][
-                "url"
-            ]
+            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["text"]["text"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
@@ -1025,7 +1041,7 @@ class RuleProcessorTestFilters(TestCase):
             in mock_post.call_args[1]["data"]["attachments"][0]["content"]["body"][0]["text"]
         )
 
-    @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
+    @patch("sentry.integrations.discord.message_builder.base.base.DiscordMessageBuilder._build")
     def test_discord_title_link_notification_uuid(self, mock_build: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization,

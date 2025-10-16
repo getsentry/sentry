@@ -38,6 +38,7 @@ RUST_CACHE = RustCache(1_000)
 # comment is merged
 VERSIONS = [2, 3]
 DEFAULT_ENHANCEMENTS_VERSION = VERSIONS[-1]
+DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2023-01-11"
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')
@@ -57,7 +58,7 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
 @dataclass
-class EnhancementsConfig:
+class EnhancementsConfigData:
     rules: list[EnhancementRule]
     rust_enhancements: RustEnhancements
     version: int | None = None
@@ -213,7 +214,7 @@ def _get_hint_for_frame(
 
 def _split_rules(
     rules: list[EnhancementRule],
-) -> tuple[EnhancementsConfig, EnhancementsConfig]:
+) -> tuple[EnhancementsConfigData, EnhancementsConfigData]:
     """
     Given a list of EnhancementRules, each of which may have both classifier and contributes
     actions, split the rules into separate classifier and contributes rule lists, and return them
@@ -248,8 +249,8 @@ def _split_rules(
     contributes_rust_enhancements = _get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
-        EnhancementsConfig(classifier_rules, classifier_rust_enhancements),
-        EnhancementsConfig(contributes_rules, contributes_rust_enhancements),
+        EnhancementsConfigData(classifier_rules, classifier_rust_enhancements),
+        EnhancementsConfigData(contributes_rules, contributes_rust_enhancements),
     )
 
 
@@ -320,8 +321,8 @@ def keep_profiling_rules(config: str) -> str:
 
 def get_enhancements_version(project: Project, grouping_config_id: str = "") -> int:
     """
-    Decide whether the Enhancements should be from the latest version or the version before. Useful
-    when transitioning between versions.
+    Decide whether the enhancements config should be from the latest version or the version before.
+    Useful when transitioning between versions.
 
     See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
     incorporates sampling.
@@ -329,7 +330,7 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     return DEFAULT_ENHANCEMENTS_VERSION
 
 
-class Enhancements:
+class EnhancementsConfig:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
@@ -338,7 +339,9 @@ class Enhancements:
     def __init__(
         self,
         rules: list[EnhancementRule],
-        split_enhancement_configs: tuple[EnhancementsConfig, EnhancementsConfig] | None = None,
+        split_enhancement_configs: (
+            tuple[EnhancementsConfigData, EnhancementsConfigData] | None
+        ) = None,
         version: int | None = None,
         bases: list[str] | None = None,
         id: str | None = None,
@@ -527,7 +530,7 @@ class Enhancements:
         return base64_str
 
     @classmethod
-    def _get_config_from_base64_bytes(cls, bytes_str: bytes) -> EnhancementsConfig:
+    def _get_config_from_base64_bytes(cls, bytes_str: bytes) -> EnhancementsConfigData:
         padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
 
         try:
@@ -549,13 +552,13 @@ class Enhancements:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
-        return EnhancementsConfig(rules, rust_enhancements, version, bases)
+        return EnhancementsConfigData(rules, rust_enhancements, version, bases)
 
     @classmethod
     def from_base64_string(
         cls, base64_string: str | bytes, referrer: str | None = None
-    ) -> Enhancements:
-        """Convert a base64 string into an `Enhancements` object"""
+    ) -> EnhancementsConfig:
+        """Convert a base64 string into an `EnhancementsConfig` object"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update({"source": "base64_string", "referrer": referrer})
@@ -568,9 +571,9 @@ class Enhancements:
 
             # Split the string to get encoded data for each set of rules: unsplit rules (i.e., rules
             # the way they're stored in project config), classifier rules, and contributes rules.
-            # Older base64 strings - such as those stored in events created before rule-splitting was
-            # introduced - will only have one part and thus will end up unchanged. (The delimiter is
-            # chosen specifically to be a character which can't appear in base64.)
+            # Older base64 strings - such as those stored in events created before rule-splitting
+            # was introduced - will only have one part and thus will end up unchanged by the split.
+            # (The delimiter is chosen specifically to be a character which can't appear in base64.)
             bytes_strs = raw_bytes_str.split(BASE64_ENHANCEMENTS_DELIMITER)
             configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
 
@@ -601,15 +604,15 @@ class Enhancements:
         id: str | None = None,
         version: int | None = None,
         referrer: str | None = None,
-    ) -> Enhancements:
-        """Create an `Enhancements` object from a text blob containing stacktrace rules"""
+    ) -> EnhancementsConfig:
+        """Create an `EnhancementsConfig` object from a text blob containing stacktrace rules"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update(
                 {"split": version == 3, "source": "rules_text", "referrer": referrer}
             )
 
-            return Enhancements(
+            return EnhancementsConfig(
                 rules=parse_enhancements(rules_text),
                 version=version,
                 bases=bases,
@@ -617,7 +620,7 @@ class Enhancements:
             )
 
 
-def _load_configs() -> dict[str, Enhancements]:
+def _load_configs() -> dict[str, EnhancementsConfig]:
     enhancement_bases = {}
     configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for filename in os.listdir(configs_dir):
@@ -628,7 +631,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_rules_text(
+                enhancements = EnhancementsConfig.from_rules_text(
                     f.read(), id=filename, referrer="default_rules"
                 )
                 enhancement_bases[filename] = enhancements
@@ -637,3 +640,10 @@ def _load_configs() -> dict[str, Enhancements]:
 
 ENHANCEMENT_BASES = _load_configs()
 del _load_configs
+
+# TODO: Shim to cover the time period before events which have the old default enhancements name
+# encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
+# that the new name is hard-coded, rather than a reference to `DEFAULT_ENHANCEMENTS_BASE`, because
+# if we make a new default in the meantime, the old name should still point to
+# `all-platforms:2023-01-11`.)
+ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]

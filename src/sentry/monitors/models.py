@@ -5,7 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
+    LegacyTextJSONField,
     Model,
     UUIDField,
     region_silo_model,
@@ -34,12 +34,17 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.deletions.base import ModelRelation
 from sentry.locks import locks
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.types import CrontabSchedule, IntervalSchedule
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.workflow_engine.models import DataSource
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +263,7 @@ class Monitor(Model):
     The team assigned as the owner of this model.
     """
 
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
+    config = models.JSONField(default=dict)
     """
     Stores the monitor configuration. See MONITOR_CONFIG for the schema.
     """
@@ -365,9 +370,11 @@ class Monitor(Model):
     def get_validated_config(self):
         try:
             jsonschema.validate(self.config, MONITOR_CONFIG)
-            return self.config
         except jsonschema.ValidationError:
-            logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
+            logging.warning("Monitor: %s invalid config: %s", self.id, self.config, exc_info=True)
+        # We should always return the config here - just log an error if we detect that it doesn't
+        # match the schema
+        return self.config
 
     def get_issue_alert_rule(self):
         issue_alert_rule_id = self.config.get("alert_rule_id")
@@ -432,16 +439,24 @@ class Monitor(Model):
         return old_pk
 
 
-@receiver(pre_save, sender=Monitor)
-def check_organization_monitor_limits(sender, instance, **kwargs):
+def check_organization_monitor_limit(organization_id: int) -> None:
+    """
+    Check if adding a new monitor would exceed the organization's monitor limit.
+    Raises MonitorLimitsExceeded if the limit would be exceeded.
+    """
     if (
-        instance.pk is None
-        and sender.objects.filter(organization_id=instance.organization_id).count()
+        Monitor.objects.filter(organization_id=organization_id).count()
         == settings.MAX_MONITORS_PER_ORG
     ):
         raise MonitorLimitsExceeded(
             f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
         )
+
+
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
+    if instance.pk is None:
+        check_organization_monitor_limit(instance.organization_id)
 
 
 @region_silo_model
@@ -485,8 +500,10 @@ class MonitorCheckIn(Model):
 
     date_updated = models.DateTimeField(default=timezone.now)
     """
-    Represents the last time a check-in was updated. This will typically be by
-    the terminal state.
+    Represents the last time a check-in was updated. This comes from the same
+    value as date_added, so it is the time relay received the (closing)
+    check-in. This will typically be the terminal state, heart-beat check-ins
+    being the other case.
     """
 
     date_clock = models.DateTimeField(null=True)
@@ -516,7 +533,7 @@ class MonitorCheckIn(Model):
     max_runtime.
     """
 
-    monitor_config = JSONField(null=True)
+    monitor_config = LegacyTextJSONField(null=True)
     """
     A snapshot of the monitor configuration at the time of the check-in.
     """
@@ -701,6 +718,9 @@ class MonitorEnvironment(Model):
         except MonitorIncident.DoesNotExist:
             return None
 
+    def build_occurrence_fingerprint(self) -> str:
+        return f"crons:{self.id}"
+
 
 @receiver(pre_save, sender=MonitorEnvironment)
 def check_monitor_environment_limits(sender, instance, **kwargs):
@@ -790,3 +810,41 @@ class MonitorEnvBrokenDetection(Model):
     class Meta:
         app_label = "monitors"
         db_table = "sentry_monitorenvbrokendetection"
+
+
+@data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
+class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
+    @staticmethod
+    def bulk_get_query_object(
+        data_sources: list[DataSource],
+    ) -> dict[int, Monitor | None]:
+        monitor_ids: list[int] = []
+
+        for ds in data_sources:
+            try:
+                monitor_ids.append(int(ds.source_id))
+            except ValueError:
+                logger.exception(
+                    "Invalid DataSource.source_id fetching Monitor",
+                    extra={"id": ds.id, "source_id": ds.source_id},
+                )
+
+        qs_lookup = {
+            str(monitor.id): monitor for monitor in Monitor.objects.filter(id__in=monitor_ids)
+        }
+        return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    @staticmethod
+    def related_model(instance) -> list[ModelRelation]:
+        return [ModelRelation(Monitor, {"id": instance.source_id})]
+
+    @override
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return None
+
+    @override
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        # We don't have a limit at the moment, so no need to count.
+        raise NotImplementedError

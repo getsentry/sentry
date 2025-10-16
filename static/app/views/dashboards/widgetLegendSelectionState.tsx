@@ -5,7 +5,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
-import {type DashboardDetails, DisplayType, type Widget} from './types';
+import {DisplayType, type DashboardDetails, type Widget} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;
@@ -19,7 +19,7 @@ type LegendSelection = Record<string, boolean>;
 const SERIES_LIST_DELIMITER = ',';
 const WIDGET_ID_DELIMITER = ':';
 
-const SERIES_NAME_DELIMITER = ';';
+const SERIES_NAME_DELIMITER = '|~|';
 
 class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
@@ -177,7 +177,7 @@ class WidgetLegendSelectionState {
         .filter(key => !selected[key])
         .map(series =>
           encodeURIComponent(
-            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)!
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series, true)
           )
         )
         .join(SERIES_LIST_DELIMITER)

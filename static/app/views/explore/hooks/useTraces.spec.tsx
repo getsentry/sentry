@@ -2,16 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {type TraceResult, useTraces} from './useTraces';
+import {useTraces, type TraceResult} from './useTraces';
 
 function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   return {
@@ -32,17 +28,7 @@ function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   };
 }
 
-function createWrapper(organization: Organization) {
-  return function ({children}: {children?: React.ReactNode}) {
-    return (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
-}
-
-describe('useTraces', function () {
+describe('useTraces', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
   const context = initializeOrg({
@@ -57,28 +43,25 @@ describe('useTraces', function () {
     },
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     act(() => {
       ProjectsStore.loadInitialData([project]);
       PageFiltersStore.init();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [project].map(p => parseInt(p.id, 10)),
-          environments: [],
-          datetime: {
-            period: '3d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+      PageFiltersStore.onInitializeUrlState({
+        projects: [project].map(p => parseInt(p.id, 10)),
+        environments: [],
+        datetime: {
+          period: '3d',
+          start: null,
+          end: null,
+          utc: null,
         },
-        new Set()
-      );
+      });
     });
   });
 
-  it('handles querying the api', async function () {
+  it('handles querying the api', async () => {
     const trace = createTraceResult();
 
     const body = {
@@ -100,9 +83,8 @@ describe('useTraces', function () {
       ],
     });
 
-    const {result} = renderHook(useTraces, {
+    const {result} = renderHookWithProviders(useTraces, {
       ...context,
-      wrapper: createWrapper(organization),
       initialProps: {
         datetime: {
           end: null,

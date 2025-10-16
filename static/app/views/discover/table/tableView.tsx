@@ -7,11 +7,9 @@ import type {Location, LocationDescriptorObject} from 'history';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import GridEditable, {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,10 +21,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import {
-  isFieldSortable,
-  pickRelevantLocationQueryStrings,
-} from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
   getFieldRenderer,
@@ -39,10 +34,10 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {
-  type DiscoverDatasets,
   DisplayModes,
   SavedQueryDatasets,
   TOP_N,
+  type DiscoverDatasets,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
@@ -51,14 +46,12 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   getExpandedResults,
   getTargetForTransactionSummaryLink,
-  pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -113,31 +106,7 @@ function TableView(props: TableViewProps) {
   const theme = useTheme();
   const {projects} = useProjects();
   const routes = useRoutes();
-  const navigate = useNavigate();
   const replayLinkGenerator = generateReplayLink(routes);
-
-  /**
-   * Updates a column on resizing
-   */
-  function _resizeColumn(
-    columnIndex: number,
-    nextColumn: TableColumn<keyof TableDataRow>
-  ) {
-    const {location, eventView, organization, queryDataset} = props;
-
-    const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
-    const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView,
-      extraQuery: {
-        ...pickRelevantLocationQueryStrings(location),
-        ...appendQueryDatasetParam(organization, queryDataset),
-      },
-    });
-  }
 
   function _renderPrependColumns(
     isHeader: boolean,
@@ -325,7 +294,7 @@ function TableView(props: TableViewProps) {
     const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
       props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
 
@@ -710,18 +679,22 @@ function TableView(props: TableViewProps) {
       ? []
       : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: columnOrder,
+  });
+
   return (
     <GridEditable
       isLoading={isLoading}
       error={error}
       data={tableData ? tableData.data : []}
-      columnOrder={columnOrder}
+      columnOrder={columns}
       columnSortBy={columnSortBy}
       title={t('Results')}
       grid={{
         renderHeadCell: _renderGridHeaderCell as any,
         renderBodyCell: _renderGridBodyCell as any,
-        onResizeColumn: _resizeColumn as any,
+        onResizeColumn: handleResizeColumn,
         renderPrependColumns: _renderPrependColumns as any,
         prependColumnWidths,
       }}

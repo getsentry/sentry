@@ -5,9 +5,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +15,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -96,15 +94,11 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
   const otherProjects = useMemo(() => {
     return unlinkedProjects
       .filter(p => p.access.includes('project:write'))
-      .map(p => ({
+      .map<SelectOption<string>>(p => ({
         value: p.id,
-        searchKey: p.slug,
-        label: (
-          <ProjectListElement>
-            <ProjectAvatar project={p} size={16} />
-            <TextOverflow>{p.slug}</TextOverflow>
-          </ProjectListElement>
-        ),
+        leadingItems: <ProjectAvatar project={p} size={16} />,
+        label: p.slug,
+        hideCheck: true,
       }));
   }, [unlinkedProjects]);
 
@@ -118,28 +112,29 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
       <Panel>
         <PanelHeader hasButtons>
           <div>{t('Projects')}</div>
-          <div style={{textTransform: 'none', fontWeight: 'normal'}}>
-            <DropdownAutoComplete
-              items={otherProjects}
-              minWidth={300}
-              onChange={evt => setQuery(evt.target.value)}
-              onSelect={selection => {
+          <div>
+            <CompactSelect
+              size="xs"
+              menuWidth={300}
+              options={otherProjects}
+              value=""
+              disabled={false}
+              onClose={() => setQuery('')}
+              onChange={selection => {
                 const project = unlinkedProjects.find(p => p.id === selection.value);
                 if (project) {
                   handleLinkProject(project, 'add');
                 }
               }}
-              onClose={() => setQuery('')}
-              busy={loadingUnlinkedProjects}
-              emptyMessage={t('You are not an admin for any other projects')}
-              alignMenu="right"
-            >
-              {({isOpen}) => (
-                <DropdownButton isOpen={isOpen} size="xs">
-                  {t('Add Project')}
-                </DropdownButton>
-              )}
-            </DropdownAutoComplete>
+              menuTitle={t('Projects')}
+              triggerProps={{children: t('Add Project')}}
+              searchPlaceholder={t('Search Projects')}
+              emptyMessage={t('No projects')}
+              loading={loadingUnlinkedProjects}
+              searchable
+              disableSearchFilter
+              onSearch={setQuery}
+            />
           </div>
         </PanelHeader>
 
@@ -190,13 +185,6 @@ const StyledPanelItem = styled(PanelItem)`
   justify-content: space-between;
   padding: ${space(2)};
   max-width: 100%;
-`;
-
-const ProjectListElement = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)} 0;
 `;
 
 export default TeamProjects;

@@ -1,39 +1,39 @@
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
   'javascript-nextjs',
   'javascript-react',
   'react-native',
+  'node',
   'php-laravel',
+  'python-fastapi',
   'flutter',
   'python-django',
-  'node',
-  'javascript',
-  'node-express',
-  'python-fastapi',
-  'php',
   'python',
-  'dotnet-maui',
-  'node-nestjs',
-  'javascript-vue',
-  'android',
-  'apple-ios',
+  'node-express',
+  'javascript',
+  'php',
   'ruby-rails',
+  'apple-ios',
+  'node-nestjs',
   'python-flask',
+  'javascript-vue',
   'dotnet-aspnetcore',
-  'javascript-angular',
-  'php-symfony',
-  'javascript-remix',
-  'java-spring-boot',
-  'javascript-sveltekit',
-  'unity',
   'javascript-nuxt',
-  'javascript-astro',
+  'dotnet-maui',
+  'javascript-angular',
+  'android',
+  'java-spring-boot',
+  'php-symfony',
+  'node-cloudflare-workers',
+  'electron',
+  'unity',
+  'javascript-remix',
 ]);
 
 const browser: Set<PlatformKey> = new Set([
+  'dart',
   'flutter',
   'javascript',
   'javascript-angular',
@@ -58,6 +58,7 @@ const browser: Set<PlatformKey> = new Set([
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'dart',
   'deno',
   'dotnet',
   'dotnet-aspnet',
@@ -85,6 +86,7 @@ const server: Set<PlatformKey> = new Set([
   'node-express',
   'node-fastify',
   'node-hapi',
+  'node-hono',
   'node-koa',
   'node-nestjs',
   'php',
@@ -122,6 +124,7 @@ const mobile: Set<PlatformKey> = new Set([
   'cordova',
   'dotnet-maui',
   'dotnet-xamarin',
+  'dart',
   'flutter',
   'ionic',
   'react-native',
@@ -136,6 +139,7 @@ const desktop: Set<PlatformKey> = new Set([
   'dotnet-winforms',
   'dotnet-wpf',
   'electron',
+  'dart',
   'flutter',
   'godot',
   'java',
@@ -186,7 +190,7 @@ export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
   native: ['cpp', 'c++'],
 };
 
-const categoryList = [
+export const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
   {id: 'browser', name: t('Browser'), platforms: browser},
   {id: 'server', name: t('Server'), platforms: server},
@@ -197,8 +201,6 @@ const categoryList = [
     id: 'gaming',
     name: t('Gaming'),
     platforms: gaming,
-    display: (organization?: Organization) =>
-      organization?.features.includes('project-creation-games-tab') ?? false,
   },
   {
     id: 'all',
@@ -206,15 +208,3 @@ const categoryList = [
     platforms: createablePlatforms,
   },
 ];
-
-export function getCategoryList(organization?: Organization) {
-  return categoryList.filter(({display}) => display?.(organization) ?? true);
-}
-
-// TODO(aknaus): Drop in favour of PlatformIntegration
-export type Platform = {
-  key: PlatformKey;
-  id?: string;
-  link?: string | null;
-  name?: string;
-};

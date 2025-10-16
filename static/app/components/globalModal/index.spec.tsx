@@ -8,15 +8,13 @@ import {
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ModalStore from 'sentry/stores/modalStore';
 
-describe('GlobalModal', function () {
+describe('GlobalModal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    ModalStore.reset();
   });
 
-  it('uses actionCreators to open and close Modal', async function () {
+  it('uses actionCreators to open and close Modal', async () => {
     renderGlobalModal();
 
     act(() => openModal(() => <div data-test-id="modal-test">Hi</div>));
@@ -29,7 +27,7 @@ describe('GlobalModal', function () {
     expect(screen.queryByTestId('modal-test')).not.toBeInTheDocument();
   });
 
-  it('calls onClose handler when close button is clicked', async function () {
+  it('calls onClose handler when close button is clicked', async () => {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -49,7 +47,7 @@ describe('GlobalModal', function () {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls onClose handler when modal is clicked out of', async function () {
+  it('calls onClose handler when modal is clicked out of', async () => {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -69,7 +67,7 @@ describe('GlobalModal', function () {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls onClose handler when escape key is pressed', async function () {
+  it('calls onClose handler when escape key is pressed', async () => {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -90,7 +88,7 @@ describe('GlobalModal', function () {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls onClose handler when closeModal prop is called', async function () {
+  it('calls onClose handler when closeModal prop is called', async () => {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -105,7 +103,7 @@ describe('GlobalModal', function () {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it("ignores click out with closeEvents: 'escape-key'", async function () {
+  it("ignores click out with closeEvents: 'escape-key'", async () => {
     const {waitForModalToHide} = renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -133,7 +131,7 @@ describe('GlobalModal', function () {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it("ignores escape key with closeEvents: 'backdrop-click'", async function () {
+  it("ignores escape key with closeEvents: 'backdrop-click'", async () => {
     const {waitForModalToHide} = renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -161,7 +159,7 @@ describe('GlobalModal', function () {
     await waitForModalToHide();
   });
 
-  it("ignores backdrop click and escape key when with closeEvents: 'none'", async function () {
+  it("ignores backdrop click and escape key when with closeEvents: 'none'", async () => {
     const {waitForModalToHide} = renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -192,7 +190,7 @@ describe('GlobalModal', function () {
     await waitForModalToHide();
   });
 
-  it('renders interactive tooltip inside the modal', async function () {
+  it('renders interactive tooltip inside the modal', async () => {
     renderGlobalModal();
 
     const buttonClick = jest.fn();

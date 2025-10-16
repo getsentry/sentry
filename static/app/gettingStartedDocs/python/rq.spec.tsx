@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './rq';
 
-describe('rq onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('rq onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -21,7 +21,7 @@ describe('rq onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Main Python Script'})).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -37,7 +37,7 @@ describe('rq onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders transaction profiling', function () {
+  it('renders transaction profiling', () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
@@ -56,7 +56,7 @@ describe('rq onboarding docs', function () {
     matches.forEach(match => expect(match).toBeInTheDocument());
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });

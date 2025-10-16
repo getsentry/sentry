@@ -12,12 +12,12 @@ import {EntryType} from 'sentry/types/event';
 
 jest.unmock('prismjs');
 
-describe('Request entry', function () {
+describe('Request entry', () => {
   beforeEach(() => {
     ConfigStore.set('user', UserFixture());
   });
 
-  it('display redacted data', async function () {
+  it('display redacted data', async () => {
     const event = EventFixture({
       entries: [
         {
@@ -197,8 +197,8 @@ describe('Request entry', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  describe('body section', function () {
-    it('should return plain-text when given unrecognized inferred Content-Type', function () {
+  describe('body section', () => {
+    it('should return plain-text when given unrecognized inferred Content-Type', () => {
       const data: EntryRequest['data'] = {
         apiTarget: null,
         query: [],
@@ -232,7 +232,7 @@ describe('Request entry', function () {
       ).toBeInTheDocument();
     });
 
-    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function () {
+    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', () => {
       const data: EntryRequest['data'] = {
         apiTarget: null,
         query: [],
@@ -266,7 +266,7 @@ describe('Request entry', function () {
       ).toBeInTheDocument();
     });
 
-    it('should return a ContextData element when inferred Content-Type is application/json', function () {
+    it('should return a ContextData element when inferred Content-Type is application/json', () => {
       const data: EntryRequest['data'] = {
         apiTarget: null,
         query: [],
@@ -300,7 +300,7 @@ describe('Request entry', function () {
       ).toBeInTheDocument();
     });
 
-    it('should not blow up in a malformed uri', function () {
+    it('should not blow up in a malformed uri', () => {
       // > decodeURIComponent('a%AFc')
       // URIError: URI malformed
       const data: EntryRequest['data'] = {
@@ -333,7 +333,7 @@ describe('Request entry', function () {
       ).not.toThrow();
     });
 
-    it('should remove any non-tuple values from array', function () {
+    it('should remove any non-tuple values from array', () => {
       const user = UserFixture();
       user.options.prefersIssueDetailsStreamlinedUI = true;
       ConfigStore.set('user', user);
@@ -365,7 +365,7 @@ describe('Request entry', function () {
       ).not.toThrow();
     });
 
-    it("should not cause an invariant violation if data.data isn't a string", function () {
+    it("should not cause an invariant violation if data.data isn't a string", () => {
       const data: EntryRequest['data'] = {
         apiTarget: null,
         query: [],
@@ -396,8 +396,8 @@ describe('Request entry', function () {
       ).not.toThrow();
     });
 
-    describe('graphql', function () {
-      it('should render a graphql query and variables', function () {
+    describe('graphql', () => {
+      it('should render a graphql query and variables', () => {
         const data: EntryRequest['data'] = {
           apiTarget: 'graphql',
           method: 'POST',
@@ -427,7 +427,7 @@ describe('Request entry', function () {
         ).toBeInTheDocument();
       });
 
-      it('highlights graphql query lines with errors', async function () {
+      it('highlights graphql query lines with errors', async () => {
         const data: EntryRequest['data'] = {
           apiTarget: 'graphql',
           method: 'POST',
@@ -476,7 +476,7 @@ describe('Request entry', function () {
     });
   });
 
-  it('should display url fragment', function () {
+  it('should display url fragment', () => {
     const user = UserFixture();
     user.options.prefersIssueDetailsStreamlinedUI = true;
     ConfigStore.set('user', user);

@@ -6,14 +6,11 @@ from unittest import mock
 
 import pytest
 
-from sentry import eventstore
 from sentry.attachments import attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
-from sentry.eventstore.processing import event_processing_store
-from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.enhancer import EnhancementsConfig
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -22,6 +19,9 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers.datetime import before_now
@@ -95,7 +95,7 @@ def register_event_preprocessor(register_plugin):
             def get_event_preprocessors(self, data):
                 return [f]
 
-            def is_enabled(self, project=None):
+            def is_enabled(self, project=None) -> bool:
                 return True
 
         register_plugin(globals(), ReprocessingTestPlugin)
@@ -171,6 +171,7 @@ def test_basic(
         old_event = event
 
         with BurstTaskRunner() as burst:
+            assert event.group_id
             reprocess_group(default_project.id, event.group_id)
 
             burst(max_jobs=100)
@@ -251,6 +252,7 @@ def test_concurrent_events_go_into_new_group(
     )
 
     with BurstTaskRunner() as burst_reprocess:
+        assert event.group_id is not None
         reprocess_group(default_project.id, event.group_id)
 
         assert event.group_id is not None
@@ -412,6 +414,7 @@ def test_attachments_and_userfeedback(
         _create_user_report(evt)
 
     with BurstTaskRunner() as burst:
+        assert event.group_id
         reprocess_group(default_project.id, event.group_id, max_events=1)
 
         burst(max_jobs=100)
@@ -457,6 +460,7 @@ def test_nodestore_missing(
     old_group = event.group
 
     with BurstTaskRunner() as burst:
+        assert event.group_id
         reprocess_group(
             default_project.id, event.group_id, max_events=1, remaining_events=remaining_events
         )
@@ -522,7 +526,7 @@ def test_apply_new_fingerprinting_rules(
     assert event1.group.message == "hello world 2"
 
     # Change fingerprinting rules
-    new_rules = FingerprintingRules.from_config_string(
+    new_rules = FingerprintingConfig.from_config_string(
         """
     message:"hello world 1" -> hw1 title="HW1"
     """
@@ -534,6 +538,7 @@ def test_apply_new_fingerprinting_rules(
     ):
         # Reprocess
         with BurstTaskRunner() as burst_reprocess:
+            assert event1.group_id
             reprocess_group(default_project.id, event1.group_id)
             burst_reprocess(max_jobs=100)
 
@@ -630,7 +635,7 @@ def test_apply_new_stack_trace_rules(
         "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
-            "enhancements": Enhancements.from_rules_text(
+            "enhancements": EnhancementsConfig.from_rules_text(
                 "function:c -group",
                 bases=[],
             ).base64_string,
@@ -638,6 +643,8 @@ def test_apply_new_stack_trace_rules(
     ):
         # Reprocess
         with BurstTaskRunner() as burst_reprocess:
+            assert event1.group_id
+            assert event2.group_id
             reprocess_group(default_project.id, event1.group_id)
             reprocess_group(default_project.id, event2.group_id)
             burst_reprocess(max_jobs=100)
@@ -661,7 +668,7 @@ def test_apply_new_stack_trace_rules(
 
 
 @django_db_all
-def test_finish_reprocessing(default_project):
+def test_finish_reprocessing(default_project) -> None:
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project)
     new_group = Group.objects.create(project=default_project)

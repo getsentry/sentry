@@ -8,8 +8,8 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 
 import {
-  type FrameSourceMapDebuggerData,
   SourceMapsDebuggerModal,
+  type FrameSourceMapDebuggerData,
   type SourceMapsDebuggerModalProps,
 } from './sourceMapsDebuggerModal';
 
@@ -80,7 +80,7 @@ const renderModal = async (props?: Partial<SourceMapsDebuggerModalProps>) => {
 
 describe('SourceMapsDebuggerModal', () => {
   it(`renders proper message when active tab is 'release', release has some
-    artifact and release name fetching was unsuccessful`, async function () {
+    artifact and release name fetching was unsuccessful`, async () => {
     await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
@@ -97,7 +97,7 @@ describe('SourceMapsDebuggerModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 
-  it('hides all tabs - when full Debug ID support and no scraping data', async function () {
+  it('hides all tabs - when full Debug ID support and no scraping data', async () => {
     await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
@@ -112,7 +112,7 @@ describe('SourceMapsDebuggerModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 
-  it('hides all tabs - when unsupported Debug ID and no scraping data', async function () {
+  it('hides all tabs - when unsupported Debug ID and no scraping data', async () => {
     await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
@@ -127,7 +127,7 @@ describe('SourceMapsDebuggerModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 
-  it('display tabs - except releases', async function () {
+  it('display tabs - except releases', async () => {
     await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
@@ -144,7 +144,7 @@ describe('SourceMapsDebuggerModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 
-  it('display tabs - except debug ids', async function () {
+  it('display tabs - except debug ids', async () => {
     await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,

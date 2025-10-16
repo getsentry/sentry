@@ -13,7 +13,12 @@ import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
 import type {Subscription} from 'getsentry/types';
-import {hasPerformance, isBizPlanFamily} from 'getsentry/utils/billing';
+import {
+  hasNewBillingUI,
+  hasPartnerMigrationFeature,
+  hasPerformance,
+  isBizPlanFamily,
+} from 'getsentry/utils/billing';
 import TrialBadge from 'getsentry/views/subscriptionPage/trial/badge';
 
 const getSubscriptionBannerText = (
@@ -86,9 +91,7 @@ function useIsSubscriptionUpsellHidden(
     !subscription.canTrial;
 
   // hide upsell for customers on partner plans with flag
-  const hasPartnerMigrationFeature = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
 
   // exclude current tiers business, non-self serve, current trial orgs, legacy upsells, and orgs with pending business upgrade
   if (
@@ -97,7 +100,7 @@ function useIsSubscriptionUpsellHidden(
       isBizPlanFamily(subscription.planDetails)) ||
     subscription.isTrial ||
     isLegacyUpsell ||
-    hasPartnerMigrationFeature ||
+    hasEndingPartnerPlan ||
     isBizPlanFamily(subscription.pendingChanges?.planDetails)
   ) {
     return true;
@@ -117,6 +120,7 @@ export function SubscriptionUpsellBanner({
   organization,
   subscription,
 }: SubscriptionUpsellBannerProps) {
+  const isNewBillingUI = hasNewBillingUI(organization);
   const isHidden = useIsSubscriptionUpsellHidden(subscription, organization);
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
     feature: BANNER_PROMPT_KEY,
@@ -131,7 +135,7 @@ export function SubscriptionUpsellBanner({
   const [title, description] = getSubscriptionBannerText(organization, subscription);
 
   return (
-    <BusinessTrialBannerWrapper>
+    <BusinessTrialBannerWrapper isNewBillingUI={isNewBillingUI}>
       <div>
         <IntegationBannerTitle>
           {title}
@@ -179,19 +183,18 @@ export function SubscriptionUpsellBanner({
   );
 }
 
-const BusinessTrialBannerWrapper = styled('div')`
+const BusinessTrialBannerWrapper = styled('div')<{isNewBillingUI?: boolean}>`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)};
-  margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,
     ${p => p.theme.backgroundSecondary}FF 70%,
     ${p => p.theme.backgroundSecondary}FF 100%
   );
-  margin-bottom: 24px;
+  margin-bottom: ${p => (p.isNewBillingUI ? '0' : '24px')};
 `;
 
 const IntegationBannerTitle = styled('div')`

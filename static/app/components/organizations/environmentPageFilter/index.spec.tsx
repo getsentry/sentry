@@ -8,7 +8,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const {organization, projects, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership']},
+  organization: {features: ['open-membership']},
   projects: [
     {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
     {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -22,19 +22,16 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('EnvironmentPageFilter', function () {
+describe('EnvironmentPageFilter', () => {
   beforeEach(() => {
     OrganizationStore.init();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['environments'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
 
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
@@ -42,7 +39,7 @@ describe('EnvironmentPageFilter', function () {
 
   afterEach(() => PageFiltersStore.reset());
 
-  it('renders & handles single selection', async function () {
+  it('renders & handles single selection', async () => {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
@@ -67,7 +64,7 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  it('handles multiple selection', async function () {
+  it('handles multiple selection', async () => {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
@@ -91,7 +88,7 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  it('handles reset', async function () {
+  it('handles reset', async () => {
     const onReset = jest.fn();
     render(<EnvironmentPageFilter onReset={onReset} />, {
       router,
@@ -117,7 +114,7 @@ describe('EnvironmentPageFilter', function () {
     expect(onReset).toHaveBeenCalled();
   });
 
-  it('responds to page filter changes, async e.g. from back button nav', async function () {
+  it('responds to page filter changes, async e.g. from back button nav', async () => {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
@@ -134,9 +131,9 @@ describe('EnvironmentPageFilter', function () {
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
   });
 
-  it('displays a desynced state message', async function () {
+  it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
-      organization: {features: ['global-views', 'open-membership']},
+      organization: {features: ['open-membership']},
       projects: [
         {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
         {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -158,7 +155,6 @@ describe('EnvironmentPageFilter', function () {
       organization: desyncOrganization,
       queryParams: {project: ['1'], environment: 'staging'},
       router: desyncRouter,
-      shouldEnforceSingleProject: false,
     });
 
     render(<EnvironmentPageFilter />, {

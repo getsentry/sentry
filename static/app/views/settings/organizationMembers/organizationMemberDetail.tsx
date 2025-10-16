@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -31,11 +31,11 @@ import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types/organization';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Teams from 'sentry/utils/teams';
@@ -93,16 +93,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const [orgRole, setOrgRole] = useState<Member['orgRole']>('');
-  const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>([]);
+  const [orgRole, setOrgRole] = useState<Member['orgRole']>(member.orgRole);
+  const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
-
-  useEffect(() => {
-    if (member) {
-      setOrgRole(member.orgRole);
-      setTeamRoles(member.teamRoles);
-    }
-  }, [member]);
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -417,7 +410,7 @@ function OrganizationMemberDetail() {
     return <NotFound />;
   }
 
-  return <OrganizationMemberDetailContent member={member} />;
+  return <OrganizationMemberDetailContent member={member} key={member.id} />;
 }
 
 export default OrganizationMemberDetail;

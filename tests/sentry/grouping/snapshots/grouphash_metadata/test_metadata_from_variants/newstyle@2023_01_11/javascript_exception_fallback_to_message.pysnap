@@ -1,0 +1,34 @@
+---
+created: '2025-10-07T20:42:05.252273+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": true,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "True",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "10dfd81e2df31e96fae451b9e205ad81"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "Error"
+          value* (stripped event-specific values)
+            "Loading chunk <int> failed.\n(timeout: <url>"

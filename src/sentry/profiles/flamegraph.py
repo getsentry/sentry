@@ -247,21 +247,21 @@ class FlamegraphExecutor:
         profiler_metas: list[ProfilerMeta] = []
 
         assert self.snuba_params.start is not None and self.snuba_params.end is not None
-        original_start, original_end = self.snuba_params.start, self.snuba_params.end
+        snuba_params = self.snuba_params.copy()
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start,
-            original_end,
+            self.snuba_params.start,
+            self.snuba_params.end,
             initial_chunk_delta,
             max_chunk_delta,
             multiplier,
             reverse=True,
         ):
-            self.snuba_params.start = chunk_start
-            self.snuba_params.end = chunk_end
+            snuba_params.start = chunk_start
+            snuba_params.end = chunk_end
 
             builder = self.get_transactions_based_candidate_query(
-                query=self.query, limit=max_profiles
+                query=self.query, limit=max_profiles, snuba_params=snuba_params
             )
 
             results = builder.run_query(
@@ -298,9 +298,9 @@ class FlamegraphExecutor:
         continuous_profile_candidates: list[ContinuousProfileCandidate] = []
 
         if max_continuous_profile_candidates > 0:
+            snuba_params.end = self.snuba_params.end
             continuous_profile_candidates, _ = self.get_chunks_for_profilers(
-                profiler_metas,
-                max_continuous_profile_candidates,
+                profiler_metas, max_continuous_profile_candidates, snuba_params
             )
 
         return {
@@ -309,12 +309,15 @@ class FlamegraphExecutor:
         }
 
     def get_transactions_based_candidate_query(
-        self, query: str | None, limit: int
+        self,
+        query: str | None,
+        limit: int,
+        snuba_params: SnubaParams | None = None,
     ) -> DiscoverQueryBuilder:
         builder = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
-            snuba_params=self.snuba_params,
+            snuba_params=snuba_params or self.snuba_params,
             selected_columns=[
                 "id",
                 "project.id",
@@ -356,7 +359,10 @@ class FlamegraphExecutor:
         return builder
 
     def get_chunks_for_profilers(
-        self, profiler_metas: list[ProfilerMeta], limit: int
+        self,
+        profiler_metas: list[ProfilerMeta],
+        limit: int,
+        snuba_params: SnubaParams | None = None,
     ) -> tuple[list[ContinuousProfileCandidate], float]:
         total_duration = 0.0
 
@@ -365,7 +371,8 @@ class FlamegraphExecutor:
 
         chunk_size = options.get("profiling.continuous-profiling.chunks-query.size")
         queries = [
-            self._create_chunks_query(chunk) for chunk in chunked(profiler_metas, chunk_size)
+            self._create_chunks_query(chunk, snuba_params)
+            for chunk in chunked(profiler_metas, chunk_size)
         ]
 
         results = self._query_chunks_for_profilers(queries)
@@ -416,8 +423,11 @@ class FlamegraphExecutor:
 
         return continuous_profile_candidates, total_duration
 
-    def _create_chunks_query(self, profiler_metas: list[ProfilerMeta]) -> Query:
+    def _create_chunks_query(
+        self, profiler_metas: list[ProfilerMeta], snuba_params: SnubaParams | None = None
+    ) -> Query:
         assert profiler_metas, "profiler_metas cannot be empty"
+        snuba_params = snuba_params or self.snuba_params
 
         profiler_conditions = [profiler_meta.as_condition() for profiler_meta in profiler_metas]
 
@@ -434,10 +444,10 @@ class FlamegraphExecutor:
         start_condition = Condition(
             Column("start_timestamp"),
             Op.LT,
-            resolve_datetime64(self.snuba_params.end),
+            resolve_datetime64(snuba_params.end),
         )
         end_condition = Condition(
-            Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
+            Column("end_timestamp"), Op.GTE, resolve_datetime64(snuba_params.start)
         )
 
         return Query(
@@ -652,21 +662,21 @@ class FlamegraphExecutor:
         profiler_metas: list[ProfilerMeta] = []
 
         assert self.snuba_params.start is not None and self.snuba_params.end is not None
-        original_start, original_end = self.snuba_params.start, self.snuba_params.end
+        snuba_params = self.snuba_params.copy()
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start,
-            original_end,
+            self.snuba_params.start,
+            self.snuba_params.end,
             initial_chunk_delta,
             max_chunk_delta,
             multiplier,
             reverse=True,
         ):
-            self.snuba_params.start = chunk_start
-            self.snuba_params.end = chunk_end
+            snuba_params.start = chunk_start
+            snuba_params.end = chunk_end
 
             builder = self.get_transactions_based_candidate_query(
-                query=self.query, limit=max_profiles
+                query=self.query, limit=max_profiles, snuba_params=snuba_params
             )
             results = builder.run_query(referrer)
             results = builder.process_results(results)
@@ -704,8 +714,9 @@ class FlamegraphExecutor:
         # If there are continuous profiles attached to transactions, we prefer those as
         # the active thread id gives us more user friendly flamegraphs than without.
         if profiler_metas and max_continuous_profile_candidates > 0:
+            snuba_params.end = self.snuba_params.end
             continuous_profile_candidates, continuous_duration = self.get_chunks_for_profilers(
-                profiler_metas, max_continuous_profile_candidates
+                profiler_metas, max_continuous_profile_candidates, snuba_params
             )
 
         seen_chunks = {
@@ -713,28 +724,21 @@ class FlamegraphExecutor:
             for candidate in continuous_profile_candidates
         }
 
-        always_use_direct_chunks = features.has(
-            "organizations:profiling-flamegraph-always-use-direct-chunks",
-            self.snuba_params.organization,
-            actor=self.request.user,
-        )
-
         # If we still don't have enough continuous profile candidates + transaction profile candidates,
         # we'll fall back to directly using the continuous profiling data
-        if (
-            len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles
-            and always_use_direct_chunks
-        ):
-            total_duration = continuous_duration if always_use_direct_chunks else 0.0
-            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
+        if len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles:
 
             conditions = []
             conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
             conditions.append(
-                Condition(Column("start_timestamp"), Op.LT, resolve_datetime64(original_end))
+                Condition(
+                    Column("start_timestamp"), Op.LT, resolve_datetime64(self.snuba_params.end)
+                )
             )
             conditions.append(
-                Condition(Column("end_timestamp"), Op.GTE, resolve_datetime64(original_start))
+                Condition(
+                    Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
+                )
             )
             environments = self.snuba_params.environment_names
             if environments:
@@ -790,10 +794,8 @@ class FlamegraphExecutor:
 
                 continuous_profile_candidates.append(candidate)
 
-                total_duration += end_timestamp - start_timestamp
-
                 # can set max duration to negative to skip this check
-                if (max_duration >= 0 and total_duration >= max_duration) or (
+                if (
                     len(continuous_profile_candidates) + len(transaction_profile_candidates)
                     >= max_profiles
                 ):

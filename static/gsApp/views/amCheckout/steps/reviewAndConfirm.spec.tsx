@@ -13,51 +13,40 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('getsentry/utils/trackGetsentryAnalytics');
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    if (!cb) {
-      return;
-    }
-    cb(() => ({
-      handleCardAction(secretKey: string, _options: any) {
-        if (secretKey === 'ERROR') {
-          return new Promise(resolve => {
-            resolve({error: {message: 'Invalid card', type: 'card_error'}});
-          });
-        }
-        if (secretKey === 'GENERIC_ERROR') {
-          return new Promise(resolve => {
-            resolve({
-              error: {
-                message: 'Something bad that users should not see',
-                type: 'internal_error',
-              },
-            });
-          });
-        }
-        return new Promise(resolve => {
-          resolve({setupIntent: {payment_method: 'pm_abc123'}});
+
+// Other Stripe mocks handled by global setup.ts
+jest.mock('getsentry/hooks/useStripeInstance', () => ({
+  useStripeInstance: jest.fn(() => ({
+    handleCardAction: jest.fn((secretKey: string) => {
+      if (secretKey === 'ERROR') {
+        return Promise.resolve({error: {message: 'Invalid card', type: 'card_error'}});
+      }
+      if (secretKey === 'GENERIC_ERROR') {
+        return Promise.resolve({
+          error: {
+            message: 'Something bad that users should not see',
+            type: 'internal_error',
+          },
         });
-      },
-    }));
-  },
+      }
+      return Promise.resolve({setupIntent: {payment_method: 'test-pm'}});
+    }),
+  })),
 }));
 
-describe('AmCheckout > ReviewAndConfirm', function () {
+describe('AmCheckout > ReviewAndConfirm', () => {
   const api = new MockApiClient();
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['seer-billing']});
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
@@ -103,7 +92,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.clearMockResponses();
@@ -139,7 +128,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
   });
 
-  it('cannot skip to review step', async function () {
+  it('cannot skip to review step', async () => {
     mockPreviewGet();
 
     MockApiClient.addMockResponse({
@@ -150,7 +139,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -168,7 +157,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(screen.queryByText('Confirm Changes')).not.toBeInTheDocument();
   });
 
-  it('renders closed', function () {
+  it('renders closed', () => {
     const {mockPreview} = mockPreviewGet();
     render(<ReviewAndConfirm {...stepProps} />);
 
@@ -177,7 +166,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(mockPreview).not.toHaveBeenCalled();
   });
 
-  it('renders open when active', async function () {
+  it('renders open when active', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     render(<ReviewAndConfirm {...stepProps} isActive />);
 
@@ -202,7 +191,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('requests preview with ondemand spend', async function () {
+  it('requests preview with ondemand spend', async () => {
     const {mockPreview, preview} = mockPreviewGet();
     const updatedData = {...formData, onDemandMaxSpend: 5000};
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
@@ -220,7 +209,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('updates preview with formData change when active', async function () {
+  it('updates preview with formData change when active', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     const {rerender} = render(<ReviewAndConfirm {...stepProps} />);
     expect(await screen.findByText('Review & Confirm')).toBeInTheDocument();
@@ -245,7 +234,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('can confirm changes', async function () {
+  it('can confirm changes', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
 
@@ -253,8 +242,8 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const updatedData = {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -273,15 +262,6 @@ describe('AmCheckout > ReviewAndConfirm', function () {
           previewToken: preview.previewToken,
         }),
       })
-    );
-    // No DOM updates to wait on, but we can use this.
-    await waitFor(() =>
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: `/settings/${organization.slug}/billing/overview/`,
-          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
-        })
-      )
     );
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
@@ -322,9 +302,18 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         previous_transactions: 10_000,
       }
     );
+    // No DOM updates to wait on, but we can use this.
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
+        })
+      )
+    );
   });
 
-  it('can schedule changes for partner migration', async function () {
+  it('can schedule changes for partner migration', async () => {
     const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
     const partnerSub = SubscriptionFixture({
       organization: partnerOrg,
@@ -427,7 +416,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('can migrate immediately for partner migration', async function () {
+  it('can migrate immediately for partner migration', async () => {
     const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
     const partnerSub = SubscriptionFixture({
       organization: partnerOrg,
@@ -525,7 +514,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('should render immediate copy for effectiveNow', async function () {
+  it('should render immediate copy for effectiveNow', async () => {
     mockPreviewGet(organization.slug, new Date());
     mockSubscriptionPut(organization.slug);
 
@@ -548,7 +537,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render contract end copy for effective later', async function () {
+  it('should render contract end copy for effective later', async () => {
     mockPreviewGet(organization.slug);
     mockSubscriptionPut(organization.slug);
 
@@ -571,7 +560,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render billed through self serve partner copy for effectiveNow', async function () {
+  it('should render billed through self serve partner copy for effectiveNow', async () => {
     const partnerSub = SubscriptionFixture({
       organization,
       contractPeriodEnd: moment().add(20, 'days').toISOString(),
@@ -615,7 +604,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render billed through self serve partner copy for effective later', async function () {
+  it('should render billed through self serve partner copy for effective later', async () => {
     mockPreviewGet(organization.slug);
     mockSubscriptionPut(organization.slug);
 
@@ -660,7 +649,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not send transactions upgrade event for plan upgrade', async function () {
+  it('does not send transactions upgrade event for plan upgrade', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
     const sub = SubscriptionFixture({
@@ -729,7 +718,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('does not send transactions upgrade event for transactions downgrade', async function () {
+  it('does not send transactions upgrade event for transactions downgrade', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
     const sub = SubscriptionFixture({
@@ -797,7 +786,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('can confirm with ondemand spend', async function () {
+  it('can confirm with ondemand spend', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
@@ -827,7 +816,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('handles expired token on confirm', async function () {
+  it('handles expired token on confirm', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     const mockConfirm = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/`,
@@ -871,7 +860,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('handles unknown error when updating subscription', async function () {
+  it('handles unknown error when updating subscription', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     const mockConfirm = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/`,
@@ -919,7 +908,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('handles completing a card action when required', async function () {
+  it('handles completing a card action when required', async () => {
     const {preview} = mockPreviewGet();
     // We make two API calls. The first fails with a card action required
     // which we have mocked to succeed. The second request will have
@@ -977,7 +966,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('handles payment intent errors', async function () {
+  it('handles payment intent errors', async () => {
     mockPreviewGet();
     const mockConfirm = mockSubscriptionPut({
       statusCode: 402,
@@ -999,7 +988,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(mockConfirm).toHaveBeenCalled();
   });
 
-  it('shows generic intent errors for odd types', async function () {
+  it('shows generic intent errors for odd types', async () => {
     mockPreviewGet();
     const mockConfirm = mockSubscriptionPut({
       statusCode: 402,

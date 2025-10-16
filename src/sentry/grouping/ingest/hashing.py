@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 
+from sentry import options
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
@@ -22,7 +23,6 @@ from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
     record_grouphash_metadata_metrics,
-    should_handle_grouphash_metadata,
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
@@ -34,7 +34,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.event_manager import Job
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -233,7 +233,7 @@ def get_or_create_grouphashes(
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
-        if should_handle_grouphash_metadata(project, created):
+        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
                 # We don't expect this to throw any errors, but collecting this metadata
                 # shouldn't ever derail ingestion, so better to be safe
@@ -248,23 +248,8 @@ def get_or_create_grouphashes(
                 logger.warning(
                     "grouphash_metadata.exception", extra={"event_id": event_id, "error": repr(exc)}
                 )
-
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
-        else:
-            # Now that the sample rate for grouphash metadata creation is 100%, we should never land
-            # here, and yet we still do. Log some data for debugging purposes.
-            logger.warning(
-                "grouphash_metadata.hash_without_metadata",
-                extra={
-                    "event_id": event.event_id,
-                    "project_id": project.id,
-                    "hash": hash_value,
-                    "is_new": created,
-                    "has_group": bool(grouphash.group_id),
-                },
-            )
-            metrics.incr("grouping.grouphashmetadata.backfill_needed", sample_rate=1.0)
 
         grouphashes.append(grouphash)
 

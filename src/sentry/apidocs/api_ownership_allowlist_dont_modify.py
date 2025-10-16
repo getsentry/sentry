@@ -1,7 +1,7 @@
 """
-    This list is tracking old api endpoints that we couldn't find owners for.
-    The goal is to eventually find owners for all and shrink this list.
-    DO NOT ADD ANY NEW APIS
+This list is tracking old api endpoints that we couldn't find owners for.
+The goal is to eventually find owners for all and shrink this list.
+DO NOT ADD ANY NEW APIS
 """
 
 API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [

@@ -39,7 +39,7 @@ def test_define_task_retry(task_namespace: TaskNamespace) -> None:
     assert task.retry == retry
 
 
-def test_define_task_at_most_once_with_retry(task_namespace: TaskNamespace):
+def test_define_task_at_most_once_with_retry(task_namespace: TaskNamespace) -> None:
     with pytest.raises(AssertionError) as err:
         Task(
             name="test.do_things",
@@ -101,7 +101,6 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
         namespace=task_namespace,
     )
     # Within a TaskRunner context tasks should run immediately.
-    # This emulates the behavior we have with celery.
     with TaskRunner():
         task.delay("arg", org_id=1)
         task.apply_async(args=["arg2"], kwargs={"org_id": 2})

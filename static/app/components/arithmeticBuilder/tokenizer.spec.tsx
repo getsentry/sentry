@@ -47,11 +47,11 @@ function f(i: number, func: string, attributes: TokenAttribute[]): TokenFunction
   return k(i, new TokenFunction(expect.objectContaining({}), func, attributes));
 }
 
-describe('tokenizeExpression', function () {
+describe('tokenizeExpression', () => {
   it.each([
     ['(', [s(0), po(0), s(1)]],
     [')', [s(0), pc(0), s(1)]],
-  ])('tokenizes parenthesis `%s`', function (expression, expected) {
+  ])('tokenizes parenthesis `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 
@@ -60,7 +60,7 @@ describe('tokenizeExpression', function () {
     ['-', [s(0), o(0, '-'), s(1)]],
     ['*', [s(0), o(0, '*'), s(1)]],
     ['/', [s(0), o(0, '/'), s(1)]],
-  ])('tokenizes operator `%s`', function (expression, expected) {
+  ])('tokenizes operator `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 
@@ -83,7 +83,7 @@ describe('tokenizeExpression', function () {
     ['12345.67890', l(0, '12345.67890')],
     ['+12345.67890', l(0, '+12345.67890')],
     ['-12345.67890', l(0, '-12345.67890')],
-  ])('tokenizes literal `%s`', function (expression, expected) {
+  ])('tokenizes literal `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
   });
 
@@ -94,7 +94,24 @@ describe('tokenizeExpression', function () {
     ['avg(tags[foo,  number])', f(0, 'avg', [a(0, 'foo', 'number')])],
     ['avg(   tags[foo,  number]   )', f(0, 'avg', [a(0, 'foo', 'number')])],
     ['epm()', f(0, 'epm', [])],
-  ])('tokenizes function `%s`', function (expression, expected) {
+  ])('tokenizes function `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
+  });
+
+  it.each([
+    [
+      'avg(span.duration,greater,300)',
+      f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+    ],
+    [
+      'avg(span.duration, greater, 300)',
+      f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+    ],
+    [
+      'avg(   tags[foo,  number], equals,  30   )',
+      f(0, 'avg', [a(0, 'foo', 'number'), a(1, 'equals'), a(2, '30')]),
+    ],
+  ])('tokenizes multi-param function `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
   });
 
@@ -121,7 +138,7 @@ describe('tokenizeExpression', function () {
     ['avg(tags[foo,', [s(0, 'avg(tags[foo,')]],
     ['avg(tags[foo,number', [s(0, 'avg(tags[foo,number')]],
     ['avg(tags[foo,number]', [s(0, 'avg(tags[foo,number]')]],
-  ])('tokenizes partial function `%s`', function (expression, expected) {
+  ])('tokenizes partial function `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 
@@ -271,7 +288,7 @@ describe('tokenizeExpression', function () {
         s(3),
       ],
     ],
-  ])('tokenizes binary expressions `%s`', function (expression, expected) {
+  ])('tokenizes binary expressions `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 
@@ -308,7 +325,7 @@ describe('tokenizeExpression', function () {
       'avg(span.duration) / ',
       [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '/'), s(2)],
     ],
-  ])('tokenizes partial binary expressions `%s`', function (expression, expected) {
+  ])('tokenizes partial binary expressions `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 
@@ -569,7 +586,7 @@ describe('tokenizeExpression', function () {
         s(5),
       ],
     ],
-  ])('tokenizes parenthesized binary expressions `%s`', function (expression, expected) {
+  ])('tokenizes parenthesized binary expressions `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 
@@ -615,7 +632,23 @@ describe('tokenizeExpression', function () {
         s(5, 'p50(tags[foo, )'),
       ],
     ],
-  ])('tokenizes complex partial expressions `%s`', function (expression, expected) {
+    [
+      ' avg(span.duration,greater,300)* ( p75(tags[foo, number]) + p50(tags[foo, )',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+        s(1),
+        o(0, '*'),
+        s(2),
+        po(0),
+        s(3),
+        f(1, 'p75', [a(3, 'foo', 'number')]),
+        s(4),
+        o(1, '+'),
+        s(5, 'p50(tags[foo, )'),
+      ],
+    ],
+  ])('tokenizes complex partial expressions `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 
@@ -632,7 +665,7 @@ describe('tokenizeExpression', function () {
     ['foo,bar(', [s(0, 'foo,bar(')]],
     ['foo     bar(', [s(0, 'foo     bar(')]],
     ['foo     bar(baz)     qux', [s(0, 'foo'), f(0, 'bar', [a(0, 'baz')]), s(1, 'qux')]],
-  ])('tokenizes bad expressions `%s`', function (expression, expected) {
+  ])('tokenizes bad expressions `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
 });

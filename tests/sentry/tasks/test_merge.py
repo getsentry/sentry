@@ -1,7 +1,7 @@
 from typing import Any
 from unittest.mock import patch
 
-from sentry import eventstore, eventstream
+from sentry import buffer, eventstore, eventstream
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
@@ -9,8 +9,10 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
@@ -20,7 +22,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 @patch.object(features, "index", new=index)
 class MergeGroupTest(TestCase, SnubaTestCase):
     @patch("sentry.eventstream.backend")
-    def test_merge_calls_eventstream(self, mock_eventstream):
+    def test_merge_calls_eventstream(self, mock_eventstream) -> None:
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
 
@@ -193,3 +195,28 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert not Group.objects.filter(id=group1.id).exists()
 
         assert UserReport.objects.get(id=ur.id).group_id == group2.id
+
+    @mock_redis_buffer()
+    def test_merge_includes_pending_buffer_increments(self) -> None:
+        project = self.create_project()
+        old_group = self.create_group(project)
+        new_group = self.create_group(project)
+
+        old_group.update(times_seen=100)
+        new_group.update(times_seen=50)
+
+        buffer.backend.incr(Group, {"times_seen": 10}, {"id": old_group.id})
+        buffer.backend.incr(Group, {"times_seen": 5}, {"id": old_group.id})
+
+        buffer.backend.incr(Group, {"times_seen": 3}, {"id": new_group.id})
+
+        with self.tasks():
+            merge_groups([old_group.id], new_group.id)
+
+        assert Group.objects.filter(id=old_group.id).exists() is False
+
+        new_group.refresh_from_db()
+        assert new_group.times_seen == 165  # 50 + 100 + 15
+        fetch_buffered_group_stats(new_group)
+        assert new_group.times_seen_pending == 3
+        assert new_group.times_seen_with_pending == 168

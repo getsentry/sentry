@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
+import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import * as Storybook from 'sentry/stories';
 import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {Widget} from './widget';
-
-import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 
 export default Storybook.story('Widget', (story, APIReference) => {
   APIReference(types.exported);
@@ -99,7 +98,7 @@ export default Storybook.story('Widget', (story, APIReference) => {
           shown above.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
 import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
 
@@ -128,7 +127,7 @@ import {Widget} from './widget';
 />
 
         `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -142,12 +141,6 @@ import {Widget} from './widget';
             You can remove the padding within areas of the widget by passing the props{' '}
             <code>noFooterPadding</code>, <code>noHeaderPadding</code>, and{' '}
             <code>noVisualizationPadding</code>
-          </li>
-          <li>
-            The <code>revealActions</code> prop also controls the hover behavior. If you
-            set it to <code>"hover"</code>, the widget will have a grey hover state, to
-            create some contrast against the controls. If you set it to{' '}
-            <code>"always"</code>, the hover effect will be turned off
           </li>
           <li>
             Avoid the <code>height</code> prop if you can. It's much easier and more
@@ -193,7 +186,7 @@ import {Widget} from './widget';
           guidance on how to do it well.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`import {Widget} from './widget';
 
 function InsightsLineChart() {
@@ -291,7 +284,7 @@ function InsightsLineChart() {
 }
 
                 `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });

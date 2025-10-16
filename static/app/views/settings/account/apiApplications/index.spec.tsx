@@ -1,6 +1,5 @@
 import {ApiApplicationFixture} from 'sentry-fixture/apiApplication';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -15,20 +14,18 @@ import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
 jest.mock('sentry/utils/demoMode');
 
-describe('ApiApplications', function () {
-  const {routerProps, router} = initializeOrg({router: {params: {}}});
-
-  beforeEach(function () {
+describe('ApiApplications', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [],
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
@@ -36,13 +33,13 @@ describe('ApiApplications', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const requestMock = MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(requestMock).toHaveBeenCalled();
@@ -50,7 +47,7 @@ describe('ApiApplications', function () {
     expect(screen.getByText('Adjusted Shrimp')).toBeInTheDocument();
   });
 
-  it('renders empty in demo mode even if there are applications', async function () {
+  it('renders empty in demo mode even if there are applications', async () => {
     (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
@@ -58,7 +55,7 @@ describe('ApiApplications', function () {
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
 
     expect(
       await screen.findByText("You haven't created any applications yet.")
@@ -67,7 +64,7 @@ describe('ApiApplications', function () {
     (isDemoModeActive as jest.Mock).mockReset();
   });
 
-  it('creates application', async function () {
+  it('creates application', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [],
@@ -80,7 +77,7 @@ describe('ApiApplications', function () {
       method: 'POST',
     });
 
-    render(<ApiApplications {...routerProps} />);
+    const {router} = render(<ApiApplications />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await userEvent.click(screen.getByLabelText('Create New Application'));
@@ -91,13 +88,16 @@ describe('ApiApplications', function () {
     );
 
     await waitFor(() => {
-      expect(router.push).toHaveBeenLastCalledWith(
-        '/settings/account/api/applications/234/'
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/settings/account/api/applications/234/',
+          query: {},
+        })
       );
     });
   });
 
-  it('deletes application', async function () {
+  it('deletes application', async () => {
     const apiApp = ApiApplicationFixture({id: '123'});
     MockApiClient.addMockResponse({
       url: '/api-applications/',
@@ -108,7 +108,7 @@ describe('ApiApplications', function () {
       method: 'DELETE',
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

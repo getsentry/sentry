@@ -1,6 +1,6 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -11,14 +11,16 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -34,6 +36,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -70,43 +78,52 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:quart] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[quart]'}),
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:quart] extra:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[quart]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
 app = Quart(__name__)
 `,
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `
 ${getSdkSetupSnippet(params)}
 app = Quart(__name__)
@@ -119,29 +136,44 @@ async def hello():
 app.run()
 `,
         },
-      ],
-      additionalInfo: (
-        <span>
-          <p>
-            {tct(
-              'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
+        getVerifyLogsContent(params),
+        {
+          type: 'text',
+          text: [
+            tct(
+              'When you point your browser to [link:http://localhost:5000/] a trace will be created.',
               {
                 link: <ExternalLink href="http://localhost:5000/" />,
               }
-            )}
-          </p>
-          <p>
-            {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </span>
-      ),
+            ),
+            t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the trace.'
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
+        },
+      ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[quart]',
+});
 
 const docs: Docs = {
   onboarding,
@@ -151,6 +183,7 @@ const docs: Docs = {
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

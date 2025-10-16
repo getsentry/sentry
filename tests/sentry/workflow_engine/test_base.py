@@ -4,15 +4,19 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+from django.core.exceptions import ValidationError
+
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
+from sentry.integrations.services.integration.service import integration_service
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.notifications.notification_action.types import BaseActionValidatorHandler
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
@@ -32,6 +36,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import (
     ActionHandler,
+    ConfigTransformer,
     DataConditionHandler,
     DataConditionResult,
     DetectorPriorityLevel,
@@ -79,6 +84,27 @@ class MockActionHandler(ActionHandler):
         "required": ["baz"],
         "additionalProperties": False,
     }
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return None
+
+
+class MockActionValidatorTranslator(BaseActionValidatorHandler):
+    notify_action_form = None
+
+    def generate_action_form_data(self) -> dict[str, Any]:
+        if not (integration_id := self.validated_data.get("integration_id")):
+            raise ValidationError("Integration ID is required for mock action")
+
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if not integration:
+            raise ValidationError(f"Mock integration with id {integration_id} not found")
+
+        return self.validated_data
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return self.validated_data
 
 
 class DataConditionHandlerMixin:
@@ -225,7 +251,9 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         return workflow, detector, detector_workflow, workflow_triggers
 
-    def create_test_query_data_source(self, detector: Detector) -> tuple[DataSource, DataPacket]:
+    def create_test_query_data_source(
+        self, detector: Detector
+    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, DataPacket]:
         """
         Create a DataSource and DataPacket for testing; this will create a QuerySubscriptionUpdate and link it to a data_source.
 
@@ -280,16 +308,17 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             packet=subscription_update,
         )
 
-        return data_source, data_packet
+        return snuba_query, query_subscription, data_source, data_packet
 
     def create_workflow_action(
         self,
         workflow: Workflow,
+        action: Action | None = None,
         **kwargs,
     ) -> tuple[DataConditionGroup, Action]:
         action_group = self.create_data_condition_group(logic_type="any-short")
 
-        action = self.create_action()
+        action = action or self.create_action(integration_id=self.integration.id)
 
         self.create_data_condition_group_action(
             condition_group=action_group,

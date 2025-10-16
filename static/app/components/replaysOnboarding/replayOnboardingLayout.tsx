@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from 'sentry/components/core/layout';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -19,8 +20,7 @@ export function ReplayOnboardingLayout({
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   newOrg,
   projectKeyId,
   configType = 'onboarding',
@@ -44,8 +44,7 @@ export function ReplayOnboardingLayout({
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
       isLogsSelected: false,
       isFeedbackSelected: false,
       isPerformanceSelected: false,
@@ -81,8 +80,7 @@ export function ReplayOnboardingLayout({
     newOrg,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
@@ -94,42 +92,61 @@ export function ReplayOnboardingLayout({
     projectKeyId,
   ]);
 
+  const replayConfigToggle = (
+    <ReplayConfigToggle
+      blockToggle={block}
+      maskToggle={mask}
+      onBlockToggle={() => setBlock(!block)}
+      onMaskToggle={() => setMask(!mask)}
+    />
+  );
+
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
-        <Steps>
-          {steps.map(step =>
-            step.type === StepType.CONFIGURE ? (
-              <Step
-                key={step.title ?? step.type}
-                {...{
+        <Stack gap="lg">
+          {steps
+            // TODO(aknaus): Move inserting the toggle into the docs definitions
+            // once the content blocks migration is done. This logic here is very brittle.
+            .map(step => {
+              if (step.type !== StepType.CONFIGURE || hideMaskBlockToggles) {
+                return step;
+              }
+
+              if (step.content) {
+                // Insert the feedback config toggle before the code block
+                const codeIndex = step.content?.findIndex(b => b.type === 'code');
+                if (codeIndex === -1) {
+                  return step;
+                }
+                const newContent = [...step.content];
+                if (codeIndex !== undefined) {
+                  newContent.splice(codeIndex, 0, {
+                    type: 'custom',
+                    bottomMargin: false,
+                    content: replayConfigToggle,
+                  });
+                }
+                return {
                   ...step,
-                  codeHeader: hideMaskBlockToggles ? null : (
-                    <ReplayConfigToggle
-                      blockToggle={block}
-                      maskToggle={mask}
-                      onBlockToggle={() => setBlock(!block)}
-                      onMaskToggle={() => setMask(!mask)}
-                    />
-                  ),
-                }}
-              />
-            ) : (
+                  content: newContent,
+                };
+              }
+
+              return {
+                ...step,
+                codeHeader: replayConfigToggle,
+              };
+            })
+            .map(step => (
               <Step key={step.title ?? step.type} {...step} />
-            )
-          )}
-        </Steps>
+            ))}
+        </Stack>
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );
 }
-
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
 
 const Wrapper = styled('div')`
   h4 {

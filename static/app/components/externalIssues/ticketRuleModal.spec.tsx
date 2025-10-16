@@ -44,7 +44,7 @@ const defaultIssueConfig = [
   },
 ] as const;
 
-describe('ProjectAlerts -> TicketRuleModal', function () {
+describe('ProjectAlerts -> TicketRuleModal', () => {
   const organization = OrganizationFixture();
   const onSubmitAction = jest.fn();
   const closeModal = jest.fn();
@@ -53,7 +53,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     issueTypeLabel, // New Feature
   ] = defaultIssueConfig[1].choices[3];
 
-  afterEach(function () {
+  afterEach(() => {
     closeModal.mockReset();
     MockApiClient.clearMockResponses();
   });
@@ -107,8 +107,8 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     return wrapper;
   };
 
-  describe('Create Rule', function () {
-    it('should render the Ticket Rule modal', async function () {
+  describe('Create Rule', () => {
+    it('should render the Ticket Rule modal', async () => {
       await renderTicketRuleModal();
 
       expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeInTheDocument();
@@ -116,13 +116,13 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       expect(screen.getByRole('textbox', {name: 'Description'})).toBeInTheDocument();
     });
 
-    it('should save the modal data when "Apply Changes" is clicked with valid data', async function () {
+    it('should save the modal data when "Apply Changes" is clicked with valid data', async () => {
       await renderTicketRuleModal();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
       await submitSuccess();
     });
 
-    it('submit button shall be disabled if form is incomplete', async function () {
+    it('submit button shall be disabled if form is incomplete', async () => {
       await renderTicketRuleModal();
       await userEvent.click(screen.getByRole('textbox', {name: 'Reporter'}));
       expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeDisabled();
@@ -132,7 +132,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       ).toBeInTheDocument();
     });
 
-    it('should reload fields when an "updatesForm" field changes', async function () {
+    it('should reload fields when an "updatesForm" field changes', async () => {
       await renderTicketRuleModal();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
 
@@ -169,7 +169,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should ignore error checking when default is empty array', async function () {
+    it('should ignore error checking when default is empty array', async () => {
       const dynamicQuery = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/1/',
         match: [
@@ -209,12 +209,12 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should persist single select values when the modal is reopened', async function () {
+    it('should persist single select values when the modal is reopened', async () => {
       await renderTicketRuleModal({data: {reporter: 'a'}});
       await submitSuccess();
     });
 
-    it('should persist multi select values when the modal is reopened', async function () {
+    it('should persist multi select values when the modal is reopened', async () => {
       await renderTicketRuleModal(
         {data: {components: ['a', 'c']}},
         {
@@ -234,7 +234,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should not persist value when unavailable in new choices', async function () {
+    it('should not persist value when unavailable in new choices', async () => {
       await renderTicketRuleModal({data: {reporter: 'a'}});
 
       const dynamicQuery = MockApiClient.addMockResponse({
@@ -276,7 +276,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should persist non-choice value when the modal is reopened', async function () {
+    it('should persist non-choice value when the modal is reopened', async () => {
       const textField: IssueConfigField = {
         label: 'Text Field',
         required: true,
@@ -289,7 +289,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should get async options from URL', async function () {
+    it('should get async options from URL', async () => {
       await renderTicketRuleModal();
 
       const dynamicQuery = MockApiClient.addMockResponse({

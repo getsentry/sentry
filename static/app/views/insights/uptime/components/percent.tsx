@@ -17,14 +17,16 @@ type UptimePercentProps = {
 };
 
 export function UptimePercent({summary, note, size}: UptimePercentProps) {
-  const knownChecks = summary.totalChecks - summary.missedWindowChecks;
+  // Do not consider missed or failed checks in the downtime % calculations
+  const knownChecks =
+    summary.totalChecks - summary.missedWindowChecks - summary.failedChecks;
 
   if (knownChecks === 0) {
     return <Text variant="muted">0.0%</Text>;
   }
 
-  const percentFull = ((knownChecks - summary.downtimeChecks) / knownChecks) * 100;
-  const successChecks = knownChecks - summary.downtimeChecks - summary.failedChecks;
+  const successChecks = knownChecks - summary.downtimeChecks;
+  const percentFull = (successChecks / knownChecks) * 100;
 
   // Round down to 3 decimals
   const percent = Math.floor(percentFull * 1000) / 1000;
@@ -32,7 +34,7 @@ export function UptimePercent({summary, note, size}: UptimePercentProps) {
   const tooltip = (
     <Flex direction="column" gap="md" style={{textAlign: 'left'}}>
       {note}
-      <Grid columns={'max-content max-content max-content'} gap="xs md">
+      <Grid columns="max-content max-content max-content" gap="xs md">
         <span>
           <CheckIndicator status={CheckStatus.SUCCESS} width={8} />
         </span>

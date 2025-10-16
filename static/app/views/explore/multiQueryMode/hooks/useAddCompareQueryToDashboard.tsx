@@ -7,13 +7,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
+import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -28,7 +27,6 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const router = useRouter(); // required for handleAddQueryToDashboard
 
   const yAxes = query.yAxes.slice(0, MAX_NUM_Y_AXES);
   const groupBys = query.groupBys;
@@ -72,12 +70,11 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
       organization,
       location,
       eventView,
-      router,
       yAxis: eventView.yAxis,
       widgetType: WidgetType.SPANS,
       source: DashboardWidgetSource.TRACE_EXPLORER,
     });
-  }, [organization, location, getEventView, router]);
+  }, [organization, location, getEventView]);
 
   return {
     addToDashboard,

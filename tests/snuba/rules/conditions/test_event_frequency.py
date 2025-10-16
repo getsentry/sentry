@@ -68,7 +68,7 @@ class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
 
 
 class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.start = before_now(minutes=1)
@@ -139,7 +139,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventFrequencyCondition
 
-    def test_batch_query(self):
+    def test_batch_query(self) -> None:
         batch_query = self.condition_inst.batch_query_hook(
             group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
             start=self.start,
@@ -161,7 +161,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         assert batch_query == {self.event3.group_id: 1}
 
     @patch("sentry.tsdb.snuba.LIMIT", 3)
-    def test_batch_query_group_on_time(self):
+    def test_batch_query_group_on_time(self) -> None:
         """
         Test that if we hit the snuba query limit we get incorrect results when group_on_time is enabled
         """
@@ -230,7 +230,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             group_2_id: 4,
         }
 
-    def test_get_error_and_generic_group_ids(self):
+    def test_get_error_and_generic_group_ids(self) -> None:
         groups = Group.objects.filter(
             id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
         ).values("id", "type", "project__organization_id")
@@ -241,11 +241,236 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         assert self.event2.group_id in error_issue_ids
         assert self.perf_event.group_id in generic_issue_ids
 
+    def test_upsampled_aggregation_with_real_events_error_groups(self) -> None:
+        """Test that real events with sample weights produce upsampled counts for error groups"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store 2 error events with 0.2 sample rate (5x weight = 10 total count)
+            sampled_event1 = self.store_event(
+                data={
+                    "event_id": "d" * 32,
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=30).isoformat(),
+                    "fingerprint": ["sampled-group"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "e" * 32,
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=20).isoformat(),
+                    "fingerprint": ["sampled-group"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Query using the EventFrequency condition's query_hook for proper integration
+            group_event = sampled_event1.for_group(sampled_event1.group)
+            count = self.condition_inst.query_hook(
+                event=group_event,
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+            )
+
+            # Expect upsampled count: 2 events * 5 sample_weight = 10
+            assert count == 10
+
+    def test_regular_aggregation_with_real_events_when_disabled(self) -> None:
+        """Test that real events with sample weights produce regular counts when upsampling is disabled"""
+        # Store 2 error events with 0.2 sample rate
+        sampled_event1 = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=30).isoformat(),
+                "fingerprint": ["non-upsampled-group"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=20).isoformat(),
+                "fingerprint": ["non-upsampled-group"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+
+        # Query using EventFrequency condition WITHOUT upsampling enabled - should return raw count
+        group_event = sampled_event1.for_group(sampled_event1.group)
+        count = self.condition_inst.query_hook(
+            event=group_event,
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+
+        # Expect regular count: 2 events (no upsampling)
+        assert count == 2
+
+    def test_regular_aggregation_with_real_events_performance_groups(self) -> None:
+        """Test that performance groups use regular counts even when upsampling is enabled"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Query using EventFrequency condition for performance groups - should use regular count
+            count = self.condition_inst.query_hook(
+                event=self.perf_event,  # self.perf_event is already a GroupEvent
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+            )
+
+            # Expect regular count: 1 event (no upsampling for performance)
+            # The perf_event was created in setUp, so we expect count of 1
+            assert count == 1
+
+    def test_upsampled_aggregation_with_real_events_batch_query_error_groups(self) -> None:
+        """Test that real events with sample weights produce upsampled counts in batch queries for error groups"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store 2 error events with 0.2 sample rate for first group (5x weight = 10 total count)
+            batch_event1_1 = self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=30).isoformat(),
+                    "fingerprint": ["batch-group-1"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=25).isoformat(),
+                    "fingerprint": ["batch-group-1"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store 3 error events with 0.1 sample rate for second group (10x weight = 30 total count)
+            batch_event2_1 = self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=20).isoformat(),
+                    "fingerprint": ["batch-group-2"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=15).isoformat(),
+                    "fingerprint": ["batch-group-2"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=10).isoformat(),
+                    "fingerprint": ["batch-group-2"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Query using batch_query_hook - should return upsampled counts
+            result = self.condition_inst.batch_query_hook(
+                group_ids={batch_event1_1.group_id, batch_event2_1.group_id},
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+            )
+
+            # Expect upsampled counts:
+            # Group 1: 2 events * 5 sample_weight = 10
+            # Group 2: 3 events * 10 sample_weight = 30
+            expected_results = {
+                batch_event1_1.group_id: 10,
+                batch_event2_1.group_id: 30,
+            }
+            assert result == expected_results
+
+    def test_regular_aggregation_with_real_events_batch_query_when_disabled(self) -> None:
+        """Test that real events with sample weights produce regular counts in batch queries when upsampling is disabled"""
+        # Store 2 error events with 0.2 sample rate for first group
+        batch_event1_1 = self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=30).isoformat(),
+                "fingerprint": ["batch-non-upsampled-1"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=25).isoformat(),
+                "fingerprint": ["batch-non-upsampled-1"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store 1 error event for second group
+        batch_event2_1 = self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=20).isoformat(),
+                "fingerprint": ["batch-non-upsampled-2"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            },
+            project_id=self.project.id,
+        )
+
+        # Query using batch_query_hook WITHOUT upsampling enabled - should return raw counts
+        result = self.condition_inst.batch_query_hook(
+            group_ids={batch_event1_1.group_id, batch_event2_1.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+
+        # Expect regular counts: Group 1: 2 events, Group 2: 1 event (no upsampling)
+        expected_results = {
+            batch_event1_1.group_id: 2,
+            batch_event2_1.group_id: 1,
+        }
+        assert result == expected_results
+
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventUniqueUserFrequencyCondition
 
-    def test_batch_query_user(self):
+    def test_batch_query_user(self) -> None:
         batch_query = self.condition_inst.batch_query_hook(
             group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
             start=self.start,
@@ -273,7 +498,7 @@ class EventFrequencyPercentConditionQueryTest(
     rule_cls = EventFrequencyPercentCondition
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_batch_query_percent(self):
+    def test_batch_query_percent(self) -> None:
         self._make_sessions(60, self.environment2.name)
         self._make_sessions(60, self.environment.name)
         batch_query = self.condition_inst.batch_query_hook(
@@ -297,7 +522,7 @@ class EventFrequencyPercentConditionQueryTest(
         assert batch_query == {self.event3.group_id: percent_of_sessions}
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 100)
-    def test_batch_query_percent_no_avg_sessions_in_interval(self):
+    def test_batch_query_percent_no_avg_sessions_in_interval(self) -> None:
         self._make_sessions(60, self.environment2.name)
         self._make_sessions(60, self.environment.name)
         batch_query = self.condition_inst.batch_query_hook(
@@ -407,7 +632,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
             self.assertDoesNotPass(rule, event, is_new=False)
             self.assertDoesNotPass(environment_rule, event, is_new=False)
 
-    def test_comparison_interval_empty_string(self):
+    def test_comparison_interval_empty_string(self) -> None:
         data = {
             "interval": "1m",
             "value": 16,
@@ -416,7 +641,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=1, passes=False)
 
-    def test_one_minute_with_events(self):
+    def test_one_minute_with_events(self) -> None:
         data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1, passes=True, add_events=True)
         data = {
@@ -427,7 +652,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=1, passes=False)
 
-    def test_one_hour_with_events(self):
+    def test_one_hour_with_events(self) -> None:
         data = {"interval": "1h", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=60, passes=True, add_events=True)
         data = {
@@ -438,7 +663,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=60, passes=False)
 
-    def test_one_day_with_events(self):
+    def test_one_day_with_events(self) -> None:
         data = {"interval": "1d", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1440, passes=True, add_events=True)
         data = {
@@ -449,7 +674,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=1440, passes=False)
 
-    def test_one_week_with_events(self):
+    def test_one_week_with_events(self) -> None:
         data = {"interval": "1w", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=10080, passes=True, add_events=True)
         data = {
@@ -460,23 +685,23 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=10080, passes=False)
 
-    def test_one_minute_no_events(self):
+    def test_one_minute_no_events(self) -> None:
         data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1, passes=False)
 
-    def test_one_hour_no_events(self):
+    def test_one_hour_no_events(self) -> None:
         data = {"interval": "1h", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=60, passes=False)
 
-    def test_one_day_no_events(self):
+    def test_one_day_no_events(self) -> None:
         data = {"interval": "1d", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1440, passes=False)
 
-    def test_one_week_no_events(self):
+    def test_one_week_no_events(self) -> None:
         data = {"interval": "1w", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=10080, passes=False)
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         # Test data is 4 events in the current period and 2 events in the comparison period, so
         # a 100% increase.
         event = self.add_event(
@@ -515,7 +740,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event, is_new=False)
 
-    def test_comparison_empty_comparison_period(self):
+    def test_comparison_empty_comparison_period(self) -> None:
         # Test data is 1 event in the current period and 0 events in the comparison period. This
         # should always result in 0 and never fire.
         event = self.add_event(
@@ -627,7 +852,7 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
                 timestamp=timestamp,
             )
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         # Test data is 4 events in the current period and 2 events in the comparison period, so
         # a 100% increase.
         event = self.add_event(
@@ -690,7 +915,7 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
         )
         self.assertDoesNotPass(rule, event, is_new=False)
 
-    def test_comparison_empty_comparison_period(self):
+    def test_comparison_empty_comparison_period(self) -> None:
         # Test data is 1 event in the current period and 0 events in the comparison period. This
         # should always result in 0 and never fire.
         event = self.add_event(
@@ -778,7 +1003,7 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
             self.assertDoesNotPass(environment_rule, event, is_new=False)
 
 
-def test_convert_rule_condition_to_snuba_condition():
+def test_convert_rule_condition_to_snuba_condition() -> None:
 
     # Test non-TaggedEventFilter condition
     condition = {"id": "some.other.condition"}
@@ -1024,7 +1249,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
             )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_five_minutes_with_events(self):
+    def test_five_minutes_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "5m",
@@ -1042,7 +1267,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=5, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_ten_minutes_with_events(self):
+    def test_ten_minutes_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "10m",
@@ -1060,7 +1285,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=10, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_thirty_minutes_with_events(self):
+    def test_thirty_minutes_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "30m",
@@ -1078,7 +1303,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=30, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_one_hour_with_events(self):
+    def test_one_hour_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "1h",
@@ -1096,7 +1321,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=60, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_five_minutes_no_events(self):
+    def test_five_minutes_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "5m",
@@ -1107,7 +1332,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=5, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_ten_minutes_no_events(self):
+    def test_ten_minutes_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "10m",
@@ -1118,7 +1343,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=10, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_thirty_minutes_no_events(self):
+    def test_thirty_minutes_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "30m",
@@ -1129,7 +1354,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=30, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_one_hour_no_events(self):
+    def test_one_hour_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "1h",
@@ -1140,7 +1365,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=60, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         self._make_sessions(10)
         # Create sessions for previous period
         self._make_sessions(10)

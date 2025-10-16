@@ -7,7 +7,7 @@ import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfac
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -30,7 +30,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -60,17 +60,27 @@ interface EventTraceViewInnerProps {
 }
 
 function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
-  const timestamp = getEventTimestampInSeconds(event);
+  const timestamp = isWebVitalsEvent(event)
+    ? undefined
+    : getEventTimestampInSeconds(event);
 
   const trace = useTrace({
     timestamp,
     traceSlug: traceId,
     limit: 10000,
+    targetEventId: event.id,
   });
   const params = useTraceQueryParams({
     timestamp,
   });
   const tree = useIssuesTraceTree({trace, replay: null});
+
+  useTraceStateAnalytics({
+    trace,
+    organization,
+    traceTreeSource: 'issue_details_trace_preview',
+    tree,
+  });
 
   const rootEventResults = useTraceRootEvent({
     tree,
@@ -79,8 +89,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   });
 
   const traceEventView = useTraceEventView(traceId, params);
-
-  const traceWaterfallModels = useTraceWaterfallModels();
 
   if (!traceId) {
     return null;
@@ -98,7 +106,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
         source="issues"
         replay={null}
         event={event}
-        traceWaterfallModels={traceWaterfallModels}
       />
     </IssuesTraceContainer>
   );
@@ -123,6 +130,10 @@ function OneOtherIssueEvent({event}: {event: Event}) {
 const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
+
+const isWebVitalsEvent = (event: Event) => {
+  return event.tags.some((tag: {key: string}) => tag?.key === 'web_vital');
+};
 
 interface EventTraceViewProps {
   event: Event;

@@ -1,10 +1,10 @@
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
-  type UseApiQueryOptions,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
+  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

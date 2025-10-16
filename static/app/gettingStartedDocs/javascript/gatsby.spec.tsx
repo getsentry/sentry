@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './gatsby';
 
-describe('javascript-gatsby onboarding docs', function () {
+describe('javascript-gatsby onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -20,9 +20,9 @@ describe('javascript-gatsby onboarding docs', function () {
 
     // Includes import statement
     expect(
-      screen.getByText(
+      screen.getAllByText(
         textWithMarkupMatcher(/import \* as Sentry from "@sentry\/gatsby"/)
-      )
+      )[0]
     ).toBeInTheDocument();
   });
 
@@ -120,4 +120,97 @@ describe('javascript-gatsby onboarding docs', function () {
 
     expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
+
+  it('includes performance and tracing configurations', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry\.browserTracingIntegration\(\)/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/tracePropagationTargets/))
+    ).toBeInTheDocument();
+  });
+
+  it('includes replay integration when session replay is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry\.replayIntegration\(/))
+    ).toBeInTheDocument();
+  });
+
+  it('includes sendDefaultPii configuration', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/sendDefaultPii: true/))
+    ).toBeInTheDocument();
+  });
+
+  it('includes gatsby-config.js configuration', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getAllByText(textWithMarkupMatcher(/gatsby-config\.js/))[0]
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(textWithMarkupMatcher(/@sentry\/gatsby/))[0]
+    ).toBeInTheDocument();
+  });
+
+  it('includes sentry.config.js file configuration', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getAllByText(textWithMarkupMatcher(/sentry\.config\.js/))[0]
+    ).toBeInTheDocument();
+  });
+
+  it('includes verification with test error', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/throw new Error\("Sentry Test Error"\)/))
+    ).toBeInTheDocument();
+  });
+
+  it('includes logs in verify snippet when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/User triggered test error button/))
+    ).toBeInTheDocument();
+  });
+
+  it('does not include logs in verify snippet when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).not.toBeInTheDocument();
+  });
+
+  // Note: Feedback integration tests cannot be added due to isFeedbackSelected being hardcoded to false
+  // in the OnboardingLayout component. When this is fixed, tests should be added to verify:
+  // - Sentry.feedbackIntegration() is included when feedback is selected
+  // - colorScheme: "system" is configured
+  // - Feedback configuration options are applied
 });

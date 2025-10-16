@@ -14,15 +14,15 @@ const organization = OrganizationFixture({
   features: [],
 });
 
-describe('WidgetBuilderGroupBySelector', function () {
-  beforeEach(function () {
+describe('WidgetBuilderGroupBySelector', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -39,7 +39,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
   });
 
-  it('renders the group by field and works for spans', async function () {
+  it('renders the group by field and works for spans', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -72,7 +72,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     });
   });
 
-  it('renders the group by field and works for logs', async function () {
+  it('renders the group by field and works for logs', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
@@ -105,7 +105,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     });
   });
 
-  it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async function () {
+  it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
     const organizationWithFeature = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });
@@ -138,7 +138,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     expect(selectInput).toBeDisabled();
   });
 
-  it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async function () {
+  it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
     const organizationWithoutFeature = OrganizationFixture({
       features: [],
     });
@@ -170,7 +170,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     expect(selectInput).toBeEnabled();
   });
 
-  it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async function () {
+  it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async () => {
     const organizationWithFeature = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });

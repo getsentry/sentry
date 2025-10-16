@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING
 
 from django import forms
 
-from sentry.eventstore.models import GroupEvent
 from sentry.mail.forms.assigned_to import AssignedToForm
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.team import Team
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
+from sentry.services.eventstore.models import GroupEvent
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
@@ -43,7 +43,7 @@ class AssignedToFilter(EventFilter):
 
             if target_type == AssigneeTargetType.TEAM:
                 for assignee in self.get_assignees(event.group):
-                    if assignee.team and assignee.team_id == target_id:
+                    if assignee.team_id and assignee.team_id == target_id:
                         return True
             elif target_type == AssigneeTargetType.MEMBER:
                 for assignee in self.get_assignees(event.group):

@@ -13,11 +13,11 @@ from django.db.models.query_utils import Q
 from django.db.models.sql.constants import ROW_COUNT
 from django.db.models.sql.subqueries import DeleteQuery
 
-from sentry import eventstore
 from sentry.db.models.base import Model
+from sentry.services import eventstore
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -26,22 +26,22 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
-class CeleryBulkQueryState(TypedDict):
+class TaskBulkQueryState(TypedDict):
     timestamp: str
     event_id: str
 
 
-def celery_run_batch_query(
+def task_run_batch_query(
     filter: eventstore.Filter,
     batch_size: int,
     referrer: str,
-    state: CeleryBulkQueryState | None = None,
+    state: TaskBulkQueryState | None = None,
     fetch_events: bool = True,
     tenant_ids: dict[str, int | str] | None = None,
-) -> tuple[CeleryBulkQueryState | None, list[Event]]:
+) -> tuple[TaskBulkQueryState | None, list[Event]]:
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
-    is used for celery tasks in issue merge/unmerge/reprocessing.
+    is used for tasks in issue merge/unmerge/reprocessing.
     """
 
     # We process events sorted in descending order by -timestamp, -event_id. We need
@@ -60,7 +60,7 @@ def celery_run_batch_query(
     #
     # state contains data about the last event ID and timestamp. Changing
     # the keys in here needs to be done carefully as the state object is
-    # semi-persisted in celery queues.
+    # persisted in task messages.
     if state is not None:
         filter.conditions = filter.conditions or []
         filter.conditions.append(["timestamp", "<=", state["timestamp"]])
@@ -98,9 +98,7 @@ class RangeQuerySetWrapper[V]:
     Very efficient, but ORDER BY statements will not work.
     """
 
-    def __init__[
-        M: Model
-    ](
+    def __init__[M: Model](
         self,
         queryset: QuerySet[M, V],
         *,

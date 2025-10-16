@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
@@ -6,15 +7,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreFields,
-  useSetExploreGroupBys,
-  useSetExploreId,
-  useSetExploreMode,
   useSetExplorePageParams,
-  useSetExploreQuery,
-  useSetExploreSortBys,
-  useSetExploreTitle,
-  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
@@ -23,53 +16,69 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  useSetQueryParamsAggregateSortBys,
+  useSetQueryParamsFields,
+  useSetQueryParamsGroupBys,
+  useSetQueryParamsMode,
+  useSetQueryParamsQuery,
+  useSetQueryParamsSortBys,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-describe('defaults', function () {
-  it('default', function () {
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
+
+describe('defaults', () => {
+  it('default', () => {
     expect(DEFAULT_VISUALIZATION).toBe('count(span.duration)');
   });
 
-  it('default aggregate', function () {
+  it('default aggregate', () => {
     expect(DEFAULT_VISUALIZATION_AGGREGATE).toBe('count');
   });
 
-  it('default field', function () {
+  it('default field', () => {
     expect(DEFAULT_VISUALIZATION_FIELD).toBe('span.duration');
   });
 });
 
-describe('PageParamsProvider', function () {
+describe('PageParamsProvider', () => {
   let pageParams: ReturnType<typeof useExplorePageParams>;
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
-  let setFields: ReturnType<typeof useSetExploreFields>;
-  let setGroupBys: ReturnType<typeof useSetExploreGroupBys>;
-  let setMode: ReturnType<typeof useSetExploreMode>;
-  let setQuery: ReturnType<typeof useSetExploreQuery>;
-  let setSortBys: ReturnType<typeof useSetExploreSortBys>;
-  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
-  let setId: ReturnType<typeof useSetExploreId>;
-  let setTitle: ReturnType<typeof useSetExploreTitle>;
+  let setFields: ReturnType<typeof useSetQueryParamsFields>;
+  let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
+  let setMode: ReturnType<typeof useSetQueryParamsMode>;
+  let setQuery: ReturnType<typeof useSetQueryParamsQuery>;
+  let setSortBys: ReturnType<typeof useSetQueryParamsSortBys>;
+  let setAggregateSortBys: ReturnType<typeof useSetQueryParamsAggregateSortBys>;
+  let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function Component() {
     pageParams = useExplorePageParams();
     setPageParams = useSetExplorePageParams();
-    setFields = useSetExploreFields();
-    setGroupBys = useSetExploreGroupBys();
-    setMode = useSetExploreMode();
-    setQuery = useSetExploreQuery();
-    setSortBys = useSetExploreSortBys();
-    setVisualizes = useSetExploreVisualizes();
-    setId = useSetExploreId();
-    setTitle = useSetExploreTitle();
+    setFields = useSetQueryParamsFields();
+    setGroupBys = useSetQueryParamsGroupBys();
+    setMode = useSetQueryParamsMode();
+    setQuery = useSetQueryParamsQuery();
+    setSortBys = useSetQueryParamsSortBys();
+    setAggregateSortBys = useSetQueryParamsAggregateSortBys();
+    setVisualizes = useSetQueryParamsVisualizes();
     return <br />;
   }
 
   function renderTestComponent(defaultPageParams?: any) {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     act(() =>
@@ -92,11 +101,11 @@ describe('PageParamsProvider', function () {
     );
   }
 
-  it('has expected default', function () {
+  it('has expected default', () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     expect(pageParams).toEqual(
@@ -119,7 +128,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates fields', function () {
+  it('correctly updates fields', () => {
     renderTestComponent();
 
     act(() => setFields(['id', 'span.op', 'timestamp']));
@@ -142,7 +151,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates groupBys', function () {
+  it('correctly updates groupBys', () => {
     renderTestComponent();
 
     act(() => setGroupBys(['browser.name', 'sdk.name']));
@@ -150,23 +159,23 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.self_time', 'browser.name', 'sdk.name'],
         mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'browser.name'},
+          {groupBy: 'sdk.name'},
           new Visualize('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          {groupBy: 'sdk.name'},
         ],
       })
     );
   });
 
-  it('correctly gives default for empty groupBys', function () {
+  it('correctly gives default for empty groupBys', () => {
     renderTestComponent();
 
     act(() => setGroupBys([]));
@@ -189,7 +198,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('permits ungrouped', function () {
+  it('permits ungrouped', () => {
     renderTestComponent();
 
     act(() => setGroupBys(['']));
@@ -212,7 +221,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates mode from samples to aggregates', function () {
+  it('correctly updates mode from samples to aggregates', () => {
     renderTestComponent({mode: Mode.SAMPLES});
 
     act(() => setMode(Mode.AGGREGATE));
@@ -235,7 +244,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates mode from aggregates to sample without group bys', function () {
+  it('correctly updates mode from aggregates to sample without group bys', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       aggregateFields: [
@@ -269,16 +278,14 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates mode from aggregates to sample with group bys', function () {
+  it('updates fields with managed group bys', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       sampleSortBys: null,
       aggregateSortBys: null,
-      fields: ['id', 'sdk.name', 'sdk.version', 'timestamp'],
+      fields: ['id', 'timestamp'],
       aggregateFields: [
-        {groupBy: 'sdk.name'},
-        {groupBy: 'sdk.version'},
-        {groupBy: 'span.op'},
+        {groupBy: 'span.description'},
         {groupBy: ''},
         {
           chartType: ChartType.AREA,
@@ -287,28 +294,19 @@ describe('PageParamsProvider', function () {
       ],
     });
 
-    act(() => setMode(Mode.SAMPLES));
+    act(() => setGroupBys(['sdk.name', 'sdk.version']));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: [
-          'id',
-          'sdk.name',
-          'sdk.version',
-          'timestamp',
-          'span.self_time',
-          'span.op',
-        ],
-        mode: Mode.SAMPLES,
+        fields: ['id', 'timestamp', 'span.self_time', 'sdk.name', 'sdk.version'],
+        mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
           {groupBy: 'sdk.version'},
-          {groupBy: 'span.op'},
-          {groupBy: ''},
           new Visualize('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
@@ -317,7 +315,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates query', function () {
+  it('correctly updates query', () => {
     renderTestComponent();
 
     act(() => setQuery('foo:bar'));
@@ -340,7 +338,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates sort bys in samples mode with known field', function () {
+  it('correctly updates sort bys in samples mode with known field', () => {
     renderTestComponent({mode: Mode.SAMPLES});
 
     act(() => setSortBys([{field: 'id', kind: 'desc'}]));
@@ -363,7 +361,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates sort bys in samples mode with unknown field', function () {
+  it('correctly updates sort bys in samples mode with unknown field', () => {
     renderTestComponent({mode: Mode.SAMPLES});
 
     act(() => setSortBys([{field: 'span.op', kind: 'desc'}]));
@@ -386,7 +384,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates sort bys in aggregates mode with known y axis', function () {
+  it('correctly updates sort bys in aggregates mode with known y axis', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       aggregateFields: [
@@ -398,7 +396,7 @@ describe('PageParamsProvider', function () {
       ],
     });
 
-    act(() => setSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -421,7 +419,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates sort bys in aggregates mode with unknown y axis', function () {
+  it('correctly updates sort bys in aggregates mode with unknown y axis', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       aggregateFields: [
@@ -433,7 +431,7 @@ describe('PageParamsProvider', function () {
       ],
     });
 
-    act(() => setSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -456,7 +454,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates sort bys in aggregates mode with known group by', function () {
+  it('correctly updates sort bys in aggregates mode with known group by', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       aggregateFields: [
@@ -468,7 +466,7 @@ describe('PageParamsProvider', function () {
       ],
     });
 
-    act(() => setSortBys([{field: 'sdk.name', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'sdk.name', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -488,7 +486,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates sort bys in aggregates mode with unknown group by', function () {
+  it('correctly updates sort bys in aggregates mode with unknown group by', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       aggregateFields: [
@@ -500,7 +498,7 @@ describe('PageParamsProvider', function () {
       ],
     });
 
-    act(() => setSortBys([{field: 'sdk.version', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'sdk.version', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -520,7 +518,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly gives default for empty visualizes', function () {
+  it('correctly gives default for empty visualizes', () => {
     renderTestComponent();
 
     act(() => setVisualizes([]));
@@ -528,7 +526,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -538,7 +536,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates visualizes with labels', function () {
+  it('correctly updates visualizes with labels', () => {
     renderTestComponent();
 
     act(() =>
@@ -578,19 +576,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('correctly updates id', function () {
-    renderTestComponent();
-    act(() => setId('123'));
-    expect(pageParams).toEqual(expect.objectContaining({id: '123'}));
-  });
-
-  it('correctly updates title', function () {
-    renderTestComponent();
-    act(() => setTitle('My Query'));
-    expect(pageParams).toEqual(expect.objectContaining({title: 'My Query'}));
-  });
-
-  it('manages inserting and deleting a column when added/removed', function () {
+  it('manages inserting and deleting a column when added/removed', () => {
     renderTestComponent();
 
     act(() =>
@@ -627,7 +613,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('only deletes 1 managed columns when there are duplicates', function () {
+  it('only deletes 1 managed columns when there are duplicates', () => {
     renderTestComponent();
 
     act(() =>
@@ -659,7 +645,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('re-adds managed column if a new reference is found', function () {
+  it('re-adds managed column if a new reference is found', () => {
     renderTestComponent();
 
     act(() =>
@@ -703,7 +689,7 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('should not manage an existing column', function () {
+  it('should not manage an existing column', () => {
     renderTestComponent();
 
     act(() => setFields(['id', 'timestamp', 'span.self_time', 'span.duration']));
@@ -733,15 +719,15 @@ describe('PageParamsProvider', function () {
     );
   });
 
-  it('uses OTel-friendly default fields in OTel-friendly mode', function () {
+  it('uses OTel-friendly default fields in OTel-friendly mode', () => {
     const organization = OrganizationFixture({
       features: ['performance-otel-friendly-ui'],
     });
 
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>,
+      </Wrapper>,
       {organization}
     );
 

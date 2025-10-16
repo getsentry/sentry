@@ -130,9 +130,7 @@ class _ValueCallable[U](Protocol):
     ) -> U: ...
 
 
-def _make_result[
-    T, U
-](
+def _make_result[T, U](
     key: str,
     totals: dict[str, int],
     result: dict[str, dict[str, Any]],
@@ -1459,7 +1457,7 @@ class SnubaFlagStorage(SnubaTagStorage):
     def get_generic_groups_user_counts(self, *args, **kwargs):
         raise NotImplementedError
 
-    def get_snuba_column_name(self, key: str, dataset: Dataset):
+    def get_snuba_column_name(self, key: str, dataset: Dataset) -> str:
         return f"flags[{key}]"
 
     def is_reserved_key(self, key: str) -> bool:

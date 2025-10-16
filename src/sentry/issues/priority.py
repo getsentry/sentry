@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sentry.models.activity import Activity
@@ -12,6 +12,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PriorityChangeReason(Enum):
+class PriorityChangeReason(StrEnum):
     ESCALATING = "escalating"
     ONGOING = "ongoing"
     ISSUE_PLATFORM = "issue_platform"
@@ -39,10 +40,20 @@ def update_priority(
     reason: PriorityChangeReason | None = None,
     actor: User | RpcUser | None = None,
     project: Project | None = None,
+    is_regression: bool = False,
 ) -> None:
     """
     Update the priority of a group and record the change in the activity and group history.
     """
+    from sentry.incidents.grouptype import MetricIssue
+    from sentry.models.groupopenperiod import get_latest_open_period, should_create_open_periods
+    from sentry.models.groupopenperiodactivity import (
+        GroupOpenPeriodActivity,
+        OpenPeriodActivityType,
+    )
+    from sentry.workflow_engine.models.incident_groupopenperiod import (
+        update_incident_activity_based_on_group_activity,
+    )
 
     if priority is None or group.priority == priority:
         return
@@ -58,7 +69,13 @@ def update_priority(
             "reason": reason,
         },
     )
+
     record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
+
+    # TODO (aci cleanup): if the group corresponds to a metric issue, then update its incident activity
+    # we will remove this once we've fully deprecated the Incident model
+    if group.type == MetricIssue.type_id:
+        update_incident_activity_based_on_group_activity(group, priority)
 
     issue_update_priority.send_robust(
         group=group,
@@ -69,6 +86,37 @@ def update_priority(
         reason=reason.value if reason else None,
         sender=sender,
     )
+
+    # create a row in the GroupOpenPeriodActivity table
+    open_period = get_latest_open_period(group)
+    if open_period is None:
+        if should_create_open_periods(group.type):
+            metrics.incr("issues.priority.no_open_period_found")
+            logger.error("No open period found for group", extra={"group_id": group.id})
+        return
+
+    if is_regression:
+        try:
+            activity_entry_to_update = GroupOpenPeriodActivity.objects.get(
+                group_open_period=open_period, type=OpenPeriodActivityType.OPENED
+            )
+            activity_entry_to_update.update(value=priority)
+        except GroupOpenPeriodActivity.DoesNotExist:
+            # in case the rollout somehow goes out between open period creation and priority update
+            metrics.incr("issues.priority.open_period_activity_race_condition")
+            GroupOpenPeriodActivity.objects.create(
+                date_added=open_period.date_started,
+                group_open_period=open_period,
+                type=OpenPeriodActivityType.OPENED,
+                value=priority,
+            )
+    else:
+        # make a new activity entry
+        GroupOpenPeriodActivity.objects.create(
+            group_open_period=open_period,
+            type=OpenPeriodActivityType.STATUS_CHANGE,
+            value=priority,
+        )
 
 
 def get_priority_for_escalating_group(group: Group) -> PriorityLevel:

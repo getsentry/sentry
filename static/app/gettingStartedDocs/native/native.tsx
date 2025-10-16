@@ -3,8 +3,10 @@ import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -85,7 +87,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -114,6 +116,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
   ],
 };
 

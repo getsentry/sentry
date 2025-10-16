@@ -1,23 +1,22 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
   type OnboardingStep,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
+  getVerifyLogsContent,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -29,7 +28,13 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }
     integrations=[AwsLambdaIntegration()],${
       params.isPerformanceSelected
         ? `
@@ -71,37 +76,39 @@ sentry_sdk.init(
 
 const installStep = (): OnboardingStep => ({
   type: StepType.INSTALL,
-  description: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
-    code: <code />,
-  }),
-  configurations: getPythonInstallConfig(),
+  content: [
+    {
+      type: 'text',
+      text: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
+        code: <code />,
+      }),
+    },
+    getPythonInstallCodeBlock(),
+  ],
 });
 
 const configureStep = (params: Params): OnboardingStep => ({
   type: StepType.CONFIGURE,
-  description: t('You can use the AWS Lambda integration for the Python SDK like this:'),
-  configurations: [
+  content: [
     {
+      type: 'text',
+      text: t('You can use the AWS Lambda integration for the Python SDK like this:'),
+    },
+    {
+      type: 'code',
       language: 'python',
       code: getSdkSetupSnippet(params),
     },
-  ],
-  additionalInfo: (
-    <Fragment>
-      {params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <Fragment>
-            <AlternativeConfiguration />
-            <br />
-          </Fragment>
-        )}
-      {tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
+    alternativeProfilingConfiguration(params),
+    {
+      type: 'text',
+      text: tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
         link: (
           <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
         ),
-      })}
-    </Fragment>
-  ),
+      }),
+    },
+  ],
 });
 
 const onboarding: OnboardingConfig = {
@@ -119,61 +126,107 @@ const onboarding: OnboardingConfig = {
     configureStep(params),
     {
       title: t('Timeout Warning'),
-      description: tct(
-        'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-common.html" />
+          type: 'text',
+          text: tct(
+            'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
+            {
+              link: (
+                <ExternalLink href="https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-common.html" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'To enable the warning, update the SDK initialization to set [code:timeout_warning] to [code:true]:',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getTimeoutWarningSnippet(params),
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'The timeout warning is sent only if the timeout in the Lambda Function configuration is set to a value greater than one second.'
           ),
         },
-      ],
-      additionalInfo: (
-        <StyledAlert type="info">
-          {tct(
+        {
+          type: 'alert',
+          alertType: 'info',
+          text: tct(
             'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
               ),
             }
-          )}
-        </StyledAlert>
-      ),
+          ),
+        },
+      ],
     },
   ],
-  verify: () => [],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
+          ),
+        },
+        getVerifyLogsContent(params),
+      ],
+    },
+  ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
 
 const profilingOnboarding: OnboardingConfig = {
   install: () => [installStep()],
   configure: (params: Params) => [configureStep(params)],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
+    },
+  ],
 };
+
+const logsOnboarding = getPythonLogsOnboarding();
 
 const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   profilingOnboarding,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;
-
-const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
-`;

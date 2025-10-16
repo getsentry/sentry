@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
 
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -16,8 +19,9 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -27,23 +31,62 @@ type KeyComboboxProps = {
 
 export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
+
+  const organization = useOrganization();
+  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
   const sortedFilterKeys = useSortedFilterKeyItems({
     filterValue: inputValue,
     inputValue,
     includeSuggestions: false,
   });
-  const {dispatch, getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
+  const {
+    dispatch,
+    getFieldDefinition,
+    getSuggestedFilterKey,
+    setDisplayAskSeer,
+    currentInputValueRef,
+    setAutoSubmitSeer,
+  } = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
     token,
     getFieldDefinition(getKeyName(token.key))
   );
 
+  const hasWildcardOperators =
+    organization.features.includes('search-query-builder-wildcard-operators') &&
+    organization.features.includes('search-query-builder-default-to-contains');
+
   const handleSelectKey = useCallback(
     (keyName: string) => {
       const newFieldDef = getFieldDefinition(keyName);
       const newFilterValueType = getFilterValueType(token, newFieldDef);
+
+      if (keyName === ASK_SEER_ITEM_KEY) {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'opened',
+        });
+        setDisplayAskSeer(true);
+
+        if (currentInputValueRef.current?.trim()) {
+          setAutoSubmitSeer(true);
+        } else {
+          setAutoSubmitSeer(false);
+        }
+
+        return;
+      }
+
+      if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
+        seerAcknowledgeMutate();
+        return;
+      }
 
       if (keyName === getKeyName(token.key)) {
         onCommit();
@@ -53,7 +96,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       if (
         newFilterValueType === currentFilterValueType &&
         // IS and HAS filters are strings, but treated differently and will break
-        // if we prevserve the value.
+        // if we preserve the value.
         keyName !== FieldKey.IS &&
         keyName !== FieldKey.HAS
       ) {
@@ -67,9 +110,9 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       }
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT',
         tokens: [token],
-        text: getInitialFilterText(keyName, newFieldDef),
+        text: getInitialFilterText(keyName, newFieldDef, hasWildcardOperators),
         focusOverride: {
           itemKey: item.key.toString(),
           part: 'value',
@@ -78,7 +121,20 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
       onCommit();
     },
-    [currentFilterValueType, dispatch, getFieldDefinition, item.key, onCommit, token]
+    [
+      currentFilterValueType,
+      currentInputValueRef,
+      dispatch,
+      getFieldDefinition,
+      hasWildcardOperators,
+      item.key,
+      onCommit,
+      organization,
+      seerAcknowledgeMutate,
+      setAutoSubmitSeer,
+      setDisplayAskSeer,
+      token,
+    ]
   );
 
   const onOptionSelected = useCallback(
@@ -88,7 +144,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     [handleSelectKey]
   );
 
-  const onValueCommited = useCallback(
+  const onValueCommitted = useCallback(
     (keyName: string) => {
       const trimmedKeyName = keyName.trim();
 
@@ -115,12 +171,12 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={sortedFilterKeys}
-        placeholder={getKeyLabel(token.key)}
         onOptionSelected={onOptionSelected}
-        onCustomValueCommitted={onValueCommited}
+        onCustomValueCommitted={onValueCommitted}
         onCustomValueBlurred={onCustomValueBlurred}
         onExit={onExit}
         inputValue={inputValue}
+        placeholder={getKeyLabel(token.key)}
         token={token}
         inputLabel={t('Edit filter key')}
         onInputChange={e => setInputValue(e.target.value)}
@@ -144,5 +200,5 @@ const EditingWrapper = styled('div')`
   height: 100%;
   align-items: center;
   max-width: 400px;
-  padding-left: ${space(0.25)};
+  padding-left: ${p => p.theme.space['2xs']};
 `;

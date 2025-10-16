@@ -10,5 +10,5 @@ class CreateUnitTestResponse(RpcModel):
     error_detail: str | None = None
 
     @property
-    def success(self):
+    def success(self) -> bool:
         return self.error_detail is None

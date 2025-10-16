@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -11,11 +12,11 @@ import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/c
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PerformanceScoreBreakdownChartWidget', function () {
+describe('PerformanceScoreBreakdownChartWidget', () => {
   const organization = OrganizationFixture();
   let eventsStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -33,19 +34,23 @@ describe('PerformanceScoreBreakdownChartWidget', function () {
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {
-        'performance_score(measurements.score.lcp)': {
-          data: [[1743348600, [{count: 0.6106921965623204}]]],
-        },
-        'performance_score(measurements.score.fcp)': {
-          data: [[1743435000, [{count: 0.7397871866098699}]]],
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'performance_score(measurements.score.lcp)',
+            values: [{timestamp: 1743348600000, value: 0.6106921965623204}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'performance_score(measurements.score.fcp)',
+            values: [{timestamp: 1743435000000, value: 0.7397871866098699}],
+          }),
+        ],
       },
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 
@@ -63,7 +68,7 @@ describe('PerformanceScoreBreakdownChartWidget', function () {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
@@ -80,8 +85,8 @@ describe('PerformanceScoreBreakdownChartWidget', function () {
     );
   });
 
-  describe('formatTimeSeriesResultsToChartData', function () {
-    it('formats time series results using provided order', function () {
+  describe('formatTimeSeriesResultsToChartData', () => {
+    it('formats time series results using provided order', () => {
       const result = formatTimeSeriesResultsToChartData(
         {
           lcp: [],

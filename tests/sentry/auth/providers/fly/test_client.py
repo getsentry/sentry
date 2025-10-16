@@ -13,7 +13,7 @@ def client():
 
 
 @responses.activate
-def test_request_sends_access_token(client):
+def test_request_sends_access_token(client) -> None:
     responses.add(responses.GET, f"{ACCESS_TOKEN_URL}/", json={"status": "SUCCESS"}, status=200)
     client._request("/")
 
@@ -22,6 +22,6 @@ def test_request_sends_access_token(client):
 
 
 @mock.patch.object(FlyClient, "_request")
-def test_get_info(mock_request, client):
+def test_get_info(mock_request, client) -> None:
     client.get_info()
     mock_request.assert_called_once_with("/info")

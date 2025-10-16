@@ -17,6 +17,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.users.services.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
@@ -62,7 +63,7 @@ class AuditLogEntry(Model):
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
     event = BoundedPositiveIntegerField()
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
-    data = models.JSONField()
+    data = LegacyTextJSONField()
     datetime = models.DateTimeField(default=timezone.now)
 
     class Meta:

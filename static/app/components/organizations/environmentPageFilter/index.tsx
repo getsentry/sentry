@@ -16,9 +16,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-import {EnvironmentPageFilterTrigger} from './trigger';
+import {
+  EnvironmentPageFilterTrigger,
+  type EnvironmentPageFilterTriggerProps,
+} from './trigger';
 
-interface EnvironmentPageFilterProps
+export interface EnvironmentPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<string>,
@@ -35,6 +38,7 @@ interface EnvironmentPageFilterProps
       | 'menuFooterMessage'
       | 'checkboxWrapper'
       | 'shouldCloseOnInteractOutside'
+      | 'triggerProps'
     >
   > {
   /**
@@ -45,6 +49,7 @@ interface EnvironmentPageFilterProps
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  triggerProps?: Partial<EnvironmentPageFilterTriggerProps>;
 }
 
 export function EnvironmentPageFilter({
@@ -59,6 +64,7 @@ export function EnvironmentPageFilter({
   resetParamsOnChange,
   footerMessage,
   triggerProps = {},
+  storageNamespace,
   ...selectProps
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
@@ -131,9 +137,17 @@ export function EnvironmentPageFilter({
       updateEnvironments(newValue, router, {
         save: true,
         resetParams: resetParamsOnChange,
+        storageNamespace,
       });
     },
-    [envPageFilterValue, resetParamsOnChange, router, organization, onChange]
+    [
+      envPageFilterValue,
+      resetParamsOnChange,
+      router,
+      organization,
+      onChange,
+      storageNamespace,
+    ]
   );
 
   const onToggle = useCallback(

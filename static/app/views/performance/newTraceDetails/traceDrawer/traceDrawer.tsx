@@ -1,5 +1,5 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -390,6 +390,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
             <ContentWrapper>
               {traceState.tabs.current_tab ? (
                 <TraceTreeNodeDetails
+                  tree={props.trace}
                   replay={props.replay}
                   manager={props.manager}
                   organization={organization}

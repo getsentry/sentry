@@ -4,7 +4,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 
-describe('SQLishFormatter', function () {
+describe('SQLishFormatter', () => {
   describe('SQLishFormatter.toString()', () => {
     const formatter = new SQLishFormatter();
 

@@ -6,14 +6,14 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories/organizationRepositories';
 
-describe('OrganizationRepositories', function () {
+describe('OrganizationRepositories', () => {
   const org = OrganizationFixture();
   const router = RouterFixture();
   const location = router.location;
 
   const routerProps = {router, location, routeParams: {}, routes: [], route: {}};
 
-  it('renders without providers', function () {
+  it('renders without providers', () => {
     render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
@@ -24,7 +24,7 @@ describe('OrganizationRepositories', function () {
     );
   });
 
-  it('renders with a repository', function () {
+  it('renders with a repository', () => {
     render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
@@ -35,7 +35,7 @@ describe('OrganizationRepositories', function () {
     );
   });
 
-  it('renders with a repository and github provider', function () {
+  it('renders with a repository and github provider', () => {
     render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}

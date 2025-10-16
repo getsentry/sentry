@@ -234,7 +234,25 @@ def get_node_options_for_layer(layer_name: str, layer_version: int | None) -> st
     # - `SentryNodeServerlessSDKv8`
     # - and any other layer with a version suffix above, e.g.
     #   `SentryNodeServerlessSDKv9`
-    return "-r @sentry/aws-serverless/awslambda-auto"
+    if (
+        layer_name == "SentryNodeServerlessSDK"
+        or layer_name == "SentryNodeServerlessSDKv8"
+        or layer_name == "SentryNodeServerlessSDKv9"
+        or (
+            layer_name == "SentryNodeServerlessSDKv10"
+            and layer_version is not None
+            and layer_version <= 13
+        )
+    ):
+        return "-r @sentry/aws-serverless/awslambda-auto"
+
+    # Lambda layers for v10.6.0 and above can use `--import` for auto-instrumentation
+    #
+    # These are specifically
+    # - `SentryNodeServerlessSDKv10:14` and above
+    # - and any other layer with a version suffix above, e.g.
+    #   `SentryNodeServerlessSDKv11`
+    return "--import @sentry/aws-serverless/awslambda-auto"
 
 
 def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_left=3):

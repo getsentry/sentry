@@ -1,6 +1,6 @@
 import TagStore from 'sentry/stores/tagStore';
 
-describe('TagStore', function () {
+describe('TagStore', () => {
   beforeEach(() => {
     TagStore.reset();
   });

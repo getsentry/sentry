@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -11,14 +14,14 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {
@@ -50,14 +53,23 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
-  const organization = useOrganization();
-  const hasWildcardOperators = organization.features.includes(
+  const {getFieldDefinition} = useSearchQueryBuilder();
+  const hasWildcardOperators = useOrganization().features.includes(
     'search-query-builder-wildcard-operators'
+  );
+  const label = useMemo(
+    () =>
+      getOperatorInfo({
+        filterToken: token,
+        hasWildcardOperators,
+        fieldDefinition: getFieldDefinition(token.key.text),
+      }).label,
+    [hasWildcardOperators, token, getFieldDefinition]
   );
 
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} /> {getOperatorInfo(token, hasWildcardOperators).label}{' '}
+      <FilterKey token={token} /> {label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>
@@ -98,7 +110,7 @@ function QueryToken({token}: TokenProps) {
 export function FormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
@@ -134,7 +146,7 @@ export function FormattedQuery({
 export function ProvidedFormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
@@ -165,7 +177,7 @@ const QueryWrapper = styled('div')`
   column-gap: ${space(1)};
 `;
 
-const FilterWrapper = styled('div')`
+export const FilterWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

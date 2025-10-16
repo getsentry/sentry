@@ -5,11 +5,11 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )

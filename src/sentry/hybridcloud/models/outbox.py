@@ -7,6 +7,7 @@ import threading
 from collections.abc import Generator, Iterable, Mapping
 from typing import Any, Self
 
+import psycopg2.errors
 import sentry_sdk
 from django import db
 from django.db import DatabaseError, OperationalError, connections, models, router, transaction
@@ -21,7 +22,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    JSONField,
     Model,
     control_silo_model,
     region_silo_model,
@@ -140,7 +140,7 @@ class OutboxBase(Model):
         except OperationalError as e:
             # If concurrent locking is happening on the table, gracefully pass and allow
             # that work to process.
-            if "LockNotAvailable" in str(e):
+            if isinstance(e.__cause__, psycopg2.errors.LockNotAvailable):
                 return None
             else:
                 raise
@@ -173,7 +173,7 @@ class OutboxBase(Model):
     object_identifier = BoundedBigIntegerField(null=False)
 
     # payload is used for webhook payloads.
-    payload: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    payload = models.JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
     scheduled_from = models.DateTimeField(null=False, default=timezone.now)
@@ -218,7 +218,7 @@ class OutboxBase(Model):
                     .first()
                 )
             except OperationalError as e:
-                if "LockNotAvailable" in str(e):
+                if isinstance(e.__cause__, psycopg2.errors.LockNotAvailable):
                     # If a non task flush process is running already, allow it to proceed without contention.
                     next_shard_row = None
                 else:

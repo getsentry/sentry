@@ -7,8 +7,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
-describe('Generic entry', function () {
-  it('display redacted data', async function () {
+describe('Generic entry', () => {
+  it('display redacted data', async () => {
     const event = EventFixture({
       _meta: {
         hpkp: {'': {rem: [['organization:1', 'x']]}},

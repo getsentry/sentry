@@ -1,27 +1,34 @@
-import {Fragment, type ReactNode, useEffect} from 'react';
+import {Fragment, useEffect, type ReactNode} from 'react';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
-  type AutoRefreshState,
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
+  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  useLogsAnalyticsPageSource,
-  useLogsMode,
-  useLogsSortBys,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsMode,
+  useQueryParamsSortBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+
+import {OurLogKnownFieldKey} from './types';
 
 const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 
@@ -29,12 +36,12 @@ type PreFlightDisableReason =
   | 'sort' // Wrong sort order
   | 'absolute_time' // Using absolute date range
   | 'aggregates' // In aggregates view
+  | 'unsupported_aggregation' // using an aggregate that's not `count(message)`
   | 'rate_limit_initial' // Too many logs per second
   | 'initial_error'; // Initial table query errored
 
 interface AutorefreshToggleProps {
   averageLogsPerSecond?: number | null;
-  disabled?: boolean;
 }
 
 /**
@@ -47,17 +54,15 @@ interface AutorefreshToggleProps {
  * Preflight conditions don't disable autorefresh when values change (eg. sort changes), it's assumed all preflight conditions
  * should be handled via logs page params resetting autorefresh state meaning future values will be checked again before the toggle can be re-enabled.
  */
-export function AutorefreshToggle({
-  disabled: externallyDisabled,
-  averageLogsPerSecond = 0,
-}: AutorefreshToggleProps) {
+export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleProps) {
   const organization = useOrganization();
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const {autoRefresh} = useLogsAutoRefresh();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
-  const sortBys = useLogsSortBys();
-  const mode = useLogsMode();
+  const sortBys = useQueryParamsSortBys();
+  const mode = useQueryParamsMode();
+  const visualizes = useQueryParamsVisualizes();
   const {selection} = usePageFilters();
   const selectionString = JSON.stringify(selection);
   const previousSelection = usePrevious(selectionString);
@@ -76,17 +81,27 @@ export function AutorefreshToggle({
     }
   }, [selectionString, previousSelection, setAutorefresh]);
 
+  const sortBysAreTimeBasedDescending = checkSortIsTimeBasedDescending(sortBys);
+
+  // Changing the sort should also disable autorefresh as there is only one sort (and direction) currently allowed.
+  useEffect(() => {
+    if (!sortBysAreTimeBasedDescending && autoRefresh !== 'idle') {
+      setAutorefresh('idle');
+    }
+  }, [setAutorefresh, sortBysAreTimeBasedDescending, autoRefresh]);
+
   const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 
   const preFlightDisableReason = getPreFlightDisableReason({
     sortBys,
     hasAbsoluteDates,
     mode,
+    visualizes,
     averageLogsPerSecond,
     initialIsError: isError,
   });
 
-  const isToggleDisabled = !!preFlightDisableReason || externallyDisabled;
+  const isToggleDisabled = !!preFlightDisableReason;
   const tooltipReason =
     (autoRefresh !== 'idle' && autoRefresh !== 'enabled' ? autoRefresh : null) ||
     preFlightDisableReason;
@@ -95,8 +110,8 @@ export function AutorefreshToggle({
     <Fragment>
       <AutoRefreshLabel>
         <Tooltip
-          title={getTooltipMessage(tooltipReason, externallyDisabled)}
-          disabled={!tooltipReason && !externallyDisabled}
+          title={getTooltipMessage(tooltipReason)}
+          disabled={!tooltipReason}
           skipWrapper
         >
           <Switch
@@ -106,7 +121,8 @@ export function AutorefreshToggle({
               const newChecked = !autorefreshEnabled;
 
               trackAnalytics('logs.auto_refresh.toggled', {
-                enabled: newChecked,
+                toggleState: newChecked ? 'enabled' : 'disabled',
+                fromPaused: autoRefresh === 'paused',
                 organization,
                 page_source: analyticsPageSource,
               });
@@ -129,17 +145,27 @@ function getPreFlightDisableReason({
   sortBys,
   hasAbsoluteDates,
   mode,
+  visualizes,
   averageLogsPerSecond,
   initialIsError,
 }: {
   hasAbsoluteDates: boolean;
-  mode: string;
-  sortBys: ReturnType<typeof useLogsSortBys>;
+  mode: Mode;
+  sortBys: readonly Sort[];
+  visualizes: readonly Visualize[];
   averageLogsPerSecond?: number | null;
   initialIsError?: boolean;
 }): PreFlightDisableReason | null {
-  if (mode === 'aggregates') {
+  if (mode === Mode.AGGREGATE) {
     return 'aggregates';
+  }
+  if (
+    visualizes.some(
+      visualize =>
+        visualize.yAxis !== `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`
+    )
+  ) {
+    return 'unsupported_aggregation';
   }
   if (!checkSortIsTimeBasedDescending(sortBys)) {
     return 'sort';
@@ -157,13 +183,8 @@ function getPreFlightDisableReason({
 }
 
 function getTooltipMessage(
-  reason: PreFlightDisableReason | AutoRefreshState | null,
-  externallyDisabled?: boolean
+  reason: PreFlightDisableReason | AutoRefreshState | null
 ): ReactNode {
-  if (externallyDisabled) {
-    return t('Auto-refresh is not available in the aggregates view.');
-  }
-
   switch (reason) {
     case 'rate_limit_initial':
       return tct(
@@ -192,6 +213,8 @@ function getTooltipMessage(
       );
     case 'aggregates':
       return t('Auto-refresh is not available in the aggregates view.');
+    case 'unsupported_aggregation':
+      return t('Auto-refresh is only available when visualizing `count(logs)`.');
     case 'initial_error':
       return t(
         'Auto-refresh is not available due to an error fetching logs. If the issue persists, please contact support.'

@@ -1,21 +1,20 @@
 # This is used by the action https://github.com/dorny/paths-filter
 
-sentry_specific_workflow: &sentry_specific_workflow
+sentry_frontend_workflow_file: &sentry_frontend_workflow_file
   - added|modified: '.github/workflows/frontend.yml'
-sentry_specific_test_files: &sentry_specific_test_files
+
+# Provides list of changed files to test (jest)
+# getsentry/sentry does not use the list directly, instead we shard tests inside jest.config.js
+testable_modified: &testable_modified
+  - '!**/*.generated.ts'
+  - added|modified: 'package.json'
+  - added|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'tests/js/**/*'
   - added|deleted|modified: 'fixtures/search-syntax/**/*'
 
-# Provides list of changed files to test (jest)
-# getsentry/sentry does not use this directly, instead we shard tests inside jest.config.js
-testable_modified: &testable_modified
-  - added|modified: 'package.json'
-  - added|modified: 'static/**/*.[tj]{s,sx}'
-  - *sentry_specific_test_files
-
 # Trigger for when we must run full tests (jest)
 testable_rules_changed: &testable_rules_changed
-  - *sentry_specific_workflow
+  - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
 
@@ -23,13 +22,14 @@ testable_rules_changed: &testable_rules_changed
 # There's no "rules_changed" for this, because we run it for all files always
 # getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger tsc
 typecheckable_rules_changed: &typecheckable_rules_changed
-  - *sentry_specific_workflow
+  - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
   - added|deleted|modified: '**/tsconfig*.json'
-  - added|deleted|modified: 'static/**/*.[tj]{s,sx}'
+  - added|deleted|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
+  - *sentry_frontend_workflow_file
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
@@ -37,6 +37,8 @@ frontend_all: &frontend_all
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
+  - 'pyproject.toml'
+  - 'uv.lock'
 
 backend_build_changes: &backend_build_changes
   - '.github/workflows/backend.yml'
@@ -44,6 +46,18 @@ backend_build_changes: &backend_build_changes
   - '.pre-commit-config.yaml'
   - 'Makefile'
   - 'pyproject.toml'
+
+# Files that impact the list of URLS served by the API.
+# The main entry file is `src/sentry/api/urls.py`
+# But that module imports from some other places too, which are also named
+# `urls.py` by convention, it's not enforced anywhere.
+# Examples:
+#   - src/sentry/workflow_engine/endpoints/urls.py
+#   - src/sentry/notifications/platform/api/endpoints/urls.py
+#   - src/sentry/preprod/api/endpoints/urls.py
+#   - and maybe more in the future.
+backend_api_urls: &backend_api_urls
+  - '**/urls.py'
 
 # `backend_src` filters on files that are backend changes excluding
 # changes to the tests/ directory and changes to typescript related config files.

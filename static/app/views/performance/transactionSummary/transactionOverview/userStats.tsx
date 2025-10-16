@@ -46,12 +46,9 @@ function UserStats({
   transactionName,
   eventView,
 }: Props) {
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
   const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
 
-  const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
+  const hasWebVitalsFlag = organization.features.includes('insight-modules');
 
   let userMisery = error === null ? <Placeholder height="34px" /> : <div>{'\u2014'}</div>;
 
@@ -140,28 +137,26 @@ function UserStats({
           <SidebarSpacer />
         </Fragment>
       )}
-      {!hasTransactionSummaryCleanupFlag && (
-        <Fragment>
-          <DemoTourElement
-            id={DemoTourStep.PERFORMANCE_USER_MISERY}
-            title={t('Identify the root cause')}
-            description={t(
-              `Dive into the details behind a slow transaction.
+      <Fragment>
+        <DemoTourElement
+          id={DemoTourStep.PERFORMANCE_USER_MISERY}
+          title={t('Identify the root cause')}
+          description={t(
+            `Dive into the details behind a slow transaction.
               See User Misery, Apdex, and more metrics, along with related events and suspect spans.`
-            )}
-          >
-            <SectionHeading>
-              {t('User Misery')}
-              <QuestionTooltip
-                position="top"
-                title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
-                size="sm"
-              />
-            </SectionHeading>
-          </DemoTourElement>
-          {userMisery}
-        </Fragment>
-      )}
+          )}
+        >
+          <SectionHeading>
+            {t('User Misery')}
+            <QuestionTooltip
+              position="top"
+              title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
+              size="sm"
+            />
+          </SectionHeading>
+        </DemoTourElement>
+        {userMisery}
+      </Fragment>
 
       <SidebarSpacer />
     </Fragment>

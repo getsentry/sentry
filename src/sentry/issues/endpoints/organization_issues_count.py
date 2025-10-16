@@ -3,19 +3,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import features, search
+from sentry import search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover
+from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
@@ -31,19 +33,24 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=1),
-            RateLimitCategory.USER: RateLimit(limit=10, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
+            }
         }
-    }
+    )
 
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
     ):
         with start_span(op="_count"):
-            query_kwargs = {"projects": projects}
+            query_kwargs = {
+                "projects": projects,
+                "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
+            }
 
             query = query.strip()
             if query:
@@ -82,17 +89,6 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
         if not projects:
             return Response([])
-
-        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-        if (
-            len(projects) > 1
-            and not features.has("organizations:global-views", organization, actor=request.user)
-            and not is_fetching_replay_data
-        ):
-            return Response(
-                {"detail": "You do not have the multi project stream feature enabled"}, status=400
-            )
 
         queries = request.GET.getlist("query")
         response = {}

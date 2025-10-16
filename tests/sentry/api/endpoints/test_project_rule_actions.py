@@ -5,10 +5,12 @@ import sentry_sdk
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import PagerDutyServiceDict, add_service
+from sentry.mail.adapter import MailAdapter
 from sentry.notifications.notification_action.group_type_notification_registry import (
     IssueAlertRegistryHandler,
 )
 from sentry.notifications.notification_action.issue_alert_registry import (
+    EmailIssueAlertHandler,
     PagerDutyIssueAlertHandler,
     PluginIssueAlertHandler,
 )
@@ -53,7 +55,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
             )
 
     @mock.patch.object(NotifyEventAction, "after")
-    def test_actions(self, action):
+    def test_actions(self, action) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -64,7 +66,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert action.called
 
     @mock.patch.object(PagerDutyClient, "send_trigger")
-    def test_name_action_default(self, mock_send_trigger):
+    def test_name_action_default(self, mock_send_trigger) -> None:
         """
         Tests that label will be used as 'Test Alert' if not present. Uses PagerDuty since those
         notifications will differ based on the name of the alert.
@@ -85,7 +87,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert pagerduty_data["payload"]["summary"].startswith("[Test Alert]:")
 
     @mock.patch.object(PagerDutyClient, "send_trigger")
-    def test_name_action_with_custom_name(self, mock_send_trigger):
+    def test_name_action_with_custom_name(self, mock_send_trigger) -> None:
         """
         Tests that custom names can be provided to the test notification. Uses PagerDuty since those
         notifications will differ based on the name of the alert.
@@ -110,7 +112,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
-    def test_sample_event_raises_exceptions(self, mock_sdk_capture, mock_create_issue):
+    def test_sample_event_raises_exceptions(self, mock_sdk_capture, mock_create_issue) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
@@ -185,7 +187,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
         return_value=PluginIssueAlertHandler,
     )
-    def test_actions(self, mock_get_handler, action):
+    def test_actions(self, mock_get_handler, action) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -313,3 +315,26 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
     def test_no_events(self) -> None:
         response = self.get_response(self.organization.slug, self.project.slug)
         assert response.status_code == 400
+
+    @mock.patch.object(MailAdapter, "notify")
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
+        return_value=IssueAlertRegistryHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
+        return_value=EmailIssueAlertHandler,
+    )
+    def test_email_action(
+        self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_notify
+    ) -> None:
+        action_data = [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": str(self.user.id),
+                "targetType": "Member",
+            }
+        ]
+        self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
+
+        assert mock_notify.call_count == 1

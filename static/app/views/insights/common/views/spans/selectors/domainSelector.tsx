@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
@@ -16,7 +16,7 @@ import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/u
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   domainAlias: string;
@@ -76,7 +76,7 @@ export function DomainSelector({
       sorts: [{field: 'count()', kind: 'desc'}],
       fields: [SpanFields.SPAN_DOMAIN, 'count()'],
     },
-    'api.starfish.get-span-domains'
+    'api.insights.get-span-domains'
   );
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
@@ -135,22 +135,15 @@ export function DomainSelector({
     });
   }
 
-  const {options: domainOptions, clear: clearDomainOptionsCache} =
-    useCompactSelectOptionsCache(
-      domainList
-        .filter(domain => Boolean(domain?.label))
-        .filter(domain => domain.value !== EMPTY_OPTION_VALUE)
-    );
+  const projectIds = pageFilters.selection.projects.sort();
+  const cacheKey = [...additionalQuery, ...projectIds].join(' ');
 
-  useEffect(() => {
-    clearDomainOptionsCache();
-  }, [pageFilters.selection.projects, clearDomainOptionsCache]);
-
-  useEffect(() => {
-    if (additionalQuery.length > 0) {
-      clearDomainOptionsCache();
-    }
-  }, [additionalQuery, clearDomainOptionsCache]);
+  const {options: domainOptions} = useCompactSelectOptionsCache(
+    domainList
+      .filter(domain => Boolean(domain?.label))
+      .filter(domain => domain.value !== EMPTY_OPTION_VALUE),
+    cacheKey
+  );
 
   const emptyOption: SelectOption<string> = {
     value: EMPTY_OPTION_VALUE,
@@ -174,7 +167,7 @@ export function DomainSelector({
       loading={isPending}
       searchable
       menuTitle={domainAlias}
-      maxMenuWidth={'500px'}
+      maxMenuWidth="500px"
       data-test-id="domain-selector"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {

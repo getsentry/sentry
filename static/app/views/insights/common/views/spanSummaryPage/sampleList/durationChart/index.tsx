@@ -3,6 +3,7 @@ import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
@@ -10,7 +11,6 @@ import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottabl
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
@@ -81,20 +81,19 @@ function DurationChart({
     ...filters,
     ...additionalFilters,
   });
-  const referrer = 'api.starfish.sidebar-span-metrics-chart';
+  const referrer = 'api.insights.sidebar-span-metrics-chart';
 
   const {
     isPending,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [`avg(${SPAN_SELF_TIME})`],
       enabled: Object.values({...filters, ...additionalFilters}).every(value =>
         Boolean(value)
       ),
-      transformAliasToInputFormat: true,
     },
     referrer
   );
@@ -105,7 +104,7 @@ function DurationChart({
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
       enabled: Object.values(filters).every(value => Boolean(value)),
     },
-    'api.starfish.span-summary-panel-samples-table-avg'
+    'api.insights.span-summary-panel-samples-table-avg'
   );
 
   if (spanMetricsSeriesError || spanMetricsError) {
@@ -178,7 +177,7 @@ function DurationChart({
       title={t('Average Duration')}
       isLoading={isPending}
       error={spanMetricsSeriesError}
-      series={[spanMetricsSeriesData[`avg(${SpanFields.SPAN_SELF_TIME})`]]}
+      timeSeries={spanMetricsSeriesData?.timeSeries}
       samples={samplesPlottable}
     />
   );

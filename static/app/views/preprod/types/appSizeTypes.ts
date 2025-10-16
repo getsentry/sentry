@@ -1,8 +1,44 @@
+/**
+ * API response types
+ */
+
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
 export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
   insights?: AppleInsightResults;
 }
+
+// Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/models.py#L382
+export enum SizeAnalysisComparisonState {
+  PENDING = 0,
+  PROCESSING = 1,
+  SUCCESS = 2,
+  FAILED = 3,
+}
+
+interface SizeAnalysisComparison {
+  base_size_metric_id: number;
+  comparison_id: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  head_size_metric_id: number;
+  identifier: string;
+  metrics_artifact_type: MetricsArtifactType;
+  state: SizeAnalysisComparisonState;
+}
+
+export interface SizeComparisonApiResponse {
+  base_build_details: BuildDetailsApiResponse;
+  comparisons: SizeAnalysisComparison[];
+  head_build_details: BuildDetailsApiResponse;
+}
+
+/**
+ * App size result types (saved in JSON)
+ * Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/size_analysis/models.py#L8
+ */
 
 export interface TreemapResults {
   category_breakdown: Record<string, Record<string, number>>;
@@ -13,11 +49,10 @@ export interface TreemapResults {
 
 export interface TreemapElement {
   children: TreemapElement[];
-  details: Record<string, unknown>;
-  element_type: TreemapType;
-  is_directory: boolean;
+  is_dir: boolean;
   name: string;
   size: number;
+  type: TreemapType;
   path?: string;
 }
 
@@ -69,22 +104,22 @@ interface BaseInsightResult {
   total_savings: number;
 }
 
-interface FileSavingsResult {
+export interface FileSavingsResult {
   file_path: string;
   total_savings: number;
 }
 
-interface FileSavingsResultGroup {
+export interface FileSavingsResultGroup {
   files: FileSavingsResult[];
   name: string;
   total_savings: number;
 }
 
-interface FilesInsightResult extends BaseInsightResult {
+export interface FilesInsightResult extends BaseInsightResult {
   files: FileSavingsResult[];
 }
 
-interface GroupsInsightResult extends BaseInsightResult {
+export interface GroupsInsightResult extends BaseInsightResult {
   groups: FileSavingsResultGroup[];
 }
 
@@ -110,22 +145,20 @@ interface LooseImagesInsightResult extends GroupsInsightResult {}
 
 interface MainBinaryExportMetadataResult extends FilesInsightResult {}
 
-interface OptimizableImageFile {
-  best_optimization_type: 'convert_to_heic' | 'minify' | 'none';
+export interface OptimizableImageFile {
   conversion_savings: number;
   current_size: number;
   file_path: string;
   heic_size: number | null;
   minified_size: number | null;
   minify_savings: number;
-  potential_savings: number;
 }
 
 interface ImageOptimizationInsightResult extends BaseInsightResult {
   optimizable_files: OptimizableImageFile[];
 }
 
-interface StripBinaryFileInfo {
+export interface StripBinaryFileInfo {
   debug_sections_savings: number;
   file_path: string;
   symbol_table_savings: number;
@@ -143,6 +176,7 @@ interface AudioCompressionInsightResult extends FilesInsightResult {}
 interface VideoCompressionInsightResult extends FilesInsightResult {}
 
 export interface AppleInsightResults {
+  alternate_icons_optimization?: ImageOptimizationInsightResult;
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
   hermes_debug_info?: HermesDebugInfoInsightResult;
@@ -158,4 +192,41 @@ export interface AppleInsightResults {
   strip_binary?: StripBinaryInsightResult;
   unnecessary_files?: UnnecessaryFilesInsightResult;
   video_compression?: VideoCompressionInsightResult;
+}
+
+/**
+ * App size comparison types (saved in JSON)
+ * https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/size_analysis/models.py#L40
+ */
+
+export type DiffType = 'added' | 'removed' | 'increased' | 'decreased';
+
+export interface DiffItem {
+  base_size: number | null;
+  head_size: number | null;
+  item_type: TreemapType | null;
+  path: string;
+  size_diff: number;
+  type: DiffType;
+}
+
+// Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/models.py#L230
+export enum MetricsArtifactType {
+  MAIN_ARTIFACT = 0,
+  WATCH_ARTIFACT = 1,
+  ANDROID_DYNAMIC_FEATURE = 2,
+}
+
+interface SizeMetricDiffItem {
+  base_download_size: number;
+  base_install_size: number;
+  head_download_size: number;
+  head_install_size: number;
+  identifier: string | null;
+  metrics_artifact_type: MetricsArtifactType;
+}
+
+export interface SizeAnalysisComparisonResults {
+  diff_items: DiffItem[];
+  size_metric_diff_item: SizeMetricDiffItem;
 }

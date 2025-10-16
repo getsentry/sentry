@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import GroupingComponent, {
-  GroupingComponentListItem,
-  GroupingValue,
-} from './groupingComponent';
+import GroupingComponent from './groupingComponent';
+import {GroupingComponentListItem} from './groupingComponentFrames';
 import {groupingComponentFilter} from './utils';
 
 type Props = {
@@ -18,15 +19,21 @@ function GroupingComponentChildren({component, showNonContributing}: Props) {
     <Fragment>
       {component.values
         .filter((value: any) => groupingComponentFilter(value, showNonContributing))
-        .map((value: any) => (
-          <GroupingComponentListItem key={typeof value === 'object' ? value.id : value}>
+        .map((value: any, index: number) => (
+          <GroupingComponentListItem
+            // value.id is not a unique value
+            key={typeof value === 'object' ? `${value.id}-${index}` : `${value}-${index}`}
+          >
             {typeof value === 'object' ? (
               <GroupingComponent
                 component={value}
                 showNonContributing={showNonContributing}
               />
             ) : (
-              <GroupingValue valueType={component.name || component.id}>
+              <GroupingValue
+                valueType={component.name || component.id}
+                contributes={component.contributes}
+              >
                 {typeof value === 'string' || typeof value === 'number'
                   ? value
                   : JSON.stringify(value, null, 2)}
@@ -37,5 +44,24 @@ function GroupingComponentChildren({component, showNonContributing}: Props) {
     </Fragment>
   );
 }
+
+const GroupingValue = styled('code')<{
+  valueType: string;
+  contributes?: boolean;
+}>`
+  display: inline-block;
+  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  padding: 0 ${space(0.25)};
+  background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
+  color: ${p => (p.contributes ? p.theme.textColor : p.theme.subText)};
+
+  ${({valueType, theme, contributes}) =>
+    (valueType === 'function' || valueType === 'symbol') &&
+    css`
+      font-weight: ${contributes ? theme.fontWeight.bold : 'normal'};
+      color: ${contributes ? theme.textColor : theme.subText};
+    `}
+`;
 
 export default GroupingComponentChildren;

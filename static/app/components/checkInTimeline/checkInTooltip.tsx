@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -50,7 +51,7 @@ export function CheckInTooltip<Status extends string>({
 
   const tooltipTitle = (
     <Fragment>
-      <TooltipTimeLabel>
+      <Flex justify="center">
         <DateTime date={startTs * 1000} format={dateLabelFormat} />
         {!representsSingleJob && (
           <Fragment>
@@ -58,7 +59,7 @@ export function CheckInTooltip<Status extends string>({
             <DateTime date={endTs * 1000} format={dateLabelFormat} />
           </Fragment>
         )}
-      </TooltipTimeLabel>
+      </Flex>
       <StatusCountContainer>
         <thead>
           <tr>
@@ -122,11 +123,6 @@ const StatusCountContainer = styled('table')`
   td {
     text-align: left;
   }
-`;
-
-const TooltipTimeLabel = styled('div')`
-  display: flex;
-  justify-content: center;
 `;
 
 const StatusLabel = styled('td')<{labelColor: string}>`

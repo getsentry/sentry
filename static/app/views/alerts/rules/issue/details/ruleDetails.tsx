@@ -27,7 +27,6 @@ import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
-import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -41,7 +40,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
-import {getRuleActionCategory} from 'sentry/views/alerts/rules/utils';
+import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
 
 import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -209,7 +208,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       );
 
       addSuccessMessage(t('Successfully re-enabled'));
-    } catch (err) {
+    } catch (err: any) {
       addErrorMessage(
         typeof err.responseJSON?.detail === 'string'
           ? err.responseJSON.detail
@@ -267,10 +266,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       />
     );
   }
-
-  const isSnoozed = rule.snooze;
-
-  const ruleActionCategory = getRuleActionCategory(rule);
 
   const duplicateLink = {
     pathname: makeAlertsPathname({
@@ -421,11 +416,10 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert
-                  isSnoozed={isSnoozed}
+                  isSnoozed={rule.snoozeForEveryone ?? false}
                   onSnooze={onSnooze}
                   ruleId={rule.id}
                   projectSlug={projectSlug}
-                  ruleActionCategory={ruleActionCategory}
                   hasAccess={hasAccess}
                   type="issue"
                   disabled={rule.status === 'disabled'}
@@ -463,22 +457,20 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
         <Layout.Main>
           {renderIncompatibleAlert()}
           {renderDisabledAlertBanner()}
-          {isSnoozed && (
+          {rule.snooze && (
             <Alert.Container>
-              <Alert type="info">
-                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
-                  ? tct(
-                      "[creator] muted this alert so these notifications won't be sent in the future.",
-                      {creator: rule.snoozeCreatedBy}
-                    )
-                  : tct(
-                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                      {
-                        creator: rule.snoozeCreatedBy,
-                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                      }
-                    )}
-              </Alert>
+              {rule.snoozeForEveryone ? (
+                <Alert type="info">
+                  {tct(
+                    "[creator] muted this alert for everyone so you won't get these notifications in the future.",
+                    {
+                      creator: rule.snoozeCreatedBy,
+                    }
+                  )}
+                </Alert>
+              ) : (
+                <UserSnoozeDeprecationBanner projectId={project.id} />
+              )}
             </Alert.Container>
           )}
           <StyledTimeRangeSelector

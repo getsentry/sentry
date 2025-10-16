@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, DefaultDict, TypedDict
 from unittest import mock
 from uuid import uuid4
@@ -36,7 +36,7 @@ class _EventDataDict(TypedDict):
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user
@@ -81,7 +81,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -91,7 +91,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     @pytest.mark.querybuilder
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.do_request(
             {
                 "start": self.day_ago,
@@ -102,7 +102,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_generic_issue(self):
+    def test_generic_issue(self) -> None:
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
@@ -142,7 +142,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_generic_issue_calculated_interval(self):
+    def test_generic_issue_calculated_interval(self) -> None:
         """Test that a 4h interval returns the correct generic event stats.
         This follows a different code path than 1h or 1d as the IssuePlatformTimeSeriesQueryBuilder
         does some calculation to create the time column."""
@@ -185,7 +185,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 3}], [{"count": 0}]]
 
-    def test_errors_dataset(self):
+    def test_errors_dataset(self) -> None:
         response = self.do_request(
             {
                 "start": self.day_ago,
@@ -198,7 +198,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_errors_dataset_no_query(self):
+    def test_errors_dataset_no_query(self) -> None:
         response = self.do_request(
             {
                 "start": self.day_ago,
@@ -210,7 +210,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_misaligned_last_bucket(self):
+    def test_misaligned_last_bucket(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago - timedelta(minutes=30),
@@ -227,7 +227,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 2}],
         ]
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
@@ -239,7 +239,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_user_count(self):
+    def test_user_count(self) -> None:
         self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -261,7 +261,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 2}], [{"count": 1}]]
 
-    def test_discover2_backwards_compatibility(self):
+    def test_discover2_backwards_compatibility(self) -> None:
         response = self.do_request(
             data={
                 "project": self.project.id,
@@ -286,7 +286,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) > 0
 
-    def test_with_event_count_flag(self):
+    def test_with_event_count_flag(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -299,7 +299,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_performance_view_feature(self):
+    def test_performance_view_feature(self) -> None:
         response = self.do_request(
             data={
                 "end": before_now(),
@@ -315,7 +315,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         assert response.status_code == 200, response.content
 
-    def test_apdex_divide_by_zero(self):
+    def test_apdex_divide_by_zero(self) -> None:
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -353,7 +353,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 0}],
         ]
 
-    def test_aggregate_function_apdex(self):
+    def test_aggregate_function_apdex(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
 
@@ -440,7 +440,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 0}],
         ]
 
-    def test_aggregate_function_count(self):
+    def test_aggregate_function_count(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -452,7 +452,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_invalid_aggregate(self):
+    def test_invalid_aggregate(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -463,7 +463,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         assert response.status_code == 400, response.content
 
-    def test_aggregate_function_user_count(self):
+    def test_aggregate_function_user_count(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -475,7 +475,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 1}]]
 
-    def test_aggregate_invalid(self):
+    def test_aggregate_invalid(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -486,7 +486,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         assert response.status_code == 400, response.content
 
-    def test_throughput_meta(self):
+    def test_throughput_meta(self) -> None:
         project = self.create_project()
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -548,7 +548,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             }
             assert meta["units"] == {"time": None, axis: "1/second"}
 
-    def test_throughput_epm_hour_rollup(self):
+    def test_throughput_epm_hour_rollup(self) -> None:
         project = self.create_project()
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -585,7 +585,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
-    def test_throughput_epm_day_rollup(self):
+    def test_throughput_epm_day_rollup(self) -> None:
         project = self.create_project()
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -620,7 +620,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
             assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
-    def test_throughput_eps_minute_rollup(self):
+    def test_throughput_eps_minute_rollup(self) -> None:
         project = self.create_project()
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -657,7 +657,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / 60.0
 
-    def test_throughput_eps_no_rollup(self):
+    def test_throughput_eps_no_rollup(self) -> None:
         project = self.create_project()
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -696,7 +696,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         for row in rows:
             assert row[1][0]["count"] == 1
 
-    def test_transaction_events(self):
+    def test_transaction_events(self) -> None:
         prototype = {
             "type": "transaction",
             "transaction": "api.issue.delete",
@@ -734,7 +734,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             # windows land.
             assert len(items) >= 3
 
-    def test_project_id_query_filter(self):
+    def test_project_id_query_filter(self) -> None:
         response = self.do_request(
             data={
                 "end": before_now(),
@@ -746,7 +746,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         assert response.status_code == 200
 
-    def test_latest_release_query_filter(self):
+    def test_latest_release_query_filter(self) -> None:
         response = self.do_request(
             data={
                 "project": self.project.id,
@@ -759,7 +759,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         assert response.status_code == 200
 
-    def test_conditional_filter(self):
+    def test_conditional_filter(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -776,7 +776,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert data[0][1][0]["count"] == 1
         assert data[2][1][0]["count"] == 1
 
-    def test_simple_multiple_yaxis(self):
+    def test_simple_multiple_yaxis(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -798,7 +798,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 2}],
         ]
 
-    def test_equation_yaxis(self):
+    def test_equation_yaxis(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -815,7 +815,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 0.02}],
         ]
 
-    def test_eps_equation(self):
+    def test_eps_equation(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -830,7 +830,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert pytest.approx(0.000556, abs=0.0001) == response.data["data"][0][1][0]["count"]
         assert pytest.approx(0.001112, abs=0.0001) == response.data["data"][1][1][0]["count"]
 
-    def test_epm_equation(self):
+    def test_epm_equation(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -845,7 +845,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert pytest.approx(0.03334, abs=0.01) == response.data["data"][0][1][0]["count"]
         assert pytest.approx(0.06667, abs=0.01) == response.data["data"][1][1][0]["count"]
 
-    def test_equation_mixed_multi_yaxis(self):
+    def test_equation_mixed_multi_yaxis(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -867,7 +867,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 200}],
         ]
 
-    def test_equation_multi_yaxis(self):
+    def test_equation_multi_yaxis(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -889,7 +889,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 200}],
         ]
 
-    def test_large_interval_no_drop_values(self):
+    def test_large_interval_no_drop_values(self) -> None:
         self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -955,7 +955,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         # Should've reset to the default for 24h
         assert mock_query.mock_calls[1].args[0][0].query.granularity.granularity == 300
 
-    def test_out_of_retention(self):
+    def test_out_of_retention(self) -> None:
         with self.options({"system.event-retention-days": 10}):
             response = self.do_request(
                 data={
@@ -995,7 +995,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         assert len(mock_quantize.mock_calls) == 2
 
-    def test_with_zerofill(self):
+    def test_with_zerofill(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -1012,31 +1012,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 0}],
         ]
 
-    def test_without_zerofill(self):
-        start = self.day_ago.isoformat()
-        end = (self.day_ago + timedelta(hours=2)).isoformat()
-        response = self.do_request(
-            data={
-                "start": start,
-                "end": end,
-                "interval": "30m",
-                "withoutZerofill": "1",
-            },
-            features={
-                "organizations:performance-chart-interpolation": True,
-                "organizations:discover-basic": True,
-            },
-        )
-
-        assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 1}],
-            [{"count": 2}],
-        ]
-        assert response.data["start"] == datetime.fromisoformat(start).timestamp()
-        assert response.data["end"] == datetime.fromisoformat(end).timestamp()
-
-    def test_comparison_error_dataset(self):
+    def test_comparison_error_dataset(self) -> None:
         self.store_event(
             data={
                 "timestamp": (self.day_ago + timedelta(days=-1, minutes=1)).isoformat(),
@@ -1072,7 +1048,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 2, "comparisonCount": 1}],
         ]
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         self.store_event(
             data={
                 "timestamp": (self.day_ago + timedelta(days=-1, minutes=1)).isoformat(),
@@ -1107,7 +1083,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 2, "comparisonCount": 1}],
         ]
 
-    def test_comparison_invalid(self):
+    def test_comparison_invalid(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -1133,7 +1109,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             assert response.status_code == 400, response.content
             assert response.data["detail"] == "Comparison period is outside retention window"
 
-    def test_equations_divide_by_zero(self):
+    def test_equations_divide_by_zero(self) -> None:
         response = self.do_request(
             data={
                 "start": self.day_ago,
@@ -1172,7 +1148,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         response = self.do_request(query, features={"organizations:profiling": True})
         assert response.status_code == 200, response.content
 
-    def test_tag_with_conflicting_function_alias_simple(self):
+    def test_tag_with_conflicting_function_alias_simple(self) -> None:
         for _ in range(7):
             self.store_event(
                 data={
@@ -1207,7 +1183,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
-    def test_group_id_tag_simple(self):
+    def test_group_id_tag_simple(self) -> None:
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
@@ -1248,7 +1224,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
 
 class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -1349,7 +1325,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def test_no_top_events_with_project_field(self):
+    def test_no_top_events_with_project_field(self) -> None:
         project = self.create_project()
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1374,7 +1350,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
 
-    def test_no_top_events(self):
+    def test_no_top_events(self) -> None:
         project = self.create_project()
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1399,7 +1375,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         # Instead, we return a single zero-filled series for an empty graph.
         assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
 
-    def test_no_top_events_with_multi_axis(self):
+    def test_no_top_events_with_multi_axis(self) -> None:
         project = self.create_project()
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1429,7 +1405,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
-    def test_simple_top_events(self):
+    def test_simple_top_events(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -1463,7 +1439,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_simple_top_events_meta(self):
+    def test_simple_top_events_meta(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -1495,7 +1471,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
                 "sum_transaction_duration": "millisecond",
             }
 
-    def test_simple_top_events_meta_no_alias(self):
+    def test_simple_top_events_meta_no_alias(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -1528,7 +1504,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
                 "sum(transaction.duration)": "millisecond",
             }
 
-    def test_top_events_with_projects_other(self):
+    def test_top_events_with_projects_other(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -1554,7 +1530,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert data["Other"]["order"] == 1
         assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
 
-    def test_top_events_with_projects_fields(self):
+    def test_top_events_with_projects_fields(self) -> None:
         # We need to handle the project name fields differently
         for project_field in ["project", "project.name"]:
             with self.feature(self.enabled_features):
@@ -1587,7 +1563,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
                 6,
             ], project_field
 
-    def test_tag_with_conflicting_function_alias_simple(self):
+    def test_tag_with_conflicting_function_alias_simple(self) -> None:
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
@@ -1634,7 +1610,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     @pytest.mark.xfail(
         reason="The response.data[Other] returns 15 locally and returns 16 or 15 remotely."
     )
-    def test_tag_with_conflicting_function_alias_with_other_single_grouping(self):
+    def test_tag_with_conflicting_function_alias_with_other_single_grouping(self) -> None:
         event_data: list[_EventDataDict] = [
             {
                 "data": {
@@ -1682,7 +1658,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             assert response.data["abc"]["data"][0][1] == [{"count": 3}]
             assert response.data["Other"]["data"][0][1] == [{"count": 16}]
 
-    def test_tag_with_conflicting_function_alias_with_other_multiple_groupings(self):
+    def test_tag_with_conflicting_function_alias_with_other_multiple_groupings(self) -> None:
         event_data: list[_EventDataDict] = [
             {
                 "data": {
@@ -1730,7 +1706,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             assert response.data["def,9001"]["data"][0][1] == [{"count": 7}]
             assert response.data["Other"]["data"][0][1] == [{"count": 25}]
 
-    def test_group_id_tag_simple(self):
+    def test_group_id_tag_simple(self) -> None:
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
@@ -1773,7 +1749,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
-    def test_top_events_limits(self):
+    def test_top_events_limits(self) -> None:
         data = {
             "start": self.day_ago.isoformat(),
             "end": (self.day_ago + timedelta(hours=2)).isoformat(),
@@ -1798,7 +1774,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     @pytest.mark.xfail(
         reason="The response is wrong whenever we have a top events timeseries on project + any other field + aggregation"
     )
-    def test_top_events_with_projects(self):
+    def test_top_events_with_projects(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -1830,7 +1806,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_with_issue(self):
+    def test_top_events_with_issue(self) -> None:
         # delete a group to make sure if this happens the value becomes unknown
         event_group = self.events[0].group
         event_group.delete()
@@ -1874,7 +1850,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
-    def test_transactions_top_events_with_issue(self):
+    def test_transactions_top_events_with_issue(self) -> None:
         # delete a group to make sure if this happens the value becomes unknown
         event_group = self.events[0].group
         event_group.delete()
@@ -1899,7 +1875,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         # Just asserting that this doesn't fail, issue on transactions dataset doesn't mean anything
 
-    def test_top_events_with_transaction_status(self):
+    def test_top_events_with_transaction_status(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -1985,7 +1961,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             in mock_query.mock_calls[1].args[0].query.where
         )
 
-    def test_top_events_with_functions(self):
+    def test_top_events_with_functions(self) -> None:
         for dataset in ["transactions", "discover"]:
             with self.feature(self.enabled_features):
                 response = self.client.get(
@@ -2012,7 +1988,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             assert results["order"] == 0
             assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
-    def test_top_events_with_functions_on_different_transactions(self):
+    def test_top_events_with_functions_on_different_transactions(self) -> None:
         """Transaction2 has less events, but takes longer so order should be self.transaction then transaction2"""
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
@@ -2047,7 +2023,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
-    def test_top_events_with_query(self):
+    def test_top_events_with_query(self) -> None:
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
         transaction_data["timestamp"] = (self.day_ago + timedelta(minutes=6)).isoformat()
@@ -2081,7 +2057,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
-    def test_top_events_with_negated_condition(self):
+    def test_top_events_with_negated_condition(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2115,7 +2091,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_with_epm(self):
+    def test_top_events_with_epm(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2149,7 +2125,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.05}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_with_multiple_yaxis(self):
+    def test_top_events_with_multiple_yaxis(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2192,7 +2168,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert [{"count": 0.05}] in [attrs for _, attrs in other["epm()"]["data"]]
         assert [{"count": 3}] in [attrs for _, attrs in other["count()"]["data"]]
 
-    def test_top_events_with_boolean(self):
+    def test_top_events_with_boolean(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2224,7 +2200,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_with_error_unhandled(self):
+    def test_top_events_with_error_unhandled(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project()
         prototype = load_data("android-ndk")
@@ -2254,7 +2230,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 2
 
-    def test_top_events_with_int(self):
+    def test_top_events_with_int(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2278,7 +2254,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
-    def test_top_events_with_user(self):
+    def test_top_events_with_user(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2308,7 +2284,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
-    def test_top_events_with_user_and_email(self):
+    def test_top_events_with_user_and_email(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2338,7 +2314,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
-    def test_top_events_with_user_display(self):
+    def test_top_events_with_user_display(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2374,7 +2350,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
     @pytest.mark.skip(reason="A query with group_id will not return transactions")
-    def test_top_events_none_filter(self):
+    def test_top_events_none_filter(self) -> None:
         """When a field is None in one of the top events, make sure we filter by it
 
         In this case event[4] is a transaction and has no issue
@@ -2412,7 +2388,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             ]
 
     @pytest.mark.skip(reason="Invalid query - transaction events don't have group_id field")
-    def test_top_events_one_field_with_none(self):
+    def test_top_events_one_field_with_none(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2438,7 +2414,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
         assert results["order"] == 0
 
-    def test_top_events_with_error_handled(self):
+    def test_top_events_with_error_handled(self) -> None:
         data = self.event_data[0]
         data["data"]["level"] = "error"
         data["data"]["exception"] = {
@@ -2488,7 +2464,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         results = res_data["0"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
-    def test_top_events_with_aggregate_condition(self):
+    def test_top_events_with_aggregate_condition(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2518,7 +2494,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             ]
 
     @pytest.mark.xfail(reason="There's only 2 rows total, which mean there shouldn't be other")
-    def test_top_events_with_to_other(self):
+    def test_top_events_with_to_other(self) -> None:
         version = "version -@'\" 1.2,3+(4)"
         version_escaped = "version -@'\\\" 1.2,3+(4)"
         # every symbol is replaced with a underscore to make the alias
@@ -2564,7 +2540,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             event_data["count"] for event_data in self.event_data
         )
 
-    def test_top_events_with_equations(self):
+    def test_top_events_with_equations(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2682,7 +2658,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         # Should've default to 24h's default of 5m
         assert mock_raw_query.mock_calls[5].args[0].query.granularity.granularity == 300
 
-    def test_top_events_other_with_matching_columns(self):
+    def test_top_events_other_with_matching_columns(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2714,7 +2690,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_with_field_overlapping_other_key(self):
+    def test_top_events_with_field_overlapping_other_key(self) -> None:
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
         transaction_data["timestamp"] = (self.day_ago + timedelta(minutes=6)).isoformat()
@@ -2752,7 +2728,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_can_exclude_other_series(self):
+    def test_top_events_can_exclude_other_series(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2776,7 +2752,9 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert "Other" not in response.data
 
     @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
-    def test_top_events_with_equation_including_unselected_fields_passes_field_validation(self):
+    def test_top_events_with_equation_including_unselected_fields_passes_field_validation(
+        self,
+    ) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2800,7 +2778,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_boolean_condition_and_project_field(self):
+    def test_top_events_boolean_condition_and_project_field(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -2825,7 +2803,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2840,7 +2818,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def test_functions_dataset_simple(self):
+    def test_functions_dataset_simple(self) -> None:
         transaction_function = self.store_functions(
             [
                 {
@@ -2932,7 +2910,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2947,7 +2925,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def test_functions_dataset_simple(self):
+    def test_functions_dataset_simple(self) -> None:
         self.store_functions(
             [
                 {
@@ -3018,7 +2996,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
 class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTestCase):
     # This is implemented almost exactly the same as spans, add a simple test case for a sanity check
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3080,14 +3058,14 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def test_simple_top_events(self):
+    def test_simple_top_events(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
                 data={
                     "start": self.day_ago.isoformat(),
                     "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "dataset": "ourlogs",
+                    "dataset": "logs",
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -3123,7 +3101,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
 
 
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3139,7 +3117,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                     "fingerprint": ["group1"],
                 },
                 "project": self.project2,
@@ -3152,7 +3145,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project2,
                 "count": 6,
@@ -3164,7 +3172,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 5,
@@ -3176,7 +3199,16 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "ValueError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 4,
@@ -3187,7 +3219,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup", "env": "staging"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                     "fingerprint": ["group7"],
                 },
                 "project": self.project,
@@ -3201,7 +3248,16 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup", "env": "dev"},
-                    "exception": {"values": [{"type": "ValueError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 2,
@@ -3213,7 +3269,16 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup", "env": "dev"},
-                    "exception": {"values": [{"type": "ValueError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 1,
@@ -3236,7 +3301,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def test_simple_top_events(self):
+    def test_simple_top_events(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -3277,9 +3342,51 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_with_array_field(self):
+    def test_top_event_with_null_value(self):
+        self.store_event(
+            {
+                "message": "null-value",
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
+                "user": {"email": self.user.email},
+                "tags": {"shared-tag": "yup", "env": "prod"},
+                "exception": {
+                    "values": [
+                        {"type": "NameError", "value": "name"},
+                        {"type": "FooError", "value": None},
+                    ]
+                },
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        )
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "error.value"],
+                    "query": "message:null-value",
+                    "dataset": "errors",
+                    "topEvents": "1",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+        assert "[name,(no value)]" in data
+        results = data["[name,(no value)]"]
+        assert results["order"] == 0
+        assert [x[1][0]["count"] for x in results["data"]] == [1, 0]
+
+    def test_top_events_with_array_field(self) -> None:
         """
-        Test that when doing a qurey on top events with an array field that its handled correctly
+        Test that when doing a query on top events with an array field that its handled correctly
         """
 
         with self.feature(self.enabled_features):
@@ -3309,7 +3416,39 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert [attrs[0]["count"] for _, attrs in data["[NameError,FooError]"]["data"]] == [2, 0]
         assert [attrs[0]["count"] for _, attrs in data["[ValueError]"]["data"]] == [1, 0]
 
-    def test_top_events_with_projects_other(self):
+    def test_top_events_with_stack_level(self) -> None:
+        """
+        Test that when doing a query on top events with an array field that its handled correctly
+        """
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "project": self.project.id,
+                    "query": "!error.type:*Exception*",
+                    "yAxis": "count_unique(user)",
+                    "orderby": ["-count_unique(user)"],
+                    "field": ["stack.stack_level", "count_unique(user)"],
+                    "topEvents": "2",
+                    "dataset": "errors",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data
+        assert len(data) == 2
+        assert "[0,1]" in data
+        assert "[0]" in data
+        assert [attrs[0]["count"] for _, attrs in data["[0,1]"]["data"]] == [2, 0]
+        assert [attrs[0]["count"] for _, attrs in data["[0]"]["data"]] == [1, 0]
+
+    def test_top_events_with_projects_other(self) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -3336,7 +3475,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert data["Other"]["order"] == 1
         assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
 
-    def test_top_events_with_issue(self):
+    def test_top_events_with_issue(self) -> None:
         # delete a group to make sure if this happens the value becomes unknown
         event_group = self.events[0].group
         event_group.delete()
@@ -3456,7 +3595,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             in mock_query.mock_calls[1].args[0].query.where
         )
 
-    def test_group_id_tag_simple(self):
+    def test_group_id_tag_simple(self) -> None:
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
@@ -3499,7 +3638,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
-    def test_top_events_with_error_unhandled(self):
+    def test_top_events_with_error_unhandled(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project()
         prototype = load_data("android-ndk")
@@ -3533,7 +3672,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user

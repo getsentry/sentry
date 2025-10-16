@@ -8,12 +8,14 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
+import {InvoiceItemType, OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
   getBestActionToIncreaseEventLimits,
+  getCreditApplied,
   getOnDemandCategories,
   getProductTrial,
   getSlot,
@@ -28,8 +30,8 @@ import {
   UsageAction,
 } from 'getsentry/utils/billing';
 
-describe('formatReservedWithUnits', function () {
-  it('returns correct string for Errors', function () {
+describe('formatReservedWithUnits', () => {
+  it('returns correct string for Errors', () => {
     expect(formatReservedWithUnits(null, DataCategory.ERRORS)).toBe('0');
     expect(formatReservedWithUnits(0, DataCategory.ERRORS)).toBe('0');
     expect(formatReservedWithUnits(-1, DataCategory.ERRORS)).toBe(UNLIMITED);
@@ -65,7 +67,7 @@ describe('formatReservedWithUnits', function () {
     ).toBe('1.23B');
   });
 
-  it('returns correct string for Transactions', function () {
+  it('returns correct string for Transactions', () => {
     expect(formatReservedWithUnits(null, DataCategory.TRANSACTIONS)).toBe('0');
     expect(formatReservedWithUnits(0, DataCategory.TRANSACTIONS)).toBe('0');
     expect(formatReservedWithUnits(-1, DataCategory.TRANSACTIONS)).toBe(UNLIMITED);
@@ -103,7 +105,7 @@ describe('formatReservedWithUnits', function () {
     ).toBe('1.23B');
   });
 
-  it('returns correct string for Attachments', function () {
+  it('returns correct string for Attachments', () => {
     expect(formatReservedWithUnits(null, DataCategory.ATTACHMENTS)).toBe('0 GB');
     expect(formatReservedWithUnits(0, DataCategory.ATTACHMENTS)).toBe('0 GB');
     expect(formatReservedWithUnits(0.1, DataCategory.ATTACHMENTS)).toBe('0.1 GB');
@@ -184,7 +186,7 @@ describe('formatReservedWithUnits', function () {
     ).toBe(UNLIMITED);
   });
 
-  it('returns correct string for Profile Duration', function () {
+  it('returns correct string for Profile Duration', () => {
     expect(formatReservedWithUnits(1000, DataCategory.PROFILE_DURATION)).toBe('1,000');
     expect(formatReservedWithUnits(0, DataCategory.PROFILE_DURATION)).toBe('0');
     expect(formatReservedWithUnits(-1, DataCategory.PROFILE_DURATION)).toBe(UNLIMITED);
@@ -196,7 +198,7 @@ describe('formatReservedWithUnits', function () {
     ).toBe('1K');
   });
 
-  it('returns correct string for reserved budget', function () {
+  it('returns correct string for reserved budget', () => {
     expect(formatReservedWithUnits(1000, DataCategory.SPANS, {}, true)).toBe('$10.00');
     expect(formatReservedWithUnits(1500_00, DataCategory.SPANS, {}, true)).toBe(
       '$1,500.00'
@@ -204,7 +206,7 @@ describe('formatReservedWithUnits', function () {
     expect(formatReservedWithUnits(0, DataCategory.SPANS, {}, true)).toBe('$0.00');
   });
 
-  it('returns correct string for logs', function () {
+  it('returns correct string for logs', () => {
     expect(formatReservedWithUnits(0, DataCategory.LOG_BYTE)).toBe('0 GB');
     expect(formatReservedWithUnits(0.1, DataCategory.LOG_BYTE)).toBe('0.1 GB');
     expect(formatReservedWithUnits(1, DataCategory.LOG_BYTE)).toBe('1 GB');
@@ -214,12 +216,12 @@ describe('formatReservedWithUnits', function () {
       formatReservedWithUnits(0.1234, DataCategory.LOG_BYTE, {
         isAbbreviated: true,
       })
-    ).toBe('0 GB');
+    ).toBe('0.1 GB');
     expect(
       formatReservedWithUnits(1.234, DataCategory.LOG_BYTE, {
         isAbbreviated: true,
       })
-    ).toBe('1 GB');
+    ).toBe('1.2 GB');
     expect(
       formatReservedWithUnits(0.1, DataCategory.LOG_BYTE, {
         useUnitScaling: true,
@@ -250,11 +252,37 @@ describe('formatReservedWithUnits', function () {
         useUnitScaling: true,
       })
     ).toBe(UNLIMITED);
+
+    expect(
+      formatReservedWithUnits(1234, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,234 GB');
+    expect(
+      formatReservedWithUnits(MILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,000,000 GB');
+    expect(
+      formatReservedWithUnits(1.234 * MILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,234,000 GB');
+    expect(
+      formatReservedWithUnits(BILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,000,000,000 GB');
+    expect(
+      formatReservedWithUnits(1.234 * BILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,234,000,000 GB');
   });
 });
 
-describe('formatUsageWithUnits', function () {
-  it('returns correct strings for Errors', function () {
+describe('formatUsageWithUnits', () => {
+  it('returns correct strings for Errors', () => {
     expect(formatUsageWithUnits(0, DataCategory.ERRORS)).toBe('0');
     expect(formatUsageWithUnits(1000, DataCategory.ERRORS)).toBe('1,000');
     expect(formatUsageWithUnits(MILLION, DataCategory.ERRORS)).toBe('1,000,000');
@@ -279,7 +307,7 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23B');
   });
 
-  it('returns correct strings for Transactions', function () {
+  it('returns correct strings for Transactions', () => {
     expect(formatUsageWithUnits(0, DataCategory.TRANSACTIONS)).toBe('0');
     expect(formatUsageWithUnits(1000, DataCategory.TRANSACTIONS)).toBe('1,000');
     expect(formatUsageWithUnits(MILLION, DataCategory.TRANSACTIONS)).toBe('1,000,000');
@@ -308,7 +336,7 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23B');
   });
 
-  it('returns correct strings for Attachments', function () {
+  it('returns correct strings for Attachments', () => {
     expect(formatUsageWithUnits(0, DataCategory.ATTACHMENTS)).toBe('0 GB');
     expect(formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS)).toBe('0 GB');
     expect(formatUsageWithUnits(BILLION, DataCategory.ATTACHMENTS)).toBe('1 GB');
@@ -371,7 +399,7 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23 TB');
   });
 
-  it('returns correct string for continuous profiling', function () {
+  it('returns correct string for continuous profiling', () => {
     [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].forEach(
       (cat: DataCategory) => {
         expect(formatUsageWithUnits(0, cat)).toBe('0');
@@ -387,6 +415,47 @@ describe('formatUsageWithUnits', function () {
         ).toBe('1K');
       }
     );
+  });
+});
+
+describe('convertUsageToReservedUnit', () => {
+  it('converts attachments from bytes to GB', () => {
+    expect(convertUsageToReservedUnit(GIGABYTE, DataCategory.ATTACHMENTS)).toBe(1);
+    expect(convertUsageToReservedUnit(5 * GIGABYTE, DataCategory.ATTACHMENTS)).toBe(5);
+    expect(convertUsageToReservedUnit(0.5 * GIGABYTE, DataCategory.ATTACHMENTS)).toBe(
+      0.5
+    );
+  });
+
+  it('converts continuous profiling from milliseconds to hours', () => {
+    expect(
+      convertUsageToReservedUnit(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
+    ).toBe(1);
+    expect(
+      convertUsageToReservedUnit(2 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
+    ).toBe(2);
+    expect(
+      convertUsageToReservedUnit(
+        0.5 * MILLISECONDS_IN_HOUR,
+        DataCategory.PROFILE_DURATION
+      )
+    ).toBe(0.5);
+    expect(
+      convertUsageToReservedUnit(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION_UI)
+    ).toBe(1);
+    expect(
+      convertUsageToReservedUnit(
+        3.5 * MILLISECONDS_IN_HOUR,
+        DataCategory.PROFILE_DURATION_UI
+      )
+    ).toBe(3.5);
+  });
+
+  it('returns usage unchanged for other categories', () => {
+    expect(convertUsageToReservedUnit(1000, DataCategory.ERRORS)).toBe(1000);
+    expect(convertUsageToReservedUnit(500, DataCategory.TRANSACTIONS)).toBe(500);
+    expect(convertUsageToReservedUnit(250, DataCategory.REPLAYS)).toBe(250);
+    expect(convertUsageToReservedUnit(0, DataCategory.SPANS)).toBe(0);
   });
 });
 
@@ -555,7 +624,7 @@ describe('getSlot', () => {
   });
 });
 
-describe('Pricing plan functions', function () {
+describe('Pricing plan functions', () => {
   const organization = OrganizationFixture();
 
   const am1Team = SubscriptionFixture({organization, plan: 'am1_team'});
@@ -567,7 +636,7 @@ describe('Pricing plan functions', function () {
   const am3Dev = SubscriptionFixture({organization, plan: 'am3_f'});
   const am3Biz = SubscriptionFixture({organization, plan: 'am3_business'});
 
-  it('returns if a plan has performance', function () {
+  it('returns if a plan has performance', () => {
     expect(hasPerformance(mm2Biz.planDetails)).toBe(false);
     expect(hasPerformance(mm2Team.planDetails)).toBe(false);
 
@@ -578,7 +647,7 @@ describe('Pricing plan functions', function () {
     expect(hasPerformance(am3Biz.planDetails)).toBe(true);
   });
 
-  it('returns correct plan family', function () {
+  it('returns correct plan family', () => {
     expect(isTeamPlanFamily(am1Team.planDetails)).toBe(true);
     expect(isTeamPlanFamily(mm2Team.planDetails)).toBe(true);
     expect(isTeamPlanFamily(am1Biz.planDetails)).toBe(false);
@@ -597,7 +666,7 @@ describe('Pricing plan functions', function () {
   });
 });
 
-describe('getProductTrial', function () {
+describe('getProductTrial', () => {
   const TEST_TRIALS: ProductTrial[] = [
     // errors - with active trials
     {
@@ -684,37 +753,37 @@ describe('getProductTrial', function () {
     },
   ];
 
-  it('returns current trial with latest end date', function () {
+  it('returns current trial with latest end date', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.ERRORS);
     expect(pt?.reasonCode).toBe(1001);
   });
 
-  it('returns available trial with longest days', function () {
+  it('returns available trial with longest days', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.TRANSACTIONS);
     expect(pt?.reasonCode).toBe(2002);
   });
 
-  it('returns most recent ended trial', function () {
+  it('returns most recent ended trial', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.REPLAYS);
     expect(pt?.reasonCode).toBe(3002);
   });
 
-  it('returns null trial when not available', function () {
+  it('returns null trial when not available', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.ATTACHMENTS);
     expect(pt).toBeNull();
   });
 
-  it('returns null trial when empty', function () {
+  it('returns null trial when empty', () => {
     const pt = getProductTrial([], DataCategory.ATTACHMENTS);
     expect(pt).toBeNull();
   });
 
-  it('returns null trial for null trials', function () {
+  it('returns null trial for null trials', () => {
     const pt = getProductTrial(null, DataCategory.ATTACHMENTS);
     expect(pt).toBeNull();
   });
 
-  it('tests for trialPromptIsDismissed', function () {
+  it('tests for trialPromptIsDismissed', () => {
     const organization = OrganizationFixture();
     const jan01 = '2023-01-01';
     const feb01 = '2023-02-01';
@@ -747,7 +816,7 @@ describe('getProductTrial', function () {
   });
 });
 
-describe('getActiveProductTrial', function () {
+describe('getActiveProductTrial', () => {
   const TEST_TRIALS: ProductTrial[] = [
     // errors - with active trials
     {
@@ -834,12 +903,12 @@ describe('getActiveProductTrial', function () {
     },
   ];
 
-  it('returns current trial with latest end date for category', function () {
+  it('returns current trial with latest end date for category', () => {
     const pt = getActiveProductTrial(TEST_TRIALS, DataCategory.ERRORS);
     expect(pt?.reasonCode).toBe(1001);
   });
 
-  it('returns null when no active trial for the category', function () {
+  it('returns null when no active trial for the category', () => {
     // none started
     const transaction_pt = getActiveProductTrial(TEST_TRIALS, DataCategory.TRANSACTIONS);
     expect(transaction_pt).toBeNull();
@@ -849,30 +918,30 @@ describe('getActiveProductTrial', function () {
     expect(replay_pt).toBeNull();
   });
 
-  it('returns null trial when no trials for category', function () {
+  it('returns null trial when no trials for category', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.ATTACHMENTS);
     expect(pt).toBeNull();
   });
 
-  it('returns null trial when empty', function () {
+  it('returns null trial when empty', () => {
     const pt = getProductTrial([], DataCategory.ERRORS);
     expect(pt).toBeNull();
   });
 
-  it('returns null trial for null trials', function () {
+  it('returns null trial for null trials', () => {
     const pt = getProductTrial(null, DataCategory.ERRORS);
     expect(pt).toBeNull();
   });
 });
 
-describe('isNewPayingCustomer', function () {
-  it('returns true for customer on free plan', function () {
+describe('isNewPayingCustomer', () => {
+  it('returns true for customer on free plan', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization, isFree: true});
     expect(isNewPayingCustomer(subscription, organization)).toBe(true);
   });
 
-  it('returns true for customer on trial plan', function () {
+  it('returns true for customer on trial plan', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -882,7 +951,7 @@ describe('isNewPayingCustomer', function () {
     expect(isNewPayingCustomer(subscription, organization)).toBe(true);
   });
 
-  it('returns true for customer with partner migration feature', function () {
+  it('returns true for customer with partner migration feature', () => {
     const organization = OrganizationFixture({features: ['partner-billing-migration']});
     const subscription = SubscriptionFixture({
       organization,
@@ -892,7 +961,7 @@ describe('isNewPayingCustomer', function () {
     expect(isNewPayingCustomer(subscription, organization)).toBe(true);
   });
 
-  it('returns false for customer on plan trial', function () {
+  it('returns false for customer on plan trial', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -903,7 +972,7 @@ describe('isNewPayingCustomer', function () {
     expect(isNewPayingCustomer(subscription, organization)).toBe(false);
   });
 
-  it('returns false for paying customer', function () {
+  it('returns false for paying customer', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -914,9 +983,9 @@ describe('isNewPayingCustomer', function () {
   });
 });
 
-describe('getOnDemandCategories', function () {
+describe('getOnDemandCategories', () => {
   const plan = PlanDetailsLookupFixture('am1_business')!;
-  it('filters out unconfigurable categories for per-category budget mode', function () {
+  it('filters out unconfigurable categories for per-category budget mode', () => {
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
@@ -926,7 +995,7 @@ describe('getOnDemandCategories', function () {
     expect(categories).not.toContain(DataCategory.SEER_AUTOFIX);
   });
 
-  it('does not filter out any categories for shared budget mode', function () {
+  it('does not filter out any categories for shared budget mode', () => {
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.SHARED,
@@ -936,8 +1005,28 @@ describe('getOnDemandCategories', function () {
   });
 });
 
-describe('isEnterprise', function () {
-  it('returns true for enterprise plans', function () {
+describe('getOnDemandCategories - AM2 logBytes support', () => {
+  it('does not include logBytes in getOnDemandCategories for AM2 plans in per-category mode', () => {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+    });
+    expect(categories).not.toContain('logBytes');
+  });
+
+  it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', () => {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.SHARED,
+    });
+    expect(categories).toContain('logBytes');
+  });
+});
+
+describe('isEnterprise', () => {
+  it('returns true for enterprise plans', () => {
     expect(isEnterprise('e1')).toBe(true);
     expect(isEnterprise('enterprise')).toBe(true);
     expect(isEnterprise('am1_business_ent')).toBe(true);
@@ -945,7 +1034,7 @@ describe('isEnterprise', function () {
     expect(isEnterprise('am3_business_ent_ds_auf')).toBe(true);
   });
 
-  it('returns false for non-enterprise plans', function () {
+  it('returns false for non-enterprise plans', () => {
     expect(isEnterprise('_e1')).toBe(false);
     expect(isEnterprise('_enterprise')).toBe(false);
     expect(isEnterprise('am1_business')).toBe(false);
@@ -953,8 +1042,8 @@ describe('isEnterprise', function () {
   });
 });
 
-describe('getBestActionToIncreaseEventLimits', function () {
-  it('returns start trial for free plan', function () {
+describe('getBestActionToIncreaseEventLimits', () => {
+  it('returns start trial for free plan', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -965,7 +1054,7 @@ describe('getBestActionToIncreaseEventLimits', function () {
     );
   });
 
-  it('returns add events for paid plan with usage exceeded', function () {
+  it('returns add events for paid plan with usage exceeded', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -983,12 +1072,59 @@ describe('getBestActionToIncreaseEventLimits', function () {
     );
   });
 
-  it('returns nothing for business plan without usage exceeded', function () {
+  it('returns nothing for business plan without usage exceeded', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_business',
     });
     expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe('');
+  });
+});
+
+describe('getCreditApplied', () => {
+  it('returns correct credit applied', () => {
+    expect(getCreditApplied({creditApplied: 100, invoiceItems: []})).toBe(100);
+    const commonCreditProps = {
+      amount: 50,
+      data: {},
+      description: '',
+      period_end: '',
+      period_start: '',
+    };
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.SUBSCRIPTION_CREDIT,
+            ...commonCreditProps,
+          },
+        ],
+      })
+    ).toBe(100);
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.BALANCE_CHANGE,
+            ...commonCreditProps,
+          },
+        ],
+      })
+    ).toBe(100);
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.BALANCE_CHANGE,
+            ...commonCreditProps,
+            amount: -50,
+          },
+        ],
+      })
+    ).toBe(0);
   });
 });

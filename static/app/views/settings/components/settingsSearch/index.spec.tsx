@@ -13,8 +13,8 @@ import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
 jest.mock('sentry/actionCreators/navigation');
 
-describe('SettingsSearch', function () {
-  beforeEach(function () {
+describe('SettingsSearch', () => {
+  beforeEach(() => {
     OrganizationsStore.load(OrganizationsFixture());
     setSearchMap([]);
     MockApiClient.clearMockResponses();
@@ -52,20 +52,20 @@ describe('SettingsSearch', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(<SettingsSearch />);
 
     // renders input
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('can focus when hotkey is pressed', function () {
+  it('can focus when hotkey is pressed', () => {
     render(<SettingsSearch />);
     fireEvent.keyDown(document.body, {key: 'Slash', code: 'Slash', keyCode: 191});
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
-  it('can search', async function () {
+  it('can search', async () => {
     render(<SettingsSearch />);
 
     await userEvent.type(screen.getByPlaceholderText('Search'), 'test');

@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
@@ -9,10 +10,15 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
+  prettifyTagKey,
 } from 'sentry/utils/fields';
 import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {BufferedInput} from 'sentry/views/discover/table/queryField';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
@@ -26,7 +32,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_EAP_AGGREGATION = 'count';
 const DEFAULT_EAP_FIELD = 'span.duration';
-const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
@@ -34,12 +39,16 @@ interface Props {
   onChange: (value: string, meta: Record<string, any>) => void;
 }
 
-// Use the same aggregates/operations available in the explore view
+const SUPPORTED_MULTI_PARAM_AGGREGATES = [
+  {label: AggregationKey.APDEX, value: AggregationKey.APDEX},
+];
+
 const SPAN_OPERATIONS = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
     label: aggregate,
     value: aggregate,
   })),
+  ...SUPPORTED_MULTI_PARAM_AGGREGATES,
 ];
 
 const LOG_OPERATIONS = [
@@ -64,71 +73,91 @@ function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
 }
 
 function EAPField({aggregate, onChange, eventTypes}: Props) {
-  const traceItemType = getTraceItemTypeForDatasetAndEventType(
-    Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes
-  );
-  // We parse out the aggregation and field from the aggregate string.
-  // This only works for aggregates with <= 1 argument.
-  const {
-    name: aggregation,
-    arguments: [field],
-  } = parseFunction(aggregate) ?? {arguments: [undefined]};
+  const traceItemType =
+    getTraceItemTypeForDatasetAndEventType(
+      Dataset.EVENTS_ANALYTICS_PLATFORM,
+      eventTypes
+    ) || TraceItemDataset.SPANS;
+
+  const {name: aggregation, arguments: aggregateFuncArgs} = parseFunction(aggregate) ?? {
+    arguments: undefined,
+  };
 
   const {attributes: storedNumberTags} = useTraceItemAttributes('number');
   const {attributes: storedStringTags} = useTraceItemAttributes('string');
 
-  const storedTags =
-    aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
+  const storedTags = useMemo(() => {
+    return aggregation === AggregationKey.COUNT_UNIQUE
+      ? {...storedNumberTags, ...storedStringTags}
+      : storedNumberTags;
+  }, [aggregation, storedNumberTags, storedStringTags]);
 
-  const fieldsArray = Object.values(storedTags);
+  const fieldsArray = useMemo(() => {
+    return Object.values(storedTags).toSorted((a, b) => {
+      const aLabel = prettifyTagKey(a.key);
+      const bLabel = prettifyTagKey(b.key);
+      return aLabel.localeCompare(bLabel);
+    });
+  }, [storedTags]);
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const [lockOptions, selectedOption] = useMemo(() => {
+  const lockOptions = useMemo(() => {
     if (aggregation === AggregationKey.COUNT && traceItemType === TraceItemDataset.LOGS) {
-      return [true, {label: t('logs'), value: 'message'}];
+      return true;
     }
 
     if (aggregation === AggregationKey.COUNT) {
-      return [true, {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}];
+      return true;
     }
 
     if (
       aggregation &&
       NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
     ) {
-      return [true, {label: t('spans'), value: ''}];
+      return true;
     }
 
-    const fieldName = fieldsArray.find(f => f.key === field)?.name;
-    return [false, field && {label: fieldName, value: field}];
-  }, [aggregation, field, fieldsArray, traceItemType]);
+    return false;
+  }, [aggregation, traceItemType]);
 
-  useEffect(() => {
-    if (lockOptions) {
-      return;
-    }
-
-    const selectedMeta = field ? storedTags[field] : undefined;
-    if (!field || !selectedMeta) {
-      const newSelection = fieldsArray[0];
-      if (newSelection) {
-        onChange(`count(${newSelection.name})`, {});
-      } else if (aggregate !== DEFAULT_EAP_METRICS_ALERT_FIELD) {
-        onChange(DEFAULT_EAP_METRICS_ALERT_FIELD, {});
+  const getSelectedOption = useCallback(
+    (option: string | undefined) => {
+      if (
+        aggregation === AggregationKey.COUNT &&
+        traceItemType === TraceItemDataset.LOGS
+      ) {
+        return {label: t('logs'), value: 'message'};
       }
-    }
-  }, [lockOptions, onChange, aggregate, aggregation, field, storedTags, fieldsArray]);
 
-  const handleFieldChange = useCallback(
-    (option: any) => {
-      const selectedMeta = storedTags[option.value];
-      if (!selectedMeta) {
-        return;
+      if (aggregation === AggregationKey.COUNT) {
+        return {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD};
       }
-      onChange(`${aggregation}(${selectedMeta.key})`, {});
+
+      if (
+        aggregation &&
+        NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
+      ) {
+        return {label: t('spans'), value: ''};
+      }
+
+      const fieldName = fieldsArray.find(f => f.key === option)?.name;
+      return {label: fieldName, value: option};
     },
-    [storedTags, onChange, aggregation]
+    [aggregation, fieldsArray, traceItemType]
+  );
+
+  const handleArgumentChange = useCallback(
+    (index: number, value: string) => {
+      let args = cloneDeep(aggregateFuncArgs);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
+      }
+      const newYAxis = `${aggregation}(${args.join(',')})`;
+      onChange(newYAxis, {});
+    },
+    [aggregateFuncArgs, aggregation, onChange]
   );
 
   const handleOperationChange = useCallback(
@@ -141,8 +170,8 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
           newAggregate = `${option.value}()`;
         } else {
           const argument =
-            field && defined(storedNumberTags[field])
-              ? field
+            aggregateFuncArgs?.[0] && defined(storedNumberTags[aggregateFuncArgs?.[0]])
+              ? aggregateFuncArgs?.[0]
               : (Object.values(storedNumberTags)?.[0]?.key ?? '');
           newAggregate = `${option.value}(${argument})`;
         }
@@ -150,12 +179,12 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
         newAggregate = updateVisualizeAggregate({
           newAggregate: option.value,
           oldAggregate: aggregation || DEFAULT_EAP_AGGREGATION,
-          oldArgument: field || DEFAULT_EAP_FIELD,
+          oldArguments: aggregateFuncArgs ? aggregateFuncArgs : [DEFAULT_EAP_FIELD],
         });
       }
       onChange(newAggregate, {});
     },
-    [aggregation, field, onChange, storedNumberTags, traceItemType]
+    [aggregateFuncArgs, aggregation, onChange, storedNumberTags, traceItemType]
   );
 
   // As SelectControl does not support an options size limit out of the box
@@ -167,16 +196,36 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
           searchText === '' || name.toLowerCase().includes(searchText.toLowerCase())
       );
 
-      const options = filteredMeta.map(metric => {
-        return {label: metric.name, value: metric.key};
+      return filteredMeta.map(metric => {
+        return {
+          label: metric.name,
+          value: metric.key,
+          textValue: metric.key,
+          trailingItems: <TypeBadge kind={metric.kind} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={metric.key}
+              kind={metric.kind}
+              label={metric.name}
+              traceItemType={traceItemType}
+            />
+          ),
+        };
       });
-      return options;
     },
-    [fieldsArray]
+    [fieldsArray, traceItemType]
   );
 
   const operations =
     traceItemType === TraceItemDataset.LOGS ? LOG_OPERATIONS : SPAN_OPERATIONS;
+
+  const aggregateDefinition = aggregation
+    ? getFieldDefinition(
+        aggregation,
+        traceItemType === TraceItemDataset.LOGS ? 'log' : 'span'
+      )
+    : undefined;
 
   return (
     <Wrapper>
@@ -187,19 +236,72 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
         value={aggregation}
         onChange={handleOperationChange}
       />
-      <StyledSelectControl
-        searchable
-        placeholder={t('Select a metric')}
-        noOptionsMessage={() =>
-          fieldsArray.length === 0 ? t('No metrics in this project') : t('No options')
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        if (param.kind === 'value') {
+          return (
+            <FlexWrapper key={param.name}>
+              <BufferedInput
+                type="integer"
+                name={param.name}
+                value={aggregateFuncArgs?.[index] || param.defaultValue || ''}
+                placeholder={param.placeholder}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter') {
+                    handleArgumentChange(index, e.currentTarget.value);
+                  }
+                }}
+                onChange={event => handleArgumentChange(index, event.target.value)}
+                onBlur={event => handleArgumentChange(index, event.target.value)}
+                onUpdate={value => handleArgumentChange(index, value)}
+              />
+            </FlexWrapper>
+          );
         }
-        async
-        defaultOptions={getFieldOptions('')}
-        loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
-        value={selectedOption}
-        onChange={handleFieldChange}
-        disabled={lockOptions}
-      />
+        return (
+          <FlexWrapper key={param.name}>
+            <StyledSelectControl
+              key={param.name}
+              searchable
+              placeholder={t('Select a metric')}
+              noOptionsMessage={() =>
+                fieldsArray.length === 0
+                  ? t('No metrics in this project')
+                  : t('No options')
+              }
+              async
+              defaultOptions={getFieldOptions('')}
+              loadOptions={(searchText: any) =>
+                Promise.resolve(getFieldOptions(searchText))
+              }
+              value={getSelectedOption(aggregateFuncArgs?.[index])}
+              onChange={(option: {value: string}) =>
+                handleArgumentChange(index, option.value)
+              }
+              disabled={lockOptions}
+            />
+          </FlexWrapper>
+        );
+      })}
+      {(aggregateDefinition?.parameters?.length === 0 ||
+        !defined(aggregateDefinition?.parameters)) && ( // for parameterless functions, we want to still show show greyed out spans
+        <FlexWrapper>
+          <StyledSelectControl
+            searchable
+            placeholder={t('Select a metric')}
+            noOptionsMessage={() =>
+              fieldsArray.length === 0 ? t('No metrics in this project') : t('No options')
+            }
+            async
+            defaultOptions={getFieldOptions('')}
+            loadOptions={(searchText: any) =>
+              Promise.resolve(getFieldOptions(searchText))
+            }
+            value={getSelectedOption(undefined)}
+            onChange={(option: {value: string}) => handleArgumentChange(0, option.value)}
+            disabled={lockOptions}
+          />
+        </FlexWrapper>
+      )}
     </Wrapper>
   );
 }
@@ -209,6 +311,10 @@ export default EAPFieldWrapper;
 const Wrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
+`;
+
+const FlexWrapper = styled('div')`
+  flex: 1;
 `;
 
 const StyledSelectControl = styled(Select)`

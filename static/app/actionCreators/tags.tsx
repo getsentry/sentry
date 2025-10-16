@@ -10,9 +10,9 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {
-  type ApiQueryKey,
   keepPreviousData,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -157,54 +157,6 @@ export function fetchTagValues({
 
   if (dataset) {
     query.dataset = dataset;
-  }
-
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-}
-
-export function fetchSpanFieldValues({
-  api,
-  orgSlug,
-  fieldKey,
-  endpointParams,
-  projectIds,
-  search,
-  dataset,
-}: {
-  api: Client;
-  fieldKey: string;
-  orgSlug: string;
-  dataset?: 'spans' | 'spansIndexed';
-  endpointParams?: Query;
-  projectIds?: string[];
-  search?: string;
-}): Promise<TagValue[]> {
-  const url = `/organizations/${orgSlug}/spans/fields/${fieldKey}/values/`;
-
-  const query: Query = {};
-  if (search) {
-    query.query = search;
-  }
-  if (projectIds) {
-    query.project = projectIds;
-  }
-  if (endpointParams) {
-    if (endpointParams.start) {
-      query.start = endpointParams.start;
-    }
-    if (endpointParams.end) {
-      query.end = endpointParams.end;
-    }
-    if (endpointParams.statsPeriod) {
-      query.statsPeriod = endpointParams.statsPeriod;
-    }
-  }
-  if (dataset === 'spans') {
-    query.dataset = 'spans';
-    query.type = 'string';
   }
 
   return api.requestPromise(url, {

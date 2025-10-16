@@ -1,11 +1,16 @@
 import pytest
 
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import FunctionAndModulePattern
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    FunctionAndModulePattern,
+    SDKCrashDetectionConfig,
+)
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 @pytest.mark.parametrize("field_containing_path", ["package", "module", "abs_path", "filename"])
-def test_build_sdk_crash_detection_configs(empty_cocoa_config, field_containing_path):
+def test_build_sdk_crash_detection_configs(
+    empty_cocoa_config: SDKCrashDetectionConfig, field_containing_path: str
+) -> None:
 
     empty_cocoa_config.sdk_frame_config.path_patterns = {"Sentry**"}
 
@@ -70,7 +75,12 @@ def test_build_sdk_crash_detection_configs(empty_cocoa_config, field_containing_
     ],
 )
 def test_sdk_crash_ignore_matchers(
-    empty_cocoa_config, test_id, ignore_matchers, frames, is_crash, description
+    empty_cocoa_config: SDKCrashDetectionConfig,
+    test_id: str,
+    ignore_matchers: list[FunctionAndModulePattern],
+    frames: list[dict[str, str]],
+    is_crash: bool,
+    description: str,
 ):
     empty_cocoa_config.sdk_crash_ignore_matchers = set(ignore_matchers)
     empty_cocoa_config.sdk_frame_config.path_patterns = {"**"}

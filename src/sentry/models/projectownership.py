@@ -14,12 +14,12 @@ from sentry.analytics.events.issueowners_assignment import IssueOwnersAssignment
 from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssignment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model, sane_repr
-from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.db.models.fields import FlexibleForeignKey
 from sentry.issues.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -42,7 +42,7 @@ class ProjectOwnership(Model):
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
-    schema: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    schema = models.JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
     # Auto Assignment through Ownership Rules & Code Owners
     auto_assignment = models.BooleanField(default=True)

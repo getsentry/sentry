@@ -52,7 +52,7 @@ export default function ProjectToolbarSettings({project}: Props) {
               {t('Domains where the dev toolbar is allowed to access your data.')}
               <br />
               {t(
-                'Protocol and port are optional; wildcard subdomains (*) are are supported.'
+                'Protocol and port are optional; wildcard subdomains (*) are supported.'
               )}
               <br />
               {tct(
@@ -95,7 +95,7 @@ export default function ProjectToolbarSettings({project}: Props) {
                 'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
                 {domain: <strong>{domain}</strong>}
               )}
-              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+              <CopyToClipboardButton borderless size="zero" text={domain} />
             </Alert>
           </Alert.Container>
         )}

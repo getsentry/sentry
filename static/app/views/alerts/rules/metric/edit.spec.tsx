@@ -21,8 +21,8 @@ jest.mock('sentry/utils/analytics', () => ({
   },
 }));
 
-describe('MetricRulesEdit', function () {
-  beforeEach(function () {
+describe('MetricRulesEdit', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
@@ -65,7 +65,7 @@ describe('MetricRulesEdit', function () {
     jest.clearAllMocks();
   });
 
-  it('renders and edits trigger', async function () {
+  it('renders and edits trigger', async () => {
     const {organization, project} = initializeOrg();
     const rule = MetricRuleFixture();
     const onChangeTitleMock = jest.fn();
@@ -154,7 +154,7 @@ describe('MetricRulesEdit', function () {
     expect(screen.getByTestId('resolve-threshold')).toHaveValue('7');
   });
 
-  it('removes warning trigger', async function () {
+  it('removes warning trigger', async () => {
     const {organization, project} = initializeOrg();
     const rule = MetricRuleFixture();
     rule.triggers.push({
@@ -226,7 +226,7 @@ describe('MetricRulesEdit', function () {
     );
   });
 
-  it('renders 404', async function () {
+  it('renders 404', async () => {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/1234/`,

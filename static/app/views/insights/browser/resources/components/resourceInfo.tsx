@@ -113,7 +113,7 @@ function ResourceInfo(props: Props) {
         />
       </ReadoutRibbon>
 
-      {hasNoData && (
+      {!isLoading && hasNoData && (
         <Alert.Container>
           <Alert style={{width: '100%'}} type="warning">
             {t(

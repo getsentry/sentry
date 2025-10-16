@@ -1,9 +1,7 @@
-import {Fragment, type MouseEventHandler, useRef} from 'react';
+import {Fragment, type MouseEventHandler} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useHover} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
@@ -11,7 +9,7 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
+import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -23,8 +21,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
-  NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
+  SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -38,7 +36,6 @@ interface SidebarItemLinkProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarItemDropdownProps {
@@ -48,6 +45,7 @@ interface SidebarItemDropdownProps {
   children?: React.ReactNode;
   disableTooltip?: boolean;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
+  triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
 interface SidebarButtonProps {
@@ -117,6 +115,7 @@ export function SidebarMenu({
   label,
   onOpen,
   disableTooltip,
+  triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
   // This component can be rendered without an organization in some cases
@@ -137,71 +136,36 @@ export function SidebarMenu({
             showLabel={showLabel}
             disableTooltip={disableTooltip}
           >
-            <NavButton
-              {...props}
-              aria-label={showLabel ? undefined : label}
-              onClick={event => {
-                if (organization) {
-                  recordPrimaryItemClick(analyticsKey, organization);
+            <TriggerWrap>
+              <NavButton
+                {...props}
+                aria-label={showLabel ? undefined : label}
+                onClick={event => {
+                  if (organization) {
+                    recordPrimaryItemClick(analyticsKey, organization);
+                  }
+                  props.onClick?.(event);
+                  onOpen?.(event);
+                }}
+                isMobile={layout === NavLayout.MOBILE}
+                icon={
+                  showLabel ? (
+                    <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
+                  ) : null
                 }
-                props.onClick?.(event);
-                onOpen?.(event);
-              }}
-              isMobile={layout === NavLayout.MOBILE}
-              icon={
-                showLabel ? (
-                  <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
-                ) : null
-              }
-            >
-              {theme.isChonk ? null : (
-                <InteractionStateLayer hasSelectedBackground={isOpen} />
-              )}
-              {showLabel ? label : children}
-            </NavButton>
+              >
+                {theme.isChonk ? null : (
+                  <InteractionStateLayer hasSelectedBackground={isOpen} />
+                )}
+                {showLabel ? label : children}
+              </NavButton>
+            </TriggerWrap>
           </SidebarItem>
         );
       }}
       items={items}
     />
   );
-}
-
-function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
-  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
-
-  // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {hoverProps} = useHover({
-    onHoverStart: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      if (isCollapsed && !collapsedNavIsOpen) {
-        setActivePrimaryNavGroup(group);
-        return;
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        setActivePrimaryNavGroup(group);
-      }, NAV_SIDEBAR_PREVIEW_DELAY_MS);
-    },
-    onHoverEnd: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
-  });
-
-  return mergeProps(hoverProps, {
-    onClick: () => {
-      setActivePrimaryNavGroup(group);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
-  });
 }
 
 function SidebarNavLink({
@@ -217,24 +181,24 @@ function SidebarNavLink({
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
-  const hoverProps = useActivateNavGroupOnHover(group);
-  const linkProps = mergeProps(hoverProps, {
-    onClick: () => {
-      recordPrimaryItemClick(analyticsKey, organization);
-    },
-  });
+
+  // Reload the page when the frontend is stale to ensure users get the latest version
+  const {state: appState} = useFrontendVersion();
 
   return (
     <NavLink
       to={to}
+      reloadDocument={appState === 'stale'}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      onClick={() => {
+        recordPrimaryItemClick(analyticsKey, organization);
+      }}
       {...{
         [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
-      {...linkProps}
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
@@ -258,11 +222,12 @@ export function SidebarLink({
   activeTo = to,
   analyticsKey,
   group,
+  ...props
 }: SidebarItemLinkProps) {
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
   return (
-    <SidebarItem label={label} showLabel>
+    <SidebarItem label={label} showLabel {...props}>
       <SidebarNavLink
         to={to}
         activeTo={activeTo}

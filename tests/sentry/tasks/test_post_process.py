@@ -16,11 +16,8 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
-from sentry.eventstore.models import Event
-from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.ingest.create_feedback import get_feedback_title
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
@@ -54,6 +51,8 @@ from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.merge import merge_groups
@@ -76,7 +75,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.uptime.detectors.ranking import _get_cluster, get_organization_bucket_key
+from sentry.uptime.autodetect.ranking import _get_cluster, get_organization_bucket_key
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -640,7 +639,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert mock_processor.call_count == 0
 
         # Call the function inside process_workflow_engine
-        assert mock_process_event.delay.call_count == 1
+        assert mock_process_event.apply_async.call_count == 1
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
@@ -669,7 +668,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert mock_processor.call_count == 0
 
         # Don't process workflows for ignored issue
-        assert mock_process_event.delay.call_count == 0
+        assert mock_process_event.apply_async.call_count == 0
 
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
@@ -977,6 +976,86 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(None, extra_team.id), (self.user.id, None)} == {
             (o.user_id, o.team_id) for o in owners
         }
+
+    def test_owner_assignment_existing_assignee_preserved(self):
+        """
+        Tests that if a group already has an assignee, post-processing won't reassign it
+        even if ownership rules change in the interim.
+        """
+        other_team = self.create_team()
+        ProjectTeam.objects.create(team=other_team, project=self.project)
+
+        rules = [
+            Rule(Matcher("path", "src/*"), [Owner("team", self.team.slug)]),
+            Rule(Matcher("path", "src/app/*"), [Owner("team", other_team.slug)]),
+        ]
+        self.prj_ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema(rules),
+            fallthrough=True,
+            auto_assignment=True,
+        )
+
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        # No assignee should exist prior to post processing
+        assert not event.group.assignee_set.exists()
+
+        # First post-processing - should assign to other_team (last matching rule)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee.team == other_team
+
+        new_rules = [
+            Rule(Matcher("path", "src/app/*"), [Owner("team", other_team.slug)]),
+            Rule(Matcher("path", "src/*"), [Owner("team", self.team.slug)]),
+        ]
+        self.prj_ownership.schema = dump_schema(new_rules)
+        self.prj_ownership.save()
+
+        # Run post-processing again - assignee should NOT change
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee.team == other_team
+
+        # If we had a completely new group, it would get assigned to self.team (new last matching rule)
+        fresh_event = self.create_event(
+            data={
+                "message": "fresh event",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/fresh.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=fresh_event,
+        )
+
+        fresh_assignee = fresh_event.group.assignee_set.first()
+        assert fresh_assignee.team == self.team
 
     def test_owner_assignment_assign_user(self) -> None:
         self.make_ownership()
@@ -1406,16 +1485,26 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
+
         mock_incr.assert_any_call("sentry.task.post_process.handle_owner_assignment.ratelimited")
         mock_incr.reset_mock()
 
         # Raise this organization's ratelimit
         with self.feature("organizations:increased-issue-owners-rate-limit"):
+            # Create a new event to avoid debouncing
+            event2 = self.create_event(
+                data={
+                    "message": "oh no again",
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "src/app2.py"}]},
+                },
+                project_id=self.project.id,
+            )
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                event=event,
+                event=event2,
             )
             with pytest.raises(AssertionError):
                 mock_incr.assert_any_call(
@@ -1430,11 +1519,20 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             ),
         )
         with self.feature("organizations:increased-issue-owners-rate-limit"):
+            # Create a new event to avoid debouncing
+            event3 = self.create_event(
+                data={
+                    "message": "oh no yet again",
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "src/app3.py"}]},
+                },
+                project_id=self.project.id,
+            )
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                event=event,
+                event=event3,
             )
             mock_incr.assert_any_call(
                 "sentry.task.post_process.handle_owner_assignment.ratelimited"
@@ -2173,11 +2271,6 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
         assert mock_event_data["level"] == "error"
 
-        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
-        assert occurrence.issue_title == get_feedback_title(
-            mock_event_data["contexts"]["feedback"]["message"]
-        )
-
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_reports_no_shim_if_group_exists_on_report(
         self, mock_produce_occurrence_to_kafka: MagicMock
@@ -2224,7 +2317,6 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         cluster = _get_cluster()
         assert exists == cluster.sismember(key, str(organization.id))
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_url(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
@@ -2238,7 +2330,6 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, True)
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_no_url(self) -> None:
         event = self.create_event(
             data={},
@@ -2252,7 +2343,8 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, False)
 
-    def test_uptime_detection_no_feature(self) -> None:
+    @override_options({"uptime.automatic-hostname-detection": False})
+    def test_uptime_detection_no_option(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
             project_id=self.project.id,
@@ -2605,7 +2697,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_features(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2629,7 +2720,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_org_feature(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2653,7 +2743,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_seer_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2678,7 +2767,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2704,7 +2792,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2734,7 +2821,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2763,7 +2849,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2798,7 +2883,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_start_seer_automation,
@@ -2895,7 +2979,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2947,7 +3030,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -3313,8 +3395,6 @@ class PostProcessGroupFeedbackTest(
         is_spam=False,
     ):
         data["type"] = "generic"
-        if "message" not in data:
-            data["message"] = "It Broke!!!"
 
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
@@ -3337,7 +3417,7 @@ class PostProcessGroupFeedbackTest(
             **{
                 "id": uuid.uuid4().hex,
                 "fingerprint": ["c" * 32],
-                "issue_title": get_feedback_title(data["message"]),
+                "issue_title": "User Feedback",
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
@@ -3474,7 +3554,7 @@ class PostProcessGroupFeedbackTest(
 
     def test_ran_if_default_on_new_projects(self) -> None:
         event = self.create_event(
-            data={"message": "It Broke!!!"},
+            data={},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
         )
@@ -3495,11 +3575,10 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
-        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_ran_if_crash_feedback_envelope(self) -> None:
         event = self.create_event(
-            data={"message": "It Broke!!!"},
+            data={},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
         )
@@ -3520,7 +3599,6 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
-        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_logs_if_source_missing(self) -> None:
         event = self.create_event(

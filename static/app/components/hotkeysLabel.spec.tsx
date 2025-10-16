@@ -2,22 +2,22 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 
-describe('HotkeysLabel', function () {
-  it('ctrl+alt+delete mac', function () {
+describe('HotkeysLabel', () => {
+  it('ctrl+alt+delete mac', () => {
     render(<HotkeysLabel value={['ctrl+alt+delete']} forcePlatform="macos" />);
     expect(screen.getByText('⌃')).toBeInTheDocument();
     expect(screen.getByText('⌥')).toBeInTheDocument();
     expect(screen.getByText('DELETE')).toBeInTheDocument();
   });
 
-  it('ctrl+alt+delete windows', function () {
+  it('ctrl+alt+delete windows', () => {
     render(<HotkeysLabel value={['ctrl+alt+delete']} forcePlatform="generic" />);
     expect(screen.getByText('CTRL')).toBeInTheDocument();
     expect(screen.getByText('ALT')).toBeInTheDocument();
     expect(screen.getByText('DELETE')).toBeInTheDocument();
   });
 
-  it('falls back when not on mac', function () {
+  it('falls back when not on mac', () => {
     render(<HotkeysLabel value={['cmd', 'alt']} forcePlatform="generic" />);
     expect(screen.queryByText('⌘')).not.toBeInTheDocument();
     expect(screen.queryByText('CMD')).not.toBeInTheDocument();
@@ -25,14 +25,14 @@ describe('HotkeysLabel', function () {
     expect(screen.getByText('ALT')).toBeInTheDocument();
   });
 
-  it('does not render at all without fallback', function () {
+  it('does not render at all without fallback', () => {
     render(<HotkeysLabel value={['cmd+k', 'cmd+alt+l']} forcePlatform="generic" />);
     expect(screen.queryByText('⌘')).not.toBeInTheDocument();
     expect(screen.queryByText('L')).not.toBeInTheDocument();
     expect(screen.queryByText('ALT')).not.toBeInTheDocument();
   });
 
-  it('takes just a string', function () {
+  it('takes just a string', () => {
     render(<HotkeysLabel value="option" forcePlatform="generic" />);
     expect(screen.getByText('ALT')).toBeInTheDocument();
   });

@@ -9,7 +9,7 @@ import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/type
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {type AvatarUser, StacktraceOrder} from 'sentry/types/user';
+import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -130,7 +130,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
     data.headers
       ?.filter(defined)
       // sort headers
-      .sort(function (a, b) {
+      .sort((a, b) => {
         return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
       }) ?? [];
 
@@ -211,36 +211,6 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
   }
 
   return escapeBashString(fullUrl);
-}
-
-/**
- * Converts an object of body/querystring key/value pairs
- * into a tuple of [key, value] pairs, and sorts them.
- *
- * This handles the case for query strings that were decoded like so:
- *
- *   ?foo=bar&foo=baz => { foo: ['bar', 'baz'] }
- *
- * By converting them to [['foo', 'bar'], ['foo', 'baz']]
- */
-export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
-  return Object.keys(obj)
-    .reduce<Array<[string, string]>>((out, k) => {
-      const val = obj[k];
-      return out.concat(
-        Array.isArray(val)
-          ? val.map(v => [k, v]) // key has multiple values (array)
-          : ([[k, val]] as Array<[string, string]>) // key has single value
-      );
-    }, [])
-    .sort(function ([keyA, valA], [keyB, valB]) {
-      // if keys are identical, sort on value
-      if (keyA === keyB) {
-        return valA < valB ? -1 : 1;
-      }
-
-      return keyA < keyB ? -1 : 1;
-    });
 }
 
 function isValidContextValue(value: unknown): value is string {

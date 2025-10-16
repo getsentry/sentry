@@ -5,11 +5,11 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry import eventstore
 from sentry.api.serializers import Serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.services import eventstore
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 

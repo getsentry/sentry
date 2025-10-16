@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import Panel from 'sentry/components/panels/panel';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,23 +12,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
-import {GIGABYTE, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
-  formatUsageWithUnits,
   getBestActionToIncreaseEventLimits,
   hasPerformance,
   isBizPlanFamily,
   isUnlimitedReserved,
   UsageAction,
 } from 'getsentry/utils/billing';
-import {
-  getPlanCategoryName,
-  isByteCategory,
-  sortCategoriesWithKeys,
-} from 'getsentry/utils/dataCategory';
+import {getPlanCategoryName, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
 
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
@@ -67,11 +64,13 @@ function UsageAlert({subscription, usage}: Props) {
       hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
+    const formattedAmount = formatReservedWithUnits(projected, category, {
+      isAbbreviated: category !== DataCategory.ATTACHMENTS,
+    });
+
     return category === DataCategory.ATTACHMENTS
-      ? `${formatUsageWithUnits(projected, category)} of attachments`
-      : `${formatReservedWithUnits(projected, category, {
-          isAbbreviated: true,
-        })} ${displayName}`;
+      ? `${formattedAmount} of attachments`
+      : `${formattedAmount} ${displayName}`;
   }
 
   function projectedCategoryOverages() {
@@ -90,16 +89,14 @@ function UsageAlert({subscription, usage}: Props) {
           return acc;
         }
         const projected = usage.totals[category]?.projected || 0;
-        const projectedWithReservedUnit = isByteCategory(category)
-          ? projected / GIGABYTE
-          : projected;
+        const projectedWithReservedUnit = convertUsageToReservedUnit(projected, category);
 
         const hasOverage =
           !!currentHistory.reserved &&
           projectedWithReservedUnit > (currentHistory.prepaid ?? 0);
 
         if (hasOverage) {
-          acc.push(formatProjected(projected, category as DataCategory));
+          acc.push(formatProjected(projectedWithReservedUnit, category as DataCategory));
         }
         return acc;
       },
@@ -120,7 +117,12 @@ function UsageAlert({subscription, usage}: Props) {
     }
 
     return (
-      <Panel data-test-id="projected-overage-alert">
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        data-test-id="projected-overage-alert"
+      >
         <SubscriptionBody withPadding>
           <UsageInfo>
             <IconStats size="md" color="blue300" />
@@ -137,13 +139,18 @@ function UsageAlert({subscription, usage}: Props) {
           </UsageInfo>
           {renderPrimaryCTA('projected-overage')}
         </SubscriptionBody>
-      </Panel>
+      </Container>
     );
   }
 
   function renderGracePeriodInfo() {
     return (
-      <Panel data-test-id="grace-period-alert">
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        data-test-id="grace-period-alert"
+      >
         <SubscriptionBody withPadding>
           <UsageInfo>
             <IconWarning size="md" color="yellow300" />
@@ -162,7 +169,7 @@ function UsageAlert({subscription, usage}: Props) {
           </UsageInfo>
           {renderPrimaryCTA('grace-period')}
         </SubscriptionBody>
-      </Panel>
+      </Container>
     );
   }
 
@@ -197,7 +204,12 @@ function UsageAlert({subscription, usage}: Props) {
           });
 
     return (
-      <Panel data-test-id="usage-exceeded-alert">
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        data-test-id="usage-exceeded-alert"
+      >
         <SubscriptionBody withPadding>
           <UsageInfo>
             <IconFire size="md" color="red300" />
@@ -214,7 +226,7 @@ function UsageAlert({subscription, usage}: Props) {
           </UsageInfo>
           {renderPrimaryCTA('exceded-quota')}
         </SubscriptionBody>
-      </Panel>
+      </Container>
     );
   }
 
@@ -279,11 +291,11 @@ function UsageAlert({subscription, usage}: Props) {
   const showProjected = !hasExceeded && !subscription.isGracePeriod;
 
   return (
-    <div data-test-id="usage-alert">
+    <Flex direction="column" gap="xl" data-test-id="usage-alert">
       {hasExceeded && renderExceededInfo()}
       {subscription.isGracePeriod && renderGracePeriodInfo()}
       {showProjected && renderProjectedInfo(projectedOverages)}
-    </div>
+    </Flex>
   );
 }
 

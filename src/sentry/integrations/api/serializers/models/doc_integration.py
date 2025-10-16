@@ -18,7 +18,7 @@ class DocIntegrationSerializer(Serializer):
         item_list: Sequence[DocIntegration],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ):
+    ) -> dict[DocIntegration, dict[str, Any]]:
         # Get associated IntegrationFeatures
         doc_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.DOC_INTEGRATION

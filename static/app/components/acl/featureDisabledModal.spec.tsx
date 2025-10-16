@@ -4,9 +4,8 @@ import styled from '@emotion/styled';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import ModalStore from 'sentry/stores/modalStore';
 
-describe('FeatureTourModal', function () {
+describe('FeatureTourModal', () => {
   const onCloseModal = jest.fn();
   const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const renderComponent = (
@@ -25,12 +24,11 @@ describe('FeatureTourModal', function () {
       />
     );
 
-  beforeEach(function () {
-    ModalStore.reset();
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     const featureName = 'Custom Feature';
     const features = ['organization:custom-feature'];
 
@@ -49,7 +47,7 @@ describe('FeatureTourModal', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders with custom message', function () {
+  it('renders with custom message', () => {
     const message = 'custom message';
 
     renderComponent({

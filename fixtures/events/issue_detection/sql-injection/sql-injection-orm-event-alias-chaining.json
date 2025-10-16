@@ -1,0 +1,53 @@
+{
+  "event_id": "5d6401994d7949d2ac3474f472564370",
+  "platform": "go",
+  "message": "",
+  "datetime": "2025-05-12T22:42:38.642986+00:00",
+  "breakdowns": {
+    "span_ops": {
+      "ops.db": {
+        "value": 65.715075,
+        "unit": "millisecond"
+      },
+      "total.time": {
+        "value": 67.105293,
+        "unit": "millisecond"
+      }
+    }
+  },
+  "request": {
+    "url": "http://localhost:3001/vulnerable-login",
+    "method": "POST",
+    "data": {
+      "country": "USA"
+    }
+  },
+  "spans": [
+    {
+      "timestamp": 1747089758.637715,
+      "start_timestamp": 1747089758.572,
+      "exclusive_time": 65.715075,
+      "op": "db",
+      "span_id": "4703181ac343f71a",
+      "parent_span_id": "91fa92ff0205967d",
+      "trace_id": "375a86eca09a4a4e91903838dd771f50",
+      "status": "ok",
+      "description": "SELECT \"Order->Customer\".\"name\", \"Order->Customer->Address\".\"city\", \"Order->Product->Supplier\".\"name\" FROM \"orders\" AS \"Order\" LEFT JOIN \"customers\" AS \"Order->Customer\" ON \"Order\".\"customerId\" = \"Order->Customer\".\"id\" LEFT JOIN \"addresses\" AS \"Order->Customer->Address\" ON \"Order->Customer\".\"addressId\" = \"Order->Customer->Address\".\"id\" LEFT JOIN \"products\" AS \"Order->Product\" ON \"Order\".\"productId\" = \"Order->Product\".\"id\" LEFT JOIN \"suppliers\" AS \"Order->Product->Supplier\" ON \"Order->Product\".\"supplierId\" = \"Order->Product->Supplier\".\"id\" WHERE \"Order->Customer->Address\".\"country\" = \"USA\";",
+      "sentry_tags": {
+        "description": "SELECT \"Order->Customer\".\"name\", \"Order->Customer->Address\".\"city\", \"Order->Product->Supplier\".\"name\" FROM \"orders\" AS \"Order\" LEFT JOIN \"customers\" AS \"Order->Customer\" ON \"Order\".\"customerId\" = \"Order->Customer\".\"id\" LEFT JOIN \"addresses\" AS \"Order->Customer->Address\" ON \"Order->Customer\".\"addressId\" = \"Order->Customer->Address\".\"id\" LEFT JOIN \"products\" AS \"Order->Product\" ON \"Order\".\"productId\" = \"Order->Product\".\"id\" LEFT JOIN \"suppliers\" AS \"Order->Product->Supplier\" ON \"Order->Product\".\"supplierId\" = \"Order->Product->Supplier\".\"id\" WHERE \"Order->Customer->Address\".\"country\" = \"USA\";"
+      },
+      "data": {
+        "db.system": "mysql",
+        "db.connection_string": "jdbc:mysql://localhost:3306/injection_test",
+        "db.name": "injection_test",
+        "db.statement": "SELECT \"Order->Customer\".\"name\", \"Order->Customer->Address\".\"city\", \"Order->Product->Supplier\".\"name\" FROM \"orders\" AS \"Order\" LEFT JOIN \"customers\" AS \"Order->Customer\" ON \"Order\".\"customerId\" = \"Order->Customer\".\"id\" LEFT JOIN \"addresses\" AS \"Order->Customer->Address\" ON \"Order->Customer\".\"addressId\" = \"Order->Customer->Address\".\"id\" LEFT JOIN \"products\" AS \"Order->Product\" ON \"Order\".\"productId\" = \"Order->Product\".\"id\" LEFT JOIN \"suppliers\" AS \"Order->Product->Supplier\" ON \"Order->Product\".\"supplierId\" = \"Order->Product->Supplier\".\"id\" WHERE \"Order->Customer->Address\".\"country\" = \"USA\";",
+        "db.user": "root",
+        "net.peer.name": "localhost",
+        "net.peer.port": 3306,
+        "otel.kind": "CLIENT",
+        "sentry.op": "db"
+      },
+      "hash": "45330ba0cafa5997"
+    }
+  ]
+}

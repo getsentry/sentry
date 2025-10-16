@@ -1,5 +1,5 @@
 ---
-created: '2025-05-27T19:29:15.718683+00:00'
+created: '2025-09-30T21:02:50.335965+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -20,6 +20,7 @@ config:
     scrubData: true
     scrubDefaults: true
     sensitiveFields: []
+  downsampledEventRetention: 0
   filterSettings:
     csp:
       disallowedSources:
@@ -154,7 +155,7 @@ config:
       - '*/ping{/,}'
       - '*/up{/,}'
   groupingConfig:
-    enhancements: KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ
+    enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA
     id: newstyle:2023-01-11
   performanceScore:
     profiles:

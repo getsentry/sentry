@@ -7,7 +7,7 @@ from pytest import raises
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.middleware.metrics import MiddlewareHaltReason
@@ -16,10 +16,11 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.types.region import Region, RegionCategory
 
 
-def error_regions(region: Region, invalid_region_names: Iterable[str]):
+def error_regions(region: Region, invalid_region_names: Iterable[str]) -> str:
     if region.name in invalid_region_names:
         raise SiloLimit.AvailabilityError("Region is offline!")
     return region.name
@@ -122,6 +123,26 @@ class BaseRequestParserTest(TestCase):
             assert payload.mailbox_name == "slack:0"
             assert payload.request_path
             assert payload.request_method
+            assert payload.destination_type == DestinationType.SENTRY_REGION
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options({"codecov.forward-webhooks.rollout": 1.0})
+    def test_forward_to_codecov(self) -> None:
+        class MockParser(BaseRequestParser):
+            webhook_identifier = WebhookProviderIdentifier.GITHUB
+            provider = "github"
+
+        parser = MockParser(self.request, self.response_handler)
+
+        parser.forward_to_codecov(external_id="1")
+        payloads = WebhookPayload.objects.all()
+        assert len(payloads) == 1
+        for payload in payloads:
+            assert payload.region_name is None
+            assert payload.mailbox_name == "github:codecov:1"
+            assert payload.request_path
+            assert payload.request_method
+            assert payload.destination_type == DestinationType.CODECOV
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_organizations_from_integration_success(self) -> None:

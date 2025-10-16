@@ -485,7 +485,9 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, default_old_project):
+def test_generate_rules_with_zero_base_sample_rate(
+    get_blended_sample_rate, default_old_project
+) -> None:
     get_blended_sample_rate.return_value = 0.0
 
     assert generate_rules(default_old_project) == [
@@ -665,7 +667,9 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_old_project):
+def test_generate_rules_return_boost_replay_id(
+    get_blended_sample_rate, default_old_project
+) -> None:
     get_blended_sample_rate.return_value = 0.5
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -729,7 +733,7 @@ def test_generate_rules_return_minimum_sample_rate_when_enabled(
                 "condition": {"inner": [], "op": "and"},
                 "id": 1006,
                 "samplingValue": {"type": "minimumSampleRate", "value": 0.3},
-                "type": "transaction",
+                "type": "project",
             },
             {
                 "condition": {"inner": [], "op": "and"},
@@ -887,7 +891,7 @@ def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old_project):
+def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old_project) -> None:
     """
     Tests the generation of custom rules ( from CustomDynamicSamplingRule models )
     """

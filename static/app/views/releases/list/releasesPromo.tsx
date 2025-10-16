@@ -1,6 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useCallback, useEffect, useState} from 'react';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -8,21 +6,18 @@ import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {CodeBlock} from 'sentry/components/core/code';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Flex, Stack} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
 import Panel from 'sentry/components/panels/panel';
-import TextOverflow from 'sentry/components/textOverflow';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -104,14 +99,15 @@ function ReleasesPromo({organization, project}: Props) {
 
   const api = useApi();
   const [token, setToken] = useState<string | null>(null);
-  const [integrations, setIntegrations] = useState<SentryApp[]>([]);
-  const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
+  const [apps, setApps] = useState<SentryApp[]>([]);
+  const [selectedApp, setSelectedApp] = useState<SentryApp | null>(null);
 
   useEffect(() => {
     if (!isPending && data) {
-      setIntegrations(data);
+      setApps(data);
     }
   }, [isPending, data]);
+
   useEffect(() => {
     trackAnalytics('releases.quickstart_viewed', {
       organization,
@@ -160,30 +156,24 @@ function ReleasesPromo({organization, project}: Props) {
     return newToken.token;
   };
 
-  const renderIntegrationNode = (integration: SentryApp) => {
+  const makeAppOption = (app: SentryApp): SelectOption<string> => {
     return {
-      value: {slug: integration.slug, name: integration.name},
-      searchKey: `${integration.name}`,
-      label: (
-        <MenuItemWrapper data-test-id="integration-option" key={integration.uuid}>
-          <Label>{integration.name}</Label>
-        </MenuItemWrapper>
-      ),
+      value: app.slug,
+      leadingItems: <SentryAppAvatar sentryApp={app} size={16} />,
+      textValue: app.name,
+      label: app.name,
     };
   };
 
-  const codeChunks = useMemo(
-    () => [
-      `# Install the cli
+  const setupExample = `# Install the cli
 curl -sL https://sentry.io/get-cli/ | bash
 
 # Setup configuration values
-export SENTRY_AUTH_TOKEN=`,
-
-      token && selectedItem
-        ? `${token} # From internal integration: ${selectedItem.value.name}`
-        : '<click-here-for-your-token>',
-      `
+export SENTRY_AUTH_TOKEN=${
+    token && selectedApp
+      ? `${token} # From internal integration: ${selectedApp.name}`
+      : '[select an integration above]'
+  }
 export SENTRY_ORG=${organization.slug}
 export SENTRY_PROJECT=${project.slug}
 VERSION=\`sentry-cli releases propose-version\`
@@ -191,253 +181,93 @@ VERSION=\`sentry-cli releases propose-version\`
 # Workflow to create releases
 sentry-cli releases new "$VERSION"
 sentry-cli releases set-commits "$VERSION" --auto
-sentry-cli releases finalize "$VERSION"`,
-    ],
-    [token, selectedItem, organization.slug, project.slug]
-  );
+sentry-cli releases finalize "$VERSION"`;
 
   if (isPending) {
     return <LoadingIndicator />;
   }
 
+  const canMakeIntegration = organization.access.includes('org:integrations');
+
   return (
     <Panel>
-      <Container>
-        <ContainerHeader>
-          <h3>{t('Set up Releases')}</h3>
-
-          <LinkButton priority="default" size="sm" href={releasesSetupUrl} external>
+      <Stack padding="xl" gap="xl">
+        <Flex align="center" justify="between">
+          <Heading as="h2">{t('Set up Releases')}</Heading>
+          <LinkButton size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
           </LinkButton>
-        </ContainerHeader>
-
-        <p>
+        </Flex>
+        <Text>
           {t(
             'Find which release caused an issue, apply source maps, and get notified about your deploys.'
           )}
-        </p>
-        <p>
+        </Text>
+        <Text>
           {t(
-            'Add the following commands to your CI config when you deploy your application.'
+            'Select an Integration to provide your Auth Token, then add the following script to your CI config when you deploy your application.'
           )}
-        </p>
+        </Text>
 
-        <CodeSnippetWrapper>
-          <CodeSnippet
-            dark
-            language="bash"
-            hideCopyButton={!token || !selectedItem}
-            onCopy={trackQuickstartCopy}
-          >
-            {codeChunks.join('')}
-          </CodeSnippet>
-          <CodeSnippetOverlay className="prism-dark language-bash">
-            <CodeSnippetOverlaySpan>{codeChunks[0]}</CodeSnippetOverlaySpan>
-            <CodeSnippetDropdownWrapper>
-              <CodeSnippetDropdown
-                minWidth={300}
-                maxHeight={400}
-                onOpen={e => {
-                  // This can be called multiple times and does not always have `event`
-                  e?.stopPropagation();
-                }}
-                items={[
-                  {
-                    label: <GroupHeader>{t('Available Integrations')}</GroupHeader>,
-                    id: 'available-integrations',
-                    items: (integrations || []).map(renderIntegrationNode),
+        <CompactSelect
+          size="sm"
+          options={apps.map(makeAppOption)}
+          value={selectedApp?.slug}
+          emptyMessage={t('No Integrations')}
+          searchable
+          disabled={false}
+          menuFooter={({closeOverlay}) => (
+            <Button
+              title={
+                canMakeIntegration
+                  ? undefined
+                  : t(
+                      'You must be an organization owner, manager or admin to create an integration.'
+                    )
+              }
+              size="xs"
+              borderless
+              disabled={!canMakeIntegration}
+              onClick={() => {
+                closeOverlay();
+                openCreateReleaseIntegration({
+                  organization,
+                  project,
+                  onCreateSuccess: (app: SentryApp) => {
+                    setApps([app, ...apps]);
+                    setSelectedApp(app);
+                    generateAndSetNewToken(app.slug);
+                    trackQuickstartCreatedIntegration(app);
                   },
-                ]}
-                alignMenu="left"
-                onSelect={({label, value}) => {
-                  selectItem({label, value});
-                  generateAndSetNewToken(value.slug);
-                }}
-                itemSize="small"
-                searchPlaceholder={t('Select Internal Integration')}
-                menuFooter={
-                  <Access access={['org:integrations']}>
-                    {({hasAccess}) => (
-                      <Tooltip
-                        title={t(
-                          'You must be an organization owner, manager or admin to create an integration.'
-                        )}
-                        disabled={hasAccess}
-                      >
-                        <CreateIntegrationLink
-                          to=""
-                          data-test-id="create-release-integration"
-                          disabled={!hasAccess}
-                          onClick={() =>
-                            openCreateReleaseIntegration({
-                              organization,
-                              project,
-                              onCreateSuccess: (integration: SentryApp) => {
-                                setIntegrations([integration, ...integrations]);
-                                const {label, value} = renderIntegrationNode(integration);
-                                selectItem({
-                                  label,
-                                  value,
-                                });
-                                generateAndSetNewToken(value.slug);
-                                trackQuickstartCreatedIntegration(integration);
-                              },
-                              onCancel: () => {
-                                trackCreateIntegrationModalClose();
-                              },
-                            })
-                          }
-                        >
-                          <MenuItemFooterWrapper>
-                            <IconContainer>
-                              <IconAdd color="activeText" isCircled size="sm" />
-                            </IconContainer>
-                            <Label>{t('Create New Integration')}</Label>
-                          </MenuItemFooterWrapper>
-                        </CreateIntegrationLink>
-                      </Tooltip>
-                    )}
-                  </Access>
-                }
-                disableLabelPadding
-                emptyHidesInput
-              >
-                {() => <CodeSnippetOverlaySpan>{codeChunks[1]}</CodeSnippetOverlaySpan>}
-              </CodeSnippetDropdown>
-            </CodeSnippetDropdownWrapper>
-            <CodeSnippetOverlaySpan>{codeChunks[2]}</CodeSnippetOverlaySpan>
-          </CodeSnippetOverlay>
-        </CodeSnippetWrapper>
-      </Container>
+                  onCancel: trackCreateIntegrationModalClose,
+                });
+              }}
+            >
+              {t('Add New Integration')}
+            </Button>
+          )}
+          triggerProps={{
+            prefix: selectedApp ? t('Token From') : undefined,
+            children: selectedApp ? undefined : t('Select Integration'),
+          }}
+          onChange={option => {
+            const app = apps.find(i => i.slug === option.value)!;
+            setSelectedApp(app);
+            generateAndSetNewToken(app.slug);
+          }}
+        />
+
+        <CodeBlock
+          dark
+          language="bash"
+          hideCopyButton={!token || !selectedApp}
+          onCopy={trackQuickstartCopy}
+        >
+          {setupExample}
+        </CodeBlock>
+      </Stack>
     </Panel>
   );
 }
-
-const Container = styled('div')`
-  padding: ${space(3)};
-`;
-
-const ContainerHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(3)};
-  min-height: 32px;
-
-  h3 {
-    margin: 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-    align-items: flex-start;
-
-    h3 {
-      margin-bottom: ${space(2)};
-    }
-  }
-`;
-
-const CodeSnippetWrapper = styled('div')`
-  position: relative;
-`;
-
-/**
- * CodeSnippet stringifies all inner children (due to Prism code highlighting), so we
- * can't put CodeSnippetDropdown inside of it. Instead, we can render a pre wrap
- * containing the same code (without Prism highlighting) with CodeSnippetDropdown in the
- * middle and overlay it on top of CodeSnippet.
- */
-const CodeSnippetOverlay = styled('pre')`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  margin-bottom: 0;
-  pointer-events: none;
-
-  && {
-    background: transparent;
-  }
-`;
-
-/**
- * Invisible code span overlaid on top of the highlighted code. Exists only to
- * properly position <CodeSnippetDropdown /> inside <CodeSnippetOverlay />.
- */
-const CodeSnippetOverlaySpan = styled('span')`
-  visibility: hidden;
-`;
-
-const CodeSnippetDropdownWrapper = styled('span')`
-  /* Re-enable pointer events (disabled by CodeSnippetOverlay) */
-  pointer-events: initial;
-`;
-
-const CodeSnippetDropdown = styled(DropdownAutoComplete)`
-  position: absolute;
-  font-family: ${p => p.theme.text.family};
-  border: none;
-  border-radius: 4px;
-  width: 300px;
-`;
-
-const GroupHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: ${space(1)} 0;
-  color: ${p => p.theme.subText};
-  line-height: ${p => p.theme.fontSize.sm};
-  text-align: left;
-`;
-const CreateIntegrationLink = styled(Link)`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-`;
-
-const MenuItemWrapper = styled('div')<{
-  disabled?: boolean;
-  py?: number;
-}>`
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  display: flex;
-  align-items: center;
-  font-family: ${p => p.theme.text.family};
-  font-size: 13px;
-  ${p =>
-    typeof p.py !== 'undefined' &&
-    css`
-      padding-top: ${p.py};
-      padding-bottom: ${p.py};
-    `};
-`;
-
-const MenuItemFooterWrapper = styled(MenuItemWrapper)`
-  padding: ${space(0.25)} ${space(1)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p => p.theme.tag.highlight.background};
-  color: ${p => p.theme.active};
-  :hover {
-    color: ${p => p.theme.activeHover};
-    svg {
-      fill: ${p => p.theme.activeHover};
-    }
-  }
-`;
-
-const IconContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-`;
-
-const Label = styled(TextOverflow)`
-  margin-left: 6px;
-`;
 
 export default ReleasesPromo;

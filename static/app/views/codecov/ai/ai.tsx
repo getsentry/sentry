@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import preventAiComment1 from 'sentry-images/codecov/prevent-ai-comment-1.png';
 import preventAiCommentLight from 'sentry-images/codecov/Prevent-AI-img-light-mode.png';
 
-import {IconIntegratedOrg} from 'sentry/components/codecov/integratedOrgSelector/iconIntegratedOrg';
-import {IconRepository} from 'sentry/components/codecov/repoSelector/iconRepository';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {IconBuilding} from 'sentry/icons/iconBuilding';
+import {IconRepository} from 'sentry/icons/iconRepository';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -52,7 +52,7 @@ export default function AIPage() {
                 <TriggerLabelWrap>
                   <Flex align="center" gap="sm">
                     <IconContainer>
-                      <IconIntegratedOrg />
+                      <IconBuilding />
                     </IconContainer>
                     <TriggerLabel>
                       {organizationOptions.find(opt => opt.value === selectedOrg)

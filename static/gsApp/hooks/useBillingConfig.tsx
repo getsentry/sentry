@@ -2,7 +2,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {UPSELL_TIER} from 'getsentry/constants';
-import {type BillingConfig, PlanTier, type Subscription} from 'getsentry/types';
+import {PlanTier, type BillingConfig, type Subscription} from 'getsentry/types';
 
 interface UseBillingConfigProps {
   organization: Organization;

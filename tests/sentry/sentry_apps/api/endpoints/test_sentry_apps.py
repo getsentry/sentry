@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -12,16 +12,21 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry import deletions
+from sentry.analytics.events.sentry_app_schema_validation_error import (
+    SentryAppSchemaValidationError,
+)
 from sentry.constants import SentryAppStatus
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.roles.manager import OrganizationRole
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -61,13 +66,13 @@ class MockOrganizationRoles:
         {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         from sentry.roles.manager import RoleManager
 
         self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
         self.organization_roles = self.default_manager.organization_roles
 
-    def get(self, x):
+    def get(self, x: str) -> OrganizationRole:
         return self.organization_roles.get(x)
 
 
@@ -78,7 +83,7 @@ class SentryAppsTest(APITestCase):
         super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
-    def setup_apps(self):
+    def setup_apps(self) -> None:
         self.published_app = self.create_sentry_app(organization=self.organization, published=True)
         self.unpublished_app = self.create_sentry_app(organization=self.organization)
         self.unowned_unpublished_app = self.create_sentry_app(
@@ -449,7 +454,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
 
     def assert_no_permission(
         self, organization: Organization, sentry_app: SentryApp, slug: str | None
-    ):
+    ) -> None:
         self.create_project(organization=organization)
         token = ApiToken.objects.get(application=sentry_app.application)
 
@@ -605,7 +610,7 @@ class PostSentryAppsTest(SentryAppsTest):
                 assert content[key] == value
 
     @patch("sentry.analytics.record")
-    def test_wrong_schema_format(self, record):
+    def test_wrong_schema_format(self, record: MagicMock) -> None:
         kwargs = {
             "schema": {
                 "elements": [
@@ -638,16 +643,15 @@ class PostSentryAppsTest(SentryAppsTest):
             "schema": ["['#general'] is too short for element of type 'alert-rule-action'"]
         }
 
-        # XXX: Compare schema as an object instead of json to avoid key ordering issues
-        record.call_args.kwargs["schema"] = orjson.loads(record.call_args.kwargs["schema"])
-
-        record.assert_called_with(
-            "sentry_app.schema_validation_error",
-            schema=kwargs["schema"],
-            user_id=self.user.id,
-            sentry_app_name="MyApp",
-            organization_id=self.organization.id,
-            error_message="['#general'] is too short for element of type 'alert-rule-action'",
+        assert_last_analytics_event(
+            record,
+            SentryAppSchemaValidationError(
+                schema=orjson.dumps(kwargs["schema"]).decode(),
+                user_id=self.user.id,
+                sentry_app_name="MyApp",
+                organization_id=self.organization.id,
+                error_message="['#general'] is too short for element of type 'alert-rule-action'",
+            ),
         )
 
     @with_feature("organizations:integrations-event-hooks")

@@ -1,12 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
-describe('OrganizationRestore', function () {
+describe('OrganizationRestore', () => {
   let mockUpdate!: jest.Mock;
   let mockGet!: jest.Mock;
   const pendingDeleteOrg = OrganizationFixture({
@@ -32,12 +31,14 @@ describe('OrganizationRestore', function () {
       status: 200,
       body: pendingDeleteOrg,
     });
-    const {routerProps, router} = initializeOrg<{orgId: string}>({
+    render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
-    });
-    render(<OrganizationRestore {...routerProps} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
+        },
+        route: '/organizations/:orgId/restore/',
+      },
     });
 
     const text = await screen.findByText(/currently scheduled for deletion/);
@@ -54,12 +55,14 @@ describe('OrganizationRestore', function () {
       body: pendingDeleteOrg,
     });
 
-    const {routerProps, router} = initializeOrg<{orgId: string}>({
+    render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
-    });
-    render(<OrganizationRestore {...routerProps} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
+        },
+        route: '/organizations/:orgId/restore/',
+      },
     });
 
     const button = await screen.findByTestId('form-submit');
@@ -79,12 +82,14 @@ describe('OrganizationRestore', function () {
       body: deleteInProgressOrg,
     });
 
-    const {routerProps, router} = initializeOrg<{orgId: string}>({
+    render(<OrganizationRestore />, {
       organization: deleteInProgressOrg,
-    });
-    render(<OrganizationRestore {...routerProps} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${deleteInProgressOrg.slug}/restore/`,
+        },
+        route: '/organizations/:orgId/restore/',
+      },
     });
 
     const text = await screen.findByText(

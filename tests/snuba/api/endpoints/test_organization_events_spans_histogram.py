@@ -9,12 +9,11 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:performance-span-histogram-view"]
     URL = "sentry-api-0-organization-events-spans-histogram"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.features = {}
+        self.features: dict[str, bool] = {}
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -58,24 +57,13 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         return self.store_event(data, project_id=self.project.id)
 
-    def format_span(self, op, group):
+    def format_span(self, op, group) -> str:
         return f"{op}:{group}"
 
-    def do_request(self, query, with_feature=True):
-        features = self.FEATURES if with_feature else []
-        with self.feature(features):
-            return self.client.get(self.url, query, format="json")
+    def do_request(self, query):
+        return self.client.get(self.url, query, format="json")
 
-    def test_no_feature(self):
-        query = {
-            "projects": [-1],
-            "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
-            "numBuckets": 50,
-        }
-        response = self.do_request(query, False)
-        assert response.status_code == 404
-
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         query = {
             "projects": [-1],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -86,7 +74,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data == {}
 
-    def test_bad_params_missing_span(self):
+    def test_bad_params_missing_span(self) -> None:
         query = {
             "project": [self.project.id],
             "numBuckets": 50,
@@ -97,7 +85,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
 
-    def test_bad_params_missing_num_buckets(self):
+    def test_bad_params_missing_num_buckets(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -110,7 +98,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             "numBuckets": [ErrorDetail("This field is required.", code="required")]
         }
 
-    def test_bad_params_invalid_num_buckets(self):
+    def test_bad_params_invalid_num_buckets(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -124,7 +112,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             "numBuckets": ["A valid integer is required."]
         }, "failing for numBuckets"
 
-    def test_bad_params_outside_range_num_buckets(self):
+    def test_bad_params_outside_range_num_buckets(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -138,7 +126,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             "numBuckets": ["Ensure this value is greater than or equal to 1."]
         }, "failing for numBuckets"
 
-    def test_bad_params_num_buckets_too_large(self):
+    def test_bad_params_num_buckets_too_large(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -152,7 +140,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             "numBuckets": ["Ensure this value is less than or equal to 100."]
         }, "failing for numBuckets"
 
-    def test_bad_params_invalid_precision_too_small(self):
+    def test_bad_params_invalid_precision_too_small(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -167,7 +155,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             "precision": ["Ensure this value is greater than or equal to 0."],
         }, "failing for precision"
 
-    def test_bad_params_invalid_precision_too_big(self):
+    def test_bad_params_invalid_precision_too_big(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -181,7 +169,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             "precision": ["Ensure this value is less than or equal to 4."],
         }, "failing for precision"
 
-    def test_bad_params_reverse_min_max(self):
+    def test_bad_params_reverse_min_max(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -193,7 +181,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.data == {"non_field_errors": ["min cannot be greater than max."]}
 
-    def test_bad_params_invalid_min(self):
+    def test_bad_params_invalid_min(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -205,7 +193,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, "failing for min"
         assert response.data == {"min": ["A valid number is required."]}, "failing for min"
 
-    def test_bad_params_invalid_max(self):
+    def test_bad_params_invalid_max(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -217,7 +205,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, "failing for max"
         assert response.data == {"max": ["A valid number is required."]}, "failing for max"
 
-    def test_bad_params_invalid_data_filter(self):
+    def test_bad_params_invalid_data_filter(self) -> None:
         query = {
             "project": [self.project.id],
             "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
@@ -231,7 +219,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             "dataFilter": ['"invalid" is not a valid choice.']
         }, "failing for dataFilter"
 
-    def test_histogram_empty(self):
+    def test_histogram_empty(self) -> None:
         num_buckets = 5
         query = {
             "project": [self.project.id],
@@ -245,7 +233,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == expected_empty_response
 
-    def test_histogram(self):
+    def test_histogram(self) -> None:
         self.create_event()
         num_buckets = 50
         query = {
@@ -265,7 +253,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             else:
                 assert bucket["count"] == 0
 
-    def test_histogram_using_min_max(self):
+    def test_histogram_using_min_max(self) -> None:
         self.create_event()
         num_buckets = 10
         min = 5
@@ -289,7 +277,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data[0]["bin"] == min
         assert response.data[-1]["bin"] == max - 1
 
-    def test_histogram_using_given_min_above_queried_max(self):
+    def test_histogram_using_given_min_above_queried_max(self) -> None:
         self.create_event()
         num_buckets = 10
         min = 12
@@ -308,7 +296,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data[0] == {"bin": min, "count": 0}
         assert len(response.data) == 1
 
-    def test_histogram_using_given_max_below_queried_min(self):
+    def test_histogram_using_given_max_below_queried_min(self) -> None:
         self.create_event()
         num_buckets = 10
         max = 2
@@ -326,7 +314,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
             assert bucket["count"] == 0
         assert response.data[-1] == {"bin": max - 1, "count": 0}
 
-    def test_histogram_all_data_filter(self):
+    def test_histogram_all_data_filter(self) -> None:
         # populate with default spans
         self.create_event()
 
@@ -355,7 +343,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data[-1] == {"bin": 60, "count": 1}
 
-    def test_histogram_exclude_outliers_data_filter(self):
+    def test_histogram_exclude_outliers_data_filter(self) -> None:
         # populate with default spans
         self.create_event()
 

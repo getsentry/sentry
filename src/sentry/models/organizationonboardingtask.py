@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from django.conf import settings
 from django.core.cache import cache
@@ -9,17 +9,20 @@ from django.db import models
 from django.db.models import SET_NULL
 from django.utils import timezone
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.utils import metrics
 
 
 # NOTE: There are gaps in the numberation because a
@@ -67,9 +70,25 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                 f"status={status} unsupported must be {OnboardingTaskStatus.COMPLETE}."
             )
 
+        if options.get("sentry:skip-record-onboarding-tasks-if-complete"):
+            onboarding_complete_option = OrganizationOption.objects.get_value(
+                organization_id, "onboarding:complete", None
+            )
+            if onboarding_complete_option:
+                return False
+
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
+            if options.get("sentry.send_onboarding_task_metrics"):
+                metrics.incr(
+                    "sentry.onboarding.task.cache_miss",
+                    tags={
+                        "organization_id": organization_id,
+                        "task": task,
+                    },
+                    sample_rate=1.0,
+                )
             defaults = {
                 **kwargs,
                 "status": status,
@@ -81,7 +100,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             )
 
             # Store marker to prevent running all the time
-            cache.set(cache_key, 1, 3600)
+            cache.set(cache_key, 1, 60 * 60 * 24 * 7)  # 1 week
             return created
         return False
 
@@ -111,7 +130,7 @@ class AbstractOnboardingTask(Model):
         "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
     )
     # INVITE_MEMBER { invited_member: user.id }
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = LegacyTextJSONField(default=dict)
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]

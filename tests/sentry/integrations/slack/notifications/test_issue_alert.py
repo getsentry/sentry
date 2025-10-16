@@ -14,13 +14,13 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.integrations.types import ExternalProviders
-from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership.grammar import Matcher, Owner
 from sentry.issues.ownership.grammar import Rule as GrammarRule
 from sentry.issues.ownership.grammar import dump_schema
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -89,12 +89,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>"
+        )
         assert (
             blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
@@ -103,11 +101,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @responses.activate
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_performance_issue_alert_user_block(self, occurrence):
+    def test_performance_issue_alert_user_block(self, occurrence) -> None:
         """
         Test that performance issue alerts are sent to a Slack user with the proper payload when
         block kit is enabled.
@@ -183,7 +181,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert len(blocks) == 5
 
     @patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -222,7 +220,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -271,7 +269,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -380,12 +378,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+        )
         assert (
             blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
@@ -442,12 +438,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+        )
         assert (
             blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | {environment.name} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
@@ -543,12 +537,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+        )
         assert blocks[6]["elements"][0]["text"] == f"Suggested Assignees: #{self.team.slug}"
         assert (
             blocks[7]["elements"][0]["text"]
@@ -703,16 +695,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert self.mock_post.call_args.kwargs["channel"] == "CXXXXXXX2"
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        assert "Hello world" in blocks[1]["text"]["text"]
+        title_link = blocks[1]["text"]["text"][13:][1:-1]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
         assert (
             blocks[-2]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
@@ -789,9 +775,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         fallback_text = self.mock_post.call_args.kwargs["text"]
 
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
 
         assert (
             fallback_text
@@ -799,12 +783,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
-        emoji = "red_circle"
-        url = f"http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+        )
         assert (
             blocks[5]["elements"][0]["text"]
             == f"{event.project.slug} | <http://example.com/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
@@ -878,16 +860,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert self.mock_post.call_args.kwargs["channel"] == "CXXXXXXX2"
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        assert "Hello world" in blocks[1]["text"]["text"]
+        title_link = blocks[1]["text"]["text"][13:][1:-1]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
-        emoji = "red_circle"
-        url = f"http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
         assert (
             blocks[-2]["elements"][0]["text"]
             == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
@@ -987,16 +963,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert data["channel"] == "UXXXXXXX1"
         blocks = orjson.loads(data["blocks"])
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        assert "Hello world" in blocks[1]["text"]["text"]
+        title_link = blocks[1]["text"]["text"]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
-        emoji = "red_circle"
-        url = f"http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
         assert (
             blocks[-2]["elements"][0]["text"]
             == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
@@ -1006,16 +976,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert data2["channel"] == "UXXXXXXX2"
         assert "blocks" in data2
         blocks = orjson.loads(data2["blocks"])
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        assert "Hello world" in blocks[1]["text"]["text"]
+        title_link = blocks[1]["text"]["text"]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
-        emoji = "red_circle"
-        url = f"http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
-        text = "Hello world"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
         assert (
             blocks[-2]["elements"][0]["text"]
             == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
@@ -1047,21 +1011,17 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         fallback_text = self.mock_post.call_args.kwargs["text"]
 
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             fallback_text
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|Test Alert>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == "Hello world"
         assert (
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-            == f"http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == "red_circle"
         assert (
             blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"

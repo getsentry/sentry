@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
@@ -9,6 +10,9 @@ import {IconUser} from 'sentry/icons/iconUser';
 
 export const Container = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  span {
+    vertical-align: middle;
+  }
 `;
 
 export const VersionContainer = styled('div')`
@@ -20,6 +24,9 @@ export const NumberContainer = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
   ${p => p.theme.overflowEllipsis};
+  span {
+    vertical-align: middle;
+  }
 `;
 
 export const FieldDateTime = styled(DateTime)`
@@ -62,7 +69,6 @@ export const UserIcon = styled(IconUser)`
   color: ${p => p.theme.gray400};
 `;
 
-export const IconContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-`;
+export const IconContainer = styled((props: {children: React.ReactNode}) => {
+  return <Flex gap="md">{props.children}</Flex>;
+})``;

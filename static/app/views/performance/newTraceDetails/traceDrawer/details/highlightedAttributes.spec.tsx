@@ -7,25 +7,9 @@ jest.mock('@sentry/react', () => ({
   captureMessage: jest.fn(),
 }));
 
-// Mock organization
-const mockOrganization = {
-  features: ['insights-agent-monitoring'],
-} as any;
-
-// Mock the features utility
-jest.mock('sentry/views/insights/agentMonitoring/utils/features', () => ({
-  hasAgentInsightsFeature: jest.fn(() => true),
-  hasMCPInsightsFeature: jest.fn(() => false),
-}));
-
 // Mock the query utility
-jest.mock('sentry/views/insights/agentMonitoring/utils/query', () => ({
+jest.mock('sentry/views/insights/agents/utils/query', () => ({
   getIsAiSpan: jest.fn(({op}) => op?.startsWith('gen_ai.')),
-}));
-
-// Mock the aiTraceNodes utility
-jest.mock('sentry/views/insights/agentMonitoring/utils/aiTraceNodes', () => ({
-  getAIAttribute: jest.fn((attributes, key) => attributes[key]),
 }));
 
 describe('getHighlightedSpanAttributes', () => {
@@ -41,7 +25,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 
@@ -55,9 +39,9 @@ describe('getHighlightedSpanAttributes', () => {
           has_model: 'true',
           has_cost: 'false',
           span_operation: 'gen_ai.chat',
+          model: 'gpt-4',
         },
         extra: {
-          model: 'gpt-4',
           total_costs: '0',
           span_operation: 'gen_ai.chat',
           attributes,
@@ -74,7 +58,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 
@@ -88,7 +72,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 
@@ -103,7 +87,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'http.request',
-      organization: mockOrganization,
+      spanId: '123',
       attributes,
     });
 

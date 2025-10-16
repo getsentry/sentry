@@ -1,8 +1,8 @@
 import type {Location} from 'history';
 
 import {
-  type ContextItem,
   getOrderedContextItems,
+  type ContextItem,
 } from 'sentry/components/events/contexts';
 import {
   getContextTitle,

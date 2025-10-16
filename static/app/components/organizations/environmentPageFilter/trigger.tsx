@@ -8,11 +8,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
-interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
+export interface EnvironmentPageFilterTriggerProps
+  extends Omit<DropdownButtonProps, 'value'> {
   desynced: boolean;
   environments: string[];
   ready: boolean;
   value: string[];
+  label?: string;
 }
 
 export function EnvironmentPageFilterTrigger({
@@ -20,6 +22,7 @@ export function EnvironmentPageFilterTrigger({
   environments,
   ready,
   desynced,
+  label,
   ...props
 }: EnvironmentPageFilterTriggerProps) {
   const isAllEnvironmentsSelected =
@@ -33,7 +36,8 @@ export function EnvironmentPageFilterTrigger({
   // e.g. "production, staging"
   const enumeratedLabel = envsToShow.map(env => trimSlug(env, 25)).join(', ');
 
-  const label = isAllEnvironmentsSelected ? t('All Envs') : enumeratedLabel;
+  const readyLabel =
+    label ?? (isAllEnvironmentsSelected ? t('All Envs') : enumeratedLabel);
 
   // Number of environments that aren't listed in the trigger label
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
@@ -41,7 +45,7 @@ export function EnvironmentPageFilterTrigger({
   return (
     <DropdownButton {...props} data-test-id="page-filter-environment-selector">
       <TriggerLabelWrap>
-        <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
+        <TriggerLabel>{ready ? readyLabel : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
       {remainingCount > 0 && (

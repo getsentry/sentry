@@ -36,8 +36,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('CloudResourceContext', function () {
-  it('returns formatted data correctly', function () {
+describe('CloudResourceContext', () => {
+  it('returns formatted data correctly', () => {
     expect(getCloudResourceContextData({data: MOCK_CLOUD_RESOURCE})).toEqual([
       {
         key: 'cloud.provider',
@@ -71,7 +71,7 @@ describe('CloudResourceContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {cloud_resource: MOCK_REDACTION}},
     });
@@ -79,8 +79,8 @@ describe('CloudResourceContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'cloud_resource'}
-        alias={'cloud_resource'}
+        type="cloud_resource"
+        alias="cloud_resource"
         value={{...MOCK_CLOUD_RESOURCE, ['host.id']: ''}}
       />
     );

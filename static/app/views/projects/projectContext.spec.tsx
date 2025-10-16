@@ -10,11 +10,11 @@ jest.mock('sentry/actionCreators/modal', () => ({
   redirectToProject: jest.fn(),
 }));
 
-describe('projectContext component', function () {
+describe('projectContext component', () => {
   const project = ProjectFixture();
   const org = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     [project.slug, 'new-slug'].forEach(slug => {
       MockApiClient.addMockResponse({
@@ -30,7 +30,7 @@ describe('projectContext component', function () {
     });
   });
 
-  it('displays error on 404s', async function () {
+  it('displays error on 404s', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -60,7 +60,7 @@ describe('projectContext component', function () {
     expect(loading).not.toBeInTheDocument();
   });
 
-  it('fetches data again if projectId changes', function () {
+  it('fetches data again if projectId changes', () => {
     let fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -110,7 +110,7 @@ describe('projectContext component', function () {
     expect(fetchMock).toHaveBeenCalled();
   });
 
-  it('fetches data again if projects list changes', async function () {
+  it('fetches data again if projects list changes', async () => {
     const fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',

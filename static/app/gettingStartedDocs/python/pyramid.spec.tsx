@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './pyramid';
 
-describe('aiohttp onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('aiohttp onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

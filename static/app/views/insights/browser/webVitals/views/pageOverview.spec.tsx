@@ -1,8 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import type {PageFilters} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -11,14 +15,28 @@ import PageOverview from 'sentry/views/insights/browser/webVitals/views/pageOver
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PageOverview', function () {
+describe('PageOverview', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
+    const pageFilters: PageFilters = {
+      projects: [1],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
+      },
+    };
+    PageFiltersStore.onInitializeUrlState(pageFilters);
+    const project = ProjectFixture({id: '1', slug: 'project-slug'});
+    ProjectsStore.loadInitialData([project]);
+
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -30,6 +48,16 @@ describe('PageOverview', function () {
     });
 
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/preferences/',
+      method: 'GET',
+      body: {},
+    });
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -37,7 +65,7 @@ describe('PageOverview', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -58,7 +86,7 @@ describe('PageOverview', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -120,7 +148,7 @@ describe('PageOverview', function () {
 
   it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['insights-initial-modules'],
+      features: ['insight-modules'],
     });
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -175,7 +203,7 @@ describe('PageOverview', function () {
 
   it('escapes transaction name before querying discover', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['insights-initial-modules'],
+      features: ['insight-modules'],
     });
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',

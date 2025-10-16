@@ -6,7 +6,6 @@ from typing import Any
 
 from django import forms
 
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -23,6 +22,7 @@ from sentry.rules.base import CallbackFuture
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
 from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
 from sentry.utils.forms import set_field_choices
 

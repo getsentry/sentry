@@ -18,7 +18,7 @@ import {
 
 jest.unmock('lodash/debounce');
 
-describe('Framework suggestion modal', function () {
+describe('Framework suggestion modal', () => {
   const {organization} = initializeOrg();
   const selectedPlatform: OnboardingSelectedSDK = {
     key: 'javascript',
@@ -29,7 +29,7 @@ describe('Framework suggestion modal', function () {
     name: 'JavaScript',
   };
 
-  it('render default components', async function () {
+  it('render default components', async () => {
     const closeModal = jest.fn();
 
     render(
@@ -75,7 +75,7 @@ describe('Framework suggestion modal', function () {
     expect(screen.getByRole('button', {name: 'Configure SDK'})).toBeEnabled();
   });
 
-  it('should only call handleConfigure once on rapid multiple clicks', async function () {
+  it('should only call handleConfigure once on rapid multiple clicks', async () => {
     const handleSkip = jest.fn();
 
     render(

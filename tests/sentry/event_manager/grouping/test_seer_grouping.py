@@ -117,13 +117,13 @@ class SeerEventManagerGroupingTest(TestCase):
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
-    def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
+    def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
         save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
-    def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
+    def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 

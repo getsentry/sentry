@@ -214,6 +214,15 @@ class GroupType:
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
+    # Controls whether _all_ workflow notification types are enabled (e.g. assignment).
+    # Useful when the group type is still in development
+    enable_workflow_notifications = True
+
+    # Controls whether users are able to manually update the group's priority.
+    enable_user_priority_changes = True
+
+    # Controls whether Seer automation is always triggered for this group type.
+    always_trigger_seer_automation = False
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -293,17 +302,12 @@ def get_group_type_by_type_id(id: int) -> type[GroupType]:
     return registry.get_by_type_id(id)
 
 
-# used as an additional superclass for Performance GroupType defaults
-class PerformanceGroupTypeDefaults:
-    noise_config = NoiseConfig()
-
-
 class ReplayGroupTypeDefaults:
     notification_config = NotificationConfig(context=[])
 
 
 @dataclass(frozen=True)
-class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceSlowDBQueryGroupType(GroupType):
     type_id = 1001
     slug = "performance_slow_db_query"
     description = "Slow DB Query"
@@ -315,41 +319,44 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
 
 
 @dataclass(frozen=True)
-class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceRenderBlockingAssetSpanGroupType(GroupType):
     type_id = 1004
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.FRONTEND.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
     use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceNPlusOneGroupType(GroupType):
     type_id = 1006
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceNPlusOneExperimentalGroupType(GroupType):
     type_id = 1906
     slug = "performance_n_plus_one_db_queries_experimental"
     description = "N+1 Query (Experimental)"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = False
 
 
 @dataclass(frozen=True)
-class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceConsecutiveDBQueriesGroupType(GroupType):
     type_id = 1007
     slug = "performance_consecutive_db_queries"
     description = "Consecutive DB Queries"
@@ -361,18 +368,19 @@ class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, Gro
 
 
 @dataclass(frozen=True)
-class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceFileIOMainThreadGroupType(GroupType):
     type_id = 1008
     slug = "performance_file_io_main_thread"
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.MOBILE.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
 
 
 @dataclass(frozen=True)
-class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceConsecutiveHTTPQueriesGroupType(GroupType):
     type_id = 1009
     slug = "performance_consecutive_http"
     description = "Consecutive HTTP"
@@ -390,23 +398,25 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.HTTP_CLIENT.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneAPICallsExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
     type_id = 1910
     slug = "performance_n_plus_one_api_calls_experimental"
     description = "N+1 API Call (Experimental)"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.HTTP_CLIENT.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = False
 
 
 @dataclass(frozen=True)
-class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceMNPlusOneDBQueriesGroupType(GroupType):
     """
     This group type is only used for fingerprinting MN+1 DB Performance Issues.
     No field other than `type_id` are referenced, so changes will not have an affect.
@@ -418,23 +428,25 @@ class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, Group
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
 
 
 @dataclass(frozen=True)
-class PerformanceMNPlusOneDBQueriesExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceMNPlusOneDBQueriesExperimentalGroupType(GroupType):
     type_id = 1911
     slug = "performance_m_n_plus_one_db_queries_experimental"
     description = "MN+1 Query (Experimental)"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = False
 
 
 @dataclass(frozen=True)
-class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceUncompressedAssetsGroupType(GroupType):
     type_id = 1012
     slug = "performance_uncompressed_assets"
     description = "Uncompressed Asset"
@@ -446,29 +458,31 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
-class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceDBMainThreadGroupType(GroupType):
     type_id = 1013
     slug = "performance_db_main_thread"
     description = "DB on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.MOBILE.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
 
 
 @dataclass(frozen=True)
-class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceLargeHTTPPayloadGroupType(GroupType):
     type_id = 1015
     slug = "performance_large_http_payload"
     description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.HTTP_CLIENT.value
+    noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
 
 
 @dataclass(frozen=True)
-class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceHTTPOverheadGroupType(GroupType):
     type_id = 1016
     slug = "performance_http_overhead"
     description = "HTTP/1.1 Overhead"
@@ -521,7 +535,7 @@ class DBQueryInjectionVulnerabilityGroupType(GroupType):
 
 
 @dataclass(frozen=True)
-class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupType):
+class QueryInjectionVulnerabilityGroupType(GroupType):
     type_id = 1021
     slug = "query_injection_vulnerability"
     description = "Potential Query Injection Vulnerability"
@@ -529,7 +543,7 @@ class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupTy
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
     enable_escalation_detection = False
-    noise_config = NoiseConfig(ignore_limit=5)
+    noise_config = NoiseConfig(ignore_limit=10)
     default_priority = PriorityLevel.MEDIUM
 
 
@@ -604,33 +618,16 @@ class ProfileFunctionRegressionType(GroupType):
 
 
 @dataclass(frozen=True)
-class MonitorIncidentType(GroupType):
-    type_id = 4001
-    slug = "monitor_check_in_failure"
-    description = "Crons Monitor Failed"
-    category = GroupCategory.CRON.value
-    category_v2 = GroupCategory.OUTAGE.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    notification_config = NotificationConfig(context=[])
-
-
-# XXX(epurkhiser): We renamed this group type but we keep the alias since we
-# store group type in pickles
-MonitorCheckInFailure = MonitorIncidentType
-
-
-@dataclass(frozen=True)
-class MonitorCheckInTimeout(MonitorIncidentType):
-    # This is deprecated, only kept around for it's type_id
-    type_id = 4002
-
-
-@dataclass(frozen=True)
-class MonitorCheckInMissed(MonitorIncidentType):
-    # This is deprecated, only kept around for it's type_id
-    type_id = 4003
+class LLMDetectedExperimentalGroupType(GroupType):
+    type_id = 3501
+    slug = "llm_detected_experimental"
+    description = "LLM Detected Issue"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.METRIC.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
 
 
 @dataclass(frozen=True)
@@ -685,6 +682,21 @@ class MetricIssuePOC(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
+
+
+@dataclass(frozen=True)
+class WebVitalsGroup(GroupType):
+    type_id = 10001
+    slug = "web_vitals"
+    description = "Web Vitals"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.FRONTEND.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
+    # Web Vital issues are always manually created by the user for the purpose of using autofix
+    always_trigger_seer_automation = True
 
 
 def should_create_group(

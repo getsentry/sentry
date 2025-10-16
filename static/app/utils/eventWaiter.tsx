@@ -20,7 +20,7 @@ type FirstIssue = null | boolean | Group;
 export interface EventWaiterProps {
   api: Client;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
-  eventType: 'error' | 'transaction' | 'replay' | 'profile';
+  eventType: 'error' | 'transaction' | 'replay' | 'profile' | 'log';
   organization: Organization;
   project: Project;
   disabled?: boolean;
@@ -42,6 +42,8 @@ function getFirstEvent(eventType: EventWaiterProps['eventType'], resp: Project) 
       return resp.hasReplays;
     case 'profile':
       return resp.hasProfiles;
+    case 'log':
+      return resp.hasLogs;
     default:
       return null;
   }
@@ -82,7 +84,7 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
         `/projects/${organization.slug}/${project.slug}/`
       );
       firstEvent = getFirstEvent(eventType, resp);
-    } catch (resp) {
+    } catch (resp: any) {
       if (!resp) {
         return;
       }
@@ -122,6 +124,8 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
     } else if (eventType === 'replay') {
       firstIssue = Boolean(firstEvent);
     } else if (eventType === 'profile') {
+      firstIssue = Boolean(firstEvent);
+    } else if (eventType === 'log') {
       firstIssue = Boolean(firstEvent);
     }
 

@@ -11,7 +11,7 @@ import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 describe('CheckInRow', () => {
   const project = ProjectFixture();
 
-  it('represents a simple Missed check-in', function () {
+  it('represents a simple Missed check-in', () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.MISSED,
       duration: null,
@@ -23,7 +23,7 @@ describe('CheckInRow', () => {
     expect(screen.getByText('Jan 1, 2025 12:00:00 AM UTC')).toBeInTheDocument();
   });
 
-  it('represents a simple Okay check-in', async function () {
+  it('represents a simple Okay check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
     });
@@ -40,7 +40,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText('9 seconds 50 milliseconds')).toBeInTheDocument();
   });
 
-  it('represents an In Progress check-in', function () {
+  it('represents an In Progress check-in', () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.IN_PROGRESS,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -54,7 +54,7 @@ describe('CheckInRow', () => {
     expect(screen.getAllByText('In Progress')).toHaveLength(2);
   });
 
-  it('shows environments when hasMultiEnv', function () {
+  it('shows environments when hasMultiEnv', () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
       environment: 'prod',
@@ -65,7 +65,7 @@ describe('CheckInRow', () => {
     expect(screen.getByText('prod')).toBeInTheDocument();
   });
 
-  it('represents a check-in without a in-progress', async function () {
+  it('represents a check-in without a in-progress', async () => {
     const checkIn = CheckInFixture({
       dateAdded: '2025-01-01T00:00:10Z',
       dateUpdated: '2025-01-01T00:00:10Z',
@@ -83,7 +83,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a timed-out incomplete check-in', async function () {
+  it('represents a timed-out incomplete check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.TIMEOUT,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -104,7 +104,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a timed-out check-in with a late terminal check-in', async function () {
+  it('represents a timed-out check-in with a late terminal check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.TIMEOUT,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -126,7 +126,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a early check-in', async function () {
+  it('represents a early check-in', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
       dateAdded: '2025-01-01T00:00:01Z',
@@ -148,7 +148,7 @@ describe('CheckInRow', () => {
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
   });
 
-  it('represents a early check-in that is likely due to a missing in-progress', async function () {
+  it('represents a early check-in that is likely due to a missing in-progress', async () => {
     const checkIn = CheckInFixture({
       status: CheckInStatus.OK,
       dateAdded: '2025-01-01T00:12:00Z',
@@ -169,5 +169,100 @@ describe('CheckInRow', () => {
     );
 
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
+  });
+
+  it('handles timeout check-in with duration less than max_runtime without showing late indicator', () => {
+    // When a check-in's closing check-in is processed very late (due to being
+    // stuck in relay) we should not show a CompletedLateIndicator, even though
+    // it's `COMPLETE_TIMEOUT`.
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.TIMEOUT,
+      dateAdded: '2025-01-01T00:00:01Z',
+      dateUpdated: '2025-01-01T00:05:00Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: 5 * 60 * 1000,
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Should show timeout status but no late indicator since lateBySecond < 0
+    expect(screen.getByText('Timed Out')).toBeInTheDocument();
+    expect(screen.queryByText(/late/)).not.toBeInTheDocument();
+  });
+
+  it('shows processing latency indicator when check-in has high processing latency', async () => {
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.OK,
+      dateAdded: '2025-01-01T00:00:00Z', // When check-in was received by relay
+      dateClock: '2025-01-01T00:02:00Z', // When check-in was placed in kafka (2 minutes later - high latency)
+      dateUpdated: '2025-01-01T00:02:10Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: 9000,
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Should show the processing latency info icon
+    const infoIcon = screen.getByTestId('more-information');
+    expect(infoIcon).toBeInTheDocument();
+
+    await userEvent.hover(infoIcon);
+
+    const expectedTooltip =
+      'This check-in was processed late due to abnormal system latency in Sentry. The status of this check-in may be inaccurate.';
+    expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
+  });
+
+  it('shows processing latency indicator for abnormally late check-in', async () => {
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.TIMEOUT,
+      dateAdded: '2025-01-01T00:00:01Z',
+      dateClock: '2025-01-01T00:00:01Z', // No processing latency
+      dateUpdated: '2025-01-01T00:05:00Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: 5 * 60 * 1000, // 5 minutes - less than max_runtime of 10 minutes (abnormally late)
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Should show the processing latency info icon for abnormally late timing
+    const infoIcon = screen.getByTestId('more-information');
+    expect(infoIcon).toBeInTheDocument();
+
+    await userEvent.hover(infoIcon);
+
+    const expectedTooltip =
+      'This check-in was incorrectly marked as timed-out. The check-in was processed late due to abnormal system latency in Sentry.';
+    expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
+  });
+
+  it('does not show processing latency indicator for normal check-ins', () => {
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.OK,
+      dateAdded: '2025-01-01T00:00:01Z',
+      dateClock: '2025-01-01T00:00:02Z', // Only 1 second processing latency
+      dateUpdated: '2025-01-01T00:00:10Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: null, // No duration to avoid abnormal late condition
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+    expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
+  });
+
+  it('displays check-in ID and copy button', () => {
+    const checkIn = CheckInFixture({
+      id: 'abcd1234-5678-90ef-ghij-klmnopqrstuv',
+      status: CheckInStatus.OK,
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Check that the short ID is displayed
+    expect(screen.getByText('abcd1234')).toBeInTheDocument();
+
+    // Check that the copy button is present with the correct accessible name
+    const copyButton = screen.getByRole('button', {name: 'Copy Check-In ID'});
+    expect(copyButton).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from collections.abc import Iterable, Mapping
 from dataclasses import field
 from typing import Any
@@ -10,19 +11,25 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.http.request import HttpRequest
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from sentry_sdk.api import isolation_scope
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
+from sentry.analytics.events.internal_integration_created import InternalIntegrationCreatedEvent
+from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
+from sentry.analytics.events.sentry_app_updated import SentryAppUpdatedEvent
 from sentry.api.helpers.slugs import sentry_slugify
 from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
-from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -33,7 +40,6 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionType,
 )
 from sentry.sentry_apps.models.sentry_app import (
-    EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     SentryApp,
@@ -42,6 +48,7 @@ from sentry.sentry_apps.models.sentry_app import (
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps.service_hook_manager import (
@@ -49,6 +56,8 @@ from sentry.utils.sentry_apps.service_hook_manager import (
 )
 
 Schema = Mapping[str, Any]
+
+logger = logging.getLogger(__name__)
 
 
 def _get_schema_types(schema: Schema | None) -> set[str]:
@@ -71,14 +80,18 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
     """
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
+
+    Can also be given a list of event types (e.g. ['issue.created', 'issue.resolved'])
     """
-    return sorted(
-        {
-            translated
-            for event in rolled_up_events
-            for translated in EVENT_EXPANSION.get(event, [event])
-        }
-    )
+
+    expanded_events = []
+    for event in rolled_up_events:
+        if event in EVENT_EXPANSION:
+            expanded_events.extend(EVENT_EXPANSION.get(SentryAppResourceType(event), [event]))
+        else:
+            expanded_events.append(event)
+
+    return sorted(set(expanded_events))
 
 
 # TODO(schew2381): Delete this method after staff is GA'd and the options are removed
@@ -137,7 +150,7 @@ class SentryAppUpdater:
     def _update_features(self, user: User | RpcUser) -> None:
         if self.features is not None:
             if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
-                raise APIError("Cannot update features on a published integration.")
+                raise ParseError(detail="Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
                 incoming_features=self.features,
@@ -169,7 +182,7 @@ class SentryAppUpdater:
             if self.sentry_app.status == SentryAppStatus.PUBLISHED and set(
                 self.sentry_app.scope_list
             ) != set(self.scopes):
-                raise APIError("Cannot update permissions on a published integration.")
+                raise ParseError(detail="Cannot update permissions on a published integration.")
 
             # We are using a pre_save signal to enforce scope hierarchy on the ApiToken model.
             # Because we're using bulk_update here to update all the tokens for the SentryApp,
@@ -194,11 +207,67 @@ class SentryAppUpdater:
             for event in self.events:
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
                 if needed_scope not in self.sentry_app.scope_list:
-                    raise APIError(f"{event} webhooks require the {needed_scope} permission.")
+                    raise ParseError(
+                        detail=f"{event} webhooks require the {needed_scope} permission."
+                    )
 
             self.sentry_app.events = expand_events(self.events)
 
     def _update_service_hooks(self) -> None:
+        organization_context = organization_service.get_organization_by_id(
+            id=self.sentry_app.owner_id
+        )
+        assert organization_context is not None, "Organization cannot be None for ff"
+        if features.has(
+            "organizations:service-hooks-outbox",
+            organization_context.organization,
+        ):
+            self._update_service_hooks_via_outbox()
+        else:
+            self._update_service_hooks_via_task()
+
+    def _update_service_hooks_via_outbox(self) -> None:
+        if installations := SentryAppInstallation.objects.filter(sentry_app_id=self.sentry_app.id):
+            org_ids_and_region_names = OrganizationMapping.objects.filter(
+                organization_id__in=installations.values_list("organization_id", flat=True)
+            ).values_list("organization_id", "region_name")
+
+            installation_org_id_to_region_name = {
+                org_id: region_name for org_id, region_name in org_ids_and_region_names
+            }
+
+            with outbox_context(
+                transaction.atomic(router.db_for_write(ControlOutbox)), flush=False
+            ):
+                for installation in installations:
+                    assert (
+                        installation_org_id_to_region_name.get(installation.organization_id)
+                        is not None
+                    ), f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+
+                    ControlOutbox(
+                        shard_scope=OutboxScope.APP_SCOPE,
+                        shard_identifier=self.sentry_app.id,
+                        object_identifier=installation.id,
+                        category=OutboxCategory.SERVICE_HOOK_UPDATE,
+                        region_name=installation_org_id_to_region_name[
+                            installation.organization_id
+                        ],
+                    ).save()
+                    logger.info(
+                        "_update_service_hooks_via_outbox.created_outbox_entry",
+                        extra={
+                            "installation_id": installation.id,
+                            "sentry_app_id": self.sentry_app.id,
+                            "events": self.sentry_app.events,
+                            "application_id": self.sentry_app.application_id,
+                            "region_name": installation_org_id_to_region_name[
+                                installation.organization_id
+                            ],
+                        },
+                    )
+
+    def _update_service_hooks_via_task(self) -> None:
         if self.sentry_app.is_published:
             # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
             # the client won't know it succeeds but there's not much we can do about that unfortunately
@@ -239,7 +308,7 @@ class SentryAppUpdater:
     def _update_verify_install(self) -> None:
         if self.verify_install is not None:
             if self.sentry_app.is_internal and self.verify_install:
-                raise APIError("Internal integrations cannot have verify_install=True.")
+                raise ParseError(detail="Internal integrations cannot have verify_install=True.")
             self.sentry_app.verify_install = self.verify_install
 
     def _update_overview(self) -> None:
@@ -282,12 +351,14 @@ class SentryAppUpdater:
                 )
 
     def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
+        created_alert_rule_ui_component = "alert-rule-action" in (new_schema_elements or set())
         analytics.record(
-            "sentry_app.updated",
-            user_id=user.id,
-            organization_id=self.sentry_app.owner_id,
-            sentry_app=self.sentry_app.slug,
-            created_alert_rule_ui_component="alert-rule-action" in (new_schema_elements or set()),
+            SentryAppUpdatedEvent(
+                user_id=user.id,
+                organization_id=self.sentry_app.owner_id,
+                sentry_app=self.sentry_app.slug,
+                created_alert_rule_ui_component=created_alert_rule_ui_component,
+            )
         )
 
 
@@ -470,17 +541,21 @@ class SentryAppCreator:
 
     def record_analytics(self, user: User | RpcUser, sentry_app: SentryApp) -> None:
         analytics.record(
-            "sentry_app.created",
-            user_id=user.id,
-            organization_id=self.organization_id,
-            sentry_app=sentry_app.slug,
-            created_alert_rule_ui_component="alert-rule-action" in _get_schema_types(self.schema),
+            SentryAppCreatedEvent(
+                user_id=user.id,
+                organization_id=self.organization_id,
+                sentry_app=sentry_app.slug,
+                created_alert_rule_ui_component=(
+                    "alert-rule-action" in _get_schema_types(self.schema)
+                ),
+            )
         )
 
         if self.is_internal:
             analytics.record(
-                "internal_integration.created",
-                user_id=user.id,
-                organization_id=self.organization_id,
-                sentry_app=sentry_app.slug,
+                InternalIntegrationCreatedEvent(
+                    user_id=user.id,
+                    organization_id=self.organization_id,
+                    sentry_app=sentry_app.slug,
+                )
             )

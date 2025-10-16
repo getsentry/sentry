@@ -20,7 +20,7 @@ def test_extrapolate_monthly_volume_with_28_days() -> None:
     ],
 )
 @freeze_time("2023-04-03 12:00:00")
-def test_extrapolate_monthly_volume_with_30_days(volume, hours, expected_result):
+def test_extrapolate_monthly_volume_with_30_days(volume, hours, expected_result) -> None:
     result = extrapolate_monthly_volume(volume=volume, hours=hours)
     assert result == expected_result
 

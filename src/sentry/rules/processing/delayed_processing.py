@@ -4,17 +4,14 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, DefaultDict, NamedTuple
+from typing import Any, DefaultDict, NamedTuple, NotRequired, TypedDict
 
 import sentry_sdk
-from celery import Task
-from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -32,6 +29,7 @@ from sentry.rules.conditions.event_frequency import (
 )
 from sentry.rules.processing.buffer_processing import (
     BufferHashKeys,
+    BufferProtocol,
     DelayedProcessingBase,
     FilterKeys,
     delayed_processing_registry,
@@ -43,12 +41,13 @@ from sentry.rules.processing.processor import (
     is_condition_slow,
     split_conditions_and_filters,
 )
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.task import Task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -72,7 +71,7 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparison_interval: str | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<UniqueConditionQuery:\nid: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\n"
             f"comp interval: {self.comparison_interval}\n>"
@@ -84,7 +83,7 @@ class DataAndGroups(NamedTuple):
     group_ids: set[int]
     rule_id: int | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<DataAndGroups data: {self.data} group_ids: {self.group_ids} rule_id: {self.rule_id}>"
         )
@@ -148,16 +147,11 @@ class LogConfig:
 
     # Cached value of features.has("projects:num-events-issue-debugging", project)
     num_events_issue_debugging: bool
-    # Cached value of features.has("organizations:workflow-engine-process-workflows", organization)
-    workflow_engine_process_workflows: bool
 
     @classmethod
     def create(cls, project: Project) -> "LogConfig":
         return cls(
             num_events_issue_debugging=features.has("projects:num-events-issue-debugging", project),
-            workflow_engine_process_workflows=features.has(
-                "organizations:workflow-engine-process-workflows", project.organization
-            ),
         )
 
 
@@ -241,12 +235,35 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
     }
 
 
+class EventData(TypedDict):
+    event_id: str
+    occurrence_id: NotRequired[str | None]
+    start_timestamp: NotRequired[datetime | None]
+
+
 def parse_rulegroup_to_event_data(
     rulegroup_to_event_data: dict[str, str],
-) -> dict[tuple[int, int], dict[str, str]]:
+) -> dict[tuple[int, int], EventData]:
     parsed_rulegroup_to_event_data = {}
     for rule_group, instance_data in rulegroup_to_event_data.items():
         event_data = json.loads(instance_data)
+        if ts_string := event_data.get("start_timestamp"):
+            try:
+                # Handle ISO format with timezone info
+                event_data["start_timestamp"] = datetime.fromisoformat(ts_string)
+            except (ValueError, TypeError):
+                try:
+                    # Fallback to manual parsing if needed
+                    event_data["start_timestamp"] = datetime.strptime(
+                        ts_string, "%Y-%m-%dT%H:%M:%S.%fZ"
+                    ).replace(tzinfo=timezone.utc)
+                except ValueError:
+                    logger.exception(
+                        "delayed_processing.invalid_start_timestamp",
+                        extra={"rule_group": rule_group, "start_timestamp": ts_string},
+                    )
+                    del event_data["start_timestamp"]
+
         rule_id, group_id = rule_group.split(":")
         parsed_rulegroup_to_event_data[(int(rule_id), int(group_id))] = event_data
     return parsed_rulegroup_to_event_data
@@ -254,12 +271,12 @@ def parse_rulegroup_to_event_data(
 
 def build_group_to_groupevent(
     log_config: LogConfig,
-    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], EventData],
     bulk_event_id_to_events: dict[str, Event],
     bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
     group_id_to_group: dict[int, Group],
     project_id: int,
-) -> dict[Group, GroupEvent]:
+) -> dict[Group, tuple[GroupEvent, datetime | None]]:
 
     project = fetch_project(project_id)
     if project:
@@ -276,11 +293,12 @@ def build_group_to_groupevent(
                     "project_id": project_id,
                 },
             )
-    group_to_groupevent = {}
+    group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]] = {}
 
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
+        start_timestamp = instance_data.get("start_timestamp")
 
         if event_id is None:
             logger.info(
@@ -310,16 +328,16 @@ def build_group_to_groupevent(
         group_event = event.for_group(group)
         if occurrence_id:
             group_event.occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
-        group_to_groupevent[group] = group_event
+        group_to_groupevent[group] = (group_event, start_timestamp)
     return group_to_groupevent
 
 
 def get_group_to_groupevent(
     log_config: LogConfig,
-    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], EventData],
     project_id: int,
     group_ids: set[int],
-) -> dict[Group, GroupEvent]:
+) -> dict[Group, tuple[GroupEvent, datetime | None]]:
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
 
@@ -489,7 +507,7 @@ def get_rules_to_fire(
 def fire_rules(
     log_config: LogConfig,
     rules_to_fire: DefaultDict[Rule, set[int]],
-    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], EventData],
     alert_rules: list[Rule],
     project: Project,
 ) -> None:
@@ -507,9 +525,10 @@ def fire_rules(
         group_to_groupevent = get_group_to_groupevent(
             log_config, parsed_rulegroup_to_event_data, project_id, groups_to_fire
         )
-        if log_config.num_events_issue_debugging or log_config.workflow_engine_process_workflows:
+        if log_config.num_events_issue_debugging:
             serialized_groups = {
-                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+                group.id: group_event.event_id
+                for group, (group_event, _) in group_to_groupevent.items()
             }
             logger.info(
                 "delayed_processing.group_to_groupevent",
@@ -572,15 +591,18 @@ def fire_rules(
                         continue
 
                     notification_uuid = str(uuid.uuid4())
-                    groupevent = group_to_groupevent[group]
+                    groupevent, start_timestamp = group_to_groupevent[group]
+                    if start_timestamp:
+                        metrics.timing(
+                            "rule_fire_history.latency",
+                            (datetime.now(tz=timezone.utc) - start_timestamp).total_seconds(),
+                            tags={"delayed": True, "group_type": group.issue_type.slug},
+                        )
                     rule_fire_history = history.record(
                         rule, group, groupevent.event_id, notification_uuid
                     )
 
-                    if (
-                        log_config.workflow_engine_process_workflows
-                        or log_config.num_events_issue_debugging
-                    ):
+                    if log_config.num_events_issue_debugging:
                         logger.info(
                             "post_process.delayed_processing.triggered_rule",
                             extra={
@@ -602,10 +624,6 @@ def fire_rules(
                         for callback, futures in callback_and_futures:
                             try:
                                 callback(groupevent, futures)
-                            except SoftTimeLimitExceeded:
-                                # If we're out of time, we don't want to continue.
-                                # Raise so we can retry.
-                                raise
                             except Exception as e:
                                 func_name = getattr(callback, "__name__", str(callback))
                                 logger.exception(
@@ -648,20 +666,10 @@ def cleanup_redis_buffer(
 
 @instrumented_task(
     name="sentry.rules.processing.delayed_processing",
-    queue="delayed_rules",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=50,
-    time_limit=60,
+    namespace=issues_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any) -> None:
     """
@@ -700,7 +708,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     ):
         condition_group_results = get_condition_group_results(condition_groups, project)
 
-    if log_config.workflow_engine_process_workflows or log_config.num_events_issue_debugging:
+    if log_config.num_events_issue_debugging:
         serialized_results = (
             {str(query): count_dict for query, count_dict in condition_group_results.items()}
             if condition_group_results
@@ -727,10 +735,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
             rules_to_fire = get_rules_to_fire(
                 condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
             )
-            if (
-                log_config.workflow_engine_process_workflows
-                or log_config.num_events_issue_debugging
-            ):
+            if log_config.num_events_issue_debugging:
                 logger.info(
                     "delayed_processing.rules_to_fire",
                     extra={
@@ -779,3 +784,7 @@ class DelayedRule(DelayedProcessingBase):
     @property
     def processing_task(self) -> Task:
         return apply_delayed
+
+    @staticmethod
+    def buffer_backend() -> BufferProtocol:
+        return buffer.backend

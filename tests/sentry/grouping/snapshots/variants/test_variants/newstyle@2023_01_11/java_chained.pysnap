@@ -1,0 +1,793 @@
+---
+created: '2025-10-07T20:41:48.553957+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      chained_exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        exception*
+          stacktrace (ignored because it contains no in-app frames)
+            frame (marked out of app by the client)
+              module*
+                "io.sentry.example.Application"
+              filename (ignored because module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (ignored because module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (ignored because module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (ignored because module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (ignored because module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.coyote.AbstractProtocol"
+              filename (ignored because module takes precedence)
+                "abstractprotocol.java"
+              function*
+                "start"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.tomcat.util.net.AbstractEndpoint"
+              filename (ignored because module takes precedence)
+                "abstractendpoint.java"
+              function*
+                "start"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.tomcat.util.net.NioEndpoint"
+              filename (ignored because module takes precedence)
+                "nioendpoint.java"
+              function*
+                "bind"
+            frame (marked out of app by the client)
+              module*
+                "sun.nio.ch.ServerSocketAdaptor"
+              filename (ignored because module takes precedence)
+                "serversocketadaptor.java"
+              function*
+                "bind"
+            frame (marked out of app by the client)
+              module*
+                "sun.nio.ch.ServerSocketChannelImpl"
+              filename (ignored because module takes precedence)
+                "serversocketchannelimpl.java"
+              function*
+                "bind"
+            frame (marked out of app by the client)
+              module*
+                "sun.nio.ch.Net"
+              filename (ignored because module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame (marked out of app by the client)
+              module*
+                "sun.nio.ch.Net"
+              filename (ignored because module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame (marked out of app by the client)
+              module*
+                "sun.nio.ch.Net"
+              filename (ignored because module takes precedence)
+                "net.java"
+              function*
+                "bind0"
+          type*
+            "BindException"
+          value*
+            "Address already in use"
+        exception*
+          stacktrace (ignored because it contains no in-app frames)
+            frame (marked out of app by the client)
+              module*
+                "io.sentry.example.Application"
+              filename (ignored because module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (ignored because module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (ignored because module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (ignored because module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (ignored because module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+          type*
+            "LifecycleException"
+          value*
+            "service.getName(): \"Tomcat\";  Protocol handler start failed"
+        exception*
+          stacktrace (ignored because it contains no in-app frames)
+            frame (marked out of app by stack trace rule (category:framework -app))
+              module*
+                "io.sentry.example.Application"
+              filename (ignored because module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (ignored because module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame (marked out of app by the client)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (ignored because module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame (marked out of app by the client)
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (ignored because module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+          type*
+            "LifecycleException"
+          value* (stripped event-specific values)
+            "Failed to start component [Connector[HTTP/<float><int>]]"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    default (ignored because system exception takes precedence)
+      message (ignored because system exception takes precedence)
+        "Failed to start connector [Connector[HTTP/<float><int>]]"
+--------------------------------------------------------------------------
+system:
+  hash: "1959b227a7cf6acf7f3fd401b5d9f09b"
+  contributing component: chained_exception
+  hint: None
+  root_component:
+    system*
+      chained_exception*
+        exception*
+          stacktrace*
+            frame (ignored by stack trace rule (module:io.sentry.* -group))
+              module*
+                "io.sentry.example.Application"
+              filename (ignored because module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (ignored because module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame*
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (ignored because module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame*
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (ignored because module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (ignored because module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+            frame*
+              module*
+                "org.apache.coyote.AbstractProtocol"
+              filename (ignored because module takes precedence)
+                "abstractprotocol.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.tomcat.util.net.AbstractEndpoint"
+              filename (ignored because module takes precedence)
+                "abstractendpoint.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.tomcat.util.net.NioEndpoint"
+              filename (ignored because module takes precedence)
+                "nioendpoint.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.ServerSocketAdaptor"
+              filename (ignored because module takes precedence)
+                "serversocketadaptor.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.ServerSocketChannelImpl"
+              filename (ignored because module takes precedence)
+                "serversocketchannelimpl.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.Net"
+              filename (ignored because module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.Net"
+              filename (ignored because module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.Net"
+              filename (ignored because module takes precedence)
+                "net.java"
+              function*
+                "bind0"
+          type*
+            "BindException"
+          value (ignored because stacktrace takes precedence)
+            "Address already in use"
+        exception*
+          stacktrace*
+            frame (ignored by stack trace rule (module:io.sentry.* -group))
+              module*
+                "io.sentry.example.Application"
+              filename (ignored because module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (ignored because module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame*
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (ignored because module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame*
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (ignored because module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (ignored because module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+          type*
+            "LifecycleException"
+          value (ignored because stacktrace takes precedence)
+            "service.getName(): \"Tomcat\";  Protocol handler start failed"
+        exception*
+          stacktrace*
+            frame (ignored by stack trace rule (module:io.sentry.* -group))
+              module*
+                "io.sentry.example.Application"
+              filename (ignored because module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (ignored because module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (ignored because module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (ignored because module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (ignored because module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame*
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (ignored because module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame*
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (ignored because module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+          type*
+            "LifecycleException"
+          value (ignored because stacktrace takes precedence)
+            "Failed to start component [Connector[HTTP/<float><int>]]"

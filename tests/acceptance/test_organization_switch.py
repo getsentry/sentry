@@ -1,7 +1,9 @@
 import pytest
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 
+from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.retries import TimedRetryPolicy
@@ -11,7 +13,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @no_silo_test
 class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.primary_projects = [
@@ -34,17 +36,17 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         self.login_as(self.user)
 
-    def test_organization_switches(self):
-        def navigate_to_issues_page(org_slug):
+    def test_organization_switches(self) -> None:
+        def navigate_to_issues_page(org_slug: str) -> None:
             issues_url = OrganizationSwitchTest.url_creator("issues", org_slug)
             self.browser.get(issues_url)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         @TimedRetryPolicy.wrap(timeout=20, exceptions=(TimeoutException,))
-        def open_project_selector():
+        def open_project_selector() -> None:
             self.browser.click(selector='[data-test-id="page-filter-project-selector"]')
 
-        def get_project_elements_from_project_selector_dropdown():
+        def get_project_elements_from_project_selector_dropdown() -> list[WebElement]:
             selector = '[data-test-id="menu-list-item-label"]'
             self.browser.wait_until(selector)
 
@@ -79,10 +81,12 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
                 )
 
     @staticmethod
-    def expect_projects_element_text_to_match_projects_slug(elements, projects):
+    def expect_projects_element_text_to_match_projects_slug(
+        elements: list[WebElement], projects: list[Project]
+    ) -> None:
         assert len(elements) == len(projects)
         assert {e.text for e in elements} == {p.slug for p in projects}
 
     @staticmethod
-    def url_creator(page_path, org_slug):
+    def url_creator(page_path: str, org_slug: str) -> str:
         return f"organizations/{org_slug}/{page_path}/"

@@ -3,11 +3,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
@@ -28,7 +26,6 @@ import {
 import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/widgets';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 type Query = {
@@ -42,34 +39,6 @@ type Query = {
   spanOp: string;
   transaction: string;
 };
-
-export function ScreenSummary() {
-  const location = useLocation<Query>();
-  const {transaction: transactionName} = location.query;
-
-  return (
-    <Layout.Page>
-      <PageAlertProvider>
-        <MobileHeader
-          hideDefaultTabs
-          module={ModuleName.MOBILE_VITALS}
-          headerTitle={transactionName}
-          breadcrumbs={[
-            {
-              label: t('Screen Summary'),
-            },
-          ]}
-        />
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <ScreenSummaryContentPage />
-          </Layout.Main>
-        </Layout.Body>
-      </PageAlertProvider>
-    </Layout.Page>
-  );
-}
 
 export function ScreenSummaryContentPage() {
   const navigate = useNavigate();
@@ -139,11 +108,11 @@ export function ScreenSummaryContentPage() {
             ')',
           ]}
           fields={[
-            `avg_if(span.duration,release,${primaryRelease})`,
-            `avg_if(span.duration,release,${secondaryRelease})`,
+            `avg_if(span.duration,release,equals,${primaryRelease})`,
+            `avg_if(span.duration,release,equals,${secondaryRelease})`,
             `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-            `count_if(release,${primaryRelease})`,
-            `count_if(release,${secondaryRelease})`,
+            `count_if(release,equals,${primaryRelease})`,
+            `count_if(release,equals,${secondaryRelease})`,
           ]}
           blocks={[
             {
@@ -153,7 +122,7 @@ export function ScreenSummaryContentPage() {
                 appStartType === COLD_START_TYPE
                   ? t('Avg Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
                   : t('Avg Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
-              dataKey: `avg_if(span.duration,release,${primaryRelease})`,
+              dataKey: `avg_if(span.duration,release,equals,${primaryRelease})`,
             },
             {
               unit: DurationUnit.MILLISECOND,
@@ -162,7 +131,7 @@ export function ScreenSummaryContentPage() {
                 appStartType === COLD_START_TYPE
                   ? t('Avg Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
                   : t('Avg Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
-              dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
+              dataKey: `avg_if(span.duration,release,equals,${secondaryRelease})`,
             },
             {
               unit: 'percent_change',
@@ -173,15 +142,15 @@ export function ScreenSummaryContentPage() {
             {
               unit: 'count',
               title: t('Count (%s)', PRIMARY_RELEASE_ALIAS),
-              dataKey: `count_if(release,${primaryRelease})`,
+              dataKey: `count_if(release,equals,${primaryRelease})`,
             },
             {
               unit: 'count',
               title: t('Count (%s)', SECONDARY_RELEASE_ALIAS),
-              dataKey: `count_if(release,${secondaryRelease})`,
+              dataKey: `count_if(release,equals,${secondaryRelease})`,
             },
           ]}
-          referrer="api.starfish.mobile-startup-totals"
+          referrer="api.insights.mobile-startup-totals"
         />
       </HeaderContainer>
       <ErrorBoundary mini>

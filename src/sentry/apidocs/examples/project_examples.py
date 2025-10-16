@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.utils import OpenApiExample
 
 KEY_RATE_LIMIT = {
@@ -17,6 +19,7 @@ KEY_RATE_LIMIT = {
         "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "playstation": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/playstation/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "otlp_traces": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/otlp/v1/traces",
+        "otlp_logs": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/integration/otlp/v1/logs",
         "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
         "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
@@ -189,7 +192,6 @@ DETAILED_PROJECT = {
         "require2FA": False,
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
-            "global-views",
             "discover-basic",
             "incidents",
             "uptime",
@@ -262,6 +264,7 @@ DETAILED_PROJECT = {
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
     "tempestFetchDumps": False,
+    "debugFilesRole": None,
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
@@ -375,7 +378,7 @@ SYMBOL_SOURCES = [
 ]
 
 
-def project_with_team(extra_team: bool = False):
+def project_with_team(extra_team: bool = False) -> dict[str, Any]:
     teams = [
         {
             "id": "2349234102",

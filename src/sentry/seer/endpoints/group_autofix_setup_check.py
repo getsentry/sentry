@@ -11,13 +11,14 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupAiEndpoint
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -38,7 +39,11 @@ def get_autofix_integration_setup_problems(
     If there is an issue, returns the reason.
     """
     organization_integrations = integration_service.get_organization_integrations(
-        organization_id=organization.id, providers=[IntegrationProviderSlug.GITHUB.value]
+        organization_id=organization.id,
+        providers=[
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ],
     )
 
     # Iterate through all organization integrations to find one with an active integration
@@ -65,9 +70,15 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     repos_and_access: list[dict] = []
     path = "/v1/automation/codebase/repo/check-access"
     for repo in repos:
-        # We only support github for now.
+        # We only support github and github enterprise for now.
         provider = repo.get("provider")
-        if provider != "integrations:github" and provider != IntegrationProviderSlug.GITHUB.value:
+        allowed_providers = [
+            "integrations:github",
+            "integrations:github_enterprise",
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ]
+        if provider not in allowed_providers:
             continue
 
         body = orjson.dumps(
@@ -100,13 +111,17 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
-            RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60, concurrent_limit=100),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
+                RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=1000, window=60, concurrent_limit=100
+                ),
+            }
         }
-    }
+    )
 
     def get(self, request: Request, group: Group) -> Response:
         """

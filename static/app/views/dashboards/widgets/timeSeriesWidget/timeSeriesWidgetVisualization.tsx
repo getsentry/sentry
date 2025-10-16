@@ -36,7 +36,7 @@ import type {
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
+import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -348,7 +348,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        return aliases[seriesName] ?? seriesName;
+        const name = aliases[seriesName] ?? seriesName;
+        return truncationFormatter(name, true);
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
@@ -375,7 +376,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
       },
-      truncate: true,
+      truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
   };
@@ -466,12 +467,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           padding: [0, 10, 0, 10],
           width: 60,
           formatter: (value: number) => {
-            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
-
-            // Adding whitespace around the label is equivalent to padding.
-            // ECharts doesn't respect padding when calculating overlaps, but it
-            // does respect whitespace. This prevents overlapping X axis labels
-            return ` ${string} `;
+            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
           },
         },
         splitNumber: 5,

@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
@@ -29,16 +29,6 @@ interface Props {
   groupId: SpanResponse[SpanFields.SPAN_GROUP];
   op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
-}
-
-export function SpanDescription(props: Props) {
-  const {op, preliminaryDescription} = props;
-
-  if (op.startsWith('db')) {
-    return <DatabaseSpanDescription {...props} />;
-  }
-
-  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
 }
 
 const formatter = new SQLishFormatter();
@@ -70,7 +60,7 @@ export function DatabaseSpanDescription({
       ],
       sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
     },
-    'api.starfish.span-description'
+    'api.insights.span-description'
   );
   const indexedSpan = indexedSpans?.[0];
 
@@ -147,9 +137,9 @@ export function DatabaseSpanDescription({
         </WithPadding>
       ) : (
         <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
-          <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
+          <CodeBlock language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
             {formattedDescription ?? ''}
-          </CodeSnippet>
+          </CodeBlock>
         </QueryClippedBox>
       )}
 
@@ -184,7 +174,7 @@ function QueryClippedBox(props: any) {
   return <StyledClippedBox {...props} />;
 }
 
-export const Frame = styled('div')`
+const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
@@ -193,10 +183,6 @@ export const Frame = styled('div')`
 const WithPadding = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-`;
-
-const WordBreak = styled('div')`
-  word-break: break-word;
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

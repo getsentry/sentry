@@ -100,8 +100,8 @@ const vitals = [
   },
 ];
 
-describe('Performance > Web Vitals', function () {
-  beforeEach(function () {
+describe('Performance > Web Vitals', () => {
+  beforeEach(() => {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
@@ -190,7 +190,7 @@ describe('Performance > Web Vitals', function () {
     jest.clearAllMocks();
   });
 
-  it('render no access without feature', function () {
+  it('render no access without feature', () => {
     const {organization, router} = initialize({
       features: [],
     });
@@ -203,7 +203,7 @@ describe('Performance > Web Vitals', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('renders the basic UI components', function () {
+  it('renders the basic UI components', () => {
     const {organization, router} = initialize({
       transaction: '/organizations/:orgId/',
     });
@@ -221,7 +221,7 @@ describe('Performance > Web Vitals', function () {
     });
   });
 
-  it('renders the correct bread crumbs', function () {
+  it('renders the correct bread crumbs', () => {
     const {organization, router} = initialize();
 
     render(<TransactionVitals organization={organization} location={router.location} />, {
@@ -235,10 +235,10 @@ describe('Performance > Web Vitals', function () {
     );
   });
 
-  describe('renders all vitals cards correctly', function () {
+  describe('renders all vitals cards correctly', () => {
     const {organization, router} = initialize();
 
-    it.each(vitals)('Renders %s', async function (vital) {
+    it.each(vitals)('Renders %s', async vital => {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
         {
@@ -252,8 +252,8 @@ describe('Performance > Web Vitals', function () {
     });
   });
 
-  describe('reset view', function () {
-    it('disables button on default view', function () {
+  describe('reset view', () => {
+    it('disables button on default view', () => {
       const {organization, router} = initialize();
 
       render(
@@ -268,7 +268,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
     });
 
-    it('enables button on left zoom', function () {
+    it('enables button on left zoom', () => {
       const {organization, router} = initialize({
         query: {
           lcpStart: '20',
@@ -287,7 +287,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on right zoom', function () {
+    it('enables button on right zoom', () => {
       const {organization, router} = initialize({
         query: {
           fpEnd: '20',
@@ -306,7 +306,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on left and right zoom', function () {
+    it('enables button on left and right zoom', () => {
       const {organization, router} = initialize({
         query: {
           fcpStart: '20',
@@ -326,7 +326,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('resets view properly', async function () {
+    it('resets view properly', async () => {
       const mockNavigate = jest.fn();
       mockUseNavigate.mockReturnValue(mockNavigate);
       const {organization, router} = initialize({
@@ -360,7 +360,7 @@ describe('Performance > Web Vitals', function () {
       });
     });
 
-    it('renders an info alert when missing web vitals data', async function () {
+    it('renders an info alert when missing web vitals data', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-vitals/',
         body: {
@@ -395,7 +395,7 @@ describe('Performance > Web Vitals', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not render an info alert when data from all web vitals is present', async function () {
+    it('does not render an info alert when data from all web vitals is present', async () => {
       const {organization, router} = initialize({
         query: {
           lcpStart: '20',
@@ -423,7 +423,7 @@ describe('Performance > Web Vitals', function () {
     });
   });
 
-  it('renders an info alert when some web vitals measurements has no data available', async function () {
+  it('renders an info alert when some web vitals measurements has no data available', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',
       body: {

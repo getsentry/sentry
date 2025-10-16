@@ -12,8 +12,7 @@
         "value": {
           "type": "valueText",
           "value": "a release",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}
@@ -32,8 +31,7 @@
         "value": {
           "type": "valueText",
           "value": "a release",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}
@@ -57,8 +55,7 @@
               "value": {
                 "type": "valueText",
                 "value": "a release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             }
           ]
@@ -85,8 +82,7 @@
               "value": {
                 "type": "valueText",
                 "value": "a release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             },
             {
@@ -94,8 +90,7 @@
               "value": {
                 "type": "valueText",
                 "value": "b release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             }
           ]
@@ -122,8 +117,7 @@
               "value": {
                 "type": "valueText",
                 "value": "a release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             },
             {
@@ -131,8 +125,7 @@
               "value": {
                 "type": "valueText",
                 "value": "b release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             },
             {
@@ -140,8 +133,7 @@
               "value": {
                 "type": "valueText",
                 "value": "c release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             }
           ]
@@ -168,8 +160,7 @@
               "value": {
                 "type": "valueText",
                 "value": "a release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             },
             {
@@ -177,8 +168,7 @@
               "value": {
                 "type": "valueText",
                 "value": "b release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             }
           ]
@@ -205,8 +195,7 @@
               "value": {
                 "type": "valueText",
                 "value": "a release",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             }
           ]
@@ -227,8 +216,7 @@
               "value": {
                 "type": "valueText",
                 "value": "123",
-                "quoted": true,
-                "wildcard": false
+                "quoted": true
               }
             }
           ]

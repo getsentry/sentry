@@ -368,9 +368,11 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       <BreadcrumbsDataSection event={event} group={group} project={project} />
-      <Feature features="ourlogs-enabled" organization={organization}>
-        <OurlogsSection event={event} group={group} project={project} />
-      </Feature>
+      <ErrorBoundary mini message={t('There was a problem loading logs.')}>
+        <Feature features="ourlogs-enabled" organization={organization}>
+          <OurlogsSection event={event} group={group} project={project} />
+        </Feature>
+      </ErrorBoundary>
       {hasStreamlinedUI &&
         event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (

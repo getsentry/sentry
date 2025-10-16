@@ -24,8 +24,7 @@ export function FeatureFlagOnboardingLayout({
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   projectKeyId,
   configType = 'onboarding',
   integration,
@@ -46,8 +45,7 @@ export function FeatureFlagOnboardingLayout({
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
       isLogsSelected: false,
       isFeedbackSelected: false,
       isPerformanceSelected: false,
@@ -74,8 +72,7 @@ export function FeatureFlagOnboardingLayout({
     isLoadingRegistry,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
@@ -87,7 +84,7 @@ export function FeatureFlagOnboardingLayout({
   ]);
 
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         <Steps>
           {steps.map(step => (

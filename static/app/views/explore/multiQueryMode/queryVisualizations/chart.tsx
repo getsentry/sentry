@@ -25,8 +25,8 @@ import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParam
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';

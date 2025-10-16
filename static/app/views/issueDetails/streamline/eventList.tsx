@@ -4,14 +4,13 @@ import {useTheme} from '@emotion/react';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {type Group, IssueType} from 'sentry/types/group';
+import {IssueType, type Group} from 'sentry/types/group';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
-import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {
   EventListTable,
   Header,
@@ -20,6 +19,7 @@ import {
   PaginationText,
   Title,
 } from 'sentry/views/issueDetails/streamline/eventListTable';
+import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 

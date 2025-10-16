@@ -8,10 +8,9 @@ from typing import Any
 
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase
-from sentry.testutils.fixtures import Fixtures
 
 
-class _BaseNativeDartFlutterEnhancerTest(TestCase, Fixtures):
+class _BaseNativeDartFlutterEnhancerTest(TestCase):
     """Common setup and helpers shared by native-platform tests."""
 
     PLATFORM = "native"
@@ -19,7 +18,7 @@ class _BaseNativeDartFlutterEnhancerTest(TestCase, Fixtures):
     def setUp(self) -> None:
         super().setUp()
         # Load the default enhancement rules that include Dart/Flutter logic.
-        self.enhancements = ENHANCEMENT_BASES["newstyle:2023-01-11"]
+        self.enhancements = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
 
     def apply_rules(self, frame: dict[str, str]) -> dict[str, Any]:
         """Apply enhancement rules to a single frame and return the processed frame."""

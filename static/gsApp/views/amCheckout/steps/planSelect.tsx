@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
-import {type Plan, PlanTier} from 'getsentry/types';
+import {PlanTier, type Plan} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
   isBizPlanFamily,
@@ -30,47 +30,12 @@ import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
-import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils';
-
-export type PlanContent = {
-  description: React.ReactNode;
-  features: Record<string, React.ReactNode>;
-  hasMoreLink?: boolean;
-};
-
-function getContentForPlan(
-  plan: 'team' | 'business',
-  checkoutTier?: PlanTier
-): PlanContent {
-  if (plan === 'team') {
-    return {
-      description: t('Resolve errors and track application performance as a team.'),
-      features: {
-        unlimited_members: t('Unlimited members'),
-        integrations: t('Third-party integrations'),
-        metric_alerts: t('Metric alerts'),
-      },
-    };
-  }
-
-  return {
-    description: t(
-      'Everything in the Team plan + deeper insight into your application health.'
-    ),
-    features: {
-      discover: t('Advanced analytics with Discover'),
-      enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
-      dashboard: t('Custom dashboards'),
-      ...(checkoutTier === PlanTier.AM3
-        ? {application_insights: t('Application Insights')}
-        : {cross_project_visibility: t('Cross-project visibility')}),
-      advanced_filtering: t('Advanced server-side filtering'),
-      saml: t('SAML support'),
-    },
-    hasMoreLink: true,
-  };
-}
+import type {PlanContent, StepProps} from 'getsentry/views/amCheckout/types';
+import {
+  formatPrice,
+  getContentForPlan,
+  getDiscountedPrice,
+} from 'getsentry/views/amCheckout/utils';
 
 const REFERRER_FEATURE_HIGHLIGHTS = {
   'upgrade-business-landing.sso': ['saml'],
@@ -79,18 +44,19 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
   'upgrade-business-landing.discover-query': ['discover'],
   'upgrade-business-landing.discover-saved-query': ['discover'],
   'upgrade-business-landing.discover2': ['discover'],
-  'upgrade-business-landing.global-views': ['cross_project_visibility'],
   'upgrade-business-landing.custom-dashboards': ['dashboard'],
   'upgrade-business-landing.dashboards-edit': ['dashboard'],
   'upgrade-business-landing.feature.auth_provider.saml2': ['saml'],
   'upsell-dashboards': ['dashboard'],
   'upsell-discover2': ['discover'],
-  'upsell-all-projects-select': ['cross_project_visibility'],
 };
 
 function getHighlightedFeatures(referrer?: string): string[] {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return referrer ? (REFERRER_FEATURE_HIGHLIGHTS[referrer] ?? []) : [];
+  return referrer
+    ? (REFERRER_FEATURE_HIGHLIGHTS[
+        referrer as keyof typeof REFERRER_FEATURE_HIGHLIGHTS
+      ] ?? [])
+    : [];
 }
 
 /**
@@ -102,12 +68,13 @@ function getPlanOptions({
   activePlan,
 }: Pick<StepProps, 'billingConfig' | 'activePlan'>) {
   let plans = billingConfig.planList.filter(
-    ({billingInterval}) => billingInterval === activePlan.billingInterval
+    ({id, billingInterval}) =>
+      billingInterval === activePlan.billingInterval && id !== billingConfig.freePlan
   );
 
   plans = plans.sort((a, b) => b.basePrice - a.basePrice);
 
-  if (!plans) {
+  if (plans.length === 0) {
     throw new Error('Cannot get plan options by interval');
   }
   return plans;
@@ -151,7 +118,7 @@ function PlanSelect({
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (plan.id === subscription.plan) {
-      return <Tag>{t('Current plan')}</Tag>;
+      return <Tag type="info">{t('Current plan')}</Tag>;
     }
 
     if (
@@ -194,10 +161,7 @@ function PlanSelect({
               : plan.basePrice;
           const basePrice = formatPrice({cents});
 
-          let planContent = getContentForPlan(
-            isTeamPlanFamily(plan) ? 'team' : 'business',
-            checkoutTier
-          );
+          let planContent = getContentForPlan(plan);
           const highlightedFeatures = getHighlightedFeatures(referrer);
           const isFeaturesCheckmarked = !subscription.isFree && isTeamPlanFamily(plan);
 
@@ -213,6 +177,13 @@ function PlanSelect({
           return (
             <PlanSelectRow
               key={plan.id}
+              isFeaturesCheckmarked={isFeaturesCheckmarked}
+              discountInfo={
+                showSubscriptionDiscount({activePlan, discountInfo})
+                  ? discountInfo
+                  : undefined
+              }
+              shouldShowEventPrice
               plan={plan}
               isSelected={isSelected}
               badge={getBadge(plan)}
@@ -223,14 +194,7 @@ function PlanSelect({
               price={basePrice}
               planContent={planContent}
               highlightedFeatures={highlightedFeatures}
-              isFeaturesCheckmarked={isFeaturesCheckmarked}
-              discountInfo={
-                showSubscriptionDiscount({activePlan, discountInfo})
-                  ? discountInfo
-                  : undefined
-              }
               shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
-              shouldShowEventPrice
             />
           );
         })}
@@ -239,11 +203,18 @@ function PlanSelect({
   };
 
   const renderFooter = () => {
-    const bizPlanContent = getContentForPlan('business', checkoutTier);
+    const bizPlan = getPlanOptions({
+      billingConfig,
+      activePlan,
+    }).find(plan => isBizPlanFamily(plan));
+    const bizPlanContent: PlanContent = bizPlan
+      ? getContentForPlan(bizPlan)
+      : {features: {}, description: ''};
+
     let missingFeatures: string[] = [];
 
     if (isTeamPlanFamily(activePlan)) {
-      const selectedPlanContent = getContentForPlan('team', checkoutTier);
+      const selectedPlanContent = getContentForPlan(activePlan);
       missingFeatures = getHighlightedFeatures(referrer).filter(
         feature => !selectedPlanContent.features[feature]
       );
@@ -252,7 +223,7 @@ function PlanSelect({
     return (
       <StepFooter data-test-id="footer-choose-your-plan">
         <div>
-          {missingFeatures.length > 0 ? (
+          {bizPlanContent.features && missingFeatures.length > 0 ? (
             <FooterWarningWrapper>
               <IconWarning />
               {tct('This plan does not include [missingFeatures]', {

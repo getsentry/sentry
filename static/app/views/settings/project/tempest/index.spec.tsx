@@ -1,11 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TempestSettings from 'sentry/views/settings/project/tempest';
 
-describe('TempestSettings', function () {
+describe('TempestSettings', () => {
   const {organization, project} = initializeOrg();
 
   beforeEach(() => {
@@ -13,12 +14,16 @@ describe('TempestSettings', function () {
       url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      body: [ProjectKeysFixture()[0]],
+    });
   });
 
   describe('Access Control', () => {
-    it('renders warning alert when user does not have tempest access', function () {
+    it('renders warning alert when user does not have tempest access', () => {
       const organizationWithoutAccess = OrganizationFixture({
-        features: [],
         enabledConsolePlatforms: [],
       });
 
@@ -34,25 +39,8 @@ describe('TempestSettings', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('renders settings when user has tempest-access feature', function () {
-      const organizationWithFeature = OrganizationFixture({
-        features: ['tempest-access'],
-        enabledConsolePlatforms: [],
-      });
-
-      render(
-        <TempestSettings organization={organizationWithFeature} project={project} />
-      );
-
-      expect(
-        screen.queryByText("You don't have access to this feature")
-      ).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'PlayStation'})).toBeInTheDocument();
-    });
-
-    it('renders settings when user has playstation console platform enabled', function () {
+    it('renders settings when user has playstation console platform enabled', () => {
       const organizationWithPlatform = OrganizationFixture({
-        features: [],
         enabledConsolePlatforms: ['playstation'],
       });
 
@@ -63,12 +51,11 @@ describe('TempestSettings', function () {
       expect(
         screen.queryByText("You don't have access to this feature")
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'PlayStation'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
     });
 
-    it('renders settings when user has both tempest-access feature and playstation platform', function () {
+    it('renders settings when user has playstation platform', () => {
       const organizationWithBoth = OrganizationFixture({
-        features: ['tempest-access'],
         enabledConsolePlatforms: ['playstation'],
       });
 
@@ -77,12 +64,11 @@ describe('TempestSettings', function () {
       expect(
         screen.queryByText("You don't have access to this feature")
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'PlayStation'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
     });
 
-    it('does not grant access with other console platforms', function () {
+    it('does not grant access with other console platforms', () => {
       const organizationWithOtherPlatform = OrganizationFixture({
-        features: [],
         enabledConsolePlatforms: ['xbox', 'nintendo'],
       });
 
@@ -94,7 +80,7 @@ describe('TempestSettings', function () {
         screen.getByText("You don't have access to this feature")
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'PlayStation'})
+        screen.queryByRole('heading', {name: 'DevKit Crashes'})
       ).not.toBeInTheDocument();
     });
   });

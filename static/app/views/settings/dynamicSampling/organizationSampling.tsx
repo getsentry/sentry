@@ -16,8 +16,8 @@ import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSam
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {
-  type ProjectionSamplePeriod,
   useProjectSampleCounts,
+  type ProjectionSamplePeriod,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
@@ -33,7 +33,7 @@ export function OrganizationSampling() {
 
   const formState = useFormState({
     initialValues: {
-      targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
+      targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toString(),
     },
   });
 

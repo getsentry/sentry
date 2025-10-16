@@ -2,18 +2,46 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+
+function isJson(value: string) {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function renderAIResponse(text: string) {
+  return isJson(text) ? (
+    <TraceDrawerComponents.MultilineJSON value={text} maxDefaultDepth={2} />
+  ) : (
+    <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
+  );
+}
+
+export function hasAIOutputAttribute(
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.response.text', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.response.object', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.response.tool_calls', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
+  );
+}
 
 export function AIOutputSection({
   node,
@@ -24,8 +52,7 @@ export function AIOutputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const organization = useOrganization();
-  if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
+  if (!getIsAiNode(node) || !hasAIOutputAttribute(node, attributes, event)) {
     return null;
   }
 
@@ -64,9 +91,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineText>
-            {responseText.toString().trim()}
-          </TraceDrawerComponents.MultilineText>
+          {renderAIResponse(responseText.toString())}
         </Fragment>
       )}
       {responseObject && (
@@ -74,10 +99,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON
-            value={responseObject}
-            maxDefaultDepth={2}
-          />
+          {renderAIResponse(responseObject.toString())}
         </Fragment>
       )}
       {toolCalls && (

@@ -38,9 +38,11 @@ describe('Grouping Variant', () => {
   });
   const performanceIssueVariant = {
     type: EventGroupVariantType.PERFORMANCE_PROBLEM,
+    contributes: true,
     description: 'performance issue',
     hash: 'hash3',
     hashMismatch: false,
+    hint: null,
     key: 'perf-issue',
     evidence: {
       desc: 'performance issue',
@@ -54,9 +56,9 @@ describe('Grouping Variant', () => {
   it('renders the span hashes for performance issues from event data', () => {
     render(
       <GroupingVariant
-        showGroupingConfig={false}
         variant={performanceIssueVariant}
         event={event}
+        showNonContributing={false}
       />
     );
 
@@ -80,9 +82,9 @@ describe('Grouping Variant', () => {
   it('renders grouping details for occurrence-backed performance issues', () => {
     render(
       <GroupingVariant
-        showGroupingConfig={false}
         variant={performanceIssueVariant}
         event={occurrenceEvent}
+        showNonContributing={false}
       />
     );
 

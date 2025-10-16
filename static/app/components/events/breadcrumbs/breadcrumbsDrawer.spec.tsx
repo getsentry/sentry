@@ -26,8 +26,8 @@ async function renderBreadcrumbDrawer() {
   return screen.getByRole('complementary', {name: 'breadcrumb drawer'});
 }
 
-describe('BreadcrumbsDrawer', function () {
-  it('renders the drawer as expected', async function () {
+describe('BreadcrumbsDrawer', () => {
+  it('renders the drawer as expected', async () => {
     const drawerScreen = await renderBreadcrumbDrawer();
     expect(
       within(drawerScreen).getByRole('button', {name: 'Close Drawer'})
@@ -71,7 +71,7 @@ describe('BreadcrumbsDrawer', function () {
     );
   });
 
-  it('allows search to affect displayed crumbs', async function () {
+  it('allows search to affect displayed crumbs', async () => {
     const drawerScreen = await renderBreadcrumbDrawer();
 
     const [warningCrumb, logCrumb] = MOCK_BREADCRUMBS;
@@ -87,7 +87,7 @@ describe('BreadcrumbsDrawer', function () {
     expect(within(drawerScreen).queryByText(logCrumb.category)).not.toBeInTheDocument();
   });
 
-  it('allows type filter to affect displayed crumbs', async function () {
+  it('allows type filter to affect displayed crumbs', async () => {
     const drawerScreen = await renderBreadcrumbDrawer();
 
     const queryCrumb = MOCK_BREADCRUMBS[3];
@@ -106,7 +106,7 @@ describe('BreadcrumbsDrawer', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('allows level spofilter to affect displayed crumbs', async function () {
+  it('allows level spofilter to affect displayed crumbs', async () => {
     const drawerScreen = await renderBreadcrumbDrawer();
 
     const [warningCrumb, logCrumb] = MOCK_BREADCRUMBS;
@@ -123,7 +123,7 @@ describe('BreadcrumbsDrawer', function () {
     expect(within(drawerScreen).queryByText(logCrumb.category)).not.toBeInTheDocument();
   });
 
-  it('allows sort dropdown to affect displayed crumbs', async function () {
+  it('allows sort dropdown to affect displayed crumbs', async () => {
     const drawerScreen = await renderBreadcrumbDrawer();
 
     const [warningCrumb, logCrumb] = MOCK_BREADCRUMBS;
@@ -156,7 +156,7 @@ describe('BreadcrumbsDrawer', function () {
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
   });
 
-  it('allows time display dropdown to change all displayed crumbs', async function () {
+  it('allows time display dropdown to change all displayed crumbs', async () => {
     const drawerScreen = await renderBreadcrumbDrawer();
     expect(within(drawerScreen).getAllByText('06:00:48.760 PM')).toHaveLength(
       MOCK_BREADCRUMBS.length

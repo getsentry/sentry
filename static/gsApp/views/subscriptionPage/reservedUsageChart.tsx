@@ -21,14 +21,12 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  type CategoryOption,
-  CHART_OPTIONS_DATACATEGORY,
-  type ChartStats,
-} from 'sentry/views/organizationStats/usageChart';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
+  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
+  type CategoryOption,
+  type ChartStats,
 } from 'sentry/views/organizationStats/usageChart';
 import {
   getDateFromMoment,
@@ -37,12 +35,12 @@ import {
 
 import {GIGABYTE} from 'getsentry/constants';
 import {
+  ReservedBudgetCategoryType,
   type BillingMetricHistory,
   type BillingStat,
   type BillingStats,
   type CustomerUsage,
   type Plan,
-  ReservedBudgetCategoryType,
   type ReservedBudgetForCategory,
   type Subscription,
 } from 'getsentry/types';
@@ -72,7 +70,6 @@ const USAGE_CHART_OPTIONS_DATACATEGORY = [
   },
 ];
 
-/** @internal exported for tests only */
 export function getCategoryOptions({
   plan,
   hadCustomDynamicSampling,
@@ -115,7 +112,7 @@ function selectedCategory(location: Location, categoryOptions: CategoryOption[])
   return category;
 }
 
-function selectedTransform(location: Location) {
+export function selectedTransform(location: Location) {
   const transform = decodeScalar(location.query.transform) as
     | undefined
     | ChartDataTransform;
@@ -205,7 +202,6 @@ function defaultChartData(): ChartStats {
   };
 }
 
-/** @internal exported for tests only */
 export function mapStatsToChart({
   stats = [],
   transform,
@@ -270,7 +266,6 @@ export function mapStatsToChart({
   return chartData;
 }
 
-/** @internal exported for tests only */
 export function mapCostStatsToChart({
   stats = [],
   transform,
@@ -334,7 +329,6 @@ export function mapCostStatsToChart({
   return chartData;
 }
 
-/** @internal exported for tests only */
 export function mapReservedBudgetStatsToChart({
   statsByDateAndCategory = {},
   transform,
@@ -434,38 +428,35 @@ export function mapReservedBudgetStatsToChart({
   return chartData;
 }
 
-function ReservedUsageChart({
-  location,
-  organization,
+export function ProductUsageChart({
+  usageStats,
+  shouldDisplayBudgetStats,
+  reservedBudgetCategoryInfo,
+  displayMode,
   subscription,
+  category,
+  transform,
+  footer,
   usagePeriodStart,
   usagePeriodEnd,
-  usageStats,
-  displayMode,
-  reservedBudgetCategoryInfo,
-}: ReservedUsageChartProps) {
+  useDisplayModeTitle,
+}: {
+  category: DataCategory;
+  displayMode: 'usage' | 'cost';
+  reservedBudgetCategoryInfo: Record<string, ReservedBudgetForCategory>;
+  shouldDisplayBudgetStats: boolean;
+  subscription: Subscription;
+  transform: ChartDataTransform;
+  usagePeriodEnd: string;
+  usagePeriodStart: string;
+  usageStats: CustomerUsage['stats'];
+  useDisplayModeTitle: boolean;
+  footer?: React.ReactNode;
+}) {
   const theme = useTheme();
-  const categoryOptions = getCategoryOptions({
-    plan: subscription.planDetails,
-    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-  });
-  const navigate = useNavigate();
-  const category = selectedCategory(location, categoryOptions);
-  const transform = selectedTransform(location);
-
   const currentHistory: BillingMetricHistory | undefined =
     subscription.categories[category];
   const categoryStats = usageStats[category];
-  const shouldDisplayBudgetStats = isPartOfReservedBudget(
-    category,
-    subscription.reservedBudgets ?? []
-  );
-
-  // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
-  // since they don't have access to the usage/cost toggle
-  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
-    displayMode = 'cost';
-  }
 
   function chartMetadata() {
     let dataCategoryMetadata: {
@@ -582,99 +573,12 @@ function ReservedUsageChart({
     };
   }
 
-  function handleSelectDataCategory(value: ChartDataTransform) {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, transform: value},
-    });
-  }
-
-  function handleSelectDataTransform(value: DataCategory) {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, category: value},
-    });
-  }
-
-  /**
-   * Whether the account has access to the data category
-   * or tracked usage in the current billing period.
-   */
-  function hasOrUsedCategory(dataCategory: DataCategory) {
-    return (
-      hasCategoryFeature(dataCategory, subscription, organization) ||
-      usageStats[dataCategory]?.some(
-        (item: BillingStat) => item.total > 0 && !item.isProjected
-      )
-    );
-  }
-
-  function renderFooter() {
-    const {planDetails} = subscription;
-    const displayOptions = getCategoryOptions({
-      plan: planDetails,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-    }).reduce((acc, option) => {
-      if (hasOrUsedCategory(option.value)) {
-        if (
-          option.value === DataCategory.SPANS &&
-          subscription.hadCustomDynamicSampling
-        ) {
-          option.label = t('Accepted Spans');
-        }
-        acc.push(option);
-        // Display upsell if the category is available
-      } else if (planDetails.availableCategories?.includes(option.value)) {
-        acc.push({
-          ...option,
-          tooltip: t(
-            'Your plan does not include %s. Migrate to our latest plans to access new features.',
-            option.value
-          ),
-          disabled: true,
-        });
-      }
-      return acc;
-    }, [] as CategoryOption[]);
-
-    return (
-      <ChartControls>
-        <InlineContainer>
-          <SectionValue>
-            <IconCalendar />
-          </SectionValue>
-          <SectionValue>
-            {moment(usagePeriodStart).format('ll')}
-            {' — '}
-            {moment(usagePeriodEnd).format('ll')}
-          </SectionValue>
-        </InlineContainer>
-        <InlineContainer>
-          <OptionSelector
-            title={t('Display')}
-            selected={category}
-            options={displayOptions}
-            onChange={(val: string) => handleSelectDataTransform(val as DataCategory)}
-          />
-          <OptionSelector
-            title={t('Type')}
-            selected={transform}
-            options={CHART_OPTIONS_DATA_TRANSFORM}
-            onChange={(val: string) =>
-              handleSelectDataCategory(val as ChartDataTransform)
-            }
-          />
-        </InlineContainer>
-      </ChartControls>
-    );
-  }
-
   const {isCumulative, isUnlimitedQuota, chartData, yAxisQuotaLine, yAxisQuotaLineLabel} =
     chartMetadata();
 
   return (
     <UsageChart
-      footer={renderFooter()}
+      footer={footer}
       dataCategory={category}
       dataTransform={transform}
       handleDataTransformation={s => s}
@@ -682,7 +586,6 @@ function ReservedUsageChart({
       usageDateEnd={usagePeriodEnd}
       usageStats={chartData}
       usageDateShowUtc={false}
-      categoryOptions={categoryOptions}
       chartSeries={[
         ...(displayMode === 'cost' && chartData.reserved
           ? [
@@ -733,20 +636,155 @@ function ReservedUsageChart({
       yAxisFormatter={displayMode === 'usage' ? undefined : formatCurrency}
       chartTooltip={chartTooltip(category, displayMode)}
       title={
-        <Title>
-          {displayMode === 'usage'
-            ? t('Current Usage Period')
-            : t(
-                'Estimated %s Spend This Period',
-                getPlanCategoryName({
-                  plan: subscription.planDetails,
-                  category,
-                  hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-                  title: true,
-                })
-              )}
-        </Title>
+        useDisplayModeTitle ? (
+          <Title>
+            {displayMode === 'usage'
+              ? t('Current Usage Period')
+              : t(
+                  'Estimated %s Spend This Period',
+                  getPlanCategoryName({
+                    plan: subscription.planDetails,
+                    category,
+                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                    title: true,
+                  })
+                )}
+          </Title>
+        ) : undefined
       }
+    />
+  );
+}
+
+function ReservedUsageChart({
+  location,
+  organization,
+  subscription,
+  usagePeriodStart,
+  usagePeriodEnd,
+  usageStats,
+  displayMode,
+  reservedBudgetCategoryInfo,
+}: ReservedUsageChartProps) {
+  const categoryOptions = getCategoryOptions({
+    plan: subscription.planDetails,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+  });
+  const navigate = useNavigate();
+  const category = selectedCategory(location, categoryOptions);
+  const transform = selectedTransform(location);
+
+  const shouldDisplayBudgetStats = isPartOfReservedBudget(
+    category,
+    subscription.reservedBudgets ?? []
+  );
+
+  // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
+  // since they don't have access to the usage/cost toggle
+  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
+    displayMode = 'cost';
+  }
+
+  function handleSelectDataCategory(value: DataCategory) {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, category: value},
+    });
+  }
+
+  function handleSelectDataTransform(value: ChartDataTransform) {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, transform: value},
+    });
+  }
+
+  function renderFooter() {
+    const {planDetails} = subscription;
+    const displayOptions = getCategoryOptions({
+      plan: planDetails,
+      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+    }).reduce((acc, option) => {
+      if (hasOrUsedCategory(option.value)) {
+        if (
+          option.value === DataCategory.SPANS &&
+          subscription.hadCustomDynamicSampling
+        ) {
+          option.label = t('Accepted Spans');
+        }
+        acc.push(option);
+        // Display upsell if the category is available
+      } else if (planDetails.availableCategories?.includes(option.value)) {
+        acc.push({
+          ...option,
+          tooltip: t(
+            'Your plan does not include %s. Migrate to our latest plans to access new features.',
+            option.value
+          ),
+          disabled: true,
+        });
+      }
+      return acc;
+    }, [] as CategoryOption[]);
+
+    return (
+      <ChartControls>
+        <InlineContainer>
+          <SectionValue>
+            <IconCalendar />
+          </SectionValue>
+          <SectionValue>
+            {moment(usagePeriodStart).format('ll')}
+            {' — '}
+            {moment(usagePeriodEnd).format('ll')}
+          </SectionValue>
+        </InlineContainer>
+        <InlineContainer>
+          <OptionSelector
+            title={t('Display')}
+            selected={category}
+            options={displayOptions}
+            onChange={(val: string) => handleSelectDataCategory(val as DataCategory)}
+          />
+          <OptionSelector
+            title={t('Type')}
+            selected={transform}
+            options={CHART_OPTIONS_DATA_TRANSFORM}
+            onChange={(val: string) =>
+              handleSelectDataTransform(val as ChartDataTransform)
+            }
+          />
+        </InlineContainer>
+      </ChartControls>
+    );
+  }
+
+  /**
+   * Whether the account has access to the data category
+   * or tracked usage in the current billing period.
+   */
+  function hasOrUsedCategory(dataCategory: DataCategory) {
+    return (
+      hasCategoryFeature(dataCategory, subscription, organization) ||
+      usageStats[dataCategory]?.some(
+        (item: BillingStat) => item.total > 0 && !item.isProjected
+      )
+    );
+  }
+
+  return (
+    <ProductUsageChart
+      useDisplayModeTitle
+      footer={renderFooter()}
+      usageStats={usageStats}
+      shouldDisplayBudgetStats={shouldDisplayBudgetStats}
+      reservedBudgetCategoryInfo={reservedBudgetCategoryInfo}
+      displayMode={displayMode}
+      subscription={subscription}
+      category={category}
+      transform={transform}
+      usagePeriodStart={usagePeriodStart}
+      usagePeriodEnd={usagePeriodEnd}
     />
   );
 }

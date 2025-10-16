@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -25,15 +26,22 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializer,
     DetailedIncidentSerializerResponse,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
+    AlertRule,
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
+from sentry.incidents.models.incident import (
+    INCIDENT_STATUS,
+    Incident,
+    IncidentStatus,
+    TriggerStatus,
+)
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -51,8 +59,10 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
+from sentry.users.services.user import RpcUser
 
 from . import FireTest
 
@@ -62,7 +72,7 @@ pytestmark = pytest.mark.sentry_metrics
 @freeze_time()
 class EmailActionHandlerTest(FireTest):
     @responses.activate
-    def run_test(self, incident, method):
+    def run_test(self, incident: Incident, method: str) -> None:
         action = self.create_alert_rule_trigger_action(
             target_identifier=str(self.user.id),
             triggered_for_incident=incident,
@@ -97,7 +107,7 @@ class EmailActionHandlerTest(FireTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=str(self.alert_rule.id),
+                alert_id=self.alert_rule.id,
                 alert_type="metric_alert",
                 external_id=str(self.user.id),
                 notification_uuid="",
@@ -111,7 +121,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.handler = EmailActionHandler()
 
     @cached_property
-    def incident(self):
+    def incident(self) -> Incident:
         return self.create_incident()
 
     def test_user(self) -> None:
@@ -268,20 +278,24 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
-    def serialize_incident(self, incident) -> DetailedIncidentSerializerResponse:
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(type=MetricIssue.type_id)
+
+    def serialize_incident(self, incident: Incident) -> DetailedIncidentSerializerResponse:
         return serialize(incident, None, DetailedIncidentSerializer())
 
-    def serialize_alert_rule(self, alert_rule) -> AlertRuleSerializerResponse:
+    def serialize_alert_rule(self, alert_rule: AlertRule) -> AlertRuleSerializerResponse:
         return serialize(alert_rule, None, AlertRuleSerializer())
 
     def _generate_email_context(
         self,
-        incident,
-        trigger_status,
-        trigger_threshold,
-        user=None,
-        notification_uuid=None,
-    ):
+        incident: Incident,
+        trigger_status: TriggerStatus,
+        trigger_threshold: float,
+        user: User | RpcUser | None = None,
+        notification_uuid: str | None = None,
+    ) -> dict[str, Any]:
         """
         Helper method to generate email context from an incident and trigger status.
         Encapsulates the common pattern of creating contexts and serializing models.

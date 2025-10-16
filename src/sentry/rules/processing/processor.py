@@ -4,16 +4,15 @@ import logging
 import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import randrange
 from typing import Any
 
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, buffer, features
+from sentry import analytics, buffer
 from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
-from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -26,6 +25,7 @@ from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import hash_values
@@ -185,21 +185,6 @@ def activate_downstream_actions(
             else:
                 grouped_futures[key][1].append(rule_future)
 
-    if features.has(
-        "organizations:workflow-engine-process-workflows",
-        rule.project.organization,
-    ):
-        if is_post_process:
-            logger_name = "post_process.process_rules.triggered_actions"
-        else:
-            logger_name = "post_process.delayed_processing.triggered_actions"
-
-        metrics.incr(
-            logger_name,
-            amount=instantiated_actions,
-            tags={"event_type": event.group.type},
-        )
-
     return grouped_futures
 
 
@@ -212,10 +197,12 @@ class RuleProcessor:
         is_new_group_environment: bool,
         has_reappeared: bool,
         has_escalated: bool = False,
+        start_timestamp: datetime | None = None,
     ) -> None:
         self.event = event
         self.group = event.group
         self.project = event.project
+        self.start_timestamp = start_timestamp or timezone.now()
 
         self.is_new = is_new
         self.is_regression = is_regression
@@ -281,7 +268,11 @@ class RuleProcessor:
         buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(
-            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+            {
+                "event_id": self.event.event_id,
+                "occurrence_id": self.event.occurrence_id,
+                "start_timestamp": self.start_timestamp,
+            }
         )
         buffer.backend.push_to_hash(
             model=Project,
@@ -399,21 +390,12 @@ class RuleProcessor:
                 )
             )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            rule.project.organization,
-        ):
-            logger.info(
-                "post_process.process_rules.triggered_rule",
-                extra={
-                    "rule_id": rule.id,
-                    "payload": state.__dict__,
-                    "group_id": self.group.id,
-                    "event_id": self.event.event_id,
-                },
-            )
-
         notification_uuid = str(uuid.uuid4())
+        metrics.timing(
+            "rule_fire_history.latency",
+            (timezone.now() - self.start_timestamp).total_seconds(),
+            tags={"delayed": False, "group_type": self.group.issue_type.slug},
+        )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(
             rule, self.event, notification_uuid, rule_fire_history

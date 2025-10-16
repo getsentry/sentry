@@ -12,11 +12,11 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -60,7 +60,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
         ]
 
-    def test_simple_flags(self):
+    def test_simple_flags(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -114,7 +114,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"key": "def", "name": "Def", "totalValues": 1},
         ]
 
-    def test_dataset_events(self):
+    def test_dataset_events(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -142,7 +142,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Level", "key": "level", "totalValues": 1},
         ]
 
-    def test_dataset_discover(self):
+    def test_dataset_discover(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -178,7 +178,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         # Other tags are added by default, just check that the one we added exists
         assert {"name": "Apple", "key": "apple", "totalValues": 1} in discoverResponse.data
 
-    def test_dataset_issue_platform(self):
+    def test_dataset_issue_platform(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -221,7 +221,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
 
-    def test_dataset_combination(self):
+    def test_dataset_combination(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -292,7 +292,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
 
-    def test_invalid_dataset(self):
+    def test_invalid_dataset(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -317,7 +317,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             "detail": ErrorDetail(string="Invalid dataset parameter", code="parse_error")
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -405,7 +405,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert mock_snuba_query.call_count == 2
 
-    def test_different_times_retrieves_cache(self):
+    def test_different_times_retrieves_cache(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -443,7 +443,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
 
 
 class ReplayOrganizationTagsTest(APITestCase, ReplaysSnubaTestCase):
-    def test_dataset_replays(self):
+    def test_dataset_replays(self) -> None:
         self.login_as(user=self.user)
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex

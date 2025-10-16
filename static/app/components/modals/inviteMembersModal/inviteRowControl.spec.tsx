@@ -12,7 +12,7 @@ import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inv
 import TeamStore from 'sentry/stores/teamStore';
 import type {DetailedTeam} from 'sentry/types/organization';
 
-describe('InviteRowControlNew', function () {
+describe('InviteRowControlNew', () => {
   const teamData = [
     {
       id: '1',
@@ -58,11 +58,11 @@ describe('InviteRowControlNew', function () {
     </InviteMembersContext>
   );
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.loadInitialData(teams);
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(getComponent(defaultInviteProps));
 
     expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('InviteRowControlNew', function () {
     expect(screen.getByRole('textbox', {name: 'Add to Team'})).toBeInTheDocument();
   });
 
-  it('renders with invite-billing flag', function () {
+  it('renders with invite-billing flag', () => {
     render(getComponent(billingProps));
 
     expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
@@ -105,7 +105,7 @@ describe('InviteRowControlNew', function () {
     });
   });
 
-  it('updates email addresses when new emails are inputted and input is unfocussed', async function () {
+  it('updates email addresses when new emails are inputted and input is unfocussed', async () => {
     const mockSetEmails = jest.fn();
     render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
     const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
@@ -114,7 +114,7 @@ describe('InviteRowControlNew', function () {
     expect(mockSetEmails).toHaveBeenCalled();
   });
 
-  it('updates role value when new role is selected', async function () {
+  it('updates role value when new role is selected', async () => {
     const mockSetRole = jest.fn();
     render(getComponent({...defaultInviteProps, setRole: mockSetRole}));
     const roleInput = screen.getByRole('textbox', {name: 'Role'});
@@ -123,7 +123,7 @@ describe('InviteRowControlNew', function () {
     expect(mockSetRole).toHaveBeenCalled();
   });
 
-  it('disables team selection when team roles are not allowed', function () {
+  it('disables team selection when team roles are not allowed', () => {
     render(
       getComponent({
         ...defaultInviteProps,
@@ -137,7 +137,7 @@ describe('InviteRowControlNew', function () {
     expect(teamInput).toBeDisabled();
   });
 
-  it('enables team selection when team roles are allowed', async function () {
+  it('enables team selection when team roles are allowed', async () => {
     const mockSetTeams = jest.fn();
     render(
       getComponent({
@@ -157,7 +157,7 @@ describe('InviteRowControlNew', function () {
     expect(mockSetTeams).toHaveBeenCalledTimes(2);
   });
 
-  it('shows all teams if Open Membership is enabled', async function () {
+  it('shows all teams if Open Membership is enabled', async () => {
     const {organization: orgWithInviteAccess} = initializeOrg({
       organization: {
         access: ['member:invite'],
@@ -173,7 +173,7 @@ describe('InviteRowControlNew', function () {
     expect(screen.getByText('#moo-waan')).toBeInTheDocument();
   });
 
-  it('only shows member teams if Open Membership is disabled', async function () {
+  it('only shows member teams if Open Membership is disabled', async () => {
     const {organization: orgWithInviteAccess} = initializeOrg({
       organization: {
         access: ['member:invite'],

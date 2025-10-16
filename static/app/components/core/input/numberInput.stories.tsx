@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
+import types from '!!type-loader!sentry/components/core/input/numberInput';
 
 import * as Storybook from 'sentry/stories';
 
 import {NumberInput} from './numberInput';
-
-import types from '!!type-loader!sentry/components/core/input/numberInput';
 
 export default Storybook.story('NumberInput', (story, APIReference) => {
   APIReference(types.NumberInput);

@@ -13,11 +13,11 @@ from sentry import roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
+from sentry.core.endpoints.organization_details import post_org_pending_deletion
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -68,9 +68,7 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
     prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
-    prefersStackedNavigation = serializers.BooleanField(required=False)
     prefersChonkUI = serializers.BooleanField(required=False)
-    prefersAgentsInsightsModule = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer[User]):
@@ -239,10 +237,8 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-            "prefersStackedNavigation": "prefers_stacked_navigation",
             "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
-            "prefersAgentsInsightsModule": "prefers_agents_insights_module",
         }
 
         options_result = serializer_options.validated_data

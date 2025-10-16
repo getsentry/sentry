@@ -5,7 +5,7 @@ import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibr
 
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 
-describe('BalanceChangeAction', function () {
+describe('BalanceChangeAction', () => {
   const onSuccess = jest.fn();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, accountBalance: 0});
@@ -15,18 +15,18 @@ describe('BalanceChangeAction', function () {
     onSuccess,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders no balance', function () {
+  it('renders no balance', () => {
     triggerChangeBalanceModal({subscription, ...modalProps});
 
     renderGlobalModal();
     expect(screen.getByTestId('balance')).toHaveTextContent('$0.00 owed');
   });
 
-  it('renders credit', function () {
+  it('renders credit', () => {
     triggerChangeBalanceModal({
       subscription: {...subscription, accountBalance: -3000},
       orgId: organization.id,
@@ -37,7 +37,7 @@ describe('BalanceChangeAction', function () {
     expect(screen.getByTestId('balance')).toHaveTextContent('$30.00 credit');
   });
 
-  it('renders amount owed', function () {
+  it('renders amount owed', () => {
     triggerChangeBalanceModal({
       subscription: {...subscription, accountBalance: 3000},
       ...modalProps,
@@ -47,7 +47,7 @@ describe('BalanceChangeAction', function () {
     expect(screen.getByTestId('balance')).toHaveTextContent('$30.00 owed');
   });
 
-  it('can submit balance change', async function () {
+  it('can submit balance change', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',
@@ -75,7 +75,7 @@ describe('BalanceChangeAction', function () {
     );
   });
 
-  it('can submit balance change with zendesk ticket and note', async function () {
+  it('can submit balance change with zendesk ticket and note', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',

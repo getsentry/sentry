@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue.mark_reviewed")
 class IssueMarkReviewedEvent(analytics.Event):
-    type = "issue.mark_reviewed"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("group_id"),
-    )
+    user_id: int | None = None
+    default_user_id: int
+    organization_id: int
+    group_id: int
 
 
 analytics.register(IssueMarkReviewedEvent)

@@ -74,7 +74,7 @@ describe('SpendAllocations feature enable flow', () => {
     expect(enableSpendAllocations).toBeEnabled();
   });
 
-  it('does not render for YY partnership', async function () {
+  it('does not render for YY partnership', async () => {
     subscription = SubscriptionFixture({
       plan: 'am2_business',
       planTier: 'am2',

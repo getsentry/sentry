@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
+import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -18,6 +18,7 @@ import {
   getFieldDefinition,
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
+  REPLAY_TAG_ALIASES,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -101,9 +102,15 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   ];
 };
 
-type Props = React.ComponentProps<typeof SmartSearchBar> & {
+type Props = Omit<
+  React.ComponentProps<typeof SearchQueryBuilder>,
+  'filterKeys' | 'getTagValues' | 'searchSource' | 'onSearch'
+> & {
   organization: Organization;
   pageFilters: PageFilters;
+  query: string;
+  onSearch?: (query: string) => void;
+  searchSource?: string;
 };
 
 function ReplaySearchBar(props: Props) {
@@ -159,10 +166,15 @@ function ReplaySearchBar(props: Props) {
         statsPeriod,
       };
 
+      const searchName =
+        tag.key in REPLAY_TAG_ALIASES
+          ? REPLAY_TAG_ALIASES[tag.key as keyof typeof REPLAY_TAG_ALIASES]
+          : tag.key;
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
-        tagKey: tag.key,
+        tagKey: searchName,
         search: searchQuery,
         projectIds: projectIds?.map(String),
         endpointParams,
@@ -205,7 +217,8 @@ function ReplaySearchBar(props: Props) {
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      initialQuery={props.query ?? props.defaultQuery ?? ''}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
+      initialQuery={props.query ?? props.initialQuery ?? ''}
       onSearch={onSearchWithAnalytics}
       searchSource={props.searchSource ?? 'replay_index'}
       placeholder={

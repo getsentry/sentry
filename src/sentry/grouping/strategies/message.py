@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer
 from sentry.grouping.strategies.base import (
+    ComponentsByVariant,
     GroupingContext,
-    ReturnedVariants,
     produces_variants,
     strategy,
 )
@@ -16,7 +16,7 @@ from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 REGEX_PATTERN_KEYS = (
     "email",
@@ -71,16 +71,18 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
 @produces_variants(["default"])
 def message_v1(
     interface: Message, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
+    variant_name = context["variant_name"]
+
     # This is true for all but our test config
     if context["normalize_message"]:
-        raw = interface.message or interface.formatted or ""
-        normalized = normalize_message_for_grouping(raw, event)
-        hint = "stripped event-specific values" if raw != normalized else None
-        return {context["variant"]: MessageGroupingComponent(values=[normalized], hint=hint)}
+        raw_message = interface.message or interface.formatted or ""
+        normalized = normalize_message_for_grouping(raw_message, event)
+        hint = "stripped event-specific values" if raw_message != normalized else None
+        return {variant_name: MessageGroupingComponent(values=[normalized], hint=hint)}
     else:
         return {
-            context["variant"]: MessageGroupingComponent(
+            variant_name: MessageGroupingComponent(
                 values=[interface.message or interface.formatted or ""],
             )
         }

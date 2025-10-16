@@ -1,8 +1,6 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -13,14 +11,16 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -34,6 +34,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -70,61 +76,66 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:fastapi] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[fastapi]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:fastapi] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[fastapi]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'If you have the [codeFastAPI:fastapi] package in your dependencies, the FastAPI integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+      content: [
         {
-          codeFastAPI: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'If you have the [codeFastAPI:fastapi] package in your dependencies, the FastAPI integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+            {
+              codeFastAPI: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
 app = FastAPI()
 `,
         },
-      ],
-      additionalInfo: (
-        <Fragment>
-          {params.isProfilingSelected &&
-            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-              <Fragment>
-                <AlternativeConfiguration />
-                <br />
-              </Fragment>
-            )}
-          {tct(
+        alternativeProfilingConfiguration(params),
+        {
+          type: 'text',
+          text: tct(
             'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
             {
               code: <code />,
             }
-          )}
-          ,
-        </Fragment>
-      ),
+          ),
+        },
+      ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: `
 @app.get("/sentry-debug")
@@ -132,29 +143,44 @@ async def trigger_error():
     division_by_zero = 1 / 0
 `,
         },
-      ],
-      additionalInfo: (
-        <div>
-          <p>
-            {tct(
+        getVerifyLogsContent(params),
+        {
+          type: 'text',
+          text: [
+            tct(
               'When you open [link:http://localhost:8000/sentry-debug/] with your browser, a transaction in the Performance section of Sentry will be created.',
               {
                 link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
-            )}
-          </p>
-          <p>
-            {t(
+            ),
+            t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </div>
-      ),
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
+        },
+      ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[fastapi]',
+});
 
 const docs: Docs = {
   onboarding,
@@ -164,6 +190,7 @@ const docs: Docs = {
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

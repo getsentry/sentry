@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import TypedDict
 
 import orjson
@@ -13,8 +14,10 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -23,17 +26,73 @@ logger = logging.getLogger(__name__)
 
 class AutofixIssue(TypedDict):
     id: int
+    title: str
 
 
-class AutofixRequest(TypedDict):
+class AutofixStoppingPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+    SOLUTION = "solution"
+    CODE_CHANGES = "code_changes"
+    OPEN_PR = "open_pr"
+
+
+class AutofixRequest(BaseModel):
+    organization_id: int
     project_id: int
     issue: AutofixIssue
+    repos: list[SeerRepoDefinition]
+
+    class Config:
+        extra = "allow"
 
 
 class FileChange(BaseModel):
     path: str
     content: str | None = None
     is_deleted: bool = False
+
+
+class CodingAgentStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+    @classmethod
+    def from_cursor_status(cls, cursor_status: str) -> "CodingAgentStatus | None":
+        status_mapping = {
+            "FINISHED": cls.COMPLETED,
+            "ERROR": cls.FAILED,
+        }
+
+        return status_mapping.get(cursor_status.upper(), None)
+
+
+class AutofixTriggerSource(StrEnum):
+    ROOT_CAUSE = "root_cause"
+    SOLUTION = "solution"
+
+
+class CodingAgentResult(BaseModel):
+    description: str
+    repo_provider: str
+    repo_full_name: str
+    branch_name: str | None = None
+    pr_url: str | None = None
+
+
+class CodingAgentProviderType(StrEnum):
+    CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
+
+
+class CodingAgentState(BaseModel):
+    id: str
+    status: CodingAgentStatus = CodingAgentStatus.PENDING
+    agent_url: str | None = None
+    provider: CodingAgentProviderType
+    name: str
+    started_at: datetime
+    results: list[CodingAgentResult] = []
 
 
 class CodebaseState(BaseModel):
@@ -50,9 +109,27 @@ class AutofixState(BaseModel):
     status: AutofixStatus
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
+    steps: list[dict] = []
+    coding_agents: dict[str, CodingAgentState] = {}
 
     class Config:
         extra = "allow"
+
+
+class CodingAgentStateUpdate(BaseModel):
+    status: CodingAgentStatus | None = None
+    agent_url: str | None = None
+    results: list[CodingAgentResult] | None = None
+
+
+class CodingAgentStateUpdateRequest(BaseModel):
+    agent_id: str
+    updates: CodingAgentStateUpdate
+
+
+autofix_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -88,6 +165,7 @@ def get_autofix_state(
     run_id: int | None = None,
     check_repo_access: bool = False,
     is_user_fetching: bool = False,
+    organization_id: int,
 ) -> AutofixState | None:
     path = "/v1/automation/autofix/state"
     body = orjson.dumps(
@@ -119,7 +197,12 @@ def get_autofix_state(
             or run_id is not None
             and result["run_id"] == run_id
         ):
-            return AutofixState.validate(result["state"])
+            state = AutofixState.validate(result["state"])
+
+            if state.request.organization_id != organization_id:
+                raise SeerPermissionError("Different organization ID found in autofix state")
+
+            return state
 
     return None
 
@@ -148,7 +231,11 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
     if not result:
         return None
 
-    return AutofixState.validate(result.get("state", None))
+    state = result.get("state", None)
+    if state is None:
+        return None
+
+    return AutofixState.validate(state)
 
 
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
@@ -258,3 +345,80 @@ def is_seer_autotriggered_autofix_rate_limited(
             category=DataCategory.SEER_AUTOFIX,
         )
     return is_rate_limited
+
+
+def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
+    """Get the autofix prompt from Seer API."""
+
+    path = "/v1/automation/autofix/prompt"
+    body = orjson.dumps(
+        {
+            "run_id": run_id,
+            "include_root_cause": include_root_cause,
+            "include_solution": include_solution,
+        }
+    )
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+    response_data = orjson.loads(response.data)
+
+    return response_data.get("prompt")
+
+
+def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str:
+    """Get the coding agent prompt with prefix from Seer API."""
+    include_root_cause = trigger_source in [
+        AutofixTriggerSource.ROOT_CAUSE,
+        AutofixTriggerSource.SOLUTION,
+    ]
+    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
+
+    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
+
+    return f"Please fix the following issue:\n\n{autofix_prompt}"
+
+
+def update_coding_agent_state(
+    *,
+    agent_id: str,
+    status: CodingAgentStatus,
+    agent_url: str | None = None,
+    result: CodingAgentResult | None = None,
+) -> None:
+    """Send coding agent state update to Seer.
+
+    Raises SeerApiError for non-2xx responses.
+    """
+    path = "/v1/automation/autofix/coding-agent/state/update"
+
+    updates = CodingAgentStateUpdate(
+        status=status,
+        agent_url=agent_url,
+        results=[result.dict()] if result is not None else None,
+    )
+
+    update_data = CodingAgentStateUpdateRequest(
+        agent_id=agent_id,
+        updates=updates,
+    )
+
+    body = orjson.dumps(update_data.dict(exclude_none=True))
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=30,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)

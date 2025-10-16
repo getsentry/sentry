@@ -12,7 +12,6 @@ from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
@@ -63,6 +62,7 @@ from sentry.notifications.utils.participants import (
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
@@ -333,9 +333,10 @@ def get_suspect_commit_text(group: Group) -> str | None:
         else:  # for unsupported providers
             suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
-        pr_date = pull_request.date_added
-        if pr_date:
-            pr_date = time_since(pr_date)
+        if pull_request.date_added:
+            pr_date = time_since(pull_request.date_added)
+        else:
+            pr_date = pull_request.date_added
         pr_id = pull_request.key
         pr_title = pull_request.title
         pr_link = pull_request.get_external_url()
@@ -435,7 +436,11 @@ def build_actions(
         )
 
     def _assign_button() -> MessageAction:
-        assignee = group.get_assignee()
+        try:
+            assignee = group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         assign_button = MessageAction(
             name="assign",
             label="Select Assignee...",
@@ -507,9 +512,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = summary_headline or build_attachment_title(event_or_group)
         title_emojis = self.get_title_emoji(has_action)
 
-        return self.get_rich_text_link(title_emojis, title, title_link)
+        title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
+        return self.get_markdown_block(title_text)
 
-    def get_title_emoji(self, has_action: bool) -> list[str]:
+    def get_title_emoji(self, has_action: bool) -> str:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
 
         title_emojis: list[str] = []
@@ -526,7 +532,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         else:
             title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
-        return title_emojis
+        return " ".join(title_emojis)
 
     def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
         if self.issue_summary is None:
@@ -733,7 +739,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build actions
         actions = []
-        assignee = self.group.get_assignee()
+        try:
+            assignee = self.group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         for action in payload_actions:
             if action.label in (
                 "Archive",

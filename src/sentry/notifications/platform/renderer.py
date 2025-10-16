@@ -20,9 +20,9 @@ class NotificationRenderer[RenderableT](Protocol):
     provider_key: NotificationProviderKey
 
     @classmethod
-    def render[
-        DataT: NotificationData
-    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> RenderableT:
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> RenderableT:
         """
         Convert a rendered template into a renderable object specific to the provider.
         For example, Slack might output BlockKit JSON, email might output HTML/txt.

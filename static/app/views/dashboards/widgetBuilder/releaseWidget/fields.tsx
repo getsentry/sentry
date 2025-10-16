@@ -31,10 +31,12 @@ enum SessionMetric {
   USER_CRASHED = 'session.crashed_user',
   SESSION_ERRORED = 'session.errored',
   USER_ERRORED = 'session.errored_user',
+  SESSION_UNHANDLED = 'session.unhandled',
+  USER_UNHANDLED = 'session.unhandled_user',
 }
 
 export const DERIVED_STATUS_METRICS_PATTERN =
-  /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+  /count_(abnormal|errored|crashed|unhandled|healthy)\((user|session)\)/;
 
 export enum DerivedStatusFields {
   HEALTHY_SESSIONS = 'count_healthy(session)',
@@ -45,6 +47,8 @@ export enum DerivedStatusFields {
   CRASHED_USERS = 'count_crashed(user)',
   ERRORED_SESSIONS = 'count_errored(session)',
   ERRORED_USERS = 'count_errored(user)',
+  UNHANDLED_SESSIONS = 'count_unhandled(session)',
+  UNHANDLED_USERS = 'count_unhandled(user)',
 }
 
 export const FIELD_TO_METRICS_EXPRESSION = {
@@ -58,6 +62,8 @@ export const FIELD_TO_METRICS_EXPRESSION = {
   'count_crashed(user)': SessionMetric.USER_CRASHED,
   'count_errored(session)': SessionMetric.SESSION_ERRORED,
   'count_errored(user)': SessionMetric.USER_ERRORED,
+  'count_unhandled(session)': SessionMetric.SESSION_UNHANDLED,
+  'count_unhandled(user)': SessionMetric.USER_UNHANDLED,
   'count_unique(user)': `count_unique(${SessionMetric.USER})`,
   'sum(session)': SessionMetric.SESSION_COUNT,
   'crash_free_rate(session)': SessionMetric.SESSION_CRASH_FREE_RATE,
@@ -88,6 +94,7 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_healthy',
       'count_abnormal',
       'count_crashed',
+      'count_unhandled',
       'count_errored',
       'anr_rate',
       'foreground_anr_rate',
@@ -103,6 +110,7 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_healthy',
       'count_abnormal',
       'count_crashed',
+      'count_unhandled',
       'count_errored',
     ],
     type: 'string',
@@ -191,6 +199,17 @@ export const SESSIONS_OPERATIONS: Readonly<
       },
     ],
   },
+  count_unhandled: {
+    outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
   crash_rate: {
     outputType: 'percentage',
     parameters: [
@@ -203,6 +222,50 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   crash_free_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  unhealthy_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  abnormal_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  errored_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  unhandled_rate: {
     outputType: 'percentage',
     parameters: [
       {

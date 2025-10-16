@@ -1,3 +1,5 @@
+from typing import ContextManager
+
 import pytest
 
 from sentry.constants import ObjectStatus
@@ -10,7 +12,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 @django_db_all
 class TestDeleteWorkflow(HybridCloudTestMixin):
-    def tasks(self):
+    def tasks(self) -> ContextManager[None]:
         return TaskRunner()
 
     @pytest.fixture(autouse=True)
@@ -72,7 +74,7 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
             "action_condition",
         ],
     )
-    def test_delete_workflow(self, instance_attr):
+    def test_delete_workflow(self, instance_attr: str) -> None:
         instance = getattr(self, instance_attr)
         instance_id = instance.id
         cls = instance.__class__

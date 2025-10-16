@@ -3,16 +3,15 @@ import {
   GranularityLadder,
   ONE_HOUR,
   SIX_HOURS,
-  SIXTY_DAYS,
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {
-  type Aggregate,
   ModuleName,
   SpanFunction,
+  type Aggregate,
   type SpanProperty,
 } from 'sentry/views/insights/types';
 
@@ -43,12 +42,10 @@ export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
 
 export const DEFAULT_DURATION_AGGREGATE: Aggregate = SpanFunction.AVG;
 
-export const CHART_HEIGHT = 160;
-
+// Note: all these options should come from static/app/views/explore/hooks/useChartInterval.tsx ALL_INTERVAL_OPTIONS
 export const COUNTER_GRANULARITIES = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '4h'],
+  [TWO_WEEKS, '3h'],
   [TWENTY_FOUR_HOURS, '30m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
@@ -56,7 +53,7 @@ export const COUNTER_GRANULARITIES = new GranularityLadder([
 ]);
 
 export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
-  [TWO_WEEKS, '1d'],
+  [TWO_WEEKS, '12h'],
   [FORTY_EIGHT_HOURS, '1h'],
   [TWENTY_FOUR_HOURS, '30m'],
   [SIX_HOURS, '5m'],
@@ -66,7 +63,7 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/queries/';
 
-export const MODULE_FEATURES = ['insights-initial-modules'];
+export const MODULE_FEATURES = ['insight-modules'];
 
 export const FIELD_ALIASES = {
   'epm()': t('Queries Per Minute'),

@@ -23,7 +23,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -218,7 +217,7 @@ class TestSafeForComment(GithubCommentTestCase):
     @responses.activate
     def test_error__api_error(self) -> None:
         responses.add(
-            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
+            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=500, json={}
         )
 
         with pytest.raises(ApiError):
@@ -472,7 +471,6 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:csharp-open-pr-comments")
     def test_csharp_simple(self) -> None:
         group_id_1 = [
             self._create_event(
@@ -498,7 +496,6 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:go-open-pr-comments")
     def test_go_simple(self) -> None:
         # should match function name exactly or struct.functionName
         group_id_1 = [
@@ -844,10 +841,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 | :------- | :----- |
 | **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/{self.organization.slug}/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** |
 | **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/{self.organization.slug}/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** |
-</details>
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+</details>"""
         )
 
     def test_comment_format_javascript(self) -> None:
@@ -909,10 +903,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 | :------- | :----- |
 | **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/{self.organization.slug}/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** `Affected Users:` **20k** |
 | **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/{self.organization.slug}/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** `Affected Users:` **10k** |
-</details>
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+</details>"""
         )
 
     def test_comment_format_missing_language(self) -> None:
@@ -1025,9 +1016,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "| :------- | :----- |\n"
             f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
             f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
-            "</details>\n"
-            "---\n\n"
-            "<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+            "</details>"
         )
 
         assert orjson.loads(responses.calls[0].request.body.decode())["body"] == expected_body

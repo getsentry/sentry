@@ -3,18 +3,18 @@ from __future__ import annotations
 import logging
 import random
 import uuid
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict, TypeVar
 
 import sentry_sdk
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options
 from sentry.logging.handlers import SamplingFilter
+from sentry.replays.lib.eap.write import Value, new_trace_item
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.replays.event_parser")
@@ -41,6 +41,20 @@ class ClickEvent:
     url: str | None
 
 
+@dataclass(frozen=True)
+class MultiClickEvent:
+    click_event: ClickEvent
+    click_count: int
+
+
+@dataclass(frozen=True)
+class TapEvent:
+    timestamp: int
+    message: str
+    view_class: str
+    view_id: str
+
+
 @dataclass
 class HydrationError:
     timestamp: float
@@ -56,10 +70,12 @@ class MutationEvent:
 class ParsedEventMeta:
     canvas_sizes: list[int]
     click_events: list[ClickEvent]
+    multiclick_events: list[MultiClickEvent]
     hydration_errors: list[HydrationError]
     mutation_events: list[MutationEvent]
     options_events: list[dict[str, Any]]
     request_response_sizes: list[tuple[Any, Any]]
+    tap_events: list[TapEvent]
 
 
 class EventContext(TypedDict):
@@ -93,7 +109,7 @@ class EventType(Enum):
     CLICK = 1
     CONSOLE = 2
     DEAD_CLICK = 3
-    FCP = 4
+    # FCP = 4 deprecated
     FEEDBACK = 5
     HYDRATION_ERROR = 6
     LCP = 7
@@ -112,6 +128,8 @@ class EventType(Enum):
     UNKNOWN = 20
     CLS = 21
     NAVIGATION_SPAN = 22
+    MULTI_CLICK = 23
+    TAP = 24
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -159,6 +177,8 @@ def which(event: dict[str, Any]) -> EventType:
                             return EventType.DEAD_CLICK
                     else:
                         return EventType.SLOW_CLICK
+                elif category == "ui.multiClick":
+                    return EventType.MULTI_CLICK
                 elif category == "navigation":
                     return EventType.NAVIGATION
                 elif category == "console":
@@ -173,6 +193,8 @@ def which(event: dict[str, Any]) -> EventType:
                     return EventType.MUTATIONS
                 elif category == "sentry.feedback":
                     return EventType.FEEDBACK
+                elif category == "ui.tap":
+                    return EventType.TAP
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "performanceSpan":
@@ -191,8 +213,6 @@ def which(event: dict[str, Any]) -> EventType:
                 elif op == "web-vital":
                     if payload["description"] == "largest-contentful-paint":
                         return EventType.LCP
-                    elif payload["description"] == "first-contentful-paint":
-                        return EventType.FCP
                     elif payload["description"] == "cumulative-layout-shift":
                         return EventType.CLS
                     else:
@@ -219,6 +239,53 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
         yield (which(event), event)
 
 
+def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
+    """
+    Returns the time unit of event["timestamp"] for a replay event.
+    This is not guaranteed to match event.data.payload.timestamp.
+
+    We do not allow wildcard or default cases. Please be explicit when adding new types.
+    Beware that EventType.UNKNOWN returns "ms" but there's no way to know the actual unit.
+    """
+    match event_type:
+        case (
+            EventType.CLS
+            | EventType.LCP
+            | EventType.MEMORY
+            | EventType.MUTATIONS
+            | EventType.NAVIGATION_SPAN
+            | EventType.RESOURCE_FETCH
+            | EventType.RESOURCE_IMAGE
+            | EventType.RESOURCE_SCRIPT
+            | EventType.RESOURCE_XHR
+            | EventType.UI_BLUR
+            | EventType.UI_FOCUS
+        ):
+            return "s"
+        case (
+            EventType.CANVAS
+            | EventType.CONSOLE
+            | EventType.CLICK
+            | EventType.DEAD_CLICK
+            | EventType.RAGE_CLICK
+            | EventType.SLOW_CLICK
+            | EventType.MULTI_CLICK
+            | EventType.HYDRATION_ERROR
+            | EventType.NAVIGATION
+            | EventType.OPTIONS
+            | EventType.UNKNOWN
+            | EventType.FEEDBACK  # feedback breadcrumbs from the SDK have MS timestamps.
+            | EventType.TAP
+        ):
+            return "ms"
+
+
+def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
+    if get_timestamp_unit(event_type) == "s":
+        return float(event.get("timestamp", 0) * 1000)
+    return float(event.get("timestamp", 0))
+
+
 #
 # EAP Trace Item Processor
 #
@@ -226,7 +293,7 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
 
 class EAPEventsBuilder:
 
-    def __init__(self, context: EventContext):
+    def __init__(self, context: EventContext) -> None:
         self.context = context
         self.events: list[TraceItem] = []
 
@@ -258,51 +325,34 @@ def parse_trace_item(
 def as_trace_item(
     context: EventContext, event_type: EventType, event: dict[str, Any]
 ) -> TraceItem | None:
-    def _anyvalue(value: bool | str | int | float) -> AnyValue:
-        if isinstance(value, bool):
-            return AnyValue(bool_value=value)
-        elif isinstance(value, str):
-            return AnyValue(string_value=value)
-        elif isinstance(value, int):
-            return AnyValue(int_value=value)
-        elif isinstance(value, float):
-            return AnyValue(double_value=value)
-        else:
-            raise ValueError(f"Invalid value type for AnyValue: {type(value)}")
-
-    trace_item_context = as_trace_item_context(event_type, event)
-
     # Not every event produces a trace-item.
-    if trace_item_context is None:
+    trace_item_context = as_trace_item_context(event_type, event)
+    if not trace_item_context:
         return None
 
     # Extend the attributes with the replay_id to make it queryable by replay_id after we
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
 
-    timestamp = Timestamp()
-    timestamp.FromMilliseconds(int(trace_item_context["timestamp"] * 1000))
-
-    received = Timestamp()
-    received.FromSeconds(int(context["received"]))
-
-    return TraceItem(
-        organization_id=context["organization_id"],
-        project_id=context["project_id"],
-        trace_id=context["trace_id"] or context["replay_id"],
-        item_id=trace_item_context["event_hash"],
-        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
-        timestamp=timestamp,
-        attributes={k: _anyvalue(v) for k, v in trace_item_context["attributes"].items()},
-        client_sample_rate=1.0,
-        server_sample_rate=1.0,
-        retention_days=context["retention_days"],
-        received=received,
+    return new_trace_item(
+        {
+            "attributes": trace_item_context["attributes"],
+            "client_sample_rate": 1.0,
+            "organization_id": context["organization_id"],
+            "project_id": context["project_id"],
+            "received": datetime.fromtimestamp(int(context["received"])),
+            "retention_days": context["retention_days"],
+            "server_sample_rate": 1.0,
+            "timestamp": datetime.fromtimestamp(int(trace_item_context["timestamp"] * 1000) / 1000),
+            "trace_id": context["trace_id"] or context["replay_id"],
+            "trace_item_id": trace_item_context["event_hash"],
+            "trace_item_type": "replay",
+        }
     )
 
 
 class TraceItemContext(TypedDict):
-    attributes: MutableMapping[str, str | int | bool | float]
+    attributes: MutableMapping[str, Value]
     event_hash: bytes
     timestamp: float
 
@@ -319,7 +369,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             node = payload["data"]["node"]
             node_attributes = node.get("attributes", {})
-            click_attributes = {
+            click_attributes: dict[str, Value] = {
                 "node_id": int(node["id"]),
                 "tag": as_string_strict(node["tagName"]),
                 "text": as_string_strict(node["textContent"][:1024]),
@@ -350,22 +400,37 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 click_attributes["url"] = as_string_strict(payload["url"])
 
             return {
-                "attributes": click_attributes,  # type: ignore[typeddict-item]
+                "attributes": click_attributes,
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload["timestamp"]),
+            }
+        case EventType.MULTI_CLICK:
+            return None
+        case EventType.TAP:
+            payload = event.get("data", {}).get("payload", {})
+            tap_attributes: dict[str, Value] = {
+                "category": "ui.tap",
+                "message": as_string_strict(payload["message"]),
+                "view_id": as_string_strict(payload["data"]["view.id"]),
+                "view_class": as_string_strict(payload["data"]["view.class"]),
+            }
+            return {
+                "attributes": tap_attributes,
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
-            payload_data = payload["data"]
+            payload_data = payload.get("data", {})
 
-            navigation_attributes = {"category": "navigation"}
+            navigation_attributes: dict[str, Value] = {"category": "navigation"}
             if "from" in payload_data:
                 navigation_attributes["from"] = as_string_strict(payload_data["from"])
             if "to" in payload_data:
                 navigation_attributes["to"] = as_string_strict(payload_data["to"])
 
             return {
-                "attributes": navigation_attributes,  # type: ignore[typeddict-item]
+                "attributes": navigation_attributes,
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
@@ -378,7 +443,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
             payload = event["data"]["payload"]
 
-            resource_attributes = {
+            resource_attributes: dict[str, Value] = {
                 "category": (
                     "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
                 ),
@@ -408,6 +473,9 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "timestamp": float(payload["startTimestamp"]),
             }
         case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
+            payload = event["data"]["payload"]
+            payload_data = payload.get("data", {})
+
             return {
                 "attributes": {
                     "category": (
@@ -415,24 +483,23 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                         if event_type == EventType.RESOURCE_SCRIPT
                         else "resource.img"
                     ),
-                    "size": int(event["data"]["payload"]["data"]["size"]),
-                    "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
-                    "decodedBodySize": int(event["data"]["payload"]["data"]["decodedBodySize"]),
-                    "encodedBodySize": int(event["data"]["payload"]["data"]["encodedBodySize"]),
-                    "url": as_string_strict(event["data"]["payload"]["description"]),
-                    "duration": float(event["data"]["payload"]["endTimestamp"])
-                    - float(event["data"]["payload"]["startTimestamp"]),
+                    "url": as_string_strict(payload["description"]),
+                    "duration": float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
+                    # Optional fields are extracted safely but type coerced strictly.
+                    **set_if(
+                        ["size", "statusCode", "decodedBodySize", "encodedBodySize"],
+                        payload_data,
+                        int,
+                    ),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
-        case EventType.LCP | EventType.FCP | EventType.CLS:
+        case EventType.LCP | EventType.CLS:
             payload = event["data"]["payload"]
 
             if event_type == EventType.CLS:
                 category = "web-vital.cls"
-            elif event_type == EventType.FCP:
-                category = "web-vital.fcp"
             else:
                 category = "web-vital.lcp"
 
@@ -450,10 +517,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
         case EventType.HYDRATION_ERROR:
             payload = event["data"]["payload"]
+            payload_data = payload.get("data", {})
             return {
                 "attributes": {
                     "category": "replay.hydrate-error",
-                    "url": as_string_strict(payload["data"]["url"]),
+                    "url": as_string_strict(payload_data.get("url", "")),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["timestamp"]),
@@ -473,22 +541,34 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.CANVAS:
             return None
         case EventType.OPTIONS:
-            payload = event["data"]["payload"]
+            payload = event["data"].get("payload", {})
             return {
                 "attributes": {
                     "category": "sdk.options",
-                    "shouldRecordCanvas": bool(payload["shouldRecordCanvas"]),
-                    "sessionSampleRate": float(payload["sessionSampleRate"]),
-                    "errorSampleRate": float(payload["errorSampleRate"]),
-                    "useCompressionOption": bool(payload["useCompressionOption"]),
-                    "blockAllMedia": bool(payload["blockAllMedia"]),
-                    "maskAllText": bool(payload["maskAllText"]),
-                    "maskAllInputs": bool(payload["maskAllInputs"]),
-                    "useCompression": bool(payload["useCompression"]),
-                    "networkDetailHasUrls": bool(payload["networkDetailHasUrls"]),
-                    "networkCaptureBodies": bool(payload["networkCaptureBodies"]),
-                    "networkRequestHasHeaders": bool(payload["networkRequestHasHeaders"]),
-                    "networkResponseHasHeaders": bool(payload["networkResponseHasHeaders"]),
+                    **set_if(
+                        [
+                            "shouldRecordCanvas",
+                            "useCompressionOption",
+                            "blockAllMedia",
+                            "maskAllText",
+                            "maskAllInputs",
+                            "useCompression",
+                            "networkDetailHasUrls",
+                            "networkCaptureBodies",
+                            "networkRequestHasHeaders",
+                            "networkResponseHasHeaders",
+                        ],
+                        payload,
+                        bool,
+                    ),
+                    **set_if(
+                        [
+                            "sessionSampleRate",
+                            "errorSampleRate",
+                        ],
+                        payload,
+                        float,
+                    ),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": event["timestamp"] / 1000,
@@ -520,6 +600,13 @@ def as_string_strict(value: Any) -> str:
     raise ValueError("Value was not a string.")
 
 
+T = TypeVar("T")
+
+
+def set_if(keys: list[str], data: dict[str, Any], value_fn: Callable[[Any], T]) -> dict[str, T]:
+    return {key: value_fn(data[key]) for key in keys if key in data}
+
+
 #
 # Highlighted Event Processor
 #
@@ -530,20 +617,24 @@ class HighlightedEvents(TypedDict, total=False):
     hydration_errors: list[HydrationError]
     mutations: list[MutationEvent]
     clicks: list[ClickEvent]
+    multiclicks: list[MultiClickEvent]
     request_response_sizes: list[tuple[int | None, int | None]]
     options: list[dict[str, Any]]
+    taps: list[TapEvent]
 
 
 class HighlightedEventsBuilder:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.events: HighlightedEvents = {
             "canvas_sizes": [],
             "clicks": [],
+            "multiclicks": [],
             "hydration_errors": [],
             "mutations": [],
             "options": [],
             "request_response_sizes": [],
+            "taps": [],
         }
 
     def add(self, event_type: EventType, event: dict[str, Any], sampled: bool) -> None:
@@ -555,10 +646,12 @@ class HighlightedEventsBuilder:
         return ParsedEventMeta(
             self.events["canvas_sizes"],
             self.events["clicks"],
+            self.events["multiclicks"],
             self.events["hydration_errors"],
             self.events["mutations"],
             self.events["options"],
             self.events["request_response_sizes"],
+            self.events["taps"],
         )
 
 
@@ -598,6 +691,9 @@ def as_highlighted_event(
     elif event_type == EventType.RAGE_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=True, is_rage=True)
         return {"clicks": [click]} if click else {}
+    elif event_type == EventType.MULTI_CLICK:
+        multiclick = parse_multiclick_event(event["data"]["payload"])
+        return {"multiclicks": [multiclick]} if multiclick else {}
     elif event_type == EventType.RESOURCE_FETCH or event_type == EventType.RESOURCE_XHR:
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
@@ -606,6 +702,9 @@ def as_highlighted_event(
             return {}
     elif event_type == EventType.OPTIONS and sampled:
         return {"options": [event]}
+    elif event_type == EventType.TAP:
+        tap = parse_tap_event(event["data"]["payload"])
+        return {"taps": [tap]} if tap else {}
     else:
         return {}
 
@@ -640,6 +739,16 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
     return request_size, response_size
 
 
+def parse_tap_event(payload: dict[str, Any]) -> TapEvent | None:
+    payload_data = payload.get("data", {})
+    return TapEvent(
+        timestamp=int(payload["timestamp"]),
+        message=payload.get("message", ""),
+        view_class=payload_data.get("view.class", ""),
+        view_id=payload_data.get("view.id", ""),
+    )
+
+
 def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent | None:
     node = payload["data"].get("node")
 
@@ -665,6 +774,16 @@ def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> 
         timestamp=int(payload["timestamp"]),
         title=attributes.get("title", "")[:64],
         url=payload["data"].get("url"),
+    )
+
+
+def parse_multiclick_event(payload: dict[str, Any]) -> MultiClickEvent | None:
+    click_event = parse_click_event(payload, is_dead=False, is_rage=False)
+    if not click_event:
+        return None
+    return MultiClickEvent(
+        click_event=click_event,
+        click_count=payload["data"].get("clickCount", 0),
     )
 
 

@@ -15,18 +15,18 @@ import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-import type {SummaryResponse} from './useFetchReplaySummary';
-
 interface Props {
-  summaryData: SummaryResponse;
+  timeRanges: TimeRanges;
 }
 
-export function ChapterList({summaryData}: Props) {
+export function ChapterList({timeRanges}: Props) {
   const replay = useReplayReader();
   const {setCurrentTime} = useReplayContext();
   const onClickChapterTimestamp = useCallback(
@@ -39,7 +39,7 @@ export function ChapterList({summaryData}: Props) {
 
   const chapterData = useMemo(
     () =>
-      summaryData?.data.time_ranges
+      timeRanges
         .map(({period_title, period_start, period_end, error, feedback}) => ({
           title: period_title,
           start: period_start,
@@ -48,7 +48,7 @@ export function ChapterList({summaryData}: Props) {
           feedback,
           breadcrumbs:
             replay
-              ?.getChapterFrames()
+              ?.getSummaryChapterFrames()
               .filter(
                 breadcrumb =>
                   breadcrumb.timestampMs >= period_start &&
@@ -56,10 +56,10 @@ export function ChapterList({summaryData}: Props) {
               ) ?? [],
         }))
         .sort((a, b) => a.start - b.start),
-    [summaryData, replay]
+    [timeRanges, replay]
   );
 
-  if (!chapterData.length) {
+  if (!chapterData?.length) {
     return (
       <EmptyContainer>
         <Alert type="info" showIcon={false}>
@@ -71,7 +71,7 @@ export function ChapterList({summaryData}: Props) {
 
   return (
     <ChaptersList>
-      {chapterData.map(({title, start, end, breadcrumbs, error, feedback}, i) => (
+      {chapterData.map(({title, start, end, breadcrumbs}, i) => (
         <ChapterRow
           key={i}
           title={title}
@@ -79,8 +79,6 @@ export function ChapterList({summaryData}: Props) {
           end={end}
           breadcrumbs={breadcrumbs}
           onClickChapterTimestamp={onClickChapterTimestamp}
-          error={error}
-          feedback={feedback}
         />
       ))}
     </ChaptersList>
@@ -94,13 +92,9 @@ function ChapterRow({
   breadcrumbs,
   onClickChapterTimestamp,
   className,
-  error,
-  feedback,
 }: {
   breadcrumbs: ReplayFrame[];
   end: number;
-  error: boolean;
-  feedback: boolean;
   onClickChapterTimestamp: (event: React.MouseEvent<Element>, start: number) => void;
   start: number;
   title: string;
@@ -120,10 +114,13 @@ function ChapterRow({
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
+  const isError = breadcrumbs.some(isErrorFrame);
+  const isFeedback = !isError && breadcrumbs.some(isFeedbackFrame);
+
   return (
     <ChapterWrapper
-      data-has-error={Boolean(error)}
-      data-has-feedback={Boolean(feedback)}
+      data-is-error={isError}
+      data-is-feedback={isFeedback}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -138,19 +135,19 @@ function ChapterRow({
       <Chapter
         onClick={() =>
           trackAnalytics('replay.ai-summary.chapter-clicked', {
-            chapter_type: error ? 'error' : feedback ? 'feedback' : undefined,
+            chapter_type: isError ? 'error' : isFeedback ? 'feedback' : undefined,
             organization,
           })
         }
       >
         <ChapterIconWrapper>
-          {error ? (
+          {isError ? (
             isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="red300" />
             ) : (
               <IconFire size="xs" color="red300" />
             )
-          ) : feedback ? (
+          ) : isFeedback ? (
             isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="pink300" />
             ) : (
@@ -161,9 +158,9 @@ function ChapterRow({
           )}
         </ChapterIconWrapper>
         <ChapterTitle>
-          <span>{title}</span>
+          <span style={{gridArea: 'title'}}>{title}</span>
 
-          <ReplayTimestamp>
+          <ReplayTimestamp style={{gridArea: 'timestamp'}}>
             <TimestampButton
               startTimestampMs={replay?.getStartTimestampMs() ?? 0}
               timestampMs={start}
@@ -254,7 +251,6 @@ const ChapterIconArrow = styled(IconChevron)`
 
 const ChaptersList = styled('div')`
   flex: 1;
-  overflow: auto;
 `;
 
 const ChapterWrapper = styled('details')`
@@ -292,13 +288,13 @@ const ChapterWrapper = styled('details')`
     border-top: 1px solid ${p => p.theme.backgroundSecondary};
   }
 
-  [data-has-feedback='true'] {
+  [data-is-feedback='true'] {
     &:hover {
       border-top: 1px solid ${p => p.theme.pink100};
     }
   }
 
-  [data-has-error='true'] {
+  [data-is-error='true'] {
     &:hover {
       border-top: 1px solid ${p => p.theme.red100};
     }
@@ -339,7 +335,7 @@ const Chapter = styled('summary')`
     display: none;
   }
 
-  [data-has-feedback='true'] & {
+  [data-is-feedback='true'] & {
     color: ${p => p.theme.pink300};
 
     &:hover {
@@ -347,7 +343,7 @@ const Chapter = styled('summary')`
     }
   }
 
-  [data-has-error='true'] & {
+  [data-is-error='true'] & {
     color: ${p => p.theme.red300};
 
     &:hover {
@@ -357,11 +353,12 @@ const Chapter = styled('summary')`
 `;
 
 const ChapterTitle = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: ${space(1)};
+  grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
-  gap: ${space(1)};
-  justify-content: space-between;
   font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)} 0;
 
@@ -377,13 +374,13 @@ const ChapterTitle = styled('div')`
   }
 `;
 
-// Copied from breadcrumbItem
 const ReplayTimestamp = styled('span')`
   display: flex;
   gap: ${space(0.5)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
+  justify-content: flex-end;
 `;
 
 const EmptyContainer = styled('div')`

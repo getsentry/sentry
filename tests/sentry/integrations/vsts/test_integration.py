@@ -737,7 +737,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 @control_silo_test
 @with_feature("organizations:migrate-azure-devops-integration")
 class NewVstsIntegrationTest(VstsIntegrationTestCase):
-    def test_get_organization_config(self):
+    def test_get_organization_config(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
@@ -751,7 +751,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
             "sync_reverse_assignment",
         ]
 
-    def test_get_organization_config_failure(self):
+    def test_get_organization_config_failure(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
@@ -778,7 +778,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         fields = installation.get_organization_config()
         assert fields[0]["disabled"], "Fields should be disabled"
 
-    def test_update_organization_config_remove_all(self):
+    def test_update_organization_config_remove_all(self) -> None:
         self.assert_installation(new=True)
 
         model = Integration.objects.get(provider="vsts")
@@ -821,7 +821,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
 
         assert config == {"sync_status_forward": False, "other_option": "hello"}
 
-    def test_update_organization_config(self):
+    def test_update_organization_config(self) -> None:
         self.assert_installation(new=True)
 
         org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
@@ -905,7 +905,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert domain_name == account_uri
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
-    def test_get_repositories(self):
+    def test_get_repositories(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
@@ -913,7 +913,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert len(result) == 1
         assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
 
-    def test_get_repositories_identity_error(self):
+    def test_get_repositories_identity_error(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 

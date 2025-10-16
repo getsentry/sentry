@@ -18,7 +18,7 @@ import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
-describe('StreamlinedActivitySection', function () {
+describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
@@ -49,7 +49,7 @@ describe('StreamlinedActivitySection', function () {
     localStorage.clear();
   });
 
-  it('renders the input with a comment button', async function () {
+  it('renders the input with a comment button', async () => {
     const comment = 'nice work friends';
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
@@ -85,7 +85,7 @@ describe('StreamlinedActivitySection', function () {
     expect(postMock).toHaveBeenCalled();
   });
 
-  it('allows submitting the comment field with hotkeys', async function () {
+  it('allows submitting the comment field with hotkeys', async () => {
     const comment = 'nice work friends';
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
@@ -107,7 +107,7 @@ describe('StreamlinedActivitySection', function () {
     expect(postMock).toHaveBeenCalled();
   });
 
-  it('renders note and allows for delete', async function () {
+  it('renders note and allows for delete', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/note-1/',
       method: 'DELETE',
@@ -132,7 +132,7 @@ describe('StreamlinedActivitySection', function () {
     expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
   });
 
-  it('renders note and allows for edit', async function () {
+  it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
     const editGroup = GroupFixture({
@@ -180,7 +180,7 @@ describe('StreamlinedActivitySection', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
   });
 
-  it('renders note from a sentry app', async function () {
+  it('renders note from a sentry app', async () => {
     const newUser = UserFixture({name: 'sentry-app-proxy-user-abcd123'});
     const sentryApp = SentryAppFixture({
       name: 'Bug Bot',
@@ -218,7 +218,7 @@ describe('StreamlinedActivitySection', function () {
     expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();
   });
 
-  it('renders note but does not allow for deletion if written by someone else', async function () {
+  it('renders note but does not allow for deletion if written by someone else', async () => {
     const updatedActivityGroup = GroupFixture({
       id: '1338',
       activity: [
@@ -241,7 +241,7 @@ describe('StreamlinedActivitySection', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('collapses activity when there are more than 5 items', async function () {
+  it('collapses activity when there are more than 5 items', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -264,7 +264,7 @@ describe('StreamlinedActivitySection', function () {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', function () {
+  it('does not collapse activity when rendered in the drawer', () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -291,7 +291,7 @@ describe('StreamlinedActivitySection', function () {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('filters comments correctly', function () {
+  it('filters comments correctly', () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,

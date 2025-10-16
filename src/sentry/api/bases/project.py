@@ -24,6 +24,11 @@ from sentry.utils.sdk import Scope, bind_organization_context
 from .organization import OrganizationPermission
 
 
+class ProjectDoesNotExist(ResourceDoesNotExist):
+    def __init__(self) -> None:
+        super().__init__(detail="Project does not exist")
+
+
 class ProjectEventsError(Exception):
     pass
 
@@ -121,9 +126,9 @@ class ProjectEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if args and args[0] is not None:
             organization_id_or_slug: int | str = args[0]
             # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
@@ -175,12 +180,12 @@ class ProjectEndpoint(Endpoint):
                     raise ProjectMoved(new_url, redirect.project.slug)
 
                 # otherwise project doesn't exist
-                raise ResourceDoesNotExist
+                raise ProjectDoesNotExist
             except ProjectRedirect.DoesNotExist:
-                raise ResourceDoesNotExist
+                raise ProjectDoesNotExist
 
         if project.status != ObjectStatus.ACTIVE:
-            raise ResourceDoesNotExist
+            raise ProjectDoesNotExist
 
         self.check_object_permissions(request, project)
 
@@ -193,7 +198,9 @@ class ProjectEndpoint(Endpoint):
         kwargs["project"] = project
         return (args, kwargs)
 
-    def get_filter_params(self, request: Request, project, date_filter_optional=False):
+    def get_filter_params(
+        self, request: Request, project: Project, date_filter_optional: bool = False
+    ) -> dict[str, Any]:
         """Similar to the version on the organization just for a single project."""
         # get the top level params -- projects, time range, and environment
         # from the request
@@ -203,7 +210,7 @@ class ProjectEndpoint(Endpoint):
             raise ProjectEventsError(str(e))
 
         environments = [env.name for env in get_environments(request, project.organization)]
-        params = {"start": start, "end": end, "project_id": [project.id]}
+        params: dict[str, Any] = {"start": start, "end": end, "project_id": [project.id]}
         if environments:
             params["environment"] = environments
 

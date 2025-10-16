@@ -36,16 +36,10 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert fallback_text == "Issue marked as regression"
         assert blocks[0]["text"]["text"] == fallback_text
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        assert blocks[1]["text"]["text"] == (
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}"
-        text = f"{self.group.title}"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
-
         assert blocks[3]["elements"][0]["text"] == (
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
@@ -60,26 +54,21 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
 
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         fallback_text = self.mock_post.call_args.kwargs["text"]
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             fallback_text
             == f"Issue marked as regression in release <http://testserver/organizations/baz/releases/1.0.0/?referrer=regression_activity&notification_uuid={notification_uuid}|1.0.0>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}"
-        text = f"{self.group.title}"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert blocks[1]["text"]["text"] == (
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        )
         assert blocks[3]["elements"][0]["text"] == (
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -107,7 +96,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )

@@ -12,12 +12,12 @@ import ApiTokens from 'sentry/views/settings/account/apiTokens';
 
 jest.mock('sentry/utils/demoMode');
 
-describe('ApiTokens', function () {
-  beforeEach(function () {
+describe('ApiTokens', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty result', async function () {
+  it('renders empty result', async () => {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: null,
@@ -30,7 +30,7 @@ describe('ApiTokens', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders with result', async function () {
+  it('renders with result', async () => {
     const token1 = ApiTokenFixture({id: '1', name: 'token1'});
     const token2 = ApiTokenFixture({id: '2', name: 'token2'});
 
@@ -45,7 +45,7 @@ describe('ApiTokens', function () {
     expect(screen.getByText('token2')).toBeInTheDocument();
   });
 
-  it('renders empty in demo mode even if there are tokens', async function () {
+  it('renders empty in demo mode even if there are tokens', async () => {
     (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
@@ -62,7 +62,7 @@ describe('ApiTokens', function () {
     (isDemoModeActive as jest.Mock).mockReset();
   });
 
-  it('can delete token', async function () {
+  it('can delete token', async () => {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: [ApiTokenFixture()],

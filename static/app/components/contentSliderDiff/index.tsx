@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment, useRef} from 'react';
+import {Fragment, useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -63,7 +63,7 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
   const dividerElem = useRef<HTMLDivElement>(null);
   const width = `${viewDimensions.width}px`;
 
-  const {onMouseDown} = useResizableDrawer({
+  const {onMouseDown, onDoubleClick} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -112,6 +112,7 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
           onDragHandleMouseDown?.(event);
           onMouseDown(event);
         }}
+        onDoubleClick={onDoubleClick}
       >
         <DragIndicator>
           <IconGrabbable size="sm" />

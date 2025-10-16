@@ -8,8 +8,6 @@ from typing import Any
 from google.api_core.exceptions import DeadlineExceeded
 from sentry_sdk import set_tag, set_user
 
-from sentry import eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
@@ -22,6 +20,8 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
@@ -173,6 +173,8 @@ def get_trees_for_org(
     with SCMIntegrationInteractionEvent(
         SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
         provider_key=installation.model.provider,
+        organization_id=org.id,
+        integration_id=installation.org_integration.integration_id,
     ).capture() as lifecycle:
         try:
             with lock.acquire():

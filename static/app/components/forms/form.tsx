@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
@@ -30,6 +30,7 @@ export interface FormProps
     | 'onFieldChange'
     | 'onSubmitError'
     | 'onSubmitSuccess'
+    | 'mapFormErrors'
   > {
   additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
@@ -122,6 +123,7 @@ function Form({
   footerStyle,
   hideFooter,
   initialData,
+  mapFormErrors,
   model,
   onCancel,
   onFieldChange,
@@ -159,6 +161,7 @@ function Form({
       saveOnBlur,
       apiEndpoint,
       apiMethod,
+      mapFormErrors,
     });
 
     return resolvedModel;

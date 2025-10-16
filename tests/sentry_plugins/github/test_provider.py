@@ -21,10 +21,10 @@ from sentry_plugins.github.testutils import (
 
 class GitHubPluginTest(TestCase):
     @cached_property
-    def provider(self):
+    def provider(self) -> GitHubRepositoryProvider:
         return GitHubRepositoryProvider("github")
 
-    def test_compare_commits(self):
+    def test_compare_commits(self) -> None:
         repo = Repository.objects.create(provider="github", name="example", organization_id=1)
 
         res = self.provider._format_commits(repo, orjson.loads(COMPARE_COMMITS_EXAMPLE)["commits"])
@@ -39,7 +39,7 @@ class GitHubPluginTest(TestCase):
             }
         ]
 
-    def test_get_last_commits(self):
+    def test_get_last_commits(self) -> None:
         repo = Repository.objects.create(provider="github", name="example", organization_id=1)
 
         res = self.provider._format_commits(repo, orjson.loads(GET_LAST_COMMITS_EXAMPLE)[:10])
@@ -55,7 +55,7 @@ class GitHubPluginTest(TestCase):
         ]
 
     @responses.activate
-    def test_create_repository(self):
+    def test_create_repository(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/example-repo/hooks",
@@ -93,7 +93,7 @@ class GitHubPluginTest(TestCase):
         }
 
     @responses.activate
-    def test_delete_repository(self):
+    def test_delete_repository(self) -> None:
         responses.add(
             responses.DELETE,
             "https://api.github.com/repos/getsentry/example-repo/hooks/123456",
@@ -118,7 +118,7 @@ class GitHubPluginTest(TestCase):
         self.provider.delete_repository(repo, user)
 
     @responses.activate
-    def test_update_repository_without_webhook(self):
+    def test_update_repository_without_webhook(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/example-repo/hooks",
@@ -142,7 +142,7 @@ class GitHubPluginTest(TestCase):
         assert repo.config["webhook_events"] == ["push", "pull_request"]
 
     @responses.activate
-    def test_update_repository_with_webhook(self):
+    def test_update_repository_with_webhook(self) -> None:
         responses.add(
             responses.PATCH,
             "https://api.github.com/repos/getsentry/example-repo/hooks/123456",
@@ -172,7 +172,7 @@ class GitHubPluginTest(TestCase):
 
 class GitHubAppsProviderTest(TestCase):
     @cached_property
-    def provider(self):
+    def provider(self) -> GitHubAppsRepositoryProvider:
         return GitHubAppsRepositoryProvider("github_apps")
 
     @patch.object(
@@ -185,7 +185,7 @@ class GitHubAppsProviderTest(TestCase):
         "get_installations",
         return_value=orjson.loads(LIST_INSTALLATION_API_RESPONSE),
     )
-    def test_link_auth(self, *args):
+    def test_link_auth(self, *args: MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization()
         self.create_usersocialauth(
@@ -203,7 +203,7 @@ class GitHubAppsProviderTest(TestCase):
                 organization_id=organization.id, integration=integration
             ).exists()
 
-    def test_delete_repository(self):
+    def test_delete_repository(self) -> None:
         user = self.create_user()
         organization = self.create_organization()
         integration = self.create_integration(

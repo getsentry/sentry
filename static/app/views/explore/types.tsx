@@ -3,6 +3,8 @@ import type {Project} from 'sentry/types/project';
 export enum TraceItemDataset {
   LOGS = 'logs',
   SPANS = 'spans',
+  UPTIME_RESULTS = 'uptime_results',
+  TRACEMETRICS = 'tracemetrics',
 }
 
 export interface UseTraceItemAttributeBaseProps {

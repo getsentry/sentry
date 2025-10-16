@@ -28,7 +28,6 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:dashboards-basic",
-    "organizations:global-views",
 ]
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]
@@ -39,7 +38,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @no_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
@@ -54,7 +53,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def capture_screenshots(self, screenshot_name):
+    def capture_screenshots(self, screenshot_name: str) -> None:
         """
         Captures screenshots in both a pre and post refresh state.
 
@@ -64,12 +63,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         self.browser.refresh()
         self.page.wait_until_loaded()
 
-    def test_default_overview_dashboard_layout(self):
+    def test_default_overview_dashboard_layout(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.page.visit_default_overview()
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_add_and_move_new_widget_on_existing_dashboard(self):
+    def test_add_and_move_new_widget_on_existing_dashboard(self) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
@@ -86,7 +85,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - save new widget layout in custom dashboard")
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_create_new_dashboard_with_modified_widget_layout(self):
+    def test_create_new_dashboard_with_modified_widget_layout(self) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             # Create a new dashboard
             self.page.visit_create_dashboard()
@@ -111,10 +110,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.capture_screenshots("dashboards - save widget layout in new custom dashboard")
 
-    def test_move_existing_widget_on_existing_dashboard(self):
+    def test_move_existing_widget_on_existing_dashboard(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
@@ -137,13 +135,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - move existing widget on existing dashboard")
 
     @pytest.mark.skip(reason="flaky: DD-1216")
-    def test_widget_edit_keeps_same_layout_after_modification(self):
+    def test_widget_edit_keeps_same_layout_after_modification(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -192,8 +189,8 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_add_issue_widgets_do_not_overlap(self):
-        def add_issue_widget(widget_title):
+    def test_add_issue_widgets_do_not_overlap(self) -> None:
+        def add_issue_widget(widget_title: str) -> None:
             self.browser.wait_until_clickable('[data-test-id="widget-add"]')
             self.page.click_dashboard_add_widget_button()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
@@ -214,13 +211,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - issue widgets do not overlap")
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_resize_new_and_existing_widgets(self):
+    def test_resize_new_and_existing_widgets(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -257,13 +253,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - resize new and existing widgets")
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_delete_existing_widget_does_not_trigger_new_widget_layout_reset(self):
+    def test_delete_existing_widget_does_not_trigger_new_widget_layout_reset(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2}},
         )
@@ -304,10 +299,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                 "dashboards - delete existing widget does not reset new widget layout"
             )
 
-    def test_resize_big_number_widget(self):
+    def test_resize_big_number_widget(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
@@ -333,15 +327,14 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.capture_screenshots("dashboards - resize big number widget")
 
-    def test_default_layout_when_widgets_do_not_have_layout_set(self):
+    def test_default_layout_when_widgets_do_not_have_layout_set(self) -> None:
         existing_widgets = DashboardWidget.objects.bulk_create(
             [
                 DashboardWidget(
                     dashboard=self.dashboard,
-                    order=i,
                     title=f"Existing Widget {i}",
                     display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    widget_type=DashboardWidgetTypes.ERROR_EVENTS,
                     interval="1d",
                 )
                 for i in range(4)
@@ -365,13 +358,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
-    def test_delete_widget_in_view_mode(self):
+    def test_delete_widget_in_view_mode(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -396,7 +388,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
     def test_cancel_without_changes_does_not_trigger_confirm_with_custom_widget_through_header(
         self,
-    ):
+    ) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
@@ -416,7 +408,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_edit(
         self,
-    ):
+    ) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
@@ -436,7 +428,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="flaky: DD-1217")
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
         self,
-    ):
+    ) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_create_dashboard()
 
@@ -463,7 +455,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
     def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
         self,
-    ):
+    ) -> None:
         layouts = [
             {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2},
             {"x": 0, "y": 2, "w": 2, "h": 2, "minH": 2},
@@ -472,7 +464,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             [
                 DashboardWidget(
                     dashboard=self.dashboard,
-                    order=i,
                     title=f"Existing Widget {i}",
                     display_type=DashboardWidgetDisplayTypes.LINE_CHART,
                     widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
@@ -518,7 +509,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
     def test_changing_number_widget_to_area_updates_widget_height(
         self,
-    ):
+    ) -> None:
         layouts = [
             (DashboardWidgetDisplayTypes.BIG_NUMBER, {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1}),
             (DashboardWidgetDisplayTypes.LINE_CHART, {"x": 0, "y": 1, "w": 2, "h": 2, "minH": 2}),
@@ -527,10 +518,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             [
                 DashboardWidget(
                     dashboard=self.dashboard,
-                    order=i,
                     title=f"Widget {i}",
                     display_type=display_type,
-                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    widget_type=DashboardWidgetTypes.ERROR_EVENTS,
                     interval="1d",
                     detail={"layout": layout},
                 )
@@ -578,13 +568,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="flaky behaviour due to loading spinner")
     def test_changing_number_widget_larger_than_min_height_for_area_chart_keeps_height(
         self,
-    ):
+    ) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Originally Big Number - 3 rows",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 1}},
         )
@@ -619,13 +608,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="flaky: DD-1211")
     def test_changing_area_widget_larger_than_min_height_for_number_chart_keeps_height(
         self,
-    ):
+    ) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Originally Area Chart - 3 rows",
             display_type=DashboardWidgetDisplayTypes.AREA_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 2}},
         )
@@ -660,7 +648,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
 @no_silo_test
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
         self.project = self.create_project(
@@ -671,34 +659,32 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         )
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         self.login_as(self.user)
 
         self.default_path = f"/organizations/{self.organization.slug}/dashboards/"
 
-    def wait_until_loaded(self):
+    def wait_until_loaded(self) -> None:
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def test_dashboard_manager(self):
+    def test_dashboard_manager(self) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
 
-    def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self):
+    def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self) -> None:
         dashboard_with_layouts = Dashboard.objects.create(
             title="Dashboard with some defined layouts",
             created_by_id=self.user.id,
@@ -706,10 +692,9 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard_with_layouts,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.BAR_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 1, "y": 0, "w": 3, "h": 3, "minH": 2}},
         )
@@ -718,10 +703,9 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         # x: 4, y: 0, w: 2, h: 2
         DashboardWidget.objects.create(
             dashboard=dashboard_with_layouts,
-            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
 

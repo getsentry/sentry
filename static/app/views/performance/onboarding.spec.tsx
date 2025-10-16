@@ -12,10 +12,10 @@ import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {LegacyOnboarding, Onboarding} from './onboarding';
 
-describe('Performance Onboarding View > Unsupported Banner', function () {
+describe('Performance Onboarding View > Unsupported Banner', () => {
   const organization = OrganizationFixture();
 
-  it('Displays unsupported banner for unsupported projects', function () {
+  it('Displays unsupported banner for unsupported projects', () => {
     const project = ProjectFixture({
       platform: 'nintendo-switch',
     });
@@ -24,7 +24,7 @@ describe('Performance Onboarding View > Unsupported Banner', function () {
     expect(screen.getByTestId('unsupported-alert')).toBeInTheDocument();
   });
 
-  it('Does not display unsupported banner for supported projects', function () {
+  it('Does not display unsupported banner for supported projects', () => {
     const project = ProjectFixture({
       platform: 'java',
     });
@@ -34,7 +34,7 @@ describe('Performance Onboarding View > Unsupported Banner', function () {
   });
 });
 
-describe('Testing new onboarding ui', function () {
+describe('Testing new onboarding ui', () => {
   const organization = OrganizationFixture({
     features: ['tracing-onboarding-new-ui'],
   });
@@ -58,7 +58,7 @@ describe('Testing new onboarding ui', function () {
     PageFiltersStore.reset();
   });
 
-  it('Renders updated ui', async function () {
+  it('Renders updated ui', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
     });
@@ -110,7 +110,7 @@ describe('Testing new onboarding ui', function () {
     ).toBeInTheDocument();
   });
 
-  it('when the first trace is received, display a busy button "Take me to my trace"', async function () {
+  it('when the first trace is received, display a busy button "Take me to my trace"', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: true,
@@ -122,19 +122,16 @@ describe('Testing new onboarding ui', function () {
       body: projectMock,
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(projectMock.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(projectMock.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
@@ -175,7 +172,7 @@ describe('Testing new onboarding ui', function () {
     ).toHaveAttribute('aria-busy', 'true');
   });
 
-  it('when the first trace is processed, display an enabled button "Take me to my trace"', async function () {
+  it('when the first trace is processed, display an enabled button "Take me to my trace"', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: true,
@@ -187,19 +184,16 @@ describe('Testing new onboarding ui', function () {
       body: projectMock,
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(projectMock.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(projectMock.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     const trace = {
       breakdowns: [],

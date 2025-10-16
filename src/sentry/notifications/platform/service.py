@@ -1,13 +1,15 @@
 import logging
 from typing import Final
 
+from sentry import features, options
+from sentry.models.organization import Organization
 from sentry.notifications.platform.registry import provider_registry, template_registry
-from sentry.notifications.platform.target import prepare_targets
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationStrategy,
     NotificationTarget,
 )
+from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +22,27 @@ class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
 
+    @staticmethod
+    def has_access(organization: Organization, source: str) -> bool:
+        if not features.has("organizations:notification-platform", organization):
+            return False
+
+        option_key = f"notifications.platform-rate.{source}"
+        try:
+            options.get(option_key)
+        except options.UnknownOption:
+            logger.warning(
+                "Notification platform key '%s' has not been registered in options/default.py",
+                option_key,
+            )
+            return False
+
+        return sample_modulo(option_key, organization.id)
+
     # TODO(ecosystem): Eventually this should be converted to spawn a task with the business logic below
-    def notify_prepared_target(self, *, target: NotificationTarget) -> None:
+    def notify_target(self, *, target: NotificationTarget) -> None:
         """
-        Send a notification directly to a prepared target.
+        Send a notification directly to a target.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
         using this method directly to prevent unwanted noise associated with your notifications.
         """
@@ -32,24 +51,18 @@ class NotificationService[T: NotificationData]:
                 "Notification service must be initialized with data before sending!"
             )
 
-        # Step 1: Ensure the target has already been prepared.
-        if not target.is_prepared:
-            raise NotificationServiceError(
-                "Target must have `prepare_targets` called prior to sending"
-            )
-
-        # Step 3: Get the provider, and validate the target against it
+        # Step 1: Get the provider, and validate the target against it
         provider = provider_registry.get(target.provider_key)
         provider.validate_target(target=target)
 
-        # Step 4: Render the template
+        # Step 2: Render the template
         template_cls = template_registry.get(self.data.source)
         template = template_cls()
         rendered_template = template.render(data=self.data)
         renderer = provider.get_renderer(data=self.data, category=template.category)
         renderable = renderer.render(data=self.data, rendered_template=rendered_template)
 
-        # Step 5: Send the notification
+        # Step 3: Send the notification
         provider.send(target=target, renderable=renderable)
 
     def notify(
@@ -72,8 +85,5 @@ class NotificationService[T: NotificationData]:
             logger.info("Strategy '%s' did not yield targets", strategy.__class__.__name__)
             return
 
-        # Prepare the targets for sending by fetching integration data, etc.
-        prepare_targets(targets=targets)
-
         for target in targets:
-            self.notify_prepared_target(target=target)
+            self.notify_target(target=target)

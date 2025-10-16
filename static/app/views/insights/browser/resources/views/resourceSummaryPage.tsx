@@ -15,10 +15,10 @@ import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -117,7 +117,7 @@ function ResourceSummary() {
         hideDefaultTabs
       />
 
-      <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
+      <ModuleFeature moduleName={ModuleName.RESOURCE}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -167,7 +167,7 @@ function ResourceSummary() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

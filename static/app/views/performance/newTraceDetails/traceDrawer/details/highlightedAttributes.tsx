@@ -1,42 +1,56 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {getAIAttribute} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
+import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {
-  hasAgentInsightsFeature,
-  hasMCPInsightsFeature,
-} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+  AI_CREATE_AGENT_OPS,
+  AI_RUN_OPS,
+  getIsAiSpan,
+  getToolSpansFilter,
+} from 'sentry/views/insights/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type HighlightedAttribute = {
   name: string;
   value: React.ReactNode;
 };
 
+function tryParseJson(value: string) {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return value;
+  }
+}
+
 export function getHighlightedSpanAttributes({
   op,
-  organization,
+  spanId,
   attributes = {},
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
   op: string | undefined;
-  organization: Organization;
+  spanId: string;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
 
-  if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
-    return getAISpanAttributes(attributeObject, op);
+  if (getIsAiSpan({op})) {
+    return getAISpanAttributes({attributes: attributeObject, op, spanId});
   }
 
-  if (hasMCPInsightsFeature(organization) && op?.startsWith('mcp.')) {
+  if (op?.startsWith('mcp.')) {
     return getMCPAttributes(attributeObject);
   }
 
@@ -61,15 +75,26 @@ function ensureAttributeObject(
   return attributes;
 }
 
-function getAISpanAttributes(
-  attributes: Record<string, string | number | boolean>,
-  op?: string
-) {
+function getAISpanAttributes({
+  op,
+  spanId,
+  attributes = {},
+}: {
+  attributes: Record<string, string | number | boolean>;
+  op: string | undefined;
+  spanId: string;
+}) {
   const highlightedAttributes = [];
 
-  const model =
-    getAIAttribute(attributes, 'gen_ai.request.model') ||
-    getAIAttribute(attributes, 'gen_ai.response.model');
+  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  if (agentName) {
+    highlightedAttributes.push({
+      name: t('Agent Name'),
+      value: agentName,
+    });
+  }
+
+  const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
@@ -77,11 +102,11 @@ function getAISpanAttributes(
     });
   }
 
-  const inputTokens = getAIAttribute(attributes, 'gen_ai.usage.input_tokens');
-  const cachedTokens = getAIAttribute(attributes, 'gen_ai.usage.cached_tokens');
-  const outputTokens = getAIAttribute(attributes, 'gen_ai.usage.output_tokens');
-  const reasoningTokens = getAIAttribute(attributes, 'gen_ai.usage.reasoning_tokens');
-  const totalTokens = getAIAttribute(attributes, 'gen_ai.usage.total_tokens');
+  const inputTokens = attributes['gen_ai.usage.input_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.input_tokens.cached'];
+  const outputTokens = attributes['gen_ai.usage.output_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.output_tokens.reasoning'];
+  const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
@@ -98,7 +123,7 @@ function getAISpanAttributes(
     });
   }
 
-  const totalCosts = getAIAttribute(attributes, 'gen_ai.usage.total_cost');
+  const totalCosts = attributes['gen_ai.usage.total_cost'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
@@ -116,9 +141,9 @@ function getAISpanAttributes(
         has_model: 'true',
         has_cost: 'false',
         span_operation: op || 'unknown',
+        model: model.toString(),
       },
       extra: {
-        model: model.toString(),
         total_costs: totalCosts,
         span_operation: op,
         attributes,
@@ -126,11 +151,25 @@ function getAISpanAttributes(
     });
   }
 
-  const toolName = getAIAttribute(attributes, 'gen_ai.tool.name');
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: toolName,
+    });
+  }
+
+  const availableTools = attributes['gen_ai.request.available_tools'];
+  const toolsArray = tryParseJson(availableTools?.toString() || '');
+  if (
+    toolsArray &&
+    Array.isArray(toolsArray) &&
+    toolsArray.length > 0 &&
+    [...AI_RUN_OPS, ...AI_CREATE_AGENT_OPS].includes(op!)
+  ) {
+    highlightedAttributes.push({
+      name: t('Available Tools'),
+      value: <HighlightedTools availableTools={toolsArray} spanId={spanId} />,
     });
   }
 
@@ -173,6 +212,61 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
   }
 
   return highlightedAttributes;
+}
+
+function HighlightedTools({
+  availableTools,
+  spanId,
+}: {
+  availableTools: any[];
+  spanId: string;
+}) {
+  const toolNames = availableTools.map(tool => tool.name).filter(Boolean);
+  const hasToolNames = toolNames.length > 0;
+  const toolSpansQuery = useSpans(
+    {
+      search: `parent_span:${spanId} has:${SpanFields.GEN_AI_TOOL_NAME} ${getToolSpansFilter()}`,
+      fields: [SpanFields.GEN_AI_TOOL_NAME],
+      enabled: hasToolNames,
+    },
+    Referrer.TRACE_DRAWER_TOOL_USAGE
+  );
+
+  const usedTools: Map<string, number> = new Map();
+  toolSpansQuery.data?.forEach(span => {
+    const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
+    usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);
+  });
+
+  // Fall back to showing formatted JSON if tool names cannot be parsed
+  if (!hasToolNames) {
+    return (
+      <StructuredData value={availableTools} withAnnotatedText maxDefaultDepth={0} />
+    );
+  }
+
+  return (
+    <Flex direction="row" gap="xs" wrap="wrap">
+      {toolNames.sort().map(tool => {
+        const usageCount = usedTools.get(tool) ?? 0;
+        return (
+          <Tooltip
+            key={tool}
+            disabled={toolSpansQuery.isPending}
+            title={
+              usageCount === 0
+                ? t('Not used by agent')
+                : tn('Used %s time', 'Used %s times', usageCount)
+            }
+          >
+            <Tag key={tool} type={usedTools.has(tool) ? 'info' : 'default'}>
+              {tool}
+            </Tag>
+          </Tooltip>
+        );
+      })}
+    </Flex>
+  );
 }
 
 function HighlightedTokenAttributes({

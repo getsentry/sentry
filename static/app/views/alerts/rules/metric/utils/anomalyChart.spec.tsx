@@ -1,7 +1,7 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
-import {type Anomaly, AnomalyType} from 'sentry/views/alerts/types';
+import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
 
 const theme = ThemeFixture();
 

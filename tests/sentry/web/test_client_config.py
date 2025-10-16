@@ -88,7 +88,7 @@ def test_client_config_default() -> None:
     ],
 )
 @django_db_all(transaction=True)
-def test_client_config_in_silo_modes(request_factory: RequestFactory):
+def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
     request_ret = request_factory()
     if request_ret is not None:
         request, _ = request_ret

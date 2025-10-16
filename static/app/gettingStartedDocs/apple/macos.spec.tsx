@@ -8,8 +8,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './macos';
 
-describe('apple-macos onboarding docs', function () {
-  it('renders docs correctly', async function () {
+describe('apple-macos onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.cocoa': {
@@ -33,7 +33,7 @@ describe('apple-macos onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
@@ -43,7 +43,7 @@ describe('apple-macos onboarding docs', function () {
     ).toHaveLength(2);
   });
 
-  it('renders transaction profiling', async function () {
+  it('renders transaction profiling', async () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
@@ -60,7 +60,7 @@ describe('apple-macos onboarding docs', function () {
     ).toHaveLength(2);
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });

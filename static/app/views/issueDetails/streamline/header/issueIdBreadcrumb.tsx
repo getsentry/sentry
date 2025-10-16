@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -44,8 +45,8 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   }
 
   return (
-    <BreadcrumbContainer>
-      <Wrapper>
+    <Flex align="center" gap="xs">
+      <Flex gap="md" align="center">
         <ProjectBadge
           project={project}
           avatarSize={16}
@@ -76,55 +77,39 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
             />
           )}
         </ShortIdCopyable>
-      </Wrapper>
+      </Flex>
       {!isHovered && group.isPublic && shareUrl && (
         <Button
           size="zero"
           borderless
           aria-label={t('View issue share settings')}
+          icon={<IconGlobe size="xs" color="subText" />}
           title={tct('This issue has been shared [link:with a public link].', {
             link: <ExternalLink href={shareUrl} />,
           })}
           tooltipProps={{isHoverable: true}}
-          icon={
-            <IconGlobe
-              size="xs"
-              color="subText"
-              onClick={() =>
-                openModal(modalProps => (
-                  <ShareIssueModal
-                    {...modalProps}
-                    organization={organization}
-                    projectSlug={group.project.slug}
-                    groupId={group.id}
-                    onToggle={() =>
-                      trackAnalytics('issue.shared_publicly', {
-                        organization,
-                      })
-                    }
-                    event={null}
-                    hasIssueShare
-                  />
-                ))
-              }
-            />
+          onClick={() =>
+            openModal(modalProps => (
+              <ShareIssueModal
+                {...modalProps}
+                organization={organization}
+                projectSlug={group.project.slug}
+                groupId={group.id}
+                onToggle={() =>
+                  trackAnalytics('issue.shared_publicly', {
+                    organization,
+                  })
+                }
+                event={null}
+                hasIssueShare
+              />
+            ))
           }
         />
       )}
-    </BreadcrumbContainer>
+    </Flex>
   );
 }
-
-const BreadcrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};

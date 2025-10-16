@@ -42,7 +42,7 @@ def test_detect_breakpoints(mock_urlopen: mock.MagicMock) -> None:
 )
 @mock.patch("sentry_sdk.capture_exception")
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
-def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status):
+def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status) -> None:
     mock_urlopen.return_value = HTTPResponse(body, status=status)
 
     assert detect_breakpoints({"data": {}}) == {"data": []}

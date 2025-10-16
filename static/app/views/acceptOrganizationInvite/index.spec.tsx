@@ -23,7 +23,7 @@ const getJoinButton = () => {
   return maybeButton;
 };
 
-describe('AcceptOrganizationInvite', function () {
+describe('AcceptOrganizationInvite', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
   const configState = ConfigStore.getState();
 
@@ -38,7 +38,7 @@ describe('AcceptOrganizationInvite', function () {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('can accept invitation', async function () {
+  it('can accept invitation', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -66,7 +66,7 @@ describe('AcceptOrganizationInvite', function () {
     expect(testableWindowLocation.assign).toHaveBeenCalledWith('/org-slug/');
   });
 
-  it('can accept invitation on customer-domains', async function () {
+  it('can accept invitation on customer-domains', async () => {
     ConfigStore.set('customerDomain', {
       subdomain: 'org-slug',
       organizationUrl: 'https://org-slug.sentry.io',
@@ -104,7 +104,7 @@ describe('AcceptOrganizationInvite', function () {
     expect(testableWindowLocation.assign).toHaveBeenCalledWith('/org-slug/');
   });
 
-  it('renders error message', async function () {
+  it('renders error message', async () => {
     MockApiClient.addMockResponse({
       url: '/accept-invite/1/abc/',
       method: 'GET',
@@ -126,7 +126,7 @@ describe('AcceptOrganizationInvite', function () {
     ).toBeInTheDocument();
   });
 
-  it('requires authentication to join', async function () {
+  it('requires authentication to join', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -152,7 +152,7 @@ describe('AcceptOrganizationInvite', function () {
     ).toBeInTheDocument();
   });
 
-  it('suggests sso authentication to login', async function () {
+  it('suggests sso authentication to login', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -180,7 +180,7 @@ describe('AcceptOrganizationInvite', function () {
     ).toBeInTheDocument();
   });
 
-  it('enforce required sso authentication', async function () {
+  it('enforce required sso authentication', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -208,7 +208,7 @@ describe('AcceptOrganizationInvite', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('enforce required sso authentication for logged in users', async function () {
+  it('enforce required sso authentication for logged in users', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -236,7 +236,7 @@ describe('AcceptOrganizationInvite', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('show logout button for logged in users w/ sso and membership', async function () {
+  it('show logout button for logged in users w/ sso and membership', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -256,7 +256,7 @@ describe('AcceptOrganizationInvite', function () {
     await waitFor(() => expect(logout).toHaveBeenCalled());
   });
 
-  it('shows right options for logged in user and optional SSO', async function () {
+  it('shows right options for logged in user and optional SSO', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -275,7 +275,7 @@ describe('AcceptOrganizationInvite', function () {
     expect(getJoinButton()).toBeInTheDocument();
   });
 
-  it('shows a logout button for existing members', async function () {
+  it('shows a logout button for existing members', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -294,7 +294,7 @@ describe('AcceptOrganizationInvite', function () {
     await waitFor(() => expect(logout).toHaveBeenCalled());
   });
 
-  it('shows 2fa warning', async function () {
+  it('shows 2fa warning', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,

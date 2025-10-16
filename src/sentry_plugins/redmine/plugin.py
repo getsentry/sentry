@@ -56,13 +56,13 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         self.client_errors = []
         self.fields = []
 
-    def has_project_conf(self):
+    def has_project_conf(self) -> bool:
         return True
 
     def is_configured(self, project) -> bool:
         return all(self.get_option(k, project) for k in ("host", "key", "project_id"))
 
-    def get_new_issue_title(self, **kwargs):
+    def get_new_issue_title(self, **kwargs) -> str:
         return "Create Redmine Task"
 
     def get_initial_form_data(self, request: Request, group, event, **kwargs):

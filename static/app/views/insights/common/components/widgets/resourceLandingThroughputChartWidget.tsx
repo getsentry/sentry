@@ -19,13 +19,16 @@ export default function ResourceLandingThroughputChartWidget(
     enabled,
   });
 
+  const timeSeries = data?.timeSeries || [];
+  const throughputSeries = timeSeries.find(ts => ts.yAxis === 'epm()');
+
   return (
     <InsightsLineChartWidget
       {...props}
-      queryInfo={{search, referrer}}
+      queryInfo={{search, referrer, yAxis: ['epm()']}}
       id="resourceLandingThroughputChartWidget"
       title={getThroughputChartTitle('resource')}
-      series={[data['epm()']]}
+      timeSeries={throughputSeries ? [throughputSeries] : []}
       isLoading={isPending}
       error={error}
     />

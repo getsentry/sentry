@@ -239,7 +239,7 @@ def get_dataset_from_label_and_event_types(
         dataset_label = "errors"
     elif dataset_label == "events_analytics_platform":
         if event_types and SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
-            dataset_label = "ourlogs"
+            dataset_label = "logs"
         else:
             dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:

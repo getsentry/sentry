@@ -1,18 +1,14 @@
 from sentry import options
 from sentry.utils.services import LazyServiceWrapper
 
-from .attribute import Attribute
 from .base import Analytics
 from .event import Event, eventclass
 from .event_manager import default_manager
-from .map import Map
 
 __all__ = (
     "Analytics",
-    "Attribute",
     "eventclass",
     "Event",
-    "Map",
     "record",
     "record_event",
     "setup",
@@ -35,7 +31,7 @@ backend = LazyServiceWrapper(
 )
 
 record = backend.record
-record_event = backend.record_event
+record_event_envelope = backend.record_event_envelope
 register = default_manager.register
 setup = backend.setup
 validate = backend.validate

@@ -41,8 +41,8 @@ import type {
 } from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
 import {
   getSamplesTargetAtIndex,
-  type ReadableExploreQueryParts,
   useReadQueriesFromLocation,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
@@ -181,7 +181,7 @@ function AggregatesTable({
                       <TopResultsIndicator color={palette[i]!} />
                     )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target} data-test-id={'unstack-link'}>
+                      <StyledLink to={target} data-test-id="unstack-link">
                         <IconStack />
                       </StyledLink>
                     </Tooltip>

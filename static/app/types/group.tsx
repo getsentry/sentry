@@ -1,7 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
-import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
@@ -16,7 +16,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {PlatformKey, Project} from './project';
+import type {AvatarProject, PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -175,6 +175,9 @@ export enum IssueType {
 
   // Detectors
   QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
+
+  // Insights Web Vitals
+  WEB_VITALS = 'web_vitals',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -193,7 +196,7 @@ export enum IssueTitle {
   PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
-  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP Payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
   PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
 
@@ -212,7 +215,16 @@ export enum IssueTitle {
   // Metric Issues
   METRIC_ISSUE = 'Issue Detected by Metric Monitor',
 
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'Missed or Failed Cron Check-In',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'Uptime Monitor Detected Downtime',
+
   QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
+
+  // Insights Web Vitals
+  WEB_VITALS = 'Web Vitals',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -245,6 +257,11 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 
   metric_issue: IssueTitle.METRIC_ISSUE,
+
+  monitor_check_in_failure: IssueTitle.MONITOR_CHECK_IN_FAILURE,
+  uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
+
+  web_vitals: IssueTitle.WEB_VITALS,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -277,6 +294,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
   2008: IssueType.PROFILE_FRAME_DROP,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  10001: IssueType.WEB_VITALS,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
@@ -918,7 +936,6 @@ export interface BaseGroup {
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   latestEventHasAttachments?: boolean;
-  openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
   seerAutofixLastTriggered?: string | null;
   seerFixabilityScore?: number | null;
@@ -926,9 +943,18 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
+interface GroupOpenPeriodActivity {
+  dateCreated: string;
+  id: string;
+  type: 'opened' | 'status_change' | 'closed';
+  value: 'high' | 'medium' | null;
+}
+
 export interface GroupOpenPeriod {
+  activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
+  id: string;
   isOpen: boolean;
   lastChecked: string;
   start: string;
@@ -955,6 +981,24 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
 }
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
+
+// Maps to SimpleGroupSerializer in the backend
+export type SimpleGroup = {
+  culprit: string | null;
+  firstSeen: string;
+  id: string;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
+  lastSeen: string;
+  level: Level;
+  metadata: EventMetadata;
+  project: AvatarProject;
+  shortId: string;
+  status: GroupStatus;
+  substatus: GroupSubstatus | null;
+  title: string;
+  type: EventOrGroupType;
+};
 
 export interface GroupTombstone {
   actor: AvatarUser;

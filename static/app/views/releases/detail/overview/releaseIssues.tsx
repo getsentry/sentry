@@ -15,6 +15,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -369,11 +370,12 @@ class ReleaseIssues extends Component<Props, State> {
       <Fragment>
         <ControlsWrapper>
           <DemoTourElement
-            id={DemoTourStep.RELEASES_STATES}
+            id={DemoTourStep.RELEASES_ISSUES}
             title={t('New and regressed issues')}
             description={t(
               `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
             )}
+            position="top-start"
           >
             <SegmentedControl
               aria-label={t('Issue type')}
@@ -407,7 +409,7 @@ class ReleaseIssues extends Component<Props, State> {
           <GroupList
             endpointPath={path}
             queryParams={queryParams}
-            query={`release:${version}`}
+            query={`release:"${escapeDoubleQuotes(version)}"`}
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
@@ -415,6 +417,7 @@ class ReleaseIssues extends Component<Props, State> {
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
             source="release"
+            numPlaceholderRows={queryParams.limit}
           />
         </div>
       </Fragment>

@@ -14,7 +14,7 @@ import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 
 jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
 
-describe('buttonTracking', function () {
+describe('buttonTracking', () => {
   const organization = OrganizationFixture();
 
   const project = ProjectFixture({organization});
@@ -39,11 +39,11 @@ describe('buttonTracking', function () {
     </OrganizationContext>
   );
 
-  afterEach(function () {
+  afterEach(() => {
     (rawTrackAnalyticsEvent as jest.Mock).mockClear();
   });
 
-  it('calls rawTrackAnalyticsEvent with default values', function () {
+  it('calls rawTrackAnalyticsEvent with default values', () => {
     const {result} = renderHook(useButtonTracking, {
       initialProps: {'aria-label': 'Create Alert'},
       wrapper,
@@ -61,7 +61,7 @@ describe('buttonTracking', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('calls rawTrackAnalyticsEvent with data', function () {
+  it('calls rawTrackAnalyticsEvent with data', () => {
     const {result} = renderHook(useButtonTracking, {
       initialProps: {
         'aria-label': 'Create Alert',
@@ -86,7 +86,7 @@ describe('buttonTracking', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('calls rawTrackAnalyticsEvent with new event names', function () {
+  it('calls rawTrackAnalyticsEvent with new event names', () => {
     const {result} = renderHook(useButtonTracking, {
       initialProps: {
         'aria-label': 'Create Alert',

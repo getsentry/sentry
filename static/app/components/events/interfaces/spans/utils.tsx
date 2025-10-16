@@ -1,7 +1,5 @@
 import type {Theme} from '@emotion/react';
-import type {Location} from 'history';
 import isNumber from 'lodash/isNumber';
-import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment-timezone';
 
@@ -13,31 +11,18 @@ import type {
   EventTransaction,
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import {MobileVital, WebVital} from 'sentry/utils/fields';
-import type {
-  TraceError,
-  TraceFullDetailed,
-} from 'sentry/utils/performance/quickTrace/types';
-import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
-import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import type SpanTreeModel from './spanTreeModel';
 import type {
   AggregateSpanType,
-  EnhancedSpan,
   GapSpanType,
   OrphanSpanType,
-  OrphanTreeDepth,
   ParsedTraceType,
   ProcessedSpanType,
   RawSpanType,
   SpanType,
   TraceContextType,
-  TreeDepthType,
 } from './types';
 
 const isValidSpanID = (maybeSpanID: any) =>
@@ -65,13 +50,6 @@ export type SpanGeneratedBoundsType =
       start: number;
       type: 'TIMESTAMPS_STABLE';
     };
-
-export type SpanViewBoundsType = {
-  isSpanVisibleInView: boolean;
-  left: undefined | number;
-  warning: undefined | string;
-  width: undefined | number;
-};
 
 const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   const {startTimestamp, endTimestamp} = spanBounds;
@@ -119,14 +97,6 @@ const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
 
 export const isHiddenDataKey = (key: string) => {
   return HIDDEN_DATA_KEYS.includes(key);
-};
-
-/**
- * Affected spans (hatching when spans have errors) may only apply to a sub timing,
- * as is the case for http overhead issues (only time before the request start matters)..
- */
-export const shouldLimitAffectedToTiming = (timing: SubTimingInfo) => {
-  return timing.endMark === SpanSubTimingMark.HTTP_REQUEST_START; // Sub timing spanning between start and request start.
 };
 
 const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
@@ -286,7 +256,7 @@ export function getTraceDateTimeRange(input: {end: number; start: number}): {
   };
 }
 
-export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
+function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
   if ('type' in span) {
     return span.type === 'gap';
   }
@@ -427,23 +397,7 @@ export function getSpanSubTimings(
   return timings;
 }
 
-export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
-  const label = span?.description ?? getSpanID(span);
-
-  if (!isGapSpan(span)) {
-    if (span.op === 'http.client') {
-      try {
-        return decodeURIComponent(label);
-      } catch {
-        // Do nothing
-      }
-    }
-  }
-
-  return label;
-}
-
-export function getTraceContext(
+function getTraceContext(
   event: Readonly<EventTransaction | AggregateEventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
@@ -621,23 +575,6 @@ function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
   return 1;
 }
 
-export function isOrphanTreeDepth(
-  treeDepth: TreeDepthType
-): treeDepth is OrphanTreeDepth {
-  if (typeof treeDepth === 'number') {
-    return false;
-  }
-  return treeDepth?.type === 'orphan';
-}
-
-export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
-  if (isOrphanTreeDepth(treeDepth)) {
-    return treeDepth.depth;
-  }
-
-  return treeDepth;
-}
-
 export function isEventFromBrowserJavaScriptSDK(
   event: EventTransaction | AggregateEventTransaction
 ): boolean {
@@ -663,251 +600,6 @@ export function isEventFromBrowserJavaScriptSDK(
   ].includes(sdkName.toLowerCase());
 }
 
-// Durationless ops from: https://github.com/getsentry/sentry-javascript/blob/0defcdcc2dfe719343efc359d58c3f90743da2cd/packages/apm/src/integrations/tracing.ts#L629-L688
-// PerformanceMark: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceMark
-// PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
-export const durationlessBrowserOps = ['mark', 'paint'];
-
-type Measurements = Record<
-  string,
-  {
-    failedThreshold: boolean;
-    timestamp: number;
-    value: number | undefined;
-  }
->;
-
-export type VerticalMark = {
-  failedThreshold: boolean;
-  marks: Measurements;
-};
-
-function hasFailedThreshold(marks: Measurements): boolean {
-  const names = Object.keys(marks);
-  const records = Object.values(VITAL_DETAILS).filter(vital =>
-    names.includes(vital.slug)
-  );
-
-  return records.some(record => {
-    const {value} = marks[record.slug]!;
-    if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
-      return value >= record.poorThreshold;
-    }
-    return false;
-  });
-}
-
-export function getMeasurements(
-  event: EventTransaction | TraceFullDetailed | AggregateEventTransaction,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): Map<number, VerticalMark> {
-  const startTimestamp =
-    (event as EventTransaction).startTimestamp ||
-    (event as TraceFullDetailed).start_timestamp;
-  if (!event.measurements || !startTimestamp) {
-    return new Map();
-  }
-
-  // Note: CLS and INP should not be included here, since they are not timeline-based measurements.
-  const allowedVitals = new Set<string>([
-    WebVital.FCP,
-    WebVital.FP,
-    WebVital.FID,
-    WebVital.LCP,
-    WebVital.TTFB,
-    MobileVital.TIME_TO_FULL_DISPLAY,
-    MobileVital.TIME_TO_INITIAL_DISPLAY,
-  ]);
-
-  const measurements = Object.keys(event.measurements)
-    .filter(name => allowedVitals.has(`measurements.${name}`))
-    .map(name => {
-      const associatedMeasurement = event.measurements![name]!;
-      return {
-        name,
-        // Time timestamp is in seconds, but the measurement value is given in ms so convert it here
-        timestamp: startTimestamp + associatedMeasurement.value / 1000,
-        value: associatedMeasurement ? associatedMeasurement.value : undefined,
-      };
-    });
-
-  const mergedMeasurements = new Map<number, VerticalMark>();
-
-  measurements.forEach(measurement => {
-    const name = measurement.name;
-    const value = measurement.value;
-
-    const bounds = generateBounds({
-      startTimestamp: measurement.timestamp,
-      endTimestamp: measurement.timestamp,
-    });
-
-    // This condition will never be hit, since we're using the same value for start and end in generateBounds
-    // I've put this condition here to prevent the TS linter from complaining
-    if (bounds.type !== 'TIMESTAMPS_EQUAL') {
-      return;
-    }
-
-    const roundedPos = Math.round(bounds.start * 100);
-
-    // Compare this position with the position of the other measurements, to determine if
-    // they are close enough to be bucketed together
-
-    for (const [otherPos] of mergedMeasurements) {
-      const positionDelta = Math.abs(otherPos - roundedPos);
-      if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
-        const verticalMark = mergedMeasurements.get(otherPos)!;
-
-        const {poorThreshold} =
-          VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
-
-        verticalMark.marks = {
-          ...verticalMark.marks,
-          [name]: {
-            value,
-            timestamp: measurement.timestamp,
-            failedThreshold: value ? value >= poorThreshold! : false,
-          },
-        };
-
-        if (!verticalMark.failedThreshold) {
-          verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
-        }
-
-        mergedMeasurements.set(otherPos, verticalMark);
-        return;
-      }
-    }
-
-    const {poorThreshold} =
-      VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
-
-    const marks = {
-      [name]: {
-        value,
-        timestamp: measurement.timestamp,
-        failedThreshold: value ? value >= poorThreshold! : false,
-      },
-    };
-
-    mergedMeasurements.set(roundedPos, {
-      marks,
-      failedThreshold: hasFailedThreshold(marks),
-    });
-  });
-
-  return mergedMeasurements;
-}
-
-export function getMeasurementBounds(
-  timestamp: number,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): SpanViewBoundsType {
-  const bounds = generateBounds({
-    startTimestamp: timestamp,
-    endTimestamp: timestamp,
-  });
-
-  switch (bounds.type) {
-    case 'TRACE_TIMESTAMPS_EQUAL':
-    case 'INVALID_VIEW_WINDOW': {
-      return {
-        warning: undefined,
-        left: undefined,
-        width: undefined,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_EQUAL': {
-      return {
-        warning: undefined,
-        left: bounds.start,
-        width: 0.00001,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_REVERSED': {
-      return {
-        warning: undefined,
-        left: bounds.start,
-        width: bounds.end - bounds.start,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_STABLE': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: bounds.end - bounds.start,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    default: {
-      const _exhaustiveCheck: never = bounds;
-      return _exhaustiveCheck;
-    }
-  }
-}
-
-export function scrollToSpan(
-  spanId: string,
-  scrollToHash: (hash: string) => void,
-  location: Location,
-  organization: Organization
-) {
-  return (e: React.MouseEvent<Element>) => {
-    // do not use the default anchor behaviour
-    // because it will be hidden behind the minimap
-    e.preventDefault();
-
-    const hash = spanTargetHash(spanId);
-
-    scrollToHash(hash);
-
-    // TODO(txiao): This is causing a rerender of the whole page,
-    // which can be slow.
-    //
-    // make sure to update the location
-    browserHistory.push({
-      ...location,
-      hash,
-    });
-
-    trackAnalytics('performance_views.event_details.anchor_span', {
-      organization,
-      span_id: spanId,
-    });
-  };
-}
-
-type TraceDetailsHashIds = {
-  eventId: string | undefined;
-  spanId: string | undefined;
-};
-
-export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | null {
-  if (!hash) {
-    return null;
-  }
-
-  const values = hash.split('#').slice(1);
-  const eventId = values.find(value => value.includes('txn'))?.split('-')[1];
-  const spanId = values.find(value => value.includes('span'))?.split('-')[1];
-
-  return {
-    eventId,
-    spanId,
-  };
-}
-
-export function spanTargetHash(spanId: string): string {
-  return `#span-${spanId}`;
-}
-
-export function transactionTargetHash(spanId: string): string {
-  return `#txn-${spanId}`;
-}
-
 export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {
   if (occurrence !== undefined) {
     return `${span.op}.${span.description}.${occurrence}`;
@@ -915,124 +607,6 @@ export function getSiblingGroupKey(span: SpanType, occurrence?: number): string 
 
   return `${span.op}.${span.description}`;
 }
-
-export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
-  return spanGroup.reduce(
-    (acc, spanGroupItem) => {
-      const {start_timestamp, timestamp} = spanGroupItem.span;
-
-      let newStartTimestamp = acc.startTimestamp;
-      let newEndTimestamp = acc.endTimestamp;
-
-      if (start_timestamp < newStartTimestamp) {
-        newStartTimestamp = start_timestamp;
-      }
-
-      if (newEndTimestamp < timestamp) {
-        newEndTimestamp = timestamp;
-      }
-
-      return {
-        startTimestamp: newStartTimestamp,
-        endTimestamp: newEndTimestamp,
-      };
-    },
-    {
-      startTimestamp: spanGroup[0]!.span.start_timestamp,
-      endTimestamp: spanGroup[0]!.span.timestamp,
-    }
-  );
-}
-
-export function getSpanGroupBounds(
-  spanGroup: EnhancedSpan[],
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): SpanViewBoundsType {
-  const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGroup);
-
-  const bounds = generateBounds({
-    startTimestamp,
-    endTimestamp,
-  });
-
-  switch (bounds.type) {
-    case 'TRACE_TIMESTAMPS_EQUAL':
-    case 'INVALID_VIEW_WINDOW': {
-      return {
-        warning: void 0,
-        left: void 0,
-        width: void 0,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_EQUAL': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: 0.00001,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_REVERSED':
-    case 'TIMESTAMPS_STABLE': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: bounds.end - bounds.start,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    default: {
-      const _exhaustiveCheck: never = bounds;
-      return _exhaustiveCheck;
-    }
-  }
-}
-
-export function getCumulativeAlertLevelFromErrors(
-  errors?: Array<Pick<TraceError, 'level' | 'type'>>
-): keyof Theme['alert'] | undefined {
-  const highestErrorLevel = maxBy(
-    errors || [],
-    error => ERROR_LEVEL_WEIGHTS[error.level]
-  )?.level;
-
-  if (errors?.some(isErrorPerformanceError)) {
-    return 'error';
-  }
-
-  if (!highestErrorLevel) {
-    return undefined;
-  }
-
-  return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
-}
-
-export function isErrorPerformanceError(error: {type?: number}): boolean {
-  return !!error.type && error.type >= 1000 && error.type < 2000;
-}
-
-// Maps the known error levels to an Alert component types
-const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
-  fatal: 'error',
-  error: 'error',
-  default: 'error',
-  warning: 'warning',
-  sample: 'info',
-  info: 'info',
-  unknown: 'muted',
-};
-
-// Allows sorting errors according to their level of severity
-const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
-  fatal: 5,
-  error: 4,
-  default: 4,
-  warning: 3,
-  sample: 2,
-  info: 1,
-  unknown: 0,
-};
 
 /**
  * Formats start and end unix timestamps by inserting a leading and trailing zero if needed, so they can have the same length

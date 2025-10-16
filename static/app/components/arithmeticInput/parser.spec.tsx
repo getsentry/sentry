@@ -1,6 +1,6 @@
 import {Operation, parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 
-describe('arithmeticInput/parser', function () {
+describe('arithmeticInput/parser', () => {
   it('errors on too many operators', () => {
     expect(parseArithmetic('1+1+1+1+1+1+1+1+1+1+1+1').error).toBe(
       'Maximum operators exceeded'

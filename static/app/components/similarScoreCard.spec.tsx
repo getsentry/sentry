@@ -2,17 +2,17 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
 
-describe('SimilarScoreCard', function () {
-  beforeEach(function () {});
+describe('SimilarScoreCard', () => {
+  beforeEach(() => {});
 
-  afterEach(function () {});
+  afterEach(() => {});
 
-  it('renders', function () {
+  it('renders', () => {
     const {container} = render(<SimilarScoreCard />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders with score list', function () {
+  it('renders with score list', () => {
     render(
       <SimilarScoreCard
         scoreList={[

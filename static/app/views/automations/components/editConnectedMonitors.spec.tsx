@@ -1,4 +1,5 @@
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -8,9 +9,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+
 import EditConnectedMonitors from './editConnectedMonitors';
 
-describe('EditConnectedMonitors', function () {
+describe('EditConnectedMonitors', () => {
   const detector1 = MetricDetectorFixture({
     id: '1',
     name: 'Metric Monitor 1',
@@ -26,9 +29,10 @@ describe('EditConnectedMonitors', function () {
       method: 'GET',
       body: [detector1],
     });
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
-  it('can connect an existing monitor', async function () {
+  it('can connect an existing monitor', async () => {
     const setConnectedIds = jest.fn();
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
 
@@ -56,7 +60,7 @@ describe('EditConnectedMonitors', function () {
     expect(setConnectedIds).toHaveBeenCalledWith([detector1.id]);
   });
 
-  it('can disconnect an existing monitor', async function () {
+  it('can disconnect an existing monitor', async () => {
     const setConnectedIds = jest.fn();
     render(
       <EditConnectedMonitors

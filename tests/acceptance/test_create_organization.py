@@ -6,12 +6,12 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class CreateOrganizationTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         settings.PRIVACY_URL = "https://sentry.io/privacy/"
         settings.TERMS_URL = "https://sentry.io/terms/"
         self.browser.get("/organizations/new/")

@@ -8,8 +8,7 @@ import {
   useState,
 } from 'react';
 import type {Interpolation, Theme} from '@emotion/react';
-import type {AnimationProps} from 'framer-motion';
-import {AnimatePresence} from 'framer-motion';
+import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -74,7 +73,7 @@ export interface DrawerOptions {
   //
   // Custom framer motion transition for the drawer
   //
-  transitionProps?: AnimationProps['transition'];
+  transitionProps?: Transition;
 }
 
 interface DrawerRenderProps {

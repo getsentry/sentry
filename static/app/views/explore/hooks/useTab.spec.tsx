@@ -11,8 +11,8 @@ jest.mock('sentry/utils/useNavigate');
 const mockUseLocation = jest.mocked(useLocation);
 const mockUseNavigate = jest.mocked(useNavigate);
 
-describe('useTab', function () {
-  it('uses spans as default tab', function () {
+describe('useTab', () => {
+  it('uses spans as default tab', () => {
     mockUseLocation.mockReturnValueOnce({
       pathname: '/',
       query: {},
@@ -22,7 +22,7 @@ describe('useTab', function () {
     expect(result.current).toEqual([Tab.SPAN, expect.any(Function)]);
   });
 
-  it('uses span tab', function () {
+  it('uses span tab', () => {
     mockUseLocation.mockReturnValueOnce({
       pathname: '/',
       query: {table: 'span'},
@@ -32,7 +32,7 @@ describe('useTab', function () {
     expect(result.current).toEqual([Tab.SPAN, expect.any(Function)]);
   });
 
-  it('uses trace tab', function () {
+  it('uses trace tab', () => {
     mockUseLocation.mockReturnValueOnce({
       pathname: '/',
       query: {table: 'trace'},
@@ -42,7 +42,7 @@ describe('useTab', function () {
     expect(result.current).toEqual([Tab.TRACE, expect.any(Function)]);
   });
 
-  it('sets span tab', function () {
+  it('sets span tab', () => {
     mockUseLocation.mockReturnValueOnce({
       pathname: '/',
       query: {},
@@ -56,13 +56,12 @@ describe('useTab', function () {
       expect.objectContaining({
         query: {
           mode: Mode.SAMPLES,
-          table: Tab.SPAN,
         },
       })
     );
   });
 
-  it('sets trace tab', function () {
+  it('sets trace tab', () => {
     mockUseLocation.mockReturnValueOnce({
       pathname: '/',
       query: {},

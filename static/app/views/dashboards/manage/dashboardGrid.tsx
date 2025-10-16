@@ -19,6 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {
@@ -66,6 +67,7 @@ function DashboardGrid({
 
   useEffect(() => {
     if (dashboards?.length) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setCurrentDashboards(dashboards);
     }
   }, [dashboards]);
@@ -86,7 +88,12 @@ function DashboardGrid({
     });
   }
 
-  function renderDropdownMenu(dashboard: DashboardListItem) {
+  function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
+    const {
+      hasReachedDashboardLimit,
+      isLoading: isLoadingDashboardsLimit,
+      limitMessage,
+    } = dashboardLimitData;
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
@@ -97,6 +104,11 @@ function DashboardGrid({
             priority: 'primary',
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
+        },
+        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+        tooltip: limitMessage,
+        tooltipOptions: {
+          isHoverable: true,
         },
       },
       {
@@ -160,23 +172,28 @@ function DashboardGrid({
 
     return currentDashboards?.slice(0, rowCount * columnCount).map((dashboard, index) => {
       return (
-        <DashboardCard
-          key={`${index}-${dashboard.id}`}
-          title={dashboard.title}
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-            ...queryLocation,
-          }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
-          dateStatus={
-            dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
-          }
-          createdBy={dashboard.createdBy}
-          renderWidgets={() => renderGridPreview(dashboard)}
-          renderContextMenu={() => renderDropdownMenu(dashboard)}
-          isFavorited={dashboard.isFavorited}
-          onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
-        />
+        <DashboardCreateLimitWrapper key={`${index}-${dashboard.id}`}>
+          {dashboardLimitData => (
+            <DashboardCard
+              title={dashboard.title}
+              to={{
+                pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+                ...queryLocation,
+              }}
+              detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
+              dateStatus={
+                dashboard.dateCreated ? (
+                  <TimeSince date={dashboard.dateCreated} />
+                ) : undefined
+              }
+              createdBy={dashboard.createdBy}
+              renderWidgets={() => renderGridPreview(dashboard)}
+              renderContextMenu={() => renderDropdownMenu(dashboard, dashboardLimitData)}
+              isFavorited={dashboard.isFavorited}
+              onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
+            />
+          )}
+        </DashboardCreateLimitWrapper>
       );
     });
   }
@@ -201,7 +218,7 @@ function DashboardGrid({
       <DashboardGridContainer
         rows={rowCount}
         columns={columnCount}
-        data-test-id={'dashboard-grid'}
+        data-test-id="dashboard-grid"
       >
         {renderMiniDashboards()}
         {isLoading &&

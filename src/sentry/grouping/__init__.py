@@ -60,10 +60,6 @@ Variants
     by the SDK.  If the special `{{ default }}` value is used then this
     variant is not used.
 
-`BuiltInFingerprintVariant`:
-    Same as the custom fingerprint variant but produced by pre-defined
-    built-in rules.  This is used for server-side fingerprinting.
-
 `SaltedComponentVariant`:
     This variant is used when the server or client produces a fingerprint
     that refers (with the special `{{ default }}` value) to the default
@@ -117,8 +113,6 @@ This for instance is how one of the configurations is defined::
         id="newstyle:SomeDate",
         base="newstyle:AnotherDate",
         delegates=["frame:v4"],
-        risk=RISK_LEVEL_MEDIUM,
-        changelog="...",
     )
 
 The configuration ID (`newstyle:YYYY-MM-DD`) is defined in the project
@@ -132,11 +126,6 @@ that is used for an interface which by itself is not used for grouping.  This
 means that just because an event has a frame, the frame strategy does not necessarily
 activate.  Only if another interface recurses down into a frame will this strategy
 will be used.
-
-To add a new configuration, just add it to the list.  To make a configuration the default
-for new projects, you also need to bump the project epoch and configure it
-to be used by default for an epoch in `sentry.projectoptions.defaults`
-(for the `sentry:grouping_config`) key.
 
 Fingerprinting and Enhancements
 -------------------------------

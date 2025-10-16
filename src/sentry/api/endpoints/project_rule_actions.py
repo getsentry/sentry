@@ -10,13 +10,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers.rest_framework import DummyRuleSerializer
-from sentry.eventstore.models import GroupEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
-from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.services.eventstore.models import GroupEvent
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
 from sentry.utils.samples import create_sample_event
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.migration_helpers.rule_action import (
@@ -26,6 +29,8 @@ from sentry.workflow_engine.models import Detector, Workflow
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
+
+REPORTABLE_ERROR_TYPES = (IntegrationFormError, IntegrationConfigurationError)
 
 
 @region_silo_endpoint
@@ -109,7 +114,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
                 # safe_execute logs these as exceptions, which can result in
                 # noisy sentry issues, so log with a warning instead.
-                if isinstance(exc, IntegrationFormError):
+                if isinstance(exc, REPORTABLE_ERROR_TYPES):
                     logger.warning(
                         "%s.test_alert.integration_error", callback_name, extra={"exc": exc}
                     )
@@ -177,9 +182,12 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 action.id = TEST_NOTIFICATION_ID
                 # Annotate the action with the workflow id
                 setattr(action, "workflow_id", workflow.id)
-            except Exception as e:
+            except REPORTABLE_ERROR_TYPES as e:
                 action_exceptions.append(str(e))
-                sentry_sdk.capture_exception(e)
+                continue
+            except Exception as e:
+                error_id = sentry_sdk.capture_exception(e)
+                action_exceptions.append(f"An unexpected error occurred. Error ID: '{error_id}'")
                 continue
 
             action_exceptions.extend(test_fire_action(action, event_data, detector))

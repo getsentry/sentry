@@ -5,17 +5,17 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import type {AvatarUser} from 'sentry/types/user';
 
-describe('UserBadge', function () {
+describe('UserBadge', () => {
   const user: AvatarUser = UserFixture();
 
-  it('renders with no link when user is supplied', function () {
+  it('renders with no link when user is supplied', () => {
     render(<UserBadge user={user} />);
 
     expect(screen.getByText('Foo Bar')).toBeInTheDocument();
     expect(screen.getByText('foo@example.com')).toBeInTheDocument();
   });
 
-  it('can display alternate display names/emails', function () {
+  it('can display alternate display names/emails', () => {
     render(
       <UserBadge
         user={user}
@@ -28,7 +28,7 @@ describe('UserBadge', function () {
     expect(screen.getByText('Other Display Email')).toBeInTheDocument();
   });
 
-  it('can coalesce using username', function () {
+  it('can coalesce using username', () => {
     const username = UserFixture({
       name: undefined,
       email: undefined,
@@ -39,7 +39,7 @@ describe('UserBadge', function () {
     expect(screen.getByText(username.username)).toBeInTheDocument();
   });
 
-  it('can coalesce using ipaddress', function () {
+  it('can coalesce using ipaddress', () => {
     const ipUser = UserFixture({
       name: undefined,
       email: undefined,
@@ -52,7 +52,7 @@ describe('UserBadge', function () {
     expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
   });
 
-  it('can coalesce using id', function () {
+  it('can coalesce using id', () => {
     const idUser = UserFixture({
       id: '99',
       name: undefined,
@@ -66,12 +66,12 @@ describe('UserBadge', function () {
     expect(screen.getByText(idUser.id)).toBeInTheDocument();
   });
 
-  it('can hide email address', function () {
+  it('can hide email address', () => {
     render(<UserBadge user={user} hideEmail />);
     expect(screen.queryByText(user.email)).not.toBeInTheDocument();
   });
 
-  it('can coalesce using ip', function () {
+  it('can coalesce using ip', () => {
     const ipUser = UserFixture({
       name: undefined,
       email: undefined,

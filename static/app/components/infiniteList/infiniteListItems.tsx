@@ -9,22 +9,31 @@ import {t} from 'sentry/locale';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-interface Props<Data> {
+/**
+ * Types:
+ *   - ListItem represents the type of a single item in the list, after being extracted and de-duplicated from the response
+ *   - Response represents the type of the response from the API. For example: `ApiResult<ListItem[]>` or `ApiResult<{data: ListItem[]}>`
+ *
+ * `deduplicateItems` is a function to transform Response into an array of ListItem objects. For the most common cases:
+ *   - When `Response = ApiResult<ListItem[]>` then `deduplicateItems={pages => uniqBy(pages.flatMap(page => page[0]), 'id')}`
+ *   - When `Response = ApiResult<{data: ListItem[]}>` then `deduplicateItems={pages => uniqBy(pages.flatMap(page => page[0].data), 'id')}`
+ */
+interface Props<ListItem, Response = Array<ApiResult<ListItem[]>>> {
+  deduplicateItems: (page: Response[]) => ListItem[];
   itemRenderer: ({
     item,
     virtualItem,
   }: {
-    item: Data;
+    item: ListItem;
     virtualItem: VirtualItem;
   }) => React.ReactNode;
   queryResult: Overwrite<
     Pick<
-      UseInfiniteQueryResult<InfiniteData<ApiResult<Data[]>>, Error>,
+      UseInfiniteQueryResult<InfiniteData<Response>, Error>,
       'data' | 'hasNextPage' | 'isFetchingNextPage' | 'fetchNextPage'
     >,
     {fetchNextPage: () => Promise<unknown>}
   >;
-  deduplicateItems?: (items: Data[]) => Data[];
   emptyMessage?: () => React.ReactNode;
   estimateSize?: () => number;
   loadingCompleteMessage?: () => React.ReactNode;
@@ -32,8 +41,11 @@ interface Props<Data> {
   overscan?: number;
 }
 
-export default function InfiniteListItems<Data>({
-  deduplicateItems = _ => _,
+export default function InfiniteListItems<
+  ListItem,
+  Response = Array<ApiResult<ListItem[]>>,
+>({
+  deduplicateItems,
   emptyMessage = EmptyMessage,
   estimateSize,
   itemRenderer,
@@ -41,11 +53,9 @@ export default function InfiniteListItems<Data>({
   loadingMoreMessage = LoadingMoreMessage,
   overscan,
   queryResult,
-}: Props<Data>) {
+}: Props<ListItem, Response>) {
   const {data, hasNextPage, isFetchingNextPage, fetchNextPage} = queryResult;
-  const loadedRows = deduplicateItems(
-    data ? data.pages.flatMap(result => result[0]) : []
-  );
+  const loadedRows = deduplicateItems(data?.pages ?? []);
   const parentRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
@@ -68,7 +78,7 @@ export default function InfiniteListItems<Data>({
   }, [hasNextPage, fetchNextPage, loadedRows.length, isFetchingNextPage, items]);
 
   return (
-    <FlexOverscroll ref={parentRef}>
+    <FlexOverscroll ref={parentRef} data-scrollable>
       <FlexListContainer style={{height: rowVirtualizer.getTotalSize()}}>
         <PositionedList style={{transform: `translateY(${items[0]?.start ?? 0}px)`}}>
           {items.length ? null : emptyMessage()}

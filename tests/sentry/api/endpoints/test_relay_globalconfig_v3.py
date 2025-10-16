@@ -36,22 +36,21 @@ def call_endpoint(client, relay, private_key):
     {
         # Set options to Relay's non-default values to avoid Relay skipping deserialization
         "relay.cardinality-limiter.error-sample-rate": 1.0,
-        "relay.metric-stats.rollout-rate": 0.5,
         "profiling.profile_metrics.unsampled_profiles.enabled": True,
         "profiling.profile_metrics.unsampled_profiles.platforms": ["fake-platform"],
         "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
+        "replay.relay-snuba-publishing-disabled.sample-rate": 1.0,
+        "relay.kafka.span-v2.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",
-            "metric_stats": "array",
             "profiles": "array",
             "spans": "array",
             "transactions": "array",
         },
         "relay.metric-bucket-set-encodings": {
             "custom": "base64",
-            "metric_stats": "base64",
             "profiles": "base64",
             "spans": "base64",
             "transactions": "base64",
@@ -66,10 +65,6 @@ def test_global_config() -> None:
     # It is not allowed to specify `None` as default for an option.
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
-
-    # The sentry_relay's normalize_global_config doesn't handle relay.drop-transaction-attachments option yet
-    if "relay.drop-transaction-attachments" in config["options"]:
-        del config["options"]["relay.drop-transaction-attachments"]
 
     assert normalized == config
 
@@ -123,12 +118,45 @@ def test_return_global_config_on_right_version(
     },
 )
 @patch("sentry.relay.globalconfig.RELAY_OPTIONS", [])
+@django_db_all
 def test_global_config_valid_with_generic_filters() -> None:
     config = get_global_config()
     assert config == normalize_global_config(config)
 
 
 @django_db_all
-def test_global_config_histogram_outliers(insta_snapshot):
+def test_global_config_histogram_outliers(insta_snapshot) -> None:
     config = get_global_config()
     insta_snapshot(config["metricExtraction"])
+
+
+@django_db_all
+def test_global_config_ai_operation_type_map() -> None:
+    config = get_global_config()
+
+    assert "aiOperationTypeMap" in config
+    ai_operation_type_map = config["aiOperationTypeMap"]
+
+    assert ai_operation_type_map["version"] == 1
+
+    expected_mappings = {
+        "ai.run.generateText": "agent",
+        "ai.run.generateObject": "agent",
+        "gen_ai.invoke_agent": "agent",
+        "ai.pipeline.generate_text": "agent",
+        "ai.pipeline.generate_object": "agent",
+        "ai.pipeline.stream_text": "agent",
+        "ai.pipeline.stream_object": "agent",
+        "gen_ai.create_agent": "agent",
+        "gen_ai.execute_tool": "tool",
+        "gen_ai.handoff": "handoff",
+    }
+
+    operation_types = ai_operation_type_map["operationTypes"]
+    for operation, expected_type in expected_mappings.items():
+        assert operation in operation_types
+        assert operation_types[operation] == expected_type
+
+    # verify the wildcard mapping for ai_client
+    assert "*" in operation_types
+    assert operation_types["*"] == "ai_client"

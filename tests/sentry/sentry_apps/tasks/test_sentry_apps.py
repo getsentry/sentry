@@ -10,7 +10,6 @@ from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import SentryAppStatus
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
@@ -26,12 +25,15 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
+    regenerate_service_hooks_for_installation,
     send_alert_webhook_v2,
     send_webhooks,
     workflow_notification,
 )
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ClientError
+from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.asserts import (
     assert_count_of_metric,
@@ -44,7 +46,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -60,11 +62,11 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-def raiseStatusFalse():
+def raiseStatusFalse() -> bool:
     return False
 
 
-def raiseStatusTrue():
+def raiseStatusTrue() -> bool:
     return True
 
 
@@ -1117,6 +1119,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
@@ -1715,3 +1718,65 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"
+
+
+class TestBackfillServiceHooksEvents(TestCase):
+    def setUp(self) -> None:
+        self.sentry_app = self.create_sentry_app(
+            name="Test App",
+            webhook_url="https://example.com",
+            organization=self.organization,
+            events=["issue.created", "issue.resolved", "error.created"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+    def test_regenerate_service_hook_for_installation_success(self):
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            hook.events = ["issue.resolved", "error.created"]
+            hook.save()
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook.refresh_from_db()
+            assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+
+    def test_regenerate_service_hook_for_installation_event_not_in_app_events(self):
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+
+    def test_regenerate_service_hook_for_installation_with_empty_app_events(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.sentry_app.update(events=[])
+            assert self.sentry_app.events == []
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            assert hook.events != []
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook.refresh_from_db()
+            assert hook.events == []

@@ -1,25 +1,31 @@
 import {useMemo} from 'react';
 
-import {getHasTag} from 'sentry/components/events/searchBar';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {
+  CaseInsensitive,
+  SetCaseInsensitive,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-type TraceItemSearchQueryBuilderProps = {
+export type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  caseInsensitive?: CaseInsensitive;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  onCaseInsensitiveClick?: SetCaseInsensitive;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -38,9 +44,11 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-const typeMap: Record<TraceItemDataset, 'span' | 'log'> = {
+const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric'> = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
+  [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
+  [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
 };
 
 function getTraceItemFieldDefinitionFunction(
@@ -69,6 +77,8 @@ export function useSearchQueryBuilderProps({
   supportedAggregates = [],
   replaceRawSearchKeys,
   matchKeySuggestions,
+  caseInsensitive,
+  onCaseInsensitiveClick,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -106,6 +116,8 @@ export function useSearchQueryBuilderProps({
     replaceRawSearchKeys,
     matchKeySuggestions,
     filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
+    caseInsensitive,
+    onCaseInsensitiveClick,
   };
 }
 
@@ -199,7 +211,7 @@ function useFilterKeySections(
       }),
       {
         value: 'custom_fields',
-        label: 'Custom Tags',
+        label: t('Attributes'),
         children: Object.keys(stringAttributes).filter(key => !predefined.has(key)),
       },
     ].filter(section => section.children.length);
@@ -210,6 +222,9 @@ function itemTypeToRecentSearches(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SavedSearchType.SPAN;
   }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return SavedSearchType.METRIC;
+  }
   return SavedSearchType.LOG;
 }
 
@@ -217,12 +232,18 @@ function itemTypeToFilterKeySections(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SPANS_FILTER_KEY_SECTIONS;
   }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return [];
+  }
   return LOGS_FILTER_KEY_SECTIONS;
 }
 
 function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return t('Search for spans, users, tags, and more');
+  }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return t('Search for metrics, users, tags, and more');
   }
   return t('Search for logs, users, tags, and more');
 }

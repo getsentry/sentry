@@ -2,8 +2,6 @@ import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
-import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
-import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -14,6 +12,7 @@ import {
 } from 'sentry/utils/dates';
 
 import TimeRangeItemLabel from './timeRangeItemLabel';
+import type {TimeRangeItem} from './types';
 
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
@@ -166,15 +165,12 @@ export function getAbsoluteSummary(
 export function makeItem(
   amount: number,
   unit: string,
-  label: (num: number) => string,
-  index: number
-) {
+  label: (num: number) => string
+): TimeRangeItem {
   return {
     value: `${amount}${unit}`,
-    ['data-test-id']: `${amount}${unit}`,
     label: <TimeRangeItemLabel>{label(amount)}</TimeRangeItemLabel>,
-    searchKey: `${amount}${unit}`,
-    index,
+    textValue: `${amount}${unit}`,
   };
 }
 
@@ -199,6 +195,17 @@ function timePeriodIsWithinLimit<T extends RelativeUnitsMapping>({
   return numberOfDays <= maxDays;
 }
 
+function filterItems(items: TimeRangeItem[], inputValue: string): TimeRangeItem[] {
+  return items.filter(item =>
+    (typeof item.textValue === 'string' && item.textValue.length > 0
+      ? item.textValue
+      : `${item.value}`
+    )
+      .toLowerCase()
+      .includes(inputValue.toLowerCase())
+  );
+}
+
 /**
  * A custom autocomplete implementation for <TimeRangeSelector />
  * This function generates relative time ranges based on the user's input (not limited to those present in the initial set).
@@ -213,7 +220,7 @@ function timePeriodIsWithinLimit<T extends RelativeUnitsMapping>({
  * If the input does not begin with a number, we do a simple filter of the preset options.
  */
 export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMapping>(
-  items: ItemsBeforeFilter | null,
+  items: TimeRangeItem[] | null,
   filterValue: string,
   {
     supportedPeriods,
@@ -226,7 +233,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
     maxDateRange?: number;
     maxDays?: number;
   }
-): ReturnType<typeof autoCompleteFilter> {
+): TimeRangeItem[] {
   if (!items) {
     return [];
   }
@@ -249,9 +256,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
           supportedPeriods,
         })
       )
-      .map((unit, index) =>
-        makeItem(userSuppliedAmount, unit, supportedPeriods[unit]!.label, index)
-      );
+      .map(unit => makeItem(userSuppliedAmount, unit, supportedPeriods[unit]!.label));
   }
 
   // If there is a number followed by units, show the matching number/unit option
@@ -274,22 +279,17 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
       })
     ) {
       return [
-        makeItem(
-          userSuppliedAmount,
-          matchingUnit,
-          supportedPeriods[matchingUnit]!.label,
-          0
-        ),
+        makeItem(userSuppliedAmount, matchingUnit, supportedPeriods[matchingUnit]!.label),
       ];
     }
   }
 
   // Otherwise, do a normal filter search
-  return autoCompleteFilter(items, filterValue);
+  return filterItems(items, filterValue);
 };
 
 export const timeRangeAutoCompleteFilter = function (
-  items: ItemsBeforeFilter | null,
+  items: TimeRangeItem[] | null,
   filterValue: string,
   options: {
     maxDateRange?: number;
@@ -297,7 +297,7 @@ export const timeRangeAutoCompleteFilter = function (
     supportedPeriods?: RelativeUnitsMapping;
     supportedUnits?: RelativePeriodUnit[];
   }
-): ReturnType<typeof autoCompleteFilter> {
+): TimeRangeItem[] {
   return _timeRangeAutoCompleteFilter(items, filterValue, {
     supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,
     supportedUnits: SUPPORTED_RELATIVE_UNITS_LIST,

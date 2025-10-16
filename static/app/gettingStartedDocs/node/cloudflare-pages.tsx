@@ -7,7 +7,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -15,6 +15,8 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
+  getNodeMcpOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -63,8 +65,16 @@ export const onRequest = [
   // Add more middlewares here
 ];`;
 
-const getVerifySnippet = () => `
-export function onRequest(context) {
+const getVerifySnippet = (params: Params) => `
+export function onRequest(context) {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_function',
+  });`
+    : ''
+}
   throw new Error();
 }`;
 
@@ -144,7 +154,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: tct(
@@ -159,7 +169,7 @@ const onboarding: OnboardingConfig = {
           value: 'javascript',
           language: 'javascript',
           filename: 'functions/customerror.js',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
@@ -193,7 +203,7 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -209,7 +219,33 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'cloudflare',
+    sdkPackage: '@sentry/cloudflare',
+    generateConfigureSnippet: (params, sdkPackage) => ({
+      type: 'code',
+      language: 'javascript',
+      code: `import * as Sentry from "${sdkPackage}";
+
+export const onRequest = [
+  // Make sure Sentry is the first middleware
+  Sentry.sentryPagesPlugin((context) => ({
+    dsn: "${params.dsn.public}",
+    integrations: [
+      // send console.log, console.warn, and console.error calls as logs to Sentry
+      Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+    ],
+    // Enable logs to be sent to Sentry
+    enableLogs: true,
+  })),
+  // Add more middlewares here
+];`,
+    }),
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'cloudflare',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
     basePackage: 'cloudflare',
   }),
 };

@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ basic_payload = dict(
 )
 
 
-def test_basics(make_threads_snapshot):
+def test_basics(make_threads_snapshot) -> None:
     make_threads_snapshot(basic_payload)
 
 
@@ -70,5 +70,5 @@ def test_basics(make_threads_snapshot):
         {"values": [{"held_locks": None}]},
     ],
 )
-def test_null_values(make_threads_snapshot, input):
+def test_null_values(make_threads_snapshot, input) -> None:
     make_threads_snapshot(input)

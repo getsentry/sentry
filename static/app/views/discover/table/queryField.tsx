@@ -1,5 +1,5 @@
 import {Component, createRef} from 'react';
-import {type Theme, withTheme} from '@emotion/react';
+import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -479,7 +479,6 @@ class _QueryField extends Component<Props> {
           <Select
             key="select"
             name="parameter"
-            menuPlacement="auto"
             placeholder={t('Select value')}
             options={aggregateParameters}
             value={descriptor.value}
@@ -543,7 +542,6 @@ class _QueryField extends Component<Props> {
           <Select
             key="dropdown"
             name="dropdown"
-            menuPlacement="auto"
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
@@ -651,7 +649,6 @@ class _QueryField extends Component<Props> {
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
       noOptionsMessage: () => noFieldsMessage,
-      menuPlacement: 'auto',
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -860,7 +857,7 @@ const QueryField = withTheme(_QueryField);
 
 export {QueryField};
 
-export function appendFieldIfUnknown(
+function appendFieldIfUnknown(
   fieldOptions: FieldOptions,
   field: FieldValue | null
 ): FieldOptions {

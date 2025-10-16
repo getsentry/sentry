@@ -12,7 +12,7 @@ async function changeReactMentionsInput(value: string) {
   await userEvent.type(textbox, value);
 }
 
-describe('NoteInputWithStorage', function () {
+describe('NoteInputWithStorage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -25,7 +25,7 @@ describe('NoteInputWithStorage', function () {
     teams: [],
   };
 
-  it('loads draft item from local storage when mounting', function () {
+  it('loads draft item from local storage when mounting', () => {
     jest
       .mocked(localStorage.getItem)
       .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
@@ -36,7 +36,7 @@ describe('NoteInputWithStorage', function () {
     expect(screen.getByRole('textbox')).toHaveValue('saved item');
   });
 
-  it('saves draft when input changes', async function () {
+  it('saves draft when input changes', async () => {
     render(<NoteInputWithStorage {...defaultProps} />);
 
     await userEvent.clear(screen.getByRole('textbox'));
@@ -48,7 +48,7 @@ describe('NoteInputWithStorage', function () {
     );
   });
 
-  it('removes draft item after submitting', async function () {
+  it('removes draft item after submitting', async () => {
     jest
       .mocked(localStorage.getItem)
       .mockImplementation(() =>

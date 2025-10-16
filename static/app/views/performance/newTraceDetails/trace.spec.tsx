@@ -15,9 +15,8 @@ import {setWindowLocation} from 'sentry-test/utils';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
+import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
   makeEventTransaction,
   makeSpan,
@@ -26,6 +25,8 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import type {StoredTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+
+import type {TraceFullDetailed} from './traceApi/types';
 
 // TODO Abdullah Khan: Remove this, it's a hack as mocking ProjectsStore is not working,
 // a number of tests are failing as a result.
@@ -844,7 +845,6 @@ function printVirtualizedList(container: HTMLElement) {
 }
 
 // @ts-expect-error ignore this line
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
   const stdout: string[] = [];
@@ -891,19 +891,16 @@ describe('trace view', () => {
     ProjectsStore.loadInitialData([project]);
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
     mockUseProjects.mockReturnValue({
       projects: [
         {
@@ -953,31 +950,7 @@ describe('trace view', () => {
       deprecatedRouterMocks: true,
     });
     expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
-    ).toBeInTheDocument();
-  });
-
-  it('renders error state if meta fails to load', async () => {
-    mockPerformanceSubscriptionDetailsResponse();
-    mockProjectDetailsResponse();
-
-    mockTraceResponse({
-      statusCode: 200,
-      body: {
-        transactions: [makeTransaction()],
-        orphan_errors: [],
-      },
-    });
-    mockTraceMetaResponse({statusCode: 404});
-    mockTraceTagsResponse({statusCode: 404});
-    mockEventsResponse();
-
-    render(<TraceView />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
-    expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
+      await screen.findByText(/Woof, we failed to load your trace/i)
     ).toBeInTheDocument();
   });
 
@@ -1006,7 +979,9 @@ describe('trace view', () => {
       deprecatedRouterMocks: true,
     });
     expect(
-      await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
+      await screen.findByText(
+        /We were unable to find any spans for this trace. Seeing this often?/i
+      )
     ).toBeInTheDocument();
   });
 
@@ -1134,6 +1109,7 @@ describe('trace view', () => {
     });
 
     it('scrolls to missing instrumentation node', async () => {
+      mockTracePreferences({missing_instrumentation: true});
       mockQueryString('?node=ms-queueprocess0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
@@ -1596,7 +1572,7 @@ describe('trace view', () => {
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op');
 
-      expect(searchInput).toHaveValue('transaction-op');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 1);
@@ -1633,7 +1609,7 @@ describe('trace view', () => {
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op');
-      expect(searchInput).toHaveValue('transaction-op');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
 
       // Wait for the search results to resolve
       await searchToResolve();
@@ -1659,14 +1635,16 @@ describe('trace view', () => {
 
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op-1');
-      expect(searchInput).toHaveValue('transaction-op-1');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-1'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
+      await waitFor(() => expect(searchInput).toHaveValue(''));
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op-5');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 6);
@@ -1678,7 +1656,7 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'trans');
-      expect(searchInput).toHaveValue('trans');
+      await waitFor(() => expect(searchInput).toHaveValue('trans'));
       // Wait for the search results to resolve
       await searchToResolve();
 
@@ -1688,7 +1666,7 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.type(searchInput, 'act');
-      expect(searchInput).toHaveValue('transact');
+      await waitFor(() => expect(searchInput).toHaveValue('transact'));
       await searchToResolve();
 
       // Highlighting is persisted on the row
@@ -1697,7 +1675,7 @@ describe('trace view', () => {
       await userEvent.clear(searchInput);
       await userEvent.click(searchInput);
       await userEvent.paste('this wont match anything');
-      expect(searchInput).toHaveValue('this wont match anything');
+      await waitFor(() => expect(searchInput).toHaveValue('this wont match anything'));
       await searchToResolve();
 
       // When there is no match, the highlighting is removed
@@ -1713,7 +1691,7 @@ describe('trace view', () => {
       // Nothing is highlighted
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
       await userEvent.type(searchInput, 't');
-      expect(searchInput).toHaveValue('t');
+      await waitFor(() => expect(searchInput).toHaveValue('t'));
 
       // Wait for the search results to resolve
       await searchToResolve();
@@ -1728,7 +1706,7 @@ describe('trace view', () => {
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'transaction-op-1');
-      expect(searchInput).toHaveValue('transaction-op-1');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-1'));
 
       await searchToResolve();
 
@@ -1862,7 +1840,7 @@ describe('trace view', () => {
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'op-0');
-      expect(searchInput).toHaveValue('op-0');
+      await waitFor(() => expect(searchInput).toHaveValue('op-0'));
 
       await searchToResolve();
 
@@ -1896,7 +1874,7 @@ describe('trace view', () => {
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op');
-      expect(searchInput).toHaveValue('transaction-op');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 1);
@@ -1917,13 +1895,17 @@ describe('trace view', () => {
       // row is part of the search results
       await assertHighlightedRowAtIndex(container, 6);
 
-      await userEvent.type(searchInput, '-5');
-      expect(searchInput).toHaveValue('transaction-op-5');
+      await userEvent.click(searchInput);
+      await userEvent.type(searchInput, '-');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-'));
+      await userEvent.type(searchInput, '5');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
 
       await searchToResolve();
       await assertHighlightedRowAtIndex(container, 6);
 
       await userEvent.clear(searchInput);
+      await waitFor(() => expect(searchInput).toHaveValue(''));
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op-none');
       await searchToResolve();

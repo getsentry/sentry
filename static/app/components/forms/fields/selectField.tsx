@@ -16,10 +16,10 @@ import FormFieldControlState from 'sentry/components/forms/formField/controlStat
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
-const NONE_SELECTED_LABEL = t('None selected');
-
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
+
+const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,
@@ -122,6 +122,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           model,
           name,
           placeholder,
+          isOptionDisabled,
           ...props
         }: any) => {
           const showTempNoneOption =
@@ -150,7 +151,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 controlShouldRenderValue={!showTempNoneOption}
                 isOptionDisabled={(option: any) => {
                   // We need to notify react-select about the disabled options here as well; otherwise, they will remain clickable.
-                  return option.label === NONE_SELECTED_LABEL;
+                  if (option.label === NONE_SELECTED_LABEL) {
+                    return true;
+                  }
+                  return typeof isOptionDisabled === 'function'
+                    ? isOptionDisabled(option)
+                    : false;
                 }}
                 components={{
                   IndicatorsContainer: ({
@@ -207,7 +213,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                       onConfirm: () => this.handleChange(onBlur, onChange, val),
                       message: confirm[val?.value] ?? t('Continue with these changes?'),
                     });
-                  } catch (e) {
+                  } catch (e: any) {
                     // Swallow expected error to prevent bubbling up.
                     if (e.message === 'Invalid selection. Field cannot be empty.') {
                       return;

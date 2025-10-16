@@ -11,7 +11,7 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 
 const {organization, projects, router} = initializeOrg({
   organization: {
-    features: ['global-views', 'open-membership', 'visibility-explore-view'],
+    features: ['open-membership', 'visibility-explore-view'],
   },
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
@@ -27,22 +27,19 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('NewWidgetBuilder', function () {
+describe('NewWidgetBuilder', () => {
   const onCloseMock = jest.fn();
   const onSaveMock = jest.fn();
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationStore.init();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['projects'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
 
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
@@ -99,7 +96,7 @@ describe('NewWidgetBuilder', function () {
 
   afterEach(() => PageFiltersStore.reset());
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -158,7 +155,7 @@ describe('NewWidgetBuilder', function () {
     });
   });
 
-  it('render the filter alias field and add filter button on chart widgets', async function () {
+  it('render the filter alias field and add filter button on chart widgets', async () => {
     const chartsRouter = RouterFixture({
       ...router,
       location: {
@@ -195,7 +192,7 @@ describe('NewWidgetBuilder', function () {
     expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
   });
 
-  it('does not render the filter alias field and add filter button on other widgets', async function () {
+  it('does not render the filter alias field and add filter button on other widgets', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -221,7 +218,7 @@ describe('NewWidgetBuilder', function () {
     expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
   });
 
-  it('renders the group by field on chart widgets', async function () {
+  it('renders the group by field on chart widgets', async () => {
     const chartsRouter = RouterFixture({
       ...router,
       location: {
@@ -252,7 +249,7 @@ describe('NewWidgetBuilder', function () {
     expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
   });
 
-  it('renders empty widget preview when no widget selected from templates', async function () {
+  it('renders empty widget preview when no widget selected from templates', async () => {
     render(
       <WidgetBuilderV2
         isOpen

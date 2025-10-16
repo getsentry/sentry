@@ -37,7 +37,7 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
 
         self.login_as(user=self.user)
 
-    def do_success_request(self, extra_features: dict[str, bool] | None = None):
+    def do_success_request(self, extra_features: dict[str, bool] | None = None) -> dict[str, int]:
         _features = {**self.features, **(extra_features or {})}
         with self.feature(_features):
             response = self.get_success_response(self.organization.slug, project_id=self.project.id)

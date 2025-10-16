@@ -30,7 +30,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
         super().setUp()
         self.alert_rule = self.create_alert_rule()
 
-    def get_url(self, link, identifier, detection_type, uuid: str | None):
+    def get_url(self, link: str, identifier: str, detection_type: str, uuid: str | None) -> str:
         if uuid is None:
             return f"{link}?alert={identifier}&referrer=metric_alert_discord&detection_type={detection_type}"
         return f"{link}?alert={identifier}&referrer=metric_alert_discord&detection_type={detection_type}&notification_uuid={uuid}"

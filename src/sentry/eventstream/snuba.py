@@ -10,9 +10,9 @@ import urllib3
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import EventStream, GroupStates
 from sentry.eventstream.types import EventStreamEventType
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -22,7 +22,7 @@ KW_SKIP_SEMANTIC_PARTITIONING = "skip_semantic_partitioning"
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 # Version 1 format: (1, TYPE, [...REST...])
@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 #       'project_id': id,
 #       'previous_group_ids': [id2, id2],
 #       'new_group_id': id,
+#       'group_first_seen': timestamp,
 #       'datetime': timestamp,
 #   })
 #   Unmerge: (2, '(start_unmerge|end_unmerge)', {
@@ -96,7 +97,6 @@ class SnubaProtocolEventStream(EventStream):
     ) -> MutableMapping[str, str]:
         return {
             "Received-Timestamp": str(received_timestamp),
-            "queue": self._get_queue_for_post_process(event),
         }
 
     def insert(
@@ -174,6 +174,11 @@ class SnubaProtocolEventStream(EventStream):
                 {
                     "group_id": event.group_id,
                     "group_ids": [group.id for group in getattr(event, "groups", [])],
+                    "group_first_seen": (
+                        json.datetime_to_str(event.group.first_seen)
+                        if event.group is not None
+                        else None
+                    ),
                     "event_id": event.event_id,
                     "organization_id": project.organization_id,
                     "project_id": event.project_id,
@@ -192,7 +197,6 @@ class SnubaProtocolEventStream(EventStream):
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
-                    "queue": headers["queue"],
                     "skip_consume": skip_consume,
                     "group_states": group_states,
                 },
@@ -229,7 +233,11 @@ class SnubaProtocolEventStream(EventStream):
         )
 
     def start_merge(
-        self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
+        self,
+        project_id: int,
+        previous_group_ids: Sequence[int],
+        new_group_id: int,
+        new_group_first_seen: datetime | None = None,
     ) -> dict[str, Any]:
         if not previous_group_ids:
             raise ValueError("expected groups to merge!")
@@ -242,13 +250,16 @@ class SnubaProtocolEventStream(EventStream):
             "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
+        if new_group_first_seen is not None:
+            state["new_group_first_seen"] = json.datetime_to_str(new_group_first_seen)
+
         self._send(project_id, "start_merge", extra_data=(state,), asynchronous=False)
 
         return state
 
     def end_merge(self, state: Mapping[str, Any]) -> None:
         state_copy: MutableMapping[str, Any] = {**state}
-        state_copy["datetime"] = datetime.now(tz=timezone.utc)
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
         self._send(
             state_copy["project_id"], "end_merge", extra_data=(state_copy,), asynchronous=False
         )
@@ -477,7 +488,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_regression,
             is_new_group_environment,
             primary_hash,
-            self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,

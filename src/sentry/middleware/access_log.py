@@ -30,7 +30,7 @@ class _AccessLogMetaData:
         return time.time() - self.request_start_time
 
 
-def _get_request_auth(request: Request) -> AuthenticatedToken | None:
+def _get_request_auth(request: Request) -> AuthenticatedToken | str | None:
     if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
         return None
     # may not be present if request was rejected by a middleware between this
@@ -47,7 +47,7 @@ def _get_token_name(auth: AuthenticatedToken | None) -> str | None:
         raise AssertionError(f"unreachable: {auth}")
 
 
-def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
+def _get_rate_limit_stats_dict(request: Request) -> dict[str, str | int | None]:
 
     rate_limit_metadata: RateLimitMeta | None = getattr(request, "rate_limit_metadata", None)
     snuba_rate_limit_metadata: SnubaRateLimitMeta | None = getattr(
@@ -56,26 +56,26 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
 
     rate_limit_type = "DNE"
     if rate_limit_metadata:
-        rate_limit_type = str(getattr(rate_limit_metadata, "rate_limit_type", "DNE"))
-    elif snuba_rate_limit_metadata:
-        rate_limit_type = "RateLimitType.SNUBA"
+        rate_limit_type = rate_limit_metadata.rate_limit_type.value
+    if snuba_rate_limit_metadata:
+        rate_limit_type = "snuba"
 
     rate_limit_stats = {
         "rate_limit_type": rate_limit_type,
-        "concurrent_limit": str(getattr(rate_limit_metadata, "concurrent_limit", None)),
-        "concurrent_requests": str(getattr(rate_limit_metadata, "concurrent_requests", None)),
-        "reset_time": str(getattr(rate_limit_metadata, "reset_time", None)),
-        "group": str(getattr(rate_limit_metadata, "group", None)),
-        "limit": str(getattr(rate_limit_metadata, "limit", None)),
-        "remaining": str(getattr(rate_limit_metadata, "remaining", None)),
+        "concurrent_limit": getattr(rate_limit_metadata, "concurrent_limit", None),
+        "concurrent_requests": getattr(rate_limit_metadata, "concurrent_requests", None),
+        "reset_time": getattr(rate_limit_metadata, "reset_time", None),
+        "group": getattr(rate_limit_metadata, "group", None),
+        "limit": getattr(rate_limit_metadata, "limit", None),
+        "remaining": getattr(rate_limit_metadata, "remaining", None),
         # We prefix the snuba fields with snuba_ to avoid confusion with the standard rate limit metadata
-        "snuba_policy": str(getattr(snuba_rate_limit_metadata, "policy", None)),
-        "snuba_quota_unit": str(getattr(snuba_rate_limit_metadata, "quota_unit", None)),
-        "snuba_quota_used": str(getattr(snuba_rate_limit_metadata, "quota_used", None)),
-        "snuba_rejection_threshold": str(
-            getattr(snuba_rate_limit_metadata, "rejection_threshold", None)
+        "snuba_policy": getattr(snuba_rate_limit_metadata, "policy", None),
+        "snuba_quota_unit": getattr(snuba_rate_limit_metadata, "quota_unit", None),
+        "snuba_quota_used": getattr(snuba_rate_limit_metadata, "quota_used", None),
+        "snuba_rejection_threshold": getattr(
+            snuba_rate_limit_metadata, "rejection_threshold", None
         ),
-        "snuba_storage_key": str(getattr(snuba_rate_limit_metadata, "storage_key", None)),
+        "snuba_storage_key": getattr(snuba_rate_limit_metadata, "storage_key", None),
     }
 
     return rate_limit_stats
@@ -94,7 +94,13 @@ def _create_api_access_log(
             view = request.resolver_match._func_path
 
         request_auth = _get_request_auth(request)
-        token_type = str(_get_token_name(request_auth))
+        if isinstance(request_auth, str):
+            # RPC authenticator currently set auth to a string.
+            # a) Those are also system tokens and should be ignored.
+            # b) _get_token_name raises on non AuthenticatedToken
+            return
+
+        token_type = _get_token_name(request_auth)
         if token_type == "system":
             # if its an internal request, no need to log
             return
@@ -102,38 +108,45 @@ def _create_api_access_log(
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
+        # TODO: `org_id` is often None even if we should have it
+        # Likely `organization` is not being correctly set in the base endpoints on _request
         org_id = getattr(getattr(request, "organization", None), "id", None)
-        auth_id = getattr(request_auth, "id", None)
+        entity_id = getattr(request_auth, "entity_id", None)
         status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
-            method=str(request.method),
+            method=request.method,
             view=view,
             response=status_code,
-            user_id=str(user_id),
-            is_app=str(is_app),
+            user_id=user_id,
+            is_app=is_app,
             token_type=token_type,
-            is_frontend_request=str(is_frontend_request(request)),
-            organization_id=str(org_id),
-            auth_id=str(auth_id),
-            path=str(request.path),
-            caller_ip=str(request.META.get("REMOTE_ADDR")),
-            user_agent=str(request.META.get("HTTP_USER_AGENT")),
-            rate_limited=str(getattr(request, "will_be_rate_limited", False)),
-            rate_limit_category=str(getattr(request, "rate_limit_category", None)),
+            is_frontend_request=is_frontend_request(request),
+            organization_id=org_id,
+            entity_id=entity_id,
+            path=request.path,
+            caller_ip=request.META.get("REMOTE_ADDR"),
+            user_agent=request.META.get("HTTP_USER_AGENT"),
+            rate_limited=getattr(request, "will_be_rate_limited", False),
+            rate_limit_category=getattr(request, "rate_limit_category", None),
             request_duration_seconds=access_log_metadata.get_request_duration(),
             **_get_rate_limit_stats_dict(request),
         )
         auth = get_authorization_header(request).split()
         if len(auth) == 2:
             log_metrics["token_last_characters"] = force_str(auth[1])[-4:]
+
+        # Filter out None values and convert remaining values to string
+        log_metrics = {k: str(v) for k, v in log_metrics.items() if v is not None}
+
         api_access_logger.info("api.access", extra=log_metrics)
         metrics.incr("middleware.access_log.created")
+
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
 
 
 def access_log_middleware(
-    get_response: Callable[[Request], Response]
+    get_response: Callable[[Request], Response],
 ) -> Callable[[Request], Response]:
     def middleware(request: Request) -> Response:
         # NOTE(Vlad): `request.auth|user` are not a simple member accesses,

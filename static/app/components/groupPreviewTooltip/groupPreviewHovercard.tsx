@@ -19,7 +19,7 @@ export function GroupPreviewHovercard({
 }: GroupPreviewHovercardProps) {
   const theme = useTheme();
   const handleStackTracePreviewClick = useCallback(
-    (e: React.MouseEvent) => void e.stopPropagation(),
+    (e: React.MouseEvent) => e.stopPropagation(),
     []
   );
 

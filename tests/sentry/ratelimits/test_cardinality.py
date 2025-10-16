@@ -11,7 +11,7 @@ from sentry.ratelimits.cardinality import (
 
 
 @pytest.fixture
-def limiter():
+def limiter() -> RedisCardinalityLimiter:
     return RedisCardinalityLimiter()
 
 
@@ -44,7 +44,7 @@ class LimiterHelper:
         return grant.granted_unit_hashes
 
 
-def test_basic(limiter: RedisCardinalityLimiter):
+def test_basic(limiter: RedisCardinalityLimiter) -> None:
     helper = LimiterHelper(limiter)
 
     for _ in range(20):
@@ -66,7 +66,7 @@ def test_basic(limiter: RedisCardinalityLimiter):
     assert [helper.add_value(10 + i) for i in range(100)] == list(range(10, 20)) + [None] * 90
 
 
-def test_multiple_prefixes(limiter: RedisCardinalityLimiter):
+def test_multiple_prefixes(limiter: RedisCardinalityLimiter) -> None:
     """
     Test multiple prefixes/organizations and just make sure we're not leaking
     state between prefixes.
@@ -128,7 +128,7 @@ def test_multiple_prefixes(limiter: RedisCardinalityLimiter):
     limiter.use_quotas(grants, new_timestamp)
 
 
-def test_sliding(limiter: RedisCardinalityLimiter):
+def test_sliding(limiter: RedisCardinalityLimiter) -> None:
     """
     Our rate limiter has a sliding window of [now - 1 hour ; now], with a
     granularity of 1 hour.
@@ -198,7 +198,7 @@ def test_sampling(limiter: RedisCardinalityLimiter) -> None:
     assert admissions == [None] * 10
 
 
-def test_sampling_going_bad(limiter: RedisCardinalityLimiter):
+def test_sampling_going_bad(limiter: RedisCardinalityLimiter) -> None:
     """
     test an edgecase of set sampling in the cardinality limiter. it is not
     exactly desired behavior but a known sampling artifact
@@ -213,7 +213,7 @@ def test_sampling_going_bad(limiter: RedisCardinalityLimiter):
     assert admissions == [0] + [None] * 9
 
 
-def test_regression_mixed_order(limiter: RedisCardinalityLimiter):
+def test_regression_mixed_order(limiter: RedisCardinalityLimiter) -> None:
     """
     Regression test to assert we still accept hashes after dropping some
     within the same request, regardless of set order.

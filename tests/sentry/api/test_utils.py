@@ -111,7 +111,7 @@ class PrintAndCaptureHandlerExceptionTest(APITestCase):
         self.handler_error = Exception("nope")
 
     @patch("sys.stderr.write")
-    def test_logs_error_locally(self, mock_stderr_write: MagicMock):
+    def test_logs_error_locally(self, mock_stderr_write: MagicMock) -> None:
         try:
             raise self.handler_error
         except Exception as e:
@@ -124,7 +124,7 @@ class PrintAndCaptureHandlerExceptionTest(APITestCase):
     def test_passes_along_exception(
         self,
         mock_capture_exception: MagicMock,
-    ):
+    ) -> None:
         print_and_capture_handler_exception(self.handler_error)
 
         assert mock_capture_exception.call_args.args[0] == self.handler_error
@@ -133,7 +133,7 @@ class PrintAndCaptureHandlerExceptionTest(APITestCase):
     def test_merges_handler_context_with_scope(
         self,
         mock_capture_exception: MagicMock,
-    ):
+    ) -> None:
         handler_context = {"api_request_URL": "http://dogs.are.great/"}
         scope = Scope()
         tags = {"maisey": "silly", "charlie": "goofy"}
@@ -200,7 +200,7 @@ class HandleQueryErrorsTest(APITestCase):
 
     def test_handle_postgres_timeout(self) -> None:
         class TimeoutError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to statement timeout"
 
         try:
@@ -214,7 +214,7 @@ class HandleQueryErrorsTest(APITestCase):
 
     def test_handle_postgres_user_cancel(self) -> None:
         class UserCancelError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to user request"
 
         try:

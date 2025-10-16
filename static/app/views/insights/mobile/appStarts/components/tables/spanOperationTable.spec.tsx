@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-describe('SpanOpSelector', function () {
+describe('SpanOpSelector', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   let mockEventsRequest: jest.Mock;
@@ -38,7 +38,7 @@ describe('SpanOpSelector', function () {
 
   jest.mocked(useLocation).mockReturnValue(LocationFixture());
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     mockUseLocation.mockReturnValue(
@@ -54,10 +54,10 @@ describe('SpanOpSelector', function () {
             'span.op': 'string',
             'span.description': 'string',
             'span.group': 'string',
-            'avg_if(span.self_time,release,release1)': 'duration',
+            'avg_if(span.self_time,release,equals,release1)': 'duration',
             'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
             'count()': 'integer',
-            'avg_if(span.self_time,release,release2)': 'duration',
+            'avg_if(span.self_time,release,equals,release2)': 'duration',
             'sum(span.self_time)': 'duration',
           },
         },
@@ -67,10 +67,10 @@ describe('SpanOpSelector', function () {
             'span.op': 'app.start.warm',
             'span.description': 'Application Init',
             'span.group': '7f4be68f08c0455f',
-            'avg_if(span.self_time,release,release1)': 22.549867,
+            'avg_if(span.self_time,release,equals,release1)': 22.549867,
             'avg_compare(span.self_time,release,release1,release2)': 0.5,
             'count()': 14,
-            'avg_if(span.self_time,release,release2)': 12504.931908384617,
+            'avg_if(span.self_time,release,equals,release2)': 12504.931908384617,
             'sum(span.self_time)': 162586.66467600001,
           },
         ],
@@ -78,7 +78,7 @@ describe('SpanOpSelector', function () {
     });
   });
 
-  it('renders data properly', async function () {
+  it('renders data properly', async () => {
     render(
       <SpanOperationTable
         transaction="foo-bar"
@@ -105,7 +105,7 @@ describe('SpanOpSelector', function () {
     );
   });
 
-  it('displays the infinity symbol for new spans with null percent change', async function () {
+  it('displays the infinity symbol for new spans with null percent change', async () => {
     mockEventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -115,10 +115,10 @@ describe('SpanOpSelector', function () {
             'span.op': 'string',
             'span.description': 'string',
             'span.group': 'string',
-            'avg_if(span.self_time,release,release1)': 'duration',
+            'avg_if(span.self_time,release,equals,release1)': 'duration',
             'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
             'count()': 'integer',
-            'avg_if(span.self_time,release,release2)': 'duration',
+            'avg_if(span.self_time,release,equals,release2)': 'duration',
             'sum(span.self_time)': 'duration',
           },
         },
@@ -132,8 +132,8 @@ describe('SpanOpSelector', function () {
             'sum(span.self_time)': 162586.66467600001,
 
             // simulate a scenario where a span was added in release 2
-            'avg_if(span.self_time,release,release1)': 0,
-            'avg_if(span.self_time,release,release2)': 12504.931908384617,
+            'avg_if(span.self_time,release,equals,release1)': 0,
+            'avg_if(span.self_time,release,equals,release2)': 12504.931908384617,
             'avg_compare(span.self_time,release,release1,release2)': null,
           },
         ],
@@ -151,7 +151,7 @@ describe('SpanOpSelector', function () {
     expect(await screen.findByRole('cell', {name: '+∞%'})).toBeInTheDocument();
   });
 
-  it('modifies the request to events when a span operation is selected', async function () {
+  it('modifies the request to events when a span operation is selected', async () => {
     // Mock useLocation to simulate the span op query param
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -179,7 +179,7 @@ describe('SpanOpSelector', function () {
       },
       match: [
         function (_url: string, options: Record<string, any>) {
-          return options?.query?.referrer === 'api.starfish.get-span-operations';
+          return options?.query?.referrer === 'api.insights.get-span-operations';
         },
       ],
     });
@@ -192,7 +192,7 @@ describe('SpanOpSelector', function () {
       />
     );
 
-    await waitFor(function () {
+    await waitFor(() => {
       expect(mockEventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({

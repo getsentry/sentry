@@ -90,7 +90,7 @@ function renderComponent({
   return render(<NotificationSettingsByType notificationType={notificationType} />);
 }
 
-describe('NotificationSettingsByType', function () {
+describe('NotificationSettingsByType', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     OrganizationsStore.init();
@@ -105,7 +105,7 @@ describe('NotificationSettingsByType', function () {
     });
   });
 
-  it('should render when default is disabled', async function () {
+  it('should render when default is disabled', async () => {
     renderComponent({
       notificationOptions: [
         {
@@ -123,7 +123,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
-  it('should default to the subdomain org', async function () {
+  it('should default to the subdomain org', async () => {
     const organization = OrganizationFixture();
     const otherOrganization = OrganizationFixture({
       id: '2',
@@ -147,7 +147,7 @@ describe('NotificationSettingsByType', function () {
     expect(projectsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders all the quota subcategories', async function () {
+  it('renders all the quota subcategories', async () => {
     renderComponent({notificationType: 'quota'});
 
     // check for all the quota subcategories
@@ -166,7 +166,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
   });
-  it('adds a project override and removes it', async function () {
+  it('adds a project override and removes it', async () => {
     renderComponent({});
 
     await selectEvent.select(await screen.findByText('Project\u2026'), 'foo');
@@ -197,7 +197,7 @@ describe('NotificationSettingsByType', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
     expect(deleteSettingMock).toHaveBeenCalledTimes(1);
   });
-  it('edits a project override', async function () {
+  it('edits a project override', async () => {
     renderComponent({
       notificationOptions: [
         {
@@ -238,7 +238,7 @@ describe('NotificationSettingsByType', function () {
       })
     );
   });
-  it('renders and sets the provider options', async function () {
+  it('renders and sets the provider options', async () => {
     renderComponent({
       notificationProviders: [
         {
@@ -261,7 +261,7 @@ describe('NotificationSettingsByType', function () {
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders spend notifications page instead of quota notifications with flag', async function () {
+  it('renders spend notifications page instead of quota notifications with flag', async () => {
     const organizationWithFlag = OrganizationFixture();
     organizationWithFlag.features.push('spend-visibility-notifications');
     const organizationNoFlag = OrganizationFixture();
@@ -277,7 +277,7 @@ describe('NotificationSettingsByType', function () {
     ).toBeInTheDocument();
   });
 
-  it('toggle user spend notifications', async function () {
+  it('toggle user spend notifications', async () => {
     const organizationWithFlag = OrganizationFixture();
     organizationWithFlag.features.push('spend-visibility-notifications');
     const organizationNoFlag = OrganizationFixture();
@@ -317,13 +317,15 @@ describe('NotificationSettingsByType', function () {
     );
   });
 
-  it('spend notifications on org with am3 with spend visibility notifications', async function () {
+  it('spend notifications on org with am3 with spend visibility notifications', async () => {
     const organization = OrganizationFixture({
       features: [
         'spend-visibility-notifications',
         'am3-tier',
         'continuous-profiling-billing',
         'seer-billing',
+        'logs-billing',
+        'prevent-billing',
       ],
     });
     renderComponent({
@@ -343,6 +345,8 @@ describe('NotificationSettingsByType', function () {
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+    expect(screen.getByText('Prevent Users')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -374,7 +378,7 @@ describe('NotificationSettingsByType', function () {
     );
   });
 
-  it('spend notifications on org with am3 and org without am3', async function () {
+  it('spend notifications on org with am3 and org without am3', async () => {
     const organization = OrganizationFixture({
       features: [
         'spend-visibility-notifications',
@@ -404,7 +408,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
   });
 
-  it('spend notifications on org with am1 org only', async function () {
+  it('spend notifications on org with am1 org only', async () => {
     const organization = OrganizationFixture({
       features: [
         'spend-visibility-notifications',
@@ -434,7 +438,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
   });
 
-  it('spend notifications on org with am3 without spend visibility notifications', async function () {
+  it('spend notifications on org with am3 without spend visibility notifications', async () => {
     const organization = OrganizationFixture({
       features: ['am3-tier', 'continuous-profiling-billing', 'seer-billing'],
     });
@@ -487,13 +491,14 @@ describe('NotificationSettingsByType', function () {
     );
   });
 
-  it('should not show categories without related features', async function () {
+  it('should not show categories without related features', async () => {
     const organization = OrganizationFixture({
       features: [
         'spend-visibility-notifications',
         'am3-tier',
         // No continuous-profiling-billing feature
         // No seer-billing feature
+        // No logs-billing feature
       ],
     });
     renderComponent({
@@ -517,5 +522,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
+    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Prevent Users')).not.toBeInTheDocument();
   });
 });

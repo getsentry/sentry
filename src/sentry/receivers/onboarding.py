@@ -7,19 +7,28 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.analytics.events.first_cron_checkin_sent import FirstCronCheckinSent
 from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
+    FirstEventSentEventWithMinifiedStackTraceForProject,
     FirstEventSentForProjectEvent,
 )
 from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
 from sentry.analytics.events.first_log_sent import FirstLogSentEvent
+from sentry.analytics.events.first_new_feedback_sent import FirstNewFeedbackSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
+from sentry.analytics.events.first_release_tag_sent import FirstReleaseTagSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_sourcemaps_sent import (
+    FirstSourcemapsSentEvent,
+    FirstSourcemapsSentEventForProject,
+)
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
 from sentry.constants import InsightModules
@@ -105,15 +114,19 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             # XXX(dcramer): we cannot setup onboarding tasks without a user
             return
 
-    analytics.record(
-        "project.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        origin=origin,
-        project_id=project.id,
-        platform=project.platform,
-    )
+    try:
+        analytics.record(
+            ProjectCreatedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                origin=origin,
+                project_id=project.id,
+                platform=project.platform,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
     completed = complete_onboarding_task(
         organization=project.organization,
@@ -261,34 +274,40 @@ def record_first_feedback(project, **kwargs):
     weak=False, dispatch_uid="onboarding.record_first_new_feedback"
 )
 def record_first_new_feedback(project, **kwargs):
-    analytics.record(
-        "first_new_feedback.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-    )
+    try:
+        analytics.record(
+            FirstNewFeedbackSentEvent(
+                user_id=get_owner_id(project),
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
 def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     analytics.record(
-        "first_cron_monitor.created",
-        user_id=get_owner_id(project, user),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        from_upsert=from_upsert,
+        FirstCronMonitorCreated(
+            user_id=get_owner_id(project, user),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
     )
 
 
 @cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_cron_monitor_created")
 def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     analytics.record(
-        "cron_monitor.created",
-        user_id=get_owner_id(project, user),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        from_upsert=from_upsert,
+        CronMonitorCreated(
+            user_id=get_owner_id(project, user),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
     )
 
 
@@ -374,10 +393,11 @@ def record_release_received(project, release, **kwargs):
             return
 
         analytics.record(
-            "first_release_tag.sent",
-            user_id=owner_id,
-            project_id=project.id,
-            organization_id=project.organization_id,
+            FirstReleaseTagSentEvent(
+                user_id=owner_id,
+                project_id=project.id,
+                organization_id=project.organization_id,
+            )
         )
 
 
@@ -398,13 +418,14 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
 
     if project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ:
         analytics.record(
-            "first_event_with_minified_stack_trace_for_project.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
+            FirstEventSentEventWithMinifiedStackTraceForProject(
+                user_id=owner_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+                url=dict(event.tags).get("url", None),
+            )
         )
 
 
@@ -425,15 +446,19 @@ def record_sourcemaps_received(project, event, **kwargs):
                 project.organization_id,
             )
             return
-        analytics.record(
-            "first_sourcemaps.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
-        )
+        try:
+            analytics.record(
+                FirstSourcemapsSentEvent(
+                    user_id=owner_id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform=event.platform,
+                    project_platform=project.platform,
+                    url=dict(event.tags).get("url", None),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 @event_processed.connect(
@@ -461,13 +486,14 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
 
         if project.date_added > START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ and affected > 0:
             analytics.record(
-                "first_sourcemaps_for_project.sent",
-                user_id=owner_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform=event.platform,
-                project_platform=project.platform,
-                url=dict(event.tags).get("url", None),
+                FirstSourcemapsSentEventForProject(
+                    user_id=owner_id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform=event.platform,
+                    project_platform=project.platform,
+                    url=dict(event.tags).get("url", None),
+                )
             )
 
 

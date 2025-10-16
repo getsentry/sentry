@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 
 from snuba_sdk import Column, Condition, Op
 
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
@@ -35,7 +35,7 @@ def _get_oldest_non_null(g: Group, environments: Sequence[str] = ()) -> GroupEve
 
 
 class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
-    def test_get_oldest_latest_for_environments(self):
+    def test_get_oldest_latest_for_environments(self) -> None:
         project = self.create_project()
         self.store_event(
             data={
@@ -73,7 +73,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         assert _get_oldest_non_null(group, ["staging", "production"]).event_id == "a" * 32
         assert group.get_oldest_event_for_environments(["staging"]) is None
 
-    def test_error_issue_get_helpful_for_environments(self):
+    def test_error_issue_get_helpful_for_environments(self) -> None:
         project = self.create_project()
         replay_id = uuid.uuid4().hex
 
@@ -185,7 +185,7 @@ def _get_oldest(
 
 @freeze_time()
 class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.event_a = self.store_event(
@@ -238,7 +238,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         self.group: Group = Group.objects.get()
         assert isinstance(self.group, Group)
 
-    def test_recommended_event(self):
+    def test_recommended_event(self) -> None:
         # No filter
         assert _get_recommended(self.group).event_id == self.event_b.event_id
 
@@ -270,7 +270,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
             == self.event_b.event_id
         )
 
-    def test_latest_event(self):
+    def test_latest_event(self) -> None:
         # No filter
         assert _get_latest(self.group).event_id == self.event_a.event_id
 
@@ -300,7 +300,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
             == self.event_b.event_id
         )
 
-    def test_oldest_event(self):
+    def test_oldest_event(self) -> None:
         # No filter
         assert _get_oldest(self.group).event_id == self.event_c.event_id
 
@@ -333,7 +333,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
 
 @freeze_time()
 class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
@@ -386,7 +386,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
         self.group: Group = Group.objects.get()
         assert isinstance(self.group, Group)
 
-    def test_recommended_event(self):
+    def test_recommended_event(self) -> None:
         # No filter
         assert _get_recommended(self.group).event_id == self.event_b.event_id
 
@@ -418,7 +418,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
             == self.event_b.event_id
         )
 
-    def test_latest_event(self):
+    def test_latest_event(self) -> None:
         # No filter
         assert _get_latest(self.group).event_id == self.event_a.event_id
 
@@ -448,7 +448,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
             == self.event_b.event_id
         )
 
-    def test_oldest_event(self):
+    def test_oldest_event(self) -> None:
         # No filter
         assert _get_oldest(self.group).event_id == self.event_c.event_id
 
@@ -481,7 +481,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
 
 @freeze_time()
 class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
 
@@ -537,7 +537,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
         assert isinstance(self.group, Group)
         assert self.group.type == ProfileFileIOGroupType.type_id
 
-    def test_recommended_event(self):
+    def test_recommended_event(self) -> None:
         # No filter
         self.assert_occurrences_identical(_get_recommended(self.group).occurrence, self.issue_occ_b)
 
@@ -581,7 +581,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
             == self.issue_occ_b.event_id
         )
 
-    def test_latest_event(self):
+    def test_latest_event(self) -> None:
         # No filter
         self.assert_occurrences_identical(_get_latest(self.group).occurrence, self.issue_occ_a)
 
@@ -611,7 +611,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
             == self.issue_occ_b.event_id
         )
 
-    def test_oldest_event(self):
+    def test_oldest_event(self) -> None:
         # No filter
         self.assert_occurrences_identical(_get_oldest(self.group).occurrence, self.issue_occ_c)
 

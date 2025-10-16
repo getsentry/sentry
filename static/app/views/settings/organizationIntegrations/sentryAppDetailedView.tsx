@@ -27,10 +27,10 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
@@ -229,7 +229,10 @@ export default function SentryAppDetailedView() {
         setApiQueryData<SentryAppInstallation[]>(
           queryClient,
           makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
-          (existingData = []) => existingData.filter(i => i.app.slug !== sentryApp.slug)
+          (existingData = []) =>
+            existingData.map(i =>
+              i.app.slug === sentryApp.slug ? {...i, status: 'pending_deletion'} : i
+            )
         );
       } catch (error) {
         addErrorMessage(t('Unable to uninstall %s', sentryApp.name));
@@ -306,6 +309,13 @@ export default function SentryAppDetailedView() {
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
       const capitalizedSlug =
         integrationSlug.charAt(0).toUpperCase() + integrationSlug.slice(1);
+      if (install?.status === 'pending_deletion') {
+        return (
+          <StyledButton size="sm" disabled>
+            {t('Pending Deletion')}
+          </StyledButton>
+        );
+      }
       if (install) {
         return (
           <Confirm
@@ -317,10 +327,10 @@ export default function SentryAppDetailedView() {
             onConfirming={recordUninstallClicked} // called when the confirm modal opens
             priority="danger"
           >
-            <StyledUninstallButton size="sm" data-test-id="sentry-app-uninstall">
+            <StyledButton size="sm" data-test-id="sentry-app-uninstall">
               <IconSubtract isCircled style={{marginRight: space(0.75)}} />
               {t('Uninstall')}
-            </StyledUninstallButton>
+            </StyledButton>
           </Confirm>
         );
       }
@@ -390,7 +400,7 @@ export default function SentryAppDetailedView() {
           additionalCTA={null}
         />
       }
-      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab={'overview'} />}
+      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab="overview" />}
       content={
         <IntegrationLayout.InformationCard
           integrationSlug={integrationSlug}
@@ -431,7 +441,7 @@ const InstallButton = styled(Button)`
   margin-left: ${space(1)};
 `;
 
-const StyledUninstallButton = styled(Button)`
+const StyledButton = styled(Button)`
   color: ${p => p.theme.subText};
   background: ${p => p.theme.background};
 

@@ -38,8 +38,9 @@ class SearchBackend(Service):
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         max_hits: int | None = None,
-        referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
     ) -> CursorResult[Group]:
         raise NotImplementedError

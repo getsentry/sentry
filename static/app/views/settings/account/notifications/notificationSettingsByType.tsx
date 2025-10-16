@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Form from 'sentry/components/forms/form';
@@ -208,11 +208,20 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('seer-billing')
     );
 
+    const hasLogsBilling = organizations.some(organization =>
+      organization.features?.includes('logs-billing')
+    );
+
+    const hasPreventBilling = organizations.some(organization =>
+      organization.features?.includes('prevent-billing')
+    );
+
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
     const includeSpans = hasOrgWithAm3;
     const includeProfileDuration =
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
     const includeSeer = hasSeerBilling;
+    const includeLogs = hasLogsBilling;
 
     return fields.filter(field => {
       if (field.name === 'quotaSpans' && !includeSpans) {
@@ -228,6 +237,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
         return false;
       }
       if (field.name.startsWith('quotaSeer') && !includeSeer) {
+        return false;
+      }
+      if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
+        return false;
+      }
+      if (field.name.startsWith('quotaPrevent') && !hasPreventBilling) {
         return false;
       }
       return true;

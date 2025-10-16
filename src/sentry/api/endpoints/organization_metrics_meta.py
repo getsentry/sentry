@@ -31,8 +31,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             "compatible_projects": [],
         }
         try:
-            # This will be used on the perf homepage and contains preset queries, allow global views
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(data)
         original_project_ids = snuba_params.project_ids[:]
@@ -84,8 +83,7 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
             },
         }
         try:
-            # This will be used on the perf homepage and contains preset queries, allow global views
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(data)
 

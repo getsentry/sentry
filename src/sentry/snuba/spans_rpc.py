@@ -4,17 +4,18 @@ from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.sampling import handle_downsample_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import handle_downsample_meta, set_debug_meta
+from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
+from sentry.snuba.rpc_dataset_common import set_debug_meta
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
@@ -40,6 +41,8 @@ class Spans(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -51,7 +54,9 @@ class Spans(rpc_dataset_common.RPCBase):
                 limit=limit,
                 referrer=referrer,
                 sampling_mode=sampling_mode,
+                page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
+                additional_queries=additional_queries,
             ),
             params.debug,
         )

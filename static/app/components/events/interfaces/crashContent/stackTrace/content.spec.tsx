@@ -31,7 +31,7 @@ const event = EventFixture({
 
 const data = eventEntryStacktrace.data as Required<StacktraceType>;
 
-describe('StackTrace', function () {
+describe('StackTrace', () => {
   const defaultProps = {
     platform: 'other' as const,
     newestFirst: true,
@@ -56,7 +56,7 @@ describe('StackTrace', function () {
     });
     ProjectsStore.loadInitialData([project]);
   });
-  it('renders', function () {
+  it('renders', () => {
     render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // stack trace content
@@ -71,7 +71,7 @@ describe('StackTrace', function () {
     expect(frames.children).toHaveLength(5);
   });
 
-  it('renders the frame in the correct order', function () {
+  it('renders the frame in the correct order', () => {
     render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // frame - filename
@@ -93,7 +93,7 @@ describe('StackTrace', function () {
     expect(frameFunction[4]).toHaveTextContent('build_msg');
   });
 
-  it('collapse/expand frames by clicking anywhere in the frame element', async function () {
+  it('collapse/expand frames by clicking anywhere in the frame element', async () => {
     render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // frame list
@@ -123,7 +123,7 @@ describe('StackTrace', function () {
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
-  it('collapse/expand frames by clicking on the toggle button', async function () {
+  it('collapse/expand frames by clicking on the toggle button', async () => {
     render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // frame list
@@ -154,7 +154,7 @@ describe('StackTrace', function () {
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
-  it('if all in_app equals false, all the frames are showing by default', function () {
+  it('if all in_app equals false, all the frames are showing by default', () => {
     render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // frame list
@@ -162,7 +162,7 @@ describe('StackTrace', function () {
     expect(frames.children).toHaveLength(5);
   });
 
-  it('if frames are omitted, renders omitted frames', function () {
+  it('if frames are omitted, renders omitted frames', () => {
     const newData: StacktraceType = {
       ...data,
       framesOmitted: [0, 3],
@@ -176,7 +176,7 @@ describe('StackTrace', function () {
     expect(omittedFrames).toBeInTheDocument();
   });
 
-  it('does not render non in app tags', function () {
+  it('does not render non in app tags', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: false};
 
@@ -190,7 +190,7 @@ describe('StackTrace', function () {
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
-  it('displays a toggle button when there is more than one non-inapp frame', function () {
+  it('displays a toggle button when there is more than one non-inapp frame', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
 
@@ -211,7 +211,7 @@ describe('StackTrace', function () {
     expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
   });
 
-  it('shows/hides frames when toggle button clicked', async function () {
+  it('shows/hides frames when toggle button clicked', async () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
     dataFrames[1] = {...dataFrames[1]!, function: 'non-in-app-frame'};
@@ -239,7 +239,7 @@ describe('StackTrace', function () {
     expect(screen.getByText('non-in-app-frame')).toBeInTheDocument();
   });
 
-  it('does not display a toggle button when there is only one non-inapp frame', function () {
+  it('does not display a toggle button when there is only one non-inapp frame', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
     dataFrames[2] = {...dataFrames[2]!, inApp: true};
@@ -262,8 +262,8 @@ describe('StackTrace', function () {
     expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
   });
 
-  describe('if there is a frame with in_app equal to true, display only in_app frames', function () {
-    it('displays crashed from only', function () {
+  describe('if there is a frame with in_app equal to true, display only in_app frames', () => {
+    it('displays crashed from only', () => {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -299,7 +299,7 @@ describe('StackTrace', function () {
       expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
     });
 
-    it('displays called from only', function () {
+    it('displays called from only', () => {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -338,7 +338,7 @@ describe('StackTrace', function () {
       );
     });
 
-    it('displays crashed from and called from', function () {
+    it('displays crashed from and called from', () => {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -378,7 +378,7 @@ describe('StackTrace', function () {
       );
     });
 
-    it('displays "occurred in" when event is not an error', function () {
+    it('displays "occurred in" when event is not an error', () => {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -415,7 +415,7 @@ describe('StackTrace', function () {
       expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
     });
 
-    it('displays "occurred in" when event is an ANR error', function () {
+    it('displays "occurred in" when event is an ANR error', () => {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -454,8 +454,8 @@ describe('StackTrace', function () {
     });
   });
 
-  describe('platform icons', function () {
-    it('uses the top in-app frame file extension for mixed stack trace platforms', function () {
+  describe('platform icons', () => {
+    it('uses the top in-app frame file extension for mixed stack trace platforms', () => {
       render(
         <StackTraceContent
           {...defaultProps}
@@ -488,7 +488,7 @@ describe('StackTrace', function () {
       expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     });
 
-    it('uses frame.platform if file extension does not work', function () {
+    it('uses frame.platform if file extension does not work', () => {
       render(
         <StackTraceContent
           {...defaultProps}
@@ -521,7 +521,7 @@ describe('StackTrace', function () {
       expect(screen.getByTestId('platform-icon-node')).toBeInTheDocument();
     });
 
-    it('falls back to the event platform if there is no other information', function () {
+    it('falls back to the event platform if there is no other information', () => {
       render(
         <StackTraceContent
           {...defaultProps}

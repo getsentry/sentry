@@ -1,5 +1,6 @@
-import {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import {Item} from '@react-stately/collections';
+import type {ComboBoxState} from '@react-stately/combobox';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent} from '@react-types/shared';
 
@@ -26,6 +27,10 @@ type ParametersComboboxProps = {
   onDelete: () => void;
   state: ListState<ParseResultToken>;
   token: AggregateFilter;
+  onKeyDown?: (
+    e: KeyboardEvent,
+    extra: {state: ComboBoxState<SelectOptionWithKey<string>>}
+  ) => void;
 };
 
 type SuggestionItem = {
@@ -233,6 +238,7 @@ export function SearchQueryBuilderParametersCombobox({
   token,
   onCommit,
   onDelete,
+  onKeyDown: passedOnKeyDown,
 }: ParametersComboboxProps) {
   const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
 
@@ -262,13 +268,19 @@ export function SearchQueryBuilderParametersCombobox({
   const items = useParameterSuggestions({token, parameterIndex});
 
   const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+    (
+      e: KeyboardEvent,
+      {state: passedState}: {state: ComboBoxState<SelectOptionWithKey<string>>}
+    ) => {
+      if (passedOnKeyDown) {
+        passedOnKeyDown(e, {state: passedState});
+      }
       // If there's nothing in the input and we hit a delete key, we should focus the filter
       if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
         onDelete();
       }
     },
-    [onDelete]
+    [onDelete, passedOnKeyDown]
   );
 
   const handleInputValueConfirmed = useCallback(

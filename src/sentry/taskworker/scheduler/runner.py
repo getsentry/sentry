@@ -13,7 +13,7 @@ from sentry_sdk import capture_exception
 from sentry_sdk.crons import MonitorStatus, capture_checkin
 
 from sentry.conf.types.taskworker import ScheduleConfig, crontab
-from sentry.taskworker.registry import TaskRegistry
+from sentry.taskworker.app import TaskworkerApp
 from sentry.taskworker.scheduler.schedules import CrontabSchedule, Schedule, TimedeltaSchedule
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
@@ -178,9 +178,9 @@ class ScheduleRunner:
     is used in a while loop to spawn tasks and sleep.
     """
 
-    def __init__(self, registry: TaskRegistry, run_storage: RunStorage) -> None:
+    def __init__(self, app: TaskworkerApp, run_storage: RunStorage) -> None:
         self._entries: list[ScheduleEntry] = []
-        self._registry = registry
+        self._app = app
         self._run_storage = run_storage
         self._heap: list[tuple[int, ScheduleEntry]] = []
 
@@ -191,7 +191,7 @@ class ScheduleRunner:
         except ValueError:
             raise ValueError("Invalid task name. Must be in the format namespace:taskname")
 
-        task = self._registry.get_task(namespace, taskname)
+        task = self._app.taskregistry.get_task(namespace, taskname)
         entry = ScheduleEntry(key=key, task=task, schedule=task_config["schedule"])
         self._entries.append(entry)
         self._heap = []
@@ -244,6 +244,7 @@ class ScheduleRunner:
                     "taskname": entry.taskname,
                     "namespace": entry.namespace,
                 },
+                sample_rate=1.0,
             )
         else:
             # We were not able to set a key, load last run from storage.

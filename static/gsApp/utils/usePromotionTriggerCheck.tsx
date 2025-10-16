@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 import type {PromotionData} from 'getsentry/types';
 

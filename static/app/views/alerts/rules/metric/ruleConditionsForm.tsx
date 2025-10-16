@@ -14,7 +14,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -33,7 +32,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -50,6 +49,7 @@ import {
 } from 'sentry/utils/measurements/measurements';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
+import {getHasTag} from 'sentry/utils/tag';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
@@ -66,6 +66,7 @@ import {
   getSupportedAndOmittedTags,
 } from 'sentry/views/alerts/wizard/options';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {SESSIONS_FILTER_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   TraceItemAttributeProvider,
@@ -137,16 +138,29 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.project.id === this.props.project.id) {
-      return;
+    if (prevProps.dataset !== this.props.dataset || prevProps.tags !== this.props.tags) {
+      const filterKeys = this.getFilterKeys();
+      this.setState({filterKeys});
     }
 
-    this.fetchData();
+    if (prevProps.project.id !== this.props.project.id) {
+      this.fetchData();
+    }
   }
 
   getFilterKeys = () => {
     const {organization, dataset, tags} = this.props;
     const {measurements} = this.state;
+
+    if (dataset === Dataset.METRICS) {
+      return Object.values(SESSIONS_FILTER_TAGS)
+        .filter(key => key !== 'project') // Already have the project selector
+        .reduce<TagCollection>((acc, key) => {
+          acc[key] = {key, name: key};
+          return acc;
+        }, {});
+    }
+
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -283,8 +297,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   get transactionAlertDisabledMessage() {
-    return t(
-      'Transaction based alerts are no longer supported. Create span alerts instead.'
+    return tctCode(
+      'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+      {
+        FAQLink: (
+          <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+        ),
+      }
     );
   }
 
@@ -551,8 +570,26 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
+    const deprecateTransactionsAlertsWarning =
+      organization.features.includes('performance-transaction-deprecation-banner') &&
+      DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
+
     return (
       <Fragment>
+        {deprecateTransactionsAlertsWarning && (
+          <Alert.Container>
+            <Alert type="warning">
+              {tctCode(
+                'Editing of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
+                {
+                  FAQLink: (
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>

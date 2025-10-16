@@ -15,7 +15,6 @@ import {IconDiamond, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
@@ -258,15 +257,7 @@ export function MetricDetailsSidebar({
           />
           <KeyValueTableRow
             keyName={t('Date created')}
-            value={
-              <DateTime
-                date={getDynamicText({
-                  value: rule.dateCreated,
-                  fixed: new Date('2021-04-20'),
-                })}
-                format="ll"
-              />
-            }
+            value={<DateTime date={rule.dateCreated} format="ll" />}
           />
           {rule.createdBy && (
             <KeyValueTableRow

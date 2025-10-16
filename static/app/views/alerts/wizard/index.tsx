@@ -5,6 +5,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {ExternalLink} from 'sentry/components/core/link';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import Hook from 'sentry/components/hook';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -14,6 +15,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -23,7 +25,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
-import type {AlertType, WizardRuleTemplate} from './options';
+import type {AlertType, MetricAlertType, WizardRuleTemplate} from './options';
 import {
   AlertWizardAlertNames,
   AlertWizardExtraContent,
@@ -45,6 +47,11 @@ type AlertWizardProps = RouteComponentProps<RouteParams> & {
 const DEFAULT_ALERT_OPTION = 'issues';
 
 function AlertWizard({organization, params, location, projectId}: AlertWizardProps) {
+  const useMetricDetectorLimit =
+    HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
+  const quota = useMetricDetectorLimit();
+  const canCreateMetricAlert = !quota?.hasReachedLimit;
+
   const [alertOption, setAlertOption] = useState<AlertType>(
     location.query.alert_option in AlertWizardAlertNames
       ? location.query.alert_option
@@ -56,11 +63,13 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
     setAlertOption(option);
   };
 
+  let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+    alertOption in AlertWizardRuleTemplates
+      ? AlertWizardRuleTemplates[alertOption as MetricAlertType]
+      : undefined;
+  const isMetricAlert = !!metricRuleTemplate;
+
   function renderCreateAlertButton() {
-    let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      AlertWizardRuleTemplates[alertOption];
-    const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     // If theres anything using the legacy sessions dataset, we need to convert it to metrics
@@ -114,7 +123,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
             <CreateAlertButton
               organization={organization}
               projectSlug={projectSlug}
-              disabled={!hasFeature}
+              disabled={!hasFeature || (isMetricAlert && !canCreateMetricAlert)}
               priority="primary"
               to={{
                 pathname: makeAlertsPathname({
@@ -169,14 +178,17 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                   <div key={categoryHeading}>
                     <CategoryTitle>{categoryHeading} </CategoryTitle>
                     <WizardGroupedOptions
-                      choices={options.map((alertType: any) => {
-                        return [
-                          alertType,
-                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                          AlertWizardAlertNames[alertType],
-                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                          AlertWizardExtraContent[alertType],
-                        ];
+                      choices={options.map((alertType: MetricAlertType) => {
+                        const optionIsMetricAlert = alertType in AlertWizardRuleTemplates;
+
+                        return {
+                          id: alertType,
+                          name: AlertWizardAlertNames[alertType],
+                          badge: AlertWizardExtraContent[alertType],
+                          trailingContent: optionIsMetricAlert ? (
+                            <Hook name="component:metric-alert-quota-icon" />
+                          ) : null,
+                        };
                       })}
                       onChange={option => handleChangeAlertOption(option as AlertType)}
                       value={alertOption}
@@ -209,6 +221,11 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                   </PanelBody>
                 </div>
                 <WizardFooter>{renderCreateAlertButton()}</WizardFooter>
+                {isMetricAlert && (
+                  <DisabledAlertMessageContainer>
+                    <Hook name="component:metric-alert-quota-message" />
+                  </DisabledAlertMessageContainer>
+                )}
               </WizardPanelBody>
             </WizardPanel>
           </WizardBody>
@@ -311,6 +328,14 @@ const WizardGroupedOptions = styled(RadioPanelGroup)`
   label {
     grid-template-columns: repeat(3, max-content);
   }
+`;
+
+const DisabledAlertMessageContainer = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
 `;
 
 export default AlertWizard;

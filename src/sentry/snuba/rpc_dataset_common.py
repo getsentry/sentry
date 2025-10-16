@@ -1,11 +1,13 @@
 import logging
 import math
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
     TimeSeries,
@@ -16,8 +18,13 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    PageToken,
+    ResponseMeta,
+    TraceItemFilterWithType,
+    TraceItemType,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -40,16 +47,18 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import (
-    handle_downsample_meta,
-    set_debug_meta,
-    transform_binary_formula_to_expression,
+from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.types import (
+    CONFIDENCES,
+    AdditionalQueries,
+    ConfidenceData,
+    EAPResponse,
+    SearchResolverConfig,
 )
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -75,6 +84,8 @@ class TableQuery:
     resolver: SearchResolver
     equations: list[str] | None = None
     name: str | None = None
+    page_token: PageToken | None = None
+    additional_queries: AdditionalQueries | None = None
 
 
 @dataclass
@@ -83,6 +94,14 @@ class TableRequest:
 
     rpc_request: TraceItemTableRequest
     columns: list[AnyResolved]
+
+
+def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
+    for row in timeseries:
+        for axis in y_axes:
+            if row[axis] and row[axis] != 0:
+                return True
+    return False
 
 
 class RPCBase:
@@ -139,6 +158,52 @@ class RPCBase:
         else:
             raise Exception(f"Unknown column type {type(column)}")
 
+    @classmethod
+    def get_cross_trace_queries(cls, query: TableQuery) -> list[TraceItemFilterWithType]:
+        from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+        from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+        from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
+
+        if query.additional_queries is None:
+            return []
+
+        # resolve cross trace queries
+        # Copy the existing resolver, but we don't allow aggregate conditions for cross trace filters
+        cross_trace_config = replace(query.resolver.config, use_aggregate_conditions=False)
+
+        cross_trace_queries = []
+        for queries, definitions, item_type in [
+            (
+                query.additional_queries.log,
+                OURLOG_DEFINITIONS,
+                TraceItemType.TRACE_ITEM_TYPE_LOG,
+            ),
+            (query.additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
+            (
+                query.additional_queries.metric,
+                TRACE_METRICS_DEFINITIONS,
+                TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            ),
+        ]:
+            if queries is not None:
+                # Create a resolver for the subqueries
+                cross_resolver = SearchResolver(
+                    params=query.resolver.params,
+                    config=cross_trace_config,
+                    definitions=definitions,
+                )
+                for query_string in queries:
+                    # Having and VCCs aren't relevant from these queries
+                    cross_query_where, _, _ = cross_resolver.resolve_query(query_string)
+                    if cross_query_where is not None:
+                        cross_trace_queries.append(
+                            TraceItemFilterWithType(
+                                filter=cross_query_where,
+                                item_type=item_type,
+                            )
+                        )
+        return cross_trace_queries
+
     """ Table Methods """
 
     @classmethod
@@ -149,6 +214,18 @@ class RPCBase:
         meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
         where, having, query_contexts = resolver.resolve_query(query.query_string)
 
+        cross_trace_queries = cls.get_cross_trace_queries(query)
+
+        trace_column, _ = resolver.resolve_column("trace")
+        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
+            where, trace_column
+        ):
+            # We noticed that the query has a top level condition for trace id, in this situation,
+            # we want to force the query to to highest accuracy mode to ensure we get an accurate
+            # response as the different tiers are sampled based on trace id and is likely to contain
+            # incomplete traces.
+            meta.downsampled_storage_config.mode = DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+
         all_columns: list[AnyResolved] = []
         equations, equation_contexts = resolver.resolve_equations(
             query.equations if query.equations else []
@@ -157,6 +234,7 @@ class RPCBase:
             query.selected_columns,
             has_aggregates=any(equation for equation in equations if equation.is_aggregate),
         )
+
         all_columns = columns + equations
         contexts = resolver.resolve_contexts(query_contexts + column_contexts)
         # We allow orderby function_aliases if they're a selected_column
@@ -198,6 +276,10 @@ class RPCBase:
         else:
             group_by = []
 
+        page_token = (
+            PageToken(offset=query.offset) if query.page_token is None else query.page_token
+        )
+
         return TableRequest(
             TraceItemTableRequest(
                 meta=meta,
@@ -207,8 +289,9 @@ class RPCBase:
                 group_by=group_by,
                 order_by=resolved_orderby,
                 limit=query.limit,
-                page_token=PageToken(offset=query.offset),
+                page_token=page_token,
                 virtual_column_contexts=[context for context in contexts if context is not None],
+                trace_filters=cross_trace_queries,
             ),
             all_columns,
         )
@@ -245,6 +328,8 @@ class RPCBase:
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         raise NotImplementedError()
 
@@ -324,7 +409,21 @@ class RPCBase:
         if debug:
             set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)
 
-        return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
+        response: EAPResponse = {
+            "data": final_data,
+            "meta": final_meta,
+            "confidence": final_confidence,
+        }
+
+        # when using `MODE_HIGHEST_ACCURACY_FLEXTIME`, we need to pass back the page token
+        # so it can be used to fetch the next page of results
+        if (
+            table_request.rpc_request.meta.downsampled_storage_config.mode
+            == DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+        ):
+            response["page_token"] = rpc_response.page_token
+
+        return response
 
     """ Timeseries Methods """
 
@@ -456,6 +555,17 @@ class RPCBase:
         timeseries_filter, params = cls.update_timestamps(params, search_resolver)
         meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
         query, _, query_contexts = search_resolver.resolve_query(query_string)
+
+        trace_column, _ = search_resolver.resolve_column("trace")
+        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
+            query, trace_column
+        ):
+            # We noticed that the query has a top level condition for trace id, in this situation,
+            # we want to force the query to to highest accuracy mode to ensure we get an accurate
+            # response as the different tiers are sampled based on trace id and is likely to contain
+            # incomplete traces.
+            meta.downsampled_storage_config.mode = DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+
         selected_equations, selected_axes = arithmetic.categorize_columns(y_axes)
         (functions, _) = search_resolver.resolve_functions(selected_axes)
         equations, _ = search_resolver.resolve_equations(selected_equations)
@@ -571,6 +681,7 @@ class RPCBase:
         raw_groupby: list[str],
         orderby: list[str] | None,
         limit: int,
+        include_other: bool,
         referrer: str,
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
@@ -602,7 +713,7 @@ class RPCBase:
                 orderby=orderby,
                 offset=0,
                 limit=limit,
-                referrer=referrer,
+                referrer=f"{referrer}.find-topn",
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
                 equations=equations,
@@ -629,23 +740,29 @@ class RPCBase:
             query_string=query_string,
             y_axes=y_axes,
             groupby=groupby_columns_without_project,
-            referrer=referrer,
+            referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
             extra_conditions=top_conditions,
         )
-        other_request, other_aggregates, other_groupbys = cls.get_timeseries_query(
-            search_resolver=search_resolver,
-            params=params,
-            query_string=query_string,
-            y_axes=y_axes,
-            groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
-            referrer=referrer,
-            sampling_mode=sampling_mode,
-            extra_conditions=other_conditions,
-        )
+        requests = [rpc_request]
+        if include_other:
+            other_request, _, _ = cls.get_timeseries_query(
+                search_resolver=search_resolver,
+                params=params,
+                query_string=query_string,
+                y_axes=y_axes,
+                groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
+                referrer=f"{referrer}.query-other",
+                sampling_mode=sampling_mode,
+                extra_conditions=other_conditions,
+            )
+            requests.append(other_request)
 
         """Run the query"""
-        rpc_response, other_response = snuba_rpc.timeseries_rpc([rpc_request, other_request])
+        timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
+        rpc_response = timeseries_rpc_response[0]
+        if len(timeseries_rpc_response) > 1:
+            other_response = timeseries_rpc_response[1]
 
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)
@@ -694,7 +811,7 @@ class RPCBase:
         # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
         for index, row in enumerate(top_events["data"]):
             result_key = create_result_key(row, groupby_columns, {})
-            result_groupby = create_groupby_dict(row, groupby_columns, {})
+            result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key])
             final_result[result_key] = SnubaTSResult(
                 {
@@ -709,23 +826,24 @@ class RPCBase:
                 params.end,
                 params.granularity_secs,
             )
-        if other_response.result_timeseries:
+        if include_other and other_response.result_timeseries:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries]
             )
-            final_result[OTHER_KEY] = SnubaTSResult(
-                {
-                    "data": result.timeseries,
-                    "processed_timeseries": result,
-                    "order": limit,
-                    "meta": final_meta,
-                    "groupby": None,
-                    "is_other": True,
-                },
-                params.start,
-                params.end,
-                params.granularity_secs,
-            )
+            if check_timeseries_has_data(result.timeseries, y_axes):
+                final_result[OTHER_KEY] = SnubaTSResult(
+                    {
+                        "data": result.timeseries,
+                        "processed_timeseries": result,
+                        "order": index + 1,
+                        "meta": final_meta,
+                        "groupby": None,
+                        "is_other": True,
+                    },
+                    params.start,
+                    params.end,
+                    params.granularity_secs,
+                )
         return final_result
 
     """ Other Methods """
@@ -741,3 +859,97 @@ class RPCBase:
         additional_attributes: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
+
+
+def has_top_level_trace_condition(
+    where: TraceItemFilter | None, trace_column: ResolvedAttribute
+) -> bool:
+    if where is None:
+        return False
+
+    if where.HasField("and_filter"):
+        return any(has_top_level_trace_condition(f, trace_column) for f in where.and_filter.filters)
+
+    if where.HasField("or_filter"):
+        return all(has_top_level_trace_condition(f, trace_column) for f in where.or_filter.filters)
+
+    if where.HasField("not_filter"):
+        return False
+
+    if where.HasField("comparison_filter"):
+        attribute_key = where.comparison_filter.key
+        if attribute_key.type != AttributeKey.TYPE_STRING:
+            return False
+        if attribute_key.name != trace_column.internal_name:
+            return False
+        op = where.comparison_filter.op
+        if op != ComparisonFilter.Op.OP_EQUALS:
+            return False
+        return True
+
+    if where.HasField("exists_filter"):
+        return False
+
+    return False
+
+
+def set_debug_meta(
+    events_meta: EventsMeta,
+    rpc_meta: ResponseMeta,
+    rpc_request: TraceItemTableRequest | TimeSeriesRequest,
+) -> None:
+    """Only done when debug is passed to the events endpoint"""
+    rpc_query = json.loads(MessageToJson(rpc_request))
+
+    events_meta["debug_info"] = {
+        "query.storage_meta.tier": rpc_meta.downsampled_storage_meta.tier,
+        "query": rpc_query,
+    }
+
+
+# TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
+BINARY_FORMULA_OPERATOR_MAP = {
+    Column.BinaryFormula.OP_ADD: Expression.BinaryFormula.OP_ADD,
+    Column.BinaryFormula.OP_SUBTRACT: Expression.BinaryFormula.OP_SUBTRACT,
+    Column.BinaryFormula.OP_MULTIPLY: Expression.BinaryFormula.OP_MULTIPLY,
+    Column.BinaryFormula.OP_DIVIDE: Expression.BinaryFormula.OP_DIVIDE,
+    Column.BinaryFormula.OP_UNSPECIFIED: Expression.BinaryFormula.OP_UNSPECIFIED,
+}
+
+
+def transform_binary_formula_to_expression(
+    column: Column.BinaryFormula,
+) -> Expression.BinaryFormula:
+    """TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point"""
+    return Expression.BinaryFormula(
+        left=transform_column_to_expression(column.left),
+        right=transform_column_to_expression(column.right),
+        op=BINARY_FORMULA_OPERATOR_MAP[column.op],
+        default_value_double=column.default_value_double,
+    )
+
+
+def transform_column_to_expression(column: Column) -> Expression:
+    """TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point"""
+    if column.formula.op != Column.BinaryFormula.OP_UNSPECIFIED:
+        return Expression(
+            formula=transform_binary_formula_to_expression(column.formula),
+            label=column.label,
+        )
+
+    if column.aggregation.aggregate != Function.FUNCTION_UNSPECIFIED:
+        return Expression(
+            aggregation=column.aggregation,
+            label=column.label,
+        )
+
+    if column.conditional_aggregation.aggregate != Function.FUNCTION_UNSPECIFIED:
+        return Expression(
+            conditional_aggregation=column.conditional_aggregation,
+            label=column.label,
+        )
+
+    return Expression(
+        label=column.label,
+        literal=column.literal,
+    )

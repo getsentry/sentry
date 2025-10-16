@@ -379,9 +379,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         max_hits: int | None = None,
-        referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -518,6 +519,15 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         raise NotImplementedError
 
 
+def _make_detector_filter(detector_ids: Sequence[int | str]) -> Q:
+    assert not isinstance(detector_ids, str)
+    return Q(
+        id__in=DetectorGroup.objects.filter(detector_id__in=detector_ids).values_list(
+            "group_id", flat=True
+        )
+    )
+
+
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
         return PostgresSnubaQueryExecutor()
@@ -558,13 +568,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
-            "detector": QCallbackCondition(
-                lambda detector_ids: Q(
-                    id__in=DetectorGroup.objects.filter(detector_id__in=detector_ids).values_list(
-                        "group_id", flat=True
-                    )
-                )
-            ),
+            "detector": QCallbackCondition(_make_detector_filter),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),

@@ -1,20 +1,42 @@
+import type {ReactNode} from 'react';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import {
-  PageParamsProvider,
-  useExploreFields,
-  useExploreGroupBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  useQueryParamsFields,
+  useQueryParamsGroupBys,
+} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          {children}
+        </TraceItemAttributeProvider>
+      </PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 jest.mock('sentry/utils/analytics');
 
@@ -39,24 +61,30 @@ const datePageFilterProps: PickableDays = {
   }),
 };
 
-describe('SpansTabContent', function () {
-  const {organization, project} = initializeOrg();
+describe('SpansTabContent', () => {
+  const {organization, project} = initializeOrg({
+    organization: {
+      features: [
+        'gen-ai-features',
+        'gen-ai-explore-traces',
+        'gen-ai-explore-traces-consent-ui',
+        'search-query-builder-case-insensitivity',
+      ],
+    },
+  });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [project].map(p => parseInt(p.id, 10)),
-        environments: [],
-        datetime: {period: '7d', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [project].map(p => parseInt(p.id, 10)),
+      environments: [],
+      datetime: {period: '7d', start: null, end: null, utc: null},
+    });
     MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
@@ -67,7 +95,6 @@ describe('SpansTabContent', function () {
       method: 'GET',
       body: {},
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
       method: 'GET',
@@ -88,15 +115,22 @@ describe('SpansTabContent', function () {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+      }),
+    });
   });
 
-  it('should fire analytics once per change', async function () {
+  it('should fire analytics once per change', async () => {
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <SpansTabContent datePageFilterProps={datePageFilterProps} />
+      </Wrapper>,
       {organization}
     );
 
@@ -128,21 +162,19 @@ describe('SpansTabContent', function () {
     );
   });
 
-  it('inserts group bys from aggregate mode as fields in samples mode', async function () {
-    let fields: string[] = [];
-    let groupBys: string[] = [];
+  it('inserts group bys from aggregate mode as fields in samples mode', async () => {
+    let fields: readonly string[] = [];
+    let groupBys: readonly string[] = [];
     function Component() {
-      fields = useExploreFields();
-      groupBys = useExploreGroupBys();
+      fields = useQueryParamsFields();
+      groupBys = useQueryParamsGroupBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <Component />
+      </Wrapper>,
       {organization}
     );
 
@@ -179,12 +211,128 @@ describe('SpansTabContent', function () {
       'timestamp',
       'project',
     ]);
+  }, 20_000);
+
+  it('opens toolbar when switching to aggregates tab', async () => {
+    render(
+      <Wrapper>
+        <SpansTabContent datePageFilterProps={datePageFilterProps} />
+      </Wrapper>,
+      {organization}
+    );
+
+    // by default the toolbar should be visible
+    expect(screen.getByTestId('explore-span-toolbar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand sidebar')).not.toBeInTheDocument();
+
+    // collapse the toolbar
+    await userEvent.click(screen.getByLabelText('Collapse sidebar'));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+
+    // switching to the aggregates tab should expand the toolbar
+    await userEvent.click(await screen.findByRole('tab', {name: 'Aggregates'}));
+    expect(screen.getByTestId('explore-span-toolbar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand sidebar')).not.toBeInTheDocument();
+
+    // collapse the toolbar
+    await userEvent.click(screen.getByLabelText('Collapse sidebar'));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+
+    // switching to the span samples tab should NOT expand the toolbar
+    await userEvent.click(await screen.findByRole('tab', {name: 'Span Samples'}));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
   });
 
-  describe('schema hints', function () {
+  describe('case sensitivity', () => {
+    it('renders the case sensitivity toggle', () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Ignore case',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+    });
+
+    it('toggles case sensitivity', async () => {
+      const {router} = render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Ignore case',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+      await userEvent.click(caseSensitivityToggle);
+
+      expect(caseSensitivityToggle).toHaveAttribute('aria-pressed', 'true');
+      expect(router.location.query.caseInsensitive).toBe('1');
+    });
+
+    it('appends case sensitive to the query', async () => {
+      const eventsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {},
+      });
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        method: 'GET',
+        body: {},
+      });
+
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Ignore case',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+      await userEvent.click(caseSensitivityToggle);
+
+      await waitFor(() =>
+        expect(eventsMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events/`,
+          expect.objectContaining({
+            query: expect.objectContaining({caseInsensitive: '1'}),
+          })
+        )
+      );
+
+      await waitFor(() =>
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-stats/`,
+          expect.objectContaining({
+            query: expect.objectContaining({caseInsensitive: 1}),
+          })
+        )
+      );
+    });
+  });
+
+  describe('schema hints', () => {
     let spies: jest.SpyInstance[];
 
-    beforeEach(function () {
+    beforeEach(() => {
       const useSpanTagsSpy = jest
         .spyOn(spanTagsModule, 'useTraceItemTags')
         .mockImplementation(type => {
@@ -237,20 +385,114 @@ describe('SpansTabContent', function () {
       spies = [useSpanTagsSpy, getBoundingClientRectSpy, clientWidthGetSpy];
     });
 
-    afterEach(function () {
+    afterEach(() => {
       spies.forEach(spy => spy.mockRestore());
     });
 
-    it('should show hints', function () {
-      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization,
-      });
+    it('should show hints', () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {
+          organization,
+        }
+      );
 
       expect(screen.getByText('stringTag1')).toBeInTheDocument();
       expect(screen.getByText('stringTag2')).toBeInTheDocument();
       expect(screen.getByText('numberTag1')).toBeInTheDocument();
       expect(screen.getByText('numberTag2')).toBeInTheDocument();
       expect(screen.getByText('See full list')).toBeInTheDocument();
+    });
+  });
+
+  describe('Ask Seer', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+        }),
+      });
+    });
+
+    it('brings along the query', async () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const input = screen.getByRole('combobox');
+      await userEvent.click(input);
+      await userEvent.type(input, 'span.duration:>10ms{enter}');
+
+      // re-open the combobox
+      await userEvent.click(input);
+      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      await userEvent.click(askSeer);
+
+      const askSeerInput = screen.getByRole('combobox', {
+        name: 'Ask Seer with Natural Language',
+      });
+
+      await waitFor(() => {
+        expect(askSeerInput).toHaveValue('span.duration is greater than 10ms ');
+      });
+    });
+
+    it('brings along the user input', async () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const input = screen.getByRole('combobox');
+      await userEvent.click(input);
+      await userEvent.type(input, ' random');
+
+      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      await userEvent.click(askSeer);
+
+      const askSeerInput = screen.getByRole('combobox', {
+        name: 'Ask Seer with Natural Language',
+      });
+
+      await waitFor(() => {
+        expect(askSeerInput).toHaveValue('random ');
+      });
+    });
+
+    it('brings along only the query and the user input', async () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const input = screen.getByRole('combobox');
+      await userEvent.click(input);
+      await userEvent.type(input, 'span.duration:>10ms{enter}');
+      await userEvent.type(input, ' random');
+
+      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      await userEvent.click(askSeer);
+
+      const askSeerInput = screen.getByRole('combobox', {
+        name: 'Ask Seer with Natural Language',
+      });
+
+      await waitFor(() => {
+        expect(askSeerInput).toHaveValue('span.duration is greater than 10ms random ');
+      });
     });
   });
 });

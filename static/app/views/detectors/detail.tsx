@@ -1,6 +1,5 @@
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
@@ -18,6 +17,7 @@ export default function DetectorDetails() {
     data: detector,
     isPending,
     isError,
+    error,
     refetch,
   } = useDetectorQuery(params.detectorId);
 
@@ -28,7 +28,12 @@ export default function DetectorDetails() {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        message={error.status === 404 ? t('The monitor could not be found.') : undefined}
+        onRetry={refetch}
+      />
+    );
   }
 
   if (!project) {
@@ -36,10 +41,8 @@ export default function DetectorDetails() {
   }
 
   return (
-    <SentryDocumentTitle title={detector.name} noSuffix>
-      <PageFiltersContainer>
-        <DetectorDetailsContent detector={detector} project={project} />
-      </PageFiltersContainer>
+    <SentryDocumentTitle title={detector.name}>
+      <DetectorDetailsContent detector={detector} project={project} />
     </SentryDocumentTitle>
   );
 }

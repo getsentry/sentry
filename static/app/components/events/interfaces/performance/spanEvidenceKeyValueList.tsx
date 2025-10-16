@@ -1,14 +1,14 @@
 import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
@@ -184,7 +184,6 @@ function NPlusOneDBQueriesSpanEvidence({
     );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
   const patternSize = evidenceData.patternSize ?? 0;
-  const patternSpanIds = (evidenceData.patternSpanIds ?? []).join(', ');
 
   return (
     <PresortedKeyValueList
@@ -197,9 +196,6 @@ function NPlusOneDBQueriesSpanEvidence({
             : null,
           ...repeatingSpanRows,
           patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
-          patternSpanIds.length > 0
-            ? makeRow(t('Pattern Span IDs'), patternSpanIds)
-            : null,
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -218,7 +214,8 @@ function NPlusOneAPICallsSpanEvidence({
   const evidenceData = occurrence?.evidenceData ?? {};
   const baseURL = requestEntry?.data?.url;
 
-  const queryParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const queryParameters =
+    evidenceData.parameters ?? formatChangingQueryParameters(offendingSpans, baseURL);
   const pathParameters = evidenceData.pathParameters ?? [];
   const commonPathPrefix =
     occurrence?.subtitle ?? formatBasePath(offendingSpans[0]!, baseURL);
@@ -370,6 +367,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
+  [IssueType.WEB_VITALS]: WebVitalsEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -503,6 +501,17 @@ function UncompressedAssetSpanEvidence({
   );
 }
 
+function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
+  );
+
+  return (
+    <PresortedKeyValueList data={[transactionRow].filter(Boolean) as KeyValueListData} />
+  );
+}
+
 function DefaultSpanEvidence({
   event,
   offendingSpans,
@@ -611,7 +620,7 @@ function getSpanEvidenceValue(span: Span | null) {
   return `${span.op} - ${span.description}`;
 }
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   pre {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;

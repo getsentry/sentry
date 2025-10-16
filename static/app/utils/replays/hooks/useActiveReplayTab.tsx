@@ -11,17 +11,18 @@ export enum TabKey {
   NETWORK = 'network',
   TAGS = 'tags',
   TRACE = 'trace',
+  LOGS = 'logs',
 }
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
   const supportedVideoTabs = [
-    TabKey.AI,
     TabKey.TAGS,
     TabKey.ERRORS,
     TabKey.BREADCRUMBS,
     TabKey.NETWORK,
     TabKey.CONSOLE,
     TabKey.TRACE,
+    TabKey.LOGS,
   ];
 
   if (isVideoReplay) {

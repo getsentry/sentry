@@ -29,8 +29,8 @@ async function renderFlagDrawer() {
   return screen.getByRole('complementary', {name: 'Feature flags drawer'});
 }
 
-describe('FeatureFlagDrawer', function () {
-  beforeEach(function () {
+describe('FeatureFlagDrawer', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/events/',
       body: [],
@@ -44,7 +44,7 @@ describe('FeatureFlagDrawer', function () {
       body: TagsFixture(),
     });
   });
-  it('renders the drawer as expected', async function () {
+  it('renders the drawer as expected', async () => {
     const drawerScreen = await renderFlagDrawer();
     expect(
       within(drawerScreen).getByRole('button', {name: 'Close Drawer'})
@@ -76,7 +76,7 @@ describe('FeatureFlagDrawer', function () {
     }
   });
 
-  it('allows search to affect displayed flags', async function () {
+  it('allows search to affect displayed flags', async () => {
     const drawerScreen = await renderFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
@@ -92,7 +92,7 @@ describe('FeatureFlagDrawer', function () {
     expect(within(drawerScreen).queryByText(enableReplay!.flag)).not.toBeInTheDocument();
   });
 
-  it('allows sort dropdown to affect displayed flags', async function () {
+  it('allows sort dropdown to affect displayed flags', async () => {
     const drawerScreen = await renderFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
@@ -135,7 +135,7 @@ describe('FeatureFlagDrawer', function () {
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('renders a sort dropdown with Evaluation Order as the default', async function () {
+  it('renders a sort dropdown with Evaluation Order as the default', async () => {
     const drawerScreen = await renderFlagDrawer();
 
     const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
@@ -149,7 +149,7 @@ describe('FeatureFlagDrawer', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders a sort dropdown which affects the granular sort dropdown', async function () {
+  it('renders a sort dropdown which affects the granular sort dropdown', async () => {
     const drawerScreen = await renderFlagDrawer();
 
     const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
@@ -167,7 +167,7 @@ describe('FeatureFlagDrawer', function () {
     );
   });
 
-  it('renders a sort dropdown which hides the invalid options', async function () {
+  it('renders a sort dropdown which hides the invalid options', async () => {
     const drawerScreen = await renderFlagDrawer();
 
     const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});

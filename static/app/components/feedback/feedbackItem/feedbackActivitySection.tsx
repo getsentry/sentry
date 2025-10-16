@@ -6,10 +6,10 @@ import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {
+  GroupActivityType,
   type Group,
   type GroupActivity,
   type GroupActivityNote,
-  GroupActivityType,
 } from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';

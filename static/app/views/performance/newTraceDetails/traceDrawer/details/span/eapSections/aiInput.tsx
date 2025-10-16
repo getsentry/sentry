@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -7,26 +7,24 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-type AIMessageRole = 'system' | 'user' | 'assistant' | 'tool';
-
 interface AIMessage {
   content: React.ReactNode;
-  role: AIMessageRole;
+  role: string;
 }
+
+const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
@@ -47,35 +45,16 @@ function parseAIMessages(messages: string): AIMessage[] | string {
     const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
     return array
       .map((message: any) => {
-        switch (message.role) {
-          case 'system':
-            return {
-              role: 'system' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'user':
-            return {
-              role: 'user' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'assistant':
-            return {
-              role: 'assistant' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'tool':
-            return {
-              role: 'tool' as const,
-              content: renderToolMessage(message.content),
-            };
-          default:
-            Sentry.captureMessage('Unknown AI message role', {
-              extra: {
-                role: message.role,
-              },
-            });
-            return null;
+        if (!message.role || !message.content) {
+          return null;
         }
+        return {
+          role: message.role,
+          content:
+            message.role === 'tool'
+              ? renderToolMessage(message.content)
+              : renderTextMessages(message.content),
+        };
       })
       .filter(
         (message): message is Exclude<typeof message, null> =>
@@ -145,12 +124,43 @@ function transformPrompt(prompt: string) {
   }
 }
 
-const roleHeadings: Record<AIMessageRole, string> = {
-  system: t('System'),
-  user: t('User'),
-  assistant: t('Assistant'),
-  tool: t('Tool'),
-};
+export function hasAIInputAttribute(
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
+    getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
+    getTraceNodeAttribute('ai.prompt', node, event, attributes)
+  );
+}
+
+function useInvalidRoleDetection(roles: string[]) {
+  const invalidRoles = roles.filter(role => !ALLOWED_MESSAGE_ROLES.has(role));
+  const hasInvalidRoles = invalidRoles.length > 0;
+
+  const captureMessage = useEffectEvent(() => {
+    Sentry.captureMessage('Gen AI message with invalid role', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        invalid_role_count: invalidRoles.length,
+      },
+      extra: {
+        invalid_roles: invalidRoles,
+        allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
+      },
+    });
+  });
+
+  useEffect(() => {
+    if (hasInvalidRoles) {
+      captureMessage();
+    }
+  }, [hasInvalidRoles]);
+}
 
 export function AIInputSection({
   node,
@@ -161,18 +171,13 @@ export function AIInputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const organization = useOrganization();
-  if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
-    return null;
-  }
+  const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
 
-  let promptMessages = getTraceNodeAttribute(
-    'gen_ai.request.messages',
-    node,
-    event,
-    attributes
-  );
-  if (!promptMessages) {
+  let promptMessages = shouldRender
+    ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
+    : null;
+
+  if (!promptMessages && shouldRender) {
     const inputMessages = getTraceNodeAttribute(
       'ai.input_messages',
       node,
@@ -181,7 +186,7 @@ export function AIInputSection({
     );
     promptMessages = inputMessages && transformInputMessages(inputMessages.toString());
   }
-  if (!promptMessages) {
+  if (!promptMessages && shouldRender) {
     const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
     if (messages) {
       promptMessages = transformPrompt(messages.toString());
@@ -192,7 +197,10 @@ export function AIInputSection({
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
 
-  if (!messages && !toolArgs) {
+  const roles = Array.isArray(messages) ? messages.map(m => m.role) : [];
+  useInvalidRoleDetection(roles);
+
+  if ((!messages || messages.length === 0) && !toolArgs) {
     return null;
   }
 
@@ -238,9 +246,7 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
   const renderMessage = (message: AIMessage, index: number) => {
     return (
       <Fragment key={index}>
-        <TraceDrawerComponents.MultilineTextLabel>
-          {roleHeadings[message.role]}
-        </TraceDrawerComponents.MultilineTextLabel>
+        <RoleLabel>{message.role}</RoleLabel>
         {typeof message.content === 'string' ? (
           <TraceDrawerComponents.MultilineText>
             {message.content}
@@ -271,6 +277,12 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
     </Fragment>
   );
 }
+
+const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
+  &::first-letter {
+    text-transform: capitalize;
+  }
+`;
 
 const ButtonDivider = styled('div')`
   height: 1px;

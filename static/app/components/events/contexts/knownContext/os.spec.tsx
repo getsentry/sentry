@@ -35,8 +35,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('OperatingSystemContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('OperatingSystemContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getOperatingSystemContextData({data: MOCK_OS_CONTEXT})).toEqual([
       {key: 'name', subject: 'Name', value: 'Linux'},
       {key: 'version', subject: 'Version', value: '6.1.82'},
@@ -69,7 +69,7 @@ describe('OperatingSystemContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {os: MOCK_REDACTION}},
     });
@@ -77,8 +77,8 @@ describe('OperatingSystemContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'os'}
-        alias={'os'}
+        type="os"
+        alias="os"
         value={{...MOCK_OS_CONTEXT, raw_description: ''}}
       />
     );

@@ -1,10 +1,10 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
-import {loadPreferencesState} from 'sentry/actionCreators/preferences';
+import {SentryComponentInspector} from 'sentry/components/core/inspector';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
@@ -29,9 +29,6 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
-  // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
-  useEffect(() => void loadPreferencesState(), []);
-
   const config = useLegacyStore(ConfigStore);
   const theme = useThemeSwitcher();
 
@@ -46,6 +43,7 @@ export function ThemeAndStyleProvider({children}: Props) {
         </Fragment>,
         document.head
       )}
+      <SentryComponentInspector />
     </ThemeProvider>
   );
 }

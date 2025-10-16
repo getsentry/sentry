@@ -40,7 +40,6 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
 from sentry.models.team import Team
-from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -50,6 +49,8 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
@@ -129,6 +130,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-fastify",
     "node-gcpfunctions",
     "node-hapi",
+    "node-hono",
     "node-koa",
     "node-nestjs",
     "php",
@@ -315,7 +317,7 @@ class Project(Model):
         # This Project has custom metrics
         has_custom_metrics: bool
 
-        # This Project has enough issue volume to use high priority alerts
+        # `has_high_priority_alerts` is DEPRECATED
         has_high_priority_alerts: bool
 
         # This Project has sent insight request spans
@@ -369,7 +371,7 @@ class Project(Model):
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def next_short_id(self, delta: int = 1) -> int:
@@ -443,10 +445,6 @@ class Project(Model):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        # if the option is not set, check the template
-        if not self.option_manager.isset(self, key) and self.template is not None:
-            return self.template_manager.get_value(self.template, key, default, validate)
-
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any, reload_cache: bool = True) -> bool:
@@ -502,12 +500,16 @@ class Project(Model):
         from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.integrations.models.repository_project_path_config import (
+            RepositoryProjectPathConfig,
+        )
         from sentry.models.environment import Environment, EnvironmentProject
+        from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
-        from sentry.monitors.models import Monitor
+        from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
         from sentry.snuba.models import SnubaQuery
 
         old_org_id = self.organization_id
@@ -637,6 +639,10 @@ class Project(Model):
             "linked_id", flat=True
         )
 
+        # Delete issue ownership objects to prevent them from being stuck on the old org
+        ProjectCodeOwners.objects.filter(project_id=self.id).delete()
+        RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
+
         for external_issues in chunked(
             RangeQuerySetWrapper(
                 ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
@@ -677,7 +683,7 @@ class Project(Model):
                 self.update_option("sentry:token", security_token)
             return security_token
 
-    def get_lock_key(self):
+    def get_lock_key(self) -> str:
         return f"project_token:{self.id}"
 
     def copy_settings_from(self, project_id: int) -> bool:
@@ -752,6 +758,15 @@ class Project(Model):
     def delete(self, *args, **kwargs):
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
+
+        # There are projects being blocked from deletion because they have GroupHash objects
+        # that are preventing the project from being deleted.
+        try:
+            from sentry.deletions.defaults.group import delete_project_group_hashes
+
+            delete_project_group_hashes(project_id=self.id)
+        except Exception:
+            logger.warning("Failed to delete group hashes for project %s", self.id)
 
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()

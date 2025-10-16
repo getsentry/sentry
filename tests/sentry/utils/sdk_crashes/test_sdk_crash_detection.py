@@ -1,15 +1,16 @@
 import abc
-from collections.abc import Sequence
+from collections.abc import Callable, Collection, Sequence
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from fixtures.sdk_crash_detection.crash_event_cocoa import get_crash_event
-from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.store_transaction import store_transaction
+from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
@@ -122,10 +123,15 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
         ("sentry.cocoa.unreal", True),
     ],
 )
-def test_sdks_detected(mock_sdk_crash_reporter, store_event, sdk_name, detected):
+def test_sdks_detected(
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+    sdk_name: str,
+    detected: bool,
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "name", value=sdk_name)
-    event = store_event(data=event_data)
+    event = store_event(event_data)
 
     sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
 
@@ -193,8 +199,14 @@ class SDKCrashDetectionTest(
 @django_db_all
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-def test_sample_rate(mock_sdk_crash_reporter, store_event, sample_rate, random_value, sampled):
-    event = store_event(data=get_crash_event())
+def test_sample_rate(
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+    sample_rate: float,
+    random_value: float,
+    sampled: bool,
+) -> None:
+    event = store_event(get_crash_event())
 
     with patch("random.random", return_value=random_value):
         configs = build_sdk_configs()
@@ -211,7 +223,7 @@ def test_sample_rate(mock_sdk_crash_reporter, store_event, sample_rate, random_v
 @django_db_all
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event):
+def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event) -> None:
     event = store_event(data=get_crash_event())
 
     sdk_configs = build_sdk_configs()
@@ -228,7 +240,7 @@ def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event)
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
-def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store_event):
+def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store_event) -> None:
     event = store_event(data=get_crash_event())
 
     sdk_configs = build_sdk_configs()
@@ -292,7 +304,9 @@ def test_should_only_increment_detecting_counter_for_non_crash_event(
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
-def test_should_not_increment_counters_for_not_supported_sdk(incr, sdk_crash_reporter, store_event):
+def test_should_not_increment_counters_for_not_supported_sdk(
+    incr, sdk_crash_reporter, store_event
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "name", value="sentry.coco")
     crash_event = store_event(data=event_data)
@@ -313,7 +327,9 @@ def test_should_not_increment_counters_for_not_supported_sdk(incr, sdk_crash_rep
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
-def test_should_increment_counter_for_non_crash_event(incr, sdk_crash_reporter, store_event):
+def test_should_increment_counter_for_non_crash_event(
+    incr, sdk_crash_reporter, store_event
+) -> None:
     event_data = get_crash_event(handled=True)
     crash_event = store_event(data=event_data)
 

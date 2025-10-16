@@ -423,16 +423,21 @@ class FormulaDefinition(FunctionDefinition):
         )
 
 
-def simple_sentry_field(field) -> ResolvedAttribute:
+def simple_sentry_field(
+    field: str,
+    search_type: constants.SearchType = "string",
+) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     without the `sentry.` suffix. This helper functions makes defining them easier"""
     return ResolvedAttribute(
-        public_alias=field, internal_name=f"sentry.{field}", search_type="string"
+        public_alias=field,
+        internal_name=f"sentry.{field}",
+        search_type=search_type,
     )
 
 
 def simple_measurements_field(
-    field,
+    field: str,
     search_type: constants.SearchType = "number",
     secondary_alias: bool = False,
 ) -> ResolvedAttribute:
@@ -498,3 +503,5 @@ class ColumnDefinitions:
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
     filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
+    alias_to_column: Callable[[str], str | None] | None
+    column_to_alias: Callable[[str], str | None] | None

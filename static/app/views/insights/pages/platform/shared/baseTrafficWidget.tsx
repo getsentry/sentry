@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -11,8 +13,6 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
@@ -42,14 +42,14 @@ export function BaseTrafficWidget({
 
   const theme = useTheme();
 
-  const {data, isLoading, error} = useSpanSeries(
+  const {data, isLoading, error} = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: query,
+      query,
       yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
+      pageFilters: props.pageFilters,
     },
-    referrer,
-    props.pageFilters
+    referrer
   );
 
   const aliases = {
@@ -58,16 +58,25 @@ export function BaseTrafficWidget({
   };
 
   const plottables = useMemo(() => {
+    const timeSeries = data?.timeSeries || [];
+
+    const countSeries = timeSeries.find(ts => ts.yAxis === 'count(span.duration)');
+    const errorRateSeries = timeSeries.find(
+      ts => ts.yAxis === 'trace_status_rate(internal_error)'
+    );
+
     return [
-      new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
-        alias: trafficSeriesName,
-        color: theme.chart.neutral,
-      }),
-      new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
-        alias: t('Error Rate'),
-        color: theme.error,
-      }),
-    ];
+      countSeries &&
+        new Bars(countSeries, {
+          alias: trafficSeriesName,
+          color: theme.chart.neutral,
+        }),
+      errorRateSeries &&
+        new Line(errorRateSeries, {
+          alias: t('Error Rate'),
+          color: theme.error,
+        }),
+    ].filter(defined);
   }, [data, theme.error, theme.chart.neutral, trafficSeriesName]);
 
   const isEmpty = useMemo(
@@ -106,7 +115,7 @@ export function BaseTrafficWidget({
             showCreateAlert
             referrer={referrer}
             exploreParams={{
-              mode: Mode.AGGREGATE,
+              mode: Mode.SAMPLES,
               visualize: [
                 {
                   chartType: ChartType.BAR,
@@ -115,6 +124,7 @@ export function BaseTrafficWidget({
               ],
               groupBy: ['trace.status'],
               sort: '-count(span.duration)',
+              field: ['span.description', 'trace.status', 'span.duration', 'timestamp'],
               query,
               interval: pageFilterChartParams.interval,
             }}

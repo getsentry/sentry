@@ -22,7 +22,7 @@ from sentry.utils.outcomes import Outcome
 
 @django_db_all
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
-def test_outcomes_consumed(track_outcome, factories):
+def test_outcomes_consumed(track_outcome, factories) -> None:
     # Based on test_ingest_consumer_kafka.py
     topic = Topic("snuba-generic-metrics")
 

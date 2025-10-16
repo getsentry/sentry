@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         min_ago = before_now(minutes=1).isoformat()
         two_min_ago = before_now(minutes=2).isoformat()
@@ -53,7 +53,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         )
         self.groups = list(Group.objects.all().order_by("id"))
 
-    def test_performance_flag(self):
+    def test_performance_flag(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -70,7 +70,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -87,7 +87,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    def test_simple_with_id(self):
+    def test_simple_with_id(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -104,7 +104,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    def test_simple_transaction(self):
+    def test_simple_transaction(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -132,7 +132,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "d" * 32
         assert response.data["type"] == "transaction"
 
-    def test_no_access_missing_feature(self):
+    def test_no_access_missing_feature(self) -> None:
         with self.feature({"organizations:discover-basic": False}):
             url = reverse(
                 "sentry-api-0-organization-event-details",
@@ -146,7 +146,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             response = self.client.get(url, format="json")
             assert response.status_code == 404, response.content
 
-    def test_access_non_member_project(self):
+    def test_access_non_member_project(self) -> None:
         # Add a new user to a project and then access events on project they are not part of.
         member_user = self.create_user()
         team = self.create_team(members=[member_user])
@@ -178,7 +178,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
-    def test_no_event(self):
+    def test_no_event(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -193,7 +193,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
 
         assert response.status_code == 404, response.content
 
-    def test_invalid_event_id(self):
+    def test_invalid_event_id(self) -> None:
         with pytest.raises(NoReverseMatch):
             reverse(
                 "sentry-api-0-organization-event-details",
@@ -204,7 +204,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
                 },
             )
 
-    def test_long_trace_description(self):
+    def test_long_trace_description(self) -> None:
         data = load_data("transaction")
         data["event_id"] = "d" * 32
         data["timestamp"] = before_now(minutes=1).isoformat()
@@ -231,7 +231,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert trace["parent_span_id"] == original_trace["parent_span_id"]
         assert trace["description"][:-3] in original_trace["description"]
 
-    def test_blank_fields(self):
+    def test_blank_fields(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -252,7 +252,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    def test_out_of_retention(self):
+    def test_out_of_retention(self) -> None:
         self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -280,7 +280,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
 
         assert response.status_code == 404, response.content
 
-    def test_generic_event(self):
+    def test_generic_event(self) -> None:
         occurrence, _ = self.process_occurrence(
             project_id=self.project.id,
             event_data={
@@ -310,7 +310,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
 class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-event-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.init_snuba()
         self.ten_mins_ago = before_now(minutes=10)
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -332,8 +332,9 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             tags={"span.group": "26b881987e4bad99"},
         )
 
-    def test_get_without_feature(self):
-        response = self.client.get(self.url, {"averageColumn": "span.self_time"})
+    def test_get_without_feature(self) -> None:
+        with self.feature({"organizations:insight-modules": False}):
+            response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
         for entry in entries:
@@ -341,8 +342,8 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                 for span in entry["data"]:
                     assert span.get(self.RESULT_COLUMN) is None
 
-    def test_get(self):
-        with self.feature("organizations:insights-initial-modules"):
+    def test_get(self) -> None:
+        with self.feature("organizations:insight-modules"):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
@@ -354,14 +355,14 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                     if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
-    def test_get_multiple_columns(self):
+    def test_get_multiple_columns(self) -> None:
         self.store_span_metric(
             2,
             internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
             timestamp=self.ten_mins_ago,
             tags={"span.group": "26b881987e4bad99"},
         )
-        with self.feature("organizations:insights-initial-modules"):
+        with self.feature("organizations:insight-modules"):
             response = self.client.get(
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
@@ -378,9 +379,9 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                     if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
-    def test_nan_column(self):
+    def test_nan_column(self) -> None:
         # If there's nothing stored for a metric, span.duration in this case the query returns nan
-        with self.feature("organizations:insights-initial-modules"):
+        with self.feature("organizations:insight-modules"):
             response = self.client.get(
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
@@ -394,7 +395,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                     if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
-    def test_invalid_column(self):
+    def test_invalid_column(self) -> None:
         # If any columns are invalid, ignore average field in results completely
         response = self.client.get(
             self.url, {"averageColumn": ["span.self_time", "span.everything"]}

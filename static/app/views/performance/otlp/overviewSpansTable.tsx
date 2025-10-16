@@ -64,7 +64,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
       fields: ['count()'],
       pageFilters: selection,
     },
-    'api.performance.service-entry-spans-table-count'
+    'api.insights.service-entry-spans-table-count'
   );
 
   const pageEventsCount = Math.min(numEvents[0]?.['count()'] ?? 0, LIMIT);

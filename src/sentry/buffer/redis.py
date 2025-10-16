@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import pickle
-from collections.abc import Callable
+from collections import defaultdict
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from enum import Enum
@@ -41,6 +42,24 @@ def _get_model_key(model: type[models.Model]) -> str:
     return str(model._meta)
 
 
+def _coerce_val(value: BufferField) -> bytes:
+    """Convert a buffer field value to bytes."""
+    if isinstance(value, models.Model):
+        value = value.pk
+    return force_bytes(value, errors="replace")
+
+
+def make_key(model: type[models.Model], filters: Mapping[str, Any]) -> str:
+    """
+    Returns a Redis-compatible key for the model given filters.
+    """
+    md5 = md5_text(
+        "&".join(f"{k}={_coerce_val(v)!r}" for k, v in sorted(filters.items()))
+    ).hexdigest()
+    model_key = _get_model_key(model=model)
+    return f"b:k:{model_key}:{md5}"
+
+
 def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -> None:
     global _last_validation_log
 
@@ -54,32 +73,6 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
         except Exception:
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
-
-
-class BufferHookEvent(Enum):
-    FLUSH = "flush"
-
-
-class BufferHookRegistry:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
-
-    def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
-        self._registry[key] = func
-
-    def has(self, key: BufferHookEvent) -> bool:
-        return self._registry.get(key) is not None
-
-    def callback(self, buffer_hook_event: BufferHookEvent) -> bool:
-        try:
-            callback = self._registry[buffer_hook_event]
-        except KeyError:
-            logger.exception("buffer_hook_event.missing")
-
-        return callback()
-
-
-redis_buffer_registry = BufferHookRegistry()
 
 
 # Callable to get the queue name for the given model_key.
@@ -245,7 +238,7 @@ class RedisBuffer(Buffer):
         Returns a Redis-compatible key for the model given filters.
         """
         md5 = md5_text(
-            "&".join(f"{k}={self._coerce_val(v)!r}" for k, v in sorted(filters.items()))
+            "&".join(f"{k}={_coerce_val(v)!r}" for k, v in sorted(filters.items()))
         ).hexdigest()
         model_key = _get_model_key(model=model)
         return f"b:k:{model_key}:{md5}"
@@ -271,7 +264,7 @@ class RedisBuffer(Buffer):
         self, client: RedisCluster[T] | rb.RoutingClient, key: str, ex: int
     ) -> None | str:
         lock_key = self._make_lock_key(key)
-        # prevent a stampede due to celerybeat + periodic task
+        # prevent a stampede due to scheduled tasks + periodic task
         if not client.set(lock_key, "1", nx=True, ex=ex):
             return None
         return lock_key
@@ -335,7 +328,7 @@ class RedisBuffer(Buffer):
         """
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         pipe = self.get_redis_connection(key, transaction=False)
 
         for col in columns:
@@ -357,16 +350,36 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline(transaction=transaction)
         return pipe
 
-    def _execute_redis_operation(
+    def _execute_redis_operation_no_txn(
         self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
     ) -> Any:
         metrics_str = f"redis_buffer.{operation.value}"
         metrics.incr(metrics_str)
-        pipe = self.get_redis_connection(self.pending_key)
+        pipe = self.get_redis_connection(self.pending_key, transaction=False)
         getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
             pipe.expire(key, self.key_expire)
         return pipe.execute()[0]
+
+    def _execute_sharded_redis_operation(
+        self,
+        keys: list[str],
+        operation: RedisOperation,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Execute a Redis operation on a list of keys, using the same args and kwargs for each key.
+        """
+
+        metrics_str = f"redis_buffer.{operation.value}"
+        metrics.incr(metrics_str, amount=len(keys))
+        pipe = self.get_redis_connection(self.pending_key, transaction=False)
+        for key in keys:
+            getattr(pipe, operation.value)(key, *args, **kwargs)
+            if args:
+                pipe.expire(key, self.key_expire)
+        return pipe.execute()
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         now = time()
@@ -374,10 +387,10 @@ class RedisBuffer(Buffer):
             value_dict = {v: now for v in value}
         else:
             value_dict = {value: now}
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
+        self._execute_redis_operation_no_txn(key, RedisOperation.SORTED_SET_ADD, value_dict)
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
-        redis_set = self._execute_redis_operation(
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
+        redis_set = self._execute_redis_operation_no_txn(
             key,
             RedisOperation.SORTED_SET_GET_RANGE,
             min=min,
@@ -393,8 +406,39 @@ class RedisBuffer(Buffer):
             decoded_set.append(data_and_timestamp)
         return decoded_set
 
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]:
+        data_to_timestamps: dict[int, list[float]] = defaultdict(list)
+
+        redis_set = self._execute_sharded_redis_operation(
+            keys,
+            RedisOperation.SORTED_SET_GET_RANGE,
+            min=min,
+            max=max,
+            withscores=True,
+        )
+        for result in redis_set:
+            for items in result:
+                item = items[0]
+                if isinstance(item, bytes):
+                    item = item.decode("utf-8")
+                data_to_timestamps[int(item)].append(items[1])
+
+        return data_to_timestamps
+
     def delete_key(self, key: str, min: float, max: float) -> None:
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+        self._execute_redis_operation_no_txn(
+            key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max
+        )
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
+        self._execute_sharded_redis_operation(
+            keys,
+            RedisOperation.SORTED_SET_DELETE_RANGE,
+            min=min,
+            max=max,
+        )
 
     def delete_hash(
         self,
@@ -402,8 +446,8 @@ class RedisBuffer(Buffer):
         filters: dict[str, BufferField],
         fields: list[str],
     ) -> None:
-        key = self._make_key(model, filters)
-        pipe = self.get_redis_connection(self.pending_key)
+        key = make_key(model, filters)
+        pipe = self.get_redis_connection(self.pending_key, transaction=False)
         for field in fields:
             getattr(pipe, RedisOperation.HASH_DELETE.value)(key, field)
         pipe.expire(key, self.key_expire)
@@ -416,8 +460,8 @@ class RedisBuffer(Buffer):
         field: str,
         value: str,
     ) -> None:
-        key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_ADD, field, value)
+        key = make_key(model, filters)
+        self._execute_redis_operation_no_txn(key, RedisOperation.HASH_ADD, field, value)
 
     def push_to_hash_bulk(
         self,
@@ -425,12 +469,12 @@ class RedisBuffer(Buffer):
         filters: dict[str, BufferField],
         data: dict[str, str],
     ) -> None:
-        key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_ADD_BULK, data)
+        key = make_key(model, filters)
+        self._execute_redis_operation_no_txn(key, RedisOperation.HASH_ADD_BULK, data)
 
     def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
-        key = self._make_key(model, field)
-        redis_hash = self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+        key = make_key(model, field)
+        redis_hash = self._execute_redis_operation_no_txn(key, RedisOperation.HASH_GET_ALL)
         decoded_hash = {}
         for k, v in redis_hash.items():
             if isinstance(k, bytes):
@@ -442,14 +486,8 @@ class RedisBuffer(Buffer):
         return decoded_hash
 
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
-        key = self._make_key(model, field)
-        return self._execute_redis_operation(key, RedisOperation.HASH_LENGTH)
-
-    def process_batch(self) -> None:
-        try:
-            redis_buffer_registry.callback(BufferHookEvent.FLUSH)
-        except Exception:
-            logger.exception("process_batch.error")
+        key = make_key(model, field)
+        return self._execute_redis_operation_no_txn(key, RedisOperation.HASH_LENGTH)
 
     def incr(
         self,
@@ -468,7 +506,7 @@ class RedisBuffer(Buffer):
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
         pipe = self.get_redis_connection(key)
@@ -478,7 +516,7 @@ class RedisBuffer(Buffer):
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             pipe.hsetnx(key, "f", json.dumps(self._dump_values(filters)))
         else:
-            pipe.hsetnx(key, "f", pickle.dumps(filters))
+            pipe.hsetnx(key, "f", pickle.dumps(filters, protocol=5))
 
         for column, amount in columns.items():
             pipe.hincrby(key, "i+" + column, amount)
@@ -492,7 +530,7 @@ class RedisBuffer(Buffer):
                 if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
                     pipe.hset(key, "e+" + column, json.dumps(self._dump_value(value)))
                 else:
-                    pipe.hset(key, "e+" + column, pickle.dumps(value))
+                    pipe.hset(key, "e+" + column, pickle.dumps(value, protocol=5))
 
         if signal_only is True:
             pipe.hset(key, "s", "1")
@@ -517,28 +555,6 @@ class RedisBuffer(Buffer):
             incr_batch_size=self.incr_batch_size
         )
 
-        def _generate_process_incr_kwargs(model_key: str | None) -> dict[str, Any]:
-            # The queue to be used for the process_incr task is determined in the following order of precedence:
-            # 1. The queue argument passed to process_incr.apply_async()
-            # 2. The queue defined on the process_incr task
-            # 3. Any defined routes in CELERY_ROUTES
-            #
-            # See: https://docs.celeryq.dev/en/latest/userguide/routing.html#specifying-task-destination
-            #
-            # Hence, we override the default queue of the process_incr task by passing in the assigned queue for the
-            # model associated with the model_key.
-            process_incr_kwargs: dict[str, Any] = dict()
-            if model_key is None:
-                metrics.incr("buffer.process-incr.model-key-missing")
-                return process_incr_kwargs
-            queue = pending_buffers_router.queue(model_key=model_key)
-            if queue is not None:
-                process_incr_kwargs["queue"] = queue
-                metrics.incr("buffer.process-incr-queue", tags={"queue": queue})
-            else:
-                metrics.incr("buffer.process-incr-default-queue")
-            return process_incr_kwargs
-
         try:
             keycount = 0
             if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
@@ -550,11 +566,9 @@ class RedisBuffer(Buffer):
                     pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
                     pending_buffer.append(item=key)
                     if pending_buffer.full():
-                        process_incr_kwargs = _generate_process_incr_kwargs(model_key=model_key)
                         process_incr.apply_async(
                             kwargs={"batch_keys": pending_buffer.flush()},
                             headers={"sentry-propagate-traces": False},
-                            **process_incr_kwargs,
                         )
 
                 self.cluster.zrem(self.pending_key, *keys)
@@ -575,13 +589,9 @@ class RedisBuffer(Buffer):
                             )
                             pending_buffer.append(item=key)
                             if pending_buffer.full():
-                                process_incr_kwargs = _generate_process_incr_kwargs(
-                                    model_key=model_key
-                                )
                                 process_incr.apply_async(
                                     kwargs={"batch_keys": pending_buffer.flush()},
                                     headers={"sentry-propagate-traces": False},
-                                    **process_incr_kwargs,
                                 )
                         conn.target([host_id]).zrem(self.pending_key, *keysb)
             else:
@@ -593,11 +603,9 @@ class RedisBuffer(Buffer):
                 model_key = pending_buffer_value.model_key
 
                 if not pending_buffer.empty():
-                    process_incr_kwargs = _generate_process_incr_kwargs(model_key=model_key)
                     process_incr.apply_async(
                         kwargs={"batch_keys": pending_buffer.flush()},
                         headers={"sentry-propagate-traces": False},
-                        **process_incr_kwargs,
                     )
 
             metrics.distribution("buffer.pending-size", keycount)

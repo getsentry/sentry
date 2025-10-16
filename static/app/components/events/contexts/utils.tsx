@@ -9,8 +9,8 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
-  type ContextIconProps,
   getLogoImage,
+  type ContextIconProps,
 } from 'sentry/components/events/contexts/contextIcon';
 import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
@@ -81,9 +81,9 @@ export function generateIconName(
   const formattedName = name
     .split(/\d/)[0]!
     .toLowerCase()
-    .replace(/[^a-z0-9\-]+/g, '-')
-    .replace(/\-+$/, '')
-    .replace(/^\-+/, '');
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+$/, '')
+    .replace(/^-+/, '');
 
   if (formattedName === 'edge' && version) {
     const majorVersion = version.split('.')[0]!;

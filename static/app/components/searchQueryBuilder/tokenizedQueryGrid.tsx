@@ -17,7 +17,7 @@ import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/tok
 import {SearchQueryBuilderFreeText} from 'sentry/components/searchQueryBuilder/tokens/freeText';
 import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 

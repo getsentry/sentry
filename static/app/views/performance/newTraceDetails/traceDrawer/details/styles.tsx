@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -20,9 +21,9 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   CardPanel,
   KeyValueData,
-  type KeyValueDataContentProps,
   Subject,
   ValueSection,
+  type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import Panel from 'sentry/components/panels/panel';
@@ -52,8 +53,8 @@ import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -148,7 +149,6 @@ function SubtitleWithCopyButton({
         <CopyToClipboardButton
           borderless
           size="zero"
-          iconSize="xs"
           text={clipboardText}
           tooltipProps={{disabled: true}}
         />
@@ -175,7 +175,6 @@ function TitleOp({text}: {text: string}) {
           <CopyToClipboardButton
             borderless
             size="zero"
-            iconSize="xs"
             text={text}
             tooltipProps={{disabled: true}}
           />
@@ -391,7 +390,7 @@ function TableRow({
   return (
     <tr>
       <td className="key">
-        <Flex>
+        <Flex align="center">
           {prefix}
           {title}
           {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
@@ -446,6 +445,9 @@ function Highlights({
   }
 
   const isAiNode = getIsAiNode(node);
+  const isMCPNode = getIsMCPNode(node);
+
+  const hidePanelAndBreakdown = isAiNode || isMCPNode;
 
   const startTimestamp = node.space[0];
   const endTimestamp = node.space[0] + node.space[1];
@@ -497,27 +499,26 @@ function Highlights({
               ))}
             </HighlightedAttributesWrapper>
           ) : null}
-          {isAiNode && hasAgentInsightsFeature(organization) ? (
-            hideNodeActions ? null : (
-              <OpenInAIFocusButton
-                size="xs"
-                onClick={() => {
-                  trackAnalytics('agent-monitoring.view-ai-trace-click', {
-                    organization,
-                  });
-                }}
-                to={{
-                  ...location,
-                  query: {
-                    ...location.query,
-                    tab: TraceLayoutTabKeys.AI_SPANS,
-                  },
-                }}
-              >
-                {t('Open in AI View')}
-              </OpenInAIFocusButton>
-            )
-          ) : (
+          {isAiNode && !hideNodeActions && (
+            <OpenInAIFocusButton
+              size="xs"
+              onClick={() => {
+                trackAnalytics('agent-monitoring.view-ai-trace-click', {
+                  organization,
+                });
+              }}
+              to={{
+                ...location,
+                query: {
+                  ...location.query,
+                  tab: TraceLayoutTabKeys.AI_SPANS,
+                },
+              }}
+            >
+              {t('Open in AI View')}
+            </OpenInAIFocusButton>
+          )}
+          {!hidePanelAndBreakdown && (
             <Fragment>
               <StyledPanel>
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
@@ -811,11 +812,6 @@ const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
 `;
 
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const TableValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
@@ -1072,7 +1068,8 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {isTransactionNode(props.node) || isEAPTransactionNode(props.node) ? (
+      {transactionId &&
+      (isTransactionNode(props.node) || isEAPTransactionNode(props.node)) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
@@ -1222,12 +1219,7 @@ function CopyableCardValueWithLink({
       <CardValueText>
         {value}
         {typeof value === 'string' ? (
-          <StyledCopyToClipboardButton
-            borderless
-            size="zero"
-            iconSize="xs"
-            text={value}
-          />
+          <StyledCopyToClipboardButton borderless size="zero" text={value} />
         ) : null}
       </CardValueText>
       {linkTarget && linkTarget ? (
@@ -1292,7 +1284,7 @@ function MultilineText({children}: {children: string}) {
         <Fragment>{ellipsize(children, truncatePosition)}</Fragment>
       )}
       {needsTruncation ? (
-        <Flex style={{justifyContent: 'center', paddingTop: space(1)}}>
+        <Flex justify="center" paddingTop="md">
           <Button size="xs" onClick={() => setIsExpanded(!isExpanded)}>
             {isExpanded ? t('Show less') : t('Show all')}
           </Button>
@@ -1331,7 +1323,16 @@ function MultilineJSON({
   const json = tryParseJson(value);
   return (
     <MultilineTextWrapperMonospace>
-      <StructuredData value={json} maxDefaultDepth={maxDefaultDepth} withAnnotatedText />
+      <StructuredData
+        config={{
+          isString: v => typeof v === 'string',
+          isBoolean: v => typeof v === 'boolean',
+          isNumber: v => typeof v === 'number',
+        }}
+        value={json}
+        maxDefaultDepth={maxDefaultDepth}
+        withAnnotatedText
+      />
     </MultilineTextWrapperMonospace>
   );
 }
@@ -1354,7 +1355,7 @@ function SectionTitleWithQuestionTooltip({
   tooltipText: string;
 }) {
   return (
-    <Flex style={{gap: space(0.5)}}>
+    <Flex gap="xs" align="center">
       <div>{title}</div>
       <QuestionTooltip title={tooltipText} size="sm" />
     </Flex>

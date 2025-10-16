@@ -2,14 +2,6 @@ import {Fragment, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {
-  SummaryContainer,
-  SummaryEntries,
-  SummaryEntry,
-  SummaryEntryLabel,
-  SummaryEntryValue,
-  SummaryEntryValueLink,
-} from 'sentry/components/codecov/summary';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
@@ -18,8 +10,16 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconArrow, IconChevron, IconGithub, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
-import {COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
+import {makePreventPathname} from 'sentry/views/prevent/pathnames';
+import {PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {
+  SummaryContainer,
+  SummaryEntries,
+  SummaryEntry,
+  SummaryEntryLabel,
+  SummaryEntryValue,
+  SummaryEntryValueLink,
+} from 'sentry/views/summary';
 
 const headCommit = {
   sha: '31b72ff64bd75326ea5e43bf8e93b415db56cb62',
@@ -153,9 +153,9 @@ function UploadsCountLink({children}: {children: React.ReactNode}) {
   const params = useParams<{sha: string}>();
   const commitHash = params.sha || headCommit.shortSha;
 
-  const historyPath = makeCodecovPathname({
+  const historyPath = makePreventPathname({
     organization,
-    path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
+    path: `/${PREVENT_BASE_URL}/commits/${commitHash}/history/`,
   });
 
   return (

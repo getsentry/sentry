@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -8,6 +8,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -69,9 +70,9 @@ type ValidSort = Sort & {
 
 interface Props {
   data: Row[];
+  groupId: string;
   isLoading: boolean;
   sort: ValidSort;
-  span: Pick<SpanResponse, SpanFields.SPAN_GROUP | SpanFields.SPAN_OP>;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -84,7 +85,7 @@ export function QueryTransactionsTable({
   meta,
   pageLinks,
   sort,
-  span,
+  groupId,
 }: Props) {
   const theme = useTheme();
   const moduleURL = useModuleURL('db');
@@ -98,6 +99,9 @@ export function QueryTransactionsTable({
       query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+  });
 
   return (
     <Fragment>
@@ -106,7 +110,7 @@ export function QueryTransactionsTable({
         isLoading={isLoading}
         error={error}
         data={data}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field,
@@ -127,11 +131,12 @@ export function QueryTransactionsTable({
               column,
               row,
               meta,
-              span,
+              groupId,
               location,
               organization,
               theme
             ),
+          onResizeColumn: handleResizeColumn,
         }}
       />
 
@@ -145,7 +150,7 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
-  span: Pick<SpanResponse, SpanFields.SPAN_GROUP | SpanFields.SPAN_OP>,
+  groupId: string,
   location: Location,
   organization: Organization,
   theme: Theme
@@ -156,7 +161,7 @@ function renderBodyCell(
         ? `${row['transaction.method']} ${row.transaction}`
         : row.transaction;
 
-    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanFields.SPAN_GROUP])}`;
+    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(groupId)}`;
 
     const query: Record<string, string | undefined> = {
       ...location.query,
@@ -176,15 +181,12 @@ function renderBodyCell(
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
-  const rendered = renderer(
-    {...row, 'span.op': span['span.op']},
-    {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-      theme,
-    }
-  );
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+    theme,
+  });
 
   return rendered;
 }

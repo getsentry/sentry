@@ -14,7 +14,7 @@ import type {Plan} from 'getsentry/types';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {getReservedTotal} from 'getsentry/views/amCheckout/utils';
+import {formatPrice, getReservedPriceCents} from 'getsentry/views/amCheckout/utils';
 
 type Props = StepProps;
 
@@ -99,19 +99,20 @@ class ContractSelect extends Component<Props> {
           if (
             promotion?.showDiscountInfo &&
             promotion.discountInfo &&
-            // contract intervial needs to match the discount interval
+            // contract interval needs to match the discount interval
             promotion.discountInfo.billingInterval === plan.contractInterval
           ) {
             discountData.discountType = promotion.discountInfo.discountType;
             discountData.amount = promotion.discountInfo.amount;
           }
 
-          const price = getReservedTotal({
+          const priceAfterDiscount = getReservedPriceCents({
             plan,
             reserved: formData.reserved,
-            selectedProducts: formData.selectedProducts,
+            addOns: formData.addOns,
             ...discountData,
           });
+          const formattedPriceAfterDiscount = formatPrice({cents: priceAfterDiscount});
 
           return (
             <PlanSelectRow
@@ -119,12 +120,14 @@ class ContractSelect extends Component<Props> {
               plan={plan}
               isSelected={isSelected}
               onUpdate={onUpdate}
-              planValue={plan.billingInterval}
               planName={name}
+              planValue={plan.billingInterval}
               planContent={{description, features: {}}}
               priceHeader={priceHeader}
-              price={price}
               planWarning={hasWarning ? this.annualContractWarning : undefined}
+              shouldShowDefaultPayAsYouGo={false}
+              shouldShowEventPrice={false}
+              price={formattedPriceAfterDiscount}
             />
           );
         })}

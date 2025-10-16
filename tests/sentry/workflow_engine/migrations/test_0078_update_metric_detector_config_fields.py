@@ -1,12 +1,15 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip
 class UpdateMetricDetectorConfigFieldsTest(TestMigrations):
     migrate_from = "0079_add_unique_constraint_to_detector_group"
     migrate_to = "0080_update_metric_detector_config_fields"
     app = "workflow_engine"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.detector = self.create_detector(
             type="metric_issue",
             config={

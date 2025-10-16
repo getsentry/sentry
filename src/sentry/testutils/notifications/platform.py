@@ -4,6 +4,8 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
+    NotificationRenderedAction,
+    NotificationRenderedImage,
     NotificationRenderedTemplate,
     NotificationStrategy,
     NotificationTarget,
@@ -20,20 +22,19 @@ class MockNotification(NotificationData):
 @template_registry.register(MockNotification.source)
 class MockNotificationTemplate(NotificationTemplate[MockNotification]):
     category = NotificationCategory.DEBUG
+    example_data = MockNotification(message="This is a mock notification")
 
     def render(self, data: MockNotification) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject="Mock Notification",
             body=data.message,
-            actions=[{"label": "Visit Sentry", "link": "https://www.sentry.io"}],
-            footer="This is a mock footer",
-        )
-
-    def render_example(self) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(
-            subject="Mock Notification",
-            body="This is a mock notification",
-            actions=[{"label": "Visit Sentry", "link": "https://www.sentry.io"}],
+            actions=[
+                NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
+            ],
+            chart=NotificationRenderedImage(
+                url="https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png",
+                alt_text="Bufo Pog",
+            ),
             footer="This is a mock footer",
         )
 

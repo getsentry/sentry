@@ -4,20 +4,19 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
-  LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import * as useLogsQueryModule from 'sentry/views/explore/logs/useLogsQuery';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
 
 import {LogsAggregateTable} from './logsAggregateTable';
-
-jest.mock('sentry/views/explore/logs/useLogsQuery');
 
 describe('LogsAggregateTable', () => {
   const {organization, project} = initializeOrg({
@@ -25,30 +24,34 @@ describe('LogsAggregateTable', () => {
       features: ['ourlogs-enabled'],
     },
   });
-  function LogsAggregateTableWithParamsProvider() {
+  function LogsAggregateTableWithParamsProvider({
+    aggregatesTableResult,
+  }: {
+    aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
+  }) {
     return (
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <LogsAggregateTable />
-      </LogsPageParamsProvider>
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+      </LogsQueryParamsProvider>
     );
   }
 
   ProjectsStore.loadInitialData([project]);
 
   PageFiltersStore.init();
-  PageFiltersStore.onInitializeUrlState(
-    {
-      projects: [parseInt(project.id, 10)],
-      environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+  PageFiltersStore.onInitializeUrlState({
+    projects: [parseInt(project.id, 10)],
+    environments: [],
+    datetime: {
+      period: '14d',
+      start: null,
+      end: null,
+      utc: null,
     },
-    new Set()
-  );
+  });
   const initialRouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/explore/logs/`,
@@ -67,57 +70,75 @@ describe('LogsAggregateTable', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   it('renders loading state', () => {
-    (useLogsQueryModule.useLogsAggregatesQuery as jest.Mock).mockReturnValue({
-      isLoading: true,
-      error: null,
-      data: null,
-      pageLinks: undefined,
-    });
-    render(<LogsAggregateTableWithParamsProvider />, {initialRouterConfig});
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={
+          {
+            isLoading: true,
+            error: null,
+            data: undefined,
+            pageLinks: undefined,
+          } as any
+        }
+      />,
+      {initialRouterConfig}
+    );
     expect(screen.getByLabelText('Aggregates')).toBeInTheDocument();
   });
 
   it('renders error state', () => {
-    (useLogsQueryModule.useLogsAggregatesQuery as jest.Mock).mockReturnValue({
-      isLoading: false,
-      error: 'Error!',
-      data: null,
-      pageLinks: undefined,
-    });
-    render(<LogsAggregateTableWithParamsProvider />, {initialRouterConfig});
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={
+          {
+            isLoading: false,
+            error: new RequestError('GET', '/', new Error('Error!')),
+            data: undefined,
+            pageLinks: undefined,
+          } as any
+        }
+      />,
+      {initialRouterConfig}
+    );
     expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
   });
 
   it('renders data rows', () => {
-    (useLogsQueryModule.useLogsAggregatesQuery as jest.Mock).mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        data: [
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={
           {
-            'message.template': 'Fetching the latest item id failed.',
-            'p99(severity_number)': 17.0,
-          },
-          {
-            'message.template':
-              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
-            'p99(severity_number)': 13.0,
-          },
-          {
-            'message.template':
-              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
-            'p99(severity_number)': 12.0,
-          },
-        ],
-      },
-      pageLinks: undefined,
-    });
-    render(<LogsAggregateTableWithParamsProvider />, {initialRouterConfig});
+            isLoading: false,
+            error: null,
+            data: {
+              data: [
+                {
+                  'message.template': 'Fetching the latest item id failed.',
+                  'p99(severity_number)': 17.0,
+                },
+                {
+                  'message.template':
+                    '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
+                  'p99(severity_number)': 13.0,
+                },
+                {
+                  'message.template':
+                    '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
+                  'p99(severity_number)': 12.0,
+                },
+              ],
+            },
+            pageLinks: undefined,
+          } as any
+        }
+      />,
+      {initialRouterConfig}
+    );
     const rows = screen.getAllByTestId('grid-body-row');
     expect(rows).toHaveLength(3);
     const expected = [
@@ -127,8 +148,8 @@ describe('LogsAggregateTable', () => {
     ];
     rows.forEach((row, i) => {
       const cells = within(row).getAllByTestId('grid-body-cell');
-      expect(cells[0]).toHaveTextContent(expected[i]![0]!);
-      expect(cells[1]).toHaveTextContent(expected[i]![1]!);
+      expect(cells[1]).toHaveTextContent(expected[i]![0]!);
+      expect(cells[2]).toHaveTextContent(expected[i]![1]!);
     });
   });
 });

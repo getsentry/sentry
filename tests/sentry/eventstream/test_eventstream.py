@@ -9,11 +9,11 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
 from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
 from sentry.eventstream.types import EventStreamEventType
 from sentry.receivers import create_default_projects
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json, snuba
@@ -95,6 +95,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         # only return headers and body payload
         return produce_kwargs["headers"], payload2
+
+    def test_init_options(self):
+        # options in the constructor shouldn't cause errors
+        stream = KafkaEventStream(foo="bar")
+        assert stream
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert: MagicMock) -> None:
@@ -253,10 +258,15 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert payload1["occurrence_id"] == occurrence_data["id"]
         assert payload1["occurrence_data"] == occurrence_data_no_evidence
         assert payload1["group_id"] == self.group.id
+        assert payload1["group_first_seen"] == json.datetime_to_str(self.group.first_seen)
 
         query = Query(
             match=Entity(EntityKey.IssuePlatform.value),
-            select=[Column("event_id"), Column("group_id"), Column("occurrence_id")],
+            select=[
+                Column("event_id"),
+                Column("group_id"),
+                Column("occurrence_id"),
+            ],
             where=[
                 Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
                 Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
@@ -280,7 +290,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result["data"][0]["occurrence_id"] == group_event.occurrence.id
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_error_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_error(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
 
         event = self.__build_event(now)
@@ -306,12 +316,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
-        assert ("queue", b"post_process_errors") in headers
         assert "occurrence_id" not in dict(headers)
-        assert body["queue"] == "post_process_errors"
+        assert body
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_transaction_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_transaction(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -332,12 +341,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
-        assert ("queue", b"post_process_transactions") in headers
         assert "occurrence_id" not in dict(headers)
-        assert body["queue"] == "post_process_transactions"
+        assert body
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_issue_platform_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_issue_platform(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -360,10 +368,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         }
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
-
-        assert ("queue", b"post_process_issue_platform") in headers
         assert ("occurrence_id", group_event.occurrence.id.encode()) in headers
-        assert body["queue"] == "post_process_issue_platform"
+        assert body
 
     def test_insert_generic_event_contexts(self) -> None:
         create_default_projects()

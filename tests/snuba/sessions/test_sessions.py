@@ -20,89 +20,138 @@ def format_timestamp(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
-class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
-    backend = MetricsReleaseHealthBackend()
+release_v1_0_0 = "foo@1.0.0"
+release_v2_0_0 = "foo@2.0.0"
 
-    def setUp(self):
-        super().setUp()
+
+class ReleaseHealthBaseTestCase(BaseMetricsTestCase):
+    session_1 = "5d52fd05-fcc9-4bf3-9dc9-267783670341"
+    session_2 = "5e910c1a-6941-460e-9843-24103fb6a63c"
+    session_3 = "a148c0c5-06a2-423b-8901-6b43b812cf82"
+    user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
+    user_2 = "39887d89-13b2-4c84-8c23-5d13d2102667"
+    user_3 = "39887d89-13b2-4c84-8c23-5d13d2102668"
+
+    def create_sessions__v2_crashed(self) -> list[dict]:
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
-        self.session_release = "foo@1.0.0"
-        self.session_crashed_release = "foo@2.0.0"
-        session_1 = "5d52fd05-fcc9-4bf3-9dc9-267783670341"
-        session_2 = "5e910c1a-6941-460e-9843-24103fb6a63c"
-        session_3 = "a148c0c5-06a2-423b-8901-6b43b812cf82"
-        user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
 
-        self.store_session(
+        return [
             self.build_session(
-                distinct_id=user_1,
-                session_id=session_1,
+                distinct_id=self.user_1,
+                session_id=self.session_1,
                 status="exited",
-                release=self.session_release,
+                release=release_v1_0_0,
                 environment="prod",
                 started=self.session_started,
                 received=self.received,
-            )
-        )
-        self.store_session(
+            ),
             self.build_session(
-                distinct_id=user_1,
-                session_id=session_2,
-                release=self.session_release,
+                distinct_id=self.user_1,
+                session_id=self.session_2,
+                release=release_v1_0_0,
                 environment="prod",
                 duration=None,
                 started=self.session_started,
                 received=self.received,
-            )
-        )
-        self.store_session(
+            ),
             self.build_session(
-                distinct_id=user_1,
-                session_id=session_2,
+                distinct_id=self.user_1,
+                session_id=self.session_2,
                 seq=1,
                 duration=30,
                 status="exited",
-                release=self.session_release,
+                release=release_v1_0_0,
                 environment="prod",
                 started=self.session_started,
                 received=self.received,
-            )
-        )
+            ),
+            self.build_session(
+                distinct_id=self.user_1,
+                session_id=self.session_3,
+                status="crashed",
+                release=release_v2_0_0,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            ),
+        ]
+
+    def create_sessions__v1(self) -> list[dict]:
+        self.received = time.time()
+        self.session_started = time.time() // 60 * 60
+
+        return [
+            self.build_session(
+                distinct_id=self.user_1,
+                session_id=self.session_1,
+                status="exited",
+                release=release_v1_0_0,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            ),
+            self.build_session(
+                distinct_id=self.user_2,
+                session_id=self.session_2,
+                status="crashed",
+                release=release_v1_0_0,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            ),
+            # session_3 initial update: no user ID
+            self.build_session(
+                distinct_id=None,
+                session_id=self.session_3,
+                status="ok",
+                seq=0,
+                release=release_v1_0_0,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            ),
+            # session_3 subsequent update: user ID is here!
+            self.build_session(
+                distinct_id=self.user_3,
+                session_id=self.session_3,
+                status="ok",
+                seq=123,
+                release=release_v1_0_0,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            ),
+        ]
+
+
+class CheckHasHealthDataTestCase(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
+
+    def test_check_has_health_data(self) -> None:
         self.store_session(
             self.build_session(
-                distinct_id=user_1,
-                session_id=session_3,
-                status="crashed",
-                release=self.session_crashed_release,
-                environment="prod",
-                started=self.session_started,
-                received=self.received,
-            )
+                project_id=self.project.id,
+                org_id=self.project.organization_id,
+                status="exited",
+                release=release_v1_0_0,
+            ),
         )
 
-    def test_get_oldest_health_data_for_releases(self):
-        data = self.backend.get_oldest_health_data_for_releases(
-            [(self.project.id, self.session_release)]
-        )
-        assert data == {
-            (self.project.id, self.session_release): format_timestamp(
-                self.session_started // 3600 * 3600
-            )
-        }
-
-    def test_check_has_health_data(self):
         data = self.backend.check_has_health_data(
-            [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
+            [(self.project.id, release_v1_0_0), (self.project.id, "dummy-release")]
         )
-        assert data == {(self.project.id, self.session_release)}
+        assert data == {(self.project.id, release_v1_0_0)}
 
-    def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(self):
+    def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(
+        self,
+    ) -> None:
         """
         Test that ensures that `check_has_health_data` returns a set of projects that has health
         data within the last 90d if only a list of project ids is provided and any project with
         session data earlier than 90 days should be included
         """
+        project1 = self.project
         project2 = self.create_project(
             name="Bar2",
             slug="bar2",
@@ -110,28 +159,48 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             fire_project_created=True,
             organization=self.organization,
         )
+
         self.store_session(
             self.build_session(
-                **{
-                    "project_id": project2.id,
-                    "org_id": project2.organization_id,
-                    "status": "exited",
-                }
+                project_id=project1.id,
+                org_id=project1.organization_id,
+                status="exited",
             )
         )
-        data = self.backend.check_has_health_data([self.project.id, project2.id])
-        assert data == {self.project.id, project2.id}
+        self.store_session(
+            self.build_session(
+                project_id=project2.id,
+                org_id=project2.organization_id,
+                status="exited",
+            )
+        )
+        data = self.backend.check_has_health_data([project1.id, project2.id])
+        assert data == {project1.id, project2.id}
 
-    def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self):
+    def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self) -> None:
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                org_id=self.project.organization_id,
+                status="exited",
+            ),
+        )
+
         data = self.backend.check_has_health_data({self.project.id})
         assert data == {self.project.id}
 
-    def test_get_project_releases_by_stability(self):
+
+class GetProjectReleasesByStabilityTestCase(TestCase, ReleaseHealthBaseTestCase):
+    backend = MetricsReleaseHealthBackend()
+
+    def test_get_project_releases_by_stability(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         # Add an extra session with a different `distinct_id` so that sorting by users
         # is stable
         self.store_session(
             self.build_session(
-                release=self.session_release,
+                release=release_v1_0_0,
                 environment="prod",
                 started=self.session_started,
                 received=self.received,
@@ -144,21 +213,22 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             )
 
             assert data == [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
+                (self.project.id, release_v1_0_0),
+                (self.project.id, release_v2_0_0),
             ]
 
-    def test_get_project_releases_by_stability_for_crash_free_sort(self):
+    def test_get_project_releases_by_stability_for_crash_free_sort(self) -> None:
         """
         Test that ensures that using crash free rate sort options, returns a list of ASC releases
         according to the chosen crash_free sort option
         """
 
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
         # add another user to session_release to make sure that they are sorted correctly
         self.store_session(
             self.build_session(
                 status="exited",
-                release=self.session_release,
+                release=release_v1_0_0,
                 environment="prod",
                 started=self.session_started,
                 received=self.received,
@@ -169,16 +239,19 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             data = self.backend.get_project_releases_by_stability(
                 [self.project.id], offset=0, limit=100, scope=scope, stats_period="24h"
             )
+
             assert data == [
-                (self.project.id, self.session_crashed_release),
-                (self.project.id, self.session_release),
+                (self.project.id, release_v2_0_0),
+                (self.project.id, release_v1_0_0),
             ]
 
-    def test_get_project_releases_by_stability_for_releases_with_users_data(self):
+    def test_get_project_releases_by_stability_for_releases_with_users_data(self) -> None:
         """
         Test that ensures if releases contain no users data, then those releases should not be
         returned on `users` and `crash_free_users` sorts
         """
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+        # add a session with no users data
         self.store_session(
             self.build_session(
                 distinct_id=None,
@@ -192,29 +265,167 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
         )
         assert set(data) == {
-            (self.project.id, self.session_release),
-            (self.project.id, self.session_crashed_release),
+            (self.project.id, release_v1_0_0),
+            (self.project.id, release_v2_0_0),
         }
 
         data = self.backend.get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="crash_free_users", stats_period="24h"
         )
         assert set(data) == {
-            (self.project.id, self.session_crashed_release),
-            (self.project.id, self.session_release),
+            (self.project.id, release_v2_0_0),
+            (self.project.id, release_v1_0_0),
         }
 
-    def test_get_release_adoption(self):
+
+class GetCrashFreeBreakdownTestCase(TestCase, ReleaseHealthBaseTestCase):
+    backend = MetricsReleaseHealthBackend()
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.four_days_ago = timezone.now() - timedelta(days=4)
+
+    def test_with_and_without_environments(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
+        for environments in [None, ["prod"]]:
+            data = self.backend.get_crash_free_breakdown(
+                project_id=self.project.id,
+                release=release_v1_0_0,
+                start=self.four_days_ago,
+                environments=environments,
+            )
+
+            # Last returned date is generated within function, should be close to now:
+            last_date = data[-1]["date"]
+            assert timezone.now() - last_date < timedelta(seconds=1)
+
+            assert data == [
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": self.four_days_ago + timedelta(days=1),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": self.four_days_ago + timedelta(days=2),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": 100.0,
+                    "crash_free_users": 100.0,
+                    "total_sessions": 2,
+                    "total_users": 1,
+                    "date": mock.ANY,  # tested above
+                },
+            ]
+
+    def test_all_sessions_crashed(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release=release_v2_0_0,
+            start=self.four_days_ago,
+            environments=["prod"],
+        )
+
+        # Last returned date is generated within function, should be close to now:
+        last_date = data[-1]["date"]
+        assert timezone.now() - last_date < timedelta(seconds=1)
+
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": self.four_days_ago + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": self.four_days_ago + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": 0.0,
+                "crash_free_users": 0.0,
+                "total_sessions": 1,
+                "total_users": 1,
+                "date": mock.ANY,
+            },
+        ]
+
+    def test_with_non_existing_release(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release="non-existing",
+            start=self.four_days_ago,
+            environments=["prod"],
+        )
+
+        # Last returned date is generated within function, should be close to now:
+        last_date = data[-1]["date"]
+        assert timezone.now() - last_date < timedelta(seconds=1)
+
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": self.four_days_ago + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": self.four_days_ago + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "total_sessions": 0,
+                "total_users": 0,
+                "date": mock.ANY,
+            },
+        ]
+
+
+class SnubaSessionsTest(TestCase, ReleaseHealthBaseTestCase):
+    backend = MetricsReleaseHealthBackend()
+
+    def test_get_oldest_health_data_for_releases(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
+        data = self.backend.get_oldest_health_data_for_releases([(self.project.id, release_v1_0_0)])
+        assert data == {
+            (self.project.id, release_v1_0_0): format_timestamp(self.session_started // 3600 * 3600)
+        }
+
+    def test_get_release_adoption(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         data = self.backend.get_release_adoption(
             [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
+                (self.project.id, release_v1_0_0),
+                (self.project.id, release_v2_0_0),
                 (self.project.id, "dummy-release"),
             ]
         )
 
         assert data == {
-            (self.project.id, self.session_release): {
+            (self.project.id, release_v1_0_0): {
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 100.0,
@@ -222,7 +433,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "project_sessions_24h": 3,
                 "project_users_24h": 1,
             },
-            (self.project.id, self.session_crashed_release): {
+            (self.project.id, release_v2_0_0): {
                 "sessions_24h": 1,
                 "users_24h": 1,
                 "adoption": 100.0,
@@ -232,10 +443,12 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         }
 
-    def test_get_release_adoption_lowered(self):
+    def test_get_release_adoption_lowered(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         self.store_session(
             self.build_session(
-                release=self.session_crashed_release,
+                release=release_v2_0_0,
                 environment="prod",
                 status="crashed",
                 started=self.session_started,
@@ -245,14 +458,14 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
 
         data = self.backend.get_release_adoption(
             [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
+                (self.project.id, release_v1_0_0),
+                (self.project.id, release_v2_0_0),
                 (self.project.id, "dummy-release"),
             ]
         )
 
         assert data == {
-            (self.project.id, self.session_release): {
+            (self.project.id, release_v1_0_0): {
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 50.0,
@@ -260,7 +473,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "project_sessions_24h": 4,
                 "project_users_24h": 2,
             },
-            (self.project.id, self.session_crashed_release): {
+            (self.project.id, release_v2_0_0): {
                 "sessions_24h": 2,
                 "users_24h": 2,
                 "adoption": 100.0,
@@ -270,15 +483,17 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         }
 
-    def test_fetching_release_sessions_time_bounds_for_different_release(self):
+    def test_fetching_release_sessions_time_bounds_for_different_release(self) -> None:
         """
         Test that ensures only session bounds for releases are calculated according
         to their respective release
         """
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         # Same release session
         self.store_session(
             self.build_session(
-                release=self.session_release,
+                release=release_v1_0_0,
                 environment="prod",
                 status="exited",
                 started=self.session_started - 3600 * 2,
@@ -289,7 +504,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         # Different release session
         self.store_session(
             self.build_session(
-                release=self.session_crashed_release,
+                release=release_v2_0_0,
                 environment="prod",
                 status="crashed",
                 started=self.session_started - 3600 * 2,
@@ -311,7 +526,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         # Test for self.session_release
         data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
-            release=self.session_release,
+            release=release_v1_0_0,
             org_id=self.organization.id,
             environments=["prod"],
         )
@@ -323,7 +538,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         # Test for self.session_crashed_release
         data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
-            release=self.session_crashed_release,
+            release=release_v2_0_0,
             org_id=self.organization.id,
             environments=["prod"],
         )
@@ -332,11 +547,15 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             "sessions_upper_bound": expected_formatted_upper_bound,
         }
 
-    def test_fetching_release_sessions_time_bounds_for_different_release_with_no_sessions(self):
+    def test_fetching_release_sessions_time_bounds_for_different_release_with_no_sessions(
+        self,
+    ) -> None:
         """
         Test that ensures if no sessions are available for a specific release then the bounds
         should be returned as None
         """
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release="different_release",
@@ -348,117 +567,22 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             "sessions_upper_bound": None,
         }
 
-    def test_get_crash_free_breakdown(self):
-        start = timezone.now() - timedelta(days=4)
-
-        # it should work with and without environments
-        for environments in [None, ["prod"]]:
-            data = self.backend.get_crash_free_breakdown(
-                project_id=self.project.id,
-                release=self.session_release,
-                start=start,
-                environments=environments,
-            )
-
-            # Last returned date is generated within function, should be close to now:
-            last_date = data[-1]["date"]
-            assert timezone.now() - last_date < timedelta(seconds=1)
-
-            assert data == [
-                {
-                    "crash_free_sessions": None,
-                    "crash_free_users": None,
-                    "date": start + timedelta(days=1),
-                    "total_sessions": 0,
-                    "total_users": 0,
-                },
-                {
-                    "crash_free_sessions": None,
-                    "crash_free_users": None,
-                    "date": start + timedelta(days=2),
-                    "total_sessions": 0,
-                    "total_users": 0,
-                },
-                {
-                    "crash_free_sessions": 100.0,
-                    "crash_free_users": 100.0,
-                    "total_sessions": 2,
-                    "total_users": 1,
-                    "date": mock.ANY,  # tested above
-                },
-            ]
-
-        data = self.backend.get_crash_free_breakdown(
-            project_id=self.project.id,
-            release=self.session_crashed_release,
-            start=start,
-            environments=["prod"],
-        )
-        assert data == [
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=1),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=2),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": 0.0,
-                "crash_free_users": 0.0,
-                "total_sessions": 1,
-                "total_users": 1,
-                "date": mock.ANY,
-            },
-        ]
-        data = self.backend.get_crash_free_breakdown(
-            project_id=self.project.id,
-            release="non-existing",
-            start=start,
-            environments=["prod"],
-        )
-        assert data == [
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=1),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=2),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "total_sessions": 0,
-                "total_users": 0,
-                "date": mock.ANY,
-            },
-        ]
-
-    def test_basic_release_model_adoptions(self):
+    def test_basic_release_model_adoptions(self) -> None:
         """
         Test that the basic (project,release) data is returned
         """
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         proj_id = self.project.id
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
         assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
 
-    def test_old_release_model_adoptions(self):
+    def test_old_release_model_adoptions(self) -> None:
         """
         Test that old entries (older that 72 h) are not returned
         """
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         _100h = 100 * 60 * 60  # 100 hours in seconds
         proj_id = self.project.id
         self.store_session(
@@ -474,8 +598,10 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
         assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
 
-    def test_multi_proj_release_model_adoptions(self):
+    def test_multi_proj_release_model_adoptions(self) -> None:
         """Test that the api works with multiple projects"""
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         proj_id = self.project.id
         new_proj_id = proj_id + 1
         self.store_session(
@@ -495,6 +621,10 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             (proj_id, "foo@2.0.0"),
             (new_proj_id, "foo@3.0.0"),
         }
+
+
+class GetProjectReleaseStatsTestCase(TestCase, ReleaseHealthBaseTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     @staticmethod
     def _add_timestamps_to_series(series, start: datetime):
@@ -526,215 +656,245 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         assert normed == self._add_timestamps_to_series(expected_series, start)
         assert totals == expected_totals
 
-    def test_get_project_release_stats_users(self):
+    def test_get_project_release_stats_users(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         self._test_get_project_release_stats(
             "users",
-            self.session_release,
+            release_v1_0_0,
             [
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": 45.0,
                     "duration_p90": 57.0,
-                    "users": 1,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 1,
+                    "users_unhandled": 0,
+                    "users": 1,
                 },
             ],
             {
-                "users": 1,
                 "users_abnormal": 0,
                 "users_crashed": 0,
                 "users_errored": 0,
                 "users_healthy": 1,
+                "users_unhandled": 0,
+                "users": 1,
             },
         )
 
-    def test_get_project_release_stats_users_crashed(self):
+    def test_get_project_release_stats_users_crashed(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         self._test_get_project_release_stats(
             "users",
-            self.session_crashed_release,
+            release_v2_0_0,
             [
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 1,
                     "users_abnormal": 0,
                     "users_crashed": 1,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 1,
                 },
             ],
             {
-                "users": 1,
                 "users_abnormal": 0,
                 "users_crashed": 1,
                 "users_errored": 0,
                 "users_healthy": 0,
+                "users_unhandled": 0,
+                "users": 1,
             },
         )
 
-    def test_get_project_release_stats_sessions(self):
+    def test_get_project_release_stats_sessions(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         self._test_get_project_release_stats(
             "sessions",
-            self.session_release,
+            release_v1_0_0,
             [
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
                 {
                     "duration_p50": 45.0,
                     "duration_p90": 57.0,
-                    "sessions": 2,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 2,
+                    "sessions_unhandled": 0,
+                    "sessions": 2,
                 },
             ],
             {
-                "sessions": 2,
                 "sessions_abnormal": 0,
                 "sessions_crashed": 0,
                 "sessions_errored": 0,
                 "sessions_healthy": 2,
+                "sessions_unhandled": 0,
+                "sessions": 2,
             },
         )
 
-    def test_get_project_release_stats_sessions_crashed(self):
+    def test_get_project_release_stats_sessions_crashed(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         self._test_get_project_release_stats(
             "sessions",
-            self.session_crashed_release,
+            release_v2_0_0,
             [
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
                 {
+                    "sessions_unhandled": 0,
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions": 0,
                 },
                 {
+                    "sessions_unhandled": 0,
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions": 0,
                 },
                 {
+                    "sessions_unhandled": 0,
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 1,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 1,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions": 1,
                 },
             ],
             {
-                "sessions": 1,
+                "sessions_unhandled": 0,
                 "sessions_abnormal": 0,
                 "sessions_crashed": 1,
                 "sessions_errored": 0,
                 "sessions_healthy": 0,
+                "sessions": 1,
             },
         )
 
-    def test_get_project_release_stats_no_sessions(self):
+    def test_get_project_release_stats_no_sessions(self) -> None:
         """
         Test still returning correct data when no sessions are available
         :return:
         """
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         self._test_get_project_release_stats(
             "sessions",
             "INEXISTENT-RELEASE",
@@ -742,50 +902,57 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "sessions": 0,
                     "sessions_abnormal": 0,
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                    "sessions": 0,
                 },
             ],
             {
-                "sessions": 0,
                 "sessions_abnormal": 0,
                 "sessions_crashed": 0,
                 "sessions_errored": 0,
                 "sessions_healthy": 0,
+                "sessions_unhandled": 0,
+                "sessions": 0,
             },
         )
 
-    def test_get_project_release_stats_no_users(self):
+    def test_get_project_release_stats_no_users(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v2_crashed())
+
         self._test_get_project_release_stats(
             "users",
             "INEXISTENT-RELEASE",
@@ -793,46 +960,51 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
             ],
             {
-                "users": 0,
                 "users_abnormal": 0,
                 "users_crashed": 0,
                 "users_errored": 0,
                 "users_healthy": 0,
+                "users_unhandled": 0,
+                "users": 0,
             },
         )
 
@@ -858,7 +1030,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
 
     backend = MetricsReleaseHealthBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.session_started = time.time() // 60 * 60
         self.session_started_gt_24_lt_48 = self.session_started - 30 * 60 * 60
@@ -935,7 +1107,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
                 )
             )
 
-    def test_get_current_and_previous_crash_free_rates(self):
+    def test_get_current_and_previous_crash_free_rates(self) -> None:
         now = timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
@@ -959,7 +1131,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
             self.project3.id: {"currentCrashFreeRate": None, "previousCrashFreeRate": 80.0},
         }
 
-    def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
+    def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self) -> None:
         now = timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
@@ -982,7 +1154,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
             },
         }
 
-    def test_extract_crash_free_rate_from_result_groups(self):
+    def test_extract_crash_free_rate_from_result_groups(self) -> None:
         result_groups = [
             {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
             {"by": {"project_id": 2}, "totals": {"rate": 0.8}},
@@ -991,7 +1163,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
         assert crash_free_rates[1] == 0.66 * 100
         assert crash_free_rates[2] == 0.8 * 100
 
-    def test_extract_crash_free_rate_from_result_groups_with_none(self):
+    def test_extract_crash_free_rate_from_result_groups_with_none(self) -> None:
         result_groups = [
             {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
             {"by": {"project_id": 2}, "totals": {"rate": None}},
@@ -1000,7 +1172,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
         assert crash_free_rates[1] == 0.66 * 100
         assert crash_free_rates[2] is None
 
-    def test_extract_crash_free_rates_from_result_groups_only_none(self):
+    def test_extract_crash_free_rates_from_result_groups_only_none(self) -> None:
         result_groups = [
             {"by": {"project_id": 2}, "totals": {"rate": None}},
         ]
@@ -1011,7 +1183,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
 class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         # Test no errors when no session data
         org = self.create_organization()
         proj = self.create_project(organization=org)
@@ -1022,7 +1194,7 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
             == 0
         )
 
-    def test_with_other_metrics(self):
+    def test_with_other_metrics(self) -> None:
         assert isinstance(self, BaseMetricsTestCase)
 
         # Test no errors when no session data
@@ -1047,44 +1219,41 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
             == 0
         )
 
-    def test(self):
-        project_release_1 = self.create_release(self.project)
-        other_project = self.create_project()
-        other_project_release_1 = self.create_release(other_project)
+    def test(self) -> None:
+        project_1 = self.project
+        release_1 = self.create_release(project_1)
+        project_2 = self.create_project()
+        release_2 = self.create_release(project_2)
         self.bulk_store_sessions(
             [
-                self.build_session(
-                    environment=self.environment.name, release=project_release_1.version
-                ),
+                self.build_session(environment=self.environment.name, release=release_1.version),
                 self.build_session(
                     environment="staging",
-                    project_id=other_project.id,
-                    release=other_project_release_1.version,
+                    project_id=project_2.id,
+                    release=release_2.version,
                 ),
             ]
         )
         assert (
             self.backend.get_project_releases_count(
-                self.organization.id, [self.project.id], "sessions"
+                self.organization.id, [project_1.id], "sessions"
             )
             == 1
         )
         assert (
-            self.backend.get_project_releases_count(
-                self.organization.id, [self.project.id], "users"
-            )
+            self.backend.get_project_releases_count(self.organization.id, [project_1.id], "users")
             == 1
         )
         assert (
             self.backend.get_project_releases_count(
-                self.organization.id, [self.project.id, other_project.id], "sessions"
+                self.organization.id, [project_1.id, project_2.id], "sessions"
             )
             == 2
         )
         assert (
             self.backend.get_project_releases_count(
                 self.organization.id,
-                [self.project.id, other_project.id],
+                [project_1.id, project_2.id],
                 "users",
             )
             == 2
@@ -1092,7 +1261,7 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
         assert (
             self.backend.get_project_releases_count(
                 self.organization.id,
-                [self.project.id, other_project.id],
+                [project_1.id, project_2.id],
                 "sessions",
                 environments=[self.environment.name],
             )
@@ -1116,42 +1285,35 @@ class CheckReleasesHaveHealthDataTest(TestCase, BaseMetricsTestCase):
             end,
         ) == {v.version for v in expected}
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         # Test no errors when no session data
-        project_release_1 = self.create_release(self.project)
-        self.run_test([], [self.project], [project_release_1])
+        project_1_release = self.create_release(self.project)
+        self.run_test([], [self.project], [project_1_release])
 
-    def test(self):
-        other_project = self.create_project()
-        release_1 = self.create_release(
-            self.project, version="1", additional_projects=[other_project]
-        )
-        release_2 = self.create_release(other_project, version="2")
+    def test(self) -> None:
+        project_1 = self.project
+        project_2 = self.create_project()
+        release_1 = self.create_release(project_1, version="1", additional_projects=[project_2])
+        release_2 = self.create_release(project_2, version="2")
         self.bulk_store_sessions(
             [
                 self.build_session(release=release_1),
-                self.build_session(project_id=other_project, release=release_1),
-                self.build_session(project_id=other_project, release=release_2),
+                self.build_session(project_id=project_2, release=release_1),
+                self.build_session(project_id=project_2, release=release_2),
             ]
         )
-        self.run_test([release_1], [self.project], [release_1])
-        self.run_test([release_1], [self.project], [release_1, release_2])
-        self.run_test([release_1], [other_project], [release_1])
-        self.run_test([release_1, release_2], [other_project], [release_1, release_2])
-        self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
+        self.run_test([release_1], [project_1], [release_1])
+        self.run_test([release_1], [project_1], [release_1, release_2])
+        self.run_test([release_1], [project_2], [release_1])
+        self.run_test([release_1, release_2], [project_2], [release_1, release_2])
+        self.run_test([release_1, release_2], [project_1, project_2], [release_1, release_2])
 
 
 class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.dev_env = self.create_environment(name="development", project=self.project)
-        self.prod_env = self.create_environment(name="production", project=self.project)
-        self.test_env = self.create_environment(name="test", project=self.project)
-        self.another_project = self.create_project()
-        self.third_project = self.create_project()
-
         # now_dt should be set to 17:40 of some day not in the future and (system time - now_dt)
         # must be less than 90 days for the metrics DB TTL
         ONE_DAY_AGO = timezone.now() - timedelta(days=1)
@@ -1169,7 +1331,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         self._2_h_ago = self._2_h_ago_dt.timestamp()
         self._3_h_ago = self._3_h_ago_dt.timestamp()
 
-    def test_no_sessions(self):
+    def test_no_sessions(self) -> None:
         """
         Tests that when there are no sessions the function behaves and returns 0
         """
@@ -1182,46 +1344,43 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         )
         assert 0 == actual
 
-    def test_sessions_in_environment(self):
+    def test_sessions_in_environment(self) -> None:
         """
         Tests that it correctly picks up the sessions for the selected environment
         in the selected time, not counting other environments and other times
-
         """
-
-        dev = self.dev_env.name
-        prod = self.prod_env.name
+        prod_env = self.create_environment(name="production", project=self.project)
 
         self.bulk_store_sessions(
             [
                 self.build_session(
-                    environment=dev, received=self._5_min_ago, started=self._5_min_ago
+                    environment="development", received=self._5_min_ago, started=self._5_min_ago
                 ),
                 self.build_session(
-                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                    environment="production", received=self._5_min_ago, started=self._5_min_ago
                 ),
                 self.build_session(
-                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                    environment="production", received=self._5_min_ago, started=self._5_min_ago
                 ),
-                self.build_session(environment=prod, received=self._2_h_ago, started=self._2_h_ago),
+                self.build_session(
+                    environment="production", received=self._2_h_ago, started=self._2_h_ago
+                ),
             ]
         )
 
-        actual = self.backend.get_project_sessions_count(
+        prod_session_count = self.backend.get_project_sessions_count(
             project_id=self.project.id,
-            environment_id=self.prod_env.id,
+            environment_id=prod_env.id,
             rollup=60,
             start=self._1_h_ago_dt,
             end=self.now_dt,
         )
+        assert prod_session_count == 2
 
-        assert actual == 2
-
-    def test_environment_without_sessions(self):
+    def test_environment_without_sessions(self) -> None:
         """
         We should get zero sessions, even if the environment name has not been indexed
         by the metrics indexer.
-
         """
 
         env_without_sessions = self.create_environment(
@@ -1231,7 +1390,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         self.bulk_store_sessions(
             [
                 self.build_session(
-                    environment=self.prod_env.name,
+                    environment="production",
                     received=self._5_min_ago,
                     started=self._5_min_ago,
                 ),
@@ -1248,7 +1407,6 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
             start=self._1_h_ago_dt,
             end=self.now_dt,
         )
-
         assert count_env_all == 2
 
         count_env_new = self.backend.get_project_sessions_count(
@@ -1258,29 +1416,30 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
             start=self._1_h_ago_dt,
             end=self.now_dt,
         )
-
         assert count_env_new == 0
 
-    def test_sessions_in_all_environments(self):
+    def test_sessions_in_all_environments(self) -> None:
         """
         When the environment is not specified sessions from all environments are counted
         """
-        dev = self.dev_env.name
-        prod = self.prod_env.name
 
         self.bulk_store_sessions(
             [
                 self.build_session(
-                    environment=dev, received=self._5_min_ago, started=self._5_min_ago
+                    environment="development", received=self._5_min_ago, started=self._5_min_ago
                 ),
                 self.build_session(
-                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                    environment="production", received=self._5_min_ago, started=self._5_min_ago
                 ),
                 self.build_session(
-                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                    environment="production", received=self._5_min_ago, started=self._5_min_ago
                 ),
-                self.build_session(environment=prod, received=self._2_h_ago, started=self._2_h_ago),
-                self.build_session(environment=dev, received=self._2_h_ago, started=self._2_h_ago),
+                self.build_session(
+                    environment="production", received=self._2_h_ago, started=self._2_h_ago
+                ),
+                self.build_session(
+                    environment="development", received=self._2_h_ago, started=self._2_h_ago
+                ),
             ]
         )
 
@@ -1294,25 +1453,24 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
 
         assert actual == 3
 
-    def test_sessions_from_multiple_projects(self):
+    def test_sessions_from_multiple_projects(self) -> None:
         """
         Only sessions from the specified project are considered
         """
-        dev = self.dev_env.name
-        prod = self.prod_env.name
+        self.project_2 = self.create_project()
 
         self.bulk_store_sessions(
             [
                 self.build_session(
-                    environment=dev, received=self._5_min_ago, started=self._5_min_ago
+                    environment="development", received=self._5_min_ago, started=self._5_min_ago
                 ),
                 self.build_session(
-                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                    environment="production", received=self._5_min_ago, started=self._5_min_ago
                 ),
                 self.build_session(
-                    environment=prod,
+                    environment="production",
                     received=self._5_min_ago,
-                    project_id=self.another_project.id,
+                    project_id=self.project_2.id,
                     started=self._5_min_ago,
                 ),
             ]
@@ -1328,26 +1486,30 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
 
         assert actual == 2
 
-    def test_sessions_per_project_no_sessions(self):
+    def test_sessions_per_project_no_sessions(self) -> None:
         """
         Tests that no sessions are returned
         """
+        self.project_2 = self.create_project()
+
         actual = self.backend.get_num_sessions_per_project(
-            project_ids=[self.project.id, self.another_project.id],
+            project_ids=[self.project.id, self.project_2.id],
             environment_ids=None,
-            rollup=60,
             start=self._30_min_ago_dt,
             end=self.now_dt,
         )
         assert [] == actual
 
-    def test_sesions_per_project_multiple_projects(self):
-        dev = self.dev_env.name
-        prod = self.prod_env.name
-        test = self.test_env.name
-        p1 = self.project
-        p2 = self.another_project
-        p3 = self.third_project
+    def test_sesions_per_project_multiple_projects(self) -> None:
+        dev_env = self.create_environment(name="development", project=self.project)
+        prod_env = self.create_environment(name="production", project=self.project)
+
+        dev = "development"
+        prod = "production"
+        test = "test"
+        project_1 = self.project
+        project_2 = self.create_project()
+        project_3 = self.create_project()
 
         self.bulk_store_sessions(
             [
@@ -1372,7 +1534,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
                 self.build_session(
                     environment=dev,
                     received=self._5_min_ago,
-                    project_id=p2.id,
+                    project_id=project_2.id,
                     started=self._5_min_ago,
                 ),
                 # ignored in p2
@@ -1380,137 +1542,84 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
                 self.build_session(
                     environment=test,
                     received=self._5_min_ago,
-                    project_id=p2.id,
+                    project_id=project_2.id,
                     started=self._5_min_ago,
                 ),
                 # too old
                 self.build_session(
                     environment=prod,
                     received=self._3_h_ago,
-                    project_id=p2.id,
+                    project_id=project_2.id,
                     started=self._3_h_ago,
                 ),
                 # ignored p3
                 self.build_session(
                     environment=dev,
                     received=self._5_min_ago,
-                    project_id=p3.id,
+                    project_id=project_3.id,
                     started=self._5_min_ago,
                 ),
             ]
         )
 
         actual = self.backend.get_num_sessions_per_project(
-            project_ids=[self.project.id, self.another_project.id],
-            environment_ids=[self.dev_env.id, self.prod_env.id],
-            rollup=60,
+            project_ids=[project_1.id, project_2.id],
+            environment_ids=[dev_env.id, prod_env.id],
             start=self._2_h_ago_dt,
             end=self.now_dt,
         )
 
-        assert set(actual) == {(p1.id, 3), (p2.id, 1)}
+        assert set(actual) == {(project_1.id, 3), (project_2.id, 1)}
 
         eids_tests: tuple[list[int] | None, ...] = ([], None)
         for eids in eids_tests:
             actual = self.backend.get_num_sessions_per_project(
-                project_ids=[self.project.id, self.another_project.id],
+                project_ids=[project_1.id, project_2.id],
                 environment_ids=eids,
-                rollup=60,
                 start=self._2_h_ago_dt,
                 end=self.now_dt,
             )
 
-            assert set(actual) == {(p1.id, 4), (p2.id, 2)}
+            assert set(actual) == {(project_1.id, 4), (project_2.id, 2)}
 
 
-class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
+class InitWithoutUserTestCase(TestCase, ReleaseHealthBaseTestCase):
     backend = MetricsReleaseHealthBackend()
 
-    def setUp(self):
-        super().setUp()
-        self.received = time.time()
-        self.session_started = time.time() // 60 * 60
-        self.session_release = "foo@1.0.0"
-        session_1 = "5d52fd05-fcc9-4bf3-9dc9-267783670341"
-        session_2 = "5e910c1a-6941-460e-9843-24103fb6a63c"
-        session_3 = "a148c0c5-06a2-423b-8901-6b43b812cf82"
-        user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
-        user_2 = "39887d89-13b2-4c84-8c23-5d13d2102667"
-        user_3 = "39887d89-13b2-4c84-8c23-5d13d2102668"
+    def test_get_release_adoption(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v1())
 
-        self.bulk_store_sessions(
-            [
-                self.build_session(
-                    distinct_id=user_1,
-                    session_id=session_1,
-                    status="exited",
-                    release=self.session_release,
-                    environment="prod",
-                    started=self.session_started,
-                    received=self.received,
-                ),
-                self.build_session(
-                    distinct_id=user_2,
-                    session_id=session_2,
-                    status="crashed",
-                    release=self.session_release,
-                    environment="prod",
-                    started=self.session_started,
-                    received=self.received,
-                ),
-                # session_3 initial update: no user ID
-                self.build_session(
-                    distinct_id=None,
-                    session_id=session_3,
-                    status="ok",
-                    seq=0,
-                    release=self.session_release,
-                    environment="prod",
-                    started=self.session_started,
-                    received=self.received,
-                ),
-                # session_3 subsequent update: user ID is here!
-                self.build_session(
-                    distinct_id=user_3,
-                    session_id=session_3,
-                    status="ok",
-                    seq=123,
-                    release=self.session_release,
-                    environment="prod",
-                    started=self.session_started,
-                    received=self.received,
-                ),
-            ]
-        )
-
-    def test_get_release_adoption(self):
         data = self.backend.get_release_adoption(
             [
-                (self.project.id, self.session_release),
+                (self.project.id, release_v1_0_0),
             ]
         )
-        inner = data[(self.project.id, self.session_release)]
+        inner = data[(self.project.id, release_v1_0_0)]
         assert inner["users_24h"] == 3
 
-    def test_get_release_health_data_overview_users(self):
+    def test_get_release_health_data_overview_users(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v1())
+
         data = self.backend.get_release_health_data_overview(
             [
-                (self.project.id, self.session_release),
+                (self.project.id, release_v1_0_0),
             ],
             summary_stats_period="24h",
             health_stats_period="24h",
             stat="users",
         )
 
-        inner = data[(self.project.id, self.session_release)]
+        inner = data[(self.project.id, release_v1_0_0)]
         assert inner["total_users"] == 3
         assert inner["crash_free_users"] == 66.66666666666667
 
-    def test_get_crash_free_breakdown(self):
+    def test_get_crash_free_breakdown(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v1())
+
         start = timezone.now() - timedelta(days=4)
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
-            release=self.session_release,
+            release=release_v1_0_0,
             start=start,
             environments=["prod"],
         )
@@ -1544,12 +1653,14 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
             },
         ]
 
-    def test_get_project_release_stats_users(self):
+    def test_get_project_release_stats_users(self) -> None:
+        self.bulk_store_sessions(self.create_sessions__v1())
+
         end = timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,
-            release=self.session_release,
+            release=release_v1_0_0,
             stat="users",
             rollup=86400,
             start=start,
@@ -1559,9 +1670,10 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
         assert stats[3][1] == {
             "duration_p50": 60.0,
             "duration_p90": 60.0,
-            "users": 3,
             "users_abnormal": 0,
             "users_crashed": 1,
             "users_errored": 0,
             "users_healthy": 2,
+            "users_unhandled": 0,
+            "users": 3,
         }

@@ -7,7 +7,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -16,6 +16,8 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
@@ -100,7 +102,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -109,7 +111,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
@@ -132,15 +134,23 @@ const onboarding: OnboardingConfig = {
   },
 };
 
-const getVerifySnippet = () => `
-app.use(async function () {
+const getVerifySnippet = (params: Params) => `
+app.use(async function () {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_middleware',
+  });`
+    : ''
+}
   throw new Error("My first Sentry error!");
 });
 `;
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -157,7 +167,12 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding(),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'connect',
+    sdkPackage: '@sentry/node',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  mcpOnboarding: getNodeMcpOnboarding(),
 };
 
 export default docs;

@@ -1,11 +1,10 @@
 import logging
 from typing import Any
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.strategies.base import StrategyConfiguration
-from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
+from sentry.grouping.variants import BaseVariant, ComponentVariant, SaltedComponentVariant
 from sentry.models.project import Project
-from sentry.performance_issues.performance_detection import EventPerformanceProblem
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -19,23 +18,7 @@ def get_grouping_info(
     # produced hashes that would normally also appear in the event.
     hashes = event.get_hashes()
 
-    if event.get_event_type() == "transaction":
-        # Transactions events are grouped using performance detection. They
-        # are not subject to grouping configs, and the only relevant
-        # grouping variant is `PerformanceProblemVariant`.
-
-        problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes])
-
-        # Create a variant for every problem associated with the event
-        # TODO: Generate more unique keys, in case this event has more than
-        # one problem of a given type
-        variants: dict[str, BaseVariant] = {
-            problem.problem.type.slug: PerformanceProblemVariant(problem)
-            for problem in problems
-            if problem
-        }
-    else:
-        variants = event.get_grouping_variants(grouping_config, normalize_stacktraces=True)
+    variants = event.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
     grouping_info = get_grouping_info_from_variants(variants)
 
@@ -80,6 +63,66 @@ def _check_for_mismatched_hashes(
             metrics.incr("event_grouping_info.hash_match")
 
 
+def _get_new_description(variant: BaseVariant) -> str:
+    """
+    Get a human-readable description of the grouping method for use in the grouping info section of
+    the issue details page.
+
+    TODO: As a first step, we're replacing the description only in grouping info, at the last minute
+    before we return the API response. Once we switch to using key rather than description
+    elsewhere, this can replace the existing `description` logic.
+    """
+
+    description_by_key = {
+        "built_in_fingerprint": "Sentry-defined fingerprint",
+        "chained_exception_message": "chained exception messages",
+        "chained_exception_stacktrace": "chained exception stacktraces",
+        "chained_exception_type": "chained exception types",
+        "chained_ns_error": "chained NSErrors",
+        "checksum": "checksum",
+        "csp_local_script_violation": "directive",
+        "csp_url": "directive and URL",
+        "custom_fingerprint": "custom fingerprint",
+        "exception": "exception",  # TODO: hotfix for case in which nothing in the exception contributes
+        "exception_message": "exception message",
+        "exception_stacktrace": "exception stacktrace",
+        "exception_type": "exception type",
+        "expect_ct": "hostname",
+        "expect_staple": "hostname",
+        "fallback": "fallback grouping",
+        "hashed_checksum": "hashed checksum",
+        "hpkp": "hostname",
+        "message": "message",
+        "ns_error": "NSError",
+        "stacktrace": "event-level stacktrace",
+        "template": "filename and context line",
+        "thread_stacktrace": "thread stacktrace",
+    }
+    variant_name = variant.variant_name
+    # For component variants, we grab the key from the root component rather than the variant itself
+    # because that way we don't have to strip off variant name and (in the case of salted component
+    # variants) the hybrid fingerprint designation. (We handle both of those separately below.)
+    key = variant.root_component.key if isinstance(variant, ComponentVariant) else variant.key
+    grouping_method = description_by_key[key]
+
+    description_parts = [grouping_method]
+    if "stacktrace" in key and variant_name in ["app", "system"]:
+        stacktrace_descriptor = "— in-app frames" if variant_name == "app" else "— all frames"
+        description_parts.append(stacktrace_descriptor)
+
+    if isinstance(variant, SaltedComponentVariant):
+        description_parts.append("and custom fingerprint")
+
+    return " ".join(description_parts)
+
+
+# TODO: Switch Seer stacktrace string to use variants directly, and then this can go away
+def get_grouping_info_from_variants_legacy(
+    variants: dict[str, BaseVariant],
+) -> dict[str, dict[str, Any]]:
+    return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
+
+
 def get_grouping_info_from_variants(
     variants: dict[str, BaseVariant],
 ) -> dict[str, dict[str, Any]]:
@@ -89,4 +132,11 @@ def get_grouping_info_from_variants(
     key under which it lives.
     """
 
-    return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
+    return {
+        # Overwrite the description with a new, improved version
+        variant.key: {
+            **variant.as_dict(),
+            "description": _get_new_description(variant),
+        }
+        for variant in variants.values()
+    }

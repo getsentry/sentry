@@ -8,7 +8,11 @@ from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, deletions, features
+from sentry import analytics, audit_log, features
+from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
+from sentry.analytics.events.sentry_app_schema_validation_error import (
+    SentryAppSchemaValidationError,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -19,11 +23,11 @@ from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
-    catch_raised_errors,
 )
 from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
@@ -99,7 +103,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         },
         examples=SentryAppExamples.UPDATE_SENTRY_APP,
     )
-    @catch_raised_errors
     def put(self, request: Request, sentry_app) -> Response:
         """
         Update an existing custom integration.
@@ -187,7 +190,16 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     "error_message": error_message,
                 }
                 logger.info(name, extra=log_info)
-                analytics.record(name, **log_info)
+                analytics.record(
+                    SentryAppSchemaValidationError(
+                        schema=orjson.dumps(request.data["schema"]).decode(),
+                        user_id=request.user.id,
+                        sentry_app_id=sentry_app.id,
+                        sentry_app_name=sentry_app.name,
+                        organization_id=sentry_app.owner_id,
+                        error_message=error_message,
+                    )
+                )
 
         return Response(serializer.errors, status=400)
 
@@ -218,25 +230,28 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                             SentryAppInstallationNotifier(
                                 sentry_app_installation=install, user=request.user, action="deleted"
                             ).run()
-                            deletions.exec_sync(install)
                     except RequestException as exc:
                         sentry_sdk.capture_exception(exc)
 
             with transaction.atomic(using=router.db_for_write(SentryApp)):
-                deletions.exec_sync(sentry_app)
+                sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+                scheduled = ScheduledDeletion.schedule(sentry_app, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
                     organization_id=sentry_app.owner_id,
                     target_object=sentry_app.owner_id,
                     event=audit_log.get_event_id("SENTRY_APP_REMOVE"),
                     data={"sentry_app": sentry_app.name},
+                    transaction_id=scheduled.id,
                 )
-            analytics.record(
-                "sentry_app.deleted",
-                user_id=request.user.id,
-                organization_id=sentry_app.owner_id,
-                sentry_app=sentry_app.slug,
-            )
+            if request.user.is_authenticated:
+                analytics.record(
+                    SentryAppDeletedEvent(
+                        user_id=request.user.id,
+                        organization_id=sentry_app.owner_id,
+                        sentry_app=sentry_app.slug,
+                    )
+                )
             return Response(status=204)
 
         return Response({"detail": ["Published apps cannot be removed."]}, status=403)

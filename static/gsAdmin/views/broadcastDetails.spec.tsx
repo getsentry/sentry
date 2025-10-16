@@ -4,8 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import BroadcastDetails from 'admin/views/broadcastDetails';
 
-describe('Broadcast Details', function () {
-  it('renders', async function () {
+describe('Broadcast Details', () => {
+  it('renders', async () => {
     const {router} = initializeOrg();
     const broadcast = {
       id: '1359',

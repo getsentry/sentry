@@ -13,10 +13,10 @@ const [MOCK_FRAME] = hydrateBreadcrumbs(ReplayRecordFixture(), [
   }),
 ]);
 
-describe('BreadcrumbItem', function () {
+describe('BreadcrumbItem', () => {
   const organization = OrganizationFixture();
 
-  it('displays the breadcrumb item', async function () {
+  it('displays the breadcrumb item', async () => {
     const mockClick = jest.fn();
     const mockMouseEnter = jest.fn();
     const mockMouseLeave = jest.fn();

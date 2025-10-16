@@ -12,6 +12,8 @@ from sentry.replays.usecases.ingest.event_parser import (
     as_trace_item,
     as_trace_item_context,
     parse_events,
+    parse_multiclick_event,
+    set_if,
     which,
 )
 from sentry.utils import json
@@ -257,6 +259,59 @@ def test_parse_highlighted_events_payload_sizes_invalid_op() -> None:
     assert len(result.request_response_sizes) == 0
 
 
+def test_parse_highlighted_events_with_tap_event() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "send_user_feedback",
+                },
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 1
+    assert builder.result.tap_events[0].timestamp == int(1758523985.314)
+    assert builder.result.tap_events[0].message == "send_user_feedback"
+    assert builder.result.tap_events[0].view_class == "androidx.appcompat.widget.AppCompatButton"
+    assert builder.result.tap_events[0].view_id == "send_user_feedback"
+
+
+def test_parse_highlighted_events_with_tap_event_missing_fields() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {},
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 1
+    assert builder.result.tap_events[0].timestamp == int(1758523985.314)
+    assert builder.result.tap_events[0].message == "send_user_feedback"
+    assert builder.result.tap_events[0].view_class == ""
+    assert builder.result.tap_events[0].view_id == ""
+
+
 # Click parsing.
 
 
@@ -497,6 +552,201 @@ def test_parse_highlighted_events_click_event_dead_rage() -> None:
     assert action.is_rage == 1
 
 
+def test_parse_highlighted_events_multiclick_events() -> None:
+    """Test that multiclick events are parsed correctly."""
+    event1 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "body > button#mutationButtonImmediately",
+                "data": {
+                    "clickCount": 4,
+                    "url": "http://sentry-test.io/index.html",
+                    "metric": True,
+                    "nodeId": 59,
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {"id": "id"},
+                        "textContent": "Click me!",
+                    },
+                },
+            },
+        },
+    }
+
+    event2 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "body > button#mutationButtonImmediately",
+                "data": {
+                    "clickCount": 5,
+                    "url": "http://sentry-test.io/index.html",
+                    "metric": True,
+                    "nodeId": 60,
+                    "node": {
+                        "id": 60,
+                        "tagName": "a",
+                        "attributes": {"id": "id"},
+                        "textContent": "Click me!",
+                    },
+                },
+            },
+        },
+    }
+
+    # This is a slow click, not multiclick, and should not be added to multiclick_events in the builder
+    event3 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.slowClickDetected",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "url": "https://www.sentry.io",
+                    "clickCount": 5,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000.0,
+                    "nodeId": 61,
+                    "node": {
+                        "id": 61,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "test",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
+                        },
+                        "textContent": "text",
+                    },
+                },
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event1), event1, sampled=False)
+    builder.add(which(event2), event2, sampled=False)
+    builder.add(which(event3), event3, sampled=False)
+    result = builder.result
+    assert len(result.multiclick_events) == 2
+
+    multiclick1 = result.multiclick_events[0]
+    assert multiclick1.click_event.node_id == 59
+    assert multiclick1.click_event.id == "id"
+    assert multiclick1.click_event.text == "Click me!"
+    assert multiclick1.click_event.is_dead == 0
+    assert multiclick1.click_event.is_rage == 0
+    assert multiclick1.click_count == 4
+    assert multiclick1.click_event.timestamp == 1
+
+    multiclick2 = result.multiclick_events[1]
+    assert multiclick2.click_event.node_id == 60
+    assert multiclick2.click_event.id == "id"
+    assert multiclick2.click_event.text == "Click me!"
+    assert multiclick2.click_event.is_dead == 0
+    assert multiclick2.click_event.is_rage == 0
+    assert multiclick2.click_count == 5
+    assert multiclick2.click_event.timestamp == 1
+
+
+def test_parse_multiclick_event() -> None:
+    """Test that multiclick events are parsed correctly."""
+    payload = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "body > button#mutationButtonImmediately",
+        "data": {
+            "clickCount": 5,
+            "url": "http://sentry-test.io/index.html",
+            "metric": True,
+            "nodeId": 59,
+            "node": {
+                "id": 59,
+                "tagName": "a",
+                "attributes": {"id": "id"},
+                "textContent": "Click me!",
+            },
+        },
+    }
+    result = parse_multiclick_event(payload)
+    assert result is not None
+    assert result.click_count == 5
+    assert result.click_event.node_id == 59
+    assert result.click_event.tag == "a"
+    assert result.click_event.id == "id"
+    assert result.click_event.text == "Click me!"
+    assert result.click_event.is_dead == 0
+    assert result.click_event.is_rage == 0
+
+
+def test_parse_multiclick_event_missing_node() -> None:
+    """Test parse_multiclick_event returns None when node is missing or invalid."""
+    payload1 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            # Missing "node" field
+        },
+    }
+    assert parse_multiclick_event(payload1) is None
+
+    payload2 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            "node": {
+                "id": -1,  # Invalid negative ID
+                "tagName": "div",
+                "attributes": {"id": "test-button"},
+                "textContent": "Click me!",
+            },
+        },
+    }
+    assert parse_multiclick_event(payload2) is None
+
+    payload3 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            "node": "not-a-dict",  # Invalid node type
+        },
+    }
+    assert parse_multiclick_event(payload3) is None
+
+
 def test_emit_click_negative_node_id() -> None:
     event = {
         "type": 5,
@@ -619,6 +869,25 @@ def test_which() -> None:
         "type": 5,
         "timestamp": 0.0,
         "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.multiClick",
+                "data": {
+                    "clickCount": 7,
+                    "metric": True,
+                    "node": {"tagName": "button"},
+                    "nodeId": 59,
+                    "url": "http://sentry-test.io/index.html",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.MULTI_CLICK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
             "tag": "performanceSpan",
             "payload": {
                 "op": "navigation.push",
@@ -693,16 +962,6 @@ def test_which() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {"op": "web-vital", "description": "first-contentful-paint"},
-        },
-    }
-    assert which(event) == EventType.FCP
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
     }
     assert which(event) == EventType.HYDRATION_ERROR
@@ -713,6 +972,26 @@ def test_which() -> None:
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
     }
     assert which(event) == EventType.MUTATIONS
+
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "send_user_feedback",
+                },
+            },
+        },
+    }
+
+    assert which(event) == EventType.TAP
 
     assert which({}) == EventType.UNKNOWN
 
@@ -789,7 +1068,7 @@ def test_which() -> None:
         },
     ],
 )
-def test_parse_highlighted_events_fault_tolerance(event):
+def test_parse_highlighted_events_fault_tolerance(event: dict[str, Any]) -> None:
     # If the test raises an exception we fail. All of these events are invalid.
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=True)
@@ -936,6 +1215,34 @@ def test_as_trace_item_context_rage_click_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_tap_event() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "send_user_feedback",
+                },
+            },
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+    assert result["attributes"]["view_id"] == "send_user_feedback"
+    assert result["attributes"]["message"] == "send_user_feedback"
+    assert result["attributes"]["view_class"] == "androidx.appcompat.widget.AppCompatButton"
+    assert result["timestamp"] == 1758523985.314
+
+
 def test_as_trace_item_context_navigation_event() -> None:
     event = {
         "type": 5,
@@ -957,6 +1264,23 @@ def test_as_trace_item_context_navigation_event() -> None:
     assert result["attributes"]["category"] == "navigation"
     assert result["attributes"]["from"] == "/old-page"
     assert result["attributes"]["to"] == "/new-page"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_navigation_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710793872,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1674298825.0, "type": "default", "category": "navigation"},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "navigation"
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -1097,6 +1421,28 @@ def test_as_trace_item_context_resource_script_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_resource_script_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.script",
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+            },
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.script"
+    assert "duration" in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_resource_image_event() -> None:
     event = {
         "type": 5,
@@ -1156,32 +1502,6 @@ def test_as_trace_item_context_lcp_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_fcp_event() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1753712471.43,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "web-vital",
-                "description": "first-contentful-paint",
-                "startTimestamp": 1674298825.0,
-                "endTimestamp": 1674298825.0,
-                "data": {"rating": "needs-improvement", "size": 512, "value": 2000},
-            },
-        },
-    }
-
-    result = as_trace_item_context(which(event), event)
-    assert result is not None
-    assert result["attributes"]["category"] == "web-vital.fcp"
-    assert result["attributes"]["duration"] == 0
-    assert result["attributes"]["rating"] == "needs-improvement"
-    assert result["attributes"]["size"] == 512
-    assert result["attributes"]["value"] == 2000
-    assert "event_hash" in result and len(result["event_hash"]) == 16
-
-
 def test_as_trace_item_context_cls_event() -> None:
     event = {
         "type": 5,
@@ -1227,6 +1547,17 @@ def test_as_trace_item_context_hydration_error() -> None:
     assert result["timestamp"] == 1674298825.0
     assert result["attributes"]["category"] == "replay.hydrate-error"
     assert result["attributes"]["url"] == "https://example.com/page"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_hydration_error_missing_data_key() -> None:
+    event = {"data": {"payload": {"timestamp": 1674298825.0}}}
+
+    result = as_trace_item_context(EventType.HYDRATION_ERROR, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "replay.hydrate-error"
+    assert result["attributes"]["url"] == ""
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -1283,6 +1614,23 @@ def test_as_trace_item_context_options() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_options_missing_payload() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710752516,
+        "data": {
+            "tag": "options",
+            "payload": {},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1753710752.516  # timestamp is divided by 1000
+    assert result["attributes"]["category"] == "sdk.options"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_memory() -> None:
     event = {
         "type": 5,
@@ -1324,6 +1672,7 @@ def test_as_trace_item_context_returns_none_for_unsupported_events() -> None:
     assert as_trace_item_context(EventType.UNKNOWN, event) is None
     assert as_trace_item_context(EventType.CANVAS, event) is None
     assert as_trace_item_context(EventType.FEEDBACK, event) is None
+    assert as_trace_item_context(EventType.MULTI_CLICK, event) is None
 
 
 def test_as_trace_item() -> None:
@@ -1516,3 +1865,12 @@ def test_parse_events_disabled(options_get: mock.MagicMock) -> None:
 
     assert len(trace_items) == 0
     assert len(parsed.click_events) == 1
+
+
+def test_set_if() -> None:
+    assert set_if(["a", "b"], {"a": 1}, str) == {"a": "1"}
+    assert set_if(["a", "b"], {"b": 2}, str) == {"b": "2"}
+    assert set_if(["a", "b"], {}, str) == {}
+
+    with pytest.raises(ValueError):
+        assert set_if(["a", "b"], {"b": "hello"}, int)

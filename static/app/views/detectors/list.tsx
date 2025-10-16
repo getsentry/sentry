@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -11,6 +11,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
@@ -28,7 +30,7 @@ export default function DetectorsList() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
 
   const {
     sort: sorts,
@@ -41,37 +43,58 @@ export default function DetectorsList() {
       cursor: decodeScalar,
     },
   });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'connectedWorkflows'};
+  const sort = sorts[0] ?? {kind: 'desc', field: 'latestGroup'};
 
   const {
     data: detectors,
-    isPending,
+    isLoading,
     isError,
     isSuccess,
     getResponseHeader,
-  } = useDetectorsQuery({
-    cursor,
-    query,
-    sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
-    projects: selection.projects,
-    limit: DETECTOR_LIST_PAGE_LIMIT,
-  });
+  } = useDetectorsQuery(
+    {
+      cursor,
+      query,
+      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      projects: selection.projects,
+      limit: DETECTOR_LIST_PAGE_LIMIT,
+    },
+    {enabled: isReady}
+  );
+
+  const hits = getResponseHeader?.('X-Hits') || '';
+  const hitsInt = hits ? parseInt(hits, 10) || 0 : 0;
+  // If maxHits is not set, we assume there is no max
+  const maxHits = getResponseHeader?.('X-Max-Hits') || '';
+  const maxHitsInt = maxHits ? parseInt(maxHits, 10) || Infinity : Infinity;
+
+  const pageLinks = getResponseHeader?.('Link');
+
+  const allResultsVisible = useCallback(() => {
+    if (!pageLinks) {
+      return false;
+    }
+    const links = parseLinkHeader(pageLinks);
+    return links && !links.previous!.results && !links.next!.results;
+  }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Monitors')} noSuffix>
+    <SentryDocumentTitle title={t('Monitors')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />}>
+        <ListLayout actions={<Actions />} title={t('Monitors')}>
           <TableHeader />
           <div>
             <DetectorListTable
               detectors={detectors ?? []}
-              isPending={isPending}
+              isPending={isLoading}
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
+              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+              allResultsVisible={allResultsVisible()}
             />
             <Pagination
-              pageLinks={getResponseHeader?.('Link')}
+              pageLinks={pageLinks}
               onCursor={newCursor => {
                 navigate({
                   pathname: location.pathname,
@@ -112,18 +135,16 @@ function Actions() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  let project: number | undefined;
-  if (selection.projects) {
-    // Find the first selected project id that is not the all access project
-    project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
-  }
+  // Pass the first selected project id that is not the all access project
+  const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
 
   return (
-    <Fragment>
+    <Flex gap="sm">
+      <MonitorFeedbackButton />
       <LinkButton
         to={{
           pathname: makeMonitorCreatePathname(organization.slug),
-          query: project ? {project} : undefined,
+          query: {project},
         }}
         priority="primary"
         icon={<IconAdd />}
@@ -131,6 +152,6 @@ function Actions() {
       >
         {t('Create Monitor')}
       </LinkButton>
-    </Fragment>
+    </Flex>
   );
 }

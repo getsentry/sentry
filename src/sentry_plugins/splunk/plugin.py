@@ -3,9 +3,9 @@ from collections.abc import MutableMapping
 from typing import Any
 
 from sentry import tagstore
-from sentry.eventstore.models import Event
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
+from sentry.services.eventstore.models import Event
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
@@ -168,7 +168,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
         self.project_source = self.get_option("source", event.project) or "sentry"
 
-    def get_rl_key(self, event):
+    def get_rl_key(self, event) -> str:
         return f"{self.conf_key}:{md5_text(self.project_token).hexdigest()}"
 
     def is_ratelimited(self, event):

@@ -3,9 +3,9 @@ import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
+  WidgetType,
   type Widget,
   type WidgetQuery,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
   serializeSorts,
@@ -69,6 +69,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     };
   });
 
+  const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(
+    state.displayType ?? DisplayType.TABLE
+  )
+    ? undefined
+    : state.limit;
+
   return {
     title: state.title ?? '',
     description: state.description,
@@ -76,7 +82,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     interval: '1h', // TODO: Not sure what to put here yet
     queries: widgetQueries,
     widgetType: state.dataset,
-    limit: state.limit,
+    limit,
     thresholds: state.thresholds,
   };
 }

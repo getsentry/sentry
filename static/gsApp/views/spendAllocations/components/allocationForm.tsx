@@ -210,7 +210,7 @@ function AllocationForm({
           end_timestamp: new Date(end).getTime() / 1000,
         },
       });
-    } catch (err) {
+    } catch (err: any) {
       addErrorMessage(err.responseJSON.detail);
       return;
     }
@@ -511,6 +511,11 @@ const FancyInput = styled('input')`
   ::-webkit-outer-spin-button,
   ::-webkit-inner-spin-button {
     -webkit-appearance: none;
+  }
+
+  /* Hide Firefox's native number input steppers to prevent duplicate UI with custom increment/decrement buttons */
+  &[type='number'] {
+    -moz-appearance: textfield;
   }
 `;
 

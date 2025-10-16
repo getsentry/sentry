@@ -12,7 +12,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features, options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -72,10 +72,14 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    UptimeMonitorMode,
+)
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Detector, DetectorState
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +91,14 @@ def create_metric_alert(
         raise ResourceDoesNotExist
 
     data = deepcopy(request.data)
+
+    if features.has("organizations:discover-saved-queries-deprecation", organization) and data.get(
+        "dataset"
+    ) in ["generic_metrics", "transactions"]:
+        raise ValidationError(
+            "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
     if project:
         data["projects"] = [project.slug]
 
@@ -170,6 +182,7 @@ class AlertRuleIndexMixin(Endpoint):
                 paginator_cls=OffsetPaginator,
                 on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
                 default_per_page=25,
+                count_hits=True,
             )
         else:
             response = self.paginate(
@@ -179,6 +192,7 @@ class AlertRuleIndexMixin(Endpoint):
                 paginator_cls=OffsetPaginator,
                 on_results=lambda x: serialize(x, request.user),
                 default_per_page=25,
+                count_hits=True,
             )
         response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
@@ -272,12 +286,19 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
-        uptime_rules = ProjectUptimeSubscription.objects.filter(
-            project__in=projects,
-            mode__in=(
-                UptimeMonitorMode.MANUAL,
-                UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-            ),
+        uptime_rules = (
+            Detector.objects.filter(
+                type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+                project__in=projects,
+                config__mode__in=(
+                    UptimeMonitorMode.MANUAL.value,
+                    UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                ),
+                data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+                status=ObjectStatus.ACTIVE,
+            )
+            .select_related("project")
+            .prefetch_related("data_sources")
         )
         crons_rules = (
             Monitor.objects.filter(project_id__in=[p.id for p in projects])
@@ -365,15 +386,18 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 incident_status=Value(-2, output_field=IntegerField())
             )
             uptime_rules = uptime_rules.annotate(
+                detector_priority=Subquery(
+                    DetectorState.objects.filter(detector=OuterRef("pk")).values("state")[:1]
+                ),
                 incident_status=Case(
-                    # If an uptime monitor is failing we want to treat it the same as if an alert is failing, so sort
-                    # by the critical status
+                    # If an uptime detector is in HIGH priority (failing)
+                    # state, treat it like a critical incident
                     When(
-                        uptime_subscription__uptime_status=UptimeStatus.FAILED,
+                        detector_priority=DetectorPriorityLevel.HIGH,
                         then=IncidentStatus.CRITICAL.value,
                     ),
                     default=-2,
-                )
+                ),
             )
             crons_rules = crons_rules.annotate(
                 incident_status=Case(
@@ -562,6 +586,19 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
         in their request.
         """
+        if features.has(
+            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
+        ):
+            alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
+            alert_count = AlertRule.objects.fetch_for_organization(
+                organization=organization
+            ).count()
+
+            if alert_limit >= 0 and alert_count >= alert_limit:
+                raise ValidationError(
+                    f"You may not exceed {alert_limit} metric alerts on your current plan."
+                )
+
         # if the requesting user has any of these org-level permissions, then they can create an alert
         if (
             request.access.has_scope("alerts:write")

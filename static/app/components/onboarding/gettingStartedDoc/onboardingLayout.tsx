@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
@@ -8,12 +9,13 @@ import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
+  ProductSolution,
   type ConfigType,
   type Docs,
   type DocsParams,
-  ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {injectCopyDsnButtonIntoFirstConfigureStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
@@ -37,9 +39,8 @@ export type OnboardingLayoutProps = {
   docsConfig: Docs<any>;
   dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
-  projectId: Project['id'];
+  project: Project;
   projectKeyId: ProjectKey['id'];
-  projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
   newOrg?: boolean;
@@ -51,8 +52,7 @@ export function OnboardingLayout({
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
   projectKeyId,
@@ -83,8 +83,7 @@ export function OnboardingLayout({
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
       isLogsSelected: activeProductSelection.includes(ProductSolution.LOGS),
       isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
@@ -112,7 +111,16 @@ export function OnboardingLayout({
       introduction: doc.introduction?.(docParams),
       steps: [
         ...doc.install(docParams),
-        ...doc.configure(docParams),
+        ...injectCopyDsnButtonIntoFirstConfigureStep({
+          configureSteps: doc.configure(docParams),
+          dsn,
+          onCopyDsn: () => {
+            trackAnalytics('onboarding.dsn-copied', {
+              organization,
+              platform: platformKey,
+            });
+          },
+        }),
         ...doc.verify(docParams),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
@@ -129,8 +137,7 @@ export function OnboardingLayout({
     newOrg,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
@@ -146,9 +153,9 @@ export function OnboardingLayout({
   }, []);
 
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
-        <Header>
+        <Stack gap="xl">
           {introduction && <Introduction>{introduction}</Introduction>}
           {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
@@ -164,7 +171,7 @@ export function OnboardingLayout({
               onChange={onPlatformOptionsChange}
             />
           ) : null}
-        </Header>
+        </Stack>
         <Divider withBottomMargin />
         <div>
           {steps.map(step => (
@@ -186,7 +193,7 @@ export function OnboardingLayout({
                         trackAnalytics('onboarding.next_step_clicked', {
                           organization,
                           platform: platformKey,
-                          project_id: projectId,
+                          project_id: project.id,
                           products: activeProductSelection,
                           step: step.name,
                           newOrg: newOrg ?? false,
@@ -206,12 +213,6 @@ export function OnboardingLayout({
     </AuthTokenGeneratorProvider>
   );
 }
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;

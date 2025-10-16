@@ -7,6 +7,7 @@ import ast
 import logging
 import traceback
 
+import psycopg2.errors
 import sentry_sdk
 from django.apps import apps
 from django.contrib.postgres.fields.array import ArrayField
@@ -432,29 +433,24 @@ class UniversalImportExportService(ImportExportService):
             )
 
         except DatabaseError as e:
-            # This race-detection code is a bit hacky, since it relies on string matching the error
-            # description from postgres but... ¯\_(ツ)_/¯.
-            if len(e.args) > 0:
-                desc = str(e.args[0])
-
-                # Any `UniqueViolation` indicates the possibility that we've lost a race. Check for
-                # this explicitly by seeing if an `ImportChunk` with a matching unique signature has
-                # been written to the database already.
-                if desc.startswith("UniqueViolation"):
-                    try:
-                        existing_import_chunk = get_existing_import_chunk(
-                            batch_model_name, import_flags, import_chunk_type, min_ordinal
-                        )
-                        if existing_import_chunk is not None:
-                            logger.warning("import_by_model.lost_import_race", extra=extra)
-                            return existing_import_chunk
-                    except Exception:
-                        sentry_sdk.capture_exception()
-                        return RpcImportError(
-                            kind=RpcImportErrorKind.Unknown,
-                            on=InstanceID(import_model_name),
-                            reason=f"Unknown internal error occurred: {traceback.format_exc()}",
-                        )
+            # Any `UniqueViolation` indicates the possibility that we've lost a race. Check for
+            # this explicitly by seeing if an `ImportChunk` with a matching unique signature has
+            # been written to the database already.
+            if isinstance(e.__cause__, psycopg2.errors.UniqueViolation):
+                try:
+                    existing_import_chunk = get_existing_import_chunk(
+                        batch_model_name, import_flags, import_chunk_type, min_ordinal
+                    )
+                    if existing_import_chunk is not None:
+                        logger.warning("import_by_model.lost_import_race", extra=extra)
+                        return existing_import_chunk
+                except Exception:
+                    sentry_sdk.capture_exception()
+                    return RpcImportError(
+                        kind=RpcImportErrorKind.Unknown,
+                        on=InstanceID(import_model_name),
+                        reason=f"Unknown internal error occurred: {traceback.format_exc()}",
+                    )
 
             # All non-`ImportChunk`-related kinds of `IntegrityError` mean that the user's data was
             # not properly sanitized against collision. This could be the fault of either the import

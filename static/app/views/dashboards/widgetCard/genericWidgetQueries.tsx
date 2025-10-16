@@ -19,7 +19,7 @@ import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-function getReferrer(displayType: DisplayType) {
+export function getReferrer(displayType: DisplayType) {
   let referrer = '';
 
   if (displayType === DisplayType.TABLE) {
@@ -403,7 +403,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       } else {
         await this.fetchSeriesData(queryFetchID);
       }
-    } catch (err) {
+    } catch (err: any) {
       if (this._isMounted) {
         this.setState({
           errorMessage:

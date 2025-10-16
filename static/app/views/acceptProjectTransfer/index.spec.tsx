@@ -5,12 +5,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
-describe('AcceptProjectTransfer', function () {
+describe('AcceptProjectTransfer', () => {
   let getMock: jest.Mock;
   let postMock: jest.Mock;
   const endpoint = '/accept-transfer/';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     getMock = MockApiClient.addMockResponse({
@@ -29,13 +29,13 @@ describe('AcceptProjectTransfer', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(<AcceptProjectTransfer />);
 
     expect(getMock).toHaveBeenCalled();
   });
 
-  it('renders and fetches data from the region url', function () {
+  it('renders and fetches data from the region url', () => {
     window.__initialData = {
       ...window.__initialData,
       links: {
@@ -58,7 +58,7 @@ describe('AcceptProjectTransfer', function () {
     expect(getMock).toHaveBeenCalled();
   });
 
-  it('submits', async function () {
+  it('submits', async () => {
     render(<AcceptProjectTransfer />);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));

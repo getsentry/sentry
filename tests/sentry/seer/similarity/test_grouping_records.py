@@ -47,7 +47,9 @@ def _create_grouping_records_request_params() -> CreateGroupingRecordsRequest:
 @mock.patch(
     "sentry.seer.similarity.grouping_records.seer_grouping_backfill_connection_pool.urlopen"
 )
-def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_logger: MagicMock):
+def test_post_bulk_grouping_records_success(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+) -> None:
     expected_return_value = {
         "success": True,
         "groups_with_neighbor": {"1": "00000000000000000000000000000000"},
@@ -74,7 +76,9 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
 @mock.patch(
     "sentry.seer.similarity.grouping_records.seer_grouping_backfill_connection_pool.urlopen"
 )
-def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_logger: MagicMock):
+def test_post_bulk_grouping_records_timeout(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+) -> None:
     expected_return_value = {"success": False, "reason": "ReadTimeoutError"}
     mock_seer_request.side_effect = ReadTimeoutError(
         DUMMY_POOL, settings.SEER_AUTOFIX_URL, "read timed out"
@@ -100,7 +104,9 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
 @mock.patch(
     "sentry.seer.similarity.grouping_records.seer_grouping_backfill_connection_pool.urlopen"
 )
-def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_logger: MagicMock):
+def test_post_bulk_grouping_records_failure(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+) -> None:
     expected_return_value = {"success": False, "reason": "INTERNAL SERVER ERROR"}
     mock_seer_request.return_value = HTTPResponse(
         b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n",
@@ -124,7 +130,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_l
 
 @pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
-def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
+def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock) -> None:
     """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
     expected_return_value = {"success": True}
     mock_seer_request.return_value = HTTPResponse(

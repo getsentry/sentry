@@ -15,12 +15,7 @@ import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 jest.mock('sentry/utils/localStorage');
 
-const FEATURES = [
-  'global-views',
-  'dashboards-basic',
-  'dashboards-edit',
-  'discover-query',
-];
+const FEATURES = ['dashboards-basic', 'dashboards-edit', 'discover-query'];
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
@@ -31,15 +26,15 @@ jest.mock('sentry/utils/useLocation');
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseLocation = jest.mocked(useLocation);
 
-describe('Dashboards > Detail', function () {
+describe('Dashboards > Detail', () => {
   const mockUnauthorizedOrg = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'discover-query'],
+    features: ['dashboards-basic', 'discover-query'],
   });
 
   const mockAuthorizedOrg = OrganizationFixture({
     features: FEATURES,
   });
-  beforeEach(function () {
+  beforeEach(() => {
     act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
     MockApiClient.addMockResponse({
@@ -61,12 +56,12 @@ describe('Dashboards > Detail', function () {
 
     mockUseLocation.mockReturnValue(LocationFixture());
   });
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard'})],
@@ -83,7 +78,7 @@ describe('Dashboards > Detail', function () {
     expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0);
   });
 
-  it('shows error message when receiving error', async function () {
+  it('shows error message when receiving error', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       statusCode: 400,
@@ -95,7 +90,7 @@ describe('Dashboards > Detail', function () {
     expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();
   });
 
-  it('denies access on missing feature', async function () {
+  it('denies access on missing feature', async () => {
     render(<ManageDashboards />, {
       organization: mockUnauthorizedOrg,
     });
@@ -105,7 +100,7 @@ describe('Dashboards > Detail', function () {
     ).toBeInTheDocument();
   });
 
-  it('denies access on no projects', async function () {
+  it('denies access on no projects', async () => {
     act(() => ProjectsStore.loadInitialData([]));
 
     render(<ManageDashboards />, {
@@ -117,7 +112,7 @@ describe('Dashboards > Detail', function () {
     ).toBeInTheDocument();
   });
 
-  it('creates new dashboard', async function () {
+  it('creates new dashboard', async () => {
     const org = OrganizationFixture({features: FEATURES});
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
@@ -134,7 +129,7 @@ describe('Dashboards > Detail', function () {
     });
   });
 
-  it('can sort', async function () {
+  it('can sort', async () => {
     const org = OrganizationFixture({features: FEATURES});
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
@@ -153,7 +148,7 @@ describe('Dashboards > Detail', function () {
     );
   });
 
-  it('can search', async function () {
+  it('can search', async () => {
     const org = OrganizationFixture({features: FEATURES});
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
@@ -171,7 +166,7 @@ describe('Dashboards > Detail', function () {
     );
   });
 
-  it('uses pagination correctly', async function () {
+  it('uses pagination correctly', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -197,7 +192,7 @@ describe('Dashboards > Detail', function () {
     );
   });
 
-  it('disables pagination correctly', async function () {
+  it('disables pagination correctly', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -217,7 +212,7 @@ describe('Dashboards > Detail', function () {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('toggles between grid and list view', async function () {
+  it('toggles between grid and list view', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
@@ -243,7 +238,7 @@ describe('Dashboards > Detail', function () {
     expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
   });
 
-  it('uses recently viewed sort by default on table view', async function () {
+  it('uses recently viewed sort by default on table view', async () => {
     const org = OrganizationFixture({
       features: [...FEATURES, 'dashboards-starred-reordering'],
     });
@@ -263,7 +258,7 @@ describe('Dashboards > Detail', function () {
     expect(sortBy).toHaveTextContent('Sort ByRecently Viewed');
   });
 
-  it('does not show My Dashboards as a sort option in table view', async function () {
+  it('does not show My Dashboards as a sort option in table view', async () => {
     const org = OrganizationFixture({
       features: [...FEATURES, 'dashboards-starred-reordering'],
     });
@@ -284,7 +279,7 @@ describe('Dashboards > Detail', function () {
     expect(screen.queryByText('My Dashboards')).not.toBeInTheDocument();
   });
 
-  it('redirects the URL to the default sort option when the sort option is not valid', async function () {
+  it('redirects the URL to the default sort option when the sort option is not valid', async () => {
     const org = OrganizationFixture({
       features: [...FEATURES, 'dashboards-starred-reordering'],
     });
@@ -304,7 +299,7 @@ describe('Dashboards > Detail', function () {
     });
   });
 
-  it('shows the most favorited sort option for the %s view type', async function () {
+  it('shows the most favorited sort option for the %s view type', async () => {
     const org = OrganizationFixture({
       features: [...FEATURES, 'dashboards-starred-reordering'],
     });

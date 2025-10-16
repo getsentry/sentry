@@ -1,11 +1,9 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
-import {SearchFixture} from 'sentry-fixture/search';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -14,9 +12,11 @@ import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
 jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
-jest.mock('sentry/components/stream/group', () =>
-  jest.fn(({id}) => <div data-test-id={id} />)
-);
+jest.mock('sentry/components/stream/group', () => ({
+  __esModule: true,
+  default: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
+  LoadingStreamGroup: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
+}));
 
 jest.mock('js-cookie', () => ({
   get: jest.fn(),
@@ -28,7 +28,7 @@ const DEFAULT_LINKS_HEADER =
   `<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1>; rel="previous"; results="false"; cursor="${PREVIOUS_PAGE_CURSOR}:0:1", ` +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-describe('IssueList -> Polling', function () {
+describe('IssueList -> Polling', () => {
   let issuesRequest: jest.Mock;
   let pollRequest: jest.Mock;
 
@@ -37,32 +37,13 @@ describe('IssueList -> Polling', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization, project, routerProps} = initializeOrg({
-    organization: {
-      access: ['project:releases'],
-    },
-  });
-  const savedSearch = SearchFixture({
-    id: '789',
-    query: 'is:unresolved',
-    name: 'Unresolved Issues',
-  });
-
+  const project = ProjectFixture();
   const group = GroupFixture({project});
   const group2 = GroupFixture({project, id: '2'});
 
-  const defaultProps = {
-    location: LocationFixture({
-      query: {query: 'is:unresolved'},
-      search: 'query=is:unresolved',
-    }),
-    params: {},
-    organization,
-  };
-
   /* helpers */
   const renderComponent = async () => {
-    render(<IssueList {...routerProps} {...defaultProps} />, {
+    render(<IssueList />, {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',
@@ -75,7 +56,7 @@ describe('IssueList -> Polling', function () {
     jest.runAllTimers();
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.useFakeTimers();
 
     // The tests fail because we have a "component update was not wrapped in act" error.
@@ -85,10 +66,6 @@ describe('IssueList -> Polling', function () {
 
     MockApiClient.clearMockResponses();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -126,10 +103,6 @@ describe('IssueList -> Polling', function () {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
-    });
     issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [group],
@@ -155,7 +128,7 @@ describe('IssueList -> Polling', function () {
     TagStore.init();
   });
 
-  it('toggles polling for new issues', async function () {
+  it('toggles polling for new issues', async () => {
     await renderComponent();
 
     await waitFor(() => {
@@ -189,7 +162,7 @@ describe('IssueList -> Polling', function () {
     expect(pollRequest).toHaveBeenCalledTimes(2);
   });
 
-  it('displays new group and pagination caption correctly', async function () {
+  it('displays new group and pagination caption correctly', async () => {
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [group2],
@@ -219,7 +192,7 @@ describe('IssueList -> Polling', function () {
     expect(screen.getByText(textWithMarkupMatcher('1-2 of 2'))).toBeInTheDocument();
   });
 
-  it('stops polling for new issues when endpoint returns a 401', async function () {
+  it('stops polling for new issues when endpoint returns a 401', async () => {
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
@@ -241,7 +214,7 @@ describe('IssueList -> Polling', function () {
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('stops polling for new issues when endpoint returns a 403', async function () {
+  it('stops polling for new issues when endpoint returns a 403', async () => {
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
@@ -263,7 +236,7 @@ describe('IssueList -> Polling', function () {
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('stops polling for new issues when endpoint returns a 404', async function () {
+  it('stops polling for new issues when endpoint returns a 404', async () => {
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],

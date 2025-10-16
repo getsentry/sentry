@@ -81,14 +81,13 @@ def _call_seer(
     )
 
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
+        f"{settings.SEER_SUMMARIZATION_URL}{path}",
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(body),
         },
     )
-
     response.raise_for_status()
 
     return SummarizeTraceResponse.validate(response.json())

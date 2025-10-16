@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
+import {getTraceTimeRangeFromEvent} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -53,10 +53,6 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   traceEvents: TimelineEvent[];
 } {
   const organization = useOrganization();
-  // If the org has global views, we want to look across all projects,
-  // otherwise, just look at the current project.
-  const hasGlobalViews = organization.features.includes('global-views');
-  const project = hasGlobalViews ? -1 : event.projectID;
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
@@ -88,7 +84,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
-          project,
+          project: -1, // Look across all projects
         },
       },
     ],
@@ -125,7 +121,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
-          project,
+          project: -1, // Look across all projects
         },
       },
     ],

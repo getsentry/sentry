@@ -10,6 +10,7 @@ import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Function, Op
 
+from sentry.api.endpoints.timeseries import GroupBy
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
@@ -61,6 +62,8 @@ __all__ = (
     "check_multihistogram_fields",
 )
 DEFAULT_DATASET_REASON = "unchanged"
+# What the frontend replaces Nulls with so that we can format top event arrays the same
+NO_VALUE = "(no value)"
 
 
 logger = logging.getLogger(__name__)
@@ -165,7 +168,6 @@ def query(
     orderby: list[str] | None = None,
     offset: int | None = None,
     limit: int = 50,
-    referrer: str | None = None,
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     include_equation_fields: bool = False,
@@ -185,6 +187,8 @@ def query(
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
     debug: bool = False,
+    *,
+    referrer: str,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -268,7 +272,6 @@ def timeseries_query(
     query: str,
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
@@ -281,6 +284,8 @@ def timeseries_query(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -400,7 +405,7 @@ def create_result_key(
     groupby = create_groupby_dict(result_row, fields, issues)
     groupby_values: list[str] = []
     for value in groupby:
-        groupby_values.append(value["value"])
+        groupby_values.append(str(value["value"]))
     result = ",".join(groupby_values)
     # If the result would be identical to the other key, include the field name
     # only need the first field since this would only happen with a single field
@@ -410,18 +415,21 @@ def create_result_key(
 
 
 def create_groupby_dict(
-    result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
-) -> list[dict[str, str]]:
+    result_row: SnubaRow,
+    fields: list[str],
+    issues: Mapping[int, str | None],
+    stringify_none: bool = True,
+) -> list[GroupBy]:
     values = []
     for field in fields:
         if field == "issue.id":
             issue_id = issues.get(result_row["issue.id"], "unknown")
             if issue_id is None:
                 issue_id = "unknown"
-            values.append({"key": field, "value": issue_id})
+            values.append(GroupBy(key=field, value=issue_id))
         elif field == "transaction.status":
             values.append(
-                {"key": field, "value": SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")}
+                GroupBy(key=field, value=SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
             )
         else:
             value = result_row.get(field)
@@ -430,10 +438,14 @@ def create_groupby_dict(
                     # Even though frontend renders only the last element, this can cause key overlaps
                     # For now lets just render this as a list to avoid that problem
                     # TODO: timeseries can handle this correctly since this value isn't used as a dict key
-                    value = f"[{','.join(value)}]"
+                    filtered_value = [str(val) if val is not None else NO_VALUE for val in value]
+                    value = f"[{','.join(filtered_value)}]"
                 else:
                     value = ""
-            values.append({"key": field, "value": str(value)})
+            if stringify_none:
+                values.append(GroupBy(key=field, value=str(value)))
+            else:
+                values.append(GroupBy(key=field, value=str(value) if value is not None else None))
     return values
 
 
@@ -447,7 +459,6 @@ def top_events_timeseries(
     limit: int,
     organization: Organization,
     equations: list[str] | None = None,
-    referrer: str | None = None,
     top_events: EventsResponse | None = None,
     allow_empty: bool = True,
     zerofill_results: bool = True,
@@ -459,6 +470,8 @@ def top_events_timeseries(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -805,7 +818,6 @@ def spans_histogram_query(
     min_value: float | None = None,
     max_value: float | None = None,
     data_filter: Literal["exclude_outliers"] | None = None,
-    referrer: str | None = None,
     group_by: list[str] | None = None,
     order_by: list[str] | None = None,
     limit_by: list[str] | None = None,
@@ -815,6 +827,8 @@ def spans_histogram_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ) -> EventsResponse | SnubaData:
     """
     API for generating histograms for span exclusive time.
@@ -894,7 +908,6 @@ def histogram_query(
     min_value: float | None = None,
     max_value: float | None = None,
     data_filter: Literal["exclude_outliers"] | None = None,
-    referrer: str | None = None,
     group_by: list[str] | None = None,
     order_by: list[str] | None = None,
     limit_by: list[str] | None = None,
@@ -905,6 +918,8 @@ def histogram_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ):
     """
     API for generating histograms for numeric columns.

@@ -1,0 +1,30 @@
+---
+created: '2025-10-07T20:41:47.709625+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system stacktrace takes precedence
+  root_component:
+    app (ignored because system stacktrace takes precedence)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (non app frame)
+          module (ignored java lambda)
+            "foo.bar.Baz$$Lambda$40/1673859467"
+          function*
+            "call"
+--------------------------------------------------------------------------
+system:
+  hash: "53b9e9679a8ea25880376080b76f98ad"
+  contributing component: stacktrace
+  hint: None
+  root_component:
+    system*
+      stacktrace*
+        frame*
+          module (ignored java lambda)
+            "foo.bar.Baz$$Lambda$40/1673859467"
+          function*
+            "call"

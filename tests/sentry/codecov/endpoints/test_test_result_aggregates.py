@@ -134,7 +134,7 @@ class TestResultsAggregatesEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        response = self.client.get(url, {"interval": "INTERVAL_7_DAY"})
+        response = self.client.get(url, {"interval": "INTERVAL_7_DAY", "branch": "main"})
 
         assert response.status_code == 200
         mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
@@ -143,6 +143,7 @@ class TestResultsAggregatesEndpointTest(APITestCase):
             variables={
                 "owner": "testowner",
                 "repo": "testrepo",
+                "branch": "main",
                 "interval": "INTERVAL_7_DAY",
             },
         )

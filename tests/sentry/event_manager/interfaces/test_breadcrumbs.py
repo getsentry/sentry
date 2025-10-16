@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -20,7 +20,7 @@ def make_breadcrumbs_snapshot(insta_snapshot):
     return inner
 
 
-def test_simple(make_breadcrumbs_snapshot):
+def test_simple(make_breadcrumbs_snapshot) -> None:
     make_breadcrumbs_snapshot(
         dict(
             values=[
@@ -46,12 +46,12 @@ def test_simple(make_breadcrumbs_snapshot):
         {"values": [None]},
     ],
 )
-def test_null_values(make_breadcrumbs_snapshot, input):
+def test_null_values(make_breadcrumbs_snapshot, input) -> None:
     make_breadcrumbs_snapshot(input)
 
 
 @django_db_all
-def test_non_string_keys(make_breadcrumbs_snapshot):
+def test_non_string_keys(make_breadcrumbs_snapshot) -> None:
     make_breadcrumbs_snapshot(
         dict(
             values=[
@@ -65,7 +65,7 @@ def test_non_string_keys(make_breadcrumbs_snapshot):
     )
 
 
-def test_string_data(make_breadcrumbs_snapshot):
+def test_string_data(make_breadcrumbs_snapshot) -> None:
     make_breadcrumbs_snapshot(
         dict(
             values=[

@@ -1,18 +1,14 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from functools import wraps
 
 import sentry_sdk
 from django.db.models import Max
 
-from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS, bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
-from sentry.monitoring.queues import backend
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
@@ -26,51 +22,12 @@ ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
 
-def log_error_if_queue_has_items(func):
-    """
-    Prevent adding more tasks in queue if the queue is not empty.
-    We want to prevent crons from scheduling more tasks than the workers
-    are capable of processing before the next cycle.
-    """
-
-    def inner(func):
-        @wraps(func)
-        def wrapped(*args, **kwargs):
-            assert backend is not None, "queues monitoring is not enabled"
-            try:
-                queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
-                if queue_size > 0:
-                    logger.info(
-                        "%s queue size greater than 0.",
-                        CELERY_ISSUE_STATES_QUEUE.name,
-                        extra={"size": queue_size, "task": func.__name__},
-                    )
-            except Exception:
-                logger.exception("Failed to determine queue size")
-
-            func(*args, **kwargs)
-
-        return wrapped
-
-    return inner(func)
-
-
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_to_ongoing",
-    queue="auto_transition_issue_states",
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
+    namespace=issues_tasks,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
-@log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
     """
     Triggered by cronjob every minute. This task will spawn subtasks
@@ -96,23 +53,11 @@ def schedule_auto_transition_to_ongoing() -> None:
 
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_issues_new_to_ongoing",
-    queue="auto_transition_issue_states",
-    time_limit=25 * 60,
-    soft_time_limit=20 * 60,
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
+    namespace=issues_tasks,
+    processing_deadline_duration=25 * 60,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=25 * 60,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
-@log_error_if_queue_has_items
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
     **kwargs,
@@ -171,21 +116,10 @@ def schedule_auto_transition_issues_new_to_ongoing(
 
 @instrumented_task(
     name="sentry.tasks.run_auto_transition_issues_new_to_ongoing",
-    queue="auto_transition_issue_states",
-    time_limit=25 * 60,
-    soft_time_limit=20 * 60,
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
+    namespace=issues_tasks,
+    processing_deadline_duration=25 * 60,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=25 * 60,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: list[int],
@@ -207,23 +141,11 @@ def run_auto_transition_issues_new_to_ongoing(
 
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing",
-    queue="auto_transition_issue_states",
-    time_limit=25 * 60,
-    soft_time_limit=20 * 60,
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
+    namespace=issues_tasks,
+    processing_deadline_duration=25 * 60,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=25 * 60,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
-@log_error_if_queue_has_items
 def schedule_auto_transition_issues_regressed_to_ongoing(
     date_added_lte: int,
     **kwargs,
@@ -275,21 +197,10 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
 
 @instrumented_task(
     name="sentry.tasks.run_auto_transition_issues_regressed_to_ongoing",
-    queue="auto_transition_issue_states",
-    time_limit=25 * 60,
-    soft_time_limit=20 * 60,
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
+    namespace=issues_tasks,
+    processing_deadline_duration=25 * 60,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=25 * 60,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: list[int],
@@ -311,23 +222,11 @@ def run_auto_transition_issues_regressed_to_ongoing(
 
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing",
-    queue="auto_transition_issue_states",
-    time_limit=25 * 60,
-    soft_time_limit=20 * 60,
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
+    namespace=issues_tasks,
+    processing_deadline_duration=25 * 60,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=25 * 60,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
-@log_error_if_queue_has_items
 def schedule_auto_transition_issues_escalating_to_ongoing(
     date_added_lte: int,
     **kwargs,
@@ -379,21 +278,10 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
 
 @instrumented_task(
     name="sentry.tasks.run_auto_transition_issues_escalating_to_ongoing",
-    queue="auto_transition_issue_states",
-    time_limit=25 * 60,
-    soft_time_limit=20 * 60,
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
+    namespace=issues_tasks,
+    processing_deadline_duration=25 * 60,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=25 * 60,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: list[int],

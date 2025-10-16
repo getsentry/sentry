@@ -166,6 +166,11 @@ export type TeamInsightsEventParameters = {
   'releases_list.click_add_release_health': {
     project_id: number;
   };
+  'suspect_commit.feedback_submitted': {
+    choice_selected: boolean;
+    group_owner_id: number;
+    user_id: string;
+  };
   trace_timeline_clicked: {
     area: string;
     event_id: string;
@@ -241,4 +246,5 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
   trace_timeline_clicked: 'Trace Timeline Clicked',
   trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
+  'suspect_commit.feedback_submitted': 'Suspect Commit Feedback Submitted',
 };

@@ -1,45 +1,27 @@
-import {useMemo} from 'react';
-
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-function TestContext({children}: {children: React.ReactNode}) {
-  const {organization} = useMemo(() => initializeOrg(), []);
-
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
-
-describe('useProfileFunctions', function () {
-  afterEach(function () {
+describe('useProfileFunctions', () => {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('initializes with the loading state', function () {
+  it('initializes with the loading state', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: []},
     });
 
-    const hook = renderHook(
-      () =>
-        useProfileFunctions({
-          fields: ['count()'],
-          referrer: '',
-          sort: {
-            key: 'count()',
-            order: 'desc',
-          },
-        }),
-      {wrapper: TestContext}
+    const hook = renderHookWithProviders(() =>
+      useProfileFunctions({
+        fields: ['count()'],
+        referrer: '',
+        sort: {
+          key: 'count()',
+          order: 'desc',
+        },
+      })
     );
     expect(hook.result.current).toMatchObject(
       expect.objectContaining({
@@ -48,23 +30,21 @@ describe('useProfileFunctions', function () {
     );
   });
 
-  it('fetches functions', async function () {
+  it('fetches functions', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: []},
     });
 
-    const hook = renderHook(
-      () =>
-        useProfileFunctions({
-          fields: ['count()'],
-          referrer: '',
-          sort: {
-            key: 'count()',
-            order: 'desc',
-          },
-        }),
-      {wrapper: TestContext}
+    const hook = renderHookWithProviders(() =>
+      useProfileFunctions({
+        fields: ['count()'],
+        referrer: '',
+        sort: {
+          key: 'count()',
+          order: 'desc',
+        },
+      })
     );
     expect(hook.result.current.isPending).toBe(true);
     expect(hook.result.current.isFetched).toBe(false);

@@ -39,7 +39,7 @@ const roles: OrgRole[] = [
   },
 ];
 
-describe('InviteRequestRow', function () {
+describe('InviteRequestRow', () => {
   const orgWithoutAdminAccess = OrganizationFixture({
     access: [],
   });
@@ -63,7 +63,7 @@ describe('InviteRequestRow', function () {
     teams: ['myteam'],
   });
 
-  it('renders request to be invited', function () {
+  it('renders request to be invited', () => {
     render(
       <InviteRequestRow
         organization={orgWithoutAdminAccess}
@@ -82,7 +82,7 @@ describe('InviteRequestRow', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders request to join', function () {
+  it('renders request to join', () => {
     render(
       <InviteRequestRow
         organization={orgWithoutAdminAccess}
@@ -100,7 +100,7 @@ describe('InviteRequestRow', function () {
     expect(screen.getByRole('button', {name: 'Deny'})).toBeInTheDocument();
   });
 
-  it('admin can approve invite request', async function () {
+  it('admin can approve invite request', async () => {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
@@ -125,7 +125,7 @@ describe('InviteRequestRow', function () {
     expect(mockDeny).not.toHaveBeenCalled();
   });
 
-  it('admin can deny invite request', async function () {
+  it('admin can deny invite request', async () => {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
@@ -147,7 +147,7 @@ describe('InviteRequestRow', function () {
     expect(mockApprove).not.toHaveBeenCalled();
   });
 
-  it('non-admin can not approve or deny invite request', function () {
+  it('non-admin can not approve or deny invite request', () => {
     render(
       <InviteRequestRow
         organization={orgWithoutAdminAccess}
@@ -164,7 +164,7 @@ describe('InviteRequestRow', function () {
     expect(screen.getByRole('button', {name: 'Deny'})).toBeDisabled();
   });
 
-  it('admin can change role and teams', async function () {
+  it('admin can change role and teams', async () => {
     const adminInviteRequest = MemberFixture({
       user: null,
       inviterName: UserFixture().name,
@@ -173,7 +173,7 @@ describe('InviteRequestRow', function () {
       teams: ['myteam'],
     });
 
-    void TeamStore.loadInitialData([
+    TeamStore.loadInitialData([
       TeamFixture({id: '1', slug: 'one'}),
       TeamFixture({id: '2', slug: 'two'}),
     ]);
@@ -202,7 +202,7 @@ describe('InviteRequestRow', function () {
     TeamStore.reset();
   });
 
-  it('cannot be approved when invitee role is not allowed', function () {
+  it('cannot be approved when invitee role is not allowed', () => {
     const ownerInviteRequest = MemberFixture({
       user: null,
       inviterName: UserFixture().name,

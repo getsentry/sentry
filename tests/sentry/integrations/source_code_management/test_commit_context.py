@@ -4,6 +4,7 @@ import pytest
 
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
     CommitContextIntegration,
     SourceLineInfo,
 )
@@ -20,11 +21,11 @@ class MockCommitContextIntegration(CommitContextIntegration):
 
     integration_name = "mock_integration"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = Mock()
         self.client.base_url = "https://example.com"
 
-    def get_client(self):
+    def get_client(self) -> CommitContextClient:
         return self.client
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
@@ -95,18 +96,17 @@ class TestCommitContextIntegrationSLO(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_invalid_request(self, mock_record: MagicMock) -> None:
-        """Test invalid request records failure"""
+        """Test invalid request records halt"""
         from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 
         self.integration.client.get_blame_for_files = Mock(
             side_effect=ApiInvalidRequestError(text="Invalid request")
         )
 
-        with pytest.raises(ApiInvalidRequestError):
-            self.integration.get_blame_for_files([self.source_line], {})
+        self.integration.get_blame_for_files([self.source_line], {})
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-        assert_failure_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_invalid_request_gitlab(self, mock_record: MagicMock) -> None:
@@ -155,7 +155,7 @@ class TestCommitContextIntegrationSLO(TestCase):
             integration_name = "gitlab"
             base_url = "https://bufo-bot.gitlab.com"
 
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.client.base_url = self.base_url
 
@@ -181,7 +181,7 @@ class TestCommitContextIntegrationSLO(TestCase):
             integration_name = "gitlab"
             base_url = GITLAB_CLOUD_BASE_URL
 
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.client.base_url = self.base_url
 

@@ -1,4 +1,4 @@
-import {Component, type ReactNode, useEffect} from 'react';
+import {Component, useEffect, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
@@ -19,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -35,8 +34,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
-  type DomainViewFilters,
   useDomainViewFilters,
+  type DomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
@@ -259,7 +258,7 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location, withStaticFilters} = this.props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;
@@ -280,6 +279,8 @@ class _Table extends Component<Props, State> {
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
       Actions.EDIT_THRESHOLD,
+      Actions.OPEN_EXTERNAL_LINK,
+      Actions.OPEN_INTERNAL_LINK,
     ];
 
     const cellActions = withStaticFilters ? [] : allowActions;
@@ -598,69 +599,59 @@ class _Table extends Component<Props, State> {
     const columnSortBy = sortedEventView.getSorts();
 
     const prependColumnWidths = ['max-content'];
-
     return (
       <div data-test-id="performance-table">
-        <DemoTourElement
-          id={DemoTourStep.PERFORMANCE_TABLE}
-          title={t('See slow transactions')}
-          description={t(
-            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
-            Select a transaction to see more details.`
-          )}
-        >
-          <MEPConsumer>
-            {value => {
-              return (
-                <DiscoverQuery
-                  eventView={sortedEventView}
-                  orgSlug={organization.slug}
-                  location={location}
-                  setError={error => setError(error?.message)}
-                  referrer="api.performance.landing-table"
-                  transactionName={transaction}
-                  transactionThreshold={transactionThreshold}
-                  queryExtras={getMEPQueryParams(value)}
-                >
-                  {({pageLinks, isLoading, tableData}) => (
-                    <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
-                      <VisuallyCompleteWithData
-                        id="PerformanceTable"
-                        hasData={
-                          !isLoading && !!tableData?.data && tableData.data.length > 0
-                        }
+        <MEPConsumer>
+          {value => {
+            return (
+              <DiscoverQuery
+                eventView={sortedEventView}
+                orgSlug={organization.slug}
+                location={location}
+                setError={error => setError(error?.message)}
+                referrer="api.insights.landing-table"
+                transactionName={transaction}
+                transactionThreshold={transactionThreshold}
+                queryExtras={getMEPQueryParams(value)}
+              >
+                {({pageLinks, isLoading, tableData}) => (
+                  <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                    <VisuallyCompleteWithData
+                      id="PerformanceTable"
+                      hasData={
+                        !isLoading && !!tableData?.data && tableData.data.length > 0
+                      }
+                      isLoading={isLoading}
+                    >
+                      <GridEditable
                         isLoading={isLoading}
-                      >
-                        <GridEditable
-                          isLoading={isLoading}
-                          data={tableData ? tableData.data : []}
-                          columnOrder={columnOrder}
-                          columnSortBy={columnSortBy}
-                          bodyStyle={{overflow: 'visible'}}
-                          grid={{
-                            onResizeColumn: this.handleResizeColumn,
-                            renderHeadCell: this.renderHeadCellWithMeta(
-                              tableData?.meta
-                            ) as any,
-                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                            renderPrependColumns: this.renderPrependCellWithData(
-                              tableData
-                            ) as any,
-                            prependColumnWidths,
-                          }}
-                        />
-                      </VisuallyCompleteWithData>
-                      <Pagination
-                        pageLinks={pageLinks}
-                        paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                        data={tableData ? tableData.data : []}
+                        columnOrder={columnOrder}
+                        columnSortBy={columnSortBy}
+                        bodyStyle={{overflow: 'visible'}}
+                        grid={{
+                          onResizeColumn: this.handleResizeColumn,
+                          renderHeadCell: this.renderHeadCellWithMeta(
+                            tableData?.meta
+                          ) as any,
+                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                          renderPrependColumns: this.renderPrependCellWithData(
+                            tableData
+                          ) as any,
+                          prependColumnWidths,
+                        }}
                       />
-                    </TrackHasDataAnalytics>
-                  )}
-                </DiscoverQuery>
-              );
-            }}
-          </MEPConsumer>
-        </DemoTourElement>
+                    </VisuallyCompleteWithData>
+                    <Pagination
+                      pageLinks={pageLinks}
+                      paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                    />
+                  </TrackHasDataAnalytics>
+                )}
+              </DiscoverQuery>
+            );
+          }}
+        </MEPConsumer>
       </div>
     );
   }

@@ -12,14 +12,16 @@ export interface StoryResources {
   js?: string;
 }
 
-interface MDXStoryDescriptor {
+export interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
     frontmatter?: {
       description: string;
       title: string;
+      layout?: 'document';
       resources?: StoryResources;
       source?: string;
+      status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };
     types?:

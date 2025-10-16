@@ -19,7 +19,6 @@ from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
 
@@ -28,10 +27,9 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_debug_artifacts",
-    queue="demo_mode",
-    taskworker_config=TaskworkerConfig(namespace=demomode_tasks),
+    namespace=demomode_tasks,
 )
-def sync_debug_artifacts():
+def sync_debug_artifacts() -> None:
 
     if (
         not options.get("sentry.demo_mode.sync_debug_artifacts.enable")
@@ -53,8 +51,8 @@ def sync_debug_artifacts():
 
 
 def _sync_artifact_bundles(
-    source_org: Organization, target_org: Organization, cutoff_date: datetime
-):
+    source_org: Organization | None, target_org: Organization | None, cutoff_date: datetime
+) -> None:
     if not source_org or not target_org:
         return
 
@@ -75,8 +73,8 @@ def _sync_artifact_bundles(
 
 
 def _sync_project_debug_files(
-    source_org: Organization, target_org: Organization, cutoff_date: datetime
-):
+    source_org: Organization | None, target_org: Organization | None, cutoff_date: datetime
+) -> None:
     if not source_org or not target_org:
         return
 
@@ -119,8 +117,8 @@ def _sync_project_debug_files(
 
 
 def _sync_proguard_artifact_releases(
-    source_org: Organization, target_org: Organization, cutoff_date: datetime
-):
+    source_org: Organization | None, target_org: Organization | None, cutoff_date: datetime
+) -> None:
     if not source_org or not target_org:
         return
 
@@ -144,7 +142,7 @@ def _sync_proguard_artifact_releases(
         _sync_proguard_artifact_release(source_proguard_artifact_release, target_org)
 
 
-def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Organization):
+def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Organization) -> None:
     try:
         with atomic_transaction(
             using=(
@@ -180,7 +178,7 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
 def _sync_project_artifact_bundle(
     source_artifact_bundle: ArtifactBundle,
     target_artifact_bundle: ArtifactBundle,
-):
+) -> None:
     source_project_artifact_bundle = ProjectArtifactBundle.objects.filter(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
@@ -207,7 +205,7 @@ def _sync_project_artifact_bundle(
 def _sync_release_artifact_bundle(
     source_artifact_bundle: ArtifactBundle,
     target_artifact_bundle: ArtifactBundle,
-):
+) -> None:
     source_release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
@@ -255,7 +253,7 @@ def _sync_project_debug_file(
 
 def _sync_proguard_artifact_release(
     source_proguard_artifact_release: ProguardArtifactRelease, target_org: Organization
-):
+) -> None:
     try:
         with atomic_transaction(using=(router.db_for_write(ProguardArtifactRelease))):
             target_project = _find_matching_project(
@@ -293,7 +291,7 @@ def _sync_proguard_artifact_release(
         sentry_sdk.capture_exception(e)
 
 
-def _find_matching_project(project_id, organization_id):
+def _find_matching_project(project_id: int, organization_id: int) -> Project | None:
     try:
         source_project = Project.objects.get(id=project_id)
 
@@ -302,6 +300,11 @@ def _find_matching_project(project_id, organization_id):
             slug=source_project.slug,
         )
     except Project.DoesNotExist:
-        sentry_sdk.set_context("project_id", project_id)
-        sentry_sdk.set_context("organization_id", organization_id)
+        sentry_sdk.set_context(
+            "args",
+            {
+                "project_id": project_id,
+                "organization_id": organization_id,
+            },
+        )
         return None

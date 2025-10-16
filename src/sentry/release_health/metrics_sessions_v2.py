@@ -1,7 +1,7 @@
-""" This module offers the same functionality as sessions_v2, but pulls its data
+"""This module offers the same functionality as sessions_v2, but pulls its data
 from the `metrics` dataset instead of `sessions`.
 
-Do not call this module directly. Use the `release_health` service instead. """
+Do not call this module directly. Use the `release_health` service instead."""
 
 import logging
 from abc import ABC, abstractmethod
@@ -73,6 +73,7 @@ class SessionStatus(Enum):
     CRASHED = "crashed"
     ERRORED = "errored"
     HEALTHY = "healthy"
+    UNHANDLED = "unhandled"
 
 
 ALL_STATUSES = frozenset(iter(SessionStatus))
@@ -242,6 +243,7 @@ class CountField(Field):
                 self.status_to_metric_field[SessionStatus.ABNORMAL],
                 self.status_to_metric_field[SessionStatus.CRASHED],
                 self.status_to_metric_field[SessionStatus.ERRORED],
+                self.status_to_metric_field[SessionStatus.UNHANDLED],
             ]
         return [self.get_all_field()]
 
@@ -265,6 +267,7 @@ class SumSessionField(CountField):
         SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL.value),
         SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED.value),
         SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED.value),
+        SessionStatus.UNHANDLED: MetricField(None, SessionMRI.UNHANDLED.value),
         None: MetricField(None, SessionMRI.ALL.value),
     }
 
@@ -298,6 +301,7 @@ class CountUniqueUser(CountField):
         SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL_USER.value),
         SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED_USER.value),
         SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED_USER.value),
+        SessionStatus.UNHANDLED: MetricField(None, SessionMRI.UNHANDLED_USER.value),
         None: MetricField(None, SessionMRI.ALL_USER.value),
     }
 
@@ -341,6 +345,13 @@ class SimpleForwardingField(Field):
         "crash_free_rate(user)": SessionMRI.CRASH_FREE_USER_RATE,
         "anr_rate()": SessionMRI.ANR_RATE,
         "foreground_anr_rate()": SessionMRI.FOREGROUND_ANR_RATE,
+        "unhandled_rate(session)": SessionMRI.UNHANDLED_RATE,
+        "unhandled_rate(user)": SessionMRI.UNHANDLED_USER_RATE,
+        "errored_rate(session)": SessionMRI.ERRORED_RATE,
+        "errored_rate(user)": SessionMRI.ERRORED_USER_RATE,
+        "abnormal_rate(session)": SessionMRI.ABNORMAL_RATE,
+        "abnormal_rate(user)": SessionMRI.ABNORMAL_USER_RATE,
+        "unhealthy_rate(session)": SessionMRI.UNHEALTHY_RATE,
     }
 
     def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
@@ -379,6 +390,13 @@ FIELD_MAP: Mapping[SessionsQueryFunction, type[Field]] = {
     "crash_free_rate(user)": SimpleForwardingField,
     "anr_rate()": SimpleForwardingField,
     "foreground_anr_rate()": SimpleForwardingField,
+    "unhandled_rate(session)": SimpleForwardingField,
+    "unhandled_rate(user)": SimpleForwardingField,
+    "errored_rate(session)": SimpleForwardingField,
+    "errored_rate(user)": SimpleForwardingField,
+    "abnormal_rate(session)": SimpleForwardingField,
+    "abnormal_rate(user)": SimpleForwardingField,
+    "unhealthy_rate(session)": SimpleForwardingField,
 }
 PREFLIGHT_QUERY_COLUMNS = {"release.timestamp"}
 VirtualOrderByName = Literal["release.timestamp"]

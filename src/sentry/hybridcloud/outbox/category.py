@@ -60,6 +60,9 @@ class OutboxCategory(IntEnum):
     SEND_VERCEL_INVOICE = 38
     FTC_CONSENT = 39
 
+    SERVICE_HOOK_UPDATE = 40
+    SENTRY_APP_DELETE = 41
+
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
@@ -299,6 +302,8 @@ class OutboxScope(IntEnum):
             OutboxCategory.API_APPLICATION_UPDATE,
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
             OutboxCategory.SENTRY_APP_UPDATE,
+            OutboxCategory.SERVICE_HOOK_UPDATE,
+            OutboxCategory.SENTRY_APP_DELETE,
         },
     )
     # No longer in use

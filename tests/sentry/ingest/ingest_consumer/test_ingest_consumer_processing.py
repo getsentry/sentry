@@ -16,7 +16,6 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
     collect_span_metrics,
@@ -29,11 +28,13 @@ from sentry.ingest.types import ConsumerType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
@@ -79,7 +80,7 @@ def preprocess_event():
 
 
 @django_db_all
-def test_deduplication_works(default_project, task_runner, preprocess_event):
+def test_deduplication_works(default_project, task_runner, preprocess_event) -> None:
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     project_id = default_project.id
@@ -160,7 +161,7 @@ def test_transactions_spawn_save_event_transaction(
 
 
 @django_db_all
-def test_accountant_transaction(default_project):
+def test_accountant_transaction(default_project) -> None:
     storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
     broker = LocalBroker(storage)
     topic = Topic("shared-resources-usage")
@@ -263,7 +264,7 @@ def test_feedbacks_spawn_save_event_feedback(
 
 @django_db_all
 @pytest.mark.parametrize("missing_chunks", (True, False))
-def test_with_attachments(default_project, task_runner, missing_chunks, django_cache):
+def test_with_attachments(default_project, task_runner, missing_chunks, django_cache) -> None:
     with patch("sentry.features.has", return_value=True):
         payload = get_normalized_event({"message": "hello world"}, default_project)
         event_id = payload["event_id"]
@@ -281,7 +282,6 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
                     "chunk_index": 0,
                 }
             )
-
             process_attachment_chunk(
                 {
                     "payload": b"World!",
@@ -307,6 +307,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
                             "name": "lol.txt",
                             "content_type": "text/plain",
                             "attachment_type": "custom.attachment",
+                            "size": len(b"Hello World!"),
                             "chunks": 2,
                         }
                     ],
@@ -331,7 +332,10 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 @django_db_all
 @requires_symbolicator
 @pytest.mark.symbolicator
-def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_option, live_server):
+@thread_leak_allowlist(reason="django dev server", issue=97036)
+def test_deobfuscate_view_hierarchy(
+    default_project, task_runner, set_sentry_option, live_server
+) -> None:
     with set_sentry_option("system.url-prefix", live_server.url):
         payload = get_normalized_event(
             {
@@ -366,10 +370,11 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_opt
                 }
             ],
         }
+        attachment_payload = orjson.dumps(obfuscated_view_hierarchy)
 
         process_attachment_chunk(
             {
-                "payload": orjson.dumps(obfuscated_view_hierarchy),
+                "payload": attachment_payload,
                 "event_id": event_id,
                 "project_id": project_id,
                 "id": attachment_id,
@@ -393,6 +398,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_opt
                             "content_type": "application/json",
                             "attachment_type": "event.view_hierarchy",
                             "chunks": 1,
+                            "size": len(attachment_payload),
                         }
                     ],
                 },
@@ -446,11 +452,11 @@ def test_individual_attachments(
 
         chunks, attachment_type, content_type = attachment
         attachment_meta = {
-            "attachment_type": attachment_type,
-            "chunks": len(chunks),
-            "content_type": content_type,
             "id": attachment_id,
             "name": "foo.txt",
+            "content_type": content_type,
+            "attachment_type": attachment_type,
+            "chunks": len(chunks),
         }
         if isinstance(chunks, bytes):
             attachment_meta["data"] = chunks
@@ -467,6 +473,7 @@ def test_individual_attachments(
                     }
                 )
             expected_content = b"".join(chunks)
+        attachment_meta["size"] = len(expected_content)
 
         process_individual_attachment(
             {
@@ -493,7 +500,7 @@ def test_individual_attachments(
 
 
 @django_db_all
-def test_userreport(django_cache, default_project):
+def test_userreport(django_cache, default_project) -> None:
     """
     Test that user_report-type kafka messages end up in a user report being
     persisted. We additionally test some logic around upserting data in
@@ -531,7 +538,7 @@ def test_userreport(django_cache, default_project):
 
 
 @django_db_all
-def test_userreport_reverse_order(django_cache, default_project):
+def test_userreport_reverse_order(django_cache, default_project) -> None:
     """
     Test that ingesting a userreport before the event works. This is relevant
     for unreal crashes where the userreport is processed immediately in the
@@ -574,7 +581,7 @@ def test_userreport_reverse_order(django_cache, default_project):
 
 
 @django_db_all
-def test_individual_attachments_missing_chunks(default_project, factories):
+def test_individual_attachments_missing_chunks(default_project, factories) -> None:
     with patch("sentry.features.has", return_value=True):
         event_id = "515539018c9b4260a6f999572f1661ee"
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
@@ -602,7 +609,7 @@ def test_individual_attachments_missing_chunks(default_project, factories):
 
 
 @django_db_all
-def test_collect_span_metrics(default_project):
+def test_collect_span_metrics(default_project) -> None:
     with Feature({"organizations:dynamic-sampling": True, "organization:am3-tier": True}):
         with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
             assert mock_metrics.incr.call_count == 0

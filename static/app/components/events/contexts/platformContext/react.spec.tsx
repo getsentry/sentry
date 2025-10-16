@@ -25,8 +25,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('ReactContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('ReactContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getReactContextData({data: MOCK_REACT_CONTEXT})).toEqual([
       {
         key: 'version',
@@ -48,7 +48,7 @@ describe('ReactContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {react: MOCK_REDACTION}},
     });
@@ -56,8 +56,8 @@ describe('ReactContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'react'}
+        type="default"
+        alias="react"
         value={{...MOCK_REACT_CONTEXT, version: ''}}
       />
     );

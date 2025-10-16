@@ -240,7 +240,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                         <Link
                           to={{
                             pathname: `/settings/${organization.slug}/`,
-                            hash: '#hideAiFeatures',
+                            hash: 'hideAiFeatures',
                           }}
                         />
                       ),
@@ -306,7 +306,12 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             />
             {aiConfig.hasSummary && (
               <StyledCard>
-                <GroupSummary group={group} event={event} project={project} />
+                <GroupSummary
+                  group={group}
+                  event={event}
+                  project={project}
+                  collapsed={!!autofixData}
+                />
               </StyledCard>
             )}
             {aiConfig.hasAutofix && (
@@ -316,6 +321,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
+                    event={event}
                   />
                 ) : autofixDataPending ? (
                   <PlaceholderStack>
@@ -369,13 +375,16 @@ export const useOpenSeerDrawer = ({
         return false;
       },
       onClose: () => {
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            seerDrawer: undefined,
+        navigate(
+          {
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              seerDrawer: undefined,
+            },
           },
-        });
+          {replace: true, preventScrollReset: true}
+        );
       },
     });
   }, [openDrawer, event, group, project, location, navigate, organization]);
@@ -397,6 +406,7 @@ const StyledCard = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
+  transition: all 0.3s ease-in-out;
 `;
 
 const SeerDrawerContainer = styled('div')`
@@ -404,6 +414,7 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
@@ -433,6 +444,7 @@ const SeerDrawerBody = styled(DrawerBody)`
   * {
     direction: ltr;
   }
+  padding-bottom: 80px;
 `;
 
 const Header = styled('h3')`

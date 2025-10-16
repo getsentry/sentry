@@ -17,7 +17,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {SpanSamplesContainer} from 'sentry/views/insights/mobile/common/components/spanSamplesPanelContainer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 type Props = {

@@ -86,7 +86,7 @@ const selectByLabel = async (
   await userEvent.click(opt!);
 };
 
-describe('Discover -> ColumnEditModal', function () {
+describe('Discover -> ColumnEditModal', () => {
   beforeEach(() => {
     TagStore.reset();
     TagStore.loadTagsSuccess([
@@ -131,8 +131,8 @@ describe('Discover -> ColumnEditModal', function () {
     },
   ];
 
-  describe('basic rendering', function () {
-    it('renders fields and basic controls, async delete and grab buttons', async function () {
+  describe('basic rendering', () => {
+    it('renders fields and basic controls, async delete and grab buttons', async () => {
       mountModal(
         {
           columns,
@@ -163,8 +163,8 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('rendering unknown fields', function () {
-    it('renders unknown fields in field and field parameter controls', async function () {
+  describe('rendering unknown fields', () => {
+    it('renders unknown fields in field and field parameter controls', async () => {
       mountModal(
         {
           columns: [
@@ -191,7 +191,7 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('rendering tags that overlap fields & functions', function () {
+  describe('rendering tags that overlap fields & functions', () => {
     beforeEach(() => {
       TagStore.reset();
       TagStore.loadTagsSuccess([
@@ -200,7 +200,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('selects tag expressions that overlap fields', async function () {
+    it('selects tag expressions that overlap fields', async () => {
       mountModal(
         {
           columns: [
@@ -219,7 +219,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('selects tag expressions that overlap functions', async function () {
+    it('selects tag expressions that overlap functions', async () => {
       mountModal(
         {
           columns: [
@@ -239,8 +239,8 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('rendering functions', function () {
-    it('renders three columns when needed', async function () {
+  describe('rendering functions', () => {
+    it('renders three columns when needed', async () => {
       mountModal(
         {
           columns: [
@@ -278,13 +278,13 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('function & column selection', function () {
+  describe('function & column selection', () => {
     let onApply!: jest.Mock;
-    beforeEach(function () {
+    beforeEach(() => {
       onApply = jest.fn();
     });
 
-    it('restricts column choices', async function () {
+    it('restricts column choices', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -305,7 +305,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(menuOptionsText).not.toContain('title');
     });
 
-    it('shows no options for parameterless functions', async function () {
+    it('shows no options for parameterless functions', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -319,7 +319,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(screen.getByTestId('blankSpace')).toBeInTheDocument();
     });
 
-    it('shows additional inputs for multi-parameter functions', async function () {
+    it('shows additional inputs for multi-parameter functions', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -339,7 +339,7 @@ describe('Discover -> ColumnEditModal', function () {
       ).toBeInTheDocument();
     });
 
-    it('handles scalar field parameters', async function () {
+    it('handles scalar field parameters', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -363,7 +363,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
     });
 
-    it('handles parameter overrides', async function () {
+    it('handles parameter overrides', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -380,7 +380,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
     });
 
-    it('clears unused parameters', async function () {
+    it('clears unused parameters', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -407,7 +407,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('clears all unused parameters', async function () {
+    it('clears all unused parameters', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -434,7 +434,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('clears all unused parameters with count_if to two parameter function', async function () {
+    it('clears all unused parameters with count_if to two parameter function', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -461,7 +461,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('clears all unused parameters with count_if to one parameter function', async function () {
+    it('clears all unused parameters with count_if to one parameter function', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -488,7 +488,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('clears all unused parameters with count_if to parameterless function', async function () {
+    it('clears all unused parameters with count_if to parameterless function', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -514,7 +514,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('updates equation errors when they change', async function () {
+    it('updates equation errors when they change', async () => {
       mountModal(
         {
           columns: [
@@ -545,7 +545,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(await screen.findByText('Maximum operators exceeded')).toBeInTheDocument();
     });
 
-    it('resets required field to previous value if cleared', async function () {
+    it('resets required field to previous value if cleared', async () => {
       const initialColumnVal = '0.6';
       mountModal(
         {
@@ -582,7 +582,7 @@ describe('Discover -> ColumnEditModal', function () {
       ]);
     });
 
-    it('chooses the correct default parameters for the errors dataset', async function () {
+    it('chooses the correct default parameters for the errors dataset', async () => {
       mountModal(
         {
           columns: [
@@ -607,7 +607,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(screen.getByDisplayValue('error')).toBeInTheDocument();
     });
 
-    it('chooses the correct default count_if parameters for the transactions dataset', async function () {
+    it('chooses the correct default count_if parameters for the transactions dataset', async () => {
       mountModal(
         {
           columns: [
@@ -633,12 +633,12 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('equation automatic update', function () {
+  describe('equation automatic update', () => {
     let onApply!: jest.Mock;
-    beforeEach(function () {
+    beforeEach(() => {
       onApply = jest.fn();
     });
-    it('update simple equation columns when they change', async function () {
+    it('update simple equation columns when they change', async () => {
       mountModal(
         {
           columns: [
@@ -673,7 +673,7 @@ describe('Discover -> ColumnEditModal', function () {
         {kind: 'equation', field: '(p95() / count_if(user,equals,300)  ) *   100'},
       ]);
     });
-    it('update equation with repeated columns when they change', async function () {
+    it('update equation with repeated columns when they change', async () => {
       mountModal(
         {
           columns: [
@@ -704,7 +704,7 @@ describe('Discover -> ColumnEditModal', function () {
         {kind: 'equation', field: 'count() +  (count() - count()) * 5'},
       ]);
     });
-    it('handles equations with duplicate fields', async function () {
+    it('handles equations with duplicate fields', async () => {
       mountModal(
         {
           columns: [
@@ -740,7 +740,7 @@ describe('Discover -> ColumnEditModal', function () {
         {kind: 'equation', field: 'spans.db - spans.db'},
       ]);
     });
-    it('handles equations with duplicate functions', async function () {
+    it('handles equations with duplicate functions', async () => {
       mountModal(
         {
           columns: [
@@ -775,7 +775,7 @@ describe('Discover -> ColumnEditModal', function () {
         {kind: 'equation', field: 'count() - count()'},
       ]);
     });
-    it('handles incomplete equations', async function () {
+    it('handles incomplete equations', async () => {
       mountModal(
         {
           columns: [
@@ -812,8 +812,8 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('adding rows', function () {
-    it('allows rows to be added, async but only up to 20', async function () {
+  describe('adding rows', () => {
+    it('allows rows to be added, async but only up to 20', async () => {
       mountModal(
         {
           columns: [columns[0]!],
@@ -833,8 +833,8 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('removing rows', function () {
-    it('allows rows to be removed, async but not the last one', async function () {
+  describe('removing rows', () => {
+    it('allows rows to be removed, async but not the last one', async () => {
       mountModal(
         {
           columns: [columns[0]!, columns[1]!],
@@ -856,7 +856,7 @@ describe('Discover -> ColumnEditModal', function () {
         screen.queryByRole('button', {name: 'Drag to reorder'})
       ).not.toBeInTheDocument();
     });
-    it('does not count equations towards the count of rows', async function () {
+    it('does not count equations towards the count of rows', async () => {
       mountModal(
         {
           columns: [
@@ -880,7 +880,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(screen.getByRole('button', {name: 'Remove column'})).toBeInTheDocument();
       expect(screen.queryAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(2);
     });
-    it('handles equations being deleted', async function () {
+    it('handles equations being deleted', async () => {
       mountModal(
         {
           columns: [
@@ -907,9 +907,9 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('apply action', function () {
+  describe('apply action', () => {
     const onApply = jest.fn();
-    it('reflects added and removed columns', async function () {
+    it('reflects added and removed columns', async () => {
       mountModal(
         {
           columns: [columns[0]!, columns[1]!],
@@ -934,8 +934,8 @@ describe('Discover -> ColumnEditModal', function () {
     });
   });
 
-  describe('custom performance metrics', function () {
-    it('allows selecting custom performance metrics in dropdown', async function () {
+  describe('custom performance metrics', () => {
+    it('allows selecting custom performance metrics in dropdown', async () => {
       render(
         <ColumnEditModal
           CloseButton={makeCloseButton(() => {})}

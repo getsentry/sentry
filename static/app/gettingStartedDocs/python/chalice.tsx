@@ -1,18 +1,20 @@
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -29,6 +31,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -72,58 +80,77 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:chalice] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[chalice]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:chalice] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[chalice]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t('To verify that everything is working trigger an error on purpose:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify that everything is working trigger an error on purpose:'),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getVerifySnippet(),
         },
-      ],
-      additionalInfo: tct(
-        'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
+        getVerifyLogsContent(params),
         {
-          code: <code />,
-        }
-      ),
+          type: 'text',
+          text: tct(
+            'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+      ],
     },
   ],
 };
+
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[chalice]',
+});
 
 const docs: Docs = {
   onboarding,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[chalice]'}),
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

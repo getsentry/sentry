@@ -38,8 +38,8 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-describe('ProjectAlertsCreate', function () {
-  beforeEach(function () {
+describe('ProjectAlertsCreate', () => {
+  beforeEach(() => {
     TeamStore.init();
     TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
@@ -84,7 +84,7 @@ describe('ProjectAlertsCreate', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
@@ -109,7 +109,7 @@ describe('ProjectAlertsCreate', function () {
             organization={organization}
             project={project}
             location={LocationFixture({
-              pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
+              pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
               query: {createFromWizard: 'true'},
               ...location,
             })}
@@ -130,13 +130,13 @@ describe('ProjectAlertsCreate', function () {
     };
   };
 
-  it('adds default parameters if wizard was skipped', async function () {
+  it('adds default parameters if wizard was skipped', async () => {
     const location = {query: {}};
     const wrapper = createWrapper(undefined, location);
     await waitFor(() => {
       expect(wrapper.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/alerts/new/metric/',
+          pathname: '/organizations/org-slug/issues/alerts/new/metric/',
           query: {
             aggregate: 'count()',
             dataset: 'events',
@@ -148,8 +148,8 @@ describe('ProjectAlertsCreate', function () {
     });
   });
 
-  describe('Issue Alert', function () {
-    it('loads default values', async function () {
+  describe('Issue Alert', () => {
+    it('loads default values', async () => {
       createWrapper();
       expect(await screen.findByText('All Environments')).toBeInTheDocument();
       expect(await screen.findByText('any')).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('ProjectAlertsCreate', function () {
       expect(await screen.findByText('24 hours')).toBeInTheDocument();
     });
 
-    it('can remove filters', async function () {
+    it('can remove filters', async () => {
       createWrapper();
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
@@ -200,7 +200,7 @@ describe('ProjectAlertsCreate', function () {
       });
     });
 
-    it('can remove triggers', async function () {
+    it('can remove triggers', async () => {
       const {organization} = createWrapper();
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
@@ -259,7 +259,7 @@ describe('ProjectAlertsCreate', function () {
       });
     });
 
-    it('can remove actions', async function () {
+    it('can remove actions', async () => {
       createWrapper();
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
@@ -302,10 +302,10 @@ describe('ProjectAlertsCreate', function () {
       });
     });
 
-    describe('updates and saves', function () {
+    describe('updates and saves', () => {
       let mock: any;
 
-      beforeEach(function () {
+      beforeEach(() => {
         mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
@@ -313,11 +313,11 @@ describe('ProjectAlertsCreate', function () {
         });
       });
 
-      afterEach(function () {
+      afterEach(() => {
         jest.clearAllMocks();
       });
 
-      it('environment, async action and filter match', async function () {
+      it('environment, async action and filter match', async () => {
         const wrapper = createWrapper();
 
         // Change target environment
@@ -361,12 +361,12 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
 
-      it('new condition', async function () {
+      it('new condition', async () => {
         const wrapper = createWrapper();
 
         // Change name of alert rule
@@ -416,12 +416,12 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
 
-      it('new filter', async function () {
+      it('new filter', async () => {
         const wrapper = createWrapper();
 
         // Change name of alert rule
@@ -465,12 +465,12 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
 
-      it('new action', async function () {
+      it('new action', async () => {
         const wrapper = createWrapper();
 
         // Change name of alert rule
@@ -511,7 +511,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
-            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
           );
         });
       });
@@ -683,7 +683,7 @@ describe('ProjectAlertsCreate', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays noisy alert checkbox for no conditions + filters', async function () {
+  it('displays noisy alert checkbox for no conditions + filters', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/',
       method: 'POST',
@@ -720,7 +720,7 @@ describe('ProjectAlertsCreate', function () {
     );
   });
 
-  it('does not display noisy alert banner for legacy integrations', async function () {
+  it('does not display noisy alert banner for legacy integrations', async () => {
     createWrapper();
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
@@ -741,7 +741,7 @@ describe('ProjectAlertsCreate', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays duplicate error banner with link', async function () {
+  it('displays duplicate error banner with link', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/',
       method: 'POST',
@@ -764,7 +764,7 @@ describe('ProjectAlertsCreate', function () {
     expect(bannerLink).toBeInTheDocument();
     expect(bannerLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/alerts/rules/project-slug/1337/details/'
+      '/organizations/org-slug/issues/alerts/rules/project-slug/1337/details/'
     );
   });
 });

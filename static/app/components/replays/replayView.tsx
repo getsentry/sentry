@@ -6,6 +6,11 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/components/replays/jetpackComposePiiNotice';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -23,12 +28,6 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import ReplayViewScale from 'sentry/views/replays/detail/replayViewScale';
-import {
-  JetpackComposePiiNotice,
-  useNeedsJetpackComposePiiNotice,
-} from 'sentry/views/replays/jetpackComposePiiNotice';
-
-import {CanvasSupportNotice} from './canvasSupportNotice';
 
 type Props = {
   isLoading: boolean;
@@ -75,7 +74,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                         ),
                       }
                     )}
-                    size={'sm'}
+                    size="sm"
                   />
                 ) : null}
                 <ScreenNameInputContainer>
@@ -106,7 +105,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
               </Panel>
             </FluidHeight>
           ) : !isFetching && replay?.hasProcessingErrors() ? (
-            <ReplayProcessingError processingErrors={replay.processingErrors()} />
+            <ReplayProcessingError />
           ) : (
             <FluidHeight>
               {isVideoReplay && needsJetpackComposePiiWarning ? (

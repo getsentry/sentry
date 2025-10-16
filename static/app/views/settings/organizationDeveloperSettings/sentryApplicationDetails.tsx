@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -41,12 +41,11 @@ import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -164,9 +163,7 @@ export default function SentryApplicationDetails(props: Props) {
   const {appSlug} = props.params;
   const {router, location} = props;
   const organization = useOrganization();
-  const [form] = useState<SentryAppFormModel>(
-    () => new SentryAppFormModel({mapFormErrors})
-  );
+  const [form] = useState<SentryAppFormModel>(() => new SentryAppFormModel());
 
   const isEditingApp = !!appSlug;
 
@@ -411,6 +408,7 @@ export default function SentryApplicationDetails(props: Props) {
           onSubmitSuccess={handleSubmitSuccess}
           onSubmitError={handleSubmitError}
           onFieldChange={onFieldChange}
+          mapFormErrors={mapFormErrors}
         >
           <Observer>
             {() => {
@@ -462,11 +460,7 @@ export default function SentryApplicationDetails(props: Props) {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID">
-                    {({value, id}: any) => (
-                      <TextCopyInput id={id}>
-                        {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
-                      </TextCopyInput>
-                    )}
+                    {({value, id}: any) => <TextCopyInput id={id}>{value}</TextCopyInput>}
                   </FormField>
                 )}
                 <FormField
@@ -485,9 +479,7 @@ export default function SentryApplicationDetails(props: Props) {
                           'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
                         )}
                       >
-                        <TextCopyInput id={id}>
-                          {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
-                        </TextCopyInput>
+                        <TextCopyInput id={id}>{value}</TextCopyInput>
                       </Tooltip>
                     ) : (
                       <ClientSecret>

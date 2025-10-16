@@ -322,7 +322,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=2,
         )
 
-        with self.feature([*self.features, "organizations:global-views"]):
+        with self.feature([*self.features]):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -347,7 +347,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.EVENTS_PER_QUERY", 2)
-    def test_two_projects_same_transaction_split_queries(self, mock_detect_breakpoints):
+    def test_two_projects_same_transaction_split_queries(self, mock_detect_breakpoints) -> None:
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=self.org)
 
@@ -389,7 +389,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=2,
         )
 
-        with self.feature([*self.features, "organizations:global-views"]):
+        with self.feature([*self.features]):
             response = self.client.get(
                 self.url,
                 format="json",

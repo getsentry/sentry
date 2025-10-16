@@ -12,8 +12,8 @@ import {
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
-describe('getHighlightContextData', function () {
-  it('returns only highlight context data', function () {
+describe('getHighlightContextData', () => {
+  it('returns only highlight context data', () => {
     const {organization, project} = initializeOrg();
     const event = EventFixture({
       contexts: TEST_EVENT_CONTEXTS,
@@ -64,8 +64,8 @@ describe('getHighlightContextData', function () {
   });
 });
 
-describe('getHighlightTagData', function () {
-  it('returns only highlight tag data', function () {
+describe('getHighlightTagData', () => {
+  it('returns only highlight tag data', () => {
     const event = EventFixture({
       tags: TEST_EVENT_TAGS,
     });
@@ -86,8 +86,8 @@ describe('getHighlightTagData', function () {
   });
 });
 
-describe('getRuntimeLabel', function () {
-  it('returns null for non-JavaScript SDK events', function () {
+describe('getRuntimeLabel', () => {
+  it('returns null for non-JavaScript SDK events', () => {
     const event = EventFixture({
       type: 'error',
       sdk: {name: 'python'},
@@ -96,7 +96,7 @@ describe('getRuntimeLabel', function () {
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 
-  it('returns null for javascript issues without context information', function () {
+  it('returns null for javascript issues without context information', () => {
     const event = EventFixture({
       type: 'error',
       sdk: {name: 'javascript'},
@@ -105,7 +105,7 @@ describe('getRuntimeLabel', function () {
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 
-  it('returns inferred runtime from browser context', function () {
+  it('returns inferred runtime from browser context', () => {
     const frontendEvent = EventFixture({
       type: 'error',
       sdk: {name: 'javascript'},
@@ -144,7 +144,7 @@ describe('getRuntimeLabel', function () {
     }
   );
 
-  it('returns null when no runtime can be determined', function () {
+  it('returns null when no runtime can be determined', () => {
     const event = EventFixture({
       type: 'error',
       sdk: {name: 'javascript'},
@@ -154,7 +154,7 @@ describe('getRuntimeLabel', function () {
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 
-  it('returns null when it is not an error event', function () {
+  it('returns null when it is not an error event', () => {
     const event = EventFixture({
       type: 'transaction',
       sdk: {name: 'javascript'},

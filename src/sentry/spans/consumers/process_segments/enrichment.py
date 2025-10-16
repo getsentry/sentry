@@ -1,34 +1,40 @@
 from collections import defaultdict
-from typing import Any, NotRequired
+from collections.abc import Sequence
+from typing import Any
 
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import MeasurementValue, SegmentSpan
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-# Keys in `sentry_tags` that are shared across all spans in a segment. This list
+from sentry.spans.consumers.process_segments.types import Attribute, attribute_value, get_span_op
+
+# Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
-SHARED_TAG_KEYS = (
-    "release",
-    "user",
-    "user.id",
-    "user.ip",
-    "user.username",
-    "user.email",
-    "user.geo.country_code",
-    "user.geo.subregion",
-    "environment",
-    "transaction",
-    "transaction.method",
-    "transaction.op",
-    "trace.status",
-    "mobile",
-    "os.name",
-    "device.class",
-    "browser.name",
-    "profiler_id",
-    "sdk.name",
-    "sdk.version",
-    "platform",
-    "thread.id",
-    "thread.name",
+SHARED_SENTRY_ATTRIBUTES = (
+    "sentry.release",
+    "sentry.user",
+    "sentry.user.id",
+    "sentry.user.ip",
+    "sentry.user.username",
+    "sentry.user.email",
+    "sentry.user.geo.city",
+    "sentry.user.geo.country_code",
+    "sentry.user.geo.region",
+    "sentry.user.geo.subdivision",
+    "sentry.user.geo.subregion",
+    "sentry.environment",
+    "sentry.transaction",
+    "sentry.transaction.method",
+    "sentry.transaction.op",
+    "sentry.trace.status",
+    "sentry.mobile",
+    "sentry.os.name",
+    "sentry.device.class",
+    "sentry.browser.name",
+    "sentry.profiler_id",
+    "sentry.sdk.name",
+    "sentry.sdk.version",
+    "sentry.platform",
+    "sentry.thread.id",
+    "sentry.thread.name",
 )
 
 # The name of the main thread used to infer the `main_thread` flag in spans from
@@ -41,28 +47,7 @@ MOBILE_MAIN_THREAD_NAME = "main"
 DEFAULT_SPAN_OP = "default"
 
 
-class Span(SegmentSpan, total=True):
-    """
-    Enriched version of the incoming span payload that has additional attributes
-    extracted.
-    """
-
-    # Added in enrichment
-    exclusive_time: float
-    exclusive_time_ms: float
-    op: str
-
-    sentry_tags: dict[str, Any]  # type: ignore[misc]  # XXX: fix w/ TypedDict extra_items once available
-
-    # XXX: unclear where this comes from as it's not from enrichment!
-    hash: NotRequired[str]
-
-
-def _get_span_op(span: SegmentSpan) -> str:
-    return span.get("sentry_tags", {}).get("op") or DEFAULT_SPAN_OP
-
-
-def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
+def _find_segment_span(spans: list[SpanEvent]) -> SpanEvent | None:
     """
     Finds the segment in the span in the list that has ``is_segment`` set to
     ``True``.
@@ -75,14 +60,16 @@ def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
 
     # Iterate backwards since we usually expect the segment span to be at the end.
     for span in reversed(spans):
-        if span.get("is_segment"):
+        if attribute_value(span, "sentry.is_segment"):
             return span
 
     return None
 
 
-class Enricher:
-    def __init__(self, spans: list[SegmentSpan]) -> None:
+class TreeEnricher:
+    """Enriches spans with information from their parent, child and sibling spans."""
+
+    def __init__(self, spans: list[SpanEvent]) -> None:
         self._segment_span = _find_segment_span(spans)
 
         self._ttid_ts = _timestamp_by_op(spans, "ui.load.initial_display")
@@ -94,39 +81,52 @@ class Enricher:
                 interval = _span_interval(span)
                 self._span_map.setdefault(parent_span_id, []).append(interval)
 
-    def _sentry_tags(self, span: SegmentSpan) -> dict[str, Any]:
-        ret = {**span.get("sentry_tags", {})}
+    def _attributes(self, span: SpanEvent) -> dict[str, Any]:
+        attributes: dict[str, Any] = {**(span.get("attributes") or {})}
+
+        def get_value(key: str) -> Any:
+            attr: dict[str, Any] = attributes.get(key) or {}
+            return attr.get("value")
+
         if self._segment_span is not None:
-            # Assume that Relay has extracted the shared tags into `sentry_tags` on the
+            # Assume that Relay has extracted the shared tags into `data` on the
             # root span. Once `sentry_tags` is removed, the logic from
             # `extract_shared_tags` should be moved here.
-            segment_tags = self._segment_span.get("sentry_tags", {})
-            shared_tags = {k: v for k, v in segment_tags.items() if k in SHARED_TAG_KEYS}
+            segment_attrs = self._segment_span.get("attributes") or {}
+            shared_attrs = {k: v for k, v in segment_attrs.items() if k in SHARED_SENTRY_ATTRIBUTES}
 
-            is_mobile = segment_tags.get("mobile") == "true"
+            is_mobile = attribute_value(self._segment_span, "sentry.mobile") == "true"
             mobile_start_type = _get_mobile_start_type(self._segment_span)
 
             if is_mobile:
                 # NOTE: Like in Relay's implementation, shared tags are added at the
                 # very end. This does not have access to the shared tag value. We
                 # keep behavior consistent, although this should be revisited.
-                if ret.get("thread.name") == MOBILE_MAIN_THREAD_NAME:
-                    ret["main_thread"] = "true"
-                if not ret.get("app_start_type") and mobile_start_type:
-                    ret["app_start_type"] = mobile_start_type
+                if get_value("sentry.thread.name") == MOBILE_MAIN_THREAD_NAME:
+                    attributes["sentry.main_thread"] = {"type": "string", "value": "true"}
+                if not get_value("sentry.app_start_type") and mobile_start_type:
+                    attributes["sentry.app_start_type"] = {
+                        "type": "string",
+                        "value": mobile_start_type,
+                    }
 
-            if self._ttid_ts is not None and span["end_timestamp_precise"] <= self._ttid_ts:
-                ret["ttid"] = "ttid"
-            if self._ttfd_ts is not None and span["end_timestamp_precise"] <= self._ttfd_ts:
-                ret["ttfd"] = "ttfd"
+            if self._ttid_ts is not None and span["end_timestamp"] <= self._ttid_ts:  # type: ignore[operator]  # checked in process-spans
+                attributes["sentry.ttid"] = {"type": "string", "value": "ttid"}
+            if self._ttfd_ts is not None and span["end_timestamp"] <= self._ttfd_ts:  # type: ignore[operator]  # checked in process-spans
+                attributes["sentry.ttfd"] = {"type": "string", "value": "ttfd"}
 
-            for key, value in shared_tags.items():
-                if ret.get(key) is None:
-                    ret[key] = value
+            for key, value in shared_attrs.items():
+                if attributes.get(key) is None:
+                    attributes[key] = value
 
-        return ret
+        attributes["sentry.exclusive_time_ms"] = {
+            "type": "double",
+            "value": self._exclusive_time(span),
+        }
 
-    def _exclusive_time(self, span: SegmentSpan) -> float:
+        return attributes
+
+    def _exclusive_time(self, span: SpanEvent) -> float:
         """
         Sets the exclusive time on all spans in the list.
 
@@ -134,7 +134,7 @@ class Enricher:
         of all time intervals where no child span was active.
         """
 
-        intervals = self._span_map.get(span["span_id"], [])
+        intervals = self._span_map.get(span["span_id"], [])  # type: ignore[arg-type]  # checked in process-spans
         # Sort by start ASC, end DESC to skip over nested intervals efficiently
         intervals.sort(key=lambda x: (x[0], -x[1]))
 
@@ -154,65 +154,54 @@ class Enricher:
 
         return exclusive_time_us / 1_000
 
-    def enrich_span(self, span: SegmentSpan) -> Span:
-        exclusive_time = self._exclusive_time(span)
+    def enrich_span(self, span: SpanEvent) -> SpanEvent:
+        attributes = self._attributes(span)
         return {
             **span,
-            # Creates attributes for EAP spans that are required by logic shared with the
-            # event pipeline.
-            #
-            # Spans in the transaction event protocol had a slightly different schema
-            # compared to raw spans on the EAP topic. This function adds the missing
-            # attributes to the spans to make them compatible with the event pipeline
-            # logic.
-            "sentry_tags": self._sentry_tags(span),
-            "op": _get_span_op(span),
-            # Note: Event protocol spans expect `exclusive_time` while EAP expects
-            # `exclusive_time_ms`. Both are the same value in milliseconds
-            "exclusive_time": exclusive_time,
-            "exclusive_time_ms": exclusive_time,
+            "attributes": attributes,
         }
 
     @classmethod
-    def enrich_spans(cls, spans: list[SegmentSpan]) -> tuple[Span | None, list[Span]]:
+    def enrich_spans(cls, spans: list[SpanEvent]) -> tuple[int | None, list[SpanEvent]]:
         inst = cls(spans)
         ret = []
-        segment_span = None
+        segment_idx = None
 
-        for span in spans:
+        for i, span in enumerate(spans):
             enriched = inst.enrich_span(span)
             if span is inst._segment_span:
-                segment_span = enriched
+                segment_idx = i
             ret.append(enriched)
 
-        return segment_span, ret
+        return segment_idx, ret
 
 
-def _get_mobile_start_type(segment: SegmentSpan) -> str | None:
+def _get_mobile_start_type(segment: SpanEvent) -> str | None:
     """
     Check the measurements on the span to determine what kind of start type the
     event is.
     """
-    measurements = segment.get("measurements") or {}
+    attributes = segment.get("attributes") or {}
 
-    if "app_start_cold" in measurements:
+    if "app_start_cold" in attributes:
         return "cold"
-    if "app_start_warm" in measurements:
+    if "app_start_warm" in attributes:
         return "warm"
 
     return None
 
 
-def _timestamp_by_op(spans: list[SegmentSpan], op: str) -> float | None:
+def _timestamp_by_op(spans: list[SpanEvent], op: str) -> float | None:
     for span in spans:
-        if _get_span_op(span) == op:
-            return span["end_timestamp_precise"]
+        if get_span_op(span) == op:
+            return span["end_timestamp"]
     return None
 
 
-def _span_interval(span: SegmentSpan) -> tuple[int, int]:
+def _span_interval(span: SpanEvent) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
-    return _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
+
+    return _us(span["start_timestamp"]), _us(span["end_timestamp"])  # type: ignore[arg-type]  # checked in process-spans
 
 
 def _us(timestamp: float) -> int:
@@ -221,11 +210,10 @@ def _us(timestamp: float) -> int:
     return int(timestamp * 1_000_000)
 
 
-def segment_span_measurement_updates(
-    segment: Span,
-    spans: list[SegmentSpan],
+def compute_breakdowns(
+    spans: Sequence[SpanEvent],
     breakdowns_config: dict[str, dict[str, Any]],
-) -> dict[str, MeasurementValue]:
+) -> dict[str, Attribute]:
     """
     Computes breakdowns from all spans and writes them to the segment span.
 
@@ -234,7 +222,7 @@ def segment_span_measurement_updates(
     are converted into attributes on the span trace item.
     """
 
-    ret = {}
+    ret: dict[str, Attribute] = {}
     for breakdown_name, breakdown_config in breakdowns_config.items():
         ty = breakdown_config.get("type")
 
@@ -244,27 +232,27 @@ def segment_span_measurement_updates(
             continue
 
         for key, value in breakdowns.items():
-            ret[f"{breakdown_name}.{key}"] = value
+            ret[f"{breakdown_name}.{key}"] = {"value": value, "type": "double"}
 
     return ret
 
 
-def _compute_span_ops(spans: list[SegmentSpan], config: Any) -> dict[str, MeasurementValue]:
+def _compute_span_ops(spans: Sequence[SpanEvent], config: Any) -> dict[str, float]:
     matches = config.get("matches")
     if not matches:
         return {}
 
     intervals_by_op = defaultdict(list)
     for span in spans:
-        op = _get_span_op(span)
+        op = get_span_op(span)
         if operation_name := next(filter(lambda m: op.startswith(m), matches), None):
             intervals_by_op[operation_name].append(_span_interval(span))
 
-    measurements: dict[str, MeasurementValue] = {}
+    ret: dict[str, float] = {}
     for operation_name, intervals in intervals_by_op.items():
         duration = _get_duration_us(intervals)
-        measurements[f"ops.{operation_name}"] = {"value": duration / 1000, "unit": "millisecond"}
-    return measurements
+        ret[f"ops.{operation_name}"] = duration / 1000  # unit: millisecond
+    return ret
 
 
 def _get_duration_us(intervals: list[tuple[int, int]]) -> int:

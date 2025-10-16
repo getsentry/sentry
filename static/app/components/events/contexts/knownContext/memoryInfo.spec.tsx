@@ -37,8 +37,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('MemoryInfoContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('MemoryInfoContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getMemoryInfoContext({data: MOCK_MEMORY_INFO_CONTEXT})).toEqual([
       {key: 'allocated_bytes', subject: 'Allocated Bytes', value: '1.0 MiB'},
       {key: 'fragmented_bytes', subject: 'Fragmented Bytes', value: '2.0 MiB'},
@@ -83,7 +83,7 @@ describe('MemoryInfoContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {memory_info: MOCK_REDACTION}},
     });
@@ -91,8 +91,8 @@ describe('MemoryInfoContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'memory_info'}
-        alias={'memory_info'}
+        type="memory_info"
+        alias="memory_info"
         value={{...MOCK_MEMORY_INFO_CONTEXT, pinned_objects_count: ''}}
       />
     );

@@ -15,7 +15,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigOptions,
@@ -28,7 +28,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -52,7 +55,7 @@ const getDynamicParts = (params: Params): string[] => {
 
   if (params.isLogsSelected) {
     dynamicParts.push(`
-      // Logs
+      // Enable logs to be sent to Sentry
       enableLogs: true`);
   }
 
@@ -122,9 +125,29 @@ root.render(<App />);
 `;
 };
 
-const getVerifySnippet = () => `
-return <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>;
-`;
+const getVerifySnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `
+        // Send a log before throwing the error
+        Sentry.logger.info('User triggered test error', {
+          action: 'test_error_button_click',
+        });`
+    : '';
+
+  return `import * as Sentry from '@sentry/react';
+// Add this button component to your app to test Sentry's error tracking
+function ErrorButton() {
+  return (
+    <button
+      onClick={() => {${logsCode}
+        throw new Error('This is your first error!');
+      }}
+    >
+      Break the world
+    </button>
+  );
+}`;
+};
 
 const installSnippetBlock: ContentBlock = {
   type: 'code',
@@ -296,8 +319,8 @@ Sentry.init({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
 });
 \`\`\`
@@ -326,7 +349,7 @@ logger.fatal("Database connection pool exhausted", {
 `,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -342,7 +365,7 @@ logger.fatal("Database connection pool exhausted", {
             {
               label: 'React',
               language: 'javascript',
-              code: getVerifySnippet(),
+              code: getVerifySnippet(params),
             },
           ],
         },
@@ -359,15 +382,18 @@ logger.fatal("Database connection pool exhausted", {
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
       },
-      {
+    ];
+
+    if (params.isPerformanceSelected) {
+      steps.push({
         id: 'react-router',
         name: t('React Router'),
         description: t(
-          'Configure routing, so Sentry can generate parameterized transaction names for a better overview on the Performance page.'
+          'Configure routing, so Sentry can generate parameterized route names for better grouping of tracing data.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
-      },
-    ];
+      });
+    }
 
     if (params.isLogsSelected) {
       steps.push({
@@ -474,7 +500,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -524,7 +550,7 @@ Sentry.init({
   // We recommend adjusting this value in production
   tracesSampleRate: 1.0,
   // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
 });
 
 ReactDOM.render(<App />, document.getElementById("root"));
@@ -609,6 +635,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
     'https://docs.sentry.io/platforms/javascript/guides/react/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'react',
+  sdkPackage: '@sentry/react',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -616,6 +648,7 @@ const docs: Docs = {
   performanceOnboarding,
   crashReportOnboarding,
   profilingOnboarding,
+  logsOnboarding,
   featureFlagOnboarding,
 };
 

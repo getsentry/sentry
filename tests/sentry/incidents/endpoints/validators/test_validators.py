@@ -1,8 +1,14 @@
 from unittest import mock
 
-from rest_framework.exceptions import ErrorDetail
+import orjson
+import pytest
+from rest_framework.exceptions import ErrorDetail, ValidationError
+from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
+from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
@@ -11,10 +17,12 @@ from sentry.incidents.metric_issue_detector import (
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
+from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
+    StoreDataResponse,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -23,6 +31,8 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -154,6 +164,30 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
+        self.valid_anomaly_detection_data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.ANOMALY_DETECTION,
+                        "comparison": {
+                            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                            "seasonality": AnomalyDetectionSeasonality.AUTO,
+                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+                        },
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+            },
+        }
 
     def assert_validated(self, detector):
         detector = Detector.objects.get(id=detector.id)
@@ -183,8 +217,11 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert snuba_query.environment == self.environment
         assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
 
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit: mock.MagicMock) -> None:
+    def test_create_with_valid_data(
+        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+    ) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.valid_data,
             context=self.context,
@@ -217,35 +254,20 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
+        mock_schedule_update_project_config.assert_called_once_with(detector)
 
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_anomaly_detection(self, mock_audit: mock.MagicMock) -> None:
-        data = {
-            **self.valid_data,
-            "conditionGroup": {
-                "id": self.data_condition_group.id,
-                "organizationId": self.organization.id,
-                "logicType": self.data_condition_group.logic_type,
-                "conditions": [
-                    {
-                        "type": Condition.ANOMALY_DETECTION,
-                        "comparison": {
-                            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-                            "seasonality": AnomalyDetectionSeasonality.AUTO,
-                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-                        },
-                        "conditionResult": DetectorPriorityLevel.HIGH,
-                        "conditionGroupId": self.data_condition_group.id,
-                    },
-                ],
-            },
-            "config": {
-                "threshold_period": 1,
-                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-            },
-        }
+    def test_anomaly_detection(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
         validator = MetricIssueDetectorValidator(
-            data=data,
+            data=self.valid_anomaly_detection_data,
             context=self.context,
         )
         assert validator.is_valid(), validator.errors
@@ -255,6 +277,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         # Verify detector in DB
         self.assert_validated(detector)
+
+        assert mock_seer_request.call_count == 1
 
         # Verify condition group in DB
         condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
@@ -314,13 +338,60 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
         assert not validator.is_valid()
 
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection__send_historical_data_fails(
+        self, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that if the call to Seer fails that we do not create the detector, dcg, and data condition
+        """
+        from django.core.exceptions import ValidationError
+
+        mock_seer_request.side_effect = TimeoutError
+
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        DataConditionGroup.objects.all().delete()
+
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        detector = None
+        with self.tasks(), pytest.raises(ValidationError):
+            detector = validator.save()
+
+        assert not detector
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        assert DataConditionGroup.objects.all().count() == 0
+
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks(), pytest.raises(ValidationError):
+            detector = validator.save()
+
+        assert not detector
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        assert DataConditionGroup.objects.all().count() == 0
+
     def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
             ErrorDetail(
-                string="Unknown detector type 'invalid_type'. Must be one of: error", code="invalid"
+                string=get_unknown_detector_type_error("invalid_type", self.organization),
+                code="invalid",
             )
         ]
 
@@ -358,3 +429,48 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert validator.errors.get("nonFieldErrors") == [
             ErrorDetail(string="Too many conditions", code="invalid")
         ]
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_enforce_quota_feature_disabled(self, mock_get_limit: mock.MagicMock) -> None:
+        mock_get_limit.return_value = 0
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid()
+        assert validator.save()
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enforce_quota_within_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        mock_get_limit.return_value = 1
+
+        # Create a not-metric detector
+        self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            status=ObjectStatus.ACTIVE,
+        )
+        # Create 3 inactive detectors
+        for status in [
+            ObjectStatus.DISABLED,
+            ObjectStatus.PENDING_DELETION,
+            ObjectStatus.DELETION_IN_PROGRESS,
+        ]:
+            self.create_detector(
+                project_id=self.project.id,
+                name=f"Inactive Detector {status}",
+                type=MetricIssue.slug,
+                status=status,
+            )
+
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.save()
+        mock_get_limit.assert_called_once_with(self.project.organization.id)
+
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        validator.is_valid()
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Used 1/1 of allowed metric_issue monitors.",
+        ):
+            validator.save()

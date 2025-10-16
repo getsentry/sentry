@@ -22,6 +22,7 @@ const COLUMNS: Array<{
   {field: 'id', label: t('Event ID')},
   {field: 'title', label: t('Title')},
   {field: 'project', label: t('Issue')},
+  {field: 'level', label: t('Level')},
   {field: 'timestamp', label: t('Timestamp')},
 ];
 

@@ -51,7 +51,7 @@ const manageDetectorData = [
   },
 ];
 
-describe('projectPerformance', function () {
+describe('projectPerformance', () => {
   const org = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
@@ -67,7 +67,7 @@ describe('projectPerformance', function () {
     },
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     getMock = MockApiClient.addMockResponse({
       url: configUrl,
@@ -114,7 +114,7 @@ describe('projectPerformance', function () {
     });
   });
 
-  it('renders the fields', async function () {
+  it('renders the fields', async () => {
     render(<ProjectPerformance />, {
       initialRouterConfig,
     });
@@ -126,7 +126,7 @@ describe('projectPerformance', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('updates the field', async function () {
+  it('updates the field', async () => {
     render(<ProjectPerformance />, {
       initialRouterConfig,
     });
@@ -149,7 +149,7 @@ describe('projectPerformance', function () {
     expect(input).toHaveValue('400');
   });
 
-  it('clears the data', async function () {
+  it('clears the data', async () => {
     render(<ProjectPerformance />, {
       initialRouterConfig,
     });
@@ -158,7 +158,7 @@ describe('projectPerformance', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('renders detector threshold configuration - admin ui', async function () {
+  it('renders detector threshold configuration - admin ui', async () => {
     jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -252,7 +252,7 @@ describe('projectPerformance', function () {
     },
     {
       title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-      threshold: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+      threshold: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
       newValue: 5000000,
@@ -415,7 +415,7 @@ describe('projectPerformance', function () {
     }
   );
 
-  it('test reset all detector thresholds', async function () {
+  it('test reset all detector thresholds', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
@@ -453,7 +453,7 @@ describe('projectPerformance', function () {
 
   it.each(manageDetectorData)(
     'allows project admins to manage $label',
-    async function ({label, key}) {
+    async ({label, key}) => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
@@ -516,7 +516,7 @@ describe('projectPerformance', function () {
 
   it.each(manageDetectorData)(
     'does not allow non-admins to manage $label',
-    async function ({label}) {
+    async ({label}) => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',

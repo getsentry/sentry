@@ -1,9 +1,8 @@
 import zlib
+from typing import Any
 
 import msgpack
 import pytest
-from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.types import FilteredPayload, Message, Value
 
 from sentry.replays.consumers.recording import (
     DropSilently,
@@ -155,6 +154,7 @@ def test_parse_recording_event_success() -> None:
             "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         "payload_compressed": compressed_payload,
         "payload": original_payload,
@@ -202,6 +202,7 @@ def test_parse_recording_event_with_replay_event() -> None:
             "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         "payload_compressed": compressed_payload,
         "payload": original_payload,
@@ -290,7 +291,7 @@ def test_process_message_compressed() -> None:
     processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
-        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        actions_event=ParsedEventMeta([], [], [], [], [], [], [], []),
         context={
             "key_id": 1,
             "org_id": 3,
@@ -299,6 +300,7 @@ def test_process_message_compressed() -> None:
             "replay_id": "1",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         filedata=b"x\x9c\x8b\xaeV*\xa9,HU\xb2RP*I-.Q\xd2QPJI,I\x04\xf1\x8b\xf3sS\x15R\xcbR\xf3J\x14\xc0B\xb5\xb1\x00F\x9f\x0e\x8d",
         filename="30/4/1/42",
@@ -341,7 +343,7 @@ def test_process_message_uncompressed() -> None:
     processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
-        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        actions_event=ParsedEventMeta([], [], [], [], [], [], [], []),
         context={
             "key_id": 1,
             "org_id": 3,
@@ -350,6 +352,7 @@ def test_process_message_uncompressed() -> None:
             "replay_id": "1",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         filedata=b"x\x9c\x8b\xaeV*\xa9,HU\xb2RP*I-.Q\xd2QPJI,I\x04\xf1\x8b\xf3sS\x15R\xcbR\xf3J\x14\xc0B\xb5\xb1\x00F\x9f\x0e\x8d",
         filename="30/4/1/42",
@@ -392,7 +395,7 @@ def test_process_message_compressed_with_video() -> None:
     processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
-        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        actions_event=ParsedEventMeta([], [], [], [], [], [], [], []),
         context={
             "key_id": 1,
             "org_id": 3,
@@ -401,6 +404,7 @@ def test_process_message_compressed_with_video() -> None:
             "replay_id": "1",
             "retention_days": 30,
             "segment_id": 42,
+            "should_publish_replay_event": False,
         },
         filedata=zlib.compress(pack(original_payload, b"hello")),
         filename="30/4/1/42",
@@ -415,7 +419,7 @@ def test_process_message_compressed_with_video() -> None:
 
 def test_process_message_invalid_message() -> None:
     """Test "process_message" function with invalid message."""
-    assert process_message(make_kafka_message(b"")) == FilteredPayload()
+    assert process_message(make_kafka_message(b"")) is None
 
 
 def test_process_message_invalid_recording_json() -> None:
@@ -435,7 +439,7 @@ def test_process_message_invalid_recording_json() -> None:
     }
 
     kafka_message = make_kafka_message(message)
-    assert process_message(kafka_message) == FilteredPayload()
+    assert process_message(kafka_message) is None
 
 
 def test_process_message_invalid_headers() -> None:
@@ -455,7 +459,7 @@ def test_process_message_invalid_headers() -> None:
     }
 
     kafka_message = make_kafka_message(message)
-    assert process_message(kafka_message) == FilteredPayload()
+    assert process_message(kafka_message) is None
 
 
 def test_process_message_malformed_headers() -> None:
@@ -475,7 +479,7 @@ def test_process_message_malformed_headers() -> None:
     }
 
     kafka_message = make_kafka_message(message)
-    assert process_message(kafka_message) == FilteredPayload()
+    assert process_message(kafka_message) is None
 
 
 def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
@@ -495,7 +499,7 @@ def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     }
 
     kafka_message = make_kafka_message(message)
-    assert process_message(kafka_message) == FilteredPayload()
+    assert process_message(kafka_message) is None
 
 
 def test_process_message_no_headers() -> None:
@@ -515,8 +519,8 @@ def test_process_message_no_headers() -> None:
     }
 
     kafka_message = make_kafka_message(message)
-    assert process_message(kafka_message) == FilteredPayload()
+    assert process_message(kafka_message) is None
 
 
-def make_kafka_message(message) -> Message[KafkaPayload]:
-    return Message(Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {}))
+def make_kafka_message(message: bytes | dict[str, Any]) -> bytes:
+    return msgpack.packb(message)

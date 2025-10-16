@@ -59,7 +59,7 @@ class GroupRecordsTestCase(TestCase):
     notification_uuid = str(uuid.uuid4())
 
     @cached_property
-    def rule(self):
+    def rule(self) -> Rule:
         return self.project.rule_set.all()[0]
 
     def test_success(self) -> None:
@@ -134,23 +134,28 @@ class SplitKeyTestCase(TestCase):
         )
 
     def test_new_style_key_identifier(self) -> None:
-        identifier = "123"
+        identifier = 123
         assert split_key(
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
 
     def test_fallthrough_choice(self) -> None:
-        identifier = "123"
+        identifier = 123
         fallthrough_choice = FallthroughChoiceType.ALL_MEMBERS
         assert split_key(
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:{fallthrough_choice.value}"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, fallthrough_choice)
 
     def test_no_fallthrough_choice(self) -> None:
-        identifier = "123"
+        identifier = 123
         assert split_key(
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
+
+    def test_handles_none_identifier_gracefully(self) -> None:
+        assert split_key(
+            f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:None:"
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, "None", None)
 
 
 class UnsplitKeyTestCase(TestCase):
@@ -161,14 +166,14 @@ class UnsplitKeyTestCase(TestCase):
         )
 
     def test_no_fallthrough(self) -> None:
-        identifier = "123"
+        identifier = 123
         assert (
             unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
             == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
         )
 
     def test_identifier(self) -> None:
-        identifier = "123"
+        identifier = 123
         fallthrough_choice = FallthroughChoiceType.ALL_MEMBERS
         assert (
             unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, fallthrough_choice)

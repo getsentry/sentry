@@ -3,12 +3,12 @@ import {act, render} from 'sentry-test/reactTestingLibrary';
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-describe('withSentryAppComponents HoC', function () {
+describe('withSentryAppComponents HoC', () => {
   beforeEach(() => {
     SentryAppComponentsStore.init();
   });
 
-  it('handles components without a type', function () {
+  it('handles components without a type', () => {
     const MyComponent = jest.fn(() => null);
     const Container = withSentryAppComponents(MyComponent);
     render(<Container />);
@@ -42,7 +42,7 @@ describe('withSentryAppComponents HoC', function () {
     });
   });
 
-  it('handles components of a certain type', function () {
+  it('handles components of a certain type', () => {
     const MyComponent = jest.fn(() => null);
     const Container = withSentryAppComponents(MyComponent, {
       componentType: 'issue-link',

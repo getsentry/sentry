@@ -16,6 +16,7 @@ from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
+from .commitcomparison import *  # NOQA
 from .commitfilechange import *  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
@@ -48,7 +49,9 @@ from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
 from .groupmeta import *  # NOQA
 from .groupopenperiod import *  # NOQA
+from .groupopenperiodactivity import *  # NOQA
 from .groupowner import *  # NOQA
+from .groupreaction import *  # NOQA
 from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA

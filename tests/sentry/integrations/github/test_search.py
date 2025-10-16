@@ -6,6 +6,7 @@ import responses
 from django.urls import reverse
 
 from sentry.integrations.github.integration import build_repository_query
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
@@ -26,7 +27,7 @@ class GithubSearchTest(APITestCase):
     provider = "github"
     base_url = "https://api.github.com"
 
-    def _create_integration(self):
+    def _create_integration(self) -> Integration:
         future = datetime.now() + timedelta(hours=1)
         return self.create_provider_integration(
             provider=self.provider,

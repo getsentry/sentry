@@ -1,5 +1,5 @@
 ---
-created: '2025-06-23T19:43:13.727464+00:00'
+created: '2025-10-06T17:30:32.569927+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -24,9 +24,15 @@ variants:
   app:
     component:
       contributes: false
-      hint: custom server fingerprint takes precedence
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: app_stacktrace
     type: component
   custom_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_fingerprint
     matched_rule: function:"main" -> "{{ type }}{{ module }}{{ function }}"
     type: custom_fingerprint
     values:
@@ -36,5 +42,8 @@ variants:
   system:
     component:
       contributes: false
-      hint: custom server fingerprint takes precedence
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: system_stacktrace
     type: component

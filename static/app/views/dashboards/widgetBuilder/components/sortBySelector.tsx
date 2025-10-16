@@ -14,8 +14,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {SortBySelectors} from 'sentry/views/dashboards/widgetBuilder/buildSteps/sortByStep/sortBySelectors';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
+import {SortBySelectors} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -103,7 +103,6 @@ function WidgetBuilderSortBySelector() {
             <ResultsLimitSelector
               disabled={disableSortDirection && disableSort}
               name="resultsLimit"
-              menuPlacement="auto"
               options={[...new Array(maxLimit).keys()].map(resultLimit => {
                 const value = resultLimit + 1;
                 return {

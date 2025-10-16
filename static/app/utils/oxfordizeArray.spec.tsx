@@ -2,8 +2,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import oxfordizeArray, {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
-describe('oxfordizeArray', function () {
-  it('correctly formats lists of strings', function () {
+describe('oxfordizeArray', () => {
+  it('correctly formats lists of strings', () => {
     const zero: string[] = [];
     const one = ['A'];
     const two = ['A', 'B'];
@@ -18,8 +18,8 @@ describe('oxfordizeArray', function () {
   });
 });
 
-describe('Oxfordize', function () {
-  it('correctly formats lists of elements', function () {
+describe('Oxfordize', () => {
+  it('correctly formats lists of elements', () => {
     const items = [<i key="1">one</i>, <i key="2">two</i>, <i key="3">three</i>];
     render(<Oxfordize>{items}</Oxfordize>);
 
@@ -29,14 +29,14 @@ describe('Oxfordize', function () {
     expect(screen.getByText(/, and/)).toBeInTheDocument();
   });
 
-  it('correctly formats one element', function () {
+  it('correctly formats one element', () => {
     const items = ['one'];
     render(<Oxfordize>{items}</Oxfordize>);
 
     expect(screen.getByText('one')).toBeInTheDocument();
   });
 
-  it('correctly formats two elements', function () {
+  it('correctly formats two elements', () => {
     const items = ['one', <i key="2">two</i>];
     render(<Oxfordize>{items}</Oxfordize>);
 

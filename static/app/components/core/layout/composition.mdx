@@ -1,6 +1,12 @@
-# Composition
+---
+title: Layout Composition
+description: Learn how to compose layout components using render props and advanced patterns.
+layout: document
+---
 
-The layout components (`Container`, `Flex`, and `Grid`) support composition via render props - this allows you to apply layout styling to custom elements without creating extra DOM nodes.
+## Render Props
+
+When using the `Container`, `Flex`, and `Grid` elements, use **render props** to apply layout styling to custom elements without creating extra DOM nodes.
 
 ```tsx
 // ✅ Apply layout props to a single element
@@ -76,7 +82,7 @@ You can apply layout props to custom elements by passing a render function to th
 There are multiple ways to apply layout styling to a custom element, each has their tradeoffs. We have picked the render prop pattern becaseu we believe that it is
 the most type-safe and flexible way of applying component props to the child element.
 
-#### Type Safety
+### Type Safety
 
 The render prop system prevents invalid attributes from being passed to HTML elements:
 
@@ -93,7 +99,7 @@ The render prop system prevents invalid attributes from being passed to HTML ele
 // The aria-activedescendant prop is filtered out since it's invalid for <p>
 ```
 
-#### Prop Merging and Prop Selection
+### Prop Merging and Prop Selection
 
 The render prop system allows you to select which props to pass to the child element at runtime, and pick only a subset of the props that you need.
 

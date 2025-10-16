@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 
-from sentry.issues.grouptype import MonitorIncidentType
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.logic.incident_occurrence import (
     MONITORS_INCIDENT_OCCURRENCES,
     dispatch_incident_occurrence,
@@ -25,15 +25,13 @@ from sentry.monitors.models import (
     MonitorStatus,
     ScheduleType,
 )
+from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.testutils.cases import TestCase
 
 
 class IncidentOccurrenceTestCase(TestCase):
-    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
-    def test_send_incident_occurrence(
-        self, mock_produce_occurrence_to_kafka: mock.MagicMock
-    ) -> None:
-        monitor = Monitor.objects.create(
+    def build_occurrence_test_data(self):
+        self.monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -44,51 +42,56 @@ class IncidentOccurrenceTestCase(TestCase):
                 "checkin_margin": None,
             },
         )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
+        self.monitor_environment = MonitorEnvironment.objects.create(
+            monitor=self.monitor,
             environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
         )
 
-        successful_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
+        self.successful_checkin = MonitorCheckIn.objects.create(
+            monitor=self.monitor,
+            monitor_environment=self.monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
-        last_checkin = timezone.now()
-        trace_id = uuid.uuid4()
+        self.last_checkin = timezone.now()
+        self.trace_id = uuid.uuid4()
 
-        timeout_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
+        self.timeout_checkin = MonitorCheckIn.objects.create(
+            monitor=self.monitor,
+            monitor_environment=self.monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.TIMEOUT,
             trace_id=uuid.uuid4(),
-            date_added=last_checkin - timedelta(minutes=1),
+            date_added=self.last_checkin - timedelta(minutes=1),
         )
-        failed_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
+        self.failed_checkin = MonitorCheckIn.objects.create(
+            monitor=self.monitor,
+            monitor_environment=self.monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
-            trace_id=trace_id,
-            date_added=last_checkin,
+            trace_id=self.trace_id,
+            date_added=self.last_checkin,
         )
-        incident = MonitorIncident.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            starting_checkin=failed_checkin,
-            starting_timestamp=last_checkin,
+        self.incident = MonitorIncident.objects.create(
+            monitor=self.monitor,
+            monitor_environment=self.monitor_environment,
+            starting_checkin=self.failed_checkin,
+            starting_timestamp=self.last_checkin,
             grouphash="abcd",
         )
 
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_send_incident_occurrence(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        self.build_occurrence_test_data()
         send_incident_occurrence(
-            failed_checkin,
-            [timeout_checkin, failed_checkin],
-            incident,
-            last_checkin,
+            self.failed_checkin,
+            [self.timeout_checkin, self.failed_checkin],
+            self.incident,
+            self.last_checkin,
         )
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -102,8 +105,8 @@ class IncidentOccurrenceTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": [incident.grouphash],
-                "issue_title": f"Monitor failure: {monitor.name}",
+                "fingerprint": [self.incident.grouphash],
+                "issue_title": f"Monitor failure: {self.monitor.name}",
                 "subtitle": "Your monitor has reached its failure threshold.",
                 "resource_id": None,
                 "evidence_data": {},
@@ -115,18 +118,19 @@ class IncidentOccurrenceTestCase(TestCase):
                     },
                     {
                         "name": "Environment",
-                        "value": monitor_environment.get_environment().name,
+                        "value": self.monitor_environment.get_environment().name,
                         "important": False,
                     },
                     {
                         "name": "Last successful check-in",
-                        "value": successful_checkin.date_added.isoformat(),
+                        "value": self.successful_checkin.date_added.isoformat(),
                         "important": False,
                     },
                 ],
                 "type": MonitorIncidentType.type_id,
                 "level": "error",
                 "culprit": "",
+                "detection_time": self.failed_checkin.date_added.timestamp(),
             },
         ) == dict(occurrence)
 
@@ -136,26 +140,111 @@ class IncidentOccurrenceTestCase(TestCase):
                 "contexts": {
                     "monitor": {
                         "status": "error",
-                        "config": monitor.config,
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
+                        "config": self.monitor.config,
+                        "id": str(self.monitor.guid),
+                        "name": self.monitor.name,
+                        "slug": self.monitor.slug,
                     },
                     "trace": {
-                        "trace_id": trace_id.hex,
+                        "trace_id": self.trace_id.hex,
                         "span_id": None,
                     },
                 },
-                "environment": monitor_environment.get_environment().name,
+                "environment": self.monitor_environment.get_environment().name,
                 "event_id": occurrence["event_id"],
-                "fingerprint": [incident.grouphash],
+                "fingerprint": [self.incident.grouphash],
                 "platform": "other",
-                "project_id": monitor.project_id,
+                "project_id": self.monitor.project_id,
                 "sdk": None,
                 "tags": {
-                    "monitor.id": str(monitor.guid),
-                    "monitor.slug": str(monitor.slug),
-                    "monitor.incident": str(incident.id),
+                    "monitor.id": str(self.monitor.guid),
+                    "monitor.slug": str(self.monitor.slug),
+                    "monitor.incident": str(self.incident.id),
+                },
+            },
+        ) == dict(event)
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_send_incident_occurrence_detector(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        self.build_occurrence_test_data()
+        ensure_cron_detector(self.monitor)
+        send_incident_occurrence(
+            self.failed_checkin,
+            [self.timeout_checkin, self.failed_checkin],
+            self.incident,
+            self.last_checkin,
+        )
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
+
+        occurrence = kwargs["occurrence"]
+        event = kwargs["event_data"]
+        occurrence = occurrence.to_dict()
+
+        detector = get_detector_for_monitor(self.monitor)
+        assert detector
+        assert dict(
+            occurrence,
+            **{
+                "project_id": self.project.id,
+                "fingerprint": [self.incident.grouphash],
+                "issue_title": f"Monitor failure: {self.monitor.name}",
+                "subtitle": "Your monitor has reached its failure threshold.",
+                "resource_id": None,
+                "evidence_data": {"detector_id": detector.id},
+                "evidence_display": [
+                    {
+                        "name": "Failure reason",
+                        "value": "1 timeout and 1 error check-ins detected",
+                        "important": True,
+                    },
+                    {
+                        "name": "Environment",
+                        "value": self.monitor_environment.get_environment().name,
+                        "important": False,
+                    },
+                    {
+                        "name": "Last successful check-in",
+                        "value": self.successful_checkin.date_added.isoformat(),
+                        "important": False,
+                    },
+                ],
+                "type": MonitorIncidentType.type_id,
+                "level": "error",
+                "culprit": "",
+                "detection_time": self.failed_checkin.date_added.timestamp(),
+            },
+        ) == dict(occurrence)
+
+        assert dict(
+            event,
+            **{
+                "contexts": {
+                    "monitor": {
+                        "status": "error",
+                        "config": self.monitor.config,
+                        "id": str(self.monitor.guid),
+                        "name": self.monitor.name,
+                        "slug": self.monitor.slug,
+                    },
+                    "trace": {
+                        "trace_id": self.trace_id.hex,
+                        "span_id": None,
+                    },
+                },
+                "environment": self.monitor_environment.get_environment().name,
+                "event_id": occurrence["event_id"],
+                "fingerprint": [self.incident.grouphash],
+                "platform": "other",
+                "project_id": self.monitor.project_id,
+                "sdk": None,
+                "tags": {
+                    "monitor.id": str(self.monitor.guid),
+                    "monitor.slug": str(self.monitor.slug),
+                    "monitor.incident": str(self.incident.id),
                 },
             },
         ) == dict(event)

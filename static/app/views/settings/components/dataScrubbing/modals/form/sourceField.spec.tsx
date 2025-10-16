@@ -7,8 +7,8 @@ import {
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
-describe('Source', function () {
-  it('default render', function () {
+describe('Source', () => {
+  it('default render', () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -21,7 +21,7 @@ describe('Source', function () {
     expect(screen.getByRole('textbox', {name: 'Source'})).toHaveValue('$string');
   });
 
-  it('display defaultSuggestions if input is empty and focused', async function () {
+  it('display defaultSuggestions if input is empty and focused', async () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -39,7 +39,7 @@ describe('Source', function () {
     expect(suggestions).toHaveLength(18);
   });
 
-  it('display defaultSuggestions if input is empty, focused and has length 3', async function () {
+  it('display defaultSuggestions if input is empty, focused and has length 3', async () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -57,7 +57,7 @@ describe('Source', function () {
     expect(suggestions).toHaveLength(18);
   });
 
-  it('display binaryOperatorSuggestions if penultimateFieldValue has type string', async function () {
+  it('display binaryOperatorSuggestions if penultimateFieldValue has type string', async () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -79,7 +79,7 @@ describe('Source', function () {
     expect(suggestions[1]).toHaveTextContent(binarySuggestions[1]!.value);
   });
 
-  it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', async function () {
+  it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', async () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -99,7 +99,7 @@ describe('Source', function () {
     expect(suggestions[17]).toHaveTextContent(unarySuggestions[0]!.value);
   });
 
-  it('display binaryOperatorSuggestions if penultimateFieldValue has type value', async function () {
+  it('display binaryOperatorSuggestions if penultimateFieldValue has type value', async () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -166,7 +166,7 @@ describe('Source', function () {
     );
   });
 
-  it('click on a suggestion should be possible', async function () {
+  it('click on a suggestion should be possible', async () => {
     const handleOnChange = jest.fn();
 
     render(
@@ -187,7 +187,7 @@ describe('Source', function () {
     expect(handleOnChange).toHaveBeenCalledWith('foo && password');
   });
 
-  it('suggestions keyDown and keyUp should work', async function () {
+  it('suggestions keyDown and keyUp should work', async () => {
     const handleOnChange = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
 

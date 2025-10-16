@@ -11,12 +11,18 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.user_option import UserOption
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -59,7 +65,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         event_count: int,
         performance_issues: bool = False,
         generic_issues: bool = False,
-    ):
+    ) -> None:
         with patch.object(sentry, "digests") as digests:
             backend = RedisBackend()
             digests.backend.digest = backend.digest
@@ -107,19 +113,27 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
-        mock_record.assert_any_call(
-            "integrations.email.notification_sent",
-            category="digest",
-            notification_uuid=ANY,
-            target_type="IssueOwners",
-            target_identifier=None,
-            alert_id=self.rule.id,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            id=ANY,
-            actor_type="User",
-            group_id=None,
-            user_id=ANY,
+        assert_any_analytics_event(
+            mock_record,
+            EmailNotificationSent(
+                category="digest",
+                notification_uuid="ANY",
+                alert_id=self.rule.id,
+                project_id=self.project.id,
+                organization_id=self.organization.id,
+                id=0,
+                actor_type="User",
+                group_id=None,
+                user_id=0,
+            ),
+            exclude_fields=[
+                "id",
+                "project_id",
+                "actor_id",
+                "user_id",
+                "notification_uuid",
+                "alert_id",
+            ],
         )
         assert_last_analytics_event(
             mock_record,
@@ -127,7 +141,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=str(self.rule.id),
+                alert_id=self.rule.id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
@@ -158,6 +172,77 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
+
+    def test_digest_email_uses_user_timezone(self) -> None:
+        self.organization.member_set.exclude(user_id=self.user.id).delete()
+
+        # Create a user with Pacific timezone
+        pacific_user = self.create_user(email="pacific@example.com")
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.create(
+                user=pacific_user, key="timezone", value="America/Los_Angeles"
+            )
+
+        # Create member with this user
+        self.create_member(
+            organization=self.organization,
+            user=pacific_user,
+            role="member",
+            teams=[self.team],
+        )
+
+        # Create events and send digest
+        with patch.object(sentry, "digests") as digests:
+            backend = RedisBackend()
+            digests.backend.digest = backend.digest
+
+            # Add 2 events
+            for i in range(2):
+                self.add_event(f"group-{i}", backend, "error")
+
+            with self.tasks():
+                deliver_digest(self.key)
+
+        # Should have emails for both users (original self.user + pacific_user)
+        assert len(mail.outbox) == 2
+
+        # Find the email sent to our Pacific timezone user
+        pacific_email = None
+        utc_email = None
+        for email in mail.outbox:
+            if pacific_user.email in email.to:
+                pacific_email = email
+            elif self.user.email in email.to:
+                utc_email = email
+
+        assert pacific_email is not None, "Should have sent email to Pacific timezone user"
+        assert utc_email is not None, "Should have sent email to UTC user"
+
+        # Check that the Pacific timezone email uses PST/PDT formatting
+        pacific_body = pacific_email.body
+        utc_body = utc_email.body
+
+        # Pacific email should show PST/PDT timezone
+        assert (
+            "PST" in pacific_body or "PDT" in pacific_body
+        ), f"Pacific email should use Pacific timezone, but body was: {pacific_body}"
+
+        # UTC email should show UTC timezone
+        assert "UTC" in utc_body, f"UTC email should show UTC timezone, but body was: {utc_body}"
+
+        # Check that subjects are also timezone-aware
+        pacific_subject = pacific_email.subject
+        utc_subject = utc_email.subject
+
+        # The subjects should be different due to timezone formatting
+        # (though the time difference might be small depending on when the test runs)
+        # At minimum, they should both contain readable date information
+        assert (
+            "new alert" in pacific_subject.lower()
+        ), f"Pacific subject should contain alert text: {pacific_subject}"
+        assert (
+            "new alert" in utc_subject.lower()
+        ), f"UTC subject should contain alert text: {utc_subject}"
 
 
 class DigestSlackNotification(SlackActivityNotificationTest):
@@ -222,33 +307,18 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
-        emoji = "red_circle"
-        event1_alert_title = {
-            "url": f"http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue",
-            "text": f"{event1.group.title}",
-        }
+        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
 
         assert event2.group
-        event2_alert_title = {
-            "url": f"http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue",
-            "text": f"{event2.group.title}",
-        }
+        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
 
         # digest order not definitive
         try:
-            assert blocks[1]["elements"][0]["elements"][-1]["text"] == event1_alert_title["text"]
-            assert blocks[1]["elements"][0]["elements"][-1]["url"] == event1_alert_title["url"]
-            assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-            assert blocks[5]["elements"][0]["elements"][-1]["text"] == event2_alert_title["text"]
-            assert blocks[5]["elements"][0]["elements"][-1]["url"] == event2_alert_title["url"]
-            assert blocks[5]["elements"][0]["elements"][0]["name"] == emoji
+            assert blocks[1]["text"]["text"] == event1_alert_title
+            assert blocks[5]["text"]["text"] == event2_alert_title
         except AssertionError:
-            assert blocks[1]["elements"][0]["elements"][-1]["text"] == event2_alert_title["text"]
-            assert blocks[1]["elements"][0]["elements"][-1]["url"] == event2_alert_title["url"]
-            assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-            assert blocks[5]["elements"][0]["elements"][-1]["text"] == event1_alert_title["text"]
-            assert blocks[5]["elements"][0]["elements"][-1]["url"] == event1_alert_title["url"]
-            assert blocks[5]["elements"][0]["elements"][0]["name"] == emoji
+            assert blocks[1]["text"]["text"] == event2_alert_title
+            assert blocks[5]["text"]["text"] == event1_alert_title
 
         assert (
             blocks[3]["elements"][0]["text"]

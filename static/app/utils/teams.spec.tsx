@@ -5,10 +5,10 @@ import {act, render} from 'sentry-test/reactTestingLibrary';
 import TeamStore from 'sentry/stores/teamStore';
 import Teams from 'sentry/utils/teams';
 
-describe('utils.teams', function () {
+describe('utils.teams', () => {
   const renderer = jest.fn(() => null);
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.loadInitialData([
       TeamFixture({id: '1', slug: 'bar'}),
       TeamFixture({id: '2', slug: 'foo'}),
@@ -16,11 +16,11 @@ describe('utils.teams', function () {
     renderer.mockClear();
   });
 
-  afterEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+  afterEach(() => {
+    act(() => TeamStore.loadInitialData([]));
   });
 
-  it('sends projects to children', function () {
+  it('sends projects to children', () => {
     render(<Teams>{renderer}</Teams>);
 
     expect(renderer).toHaveBeenCalledWith(

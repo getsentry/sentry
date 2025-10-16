@@ -8,7 +8,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
@@ -19,7 +19,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         # Don't create any txn on this, don't set its DS rules, it shouldn't show up anywhere
         self.bad_project = self.create_project()
 
-    def test_unparameterized_transactions(self):
+    def test_unparameterized_transactions(self) -> None:
         # Make current project incompatible
         self.store_transaction_metric(
             1, tags={"transaction": "<< unparameterized >>"}, timestamp=self.min_ago
@@ -36,7 +36,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         assert response.json()["compatible_projects"] == []
 
-    def test_null_transaction(self):
+    def test_null_transaction(self) -> None:
         # Make current project incompatible
         self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
         url = reverse(
@@ -51,7 +51,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         assert response.json()["compatible_projects"] == []
 
-    def test_no_transaction(self):
+    def test_no_transaction(self) -> None:
         # Make current project incompatible by having nothing
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
@@ -65,7 +65,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         assert response.json()["compatible_projects"] == []
 
-    def test_has_transaction(self):
+    def test_has_transaction(self) -> None:
         self.store_transaction_metric(
             1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
         )
@@ -79,7 +79,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         assert response.json()["incompatible_projects"] == [self.bad_project.id]
         assert response.json()["compatible_projects"] == [self.project.id]
 
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         project2 = self.create_project()
         project3 = self.create_project()
         project4 = self.create_project()
@@ -122,7 +122,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
 
 
 class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
@@ -133,7 +133,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         # Don't create any txn on this, don't set its DS rules, it shouldn't show up anywhere
         self.create_project()
 
-    def test_unparameterized_transactions(self):
+    def test_unparameterized_transactions(self) -> None:
         # Make current project incompatible
         self.store_transaction_metric(
             1, tags={"transaction": "<< unparameterized >>"}, timestamp=self.min_ago
@@ -149,7 +149,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         assert response.json()["sum"]["metrics_unparam"] == 1
         assert response.json()["sum"]["metrics_null"] == 0
 
-    def test_null_transaction(self):
+    def test_null_transaction(self) -> None:
         # Make current project incompatible
         self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
         url = reverse(
@@ -163,7 +163,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         assert response.json()["sum"]["metrics_unparam"] == 0
         assert response.json()["sum"]["metrics_null"] == 1
 
-    def test_no_transaction(self):
+    def test_no_transaction(self) -> None:
         # Make current project incompatible by having nothing
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
@@ -176,7 +176,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         assert response.json()["sum"]["metrics_unparam"] == 0
         assert response.json()["sum"]["metrics_null"] == 0
 
-    def test_has_transaction(self):
+    def test_has_transaction(self) -> None:
         self.store_transaction_metric(
             1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
         )
@@ -191,7 +191,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         assert response.json()["sum"]["metrics_unparam"] == 0
         assert response.json()["sum"]["metrics_null"] == 0
 
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         project2 = self.create_project()
         project3 = self.create_project()
         # Not setting DS, it shouldn't show up
@@ -229,7 +229,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         assert response.json()["sum"]["metrics_unparam"] == 1
         assert response.json()["sum"]["metrics_null"] == 1
 
-    def test_counts_add_up_correctly(self):
+    def test_counts_add_up_correctly(self) -> None:
         # Make current project incompatible
         for _ in range(2):
             self.store_transaction_metric(

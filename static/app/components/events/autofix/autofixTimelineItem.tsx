@@ -1,11 +1,11 @@
-import {useMemo, useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useMemo} from 'react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
+import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
@@ -57,7 +57,9 @@ interface AutofixTimelineItemProps {
   event: AutofixTimelineEvent;
   groupId: string;
   index: number;
+  isExpanded: boolean;
   isMostImportantEvent: boolean;
+  onToggleExpand: (index: number) => void;
   retainInsightCardIndex: number | null | undefined;
   runId: string;
   stepIndex: number;
@@ -70,17 +72,18 @@ export function AutofixTimelineItem({
   getCustomIcon,
   groupId,
   index,
+  isExpanded,
   isMostImportantEvent,
+  onToggleExpand,
   retainInsightCardIndex,
   runId,
   stepIndex,
   codeUrl,
 }: AutofixTimelineItemProps) {
   const theme = useTheme();
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleToggle = () => {
-    setIsExpanded(current => !current);
+    onToggleExpand(index);
   };
 
   const titleHtml = useMemo(() => {
@@ -166,10 +169,15 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   justify-content: space-between;
   width: 100%;
   padding: ${space(0.25)};
+  padding-right: 0;
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
+  font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};
+  text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
+  text-decoration-color: ${p => p.theme.pink300};
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 
   & > span:first-of-type {
     flex: 1;

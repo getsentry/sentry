@@ -3,11 +3,12 @@ from __future__ import annotations
 import heapq
 import logging
 import uuid
+import zoneinfo
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, cast
+from typing import Any, Final
 
 import sentry_sdk
 from django.db.models import F
@@ -17,125 +18,150 @@ from sentry_sdk import set_tag
 
 from sentry import analytics
 from sentry.analytics.events.weekly_report import WeeklyReportSent
-from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
-from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
-from sentry.tasks.summaries.utils import (
-    ONE_DAY,
-    OrganizationReportContext,
-    ProjectContext,
-    check_if_ctx_is_empty,
-    fetch_key_error_groups,
-    fetch_key_performance_issue_groups,
-    organization_project_issue_substatus_summaries,
-    project_event_counts_for_organization,
-    project_key_errors,
-    project_key_performance_issues,
-    project_key_transactions_last_week,
-    project_key_transactions_this_week,
-    user_project_ownership,
+from sentry.tasks.summaries.metrics import (
+    WeeklyReportHaltReason,
+    WeeklyReportOperationType,
+    WeeklyReportSLO,
 )
-from sentry.taskworker.config import TaskworkerConfig
+from sentry.tasks.summaries.organization_report_context_factory import (
+    OrganizationReportContextFactory,
+)
+from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user_option import user_option_service
+from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
-from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import parse_snuba_datetime
-from sentry.workflow_engine.tasks.utils import retry_timeouts
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class WeeklyReportProgressTracker:
+    """
+    This class is used to track the last processed org ID for a given
+    weekly report. It can either be configured with an explicit start time and
+    watermark TTL, or it will assume beginning of day, with a 7 day TTL.
+    """
+
+    beginning_of_day_timestamp: float
+    duration: int
+    _redis_connection: LocalClient
+
+    REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
+
+    def __init__(self, timestamp: float | None = None, duration: int | None = None):
+        if timestamp is None:
+            # The time that the report was generated
+            timestamp = floor_to_utc_day(timezone.now()).timestamp()
+
+        self.beginning_of_day_timestamp = timestamp
+
+        if duration is None:
+            # The total timespan that the task covers
+            duration = ONE_DAY * 7
+
+        self.duration = duration
+        self._redis_connection = redis.clusters.get("default").get_local_client_for_key(
+            self.REPORT_REDIS_CLIENT_KEY
+        )
+
+    @property
+    def min_org_id_redis_key(self) -> str:
+        return f"{self.REPORT_REDIS_CLIENT_KEY}:{self.beginning_of_day_timestamp}"
+
+    def get_last_processed_org_id(self) -> int | None:
+        min_org_id_from_redis = self._redis_connection.get(self.min_org_id_redis_key)
+        return int(min_org_id_from_redis) if min_org_id_from_redis else None
+
+    def set_last_processed_org_id(self, org_id: int) -> None:
+        self._redis_connection.set(self.min_org_id_redis_key, org_id)
+
+    def delete_min_org_id(self) -> None:
+        self._redis_connection.delete(self.min_org_id_redis_key)
+
+
 # The entry point. This task is scheduled to run every week.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.schedule_organizations",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    retry=Retry(times=5),
+    processing_deadline_duration=timedelta(minutes=30),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        retry=Retry(times=5),
-        processing_deadline_duration=timedelta(minutes=15),
-    ),
 )
-@retry_timeouts
-@retry
+@retry(timeouts=True)
 def schedule_organizations(
     dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
 ) -> None:
-    if timestamp is None:
-        # The time that the report was generated
-        timestamp = floor_to_utc_day(timezone.now()).timestamp()
-
-    if duration is None:
-        # The total timespan that the task covers
-        duration = ONE_DAY * 7
-
-    batch_id = str(uuid.uuid4())
-
-    def min_org_id_redis_key(timestamp: float) -> str:
-        return f"weekly_reports_org_id_min:{timestamp}"
-
-    redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-        "weekly_reports_org_id_min"
-    )
-
-    min_org_id_from_redis = redis_cluster.get(min_org_id_redis_key(timestamp))
-    minimum_organization_id = int(min_org_id_from_redis) if min_org_id_from_redis else None
+    batching = WeeklyReportProgressTracker(timestamp, duration)
+    minimum_organization_id = batching.get_last_processed_org_id()
 
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
 
-    for organization in RangeQuerySetWrapper(
-        organizations,
-        step=10000,
-        result_value_getter=lambda item: item.id,
-        min_id=minimum_organization_id,
-    ):
-        # Create a celery task per organization
-        logger.info(
-            "weekly_reports.schedule_organizations",
-            extra={
-                "batch_id": str(batch_id),
-                "organization": organization.id,
-                "minimum_organization_id": minimum_organization_id,
-            },
-        )
-        prepare_organization_report.delay(
-            timestamp, duration, organization.id, batch_id, dry_run=dry_run
-        )
-        redis_cluster.set(min_org_id_redis_key(timestamp), organization.id)
+    with WeeklyReportSLO(
+        operation_type=WeeklyReportOperationType.SCHEDULE_ORGANIZATION_REPORTS, dry_run=dry_run
+    ).capture() as lifecycle:
+        try:
+            batch_id = str(uuid.uuid4())
 
-    redis_cluster.delete(min_org_id_redis_key(timestamp))
+            lifecycle.add_extras(
+                {
+                    "batch_id": batch_id,
+                    "organization_starting_batch_id": minimum_organization_id,
+                    "report_timestamp": batching.beginning_of_day_timestamp,
+                }
+            )
+            for organization in RangeQuerySetWrapper(
+                organizations,
+                step=10000,
+                result_value_getter=lambda item: item.id,
+                min_id=minimum_organization_id,
+            ):
+                # Create a task per organization
+                logger.info(
+                    "weekly_reports.schedule_organizations",
+                    extra={
+                        "batch_id": str(batch_id),
+                        "organization": organization.id,
+                        "minimum_organization_id": minimum_organization_id,
+                    },
+                )
+                prepare_organization_report.delay(
+                    batching.beginning_of_day_timestamp,
+                    batching.duration,
+                    organization.id,
+                    batch_id,
+                    dry_run=dry_run,
+                )
+                batching.set_last_processed_org_id(organization.id)
+
+            batching.delete_min_org_id()
+        except ProcessingDeadlineExceeded:
+            lifecycle.record_halt(WeeklyReportHaltReason.TIMEOUT)
+            raise
 
 
 # This task is launched per-organization.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.prepare_organization_report",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    processing_deadline_duration=60 * 10,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        processing_deadline_duration=60 * 10,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @retry
 def prepare_organization_report(
@@ -162,106 +188,28 @@ def prepare_organization_report(
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
-    ctx = OrganizationReportContext(timestamp, duration, organization)
-
-    # Run organization passes
-    with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
-        user_project_ownership(ctx)
-    with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
-        event_counts = project_event_counts_for_organization(
-            start=ctx.start, end=ctx.end, ctx=ctx, referrer=Referrer.REPORTS_OUTCOMES.value
+    with WeeklyReportSLO(
+        operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {
+                "batch_id": batch_id,
+                "organization_id": organization_id,
+                "timestamp": timestamp,
+                "duration": duration,
+            }
         )
-        for data in event_counts:
-            project_id = data["project_id"]
-            # Project no longer in organization, but events still exist
-            if project_id not in ctx.projects_context_map:
-                continue
-            project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
-            total = data["total"]
-            timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
-            if data["category"] == DataCategory.TRANSACTION:
-                # Transaction outcome
-                if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
-                    project_ctx.dropped_transaction_count += total
-                else:
-                    project_ctx.accepted_transaction_count += total
-                    project_ctx.transaction_count_by_day[timestamp] = total
-            elif data["category"] == DataCategory.REPLAY:
-                # Replay outcome
-                if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
-                    project_ctx.dropped_replay_count += total
-                else:
-                    project_ctx.accepted_replay_count += total
-                    project_ctx.replay_count_by_day[timestamp] = total
-            else:
-                # Error outcome
-                if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
-                    project_ctx.dropped_error_count += total
-                else:
-                    project_ctx.accepted_error_count += total
-                    project_ctx.error_count_by_day[timestamp] = (
-                        project_ctx.error_count_by_day.get(timestamp, 0) + total
-                    )
+        ctx = OrganizationReportContextFactory(
+            timestamp=timestamp, duration=duration, organization=organization
+        ).create_context()
 
-    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_substatus_summaries"):
-        organization_project_issue_substatus_summaries(ctx)
+        with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+            report_is_available = not ctx.is_empty()
+        set_tag("report.available", report_is_available)
 
-    with sentry_sdk.start_span(op="weekly_reports.project_passes"):
-        # Run project passes
-        for project in organization.project_set.all():
-            key_errors = project_key_errors(
-                ctx, project, referrer=Referrer.REPORTS_KEY_ERRORS.value
-            )
-            if project.id not in ctx.projects_context_map:
-                continue
-
-            project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
-            if key_errors:
-                project_ctx.key_errors_by_id = [
-                    (e["events.group_id"], e["count()"]) for e in key_errors
-                ]
-
-            key_transactions_this_week = project_key_transactions_this_week(ctx, project)
-            if key_transactions_this_week:
-                project_ctx.key_transactions = [
-                    (i["transaction_name"], i["count"], i["p95"])
-                    for i in key_transactions_this_week
-                ]
-                query_result = project_key_transactions_last_week(
-                    ctx, project, key_transactions_this_week
-                )
-                # Join this week with last week
-                last_week_data = {
-                    i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
-                }
-
-                project_ctx.key_transactions = [
-                    (i["transaction_name"], i["count"], i["p95"])
-                    + last_week_data.get(i["transaction_name"], (0, 0))
-                    for i in key_transactions_this_week
-                ]
-
-            key_performance_issues = project_key_performance_issues(
-                ctx, project, referrer=Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
-            )
-            if key_performance_issues:
-                ctx.projects_context_map[project.id].key_performance_issues = key_performance_issues
-
-    with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
-        fetch_key_error_groups(ctx)
-    with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
-        fetch_key_performance_issue_groups(ctx)
-
-    with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
-        report_is_available = not check_if_ctx_is_empty(ctx)
-    set_tag("report.available", report_is_available)
-
-    if not report_is_available:
-        logger.info(
-            "prepare_organization_report.skipping_empty",
-            extra={"batch_id": str(batch_id), "organization": organization_id},
-        )
-        return
+        if not report_is_available:
+            lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
+            return
 
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
@@ -318,17 +266,35 @@ class OrganizationReportBatch:
                     self._send_to_user(user_template)
 
     def _send_to_user(self, user_template_context: Mapping[str, Any]) -> None:
-        template_context: Mapping[str, Any] | None = user_template_context.get("context")
-        user_id: int | None = user_template_context.get("user_id")
-        if template_context and user_id:
-            dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
-            if not dupe_check.check_for_duplicate_delivery():
-                self.send_email(template_ctx=template_context, user_id=user_id)
-                dupe_check.record_delivery()
+        with WeeklyReportSLO(
+            operation_type=WeeklyReportOperationType.SEND_EMAIL, dry_run=self.dry_run
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "batch_id": self.batch_id,
+                    "organization": self.ctx.organization.id,
+                }
+            )
+
+            template_context: Mapping[str, Any] | None = user_template_context.get("context")
+            user_id: int | None = user_template_context.get("user_id")
+
+            lifecycle.add_extra("user_id", user_id)
+
+            if template_context and user_id:
+                dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
+                if not dupe_check.check_for_duplicate_delivery():
+                    self.send_email(template_ctx=template_context, user_id=user_id)
+                    dupe_check.record_delivery()
+                else:
+                    lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
+        # get user options timezone for this user, then format the timestamp according to the timezone
+        local_start, local_end = get_local_dates(self.ctx, user_id)
+
         message = MessageBuilder(
-            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
+            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(local_start)} - {date_format(local_end)}",
             template="sentry/emails/reports/body.txt",
             html_template="sentry/emails/reports/body.html",
             type="report.organization",
@@ -427,7 +393,7 @@ class _DuplicateDeliveryCheck:
         if is_duplicate_detected:
             # There is no lock for concurrency, which leaves open the possibility of
             # a race condition, in case another thread or server node received a
-            # duplicate Celery task somehow. But we do not think this is a likely
+            # duplicate task somehow. But we do not think this is a likely
             # failure mode.
             #
             # Nonetheless, the `cluster.incr` operation is atomic, so if concurrent
@@ -495,6 +461,19 @@ def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
+def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datetime, datetime]:
+    user_tz = get_option_from_list(
+        user_option_service.get_many(filter={"user_ids": [user_id], "keys": ["timezone"]}),
+        key="timezone",
+        default="UTC",
+    )
+    local_timezone = zoneinfo.ZoneInfo(user_tz)
+    local_start = ctx.start.astimezone(local_timezone)
+    local_end = ctx.end.astimezone(local_timezone)
+
+    return (local_start, local_end)
+
+
 def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
@@ -511,6 +490,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         return None
 
     notification_uuid = str(uuid.uuid4())
+    local_start, local_end = get_local_dates(ctx, user_id)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -741,8 +721,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
     return {
         "organization": ctx.organization,
-        "start": date_format(ctx.start),
-        "end": date_format(ctx.end),
+        "start": date_format(local_start),
+        "end": date_format(local_end),
         "trends": trends(),
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),

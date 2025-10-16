@@ -16,18 +16,21 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
+  doDiscoverQuery,
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
-  doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  type DatasetConfig,
   handleOrderByReset,
+  type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -42,9 +45,16 @@ import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/tra
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  TraceItemSearchQueryBuilder,
+  useSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  useTraceItemAttributes,
+  useTraceItemAttributesWithConfig,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -80,7 +90,7 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
         parameters: [
           {
             kind: 'column',
-            columnTypes: ['string'],
+            columnTypes: ['number', 'string'],
             defaultValue: 'message.template',
             required: true,
           },
@@ -140,6 +150,37 @@ function LogsSearchBar({
   );
 }
 
+function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
+  const {pageFilters, widgetQuery} = props;
+  const organization = useOrganization();
+
+  const traceItemAttributeConfig = {
+    traceItemType: TraceItemDataset.LOGS,
+    enabled: isLogsEnabled(organization),
+  };
+
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+
+  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
+    itemType: TraceItemDataset.LOGS,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    searchSource: 'dashboards',
+    initialQuery: widgetQuery?.conditions ?? '',
+    projects: pageFilters.projects,
+  });
+  return {
+    getFilterKeySections: () => filterKeySections,
+    getFilterKeys: () => filterKeys,
+    getTagValues,
+  };
+}
+
 export const LogsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -148,6 +189,7 @@ export const LogsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   SearchBar: LogsSearchBar,
+  useSearchBarDataProvider: useLogsSearchBarDataProvider,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
@@ -257,14 +299,14 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true; // COUNT() doesn't need parameters for logs
   }
 
-  const expectedDataType =
+  const expectedDataTypes =
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
-      ? 'string'
-      : 'number';
+      ? new Set(['number', 'string'])
+      : new Set(['number']);
 
   if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType === expectedDataType;
+    return expectedDataTypes.has(option.value.meta.dataType);
   }
   return true;
 }
@@ -314,7 +356,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );

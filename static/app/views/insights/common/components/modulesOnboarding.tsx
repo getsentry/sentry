@@ -6,7 +6,6 @@ import {PlatformIcon} from 'platformicons';
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
 import cachesPreviewImg from 'sentry-images/insights/module-upsells/insights-caches-module-charts.svg';
-import llmPreviewImg from 'sentry-images/insights/module-upsells/insights-llm-module-charts.svg';
 import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-queries-module-charts.svg';
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
@@ -281,32 +280,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: appStartPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-  ai: {
-    heading: t('Find out what your LLM is actually saying'),
-    description: tct(
-      'Get insights into critical [dataType] metrics, like token usage, to monitor and fix issues with AI pipelines.',
-      {
-        dataType: MODULE_DATA_TYPES[ModuleName.AI],
-      }
-    ),
-    valuePropDescription: tct(
-      'See what your [dataTypePlural] are doing in production by monitoring:',
-      {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
-      }
-    ),
-    valuePropPoints: [
-      t('Token cost and usage per-provider and per-pipeline.'),
-      tct('The inputs and outputs of [dataType] calls.', {
-        dataType: MODULE_DATA_TYPES[ModuleName.AI],
-      }),
-      tct('Performance and timing information about [dataTypePlural] in production.', {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
-      }),
-    ],
-    imageSrc: llmPreviewImg,
-    supportedSdks: ['python'],
-  },
+
   agents: {
     heading: t('TODO'),
     description: t('TODO'),
@@ -319,7 +293,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     description: t(
       'Monitor your MCP servers to ensure your AI applications have reliable access to tools, resources, and data sources they depend on.'
     ),
-    imageSrc: llmPreviewImg,
+    imageSrc: screenLoadsPreviewImg,
     valuePropDescription: t('MCP monitoring gives you visibility into:'),
     valuePropPoints: [
       t('Tool execution success rates and failure patterns.'),

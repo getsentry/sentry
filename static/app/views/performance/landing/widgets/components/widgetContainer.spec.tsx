@@ -59,7 +59,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
 const issuesPredicate = (url: string, options: any) =>
   url.includes('events') && options.query?.query.includes('error');
 
-describe('Performance > Widgets > WidgetContainer', function () {
+describe('Performance > Widgets > WidgetContainer', () => {
   let wrapper: ReturnType<typeof render> | undefined;
 
   let eventStatsMock: jest.Mock;
@@ -68,12 +68,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
   let issuesListMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {},
     });
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -121,14 +126,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     if (wrapper) {
       wrapper.unmount();
       wrapper = undefined;
     }
   });
 
-  it('Check requests when changing widget props', async function () {
+  it('Check requests when changing widget props', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -187,7 +192,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -261,12 +266,20 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('should call PageError Provider when errors are present', async function () {
+  it('should call PageError Provider when errors are present', async () => {
     const data = initializeData();
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
+      statusCode: 400,
+      body: {
+        detail: 'Request did not work :(',
+      },
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
       statusCode: 400,
       body: {
         detail: 'Request did not work :(',
@@ -294,7 +307,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('TPM Widget', async function () {
+  it('TPM Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -323,7 +336,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Failure Rate Widget', async function () {
+  it('Failure Rate Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -352,7 +365,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Widget with MEP enabled and metric meta set to true', async function () {
+  it('Widget with MEP enabled and metric meta set to true', async () => {
     const data = initializeData(
       {},
       {
@@ -366,6 +379,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
       body: {
         data: [],
         isMetricsData: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {
+        timeSeries: [],
       },
     });
 
@@ -407,7 +427,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Widget with MEP enabled and metric meta set to undefined', async function () {
+  it('Widget with MEP enabled and metric meta set to undefined', async () => {
     const data = initializeData(
       {},
       {
@@ -421,6 +441,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
       body: {
         data: [],
         isMetricsData: undefined,
+      },
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {
+        timeSeries: [],
       },
     });
 
@@ -442,7 +469,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Widget with MEP enabled and metric meta set to false', async function () {
+  it('Widget with MEP enabled and metric meta set to false', async () => {
     const data = initializeData(
       {},
       {
@@ -456,6 +483,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
       body: {
         data: [],
         isMetricsData: false,
+      },
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-timeseries/`,
+      body: {
+        timeSeries: [],
       },
     });
 
@@ -497,7 +531,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('User misery Widget', async function () {
+  it('User misery Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -526,171 +560,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Worst LCP widget', async function () {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Worst LCP Web Vitals'
-    );
-    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: [
-            'transaction',
-            'title',
-            'project.id',
-            'count_web_vitals(measurements.lcp, poor)',
-            'count_web_vitals(measurements.lcp, meh)',
-            'count_web_vitals(measurements.lcp, good)',
-          ],
-          per_page: 4,
-          project: ['-42'],
-          query: 'transaction.op:pageload',
-          sort: '-count_web_vitals(measurements.lcp, poor)',
-          statsPeriod: '7d',
-        }),
-      })
-    );
-  });
-
-  it('Worst LCP widget - MEP', async function () {
-    const data = initializeData(
-      {},
-      {
-        features: ['performance-use-metrics'],
-      }
-    );
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Worst LCP Web Vitals'
-    );
-    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: [
-            'transaction',
-            'title',
-            'project.id',
-            'count_web_vitals(measurements.lcp, poor)',
-            'count_web_vitals(measurements.lcp, meh)',
-            'count_web_vitals(measurements.lcp, good)',
-          ],
-          per_page: 4,
-          project: ['-42'],
-          query: 'transaction.op:pageload !transaction:"<< unparameterized >>"',
-          sort: '-count_web_vitals(measurements.lcp, poor)',
-          statsPeriod: '7d',
-        }),
-      })
-    );
-  });
-
-  it('Worst FCP widget', async function () {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Worst FCP Web Vitals'
-    );
-    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: [
-            'transaction',
-            'title',
-            'project.id',
-            'count_web_vitals(measurements.fcp, poor)',
-            'count_web_vitals(measurements.fcp, meh)',
-            'count_web_vitals(measurements.fcp, good)',
-          ],
-          per_page: 4,
-          project: ['-42'],
-          query: 'transaction.op:pageload',
-          sort: '-count_web_vitals(measurements.fcp, poor)',
-          statsPeriod: '7d',
-        }),
-      })
-    );
-  });
-
-  it('Worst FID widget', async function () {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Worst FID Web Vitals'
-    );
-    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: [
-            'transaction',
-            'title',
-            'project.id',
-            'count_web_vitals(measurements.fid, poor)',
-            'count_web_vitals(measurements.fid, meh)',
-            'count_web_vitals(measurements.fid, good)',
-          ],
-          per_page: 4,
-          project: ['-42'],
-          query: 'transaction.op:pageload',
-          sort: '-count_web_vitals(measurements.fid, poor)',
-          statsPeriod: '7d',
-        }),
-      })
-    );
-  });
-
-  it('LCP Histogram Widget', async function () {
+  it('LCP Histogram Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -707,7 +577,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // TODO(k-fish): Add histogram mock
   });
 
-  it('FCP Histogram Widget', async function () {
+  it('FCP Histogram Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -724,7 +594,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // TODO(k-fish): Add histogram mock
   });
 
-  it('Most errors widget', async function () {
+  it('Most errors widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -755,7 +625,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most related issues widget', async function () {
+  it('Most related issues widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -786,7 +656,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Switching from issues to errors widget', async function () {
+  it('Switching from issues to errors widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -815,7 +685,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('Most improved trends widget', async function () {
+  it('Most improved trends widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -853,7 +723,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time spent in db queries widget', async function () {
+  it('Most time spent in db queries widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -900,7 +770,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time consuming domains widget', async function () {
+  it('Most time consuming domains widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -944,7 +814,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time consuming resources widget', async function () {
+  it('Most time consuming resources widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -983,7 +853,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            '!sentry.normalized_description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
+            'has:sentry.normalized_description !sentry.normalized_description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -991,7 +861,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('should not contain org in link with customer domain', async function () {
+  it('should not contain org in link with customer domain', async () => {
     const data = initializeData();
     ConfigStore.set('customerDomain', {
       subdomain: 'sentry',
@@ -1012,7 +882,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Highest cache miss rate transactions widget', async function () {
+  it('Highest cache miss rate transactions widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1049,14 +919,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'span.op:[cache.get_item,cache.get]',
           statsPeriod: '7d',
           referrer:
-            'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',
+            'api.insights.generic-widget-chart.highest-cache--miss-rate-transactions',
           sort: '-cache_miss_rate()',
         }),
       })
     );
   });
 
-  it('Best Page Opportunities widget', async function () {
+  it('Best Page Opportunities widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1105,7 +975,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most regressed trends widget', async function () {
+  it('Most regressed trends widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1141,7 +1011,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most slow frames widget', async function () {
+  it('Most slow frames widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1177,7 +1047,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Most slow frames widget - MEP', async function () {
+  it('Most slow frames widget - MEP', async () => {
     const data = initializeData(
       {},
       {
@@ -1218,7 +1088,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Most frozen frames widget', async function () {
+  it('Most frozen frames widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1259,7 +1129,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Able to change widget type from menu', async function () {
+  it('Able to change widget type from menu', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
@@ -1289,7 +1159,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(setRowChartSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('Chart settings passed from the row are disabled in the menu', async function () {
+  it('Chart settings passed from the row are disabled in the menu', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});

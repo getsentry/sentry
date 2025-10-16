@@ -8,6 +8,7 @@ import orjson
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 
+from sentry.analytics.events.relocation_created import RelocationCreatedEvent
 from sentry.backup.crypto import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.endpoints.index import (
@@ -22,6 +23,10 @@ from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.analytics import (
+    assert_analytics_events_recorded,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -311,7 +316,7 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock: Mock,
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -354,11 +359,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -375,7 +382,7 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock: Mock,
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -419,11 +426,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -446,7 +455,7 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock: Mock,
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -474,11 +483,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -501,7 +512,7 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock: Mock,
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -538,7 +549,7 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock: Mock,
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -566,11 +577,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -589,7 +602,7 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock: Mock,
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -630,11 +643,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -651,7 +666,7 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock: Mock,
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -692,11 +707,13 @@ class PostRelocationsTest(APITestCase):
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -708,7 +725,7 @@ class PostRelocationsTest(APITestCase):
 
     def test_bad_without_superuser_when_feature_disabled(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -734,7 +751,7 @@ class PostRelocationsTest(APITestCase):
 
     def test_bad_expired_superuser_when_feature_disabled(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -775,9 +792,9 @@ class PostRelocationsTest(APITestCase):
             uploading_start_mock: Mock,
             relocation_link_promo_code_signal_mock: Mock,
             analytics_record_mock: Mock,
-            org_slugs=org_slugs,
-            expected=expected,
-        ):
+            org_slugs: str = org_slugs,
+            expected: list[str] = expected,
+        ) -> None:
             self.login_as(user=self.owner, superuser=False)
             relocation_count = Relocation.objects.count()
             relocation_file_count = RelocationFile.objects.count()
@@ -808,11 +825,13 @@ class PostRelocationsTest(APITestCase):
             uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
             assert analytics_record_mock.call_count == 1
-            analytics_record_mock.assert_called_with(
-                "relocation.created",
-                creator_id=int(response.data["creator"]["id"]),
-                owner_id=int(response.data["owner"]["id"]),
-                uuid=response.data["uuid"],
+            assert_last_analytics_event(
+                analytics_record_mock,
+                RelocationCreatedEvent(
+                    creator_id=int(response.data["creator"]["id"]),
+                    owner_id=int(response.data["owner"]["id"]),
+                    uuid=response.data["uuid"],
+                ),
             )
 
             assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -836,9 +855,9 @@ class PostRelocationsTest(APITestCase):
             analytics_record_mock: Mock,
             relocation_link_promo_code_signal_mock: Mock,
             uploading_start_mock: Mock,
-            org_slugs=org_slugs,
-            invalid_org_slug=invalid_org_slug,
-        ):
+            org_slugs: str = org_slugs,
+            invalid_org_slug: str = invalid_org_slug,
+        ) -> None:
             self.login_as(user=self.owner, superuser=False)
             relocation_count = Relocation.objects.count()
             relocation_file_count = RelocationFile.objects.count()
@@ -875,7 +894,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_good_relocation_for_same_owner_already_completed(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         Relocation.objects.create(
             creator_id=self.superuser.id,
@@ -915,11 +934,13 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -932,7 +953,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_missing_file(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -950,7 +971,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_missing_orgs(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -978,7 +999,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_missing_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -1008,7 +1029,7 @@ class PostRelocationsTest(APITestCase):
     )
     def test_bad_staff_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.staff_user, staff=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -1039,7 +1060,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_superuser_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -1070,7 +1091,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_owner_not_self(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -1106,8 +1127,8 @@ class PostRelocationsTest(APITestCase):
             self,
             relocation_link_promo_code_signal_mock: Mock,
             analytics_record_mock: Mock,
-            stat=stat,
-        ):
+            stat: Relocation.Status = stat,
+        ) -> None:
             self.login_as(user=self.owner, superuser=False)
             Relocation.objects.create(
                 creator_id=self.superuser.id,
@@ -1143,7 +1164,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_throttle_if_daily_limit_reached(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -1192,11 +1213,13 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(initial_response.data["creator"]["id"]),
-            owner_id=int(initial_response.data["owner"]["id"]),
-            uuid=initial_response.data["uuid"],
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationCreatedEvent(
+                creator_id=int(initial_response.data["creator"]["id"]),
+                owner_id=int(initial_response.data["owner"]["id"]),
+                uuid=initial_response.data["uuid"],
+            ),
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 1
@@ -1211,7 +1234,7 @@ class PostRelocationsTest(APITestCase):
     )
     def test_good_no_throttle_for_staff(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -1258,21 +1281,20 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
         assert analytics_record_mock.call_count == 2
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2
@@ -1294,7 +1316,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_good_no_throttle_for_superuser(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -1341,21 +1363,20 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
         assert analytics_record_mock.call_count == 2
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2
@@ -1383,7 +1404,7 @@ class PostRelocationsTest(APITestCase):
     )
     def test_good_no_throttle_different_bucket_relocations(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -1431,21 +1452,20 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
         assert analytics_record_mock.call_count == 2
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2
@@ -1467,7 +1487,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_good_no_throttle_relocation_over_multiple_days(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -1519,21 +1539,20 @@ class PostRelocationsTest(APITestCase):
 
         assert analytics_record_mock.call_count == 2
 
-        analytics_record_mock.assert_has_calls(
+        assert_analytics_events_recorded(
+            analytics_record_mock,
             [
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(initial_response.data["creator"]["id"]),
                     owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
-                call(
-                    "relocation.created",
+                RelocationCreatedEvent(
                     creator_id=int(unthrottled_response.data["creator"]["id"]),
                     owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
-            ]
+            ],
         )
 
         assert relocation_link_promo_code_signal_mock.call_count == 2
@@ -1555,7 +1574,7 @@ class PostRelocationsTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_no_auth(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
-    ):
+    ) -> None:
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 

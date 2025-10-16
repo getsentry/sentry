@@ -28,7 +28,7 @@ common_cases = [
         ),
     ],
 )
-def test_release_health_tags_limit_enforcer(tags, expected_result):
+def test_release_health_tags_limit_enforcer(tags, expected_result) -> None:
     assert ReleaseHealthTagsValidator().is_allowed(tags) == expected_result
 
 
@@ -53,5 +53,5 @@ def test_release_health_tags_limit_enforcer(tags, expected_result):
         ),
     ],
 )
-def test_generic_metrics_tags_limit_enforcer(tags, expected_result):
+def test_generic_metrics_tags_limit_enforcer(tags, expected_result) -> None:
     assert GenericMetricsTagsValidator().is_allowed(tags) == expected_result

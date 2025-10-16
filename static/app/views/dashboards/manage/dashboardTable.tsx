@@ -29,6 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
@@ -86,9 +87,9 @@ function FavoriteButton({
       borderless
       icon={
         <IconStar
-          color={favorited ? 'yellow300' : 'gray300'}
+          color={favorited ? 'yellow300' : 'gray500'}
           isSolid={favorited}
-          aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+          aria-label={favorited ? t('Unstar') : t('Star')}
           size="sm"
         />
       }
@@ -162,7 +163,7 @@ function DashboardTable({
 
       return (
         <SortLink
-          align={'left'}
+          align="left"
           title={column.name}
           direction={sortDirection}
           canSort
@@ -267,20 +268,30 @@ function DashboardTable({
             )}
           </DateSelected>
           <ActionsIconWrapper>
-            <StyledButton
-              onClick={e => {
-                e.stopPropagation();
-                openConfirmModal({
-                  message: t('Are you sure you want to duplicate this dashboard?'),
-                  priority: 'primary',
-                  onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
-                });
-              }}
-              aria-label={t('Duplicate Dashboard')}
-              data-test-id={'dashboard-duplicate'}
-              icon={<IconCopy />}
-              size="sm"
-            />
+            <DashboardCreateLimitWrapper>
+              {({
+                hasReachedDashboardLimit,
+                isLoading: isLoadingDashboardsLimit,
+                limitMessage,
+              }) => (
+                <StyledButton
+                  onClick={e => {
+                    e.stopPropagation();
+                    openConfirmModal({
+                      message: t('Are you sure you want to duplicate this dashboard?'),
+                      priority: 'primary',
+                      onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
+                    });
+                  }}
+                  aria-label={t('Duplicate Dashboard')}
+                  data-test-id="dashboard-duplicate"
+                  icon={<IconCopy />}
+                  size="sm"
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                  title={limitMessage}
+                />
+              )}
+            </DashboardCreateLimitWrapper>
             <StyledButton
               onClick={e => {
                 e.stopPropagation();
@@ -291,7 +302,7 @@ function DashboardTable({
                 });
               }}
               aria-label={t('Delete Dashboard')}
-              data-test-id={'dashboard-delete'}
+              data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
               disabled={dashboards && dashboards.length <= 1}
@@ -326,7 +337,7 @@ function DashboardTable({
               <StyledIconStar
                 color="yellow300"
                 isSolid
-                aria-label={t('Favorite Column')}
+                aria-label={t('Star Column')}
                 key="favorite-header"
               />,
             ];

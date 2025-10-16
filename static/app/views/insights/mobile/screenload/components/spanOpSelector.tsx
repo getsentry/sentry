@@ -56,7 +56,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
       search: queryStringPrimary,
       fields: [SpanFields.SPAN_OP, 'count()'],
     },
-    'api.starfish.get-span-operations'
+    'api.insights.get-span-operations'
   );
 
   const options = [

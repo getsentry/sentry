@@ -20,8 +20,8 @@ import {
   IncrementalSource,
   isHydrationErrorFrame,
   type RawBreadcrumbFrame,
+  type RawReplayError,
 } from 'sentry/utils/replays/types';
-import type {ReplayError} from 'sentry/views/replays/types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.000Z');
 const INIT_DATE = new Date('2022-06-15T00:40:00.100Z');
@@ -62,7 +62,7 @@ const RRWEB_EVENTS = [
   }),
 ];
 
-function getMockReplay(rrwebEvents: any[], errors: ReplayError[]) {
+function getMockReplay(rrwebEvents: any[], errors: RawReplayError[]) {
   const attachments = [...rrwebEvents];
   const replay = ReplayReader.factory({
     replayRecord,
@@ -77,7 +77,7 @@ function getMockReplay(rrwebEvents: any[], errors: ReplayError[]) {
 function getMockReplayWithCrumbFrame(
   rrwebEvents: any[],
   crumbFrame: RawBreadcrumbFrame,
-  errors: ReplayError[]
+  errors: RawReplayError[]
 ) {
   const attachments = [...rrwebEvents];
 
@@ -155,7 +155,7 @@ describe('getReplayDiffOffsetsFromEvent', () => {
     });
     const errorEvent = EventFixture({dateCreated: ERROR_DATE.toISOString()});
     const {replay} = getMockReplayWithCrumbFrame(RRWEB_EVENTS, rawHydrationCrumbFrame, [
-      errorEvent as any as ReplayError,
+      errorEvent as any as RawReplayError,
     ]);
 
     const [hydratedHydrationCrumbFrame] = hydrateBreadcrumbs(replayRecord, [
@@ -170,7 +170,7 @@ describe('getReplayDiffOffsetsFromEvent', () => {
 
   it('should get offsets when no hydration breadcrumb exists', () => {
     const errorEvent = EventFixture({dateCreated: ERROR_DATE.toISOString()});
-    const {replay} = getMockReplay(RRWEB_EVENTS, [errorEvent as any as ReplayError]);
+    const {replay} = getMockReplay(RRWEB_EVENTS, [errorEvent as any as RawReplayError]);
 
     expect(getReplayDiffOffsetsFromEvent(replay!, errorEvent)).toEqual({
       frameOrEvent: errorEvent,

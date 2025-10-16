@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -37,7 +36,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/profiling/onboarding';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
@@ -241,7 +239,7 @@ interface TabbedContentProps extends ProfilingTabProps {
 
 function TransactionsTab({onDataState, location, selection}: TabbedContentProps) {
   const query = decodeScalar(location.query.query, '');
-  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
+  const handleSearch = useCallback(
     (searchQuery: string) => {
       browserHistory.push({
         ...location,
@@ -355,11 +353,9 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 }
 
 function ProfilingContentPageHeader() {
-  const prefersStackedNav = usePrefersStackedNav();
-
   return (
-    <StyledLayoutHeader unified={prefersStackedNav}>
-      <StyledHeaderContent unified={prefersStackedNav}>
+    <StyledLayoutHeader unified>
+      <StyledHeaderContent unified>
         <Layout.Title>
           {t('Profiling')}
           <PageHeadingQuestionTooltip

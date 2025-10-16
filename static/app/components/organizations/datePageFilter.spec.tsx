@@ -16,28 +16,25 @@ const {organization, router} = initializeOrg({
   },
 });
 
-describe('DatePageFilter', function () {
+describe('DatePageFilter', () => {
   beforeEach(() => {
     PageFiltersStore.init();
     OrganizationStore.init();
 
     OrganizationStore.onUpdate(organization, {replace: true});
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: false,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: false,
       },
-      new Set(['datetime'])
-    );
+    });
   });
 
-  it('can change period', async function () {
+  it('can change period', async () => {
     render(<DatePageFilter />, {
       router,
       organization,
@@ -61,7 +58,7 @@ describe('DatePageFilter', function () {
       isReady: true,
       shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(['datetime']),
+      pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {
           period: '30d',
@@ -75,7 +72,7 @@ describe('DatePageFilter', function () {
     });
   });
 
-  it('can change absolute range', async function () {
+  it('can change absolute range', async () => {
     render(<DatePageFilter />, {
       router,
       organization,
@@ -108,7 +105,7 @@ describe('DatePageFilter', function () {
       isReady: true,
       shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(['datetime']),
+      pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {
           period: null,
@@ -131,7 +128,7 @@ describe('DatePageFilter', function () {
     );
   });
 
-  it('displays a desynced state message', async function () {
+  it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       router: {
         location: {
@@ -150,7 +147,6 @@ describe('DatePageFilter', function () {
       organization: desyncOrganization,
       queryParams: {statsPeriod: '14d'},
       router: desyncRouter,
-      shouldEnforceSingleProject: false,
     });
 
     render(<DatePageFilter />, {

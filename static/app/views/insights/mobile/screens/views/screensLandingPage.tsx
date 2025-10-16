@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -6,43 +6,35 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
 import {VitalDetailPanel} from 'sentry/views/insights/mobile/screens/components/vitalDetailPanel';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/mobile/screens/settings';
-import {
   getColdAppStartPerformance,
   getDefaultMetricPerformance,
   getWarmAppStartPerformance,
-  type MetricValue,
   STATUS_UNKNOWN,
+  type MetricValue,
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function ScreensLandingPage() {
@@ -254,26 +246,13 @@ function ScreensLandingPage() {
     <ModulePageProviders moduleName={ModuleName.MOBILE_VITALS}>
       <Layout.Page>
         <PageAlertProvider>
-          <MobileHeader
-            headerTitle={
-              <Fragment>
-                {MODULE_TITLE}
-                <PageHeadingQuestionTooltip
-                  docsUrl={MODULE_DOC_LINK}
-                  title={MODULE_DESCRIPTION}
-                />
-              </Fragment>
-            }
-            headerActions={isProjectCrossPlatform && <PlatformSelector />}
-            module={moduleName}
-          />
-          <ModuleBodyUpsellHook moduleName={moduleName}>
+          <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
               <Layout.Main fullWidth>
                 <Container>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector onChange={handleProjectChange} />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter />
                   </PageFilterBar>
                 </Container>
@@ -317,7 +296,7 @@ function ScreensLandingPage() {
                 </ModulesOnboarding>
               </Layout.Main>
             </Layout.Body>
-          </ModuleBodyUpsellHook>
+          </ModuleFeature>
         </PageAlertProvider>
       </Layout.Page>
     </ModulePageProviders>

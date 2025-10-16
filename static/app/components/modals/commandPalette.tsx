@@ -8,12 +8,12 @@ import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-function CommandPalette({Body}: ModalRenderProps) {
+function CommandPalette({Body, closeModal}: ModalRenderProps) {
   const theme = useTheme();
 
   useEffect(
     () =>
-      void trackAnalytics('omnisearch.open', {
+      trackAnalytics('omnisearch.open', {
         organization: null,
       }),
     []
@@ -26,6 +26,7 @@ function CommandPalette({Body}: ModalRenderProps) {
           <Search
             entryPoint="command_palette"
             minSearch={1}
+            onAction={closeModal}
             dropdownClassName={injectedCss`
                 width: 100%;
                 border: transparent;

@@ -13,8 +13,6 @@ from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import eventstore, options
-from sentry.eventstore.models import Event
-from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
@@ -30,6 +28,8 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.receivers import create_default_projects
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature

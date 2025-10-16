@@ -66,9 +66,9 @@ def test_sdk_crash_is_reported_development_paths(
     mock_random,
     store_event,
     configs,
-    filename,
-    expected_stripped_filename,
-    detected,
+    filename: str,
+    expected_stripped_filename: str,
+    detected: bool,
 ):
     event = store_event(data=get_crash_event(filename=filename))
 
@@ -161,7 +161,7 @@ def test_sdk_crash_is_reported_development_paths(
 )
 @decorators
 def test_sdk_crash_is_reported_production_paths(
-    mock_sdk_crash_reporter, mock_random, store_event, configs, package_name, detected
+    mock_sdk_crash_reporter, mock_random, store_event, configs, package_name: str, detected: bool
 ):
     expected_stripped_filename = f"{package_name}dist/js/integrations/reactnativeerrorhandlers.js"
     # Remove the first / from the path because the module is not prefixed with /.
@@ -198,7 +198,9 @@ def test_sdk_crash_is_reported_production_paths(
 
 
 @decorators
-def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_beta_sdk_version_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="4.1.0-beta.0")
     event = store_event(data=event_data)
@@ -261,7 +263,9 @@ def test_organization_empty_allowlist_not_detected(
 
 
 @decorators
-def test_console_mechanism_not_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_console_mechanism_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -294,7 +298,9 @@ def test_console_mechanism_not_detected(mock_sdk_crash_reporter, mock_random, st
 
 
 @decorators
-def test_sentry_wrapped_not_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_sentry_wrapped_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -326,7 +332,9 @@ def test_sentry_wrapped_not_detected(mock_sdk_crash_reporter, mock_random, store
 
 
 @decorators
-def test_sentry_wrapped_end_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_sentry_wrapped_end_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -360,7 +368,9 @@ def test_sentry_wrapped_end_detected(mock_sdk_crash_reporter, mock_random, store
 
 
 @decorators
-def test_console_mechanism_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_console_mechanism_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -393,7 +403,9 @@ def test_console_mechanism_detected(mock_sdk_crash_reporter, mock_random, store_
 
 
 @decorators
-def test_missing_exception_not_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_missing_exception_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(exception={"values": []})
 
     event = store_event(data=event_data)

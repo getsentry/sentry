@@ -12,7 +12,7 @@ resources:
     WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
 ---
 
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
@@ -27,7 +27,7 @@ To create basic text, wrap content in a `<Text>` component. For semantic heading
 <Heading as="h1">This is a heading</Heading>
 ```
 
-### Sizes
+## Sizes
 
 Text components support different sizes: `xs`, `sm`, `md` (default), `lg`, `xl`, and `2xl`.
 
@@ -50,7 +50,7 @@ Text components support different sizes: `xs`, `sm`, `md` (default), `lg`, `xl`,
 <Text size="xs">Extra small text</Text>
 ```
 
-### Variants
+## Variants
 
 Text components support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, and `promotion`.
 
@@ -75,7 +75,7 @@ Text components support various color variants: `primary` (default), `muted`, `a
 <Text variant="promotion">Promotion text</Text>
 ```
 
-### Custom Elements with `as` Prop
+## Custom Elements with `as` Prop
 
 The `<Text>` component can be rendered as different HTML elements using the `as` prop. This allows you to maintain semantic meaning while applying the component's styling.
 
@@ -92,7 +92,7 @@ The `<Text>` component can be rendered as different HTML elements using the `as`
 <Text as="div">Text rendered as a div element</Text>
 ```
 
-### Typography Features
+## Typographic Features
 
 Text components support various typography options including bold, italic, underline, and strikethrough.
 
@@ -117,26 +117,28 @@ Text components support various typography options including bold, italic, under
 </Text>
 ```
 
-### Text Alignment
+## Text Alignment
 
 Control text alignment with the `align` prop: `left` (default), `center`, `right`, or `justify`.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
-      <Text align="left">Left aligned text</Text>
-    </div>
-    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
-      <Text align="center">Center aligned text</Text>
-    </div>
-    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
-      <Text align="right">Right aligned text</Text>
-    </div>
-    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
-      <Text align="justify">
-        Justified text that will wrap to multiple lines and be justified.
-      </Text>
-    </div>
+    <Stack gap="md">
+      <Container width="200px" padding="md" border="primary">
+        <Text align="left">Left aligned text</Text>
+      </Container>
+      <Container width="200px" padding="md" border="primary">
+        <Text align="center">Center aligned text</Text>
+      </Container>
+      <Container width="200px" padding="md" border="primary">
+        <Text align="right">Right aligned text</Text>
+      </Container>
+      <Container width="200px" padding="md" border="primary">
+        <Text align="justify">
+          Justified text that will wrap to multiple lines and be justified.
+        </Text>
+      </Container>
+    </Stack>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -148,33 +150,35 @@ Control text alignment with the `align` prop: `left` (default), `center`, `right
 </Text>
 ```
 
-### Density
+## Density
 
 Control line height with the `density` prop: `compressed` (1.0), default (1.2), or `comfortable` (1.4).
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <div style={{width: '300px', marginBottom: '16px'}}>
-      <Heading as="h4">Compressed density</Heading>
-      <Text as="p" density="compressed">
-        Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-      </Text>
-    </div>
-    <div style={{width: '300px', marginBottom: '16px'}}>
-      <Heading as="h4">Default density</Heading>
-      <Text as="p">
-        Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
-        do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-      </Text>
-    </div>
-    <div style={{width: '300px'}}>
-      <Heading as="h4">Comfortable density</Heading>
-      <Text as="p" density="comfortable">
-        Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-      </Text>
-    </div>
+    <Stack gap="md">
+      <Container>
+        <Heading as="h4">Compressed density</Heading>
+        <Text as="p" density="compressed">
+          Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing
+          elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
+      <Container>
+        <Heading as="h4">Default density</Heading>
+        <Text as="p">
+          Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+          Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
+      <Container>
+        <Heading as="h4">Comfortable density</Heading>
+        <Text as="p" density="comfortable">
+          Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing
+          elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
+    </Stack>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -183,28 +187,62 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
 <Text density="comfortable">Comfortable density text...</Text>
 ```
 
-### Ellipsis Overflow
+## Ellipsis Overflow
 
 Handle text overflow with the `ellipsis` prop to truncate long text with an ellipsis.
 
 <Storybook.Demo>
-  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+  <Container width="200px" padding="md" border="primary">
     <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
-  </div>
+  </Container>
 </Storybook.Demo>
 ```jsx
-<div style={{width: '200px'}}>
+<Container width="200px" padding="md" border="primary">
   <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
-</div>
+</Container>
 ```
 
-### Monospace
+## Wrapping
+
+Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop to control where the text is split during wrapping.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    <Container width="200px" padding="md" border="primary">
+      <Text wordBreak="break-word">
+        A URL string that breaks on word boundaries:
+        https://example.com/path/?marketingParam1=value1&amp;marketingParam2=some-awkward-long-value
+      </Text>
+    </Container>
+    <Container width="200px" padding="md" border="primary">
+      <Text textWrap="balance">
+        Balanced text wrapping for a string of words of varying lengths
+      </Text>
+    </Container>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Container width="200px" padding="md" border="primary">
+  <Text wordBreak="break-word">
+    A URL string that breaks on word boundaries:
+    https://example.com/path/?marketingParam1=value1&amp;marketingParam2=some-awkward-long-value
+  </Text>
+</Container>
+
+<Container width="200px" padding="md" border="primary">
+  <Text textWrap="balance">
+    Balanced text wrapping for a string of words of varying lengths
+  </Text>
+</Container>
+```
+
+## Monospace
 
 Use `monospace` for fixed-width text.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text>1234567890</Text>
       <Text size="sm" variant="muted">
         Regular
@@ -223,25 +261,25 @@ Use `monospace` for fixed-width text.
 <Text monospace>1234567890</Text>
 ```
 
-### Font Features
+## Font Features
 
 Use `tabular` for consistent number alignment and `fraction` for diagonal fraction display.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text>1234567890</Text>
       <Text size="sm" variant="muted">
         Regular numbers
       </Text>
     </Flex>
-    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text tabular>1234567890</Text>
       <Text size="sm" variant="muted">
         Tabular numbers
       </Text>
     </Flex>
-    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text>1/2 3/4 5/8</Text>
       <Text size="sm" variant="muted">
         Regular fractions
@@ -260,6 +298,29 @@ Use `tabular` for consistent number alignment and `fraction` for diagonal fracti
 <Text fraction>1/2 3/4 5/8</Text>
 ```
 
-### Accessibility
+## Responsive Sizes
+
+Text components support responsive sizes using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+
+<Storybook.Demo>
+  <Container width="200px" border="primary">
+    <Text
+      size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
+      align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+    >
+      Responsive text
+    </Text>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Text
+  size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
+  align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+>
+  Responsive text
+</Text>
+```
+
+## Accessibility
 
 Text components automatically meet WCAG 2.2 AA compliance for color contrast and text spacing. When using semantic headings, ensure proper heading hierarchy for screen readers.

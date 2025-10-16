@@ -157,6 +157,7 @@ function useFilterKeySections({
   const previousNumSections = usePrevious(numSections);
   useEffect(() => {
     if (previousNumSections !== numSections) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectedSection(sections[0]!.value);
     }
   }, [numSections, previousNumSections, sections]);
@@ -167,11 +168,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const {
     filterKeys,
     getFieldDefinition,
-    setDisplaySeerResults,
     setAutoSubmitSeer,
+    setDisplayAskSeer,
     enableAISearch,
     gaveSeerConsent,
-    currentInputValue,
+    currentInputValueRef,
   } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -392,13 +393,14 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
           organization,
           action: 'opened',
         });
-        setDisplaySeerResults(true);
+        setDisplayAskSeer(true);
 
-        if (currentInputValue?.trim()) {
+        if (currentInputValueRef.current?.trim()) {
           setAutoSubmitSeer(true);
         } else {
           setAutoSubmitSeer(false);
         }
+
         return;
       }
 
@@ -412,11 +414,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       }
     },
     [
+      currentInputValueRef,
       organization,
       seerAcknowledgeMutate,
-      setDisplaySeerResults,
       setAutoSubmitSeer,
-      currentInputValue,
+      setDisplayAskSeer,
     ]
   );
 

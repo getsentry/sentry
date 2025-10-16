@@ -7,7 +7,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
@@ -63,7 +63,7 @@ function ChangePlanAction({
 
   // Initialize Seer budget value in form model
   React.useEffect(() => {
-    formModel.setValue('seer', hasCurrentSeerBudget);
+    formModel.setValue('addOnSeer', hasCurrentSeerBudget);
   }, [formModel, hasCurrentSeerBudget]);
 
   const api = useApi({persistInFlight: true});
@@ -217,7 +217,7 @@ function ChangePlanAction({
     // Add Seer budget parameter for AM plans and TEST tier
     const submitData = {
       ...data,
-      seer: formModel.getValue('seer'),
+      addOnSeer: formModel.getValue('addOnSeer'),
     };
 
     if (activeTier === PlanTier.MM2) {
@@ -281,7 +281,7 @@ function ChangePlanAction({
             setActiveTier(tab);
             setBillingInterval(MONTHLY);
             setContractInterval(MONTHLY);
-            formModel.setValue('seer', hasCurrentSeerBudget);
+            formModel.setValue('addOnSeer', hasCurrentSeerBudget);
           }}
         >
           <TabList>

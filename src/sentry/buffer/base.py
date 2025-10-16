@@ -30,7 +30,6 @@ class Buffer(Service):
         "incr",
         "process",
         "process_pending",
-        "process_batch",
         "validate",
         "push_to_sorted_set",
         "push_to_hash",
@@ -48,7 +47,7 @@ class Buffer(Service):
         filters: dict[str, Any],
     ) -> dict[str, int]:
         """
-        We can't fetch values from Celery, so just assume buffer values are all 0 here.
+        We can't fetch values from tasks, so just assume buffer values are all 0 here.
         """
         return {col: 0 for col in columns}
 
@@ -58,8 +57,13 @@ class Buffer(Service):
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         raise NotImplementedError
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
         return []
+
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]:
+        return {}
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         return None
@@ -90,6 +94,9 @@ class Buffer(Service):
         return None
 
     def delete_key(self, key: str, min: float, max: float) -> None:
+        return None
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
         return None
 
     def incr(
@@ -138,9 +145,6 @@ class Buffer(Service):
         )
 
     def process_pending(self) -> None:
-        return
-
-    def process_batch(self) -> None:
         return
 
     def process(

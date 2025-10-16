@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import socket
-from urllib.parse import urlparse
 
 import pytest
-from django.conf import settings
 
 
 def _service_available(host: str, port: int) -> bool:
@@ -23,32 +21,35 @@ def _requires_service_message(name: str) -> str:
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
-    parsed = urlparse(settings.SENTRY_SNUBA)
-    assert parsed.hostname is not None
-    assert parsed.port is not None
-    if not _service_available(parsed.hostname, parsed.port):
+    # TODO: ability to ask devservices what port a service is on
+    if not _service_available("127.0.0.1", 1218):
         pytest.fail(_requires_service_message("snuba"))
 
 
 @pytest.fixture(scope="session")
 def _requires_kafka() -> None:
-    kafka_conf = settings.SENTRY_DEVSERVICES["kafka"](settings, {})
-    (port,) = kafka_conf["ports"].values()
-
-    if not _service_available("127.0.0.1", port):
+    # TODO: ability to ask devservices what port a service is on
+    if not _service_available("127.0.0.1", 9092):
         pytest.fail(_requires_service_message("kafka"))
 
 
 @pytest.fixture(scope="session")
 def _requires_symbolicator() -> None:
-    symbolicator_conf = settings.SENTRY_DEVSERVICES["symbolicator"](settings, {})
-    (port,) = symbolicator_conf["ports"].values()
-
-    if not _service_available("127.0.0.1", port):
+    # TODO: ability to ask devservices what port a service is on
+    if not _service_available("127.0.0.1", 3021):
         service_message = "requires 'symbolicator' server running\n\t💡 Hint: run `devservices up --mode=symbolicator`"
         pytest.fail(service_message)
+
+
+@pytest.fixture(scope="session")
+def _requires_objectstore() -> None:
+    # TODO: ability to ask devservices what port a service is on
+    if not _service_available("127.0.0.1", 8888):
+        service_message = "requires 'objectstore' server running\n\t💡 Hint: run `devservices up --mode=objectstore`"
+        pytest.skip(service_message)
 
 
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")
 requires_symbolicator = pytest.mark.usefixtures("_requires_symbolicator")
 requires_kafka = pytest.mark.usefixtures("_requires_kafka")
+requires_objectstore = pytest.mark.usefixtures("_requires_objectstore")

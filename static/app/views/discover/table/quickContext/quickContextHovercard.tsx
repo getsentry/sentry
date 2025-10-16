@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -108,16 +108,15 @@ function HoverHeader({
   organization,
 }: HoverHeaderProps) {
   return (
-    <HoverHeaderWrapper>
+    <Flex align="center" justify="between">
       {title}
-      <HoverHeaderContent>
+      <Flex flex="1" align="center" justify="end" gap="xs">
         {copyLabel}
 
         {!hideCopy && copyContent && (
           <CopyToClipboardButton
             borderless
             data-test-id="quick-context-hover-header-copy-button"
-            iconSize="xs"
             onCopy={() => {
               trackAnalytics('discover_v2.quick_context_header_copy', {
                 organization,
@@ -128,8 +127,8 @@ function HoverHeader({
             text={copyContent}
           />
         )}
-      </HoverHeaderContent>
-    </HoverHeaderWrapper>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -180,20 +179,6 @@ const StyledHovercard = styled(Hovercard)`
   }
   overflow: hidden;
   min-width: max-content;
-`;
-
-const HoverHeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const HoverHeaderContent = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${space(0.5)};
 `;
 
 const StyledVersion = styled(Version)`

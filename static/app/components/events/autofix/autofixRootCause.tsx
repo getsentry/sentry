@@ -1,26 +1,76 @@
-import React, {Fragment, useRef} from 'react';
+import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {TextArea} from 'sentry/components/core/textarea';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
-import {IconChat, IconFocus} from 'sentry/icons';
+import {
+  makeAutofixQueryKey,
+  useCodingAgentIntegrations,
+  useLaunchCodingAgent,
+} from 'sentry/components/events/autofix/useAutofix';
+import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
+import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
+
+function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
+
+  return useMutation({
+    mutationFn: (params: {cause_id: string; instruction?: string}) => {
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'select_root_cause',
+              cause_id: params.cause_id,
+              instruction: params.instruction || null,
+            },
+          },
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
+      addLoadingMessage(t('On it...'));
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when selecting the root cause.'));
+    },
+  });
+}
 
 type AutofixRootCauseProps = {
   causes: AutofixRootCauseData[];
@@ -28,13 +78,14 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
+  event?: Event;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
 };
 
-const cardAnimationProps: AnimationProps = {
+const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
@@ -149,7 +200,7 @@ export function formatRootCauseText(
           }
 
           if (event.relevant_code_file) {
-            eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+            eventParts.push(`(See @${event.relevant_code_file.file_path})`);
           }
 
           return eventParts.join('\n');
@@ -164,20 +215,29 @@ export function formatRootCauseText(
 function CopyRootCauseButton({
   cause,
   customRootCause,
+  event,
 }: {
   cause?: AutofixRootCauseData;
   customRootCause?: string;
+  event?: Event;
 }) {
-  const text = formatRootCauseText(cause, customRootCause);
+  const text = formatRootCauseWithEvent(cause, customRootCause, event);
+  const {onClick, label} = useCopyToClipboard({
+    text,
+  });
+
   return (
-    <CopyToClipboardButton
+    <Button
       size="sm"
-      text={text}
-      borderless
-      title="Copy root cause as Markdown"
+      aria-label={label}
+      title="Copy analysis as Markdown / LLM prompt"
+      onClick={onClick}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
-    />
+      icon={<IconCopy />}
+    >
+      {t('Copy')}
+    </Button>
   );
 }
 
@@ -189,10 +249,24 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  event,
 }: AutofixRootCauseProps) {
   const cause = causes[0];
+  const organization = useOrganization();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
+  const [solutionText, setSolutionText] = useState('');
+  const {mutate: selectRootCause, isPending: isSelectingRootCause} = useSelectRootCause({
+    groupId,
+    runId,
+  });
+  const {data: codingAgentResponse, isLoading: isLoadingAgents} =
+    useCodingAgentIntegrations();
+  const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
+  const {mutate: launchCodingAgent, isPending: isLaunchingAgent} = useLaunchCodingAgent(
+    groupId,
+    runId
+  );
 
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
@@ -205,6 +279,57 @@ function AutofixRootCauseDisplay({
       descriptionRef.current.dispatchEvent(clickEvent);
     }
   };
+
+  const submitFindSolution = () => {
+    if (cause?.id === undefined || cause.id === null) {
+      addErrorMessage(t('No root cause available.'));
+      return;
+    }
+
+    const instruction = solutionText.trim();
+    if (instruction) {
+      selectRootCause({
+        cause_id: cause.id,
+        instruction,
+      });
+    } else {
+      selectRootCause({
+        cause_id: cause.id,
+      });
+    }
+
+    setSolutionText('');
+  };
+
+  // Find Cursor integration specifically
+  const cursorIntegration = codingAgentIntegrations.find(
+    integration => integration.provider === 'cursor'
+  );
+
+  const handleLaunchCodingAgent = () => {
+    if (!cursorIntegration) {
+      return;
+    }
+
+    launchCodingAgent({
+      integrationId: cursorIntegration.id,
+      agentName: cursorIntegration.name,
+      triggerSource: 'root_cause',
+    });
+
+    trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
+      organization,
+      group_id: groupId,
+    });
+  };
+
+  // Shared UI state for "Find Solution" controls
+  const isRootCauseAlreadySelected = Boolean(
+    rootCauseSelection && 'cause_id' in rootCauseSelection
+  );
+  const findSolutionPriority: React.ComponentProps<typeof Button>['priority'] =
+    isRootCauseAlreadySelected ? 'default' : 'primary';
+  const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   if (!cause) {
     return (
@@ -223,13 +348,19 @@ function AutofixRootCauseDisplay({
           <HeaderWrapper>
             <HeaderText>
               <IconWrapper ref={iconFocusRef}>
-                <IconFocus size="sm" color="pink400" />
+                <IconFocus size="md" color="pink400" />
               </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
-            <CopyRootCauseButton customRootCause={rootCauseSelection.custom_root_cause} />
           </HeaderWrapper>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
+          <BottomDivider />
+          <BottomButtonContainer>
+            <CopyRootCauseButton
+              customRootCause={rootCauseSelection.custom_root_cause}
+              event={event}
+            />
+          </BottomButtonContainer>
         </CustomRootCausePadding>
       </CausesContainer>
     );
@@ -237,59 +368,120 @@ function AutofixRootCauseDisplay({
 
   return (
     <CausesContainer>
-      <ClippedBox clipHeight={408}>
-        <HeaderWrapper>
-          <HeaderText>
-            <IconWrapper ref={iconFocusRef}>
-              <IconFocus size="sm" color="pink400" />
-            </IconWrapper>
-            {t('Root Cause')}
-            <ChatButton
-              size="zero"
-              borderless
-              title={t('Chat with Seer')}
-              onClick={handleSelectDescription}
-              analyticsEventName="Autofix: Root Cause Chat"
-              analyticsEventKey="autofix.root_cause.chat"
+      <HeaderWrapper>
+        <HeaderText>
+          <IconWrapper ref={iconFocusRef}>
+            <IconFocus size="md" color="pink400" />
+          </IconWrapper>
+          {t('Root Cause')}
+          <Button
+            size="zero"
+            borderless
+            title={t('Chat with Seer')}
+            onClick={handleSelectDescription}
+            analyticsEventName="Autofix: Root Cause Chat"
+            analyticsEventKey="autofix.root_cause.chat"
+          >
+            <IconChat />
+          </Button>
+        </HeaderText>
+      </HeaderWrapper>
+      <AnimatePresence>
+        {agentCommentThread && iconFocusRef.current && (
+          <AutofixHighlightPopup
+            selectedText=""
+            referenceElement={iconFocusRef.current}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount
+                : null
+            }
+            isAgentComment
+            blockName={t('Seer is uncertain of the root cause...')}
+          />
+        )}
+      </AnimatePresence>
+      <Content>
+        <Fragment>
+          <RootCauseDescription
+            cause={cause}
+            groupId={groupId}
+            runId={runId}
+            previousDefaultStepIndex={previousDefaultStepIndex}
+            previousInsightCount={previousInsightCount}
+            ref={descriptionRef}
+          />
+        </Fragment>
+      </Content>
+      <BottomDivider />
+      <BottomButtonContainer>
+        <SolutionInput
+          autosize
+          value={solutionText}
+          maxLength={4096}
+          onChange={e => setSolutionText(e.target.value)}
+          placeholder={t('Add context for the solution...')}
+          maxRows={3}
+          size="sm"
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submitFindSolution();
+            }
+          }}
+        />
+        <ButtonBar>
+          <CopyRootCauseButton cause={cause} event={event} />
+          {cursorIntegration ? (
+            <ButtonBar merged gap="0">
+              <Button
+                size="sm"
+                priority={findSolutionPriority}
+                busy={isSelectingRootCause}
+                disabled={isLoadingAgents}
+                onClick={submitFindSolution}
+                title={findSolutionTitle}
+              >
+                {t('Find Solution')}
+              </Button>
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'cursor-agent',
+                    label: t('Send to Cursor Background Agent'),
+                    onAction: handleLaunchCodingAgent,
+                    disabled: isLoadingAgents || isLaunchingAgent,
+                  },
+                ]}
+                trigger={(triggerProps, isOpen) => (
+                  <DropdownTrigger
+                    {...triggerProps}
+                    size="sm"
+                    priority={findSolutionPriority}
+                    busy={isLaunchingAgent}
+                    disabled={isLoadingAgents}
+                    aria-label={t('More solution options')}
+                    icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                  />
+                )}
+              />
+            </ButtonBar>
+          ) : (
+            <Button
+              size="sm"
+              priority={findSolutionPriority}
+              busy={isSelectingRootCause}
+              onClick={submitFindSolution}
+              title={findSolutionTitle}
             >
-              <IconChat size="xs" />
-            </ChatButton>
-          </HeaderText>
-          <ButtonBar gap="0">
-            <CopyRootCauseButton cause={cause} />
-          </ButtonBar>
-        </HeaderWrapper>
-        <AnimatePresence>
-          {agentCommentThread && iconFocusRef.current && (
-            <AutofixHighlightPopup
-              selectedText=""
-              referenceElement={iconFocusRef.current}
-              groupId={groupId}
-              runId={runId}
-              stepIndex={previousDefaultStepIndex ?? 0}
-              retainInsightCardIndex={
-                previousInsightCount !== undefined && previousInsightCount >= 0
-                  ? previousInsightCount
-                  : null
-              }
-              isAgentComment
-              blockName={t('Seer is uncertain of the root cause...')}
-            />
+              {t('Find Solution')}
+            </Button>
           )}
-        </AnimatePresence>
-        <Content>
-          <Fragment>
-            <RootCauseDescription
-              cause={cause}
-              groupId={groupId}
-              runId={runId}
-              previousDefaultStepIndex={previousDefaultStepIndex}
-              previousInsightCount={previousInsightCount}
-              ref={descriptionRef}
-            />
-          </Fragment>
-        </Content>
-      </ClippedBox>
+        </ButtonBar>
+      </BottomButtonContainer>
     </CausesContainer>
   );
 }
@@ -335,8 +527,8 @@ const CausesContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding: ${p => p.theme.space.lg};
+  background: ${p => p.theme.background};
 `;
 
 const Content = styled('div')`
@@ -358,7 +550,7 @@ const IconWrapper = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
@@ -378,7 +570,26 @@ const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const BottomButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding-top: ${p => p.theme.space.xl};
+`;
+
+const SolutionInput = styled(TextArea)`
+  flex: 1;
+  resize: none;
+  margin-right: ${p => p.theme.space.lg};
+  margin-left: ${p => p.theme.space['3xl']};
+  max-width: 250px;
+`;
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-left: none;
 `;

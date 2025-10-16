@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,
@@ -19,13 +19,15 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function GroupBySection({query, index}: Props) {
-  const {tags} = useTraceItemTags();
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
   const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
     groupBys: [],
-    tags,
+    numberTags,
+    stringTags,
     traceItemType: TraceItemDataset.SPANS,
     hideEmptyOption: true,
   });

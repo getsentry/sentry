@@ -10,7 +10,7 @@ from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE_INSTALLATION
 
 
 class InstallationPushEventWebhookTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.project  # force creation
 
         url = "/plugins/github/installations/webhook/"

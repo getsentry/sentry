@@ -2,10 +2,10 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 
-describe('SimilarSpectrum', function () {
-  it('renders', function () {
+describe('SimilarSpectrum', () => {
+  it('renders', () => {
     render(
-      <SimilarSpectrum highSpectrumLabel={'Similar'} lowSpectrumLabel={'Not Similar'} />
+      <SimilarSpectrum highSpectrumLabel="Similar" lowSpectrumLabel="Not Similar" />
     );
   });
 });

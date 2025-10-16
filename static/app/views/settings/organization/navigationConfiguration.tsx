@@ -2,7 +2,6 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -16,7 +15,7 @@ type ConfigParams = {
 export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
-  if (incomingOrganization && prefersStackedNav(incomingOrganization)) {
+  if (incomingOrganization) {
     return getUserOrgNavigationConfiguration();
   }
 
@@ -123,7 +122,7 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
           title: t('Dynamic Sampling'),
           description: t('Manage your sampling rate'),
-          badge: () => 'new',
+          badge: () => 'alpha',
           show: ({organization}) =>
             !!organization && hasDynamicSamplingCustomFeature(organization),
         },
@@ -138,10 +137,7 @@ export function getOrganizationNavigationConfiguration({
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) =>
-            !!organization &&
-            organization.features.includes('trigger-autofix-on-issue-summary') &&
-            !organization.hideAiFeatures,
+          show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
         {
@@ -149,7 +145,7 @@ export function getOrganizationNavigationConfiguration({
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: ({organization}) => !!organization && prefersStackedNav(organization),
+          show: ({organization}) => !!organization,
         },
       ],
     },

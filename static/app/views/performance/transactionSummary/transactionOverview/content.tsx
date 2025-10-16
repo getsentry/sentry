@@ -414,10 +414,6 @@ function SummaryContent({
     return null;
   }, [organization, mepDataContext]);
 
-  const hasPerformanceChartInterpolation = organization.features.includes(
-    'performance-chart-interpolation'
-  );
-
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
   }, [location]);
@@ -577,7 +573,6 @@ function SummaryContent({
             eventView={eventView}
             totalValue={totalCount}
             currentFilter={spanOperationBreakdownFilter}
-            withoutZerofill={hasPerformanceChartInterpolation}
             project={project}
           />
           <TransactionsList

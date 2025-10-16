@@ -10,7 +10,8 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -23,6 +24,8 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
 import {UserCell} from 'sentry/views/insights/pages/platform/shared/table/UserCell';
 import {useTableDataWithController} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
@@ -52,8 +55,13 @@ const rightAlignColumns = new Set([
 ]);
 
 export function PathsTable() {
+  const {query} = useTransactionNameQuery();
+  const mutableQuery = new MutableSearch(query);
+  mutableQuery.addFilterValue(SpanFields.TRANSACTION_OP, 'http.server');
+  mutableQuery.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
+
   const tableDataRequest = useTableDataWithController({
-    query: 'transaction.op:http.server is_transaction:True',
+    query: mutableQuery,
     fields: [
       'project.id',
       'transaction',
@@ -82,11 +90,10 @@ export function PathsTable() {
     );
   }, []);
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'http.request.method':
           return dataRow['http.request.method'];
@@ -136,7 +143,7 @@ export function PathsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -144,7 +151,7 @@ export function PathsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,

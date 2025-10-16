@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
@@ -11,12 +12,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
 import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
+import MobileLayout from 'sentry/views/insights/pages/mobile/layout';
+import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
-describe('Screens Landing Page', function () {
+describe('Screens Landing Page', () => {
   const organization = OrganizationFixture({
     features: [MODULE_FEATURE],
   });
@@ -62,7 +65,7 @@ describe('Screens Landing Page', function () {
     isProjectCrossPlatform: true,
   });
 
-  describe('Top Section', function () {
+  describe('Top Section', () => {
     beforeEach(() => {
       organization.features = [MODULE_FEATURE];
       MockApiClient.addMockResponse({
@@ -79,12 +82,25 @@ describe('Screens Landing Page', function () {
       jest.clearAllMocks();
     });
 
-    it('shows the platform selector for hybrid sdks', async function () {
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+    it('shows the platform selector for hybrid sdks', async () => {
+      render(<MobileLayout />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/mobile-vitals'},
+          route: '/',
+          children: [
+            {
+              path: 'mobile-vitals',
+              handle: {module: ModuleName.MOBILE_VITALS},
+              element: <Fragment />,
+            },
+          ],
+        },
+      });
       expect(await screen.findByLabelText('Android')).toBeInTheDocument();
     });
 
-    it('renders all vital cards', async function () {
+    it('renders all vital cards', async () => {
       jest.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
@@ -129,7 +145,7 @@ describe('Screens Landing Page', function () {
           },
         },
         match: [
-          MockApiClient.matchQuery({referrer: 'api.starfish.mobile-screens-metrics'}),
+          MockApiClient.matchQuery({referrer: 'api.insights.mobile-screens-metrics'}),
         ],
       });
 
@@ -163,7 +179,7 @@ describe('Screens Landing Page', function () {
         },
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.starfish.mobile-screens-span-metrics',
+            referrer: 'api.insights.mobile-screens-span-metrics',
           }),
         ],
       });
@@ -192,7 +208,7 @@ describe('Screens Landing Page', function () {
       }
     });
   });
-  describe('Permissions', function () {
+  describe('Permissions', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
@@ -207,7 +223,7 @@ describe('Screens Landing Page', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('shows no content if permission is missing', async function () {
+    it('shows no content if permission is missing', async () => {
       organization.features = [];
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(
@@ -215,9 +231,22 @@ describe('Screens Landing Page', function () {
       ).toBeInTheDocument();
     });
 
-    it('shows content if permission is there', async function () {
-      organization.features = [MODULE_FEATURE, 'insights-entry-points'];
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+    it('shows content if permission is there', async () => {
+      organization.features = [MODULE_FEATURE];
+      render(<MobileLayout />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/mobile-vitals'},
+          route: '/',
+          children: [
+            {
+              path: 'mobile-vitals',
+              handle: {module: ModuleName.MOBILE_VITALS},
+              element: <ScreensLandingPage />,
+            },
+          ],
+        },
+      });
       expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
     });
   });

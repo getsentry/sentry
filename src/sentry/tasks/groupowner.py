@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -9,12 +10,11 @@ from sentry import analytics
 from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
 from sentry.locks import locks
 from sentry.models.commit import Commit
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -33,8 +33,17 @@ logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+    event_id,
+    event_platform,
+    event_frames: Sequence[Mapping[str, Any]],
+    group_id,
+    project_id,
+    sdk_name=None,
+    **kwargs,
 ):
+    """
+    This is the logic behind SuspectCommitStrategy.RELEASE_BASED
+    """
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
 
@@ -81,16 +90,24 @@ def _process_suspect_commits(
                     sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
-                        go, created = GroupOwner.objects.update_or_create(
-                            group_id=group_id,
-                            type=GroupOwnerType.SUSPECT_COMMIT.value,
-                            user_id=owner_id,
-                            project=project,
-                            organization_id=project.organization_id,
-                            defaults={
-                                "date_added": timezone.now()
-                            },  # Updates date of an existing owner, since we just matched them with this new event
+                        group_owner, created = (
+                            GroupOwner.objects.update_or_create_and_preserve_context(
+                                lookup_kwargs={
+                                    "group_id": group_id,
+                                    "type": GroupOwnerType.SUSPECT_COMMIT.value,
+                                    "user_id": owner_id,
+                                    "project_id": project.id,
+                                    "organization_id": project.organization_id,
+                                },
+                                defaults={
+                                    "date_added": timezone.now(),
+                                },
+                                context_defaults={
+                                    "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+                                },
+                            )
                         )
+
                         if created:
                             owner_count += 1
                             if owner_count > PREFERRED_GROUP_OWNERS:
@@ -116,8 +133,8 @@ def _process_suspect_commits(
                                         project_id=project.id,
                                         group_id=group_id,
                                         new_assignment=created,
-                                        user_id=go.user_id,
-                                        group_owner_type=go.type,
+                                        user_id=group_owner.user_id,
+                                        group_owner_type=group_owner.type,
                                         method="release_commit",
                                     )
                                 )
@@ -161,29 +178,24 @@ def _process_suspect_commits(
 
 @instrumented_task(
     name="sentry.tasks.process_suspect_commits",
-    queue="group_owners.process_suspect_commits",
-    default_retry_delay=5,
-    max_retries=5,
+    namespace=issues_tasks,
+    processing_deadline_duration=90,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=90,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @retry
 def process_suspect_commits(
     event_id,
     event_platform,
-    event_frames,
+    event_frames: Sequence[Mapping[str, Any]],
     group_id,
     project_id,
     sdk_name=None,
     **kwargs,
 ):
+    """
+    This is the task behind SuspectCommitStrategy.RELEASE_BASED
+    """
     lock = locks.get(
         f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
     )

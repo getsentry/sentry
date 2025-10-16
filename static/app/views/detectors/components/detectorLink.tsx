@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {t} from 'sentry/locale';
@@ -12,7 +13,9 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  CronDetector,
   Detector,
+  MetricCondition,
   MetricDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
@@ -22,15 +25,20 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
 };
 
-function formatConditionType(condition: DataCondition) {
+function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {
     case DataConditionType.GREATER:
       return '>';
@@ -121,6 +129,12 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
 }
 
 function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
+  const datasetConfig = getDatasetConfig(
+    getDetectorDataset(
+      detector.dataSources[0].queryObj?.snubaQuery.dataset || Dataset.ERRORS,
+      detector.dataSources[0].queryObj?.snubaQuery.eventTypes || []
+    )
+  );
   return (
     <Fragment>
       {detector.dataSources.map(dataSource => {
@@ -130,9 +144,14 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
-            <DetailItem>{dataSource.queryObj.snubaQuery.aggregate}</DetailItem>
             <DetailItem>
-              {middleEllipsis(dataSource.queryObj.snubaQuery.query, 40)}
+              {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+            </DetailItem>
+            <DetailItem>
+              {middleEllipsis(
+                datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery),
+                40
+              )}
             </DetailItem>
           </Fragment>
         );
@@ -157,6 +176,12 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
   );
 }
 
+function CronDetectorDetails({detector}: {detector: CronDetector}) {
+  const config = detector.dataSources[0].queryObj.config;
+
+  return <DetailItem>{scheduleAsText(config)}</DetailItem>;
+}
+
 function Details({detector}: {detector: Detector}) {
   const detectorType = detector.type;
   switch (detectorType) {
@@ -165,7 +190,8 @@ function Details({detector}: {detector: Detector}) {
     case 'uptime_domain_failure':
       return <UptimeDetectorDetails detector={detector} />;
     // TODO: Implement details for Cron detectors
-    case 'uptime_subscription':
+    case 'monitor_check_in_failure':
+      return <CronDetectorDetails detector={detector} />;
     case 'error':
       return null;
     default:
@@ -183,7 +209,8 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
       className={className}
       name={detector.name}
       link={makeMonitorDetailsPathname(org.slug, detector.id)}
-      systemCreated={!detector.createdBy}
+      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      disabled={!detector.enabled}
       details={
         <Fragment>
           {project && (
@@ -198,7 +225,9 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
               disableLink
             />
           )}
-          <Details detector={detector} />
+          <ErrorBoundary customComponent={null}>
+            <Details detector={detector} />
+          </ErrorBoundary>
         </Fragment>
       }
     />

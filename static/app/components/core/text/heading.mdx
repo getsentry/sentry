@@ -14,6 +14,7 @@ resources:
     WCAG 2.4.6: https://www.w3.org/TR/WCAG22/#headings-and-labels
 ---
 
+import {Container} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
@@ -29,7 +30,7 @@ The `<Heading>` component creates semantic heading elements with appropriate def
 <Heading as="h3">Subsection Title</Heading>
 ```
 
-### Semantic Heading Levels
+## Semantic Heading Levels
 
 Use the required `as` prop to specify the semantic heading level. Each level has a default size that follows standard typography hierarchy.
 
@@ -52,7 +53,7 @@ Use the required `as` prop to specify the semantic heading level. Each level has
 <Heading as="h6">Heading 6</Heading>
 ```
 
-### Custom Sizes
+## Custom Sizes
 
 Override the default size with the `size` prop to decouple visual appearance from semantic meaning.
 
@@ -67,6 +68,9 @@ Override the default size with the `size` prop to decouple visual appearance fro
     <Heading as="h5" size="xl">
       H5 with extra large size
     </Heading>
+    <Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
+      H6 with responsive size
+    </Heading>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -79,9 +83,12 @@ Override the default size with the `size` prop to decouple visual appearance fro
 <Heading as="h5" size="xl">
   H5 with extra large size
 </Heading>
+<Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
+  H6 with responsive size
+</Heading>
 ```
 
-### Variants
+## Variants
 
 Headings support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, and `promotion`.
 
@@ -134,7 +141,7 @@ Headings support various color variants: `primary` (default), `muted`, `accent`,
 </Heading>
 ```
 
-### Typography Features
+## Typography Features
 
 Headings support various typography options including italic, underline, strikethrough, and uppercase.
 
@@ -175,7 +182,7 @@ Headings support various typography options including italic, underline, striket
 </Heading>
 ```
 
-### Text Alignment
+## Text Alignment
 
 Control text alignment with the `align` prop: `left` (default), `center`, `right`, or `justify`.
 
@@ -210,26 +217,24 @@ Control text alignment with the `align` prop: `left` (default), `center`, `right
 </Heading>
 ```
 
-### Ellipsis Overflow
+## Ellipsis Overflow
 
 Handle text overflow with the `ellipsis` prop to truncate long headings with an ellipsis.
 
 <Storybook.Demo>
-  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+  <Container width="200px" border="primary" padding="md">
     <Heading as="h4" ellipsis>
       This is a very long heading that will be truncated
     </Heading>
-  </div>
+  </Container>
 </Storybook.Demo>
 ```jsx
-<div style={{width: '200px'}}>
-  <Heading as="h4" ellipsis>
-    This is a very long heading that will be truncated
-  </Heading>
-</div>
+<Heading as="h4" ellipsis>
+  This is a very long heading that will be truncated
+</Heading>
 ```
 
-### Monospace
+## Monospace
 
 Use `monospace` for fixed-width headings, useful for code-related content.
 
@@ -245,5 +250,30 @@ Use `monospace` for fixed-width headings, useful for code-related content.
 <Heading as="h4">API Response Format</Heading>
 <Heading as="h4" monospace>
   API Response Format
+</Heading>
+```
+
+## Responsive Sizes
+
+Headings support responsive sizes using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+
+<Storybook.Demo>
+  <Container width="400px" border="primary">
+    <Heading
+      as="h4"
+      size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
+      align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+    >
+      Responsive heading
+    </Heading>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Heading
+  as="h4"
+  size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
+  align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+>
+  Responsive heading
 </Heading>
 ```

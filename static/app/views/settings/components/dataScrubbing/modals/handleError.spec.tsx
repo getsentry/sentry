@@ -1,12 +1,12 @@
 import handleError from 'sentry/views/settings/components/dataScrubbing/modals/handleError';
 
-describe('Data Scrubbing handleError', function () {
+describe('Data Scrubbing handleError', () => {
   it.each([
     {
       message: 'Compiled regex exceeds size limit of 262144 bytes.',
       name: 'regex too long',
     },
-  ])('recognizes errors "$name"', function ({message}) {
+  ])('recognizes errors "$name"', ({message}) => {
     const rawError = {
       responseJSON: {
         relayPiiConfig: [message],

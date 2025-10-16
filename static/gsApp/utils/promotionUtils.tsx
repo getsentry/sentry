@@ -11,8 +11,8 @@ import {
   openPromotionReminderModal,
 } from 'getsentry/actionCreators/modal';
 import {
-  type DiscountInfo,
   InvoiceItemType,
+  type DiscountInfo,
   type Plan,
   type PromotionClaimed,
   type PromotionData,

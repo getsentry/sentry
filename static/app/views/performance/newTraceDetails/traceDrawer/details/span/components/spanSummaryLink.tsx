@@ -13,7 +13,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/utils';
 
 interface Props {
   category: string | undefined;
@@ -35,7 +35,7 @@ function SpanSummaryLink(props: Props) {
   const resolvedModule = resolveSpanModule(props.op, props.category);
 
   if (
-    props.organization.features.includes('insights-initial-modules') &&
+    props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
@@ -60,7 +60,7 @@ function SpanSummaryLink(props: Props) {
   }
 
   if (
-    props.organization.features.includes('insights-initial-modules') &&
+    props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(props.op)
   ) {

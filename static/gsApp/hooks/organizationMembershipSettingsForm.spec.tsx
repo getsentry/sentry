@@ -8,7 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import OrganizationMembershipSettingsForm from 'getsentry/hooks/organizationMembershipSettingsForm';
 
-describe('OrganizationMembershipSettings', function () {
+describe('OrganizationMembershipSettings', () => {
   const location = LocationFixture();
   const getComponent = (organization: Organization) => {
     const access = new Set(organization.access);
@@ -26,7 +26,7 @@ describe('OrganizationMembershipSettings', function () {
     );
   };
 
-  it('renders alert banner and disables settings if org does not have invite-members', function () {
+  it('renders alert banner and disables settings if org does not have invite-members', () => {
     const organization = OrganizationFixture({features: [], access: []});
     render(getComponent(organization), {organization});
     expect(
@@ -35,7 +35,7 @@ describe('OrganizationMembershipSettings', function () {
     expect(screen.getByRole('checkbox', {name: 'Open Team Membership'})).toBeDisabled();
   });
 
-  it('renders alert banner and disables settings if org does not have invite-members and user has org:write access', function () {
+  it('renders alert banner and disables settings if org does not have invite-members and user has org:write access', () => {
     const organization = OrganizationFixture({features: [], access: ['org:write']});
     render(getComponent(organization), {organization});
     expect(
@@ -44,7 +44,7 @@ describe('OrganizationMembershipSettings', function () {
     expect(screen.getByRole('checkbox', {name: 'Open Team Membership'})).toBeDisabled();
   });
 
-  it('does not render alert banner if org does not have invite-members', function () {
+  it('does not render alert banner if org does not have invite-members', () => {
     const organization = OrganizationFixture({features: ['invite-members'], access: []});
     render(getComponent(organization), {organization});
     expect(
@@ -53,7 +53,7 @@ describe('OrganizationMembershipSettings', function () {
     expect(screen.getByRole('checkbox', {name: 'Open Team Membership'})).toBeDisabled();
   });
 
-  it('does not render alert banner and enables settings if org has invite-members and user has org:write access', function () {
+  it('does not render alert banner and enables settings if org has invite-members and user has org:write access', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
       access: ['org:write'],
@@ -65,7 +65,7 @@ describe('OrganizationMembershipSettings', function () {
     expect(screen.getByRole('checkbox', {name: 'Open Team Membership'})).toBeEnabled();
   });
 
-  it('disables default role selection if user does not have invite-members', function () {
+  it('disables default role selection if user does not have invite-members', () => {
     const organization = OrganizationFixture({
       features: [],
       access: ['org:admin'],
@@ -74,7 +74,7 @@ describe('OrganizationMembershipSettings', function () {
     expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeDisabled();
   });
 
-  it('disables default role selection if user does not have org:admin access', function () {
+  it('disables default role selection if user does not have org:admin access', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
       access: ['org:write'],
@@ -83,7 +83,7 @@ describe('OrganizationMembershipSettings', function () {
     expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeDisabled();
   });
 
-  it('enables default role selection if user does not has org:admin access', function () {
+  it('enables default role selection if user does not has org:admin access', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
       access: ['org:write', 'org:admin'],
@@ -92,7 +92,7 @@ describe('OrganizationMembershipSettings', function () {
     expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeEnabled();
   });
 
-  it('disables member project creation if org does not have team-roles', function () {
+  it('disables member project creation if org does not have team-roles', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
       access: ['org:write'],
@@ -103,7 +103,7 @@ describe('OrganizationMembershipSettings', function () {
     ).toBeDisabled();
   });
 
-  it('enables member project creation if org has team-roles', function () {
+  it('enables member project creation if org has team-roles', () => {
     const organization = OrganizationFixture({
       features: ['invite-members', 'team-roles'],
       access: ['org:write'],
@@ -114,7 +114,7 @@ describe('OrganizationMembershipSettings', function () {
     ).toBeEnabled();
   });
 
-  it('disables member project creation if user does not have org:write access', function () {
+  it('disables member project creation if user does not have org:write access', () => {
     const organization = OrganizationFixture({
       features: ['invite-members', 'team-roles'],
       access: [],

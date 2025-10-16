@@ -1,3 +1,5 @@
+import logging
+
 from sentry import features
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
@@ -5,7 +7,9 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.workflow_engine.tasks.workflows import process_workflow_activity
+
+logger = logging.getLogger(__name__)
+
 
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
@@ -20,6 +24,9 @@ def workflow_status_update_handler(
     Since this handler is called in process for the activity, we want
     to queue a task to process workflows asynchronously.
     """
+
+    from sentry.workflow_engine.tasks.workflows import process_workflow_activity
+
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update",
         tags={"activity_type": activity.type},
@@ -36,9 +43,26 @@ def workflow_status_update_handler(
         metrics.incr("workflow_engine.tasks.error.no_detector_id")
         return
 
-    if features.has("organizations:workflow-engine-metric-alert-processing", group.organization):
+    # We should only fire actions for activity updates if we should be firing actions
+    # if dual proccessing or single proccessing is enabled
+    if features.has(  # Metric issue single processing
+        "organizations:workflow-engine-single-process-metric-issues",
+        group.organization,
+    ) or features.has(  # Metric dual processing
+        "organizations:workflow-engine-metric-alert-processing",
+        group.organization,
+    ):
         process_workflow_activity.delay(
             activity_id=activity.id,
             group_id=group.id,
             detector_id=detector_id,
+        )
+    else:
+        logger.info(
+            "workflow_engine.tasks.process_workflows.activity_update.skipped",
+            extra={
+                "activity_id": activity.id,
+                "group_id": group.id,
+                "detector_id": detector_id,
+            },
         )

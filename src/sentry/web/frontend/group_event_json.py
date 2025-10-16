@@ -1,8 +1,8 @@
 from django.http import Http404, HttpRequest, HttpResponse
 
-from sentry import eventstore
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.groupmeta import GroupMeta
+from sentry.services import eventstore
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView, region_silo_view
 

@@ -1,10 +1,20 @@
-import {isValidElement, useEffect, useState} from 'react';
+import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
-import {IconDocs, IconFatal, IconFocus, IconRefresh, IconSpan} from 'sentry/icons';
+import {
+  IconChevron,
+  IconDocs,
+  IconFatal,
+  IconFocus,
+  IconRefresh,
+  IconSpan,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -12,7 +22,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -104,10 +115,12 @@ export function GroupSummary({
   event,
   project,
   preview = false,
+  collapsed = false,
 }: {
   event: Event | null | undefined;
   group: Group;
   project: Project;
+  collapsed?: boolean;
   preview?: boolean;
 }) {
   const queryClient = useQueryClient();
@@ -149,16 +162,17 @@ export function GroupSummary({
   if (preview) {
     return <GroupSummaryPreview data={data} isPending={isPending} isError={isError} />;
   }
+
   return (
-    <GroupSummaryFull
+    <GroupSummaryCollapsed
       group={group}
       project={project}
+      event={event}
       data={data}
       isPending={isPending}
       isError={isError}
       setForceEvent={setForceEvent}
-      preview={preview}
-      event={event}
+      defaultCollapsed={collapsed}
     />
   );
 }
@@ -218,6 +232,89 @@ function GroupSummaryPreview({
           })}
         </InsightGrid>
       </Content>
+    </div>
+  );
+}
+
+function GroupSummaryCollapsed({
+  group,
+  project,
+  event,
+  data,
+  isPending,
+  setForceEvent,
+  isError,
+  defaultCollapsed = false,
+}: {
+  data: GroupSummaryData | undefined;
+  event: Event | null | undefined;
+  group: Group;
+  isError: boolean;
+  isPending: boolean;
+  project: Project;
+  setForceEvent: (v: boolean) => void;
+  defaultCollapsed?: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
+
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  useLayoutEffect(() => {
+    setIsExpanded(!defaultCollapsed);
+  }, [defaultCollapsed]);
+
+  return (
+    <div data-testid="group-summary-collapsed">
+      {isError ? <div>{t('Error loading summary')}</div> : null}
+      {!isError && (
+        <CollapsedContent>
+          <CollapsedHeader onClick={handleToggle}>
+            <CollapsedHeaderContent>
+              {isPending ? (
+                <Placeholder height="1.5rem" width="80%" />
+              ) : (
+                <Text size="md" bold ellipsis>
+                  {data?.headline || t('Issue Summary')}
+                </Text>
+              )}
+              <ChevronIcon>
+                {isExpanded ? (
+                  <IconChevron direction="up" size="sm" />
+                ) : (
+                  <IconChevron direction="down" size="sm" />
+                )}
+              </ChevronIcon>
+            </CollapsedHeaderContent>
+          </CollapsedHeader>
+
+          <ExpandableContent
+            initial={false}
+            animate={{height: isExpanded ? 'auto' : 0}}
+            transition={testableTransition({
+              type: 'spring',
+              damping: 50,
+              stiffness: 600,
+              bounce: 0,
+              visualDuration: 0.4,
+            })}
+          >
+            <Flex paddingTop="lg">
+              <GroupSummaryFull
+                group={group}
+                project={project}
+                data={data}
+                isPending={isPending}
+                isError={isError}
+                preview={false}
+                setForceEvent={setForceEvent}
+                event={event}
+              />
+            </Flex>
+          </ExpandableContent>
+        </CollapsedContent>
+      )}
     </div>
   );
 }
@@ -417,4 +514,34 @@ const ResummarizeWrapper = styled('div')`
   align-items: center;
   margin-top: ${space(1)};
   flex-shrink: 0;
+`;
+
+const CollapsedContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  position: relative;
+`;
+
+const CollapsedHeader = styled('div')`
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+`;
+
+const CollapsedHeaderContent = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(1)};
+`;
+
+const ChevronIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  transition: transform 0.2s ease-in-out;
+  flex-shrink: 0;
+`;
+
+const ExpandableContent = styled(motion.div)`
+  overflow: hidden;
 `;

@@ -40,7 +40,6 @@ type Props = ViewProps & {
   queryExtra: Query;
   trendFunction: TrendFunctionField;
   trendParameter: string;
-  withoutZerofill: boolean;
   withBreakpoint?: boolean;
 };
 
@@ -53,7 +52,6 @@ function TrendChart({
   trendFunction,
   trendParameter,
   queryExtra,
-  withoutZerofill,
   withBreakpoint,
   eventView,
   start: propsStart,
@@ -228,8 +226,7 @@ function TrendChart({
                 yAxis={trendDisplay}
                 currentSeriesNames={[trendDisplay]}
                 partial
-                withoutZerofill={withoutZerofill}
-                referrer="api.performance.transaction-summary.trends-chart"
+                referrer="api.insights.transaction-summary.trends-chart"
               >
                 {({errored, loading, reloading, timeseriesData, timeframe}) => {
                   return (
@@ -269,8 +266,7 @@ function TrendChart({
           yAxis={trendDisplay}
           currentSeriesNames={[trendDisplay]}
           partial
-          withoutZerofill={withoutZerofill}
-          referrer="api.performance.transaction-summary.trends-chart"
+          referrer="api.insights.transaction-summary.trends-chart"
         >
           {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => {
             return (

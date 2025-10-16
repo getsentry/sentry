@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from typing import Literal, TypedDict
 
 import unidiff
+from unidiff.errors import UnidiffParseError
+
+
+class PatchParseError(Exception):
+    pass
 
 
 class FileChange(TypedDict):
@@ -43,7 +48,10 @@ class FileModifications:
 
 
 def patch_to_file_modifications(patch: str) -> FileModifications:
-    patch_set = unidiff.PatchSet.from_string(patch)
+    try:
+        patch_set = unidiff.PatchSet.from_string(patch)
+    except UnidiffParseError:
+        raise PatchParseError("Failed to parse file modifications from patch")
 
     return FileModifications(
         added=_patched_files_to_file_modifications(patch_set.added_files),

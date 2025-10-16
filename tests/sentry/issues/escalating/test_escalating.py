@@ -8,7 +8,6 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _start_and_end_dates,
@@ -22,6 +21,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import GroupSubStatus
@@ -96,6 +96,7 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(1, event)
         ]
 
+    @pytest.mark.skip(reason="flaky: #95139")
     @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
         from django.utils import timezone

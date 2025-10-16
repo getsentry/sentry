@@ -6,7 +6,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
-import ModalStore from 'sentry/stores/modalStore';
 import type {CustomRepo, CustomRepoHttp} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
@@ -45,7 +44,7 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
   };
 }
 
-describe('Custom Repositories', function () {
+describe('Custom Repositories', () => {
   const httpRepository: CustomRepo = {
     id: '7ebdb871-eb65-0183-8001-ea7df90613a7',
     layout: {type: 'native', casing: 'default'},
@@ -56,17 +55,13 @@ describe('Custom Repositories', function () {
     username: 'admin',
   };
 
-  beforeEach(() => {
-    ModalStore.reset();
-  });
-
-  beforeAll(async function () {
+  beforeAll(async () => {
     // TODO: figure out why this transpile is so slow
     // transpile the modal upfront so the test runs fast
     await import('sentry/components/modals/debugFileCustomRepository');
   });
 
-  it('renders with custom-symbol-sources feature enabled', async function () {
+  it('renders with custom-symbol-sources feature enabled', async () => {
     const props = getProps();
     const newOrganization = {...props.organization, features: ['custom-symbol-sources']};
 

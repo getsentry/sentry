@@ -11,8 +11,8 @@ import type {Organization} from 'sentry/types/organization';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
-import {BillingType} from 'getsentry/types';
-import {isTrialPlan} from 'getsentry/utils/billing';
+import {AddOnCategory, BillingType} from 'getsentry/types';
+import {isEnterprise, isTrialPlan} from 'getsentry/utils/billing';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -37,12 +37,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
     DataCategory.PROFILE_DURATION_UI
   );
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
-  const hasSeer = !!planDetails?.availableReservedBudgetTypes?.seer;
+  const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
+  const hasSeer = AddOnCategory.SEER in planDetails.addOnCategories;
 
   // Create a safe default for planCategories if it doesn't exist
   const safeCategories = planDetails?.planCategories || {};
 
   const isTrial = isTrialPlan(planDetails.id);
+  const isEnterpriseTrial = isTrial && isEnterprise(planDetails.id);
   const reservedBudgets = [];
   if (hasSeer) {
     if (isTrial) {
@@ -51,6 +53,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
       reservedBudgets.push(SeerReservedBudgetFixture({reservedBudget: 0}));
     }
   }
+
+  const addOns: TSubscription['addOns'] = {};
+  Object.values(planDetails.addOnCategories).forEach(addOnCategory => {
+    addOns[addOnCategory.apiName] = {
+      ...addOnCategory,
+      enabled: isTrial,
+    };
+  });
 
   return {
     customPrice: null,
@@ -62,7 +72,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     hadCustomDynamicSampling: false,
     id: '',
     isBundleEligible: false,
-    isEnterpriseTrial: false,
+    isEnterpriseTrial,
     isExemptFromForcedTrial: false,
     isForcedTrial: false,
     isOverMemberLimit: false,
@@ -139,6 +149,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     vatID: null,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
+    addOns,
     reservedBudgets,
     categories: {
       errors: MetricHistoryFixture({
@@ -203,6 +214,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
           order: 9,
         }),
       }),
+      ...(hasLogBytes && {
+        logBytes: MetricHistoryFixture({
+          category: DataCategory.LOG_BYTE,
+          reserved: safeCategories.logBytes?.[0]?.events || 0,
+          prepaid: safeCategories.logBytes?.[0]?.events || 0,
+          order: 12,
+        }),
+      }),
       ...(hasProfileDuration && {
         profileDuration: MetricHistoryFixture({
           category: DataCategory.PROFILE_DURATION,
@@ -243,6 +262,10 @@ export function SubscriptionFixture(props: Props): TSubscription {
  */
 export function SubscriptionWithSeerFixture(props: Props): TSubscription {
   const subscription = SubscriptionFixture(props);
+  if (!subscription.planDetails.addOnCategories[AddOnCategory.SEER]) {
+    return subscription;
+  }
+
   subscription.categories = {
     ...subscription.categories,
     seerAutofix: MetricHistoryFixture({
@@ -259,6 +282,14 @@ export function SubscriptionWithSeerFixture(props: Props): TSubscription {
     }),
   };
   subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+  subscription.addOns = {
+    ...subscription.addOns,
+    [AddOnCategory.SEER]: {
+      ...(subscription.addOns?.[AddOnCategory.SEER] ??
+        subscription.planDetails.addOnCategories[AddOnCategory.SEER]),
+      enabled: true,
+    },
+  };
   return subscription;
 }
 

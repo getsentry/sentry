@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -11,20 +11,21 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
+import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
+import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 
+import FilterSelector from './globalFilter/filterSelector';
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
-import type {DashboardFilters, DashboardPermissions} from './types';
+import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
 import {DashboardFilterKeys} from './types';
 
 type FiltersBarProps = {
@@ -67,11 +68,28 @@ export default function FiltersBar({
   );
 
   const invalidateStarredDashboards = useInvalidateStarredDashboards();
+  const dashboardFiltersFromURL = getDashboardFiltersFromURL(location);
 
   const selectedReleases =
-    (defined(location.query?.[DashboardFilterKeys.RELEASE])
-      ? decodeList(location.query[DashboardFilterKeys.RELEASE])
-      : filters?.[DashboardFilterKeys.RELEASE]) ?? [];
+    dashboardFiltersFromURL?.[DashboardFilterKeys.RELEASE] ??
+    filters?.[DashboardFilterKeys.RELEASE] ??
+    [];
+
+  const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
+    return (
+      dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
+      filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
+      []
+    );
+  });
+
+  const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
+    setActiveGlobalFilters(newGlobalFilters);
+    onDashboardFilterChange({
+      [DashboardFilterKeys.RELEASE]: selectedReleases,
+      [DashboardFilterKeys.GLOBAL_FILTER]: newGlobalFilters,
+    });
+  };
 
   return (
     <Wrapper>
@@ -109,7 +127,10 @@ export default function FiltersBar({
           <ReleasesProvider organization={organization} selection={selection}>
             <ReleasesSelectControl
               handleChangeFilter={activeFilters => {
-                onDashboardFilterChange(activeFilters);
+                onDashboardFilterChange({
+                  ...activeFilters,
+                  [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+                });
                 trackAnalytics('dashboards2.filter.change', {
                   organization,
                   filter_type: 'release',
@@ -119,6 +140,34 @@ export default function FiltersBar({
               isDisabled={isEditingDashboard}
             />
           </ReleasesProvider>
+
+          {organization.features.includes('dashboards-global-filters') && (
+            <Fragment>
+              {activeGlobalFilters.map(filter => (
+                <FilterSelector
+                  key={filter.tag.key}
+                  globalFilter={filter}
+                  onUpdateFilter={updatedFilter => {
+                    updateGlobalFilters(
+                      activeGlobalFilters.map(f =>
+                        f.tag.key === updatedFilter.tag.key ? updatedFilter : f
+                      )
+                    );
+                  }}
+                  onRemoveFilter={removedFilter => {
+                    updateGlobalFilters(
+                      activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
+                    );
+                  }}
+                />
+              ))}
+              <AddFilter
+                onAddFilter={newFilter => {
+                  updateGlobalFilters([...activeGlobalFilters, newFilter]);
+                }}
+              />
+            </Fragment>
+          )}
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
           <FilterButtons gap="lg">
@@ -136,7 +185,14 @@ export default function FiltersBar({
             >
               {t('Save')}
             </Button>
-            <Button data-test-id={'filter-bar-cancel'} onClick={onCancel}>
+            <Button
+              data-test-id="filter-bar-cancel"
+              onClick={() => {
+                onCancel?.();
+                setActiveGlobalFilters(filters.globalFilter ?? []);
+                onDashboardFilterChange(filters);
+              }}
+            >
               {t('Cancel')}
             </Button>
           </FilterButtons>

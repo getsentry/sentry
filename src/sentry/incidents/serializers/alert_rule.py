@@ -13,6 +13,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from sentry import features
 from sentry.api.exceptions import BadRequest, RequestTimeout
 from sentry.api.fields.actor import ActorField
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -30,6 +31,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
@@ -125,6 +127,20 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 % [item.value for item in AlertRuleThresholdType]
             )
 
+    def validate_aggregate(self, aggregate):
+        """
+        Validate aggregate field and reject upsampled_count() from user input.
+
+        upsampled_count() is reserved for internal use only and gets set automatically
+        by the backend when error upsampling is detected. Users should use count() instead.
+        """
+        if aggregate == "upsampled_count()":
+            raise serializers.ValidationError(
+                "upsampled_count() is not allowed as user input. Use count() instead - "
+                "it will be automatically converted to upsampled_count() when appropriate."
+            )
+        return aggregate
+
     def validate(self, data):
         """
         Performs validation on an alert rule's data.
@@ -167,6 +183,13 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 threshold_type, warning, data.get("resolve_threshold")
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
+
+        if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
+            time_window = data["time_window"]
+            if time_window < 5:
+                raise serializers.ValidationError(
+                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+                )
 
         return data
 
@@ -249,6 +272,9 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
             user = self.context.get("user", None)
+
+            self._apply_error_upsampling_if_needed(validated_data)
+
             try:
                 alert_rule = create_alert_rule(
                     user=user,
@@ -283,10 +309,28 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                     raise BadRequest(message="Error when creating alert rule")
             return alert_rule
 
+    def _apply_error_upsampling_if_needed(self, validated_data):
+        """
+        Automatically convert count() to upsampled_count() for error alerts on upsampled projects.
+        """
+        # Only apply to count() aggregates on Events dataset (error alerts)
+        if (
+            validated_data.get("aggregate") == "count()"
+            and validated_data.get("dataset") == Dataset.Events
+            and validated_data.get("projects")
+        ):
+            project_ids = [project.id for project in validated_data["projects"]]
+            if are_any_projects_error_upsampled(project_ids):
+                validated_data["aggregate"] = "upsampled_count()"
+
     def update(self, instance, validated_data):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
+
+        # Apply error upsampling conversion if needed
+        self._apply_error_upsampling_if_needed(validated_data)
+
         with transaction.atomic(router.db_for_write(AlertRule)):
             try:
                 alert_rule = update_alert_rule(

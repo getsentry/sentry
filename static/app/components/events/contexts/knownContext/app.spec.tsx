@@ -4,8 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
-  type AppContext,
   getAppContextData,
+  type AppContext,
 } from 'sentry/components/events/contexts/knownContext/app';
 
 const MOCK_APP_CONTEXT: AppContext = {
@@ -42,8 +42,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('AppContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('AppContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getAppContextData({data: MOCK_APP_CONTEXT, event: EventFixture()})).toEqual([
       {
         key: 'device_app_hash',
@@ -84,7 +84,7 @@ describe('AppContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {app: MOCK_REDACTION}},
     });
@@ -92,8 +92,8 @@ describe('AppContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'app'}
-        alias={'app'}
+        type="app"
+        alias="app"
         value={{...MOCK_APP_CONTEXT, app_name: ''}}
       />
     );

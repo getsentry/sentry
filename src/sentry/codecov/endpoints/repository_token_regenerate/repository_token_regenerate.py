@@ -1,5 +1,3 @@
-import uuid
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
@@ -18,6 +17,13 @@ from sentry.codecov.endpoints.repository_token_regenerate.serializers import (
 from sentry.integrations.services.integration.model import RpcIntegration
 
 
+class RepositoryTokenRegeneratePermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
+
+
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
 class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
@@ -25,6 +31,7 @@ class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (RepositoryTokenRegeneratePermission,)
 
     @extend_schema(
         operation_id="Regenerates a repository upload token and returns the new token",
@@ -46,25 +53,15 @@ class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
         Regenerates a repository upload token and returns the new token.
         """
 
-        # Check if we should call Codecov or return a generic UUID
-        # don't document this because we don't want to expose it just yet to users
-        use_codecov = request.GET.get("use_codecov")
+        owner_slug = owner.name
 
-        if use_codecov:
-            # Make actual request to Codecov
-            owner_slug = owner.name
+        variables = {
+            "owner": owner_slug,
+            "repoName": repository,
+        }
 
-            variables = {
-                "owner": owner_slug,
-                "repoName": repository,
-            }
-
-            client = CodecovApiClient(git_provider_org=owner_slug)
-            graphql_response = client.query(query=query, variables=variables)
-            token = RepositoryTokenRegenerateSerializer().to_representation(graphql_response.json())
-        else:
-            # Return a generic UUID token
-            generic_token = str(uuid.uuid4())
-            token = {"token": generic_token}
+        client = CodecovApiClient(git_provider_org=owner_slug)
+        graphql_response = client.query(query=query, variables=variables)
+        token = RepositoryTokenRegenerateSerializer().to_representation(graphql_response.json())
 
         return Response(token)

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -52,14 +52,13 @@ export function TransactionSelector({
     pageLinks,
   });
 
-  const {options: transactionOptions, clear: clearTransactionOptionsCache} =
-    useCompactSelectOptionsCache(
-      incomingPages.filter(Boolean).map(page => ({value: page, label: page}))
-    );
+  const projectIds = pageFilters.selection.projects.sort();
+  const cacheKey = [...projectIds].join(' ');
 
-  useEffect(() => {
-    clearTransactionOptionsCache();
-  }, [pageFilters.selection.projects, clearTransactionOptionsCache]);
+  const {options: transactionOptions} = useCompactSelectOptionsCache(
+    incomingPages.filter(Boolean).map(page => ({value: page, label: page})),
+    cacheKey
+  );
 
   const options = [{value: '', label: 'All'}, ...transactionOptions];
 
@@ -72,7 +71,7 @@ export function TransactionSelector({
       loading={isPending}
       searchable
       menuTitle={t('Page')}
-      maxMenuWidth={'600px'}
+      maxMenuWidth="600px"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(newValue);

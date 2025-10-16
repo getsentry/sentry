@@ -23,17 +23,15 @@ import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuil
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -48,9 +46,6 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -66,33 +61,21 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
-        const allContains =
-          items[0]!.value.type === Token.VALUE_TEXT && !!items[0]!.value.wildcard;
-
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue({
-              token: items[0]!.value,
-              stripWildcards: allContains && hasWildcardOperators,
-            })}
+            {formatFilterValue({token: items[0]!.value})}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
-      const allContains = items.every(
-        item => item?.value?.type === Token.VALUE_TEXT && item.value.wildcard
-      );
 
       return (
         <FilterValueList>
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {formatFilterValue({
-                  token: item.value!,
-                  stripWildcards: allContains && hasWildcardOperators,
-                })}
+                {formatFilterValue({token: item.value!})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -111,14 +94,9 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       );
     }
     default: {
-      const allContains = token.value.type === Token.VALUE_TEXT && !!token.value.wildcard;
-
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue({
-            token: token.value,
-            stripWildcards: allContains && hasWildcardOperators,
-          })}
+          {formatFilterValue({token: token.value})}
         </FilterValueSingleTruncatedValue>
       );
     }
@@ -312,8 +290,10 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
 
-  :focus {
+  :focus,
+  &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
+    border-color: ${p => (p.theme.isChonk ? p.theme.tokens.border.accent : undefined)};
     outline: none;
   }
 
@@ -329,10 +309,6 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
             background-color: ${p.theme.gray100};
           `
         : ''}
-
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-  }
 `;
 
 const GridInvalidTokenTooltip = styled(InvalidTokenTooltip)`
@@ -354,7 +330,7 @@ const FilterValueGridCell = styled(BaseGridCell)`
 `;
 
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -369,7 +345,7 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -383,7 +359,7 @@ const ValueEditing = styled('div')`
 `;
 
 const DeleteButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.75)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
   color: ${p => p.theme.subText};
   border-left: 1px solid transparent;
@@ -398,7 +374,7 @@ const FilterValueList = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-width: 400px;
 `;
 

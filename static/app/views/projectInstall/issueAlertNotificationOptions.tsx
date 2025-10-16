@@ -5,7 +5,7 @@ import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox'
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type IntegrationAction, IssueAlertActionType} from 'sentry/types/alerts';
+import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -142,6 +142,7 @@ export function useCreateNotificationAction({
     setActions(newActions);
 
     if (firstAction.channel) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setChannel(firstAction.channel);
     }
   }, [defaultActions, providersToIntegrations]);

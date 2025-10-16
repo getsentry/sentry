@@ -1,4 +1,4 @@
-import {type ReactNode, useEffect} from 'react';
+import {useEffect, type ReactNode} from 'react';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -12,7 +12,7 @@ import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
-import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 
 interface Props {
   children: ReactNode;
@@ -52,9 +52,9 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 isFetching={false}
                 replay={replay}
               >
-                <ReplayTransactionContext replayRecord={replayRecord}>
+                <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
                   {children}
-                </ReplayTransactionContext>
+                </ReplaySummaryContextProvider>
               </ReplayContextProvider>
             </ReplayPlayerSizeContextProvider>
           </ReplayPlayerStateContextProvider>

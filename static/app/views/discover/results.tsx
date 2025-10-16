@@ -13,7 +13,7 @@ import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -29,7 +29,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
@@ -44,7 +44,6 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
-  DatasetSource,
   DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -70,7 +69,6 @@ import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
 import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
-import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -107,6 +105,7 @@ type State = {
   showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
   showQueryIncompatibleWithDataset?: boolean;
+  showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
 };
@@ -172,6 +171,7 @@ export class Results extends Component<Props, State> {
     tips: [],
     showForcedDatasetAlert: true,
     showQueryIncompatibleWithDataset: false,
+    showTransactionsDeprecationAlert: true,
   };
 
   componentDidMount() {
@@ -652,17 +652,18 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
-  renderForcedDatasetBanner() {
-    const {organization, savedQuery} = this.props;
+  renderTransactionsDatasetDeprecationBanner() {
+    const {savedQueryDataset} = this.state;
+    const {location, organization} = this.props;
+    const dataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQueryDataset
+    );
     if (
-      hasDatasetSelector(organization) &&
-      this.state.showForcedDatasetAlert &&
-      (this.state.splitDecision || savedQuery?.datasetSource === DatasetSource.FORCED)
+      this.state.showTransactionsDeprecationAlert &&
+      organization.features.includes('performance-transaction-deprecation-banner') &&
+      dataset === DiscoverDatasets.TRANSACTIONS
     ) {
-      const splitDecision = this.state.splitDecision ?? savedQuery?.queryDataset;
-      if (!splitDecision) {
-        return null;
-      }
       return (
         <Alert.Container>
           <Alert
@@ -672,16 +673,21 @@ export class Results extends Component<Props, State> {
                 icon={<IconClose size="sm" />}
                 aria-label={t('Close')}
                 onClick={() => {
-                  this.setState({showForcedDatasetAlert: false});
+                  this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
                 borderless
               />
             }
           >
-            {tct(
-              "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-              {splitDecision: DATASET_LABEL_MAP[splitDecision]}
+            {tctCode(
+              'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
+              {
+                traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
+                FAQLink: (
+                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                ),
+              }
             )}
           </Alert>
         </Alert.Container>
@@ -757,7 +763,7 @@ export class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
+    const {organization, location, selection, api, setSavedQuery, isHomepage} =
       this.props;
     const {
       eventView,
@@ -790,7 +796,6 @@ export class Results extends Component<Props, State> {
             location={location}
             eventView={eventView}
             yAxis={yAxisArray}
-            router={router}
             isHomepage={isHomepage}
             splitDecision={splitDecision}
           />
@@ -800,8 +805,8 @@ export class Results extends Component<Props, State> {
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 {this.renderTips()}
-                {this.renderForcedDatasetBanner()}
                 {this.renderQueryIncompatibleWithDatasetBanner()}
+                {this.renderTransactionsDatasetDeprecationBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
@@ -986,9 +991,7 @@ export default function ResultsContainer(
         organization.features.includes('discover-query') &&
         !!(props.savedQuery || props.location.query.id)
       }
-      skipLoadLastUsed={
-        organization.features.includes('global-views') && !!props.savedQuery
-      }
+      skipLoadLastUsed={!!props.savedQuery}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams

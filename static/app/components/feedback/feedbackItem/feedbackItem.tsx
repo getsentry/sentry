@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
@@ -13,6 +13,7 @@ import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbac
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import FeedbackUrl from 'sentry/components/feedback/feedbackItem/feedbackUrl';
 import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
+import MessageTitle from 'sentry/components/feedback/feedbackItem/messageTitle';
 import TraceDataSection from 'sentry/components/feedback/feedbackItem/traceDataSection';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -29,9 +30,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
+  onBackToList?: () => void;
 }
 
-export default function FeedbackItem({feedbackItem, eventData}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
   const organization = useOrganization();
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
@@ -45,12 +47,22 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
     }, 100);
   }, [feedbackItem.id, overflowRef]);
 
+  const tagsWithoutAi = useMemo(
+    () => eventData?.tags.filter(tag => !tag.key.startsWith('ai_categorization.')) ?? [],
+    [eventData?.tags]
+  );
+
   return (
     <Fragment>
       <AnalyticsArea name="details">
-        <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
+        <FeedbackItemHeader
+          eventData={eventData}
+          feedbackItem={feedbackItem}
+          onBackToList={onBackToList}
+        />
         <OverflowPanelItem ref={overflowRef}>
           <FeedbackItemSection sectionKey="message">
+            <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
             <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
           </FeedbackItemSection>
 
@@ -95,7 +107,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
               <EventTagsTree
                 event={eventData}
                 projectSlug={feedbackItem.project.slug}
-                tags={eventData.tags}
+                tags={tagsWithoutAi}
               />
             </FeedbackItemSection>
           ) : null}
@@ -150,6 +162,19 @@ function FeedbackItemContexts({
   feedbackItem: FeedbackIssue;
   project: undefined | Project;
 }) {
+  const evidenceObject = Object.fromEntries(
+    eventData.occurrence?.evidenceDisplay?.map(({name, value}) => {
+      return [name, value];
+    }) ?? []
+  );
+  eventData.contexts = eventData.contexts ?? {};
+  eventData.contexts.feedback = eventData.contexts.feedback ?? {};
+  eventData.contexts.feedback['auto_spam.detection_enabled'] =
+    evidenceObject.spam_detection_enabled;
+  if (evidenceObject.spam_detection_enabled) {
+    eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
+  }
+
   const cards = getOrderedContextItems(eventData).map(
     ({alias, type, value: contextValue}) => (
       <ContextCard

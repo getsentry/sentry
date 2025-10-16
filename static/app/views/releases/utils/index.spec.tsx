@@ -160,8 +160,8 @@ describe('releases/utils', () => {
   });
 });
 
-describe('searchReleaseVersion()', function () {
-  it('should escape quotes', function () {
+describe('searchReleaseVersion()', () => {
+  it('should escape quotes', () => {
     expect(searchReleaseVersion('com.sentry.go_app@"1.0.0-chore"')).toBe(
       'release:"com.sentry.go_app@\\"1.0.0-chore\\""'
     );

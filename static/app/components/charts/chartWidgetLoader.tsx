@@ -68,30 +68,7 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/releaseSessionPercentageChartWidget'
     ),
-  llmNumberOfPipelinesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmNumberOfPipelinesChartWidget'
-    ),
-  llmPipelineDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmPipelineDurationChartWidget'
-    ),
-  llmTotalTokensUsedChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmTotalTokensUsedChartWidget'
-    ),
-  llmGroupPipelineDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmGroupPipelineDurationChartWidget'
-    ),
-  llmGroupTotalTokensUsedChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget'
-    ),
-  llmGroupNumberOfPipelinesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget'
-    ),
+
   queuesSummaryThroughputChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget'
@@ -129,6 +106,14 @@ const CHART_MAP = {
   databaseLandingThroughputChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget'
+    ),
+  overviewTransactionThroughputChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget'
+    ),
+  overviewTransactionDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget'
     ),
   databaseSummaryDurationChartWidget: () =>
     import(
@@ -187,6 +172,16 @@ const CHART_MAP = {
   overviewSlowQueriesChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
+    ),
+  overviewSlowAssetsWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget'),
+  overviewTimeConsumingQueriesWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget'
+    ),
+  overviewTimeConsumingRequestsWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget'
     ),
   mcpTrafficWidget: () =>
     import('sentry/views/insights/common/components/widgets/mcpTrafficWidget'),

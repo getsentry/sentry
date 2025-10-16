@@ -11,9 +11,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {type SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
+import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
@@ -30,6 +30,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
   // Any time the queries prop changes (e.g. when the user stars or unstars a query),
   // we need to reset the savedQueries state.
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setSavedQueries(queries);
   }, [queries]);
 
@@ -106,11 +107,12 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                     .filter(p => query.projects.map(String).includes(p.id))
                     .map(p => p.platform)
                     .filter(defined)}
+                  allProjects={query.projects.length === 1 && query.projects[0] === -1}
                 />
               </LeadingItemsWrapper>
             }
             key={query.id}
-            to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+            to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
             analyticsItemName="explore_starred_item"
             isActive={id === query.id.toString()}
           >

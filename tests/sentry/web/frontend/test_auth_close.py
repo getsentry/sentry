@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class AuthClose(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-auth-close")
 
     def test_renders_auth_close_view(self) -> None:

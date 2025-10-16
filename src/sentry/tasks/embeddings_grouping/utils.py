@@ -13,8 +13,7 @@ from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.eventstore.models import Event
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -38,6 +37,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
     has_too_many_contributing_frames,
 )
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
@@ -418,7 +418,7 @@ def get_events_from_nodestore(
                 invalid_event_reasons["excess_frames"] += 1
                 continue
 
-            grouping_info = get_grouping_info_from_variants(variants)
+            grouping_info = get_grouping_info_from_variants_legacy(variants)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
             if not stacktrace_string:

@@ -5,18 +5,17 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
-    IntegrationError,
+    IntegrationConfigurationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
-from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -143,18 +142,16 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationError):
-                # Trigger its `after`, but with a broken client which should raise
-                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
+            with pytest.raises(IntegrationConfigurationError):
                 self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
-            start, failure = mock_record_event.call_args_list
+            start, halt = mock_record_event.call_args_list
             assert start.args == (EventLifecycleOutcome.STARTED,)
 
-            assert_failure_metric(
+            assert_halt_metric(
                 mock_record_event,
-                IntegrationError("Error Communicating with Jira (HTTP 400): unknown error"),
+                IntegrationConfigurationError(),
             )
 
     def test_fails_validation(self) -> None:
@@ -211,7 +208,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            self.trigger(event, rule_object)
+            with pytest.raises(IntegrationFormError):
+                self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
@@ -233,14 +231,15 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            self.trigger(event, rule_object)
+            with pytest.raises(IntegrationConfigurationError):
+                self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
             assert start.args == (EventLifecycleOutcome.STARTED,)
             assert_halt_metric(
                 mock_record_event,
-                IntegrationInstallationConfigurationError(
+                IntegrationConfigurationError(
                     "Could not fetch issue create configuration from Jira."
                 ),
             )

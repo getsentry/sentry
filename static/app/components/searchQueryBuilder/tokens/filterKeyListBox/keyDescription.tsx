@@ -5,7 +5,7 @@ import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKey
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
-import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type KeyDescriptionProps = {
@@ -13,7 +13,7 @@ type KeyDescriptionProps = {
   size?: 'sm' | 'md';
 };
 
-function ValueType({
+export function ValueType({
   fieldDefinition,
   fieldKind,
 }: {

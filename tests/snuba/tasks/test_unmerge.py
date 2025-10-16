@@ -13,14 +13,13 @@ from django.utils import timezone
 
 from sentry import eventstream, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
-from sentry.eventstore.models import Event
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import GroupEvent
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
@@ -44,7 +43,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
-    def test_get_fingerprint(self):
+    def test_get_fingerprint(self) -> None:
         assert (
             get_fingerprint(
                 self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
@@ -62,7 +61,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             == hashlib.md5(b"Not hello world").hexdigest()
         )
 
-    def test_get_group_creation_attributes(self):
+    def test_get_group_creation_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
         e1 = self.store_event(
             data={
@@ -122,7 +121,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "substatus": e1.group.substatus,
         }
 
-    def test_get_group_backfill_attributes(self):
+    def test_get_group_backfill_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
 
         assert get_group_backfill_attributes(
@@ -174,9 +173,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
-    @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
-    def test_unmerge(self, mock_record):
+    def test_unmerge(self, mock_record) -> None:
         now = before_now(minutes=5).replace(microsecond=0)
 
         def time_from_now(offset=0):
@@ -191,7 +189,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         def create_message_event(
             template, parameters, environment, release, fingerprint="group1"
-        ) -> Event:
+        ) -> GroupEvent:
             i = next(sequence)
 
             event_id = uuid.UUID(fields=(i, 0x0, 0x1000, 0x80, 0x80, 0x808080808080)).hex
@@ -229,7 +227,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return event
 
-        events: dict[str | None, list[Event]] = {}
+        events: dict[str | None, list[GroupEvent]] = {}
 
         for event in (
             create_message_event(
@@ -347,17 +345,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
         }
-        source_open_periods = (
-            GroupOpenPeriod.objects.filter(group=source).order_by("-date_started").first()
-        )
-        destination_open_period = (
-            GroupOpenPeriod.objects.filter(group=destination).order_by("-date_started").first()
-        )
-
-        assert source_open_periods is not None
-        assert source_open_periods.date_ended is None
-        assert destination_open_period is not None
-        assert destination_open_period.date_ended is None
 
         rollup_duration = 3600
 

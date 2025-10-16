@@ -125,9 +125,9 @@ def test_sdk_crash_is_reported_with_native_paths(
     mock_random,
     store_event,
     configs,
-    sdk_frame_function,
-    system_frame_package,
-    detected,
+    sdk_frame_function: str,
+    system_frame_package: str,
+    detected: bool,
 ):
     event = store_event(
         data=get_crash_event(
@@ -200,9 +200,9 @@ def test_sdk_crash_sentry_native_keeps_sentry_package_paths(
     mock_random,
     store_event,
     configs,
-    sdk_frame_function,
-    sdk_frame_package,
-    expected_sdk_frame_package,
+    sdk_frame_function: str,
+    sdk_frame_package: str,
+    expected_sdk_frame_package: str,
 ):
     event = store_event(
         data=get_crash_event(
@@ -231,7 +231,9 @@ def test_sdk_crash_sentry_native_keeps_sentry_package_paths(
 
 
 @decorators
-def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_beta_sdk_version_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="0.6.1-beta.0")
     event = store_event(data=event_data)

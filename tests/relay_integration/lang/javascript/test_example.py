@@ -48,7 +48,7 @@ class TestExample(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_expansion(self):
+    def test_sourcemap_expansion(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
         )

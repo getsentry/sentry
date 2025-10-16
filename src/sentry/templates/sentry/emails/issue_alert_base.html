@@ -54,7 +54,7 @@
     <span>
       <span class="text-desktop-only">Errors are half the story.</span> Start tracking latency across your application.
     </span>
-    <a href="{% absolute_uri '/organizations/{}/performance/' group.project.organization.slug %}?project={{ group.project.id }}&referrer=alert_email" class="banner-action">
+    <a href="{% absolute_uri '/organizations/{}/explore/traces/' group.project.organization.slug %}?project={{ group.project.id }}&referrer=alert_email" class="banner-action">
       <b style="font-weight: bold;">Set up Performance</b>
     </a>
   </div>
@@ -224,28 +224,7 @@
       </div>
 
 
-      {% if commits %}
-      <div class="committers">
-        <h3 class="title" style="margin-bottom: 10px">Suspect Commits</h3>
-        <table class="table commit-table">
-        {% for commit in commits %}
-          <tr>
-            <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
-            <td>
-              <h5 class="truncate">{{ commit.subject }}</h5>
-              <div><small>{{ commit.shortId }}&nbsp;&mdash;&nbsp;
-                {% if commit.author %}
-                  <strong>{{ commit.author.name }}</strong>
-                {% else %}
-                  <strong>Unknown Author</strong>
-                {% endif %}
-              </small></div>
-            </td>
-          </tr>
-        {% endfor %}
-        </table>
-      </div>
-      {% endif %}
+      {% include "sentry/emails/_suspect_commits.html" %}
 
       {% block table %}{% endblock %}
 

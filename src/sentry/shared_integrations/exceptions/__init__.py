@@ -89,6 +89,8 @@ class ApiError(Exception):
             return ApiConflictError(response.text, url=url)
         elif response.status_code == 400:
             return ApiInvalidRequestError(response.text, url=url)
+        elif response.status_code == 403:
+            return ApiForbiddenError(response.text, url=url)
 
         return cls(response.text, response.status_code, url=url)
 
@@ -112,6 +114,10 @@ class ApiHostError(ApiError):
     def from_request(cls, request: _RequestHasUrl) -> ApiHostError:
         host = urlparse(request.url).netloc
         return cls(f"Unable to reach host: {host}", url=request.url)
+
+
+class UnknownHostError(ApiError):
+    code = 500
 
 
 class ApiRetryError(ApiError):
@@ -159,6 +165,10 @@ class ApiInvalidRequestError(ApiError):
     code = 400
 
 
+class ApiForbiddenError(ApiError):
+    code = 403
+
+
 class UnsupportedResponseType(ApiError):
     @property
     def content_type(self) -> str:
@@ -169,7 +179,7 @@ class IntegrationError(Exception):
     pass
 
 
-class IntegrationInstallationConfigurationError(IntegrationError):
+class IntegrationConfigurationError(IntegrationError):
     """
     Error when external API access is blocked due to configuration issues
     like permissions, visibility changes, or invalid project settings.

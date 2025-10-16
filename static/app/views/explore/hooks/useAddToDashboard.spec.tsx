@@ -1,25 +1,36 @@
+import type {ReactNode} from 'react';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {
-  PageParamsProvider,
-  useSetExploreMode,
-  useSetExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {
+  useSetQueryParamsMode,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 jest.mock('sentry/actionCreators/modal');
 
 describe('AddToDashboardButton', () => {
-  let setMode: ReturnType<typeof useSetExploreMode>;
-  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
+  let setMode: ReturnType<typeof useSetQueryParamsMode>;
+  let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function TestPage({visualizeIndex}: {visualizeIndex: number}) {
-    setMode = useSetExploreMode();
-    setVisualizes = useSetExploreVisualizes();
+    setMode = useSetQueryParamsMode();
+    setVisualizes = useSetQueryParamsVisualizes();
     const {addToDashboard} = useAddToDashboard();
     return (
       <button onClick={() => addToDashboard(visualizeIndex)}>Add to Dashboard</button>
@@ -32,9 +43,9 @@ describe('AddToDashboardButton', () => {
 
   it('opens the dashboard modal with the correct query for samples mode', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     await userEvent.click(screen.getByText('Add to Dashboard'));
@@ -81,9 +92,9 @@ describe('AddToDashboardButton', () => {
     'opens the dashboard modal with display type $expectedDisplayType for chart type $chartType',
     async ({chartType, expectedDisplayType}) => {
       render(
-        <PageParamsProvider>
+        <Wrapper>
           <TestPage visualizeIndex={1} />
-        </PageParamsProvider>
+        </Wrapper>
       );
 
       act(() =>
@@ -129,9 +140,9 @@ describe('AddToDashboardButton', () => {
 
   it('opens the dashboard modal with the correct query based on the visualize index', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={1} />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     act(() =>
@@ -176,9 +187,9 @@ describe('AddToDashboardButton', () => {
 
   it('uses the yAxes for the aggregate mode', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -211,9 +222,9 @@ describe('AddToDashboardButton', () => {
 
   it('takes the first 3 yAxes', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));

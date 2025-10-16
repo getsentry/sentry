@@ -17,11 +17,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import BadRequest
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
 from sentry.search.eap.utils import (
-    PRIVATE_ATTRIBUTES,
+    can_expose_attribute,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_to_sentry_conventions,
@@ -34,15 +36,18 @@ def convert_rpc_attribute_to_json(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
     use_sentry_conventions: bool = False,
+    include_internal: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     seen_sentry_conventions: set[str] = set()
     for attribute in attributes:
         internal_name = attribute["name"]
-        if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
+
+        if not can_expose_attribute(
+            internal_name, trace_item_type, include_internal=include_internal
+        ):
             continue
-        if internal_name.startswith(constants.META_PREFIX):
-            continue
+
         source = attribute["value"]
         if len(source) == 0:
             raise BadRequest(f"unknown field in protobuf: {internal_name}")
@@ -60,7 +65,7 @@ def convert_rpc_attribute_to_json(
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
-                external_name = translate_internal_to_public_alias(
+                external_name, _, _ = translate_internal_to_public_alias(
                     internal_name, column_type, trace_item_type
                 )
 
@@ -127,6 +132,9 @@ def serialize_meta(
         if field_key is None:
             continue
 
+        # TODO: This should probably also omit internal attributes. It's not
+        # clear why it doesn't, but this behavior seems important for logs.
+
         try:
             result = json.loads(attribute["value"]["valStr"])
             # Map the internal field key name back to its public name
@@ -140,7 +148,7 @@ def serialize_meta(
                     item_type = "number"
                 else:
                     item_type = "string"
-                external_name = translate_internal_to_public_alias(
+                external_name, _, _ = translate_internal_to_public_alias(
                     field_key, item_type, trace_item_type
                 )
                 if external_name:
@@ -230,7 +238,7 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -295,11 +303,16 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             actor=request.user,
         )
 
+        include_internal = is_active_superuser(request) or is_active_staff(request)
+
         resp_dict = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
             "timestamp": resp["timestamp"],
             "attributes": convert_rpc_attribute_to_json(
-                resp["attributes"], item_type, use_sentry_conventions
+                resp["attributes"],
+                item_type,
+                use_sentry_conventions,
+                include_internal=include_internal,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),

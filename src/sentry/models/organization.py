@@ -62,7 +62,7 @@ class OrganizationStatus(IntEnum):
     # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     @property
@@ -231,7 +231,7 @@ class Organization(ReplicatedRegionModel):
 
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     snowflake_redis_key = "organization_snowflake_key"
@@ -247,6 +247,9 @@ class Organization(ReplicatedRegionModel):
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
+
+        if self.pk is None:  # if org is new
+            self.flags.disable_member_project_creation = True
 
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(

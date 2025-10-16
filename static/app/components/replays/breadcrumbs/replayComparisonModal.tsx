@@ -21,7 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import {type HydrationErrorFrame, isHydrateCrumb} from 'sentry/utils/replays/types';
+import {isHydrateCrumb, type HydrationErrorFrame} from 'sentry/utils/replays/types';
 
 interface Props extends ModalRenderProps {
   frameOrEvent: HydrationErrorFrame | Event;
@@ -136,6 +136,7 @@ const ModalHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   flex-direction: row;
+  flex: 1;
 `;
 
 const Title = styled('h4')`

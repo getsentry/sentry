@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+import sentry_sdk
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -19,6 +20,7 @@ from sentry.search.events.filter import (
 )
 from sentry.search.events.types import WhereType
 from sentry.search.utils import DEVICE_CLASS, parse_release, validate_snuba_array_parameter
+from sentry.utils.glob import glob_match
 from sentry.utils.strings import oxfordize_list
 
 
@@ -68,26 +70,47 @@ def release_filter_converter(
     return builder.default_filter_converter(SearchFilter(search_filter.key, operator, value))
 
 
+def matches_slug_pattern(slug_pattern: str, slug: str) -> bool:
+    try:
+        return glob_match(slug, slug_pattern, allow_newline=False)
+    except Exception as err:
+        sentry_sdk.capture_exception(err)
+        return slug == slug_pattern
+
+
+def matches_slug_patterns(slug_patterns: list[str], slug: str) -> bool:
+    return any(matches_slug_pattern(slug_pattern, slug) for slug_pattern in slug_patterns)
+
+
 def project_slug_converter(
     builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """Convert project slugs to ids and create a filter based on those.
     This is cause we only store project ids in clickhouse.
     """
-    value = search_filter.value.value
+    # Raw value without regex conversion
+    value = search_filter.value.raw_value
 
     if Op(search_filter.operator) == Op.EQ and value == "":
         raise InvalidSearchQuery(
             'Cannot query for has:project or project:"" as every event will have a project'
         )
 
-    slugs = to_list(value)
+    slug_patterns = to_list(value)
+
     project_slugs: Mapping[str, int] = {
         slug: project_id
         for slug, project_id in builder.params.project_slug_map.items()
-        if slug in slugs
+        if matches_slug_patterns(slug_patterns, slug)
     }
-    missing: list[str] = [slug for slug in slugs if slug not in project_slugs]
+    missing: list[str] = [
+        slug_pattern
+        for slug_pattern in slug_patterns
+        if not any(
+            matches_slug_pattern(slug_pattern, project_slug)
+            for project_slug in project_slugs.keys()
+        )
+    ]
     if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
         raise InvalidSearchQuery(
             f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
@@ -290,7 +313,9 @@ def semver_build_filter_converter(
             build,
             project_ids=builder.params.project_ids,
             negated=negated,
-        ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
+        )
+        .values_list("version", flat=True)
+        .order_by("-date_added")[: constants.MAX_SEARCH_RELEASES]
     )
 
     if not validate_snuba_array_parameter(versions):

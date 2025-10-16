@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
@@ -29,6 +29,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 import DateRange from './dateRange';
 import SelectorItems from './selectorItems';
+import type {TimeRangeItem} from './types';
 import {
   getAbsoluteSummary,
   getArbitraryRelativePeriod,
@@ -133,10 +134,6 @@ export interface TimeRangeSelectorProps
    */
   start?: DateString;
   /**
-   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
-   */
-  storageNamespace?: string;
-  /**
    * Default initial value for using UTC
    */
   utc?: boolean | null;
@@ -187,8 +184,8 @@ export function TimeRangeSelector({
   });
 
   const getOptions = useCallback(
-    (items: Item[]): Array<SelectOption<string>> => {
-      const makeOption = (item: Item): SelectOption<string> => {
+    (items: TimeRangeItem[]): Array<SelectOption<string>> => {
+      const makeOption = (item: TimeRangeItem): SelectOption<string> => {
         if (item.value === 'absolute') {
           return {
             value: item.value,
@@ -206,14 +203,14 @@ export function TimeRangeSelector({
                 color={isFocused || isSelected ? undefined : 'subText'}
               />
             ),
-            textValue: item.searchKey,
+            textValue: item.textValue,
           };
         }
 
         return {
           value: item.value,
           label: <OptionLabel>{item.label}</OptionLabel>,
-          textValue: item.searchKey,
+          textValue: item.textValue,
         };
       };
 
@@ -223,7 +220,7 @@ export function TimeRangeSelector({
       }
 
       const filteredItems = disallowArbitraryRelativeRanges
-        ? items.filter(i => i.searchKey?.includes(search))
+        ? items.filter(i => i.textValue?.includes(search))
         : // If arbitrary relative ranges are allowed, then generate a list of them based
           // on the search query
           timeRangeAutoCompleteFilter(items, search, {
@@ -332,7 +329,7 @@ export function TimeRangeSelector({
           }}
           searchPlaceholder={
             (searchPlaceholder ?? disallowArbitraryRelativeRanges)
-              ? t('Search…')
+              ? (searchPlaceholder ?? t('Search…'))
               : t('Custom range: 2h, 4d, 8w…')
           }
           options={getOptions(items)}
@@ -340,8 +337,8 @@ export function TimeRangeSelector({
           value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
           onChange={option => {
             const item = items.find(i => i.value === option.value);
-            if (item?.onClick) {
-              item.onClick();
+            if (item?.onSelect) {
+              item.onSelect();
             } else {
               handleChange(option);
             }
@@ -374,7 +371,7 @@ export function TimeRangeSelector({
                 >
                   <TriggerLabelWrap>
                     <TriggerLabel>
-                      {selectProps.triggerLabel ?? defaultLabel}
+                      {selectProps.triggerProps?.children ?? defaultLabel}
                     </TriggerLabel>
                     {desynced && <DesyncedFilterIndicator />}
                   </TriggerLabelWrap>
@@ -455,7 +452,7 @@ export function TimeRangeSelector({
                     <FooterWrap>
                       <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
                       {showAbsoluteSelector && (
-                        <AbsoluteSelectorFooter>
+                        <Flex gap="md" justify="end">
                           {showRelative && (
                             <Button
                               size="xs"
@@ -477,7 +474,7 @@ export function TimeRangeSelector({
                           >
                             {t('Apply')}
                           </Button>
-                        </AbsoluteSelectorFooter>
+                        </Flex>
                       )}
                     </FooterWrap>
                   </Fragment>
@@ -522,12 +519,6 @@ const AbsoluteDateRangeWrap = styled('div')`
 const StyledDateRangeHook = styled(DateRangeHook)`
   border: none;
   width: max-content;
-`;
-
-const AbsoluteSelectorFooter = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
 `;
 
 const FooterMessage = styled('p')`

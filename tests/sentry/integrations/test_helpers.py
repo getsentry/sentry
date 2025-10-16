@@ -12,7 +12,7 @@ def add_control_silo_proxy_response(
     path: str | None,
     additional_matchers: list[Any] | None = None,
     **additional_response_kwargs: Any,
-):
+) -> responses.BaseResponse:
     if additional_matchers is None:
         additional_matchers = []
 

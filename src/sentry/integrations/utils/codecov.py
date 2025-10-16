@@ -93,7 +93,8 @@ def get_codecov_data(repo: str, service: str, path: str) -> tuple[LineCoverage |
     if not codecov_token:
         return None, None
 
-    owner_username, repo_name = repo.split("/")
+    params = repo.split("/")
+    owner_username, repo_name = params[:2]
     service = "gh" if service == IntegrationProviderSlug.GITHUB.value else service
 
     path = path.lstrip("/")

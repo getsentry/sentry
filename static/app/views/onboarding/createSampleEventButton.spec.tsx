@@ -11,7 +11,7 @@ import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventBu
 jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 
-describe('CreateSampleEventButton', function () {
+describe('CreateSampleEventButton', () => {
   const router = RouterFixture();
   const org = OrganizationFixture();
   const project = ProjectFixture();
@@ -34,11 +34,11 @@ describe('CreateSampleEventButton', function () {
     );
   }
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('creates a sample event', async function () {
+  it('creates a sample event', async () => {
     renderComponent();
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
@@ -76,7 +76,7 @@ describe('CreateSampleEventButton', function () {
     );
   });
 
-  it('waits for the latest event to be processed', async function () {
+  it('waits for the latest event to be processed', async () => {
     renderComponent();
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,

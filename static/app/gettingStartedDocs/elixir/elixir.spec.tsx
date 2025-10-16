@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './elixir';
 
-describe('elixir onboarding docs', function () {
-  it('renders docs correctly', function () {
+describe('elixir onboarding docs', () => {
+  it('renders docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

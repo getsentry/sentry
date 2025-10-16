@@ -14,6 +14,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -29,23 +30,23 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {
-  useExploreAggregateFields,
-  useExploreFields,
-  useExploreGroupBys,
-  useExploreQuery,
-  useExploreSortBys,
-  useExploreVisualizes,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {
+  useQueryParamsAggregateCursor,
+  useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
+  useQueryParamsGroupBys,
+  useQueryParamsQuery,
+  useQueryParamsVisualizes,
+  useSetQueryParamsAggregateSortBys,
+} from 'sentry/views/explore/queryParams/context';
+import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
-
-import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
@@ -59,13 +60,14 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const {result, eventView} = aggregatesTableResult;
 
   const topEvents = useTopEvents();
-  const aggregateFields = useExploreAggregateFields();
-  const fields = useExploreFields();
-  const groupBys = useExploreGroupBys();
-  const visualizes = useExploreVisualizes();
-  const sorts = useExploreSortBys();
-  const setSorts = useSetExploreSortBys();
-  const query = useExploreQuery();
+  const aggregateFields = useQueryParamsAggregateFields();
+  const fields = useQueryParamsFields();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
+  const sorts = useQueryParamsAggregateSortBys();
+  const setSorts = useSetQueryParamsAggregateSortBys();
+  const query = useQueryParamsQuery();
+  const cursor = useQueryParamsAggregateCursor();
 
   const visibleAggregateFields = useMemo(
     () =>
@@ -204,7 +206,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
               return (
                 <TableRow key={i}>
                   <TableBodyCell>
-                    {topEvents && i < topEvents && (
+                    {topEvents && i < topEvents && !parseCursor(cursor)?.offset && (
                       <TopResultsIndicator color={palette[i]!} />
                     )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">

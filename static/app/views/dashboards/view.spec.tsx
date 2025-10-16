@@ -6,10 +6,10 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 
-describe('Dashboards > ViewEditDashboard', function () {
+describe('Dashboards > ViewEditDashboard', () => {
   const initialData = initializeOrg();
 
-  it('removes widget params from url and preserves selection params', function () {
+  it('removes widget params from url and preserves selection params', () => {
     const router = RouterFixture({
       location: {
         pathname: '/',

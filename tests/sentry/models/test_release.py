@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,18 +11,24 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.deploy import Deploy
+from sentry.models.distribution import Distribution
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphistory import GroupHistory
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.release import (
     Release,
     ReleaseStatus,
     follows_semver_versioning_scheme,
     get_previous_release,
 )
+from sentry.models.releaseactivity import ReleaseActivity
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -57,7 +64,7 @@ from sentry.utils.strings import truncatechars
         "fake_package@1.0.0.0-beta+exp.sha.5114f85",  # major, minor, patch, revision, pre-release, and build
     ],
 )
-def test_version_is_semver_valid(release_version):
+def test_version_is_semver_valid(release_version) -> None:
     assert Release.is_semver_version(release_version) is True
 
 
@@ -84,7 +91,7 @@ def test_version_is_semver_valid(release_version):
         "package@1.0.0-alpha.1+1..2",  # Empty build component
     ],
 )
-def test_version_is_semver_invalid(release_version):
+def test_version_is_semver_invalid(release_version) -> None:
     assert Release.is_semver_version(release_version) is False
 
 
@@ -1393,3 +1400,506 @@ class ClearCommitsTestCase(TestCase):
         assert Commit.objects.filter(
             id=commit2.id, organization_id=org.id, repository_id=repo.id
         ).exists()
+
+
+class ReleaseGetUnusedFilterTestCase(TestCase):
+    """Test the Release.get_unused_filter() method logic"""
+
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.cutoff_date = timezone.now() - timedelta(days=30)
+
+    def test_get_unused_filter_includes_old_releases_without_dependencies(self):
+        """Old releases with no dependencies should be included in unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_excludes_recently_added_releases(self):
+        """Recently added releases should be excluded from unused filter"""
+        recent_release = self.create_release(
+            project=self.project,
+            version="2.0.0",
+            date_added=timezone.now() - timedelta(days=10),  # Within cutoff
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert recent_release not in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_groups(self):
+        """Releases referenced by groups should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        self.create_group(project=self.project, first_release=old_release)
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_group_environments(self):
+        """Releases referenced by GroupEnvironment should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        group = self.create_group(project=self.project)
+        environment = self.create_environment(project=self.project)
+        GroupEnvironment.objects.create(
+            group=group,
+            environment=environment,
+            first_release=old_release,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_group_history(self):
+        """Releases referenced by GroupHistory should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        group = self.create_group(project=self.project)
+        GroupHistory.objects.create(
+            organization=self.organization,
+            group=group,
+            project=self.project,
+            release=old_release,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_group_resolutions(self):
+        """Releases referenced by GroupResolution should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        group = self.create_group(project=self.project)
+        GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_distributions(self):
+        """Releases with distributions should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        Distribution.objects.create(
+            release=old_release,
+            name="android",
+            organization_id=self.organization.id,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_deploys(self):
+        """Releases with deploys should be excluded from unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            release=old_release,
+            environment_id=environment.id,
+            organization_id=self.organization.id,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_ignores_safe_child_relations(self):
+        """Safe child relations should not prevent inclusion in unused filter"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        environment = self.create_environment(project=self.project)
+
+        # Create safe child relations that would be deleted during cleanup
+        ReleaseEnvironment.objects.create(
+            release=old_release,
+            environment=environment,
+            organization_id=self.organization.id,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=old_release,
+            project=self.project,
+            environment=environment,
+            last_seen=timezone.now()
+            - timedelta(days=40),  # Old activity, shouldn't prevent cleanup
+        )
+        ReleaseActivity.objects.create(
+            release=old_release,
+            type=1,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        # These relations should not prevent the release from being considered unused
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_multiple_releases_mixed_dependencies(self):
+        """Test filter correctly handles multiple releases with different dependency patterns"""
+        # Create various releases with different dependency patterns
+        unused_old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        recent_release = self.create_release(
+            project=self.project,
+            version="2.0.0",
+            date_added=timezone.now() - timedelta(days=10),  # Recent
+        )
+
+        release_with_group = self.create_release(
+            project=self.project,
+            version="3.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        self.create_group(project=self.project, first_release=release_with_group)
+
+        release_with_deploy = self.create_release(
+            project=self.project,
+            version="4.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            release=release_with_deploy,
+            environment_id=environment.id,
+            organization_id=self.organization.id,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+
+        # Only the old release without dependencies should be in the unused filter
+        assert unused_old_release in unused_releases
+        assert recent_release not in unused_releases
+        assert release_with_group not in unused_releases
+        assert release_with_deploy not in unused_releases
+
+    def test_get_unused_filter_with_latest_repo_release_environment(self):
+        """Test that LatestRepoReleaseEnvironment subquery works correctly"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        repo = self.create_repo(project=self.project)
+        environment = self.create_environment(project=self.project)
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create LatestRepoReleaseEnvironment - now should be excluded
+        LatestRepoReleaseEnvironment.objects.create(
+            repository_id=repo.id,
+            environment_id=environment.id,
+            release_id=old_release.id,
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_with_recent_activity(self):
+        """Test that ReleaseProjectEnvironment last_seen subquery works correctly"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+        environment = self.create_environment(project=self.project)
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create ReleaseProjectEnvironment with recent activity - now should be excluded
+        ReleaseProjectEnvironment.objects.create(
+            release=old_release,
+            project=self.project,
+            environment=environment,
+            last_seen=timezone.now() - timedelta(days=10),  # Recent activity
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_excludes_release_that_is_first_release_of_group(self):
+        """Test that a release is not considered unused if it is the first_release of any group"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially (not the first_release of any group)
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a Group with this release as first_release
+        self.create_group(project=self.project, first_release=old_release)
+
+        # Now release should not be considered unused (it is the first_release of a group)
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+        # Verify that the release is the first_release of a group
+        from sentry.models.group import Group
+
+        assert Group.objects.filter(first_release=old_release).exists() is True
+
+    def test_get_unused_filter_excludes_releases_with_recent_deploys(self):
+        """Test that releases with recent deploys are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent deploy (within cutoff) - should keep the release
+        from sentry.models.deploy import Deploy
+
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            environment_id=environment.id,
+            date_finished=timezone.now() - timedelta(days=10),  # Recent deploy
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_deploys(self):
+        """Test that releases with old deploys can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old deploy (before cutoff) - should allow cleanup
+        from sentry.models.deploy import Deploy
+
+        environment = self.create_environment(project=self.project)
+        Deploy.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            environment_id=environment.id,
+            date_finished=timezone.now() - timedelta(days=100),  # Old deploy
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_recent_distributions(self):
+        """Test that releases with recent distributions are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent distribution (within cutoff) - should keep the release
+        from sentry.models.distribution import Distribution
+
+        Distribution.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            name="recent-dist",
+            date_added=timezone.now() - timedelta(days=10),  # Recent distribution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_distributions(self):
+        """Test that releases with old distributions can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old distribution (before cutoff) - should allow cleanup
+        from sentry.models.distribution import Distribution
+
+        Distribution.objects.create(
+            organization_id=self.organization.id,
+            release=old_release,
+            name="old-dist",
+            date_added=timezone.now() - timedelta(days=100),  # Old distribution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_recent_group_releases(self):
+        """Test that releases with recent group releases are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent group release (within cutoff) - should keep the release
+        from sentry.models.grouprelease import GroupRelease
+
+        group = self.create_group(project=self.project)
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=group.id,
+            release_id=old_release.id,
+            environment="",
+            first_seen=timezone.now() - timedelta(days=100),  # Old first_seen (not used in filter)
+            last_seen=timezone.now() - timedelta(days=10),  # Recent last_seen (used in filter)
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_group_releases(self):
+        """Test that releases with old group releases can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old group release (before cutoff) - should allow cleanup
+        from sentry.models.grouprelease import GroupRelease
+
+        group = self.create_group(project=self.project)
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=group.id,
+            release_id=old_release.id,
+            environment="",
+            first_seen=timezone.now()
+            - timedelta(days=10),  # Recent first_seen (not used in filter)
+            last_seen=timezone.now() - timedelta(days=100),  # Old last_seen (used in filter)
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+    def test_get_unused_filter_excludes_releases_with_recent_group_resolutions(self):
+        """Test that releases with recent group resolutions are not considered unused"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Release should be unused initially
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases
+
+        # Create a recent group resolution (within cutoff) - should keep the release
+        from sentry.models.groupresolution import GroupResolution
+
+        group = self.create_group(project=self.project)
+        GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+            datetime=timezone.now() - timedelta(days=10),  # Recent group resolution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release not in unused_releases
+
+    def test_get_unused_filter_allows_cleanup_with_old_group_resolutions(self):
+        """Test that releases with old group resolutions can be cleaned up"""
+        old_release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+            date_added=timezone.now() - timedelta(days=35),
+        )
+
+        # Create an old group resolution (before cutoff) - should allow cleanup
+        from sentry.models.groupresolution import GroupResolution
+
+        group = self.create_group(project=self.project)
+        GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+            datetime=timezone.now() - timedelta(days=100),  # Old group resolution
+        )
+
+        unused_filter = Release.get_unused_filter(self.cutoff_date)
+        unused_releases = Release.objects.filter(unused_filter)
+        assert old_release in unused_releases

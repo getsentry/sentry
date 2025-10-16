@@ -8,7 +8,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
 
-describe('EventEntries', function () {
+describe('EventEntries', () => {
   const defaultProps = {
     organization: OrganizationFixture(),
     project: ProjectFixture(),
@@ -16,7 +16,7 @@ describe('EventEntries', function () {
     location: LocationFixture(),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     const project = ProjectFixture({platform: 'javascript'});
 
     MockApiClient.addMockResponse({
@@ -35,7 +35,7 @@ describe('EventEntries', function () {
     });
   });
 
-  it('renders the replay section in the correct place', async function () {
+  it('renders the replay section in the correct place', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},

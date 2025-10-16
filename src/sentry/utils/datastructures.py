@@ -45,7 +45,7 @@ class BidirectionalMapping(MutableMapping):
     def __iter__(self):
         return iter(self.__data)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.__data)
 
     def get_key(self, value, default=__unset__):

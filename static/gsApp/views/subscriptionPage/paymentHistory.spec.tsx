@@ -10,8 +10,8 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType, PlanTier} from 'getsentry/types';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
 
-describe('Subscription > PaymentHistory', function () {
-  beforeEach(function () {
+describe('Subscription > PaymentHistory', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/dogz-rule/billing-config/`,
@@ -39,7 +39,7 @@ describe('Subscription > PaymentHistory', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -83,7 +83,29 @@ describe('Subscription > PaymentHistory', function () {
     expect(screen.getByText('Sep 20, 2021')).toBeInTheDocument();
   });
 
-  it('renders an error for non-billing users', async function () {
+  it('renders no receipts found', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [],
+    });
+
+    render(
+      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
+      {organization}
+    );
+
+    await screen.findByTestId('payment-list');
+    expect(screen.getByText('No receipts found')).toBeInTheDocument();
+  });
+
+  it('renders an error for non-billing users', async () => {
     const organization = OrganizationFixture({slug: 'dogz-rule', access: []});
     const subscription = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);
@@ -107,7 +129,7 @@ describe('Subscription > PaymentHistory', function () {
     expect(screen.queryByTestId('payment-list')).not.toBeInTheDocument();
   });
 
-  it('renders unpaid invoice', async function () {
+  it('renders unpaid invoice', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -132,10 +154,10 @@ describe('Subscription > PaymentHistory', function () {
     );
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-    expect(screen.getByText('closed')).toBeInTheDocument();
+    expect(screen.getByText('Closed')).toBeInTheDocument();
   });
 
-  it('renders awaiting payment invoice', async function () {
+  it('renders awaiting payment invoice', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -155,10 +177,10 @@ describe('Subscription > PaymentHistory', function () {
     );
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-    expect(screen.getByText('awaiting payment')).toBeInTheDocument();
+    expect(screen.getByText('Awaiting payment')).toBeInTheDocument();
   });
 
-  it('renders paid invoice', async function () {
+  it('renders paid invoice', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -177,6 +199,29 @@ describe('Subscription > PaymentHistory', function () {
     );
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-    expect(screen.getByText('paid')).toBeInTheDocument();
+    expect(screen.getByText('Paid')).toBeInTheDocument();
+  });
+
+  it('renders for new billing UI', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['subscriptions-v3'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [InvoiceFixture({isClosed: true, isPaid: true})],
+    });
+    render(
+      <PaymentHistory {...RouteComponentPropsFixture()} organization={organization} />,
+      {organization}
+    );
+
+    await screen.findByText('Receipts');
+    expect(screen.getByTestId('payment-list')).toBeInTheDocument();
   });
 });

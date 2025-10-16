@@ -34,7 +34,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
     )
-    def test_post_with_codecov_param_calls_api(self, mock_codecov_client_class):
+    def test_post_calls_api(self, mock_codecov_client_class) -> None:
         """Test that when use_codecov param is provided, it calls the Codecov API"""
         mock_graphql_response = {
             "data": {
@@ -51,7 +51,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        response = self.client.post(url, data={}, QUERY_STRING="use_codecov=true")
+        response = self.client.post(url, data={})
 
         mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
         mock_codecov_client_instance.query.assert_called_once_with(
@@ -67,21 +67,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
     )
-    def test_post_without_codecov_param_returns_uuid(self, mock_codecov_client_class):
-        """Test that when use_codecov param is not provided, it returns a generic UUID and doesn't call Codecov"""
-        url = self.reverse_url()
-        response = self.client.post(url)
-
-        assert response.status_code == 200
-        assert response.data["token"]
-
-        # Verify Codecov client was not called
-        mock_codecov_client_class.assert_not_called()
-
-    @patch(
-        "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
-    )
-    def test_post_with_codecov_param_handles_errors(self, mock_codecov_client_class):
+    def test_post_handles_errors(self, mock_codecov_client_class) -> None:
         """Test that GraphQL errors are properly handled when calling Codecov API"""
         mock_graphql_response = {
             "data": {
@@ -101,7 +87,67 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        response = self.client.post(url, data={}, QUERY_STRING="use_codecov=true")
+        response = self.client.post(url, data={})
 
         assert response.status_code == 400
         assert response.data[0] == "Repository not found"
+
+    @patch(
+        "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
+    )
+    def test_scope_map_enforcement(self, mock_codecov_client_class) -> None:
+        """Test that the scope map permissions are properly enforced"""
+        # Mock the Codecov API client to avoid actual API calls during permission testing
+        mock_graphql_response = {
+            "data": {
+                "regenerateRepositoryUploadToken": {
+                    "token": "codecov-generated-token-12345",
+                }
+            }
+        }
+
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        # Create a user with only org:read permission
+        user_with_read_only = self.create_user("readonly@test.com")
+        self.create_member(
+            user=user_with_read_only,
+            organization=self.organization,
+            role="member",  # member role has org:read
+        )
+
+        # Create a user with org:write permission
+        user_with_write = self.create_user("write@test.com")
+        self.create_member(
+            user=user_with_write,
+            organization=self.organization,
+            role="admin",  # admin role has org:write
+        )
+
+        # Create a user with no permissions
+        user_without_permissions = self.create_user("noperms@test.com")
+        # Don't add them to the organization
+
+        url = self.reverse_url()
+
+        # Test that user with org:read can access the endpoint
+        self.login_as(user_with_read_only)
+        response = self.client.post(url, data={})
+        # Should not be a 403 Forbidden (permission denied)
+        assert response.status_code == 200
+
+        # Test that user with org:write can access the endpoint
+        self.login_as(user_with_write)
+        response = self.client.post(url, data={})
+        # Should not be a 403 Forbidden (permission denied)
+        assert response.status_code == 200
+
+        # Test that user without permissions cannot access the endpoint
+        self.login_as(user_without_permissions)
+        response = self.client.post(url, data={})
+        # Should be 403 Forbidden (permission denied)
+        assert response.status_code == 403

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -269,7 +269,7 @@ function CustomPagination({
   if (isLoading) {
     return (
       <StyledPagination
-        pageLinks={'n/a'}
+        pageLinks="n/a"
         disabled
         onCursor={() => {}}
         size={PAGINATION_CURSOR_SIZE}

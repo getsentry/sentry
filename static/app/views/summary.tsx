@@ -1,0 +1,149 @@
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Link} from 'sentry/components/core/link';
+import {Hovercard} from 'sentry/components/hovercard';
+import {IconFilter} from 'sentry/icons';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {SummaryFilterKey} from 'sentry/views/prevent/tests/config';
+
+// exporting for testing purposes
+export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
+  const location = useLocation();
+  const isFiltered = location.query.filterBy === filterBy;
+
+  const filterLink = {
+    ...location,
+    query: {
+      ...location.query,
+      filterBy,
+    },
+  };
+
+  const revertFilterLink = {
+    ...location,
+    query: {
+      ...location.query,
+      filterBy: undefined,
+    },
+  };
+
+  return {
+    isFiltered,
+    filterLink: isFiltered ? revertFilterLink : filterLink,
+  };
+}
+
+const StyledSummaryEntryLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.subText};
+`;
+
+interface SummaryEntryLabelProps extends React.ComponentProps<typeof Hovercard> {
+  children: React.ReactNode;
+}
+
+export function SummaryEntryLabel({children, ...props}: SummaryEntryLabelProps) {
+  return (
+    <Hovercard {...props}>
+      <StyledSummaryEntryLabel>{children}</StyledSummaryEntryLabel>
+    </Hovercard>
+  );
+}
+
+const SummaryEntryBase = css`
+  display: flex;
+  align-items: center;
+  font-size: 2.25rem;
+`;
+
+export const SummaryEntryValue = styled('span')`
+  ${SummaryEntryBase}
+  gap: ${p => p.theme.space.xs};
+  color: ${p => p.theme.textColor};
+`;
+
+const StyledSummaryEntryValueLink = styled('span')`
+  font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.linkColor};
+  font-size: 2.25rem;
+
+  /* This stops the text from jumping when becoming bold */
+  &::after {
+    content: attr(data-text);
+    height: 0;
+    visibility: hidden;
+    overflow: hidden;
+    pointer-events: none;
+    font-weight: ${p => p.theme.fontWeight.bold};
+    display: block;
+  }
+
+  &[data-is-filtered='true'] {
+    font-weight: ${p => p.theme.fontWeight.bold};
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+type SummaryEntryValueLinkProps = {
+  children: React.ReactNode;
+  filterBy: SummaryFilterKey;
+};
+
+export function SummaryEntryValueLink({children, filterBy}: SummaryEntryValueLinkProps) {
+  const {filterLink, isFiltered} = useCreateSummaryFilterLink(filterBy);
+
+  return (
+    <FilterContainer>
+      <IconFilter />
+      <Link to={filterLink}>
+        <StyledSummaryEntryValueLink data-is-filtered={isFiltered}>
+          {children}
+        </StyledSummaryEntryValueLink>
+      </Link>
+    </FilterContainer>
+  );
+}
+
+export const SummaryEntry = styled('div')<{columns?: number}>`
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: space-between;
+  grid-column: span ${p => p.columns ?? 1};
+`;
+
+export const SummaryEntries = styled('div')<{
+  largeColumnSpan: number;
+  smallColumnSpan: number;
+}>`
+  display: grid;
+  align-items: start;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.xl};
+  padding-right: ${p => p.theme.space.xl};
+  padding-top: ${p => p.theme.space['2xl']};
+  padding-bottom: ${p => p.theme.space.sm};
+  grid-template-columns: repeat(${p => p.smallColumnSpan}, 1fr);
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    grid-template-columns: repeat(${p => p.largeColumnSpan}, 1fr);
+  }
+`;
+
+const FilterContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+export const SummaryContainer = styled('div')<{columns: number}>`
+  display: grid;
+  grid-template-columns: repeat(${p => p.columns}, 1fr);
+  gap: ${p => p.theme.space.md};
+`;

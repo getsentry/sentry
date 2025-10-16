@@ -12,7 +12,6 @@
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
-import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import boundaries from 'eslint-plugin-boundaries';
@@ -23,16 +22,16 @@ import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
-import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import unicorn from 'eslint-plugin-unicorn';
+import {globalIgnores} from 'eslint/config';
 import globals from 'globals';
 import invariant from 'invariant';
-import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
 invariant(react.configs.flat, 'For typescript');
@@ -193,8 +192,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '19.1.0',
-        defaultVersion: '19.1',
+        version: '19.2.0',
+        defaultVersion: '19.2',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -350,15 +349,28 @@ export default typescript.config([
             'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
           message: 'Provide a type annotation',
         },
+        {
+          // Disallow IIFEs inside JSX (children, attribute values, and spreads)
+          selector:
+            'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
+          message: 'Do not use IIFEs inside JSX.',
+        },
+        // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
+        {
+          selector:
+            "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+          message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
-      'no-throw-literal': 'error',
+      'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
       'object-shorthand': ['error', 'properties'],
+      'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
-      'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
+      'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
         'error',
         'always',
@@ -376,7 +388,7 @@ export default typescript.config([
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-prototype-builtins': 'off',
-      'no-useless-escape': 'off',
+      'no-useless-escape': 'error',
     },
   },
   {
@@ -386,7 +398,6 @@ export default typescript.config([
     rules: {
       // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
       ...importPlugin.flatConfigs.recommended.rules,
-      'import/newline-after-import': 'error', // https://prettier.io/docs/en/rationale.html#empty-lines
       'import/no-absolute-path': 'error',
       'import/no-amd': 'error',
       'import/no-anonymous-default-export': 'error',
@@ -453,6 +464,10 @@ export default typescript.config([
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
+      'react/jsx-curly-brace-presence': [
+        'error',
+        {props: 'never', children: 'ignore', propElementValues: 'always'},
+      ],
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off',
       'react/no-unknown-property': ['error', {ignore: ['css']}],
@@ -484,7 +499,10 @@ export default typescript.config([
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/require-await': 'error',
+          '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
       : {},
   },
@@ -566,25 +584,7 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          vars: 'all',
-          args: 'all',
-          // TODO(scttcper): We could enable this to enforce catch (error)
-          // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
-          caughtErrors: 'none',
-
-          // Ignore vars that start with an underscore
-          // e.g. if you want to omit a property using object spread:
-          //
-          //   const {name: _name, ...props} = this.props;
-          //
-          varsIgnorePattern: '^_',
-          argsIgnorePattern: '^_',
-          destructuredArrayIgnorePattern: '^_',
-        },
-      ],
+      '@typescript-eslint/no-unused-vars': 'off', // disabled in favor of "noUnusedLocals": true in tsconfig
     },
   },
   {
@@ -596,52 +596,6 @@ export default typescript.config([
         'error',
         'asc',
         {caseSensitive: true, natural: false, requiredFirst: true},
-      ],
-    },
-  },
-  {
-    name: 'plugin/simple-import-sort',
-    // https://github.com/lydell/eslint-plugin-simple-import-sort
-    plugins: {'simple-import-sort': simpleImportSort},
-    rules: {
-      'import/order': 'off',
-      'sort-imports': 'off',
-      'simple-import-sort/imports': [
-        'error',
-        {
-          groups: [
-            // Side effect imports.
-            [String.raw`^\u0000`],
-
-            // Node.js builtins.
-            [`^(${builtinModules.join('|')})(/|$)`],
-
-            // Packages. `react` related packages come first.
-            ['^react', String.raw`^@?\w`],
-
-            // Test should be separate from the app
-            ['^(sentry-test|getsentry-test)(/.*|$)'],
-
-            // Internal packages.
-            ['^(sentry-locale|sentry-images)(/.*|$)'],
-
-            ['^ui(/.*|$)'],
-
-            ['^(app|sentry)(/.*|$)'],
-
-            // Getsentry packages.
-            ['^(admin|getsentry)(/.*|$)'],
-
-            // Style imports.
-            [String.raw`^.+\.less$`],
-
-            // Parent imports. Put `..` last.
-            [String.raw`^\.\.(?!/?$)`, String.raw`^\.\./?$`],
-
-            // Other relative imports. Put same-folder imports and `.` last.
-            [String.raw`^\./(?=.*/)(?!/?$)`, String.raw`^\.(?!/?$)`, String.raw`^\./?$`],
-          ],
-        },
       ],
     },
   },
@@ -754,6 +708,30 @@ export default typescript.config([
   {
     name: 'plugin/prettier',
     ...prettier,
+    rules: {
+      // import sorting is handled with prettier-plugin-sort-imports
+      'import/order': 'off',
+      'sort-imports': 'off',
+      'import/newline-after-import': 'off',
+      // prettier-plugin-sort-imports always combines imports
+      'import/no-duplicates': 'off',
+    },
+  },
+  {
+    name: 'plugin/you-might-not-need-an-effect',
+    ...reactYouMightNotNeedAnEffect.configs.recommended,
+    rules: {
+      'react-you-might-not-need-an-effect/no-derived-state': 'error',
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+      'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
+      'react-you-might-not-need-an-effect/no-manage-parent': 'off',
+      'react-you-might-not-need-an-effect/no-empty-effect': 'off',
+    },
   },
   {
     name: 'files/*.config.*',
@@ -976,6 +954,11 @@ export default typescript.config([
           type: 'story-book',
           pattern: 'static/app/stories',
         },
+        // --- debug tools (e.g. notifications) ---
+        {
+          type: 'debug-tools',
+          pattern: 'static/app/debug',
+        },
         // --- tests ---
         {
           type: 'test-sentry',
@@ -1128,6 +1111,11 @@ export default typescript.config([
             {
               from: ['story-files', 'story-book'],
               allow: ['core*', 'sentry*', 'story-book'],
+            },
+            // --- debug tools (e.g. notifications) ---
+            {
+              from: ['debug-tools'],
+              allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
             {

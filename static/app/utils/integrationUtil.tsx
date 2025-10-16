@@ -74,8 +74,11 @@ export const getIntegrationFeatureGate = () => {
 };
 
 export const getSentryAppInstallStatus = (install: SentryAppInstallation | undefined) => {
-  if (install) {
+  if (install && install.status !== 'pending_deletion') {
     return capitalize(install.status) as IntegrationInstallationStatus;
+  }
+  if (install && install.status === 'pending_deletion') {
+    return 'Pending Deletion';
   }
   return 'Not Installed';
 };
@@ -228,7 +231,7 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'jira_server':
       return 'Jira';
     case 'vsts':
-      return 'VSTS';
+      return 'Azure DevOps';
     case 'codecov':
       return 'Codeov';
     default:

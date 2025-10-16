@@ -1,0 +1,44 @@
+---
+created: '2025-10-07T20:42:04.290874+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "top-level",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "top-level",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "e04dce7550635e05dbd7f656102cf304"
+    contributing component: stacktrace
+    hint: None
+    root_component:
+      system*
+        stacktrace*
+          frame*
+            function*
+              "test"
+            context_line*
+              "hello world"
+          frame*
+            filename*
+              "foo.js"
+            function*
+              "test"
+            context_line*
+              "hello world"

@@ -7,12 +7,16 @@ from typing import NamedTuple
 
 import sentry_sdk
 
+from sentry import options
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import GroupEvent
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.group import Group
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -33,11 +37,9 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     issue_occurrence = evt.occurrence
 
     try:
-        if issue_occurrence is None:
-            # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
-            detector = Detector.objects.get(
-                project_id=evt.project_id, type=evt.group.issue_type.slug
-            )
+        if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
+            # if there are no detector settings, default to the error detector
+            detector = Detector.get_error_detector_for_project(evt.project_id)
         else:
             detector = Detector.objects.get(
                 id=issue_occurrence.evidence_data.get("detector_id", None)
@@ -70,8 +72,6 @@ class _SplitEvents(NamedTuple):
 def _split_events_by_occurrence(
     event_list: list[GroupEvent],
 ) -> _SplitEvents:
-    from sentry.grouping.grouptype import ErrorGroupType
-
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
     error_events: list[GroupEvent] = []  # only error events don't have occurrences
     events_missing_detectors: list[GroupEvent] = []
@@ -118,8 +118,6 @@ def get_detectors_by_groupevents_bulk(
     """
     Given a list of GroupEvents, return a mapping of event_id to Detector.
     """
-    from sentry.grouping.grouptype import ErrorGroupType
-
     if not event_list:
         return {}
 
@@ -197,18 +195,26 @@ def get_detectors_by_groupevents_bulk(
     return result
 
 
-def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
+def create_issue_platform_payload(result: DetectorEvaluationResult, detector_type: str) -> None:
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
         occurrence = result.result
         payload_type = PayloadType.OCCURRENCE
 
-        metrics.incr("workflow_engine.issue_platform.payload.sent.occurrence")
+        metrics.incr(
+            "workflow_engine.issue_platform.payload.sent.occurrence",
+            tags={"detector_type": detector_type},
+            sample_rate=1,
+        )
     else:
         status_change = result.result
         payload_type = PayloadType.STATUS_CHANGE
-        metrics.incr("workflow_engine.issue_platform.payload.sent.status_change")
+        metrics.incr(
+            "workflow_engine.issue_platform.payload.sent.status_change",
+            tags={"detector_type": detector_type},
+            sample_rate=1,
+        )
 
     produce_occurrence_to_kafka(
         payload_type=payload_type,
@@ -219,11 +225,9 @@ def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
 
 
 @sentry_sdk.trace
-def process_detectors[
-    T
-](data_packet: DataPacket[T], detectors: list[Detector]) -> list[
-    tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
-]:
+def process_detectors[T](
+    data_packet: DataPacket[T], detectors: list[Detector]
+) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:
@@ -237,7 +241,10 @@ def process_detectors[
             tags={"detector_type": detector.type},
         )
 
-        detector_results = handler.evaluate(data_packet)
+        with metrics.timer(
+            "workflow_engine.process_detectors.evaluate", tags={"detector_type": detector.type}
+        ):
+            detector_results = handler.evaluate(data_packet)
 
         if detector_results is None:
             return results
@@ -268,9 +275,31 @@ def process_detectors[
                         "detector_resolved",
                         extra=logger_extra,
                     )
-                create_issue_platform_payload(result)
+                create_issue_platform_payload(result, detector.type)
 
         if detector_results:
             results.append((detector, detector_results))
 
     return results
+
+
+def associate_new_group_with_detector(group: Group, detector_id: int | None = None) -> bool:
+    """
+    Associate a new Group with it's Detector in the database.
+    If the Group is an error, it can be associated without a detector ID.
+
+    Return whether the group was associated.
+    """
+    if detector_id is None:
+        # For error Groups, we know there is a Detector and we can find it by project.
+        if group.type == ErrorGroupType.type_id:
+            if not options.get("workflow_engine.associate_error_detectors", False):
+                return False
+            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+        else:
+            return False
+    DetectorGroup.objects.get_or_create(
+        detector_id=detector_id,
+        group_id=group.id,
+    )
+    return True

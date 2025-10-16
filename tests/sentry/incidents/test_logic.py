@@ -97,6 +97,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
+from sentry.utils import json
 from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -105,7 +106,9 @@ pytestmark = [pytest.mark.sentry_metrics]
 class CreateIncidentTest(TestCase):
     @pytest.fixture(autouse=True)
     def _patch_record_event(self):
-        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+        with mock.patch(
+            "sentry.analytics.base.Analytics.record_event_envelope"
+        ) as self.record_event:
             yield
 
     def test_simple(self) -> None:
@@ -150,20 +153,21 @@ class CreateIncidentTest(TestCase):
             == 1
         )
         assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentCreatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(IncidentType.ALERT_TRIGGERED.value),
-        }
+        event = self.record_event.call_args[0][0].event
+        assert event == IncidentCreatedEvent(
+            organization_id=self.organization.id,
+            incident_id=incident.id,
+            incident_type=IncidentType.ALERT_TRIGGERED.value,
+        )
 
 
 @freeze_time()
 class UpdateIncidentStatus(TestCase):
     @pytest.fixture(autouse=True)
     def _patch_record_event(self):
-        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+        with mock.patch(
+            "sentry.analytics.base.Analytics.record_event_envelope"
+        ) as self.record_event:
             yield
 
     def get_most_recent_incident_activity(self, incident):
@@ -194,15 +198,14 @@ class UpdateIncidentStatus(TestCase):
         assert activity.previous_value == str(prev_status)
 
         assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentStatusUpdatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "prev_status": str(prev_status),
-            "status": str(incident.status),
-        }
+        event = self.record_event.call_args[0][0].event
+        assert event == IncidentStatusUpdatedEvent(
+            organization_id=self.organization.id,
+            incident_id=incident.id,
+            incident_type=incident.type,
+            prev_status=prev_status,
+            status=incident.status,
+        )
 
     def test_closed(self) -> None:
         incident = self.create_incident(
@@ -661,6 +664,12 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         assert mock_seer_request.call_count == 1
+        call_args_str = mock_seer_request.call_args_list[0].kwargs["body"].decode("utf-8")
+        assert json.loads(call_args_str)["alert"] == {
+            "id": alert_rule.id,
+            "source_id": alert_rule.snuba_query.subscriptions.get().id,
+            "source_type": 1,
+        }
         assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None

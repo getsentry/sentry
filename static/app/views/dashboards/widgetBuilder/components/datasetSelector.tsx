@@ -22,6 +22,7 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
@@ -38,7 +39,7 @@ function WidgetBuilderDatasetSelector() {
   if (organization.features.includes('discover-saved-queries-deprecation')) {
     disabledChoices.push([
       WidgetType.TRANSACTIONS,
-      tct('This dataset is is no longer supported. Please use the [spans] dataset.', {
+      tct('This dataset is no longer supported. Please use the [spans] dataset.', {
         spans: (
           <Link
             // We need to do this otherwise the dashboard filters will change
@@ -68,19 +69,11 @@ function WidgetBuilderDatasetSelector() {
   if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.push([WidgetType.SPANS, t('Spans')]);
   }
-  if (organization.features.includes('ourlogs-dashboards')) {
+  if (isLogsEnabled(organization)) {
     datasetChoices.push([
       WidgetType.LOGS,
-      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key={'dataset-choice-logs'}>
-        {t('Logs')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key="dataset-choice-logs">
+        {t('Logs')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>,
     ]);
   }

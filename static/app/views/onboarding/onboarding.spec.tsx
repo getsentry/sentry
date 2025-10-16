@@ -15,18 +15,18 @@ import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRe
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import Onboarding from 'sentry/views/onboarding/onboarding';
+import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
-describe('Onboarding', function () {
-  beforeAll(function () {
+describe('Onboarding', () => {
+  beforeAll(() => {
     TeamStore.loadInitialData([TeamFixture()]);
   });
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders the welcome page', function () {
+  it('renders the welcome page', () => {
     const routeParams = {
       step: 'welcome',
     };
@@ -39,17 +39,23 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/welcome/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
     expect(screen.getByLabelText('Start')).toBeInTheDocument();
   });
 
-  it('renders the select platform step', async function () {
+  it('renders the select platform step', async () => {
     const routeParams = {
       step: 'select-platform',
     };
@@ -62,10 +68,16 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -74,7 +86,7 @@ describe('Onboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders the setup docs step', async function () {
+  it('renders the setup docs step', async () => {
     const nextJsProject: Project = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
@@ -139,17 +151,23 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
     expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
   });
 
-  it('does not render SDK data removal modal when going back', async function () {
+  it('does not render SDK data removal modal when going back', async () => {
     const reactProject: Project = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
@@ -209,10 +227,16 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -230,7 +254,7 @@ describe('Onboarding', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders framework selection modal if vanilla js is selected', async function () {
+  it('renders framework selection modal if vanilla js is selected', async () => {
     const routeParams = {
       step: 'select-platform',
     };
@@ -243,10 +267,16 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -259,7 +289,7 @@ describe('Onboarding', function () {
     await screen.findByText('Do you use a framework?');
   });
 
-  it('no longer display SDK data removal modal when going back', async function () {
+  it('no longer display SDK data removal modal when going back', async () => {
     const reactProject: Project = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
@@ -319,10 +349,16 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -340,7 +376,7 @@ describe('Onboarding', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('loads doc on platform click', async function () {
+  it('loads doc on platform click', async () => {
     const nextJsProject: Project = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
@@ -372,10 +408,16 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 

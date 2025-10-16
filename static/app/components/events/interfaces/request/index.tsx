@@ -2,9 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
@@ -16,7 +18,6 @@ import {
 import Truncate from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -121,23 +122,14 @@ export function Request({data, event}: RequestProps) {
           {t('Formatted')}
         </SegmentedControl.Item>
         <SegmentedControl.Item key="curl" textValue="curl">
-          <Monospace>curl</Monospace>
+          <Text monospace>curl</Text>
         </SegmentedControl.Item>
       </SegmentedControl>
     );
   }
 
   const title = (
-    <Fragment>
-      <ExternalLink href={fullUrl} title={fullUrl}>
-        <Path>
-          <strong>{data.method || 'GET'}</strong>
-          <Truncate value={parsedUrl ? parsedUrl.pathname : ''} maxLength={36} leftTrim />
-        </Path>
-        {fullUrl && <StyledIconOpen size="xs" />}
-      </ExternalLink>
-      <small>{parsedUrl ? parsedUrl.hostname : ''}</small>
-    </Fragment>
+    <TruncatedPathLink method={data.method} url={parsedUrl} fullUrl={fullUrl} />
   );
 
   if (hasStreamlinedUI) {
@@ -147,9 +139,9 @@ export function Request({data, event}: RequestProps) {
         title={t('HTTP Request')}
         actions={actions}
       >
-        <SummaryLine>{title}</SummaryLine>
+        {title}
         {view === 'curl' ? (
-          <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
+          <CodeBlock language="bash">{getCurlCommand(data)}</CodeBlock>
         ) : (
           <Fragment>
             <RequestBodySection data={data} event={event} meta={meta} />
@@ -188,7 +180,7 @@ export function Request({data, event}: RequestProps) {
       className="request"
     >
       {view === 'curl' ? (
-        <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
+        <CodeBlock language="bash">{getCurlCommand(data)}</CodeBlock>
       ) : (
         <Fragment>
           {defined(data.query) && (
@@ -279,37 +271,31 @@ function RequestDataCard({
   );
 }
 
-const Monospace = styled('span')`
-  font-family: ${p => p.theme.text.familyMono};
-`;
-
-const Path = styled('span')`
-  color: ${p => p.theme.textColor};
-  text-transform: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
-
-  & strong {
-    margin-right: ${space(0.5)};
-  }
-`;
-
-// Nudge the icon down so it is centered. the `external-icon` class
-// doesn't quite get it in place.
-const StyledIconOpen = styled(IconOpen)`
-  transition: 0.1s linear color;
-  margin: 0 ${space(0.5)};
-  color: ${p => p.theme.subText};
-  position: relative;
-  top: 1px;
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
-const SummaryLine = styled('div')`
-  margin-bottom: ${space(1)};
-`;
+interface TruncatedPathLinkProps {
+  fullUrl?: string;
+  method?: string | null;
+  url?: HTMLAnchorElement | null;
+}
+function TruncatedPathLink(props: TruncatedPathLinkProps) {
+  return (
+    <Flex as="span" gap="sm" align="baseline" padding="0 0 md 0">
+      <Text bold>{props.method || 'GET'}</Text>
+      <ExternalLink openInNewTab href={props.fullUrl} title={props.fullUrl}>
+        <Flex gap="xs" align="baseline">
+          {flexProps => (
+            <Text {...flexProps} variant="primary">
+              <Truncate value={props.url?.pathname ?? ''} maxLength={36} leftTrim />
+              {props.fullUrl && (
+                <IconOpen style={{transform: 'translateY(1px)'}} size="xs" />
+              )}
+            </Text>
+          )}
+        </Flex>
+      </ExternalLink>
+      <Text variant="muted">{props.url?.hostname ?? ''}</Text>
+    </Flex>
+  );
+}
 
 const RequestCardPanel = styled(KeyValueData.CardPanel)`
   display: block;

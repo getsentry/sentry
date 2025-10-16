@@ -7,18 +7,17 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
-import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
@@ -30,7 +29,9 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -40,8 +41,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export function useReplaysOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {openDrawer} = useDrawer();
@@ -61,33 +62,11 @@ export function useReplaysOnboardingDrawer() {
 function DrawerContent() {
   useEffect(() => {
     return () => {
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     };
   }, []);
 
   return <SidebarContent />;
-}
-
-function LegacyReplaysOnboardingSidebar(props: CommonSidebarProps) {
-  const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const organization = useOrganization();
-
-  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
-  const hasProjectAccess = organization.access.includes('project:read');
-
-  if (!isActive || !hasProjectAccess) {
-    return null;
-  }
-
-  return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
-      <SidebarContent />
-    </TaskSidebarPanel>
-  );
 }
 
 function SidebarContent() {
@@ -100,8 +79,8 @@ function SidebarContent() {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-    targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+    currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+    targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
     onboardingPlatforms: replayOnboardingPlatforms,
     allPlatforms: replayPlatforms,
   });
@@ -161,7 +140,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
-        <HeaderActions>
+        <Flex direction="row" justify="between" gap="2xl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -172,8 +151,13 @@ function SidebarContent() {
             }}
           >
             <CompactSelect
-              triggerLabel={
-                currentProject ? (
+              value={currentProject?.id}
+              onChange={opt =>
+                setCurrentProject(allProjects.find(p => p.id === opt.value))
+              }
+              triggerProps={{
+                'aria-label': currentProject?.slug,
+                children: currentProject ? (
                   <StyledIdBadge
                     project={currentProject}
                     avatarSize={16}
@@ -182,18 +166,13 @@ function SidebarContent() {
                   />
                 ) : (
                   t('Select a project')
-                )
-              }
-              value={currentProject?.id}
-              onChange={opt =>
-                setCurrentProject(allProjects.find(p => p.id === opt.value))
-              }
-              triggerProps={{'aria-label': currentProject?.slug}}
+                ),
+              }}
               options={projectSelectOptions}
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
     </Fragment>
@@ -214,10 +193,10 @@ function OnboardingContent({
       value: platform.id,
       textValue: platform.name,
       label: (
-        <PlatformLabel>
+        <Flex gap="md" align="center">
           <PlatformIcon platform={platform.id} size={16} />
           <TextOverflow>{platform.name}</TextOverflow>
-        </PlatformLabel>
+        </Flex>
       ),
     };
   });
@@ -290,12 +269,12 @@ function OnboardingContent({
             [
               'npm',
               backendPlatform ? (
-                <PlatformSelect key="platform-select">
+                <Flex gap="md" align="center" wrap="wrap" key="platform-select">
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
                         size="xs"
-                        triggerLabel={jsFramework.label}
+                        triggerProps={{children: jsFramework.label}}
                         value={jsFramework.value}
                         onChange={setJsFramework}
                         options={jsFrameworkSelectOptions}
@@ -311,7 +290,7 @@ function OnboardingContent({
                       disabled={setupMode() === 'jsLoader'}
                     />
                   )}
-                </PlatformSelect>
+                </Flex>
               ) : (
                 t('I use NPM or Yarn')
               ),
@@ -325,13 +304,15 @@ function OnboardingContent({
         !mobilePlatform &&
         (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
         !isProjKeysLoading && (
-          <PlatformSelect>
+          <Flex gap="md" align="center" wrap="wrap">
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown platformOptions={docs?.platformOptions} />
+                <PlatformOptionDropdown
+                  platformOptions={pickPlatformOptions(docs?.platformOptions)}
+                />
               ),
             })}
-          </PlatformSelect>
+          </Flex>
         )
       )}
     </Header>
@@ -412,8 +393,7 @@ function OnboardingContent({
         projectKeyId={projectKeyId}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         configType={
           setupMode() === 'npm' || // switched to NPM option
           npmOnlyFramework ||
@@ -428,11 +408,6 @@ function OnboardingContent({
 
 const Header = styled('div')`
   padding: ${space(1)} 0;
-`;
-
-const TaskSidebarPanel = styled(SidebarPanel)`
-  width: 600px;
-  max-width: 100%;
 `;
 
 const TopRightBackgroundImage = styled('img')`
@@ -467,28 +442,6 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
-
-const PlatformLabel = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const PlatformSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
-`;
-
 const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
-
-export default LegacyReplaysOnboardingSidebar;

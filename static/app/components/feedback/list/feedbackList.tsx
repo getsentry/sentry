@@ -4,6 +4,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import type {ApiResult} from 'sentry/api';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
@@ -28,7 +29,11 @@ function NoFeedback() {
   );
 }
 
-export default function FeedbackList() {
+interface Props {
+  onItemSelect: (itemIndex?: number) => void;
+}
+
+export default function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
     queryKey: listQueryKey ?? ['infinite', ''],
@@ -57,21 +62,30 @@ export default function FeedbackList() {
           backgroundUpdatingMessage={() => null}
           loadingMessage={() => <LoadingIndicator />}
         >
-          <InfiniteListItems<FeedbackIssueListItem>
-            deduplicateItems={items => uniqBy(items, 'id')}
-            estimateSize={() => 24}
+          <InfiniteListItems<FeedbackIssueListItem, ApiResult<FeedbackIssueListItem[]>>
+            deduplicateItems={pages =>
+              uniqBy(
+                pages.flatMap(page => page[0]),
+                'id'
+              )
+            }
+            estimateSize={() => 80}
             queryResult={queryResult}
-            itemRenderer={({item}) => (
-              <ErrorBoundary mini>
-                <FeedbackListItem
-                  feedbackItem={item}
-                  isSelected={checkboxState.isSelected(item.id)}
-                  onSelect={() => {
-                    checkboxState.toggleSelected(item.id);
-                  }}
-                />
-              </ErrorBoundary>
-            )}
+            itemRenderer={({item, virtualItem}) => {
+              const itemIndex = virtualItem.index;
+              return (
+                <ErrorBoundary mini>
+                  <FeedbackListItem
+                    feedbackItem={item}
+                    isSelected={checkboxState.isSelected(item.id)}
+                    onSelect={() => {
+                      checkboxState.toggleSelected(item.id);
+                    }}
+                    onItemSelect={() => onItemSelect(itemIndex)}
+                  />
+                </ErrorBoundary>
+              );
+            }}
             emptyMessage={() => <NoFeedback />}
             loadingMoreMessage={() => (
               <Centered>

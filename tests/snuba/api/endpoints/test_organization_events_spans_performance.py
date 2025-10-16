@@ -16,11 +16,8 @@ from sentry.utils.samples import load_data
 
 class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
     URL: str
-    FEATURES = [
-        "organizations:global-views",
-    ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -389,7 +386,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-performance"
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -399,131 +396,119 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             kwargs={"organization_id_or_slug": org.slug},
         )
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(url, format="json")
+        response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         project = self.create_project(organization=self.organization)
 
-        # explicitly specify >1 projects
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": [self.project.id, project.id]},
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={"project": [self.project.id, project.id]},
+            format="json",
+        )
         assert response.status_code == 400, response.content
         assert response.data == {
             "detail": ErrorDetail("You must specify exactly 1 project.", code="parse_error"),
         }
 
-        # all projects contain >1 projects
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": [-1]},
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={"project": [-1]},
+            format="json",
+        )
         assert response.status_code == 400, response.content
         assert response.data == {
             "detail": ErrorDetail("You must specify exactly 1 project.", code="parse_error"),
         }
 
-        # my projects contain >1 projects
-        with self.feature(self.FEATURES):
-            response = self.client.get(self.url, format="json")
+        response = self.client.get(self.url, format="json")
         assert response.status_code == 400, response.content
         assert response.data == {
             "detail": ErrorDetail("You must specify exactly 1 project.", code="parse_error"),
         }
 
-    def test_bad_params_reverse_min_max_exclusive_time(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "min_exclusive_time": 7.0,
-                    "max_exclusive_time": 1.0,
-                },
-                format="json",
-            )
+    def test_bad_params_reverse_min_max_exclusive_time(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "min_exclusive_time": 7.0,
+                "max_exclusive_time": 1.0,
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
             "non_field_errors": ["min_exclusive_time cannot be greater than max_exclusive_time."]
         }
 
-    def test_bad_params_invalid_min_exclusive_time(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "min_exclusive_time": "foo",
-                    "max_exclusive_time": 1.0,
-                },
-                format="json",
-            )
+    def test_bad_params_invalid_min_exclusive_time(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "min_exclusive_time": "foo",
+                "max_exclusive_time": 1.0,
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
             "min_exclusive_time": ["A valid number is required."]
         }, "failing for min_exclusive_time"
 
-    def test_bad_params_invalid_max_exclusive_time(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "min_exclusive_time": 100,
-                    "max_exclusive_time": "bar",
-                },
-                format="json",
-            )
+    def test_bad_params_invalid_max_exclusive_time(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "min_exclusive_time": 100,
+                "max_exclusive_time": "bar",
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
             "max_exclusive_time": ["A valid number is required."]
         }, "failing for max_exclusive_time"
 
-    def test_bad_sort(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-stuff",
-                },
-                format="json",
-            )
+    def test_bad_sort(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-stuff",
+            },
+            format="json",
+        )
         assert response.status_code == 400, response.content
         assert response.data == {
             "detail": "Can only order by one of count, avgOccurrence, sumExclusiveTime, p50ExclusiveTime, p75ExclusiveTime, p95ExclusiveTime, p99ExclusiveTime"
         }
 
-    def test_sort_default(self):
+    def test_sort_default(self) -> None:
         event = self.create_event()
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "field": [
-                        "percentileArray(spans_exclusive_time, 0.50)",
-                        "percentileArray(spans_exclusive_time, 0.75)",
-                        "percentileArray(spans_exclusive_time, 0.95)",
-                        "percentileArray(spans_exclusive_time, 0.99)",
-                        "count()",
-                        "count_unique(id)",
-                        "sumArray(spans_exclusive_time)",
-                    ],
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "field": [
+                    "percentileArray(spans_exclusive_time, 0.50)",
+                    "percentileArray(spans_exclusive_time, 0.75)",
+                    "percentileArray(spans_exclusive_time, 0.95)",
+                    "percentileArray(spans_exclusive_time, 0.99)",
+                    "count()",
+                    "count_unique(id)",
+                    "sumArray(spans_exclusive_time)",
+                ],
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
@@ -549,15 +534,14 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-sumExclusiveTime",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-sumExclusiveTime",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
@@ -601,15 +585,14 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-count",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-count",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
@@ -654,15 +637,14 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-avgOccurrence",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-avgOccurrence",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
@@ -727,15 +709,14 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 },
             ]
 
-            with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={
-                        "project": self.project.id,
-                        "sort": f"-{sort}",
-                    },
-                    format="json",
-                )
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "sort": f"-{sort}",
+                },
+                format="json",
+            )
 
             assert response.status_code == 200, response.content
             self.assert_suspect_span(
@@ -775,15 +756,14 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             {"data": [self.suspect_span_group_snuba_results("django.middleware", event)]},
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "spanOp": "django.middleware",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "spanOp": "django.middleware",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
@@ -815,15 +795,14 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "excludeSpanOp": "http.server",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "excludeSpanOp": "http.server",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
@@ -842,16 +821,15 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
-    def test_bad_group_filter(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "spanGroup": "foo",
-                },
-                format="json",
-            )
+    def test_bad_group_filter(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "spanGroup": "foo",
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -871,15 +849,14 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             {"data": [self.suspect_span_group_snuba_results("django.middleware", event)]},
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "spanGroup": "cd" * 8,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "spanGroup": "cd" * 8,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
@@ -899,17 +876,16 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
-    def test_min_exclusive_time_filter(self):
+    def test_min_exclusive_time_filter(self) -> None:
         self.create_event()
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "min_exclusive_time": 3,
-                },
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "min_exclusive_time": 3,
+            },
+        )
 
         expected_result = [
             {
@@ -930,17 +906,16 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.status_code == 200, response.content
         assert response.data == expected_result
 
-    def test_max_exclusive_time_filter(self):
+    def test_max_exclusive_time_filter(self) -> None:
         self.create_event()
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "max_exclusive_time": 2,
-                },
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "max_exclusive_time": 2,
+            },
+        )
 
         expected_result = [
             {
@@ -960,14 +935,13 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.status_code == 200, response.content
         assert response.data == expected_result
 
-    def test_min_max_exclusive_time_filter(self):
+    def test_min_max_exclusive_time_filter(self) -> None:
         self.create_event()
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id, "max_exclusive_time": 4, "min_exclusive_time": 2},
-            )
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id, "max_exclusive_time": 4, "min_exclusive_time": 2},
+        )
 
         expected_result = [
             {
@@ -1002,16 +976,15 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-sumExclusiveTime",
-                    "per_page": 1,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-sumExclusiveTime",
+                "per_page": 1,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         links = parse_link_header(response["Link"])
@@ -1035,17 +1008,16 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-sumExclusiveTime",
-                    "per_page": 1,
-                    "cursor": "0:1:0",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-sumExclusiveTime",
+                "per_page": 1,
+                "cursor": "0:1:0",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         links = parse_link_header(response["Link"])
@@ -1063,17 +1035,16 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             {"data": [self.suspect_span_group_snuba_results("http.server", event)]},
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-sumExclusiveTime",
-                    "per_page": 1,
-                    "cursor": "0:2:0",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-sumExclusiveTime",
+                "per_page": 1,
+                "cursor": "0:2:0",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         links = parse_link_header(response["Link"])
@@ -1101,16 +1072,15 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             {"data": [group_results]},
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "sort": "-p99ExclusiveTime",
-                    "per_page": 1,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "sort": "-p99ExclusiveTime",
+                "per_page": 1,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         results = self.suspect_span_results("http.server", event)
@@ -1121,7 +1091,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
 class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans"
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -1131,28 +1101,25 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             kwargs={"organization_id_or_slug": org.slug},
         )
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(url, format="json")
+        response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
-    def test_require_span_param(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id},
-                format="json",
-            )
+    def test_require_span_param(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id},
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
 
-    def test_bad_span_param(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id, "span": ["http.server"]},
-                format="json",
-            )
+    def test_bad_span_param(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id, "span": ["http.server"]},
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -1164,12 +1131,11 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             ]
         }
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id, "span": ["http.server:foo"]},
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id, "span": ["http.server:foo"]},
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -1181,61 +1147,58 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             ]
         }
 
-    def test_bad_params_reverse_min_max(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "min_exclusive_time": 7.0,
-                    "max_exclusive_time": 1.0,
-                    "span": f"http.server:{'ab' * 8}",
-                },
-                format="json",
-            )
+    def test_bad_params_reverse_min_max(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "min_exclusive_time": 7.0,
+                "max_exclusive_time": 1.0,
+                "span": f"http.server:{'ab' * 8}",
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
             "non_field_errors": ["min_exclusive_time cannot be greater than max_exclusive_time."]
         }
 
-    def test_bad_params_invalid_min(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "min_exclusive_time": "foo",
-                    "max_exclusive_time": 1.0,
-                    "span": f"http.server:{'ab' * 8}",
-                },
-                format="json",
-            )
+    def test_bad_params_invalid_min(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "min_exclusive_time": "foo",
+                "max_exclusive_time": 1.0,
+                "span": f"http.server:{'ab' * 8}",
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
             "min_exclusive_time": ["A valid number is required."]
         }, "failing for min_exclusive_time"
 
-    def test_bad_params_invalid_max(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "min_exclusive_time": 100,
-                    "max_exclusive_time": "bar",
-                    "span": f"http.server:{'ab' * 8}",
-                },
-                format="json",
-            )
+    def test_bad_params_invalid_max(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "min_exclusive_time": 100,
+                "max_exclusive_time": "bar",
+                "span": f"http.server:{'ab' * 8}",
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
             "max_exclusive_time": ["A valid number is required."]
         }, "failing for max_exclusive_time"
 
-    def test_span_filters(self):
+    def test_span_filters(self) -> None:
         test_op = "django.middleware"
         test_hash = "cd" * 8
         spans = [
@@ -1266,17 +1229,16 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         ]
         self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id, "span": f"{test_op}:{test_hash}"},
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id, "span": f"{test_op}:{test_hash}"},
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [{"op": test_op, "group": test_hash, "examples": []}]
 
-    def test_span_filters_with_min_max(self):
+    def test_span_filters_with_min_max(self) -> None:
         test_op = "django.middleware"
         test_hash = "2b9cbb96dbf59baa"
         spans = [
@@ -1316,17 +1278,16 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         ]
         self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": f"{test_op}:{test_hash}",
-                    "min_exclusive_time": 1.0,
-                    "max_exclusive_time": 2.0,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": f"{test_op}:{test_hash}",
+                "min_exclusive_time": 1.0,
+                "max_exclusive_time": 2.0,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [{"op": test_op, "group": test_hash, "examples": []}]
@@ -1341,19 +1302,18 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id, "span": "http.server:0a7c0d32f132a132"},
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id, "span": "http.server:0a7c0d32f132a132"},
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert mock_raw_snql_query.call_count == 1
 
         self.assert_span_examples(response.data, [self.span_example_results("http.server", event)])
 
-    def test_one_span_with_min(self):
+    def test_one_span_with_min(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1369,16 +1329,15 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         ]
         self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": f"django.middleware:{'cd' * 8}",
-                    "min_exclusive_time": 7.0,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": f"django.middleware:{'cd' * 8}",
+                "min_exclusive_time": 7.0,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
 
@@ -1392,7 +1351,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_one_span_with_max(self):
+    def test_one_span_with_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1409,16 +1368,15 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         ]
         self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": f"django.middleware:{'cd' * 8}",
-                    "max_exclusive_time": 2.0,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": f"django.middleware:{'cd' * 8}",
+                "max_exclusive_time": 2.0,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
 
@@ -1432,7 +1390,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_one_span_with_min_max(self):
+    def test_one_span_with_min_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1460,17 +1418,16 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         ]
         event = self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": "django.middleware:2b9cbb96dbf59baa",
-                    "min_exclusive_time": 2.0,
-                    "max_exclusive_time": 4.0,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": "django.middleware:2b9cbb96dbf59baa",
+                "min_exclusive_time": 2.0,
+                "max_exclusive_time": 4.0,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
 
@@ -1517,16 +1474,15 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             },
         ]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": ["http.server:0a7c0d32f132a132"],
-                    "per_page": 1,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": ["http.server:0a7c0d32f132a132"],
+                "per_page": 1,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert mock_raw_snql_query.call_count == 1
@@ -1536,7 +1492,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             [self.span_example_results("http.server", event)],
         )
 
-    def test_per_page_with_min(self):
+    def test_per_page_with_min(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1565,17 +1521,16 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         event = self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": "django.middleware:2b9cbb96dbf59baa",
-                    "min_exclusive_time": 4.0,
-                    "per_page": 1,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": "django.middleware:2b9cbb96dbf59baa",
+                "min_exclusive_time": 4.0,
+                "per_page": 1,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
 
@@ -1609,7 +1564,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_per_page_with_max(self):
+    def test_per_page_with_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1638,17 +1593,16 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         event = self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": "django.middleware:2b9cbb96dbf59baa",
-                    "max_exclusive_time": 4.0,
-                    "per_page": 1,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": "django.middleware:2b9cbb96dbf59baa",
+                "max_exclusive_time": 4.0,
+                "per_page": 1,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
 
@@ -1682,7 +1636,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, expected_result)
 
-    def test_per_page_with_min_max(self):
+    def test_per_page_with_min_max(self) -> None:
         spans = [
             {
                 "same_process_as_parent": True,
@@ -1713,18 +1667,17 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         event = self.create_event(spans=spans)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": "django.middleware:2b9cbb96dbf59baa",
-                    "min_exclusive_time": 2.0,
-                    "max_exclusive_time": 4.0,
-                    "per_page": 1,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": "django.middleware:2b9cbb96dbf59baa",
+                "min_exclusive_time": 2.0,
+                "max_exclusive_time": 4.0,
+                "per_page": 1,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
 
@@ -1762,24 +1715,22 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-stats"
 
-    def test_require_span_param(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id},
-                format="json",
-            )
+    def test_require_span_param(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id},
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
 
-    def test_bad_span_param(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id, "span": ["http.server"]},
-                format="json",
-            )
+    def test_bad_span_param(self) -> None:
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id, "span": ["http.server"]},
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -1791,12 +1742,11 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
             ]
         }
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": self.project.id, "span": ["http.server:foo"]},
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={"project": self.project.id, "span": ["http.server:foo"]},
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -1812,23 +1762,22 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
     def test_one_span(self, mock_raw_snql_query: MagicMock) -> None:
         mock_raw_snql_query.side_effect = [{"data": []}]
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                    "span": f"http.server:{'ab' * 8}",
-                    "yAxis": [
-                        "percentileArray(spans_exclusive_time, 0.75)",
-                        "percentileArray(spans_exclusive_time, 0.95)",
-                        "percentileArray(spans_exclusive_time, 0.99)",
-                    ],
-                    "start": self.day_ago,
-                    "end": self.day_ago + timedelta(hours=2),
-                    "interval": "1h",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+                "span": f"http.server:{'ab' * 8}",
+                "yAxis": [
+                    "percentileArray(spans_exclusive_time, 0.75)",
+                    "percentileArray(spans_exclusive_time, 0.95)",
+                    "percentileArray(spans_exclusive_time, 0.99)",
+                ],
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
 

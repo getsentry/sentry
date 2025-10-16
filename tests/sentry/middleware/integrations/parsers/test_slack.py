@@ -19,7 +19,6 @@ from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
 from sentry.utils import json
@@ -185,7 +184,6 @@ class SlackRequestParserTest(TestCase):
         assert "body" in result
         assert result["body"] == request.body.decode("utf8")
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
     def test_targeting_all_orgs(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
@@ -211,7 +209,6 @@ class SlackRequestParserTest(TestCase):
             assert self.organization.id in organization_ids
             assert other_organization.id in organization_ids
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
     def test_targeting_specific_org(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
@@ -236,7 +233,6 @@ class SlackRequestParserTest(TestCase):
             assert len(organizations) == 1
             assert organizations[0].id == other_organization.id
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
     def test_targeting_irrelevant_org(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
@@ -263,8 +259,7 @@ class SlackRequestParserTest(TestCase):
             assert len(organization_ids) == 2
             assert irrelevant_organization.id not in organization_ids
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
-    def test_targeting_issue_actions(self):
+    def test_targeting_issue_actions(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
         self.integration.add_organization(other_organization)

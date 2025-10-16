@@ -50,6 +50,10 @@ class TestPathParams(TestCase):
                     if not callback.__module__.startswith(self.IGNORE_CLASS_PREFIXES):
                         # if any of the path params are just *_slug and not *_id_or_slug, error
                         for param in slug_path_params:
+                            # TODO (@sentaur-athena): Remove the plugin exception after deprecating plugins
+                            # plugins are not objects both ID and Slug don't exist
+                            if param.lower() == "plugin_slug":
+                                continue
                             if not param.endswith("_id_or_slug"):
                                 self.fail(
                                     f"Path param {param} in {callback} is missing '_id_or_slug' suffix. Our endpoints support ids and slugs, please only use *_id_or_slug path params."

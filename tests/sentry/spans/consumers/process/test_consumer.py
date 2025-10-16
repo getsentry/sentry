@@ -14,7 +14,7 @@ from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 @override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
 @pytest.mark.parametrize("kafka_slice_id", [None, 2])
-def test_basic(kafka_slice_id):
+def test_basic(kafka_slice_id: int | None) -> None:
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):
         topic = Topic("test")
@@ -50,7 +50,8 @@ def test_basic(kafka_slice_id):
                                     "project_id": 12,
                                     "span_id": "a" * 16,
                                     "trace_id": "b" * 32,
-                                    "end_timestamp_precise": 1700000000.0,
+                                    "start_timestamp": 1699999999.0,
+                                    "end_timestamp": 1700000000.0,
                                 }
                             ),
                             [],
@@ -76,15 +77,15 @@ def test_basic(kafka_slice_id):
             assert orjson.loads(msg.value) == {
                 "spans": [
                     {
-                        "data": {
-                            "__sentry_internal_span_buffer_outcome": "different",
+                        "attributes": {
+                            "sentry.is_segment": {"type": "boolean", "value": True},
+                            "sentry.segment.id": {"type": "string", "value": "aaaaaaaaaaaaaaaa"},
                         },
-                        "is_segment": True,
                         "project_id": 12,
-                        "segment_id": "aaaaaaaaaaaaaaaa",
                         "span_id": "aaaaaaaaaaaaaaaa",
                         "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-                        "end_timestamp_precise": 1700000000.0,
+                        "end_timestamp": 1700000000.0,
+                        "start_timestamp": 1699999999.0,
                     },
                 ],
             }
@@ -93,7 +94,7 @@ def test_basic(kafka_slice_id):
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
-def test_flusher_processes_limit():
+def test_flusher_processes_limit() -> None:
     """Test that flusher respects the max_processes limit"""
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):

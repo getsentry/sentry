@@ -61,7 +61,7 @@ function SampleImages({groupId, projectId}: Props) {
         ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),
       ].join(' '),
     },
-    'api.performance.resources.sample-images'
+    'api.insights.resources.sample-images'
   );
 
   const uniqueResources = new Set();

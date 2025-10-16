@@ -3,19 +3,19 @@ import {useCallback} from 'react';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {
-  useLogsFields,
-  useLogsSearch,
-  useSetLogsFields,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  useQueryParamsFields,
+  useQueryParamsSearch,
+  useSetQueryParamsFields,
+  useSetQueryParamsSearch,
+} from 'sentry/views/explore/queryParams/context';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
-  const setLogsSearch = useSetLogsSearch();
-  const search = useLogsSearch();
-  const fields = useLogsFields();
-  const setLogFields = useSetLogsFields();
+  const setLogsSearch = useSetQueryParamsSearch();
+  const search = useQueryParamsSearch();
+  const fields = useQueryParamsFields();
+  const setLogFields = useSetQueryParamsFields();
 
   const addSearchFilter = useCallback(
     (content: AttributesTreeContent, negated?: boolean) => {

@@ -4,15 +4,15 @@ import type {Group} from 'sentry/types/group';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
-  type DiscoverQueryProps,
   useGenericDiscoverQuery,
+  type DiscoverQueryProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 
 export function useIssueDetailsEventView({
@@ -26,7 +26,7 @@ export function useIssueDetailsEventView({
   pageFilters?: PageFilters;
   queryProps?: Partial<SavedQuery>;
 }) {
-  const searchQuery = useEventQuery({groupId: group.id});
+  const searchQuery = useEventQuery();
 
   const location = useLocation();
   const hasSetStatsPeriod =

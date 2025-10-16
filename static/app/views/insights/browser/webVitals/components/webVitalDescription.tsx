@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -115,13 +116,15 @@ export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const status = score === undefined ? undefined : scoreToStatus(score);
 
   return (
-    <div>
-      <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
-      <WebVitalScore>
-        <Value>{value ?? ' \u2014 '}</Value>
-        {status && score && <PerformanceBadge score={score} />}
-      </WebVitalScore>
-    </div>
+    <Flex justify="between">
+      <div>
+        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
+        <WebVitalScore>
+          <Value>{value ?? ' \u2014 '}</Value>
+          {status && score && <PerformanceBadge score={score} />}
+        </WebVitalScore>
+      </div>
+    </Flex>
   );
 }
 

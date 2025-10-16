@@ -33,9 +33,10 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -44,6 +45,7 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
@@ -51,6 +53,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
+from .tasks.codecov_account_unlink import codecov_account_unlink
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -292,6 +295,21 @@ class InstallationEventWebhook(GitHubWebhook):
                 integration_id=integration.id,
             )
 
+        github_app_id = event["installation"].get("app_id")
+        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
+
+        if (
+            github_app_id
+            and SENTRY_GITHUB_APP_ID
+            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
+        ):
+            codecov_account_unlink.apply_async(
+                kwargs={
+                    "integration_id": integration.id,
+                    "organization_ids": list(org_ids),
+                }
+            )
+
 
 class PushEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
@@ -424,9 +442,9 @@ class PushEventWebhook(GitHubWebhook):
                 author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c = Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization.id,
+                    c, _ = create_commit(
+                        organization=organization,
+                        repo_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
@@ -440,7 +458,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="A",
                             )
@@ -451,7 +469,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="D",
                             )
@@ -462,14 +480,15 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="M",
                             )
                         )
 
                     if file_changes:
-                        CommitFileChange.objects.bulk_create(file_changes)
+                        bulk_create_commit_file_changes(file_changes)
+                        post_bulk_create(file_changes)
 
             except IntegrityError:
                 pass
@@ -477,6 +496,63 @@ class PushEventWebhook(GitHubWebhook):
         languages.discard(None)
         repo.languages = list(set(repo.languages or []).union(languages))
         repo.save()
+
+
+class IssuesEventWebhook(GitHubWebhook):
+    """https://developer.github.com/v3/activity/events/types/#issuesevent"""
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.INBOUND_SYNC
+
+    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
+        """
+        Handle GitHub issue events, particularly assignment and status changes.
+        """
+
+        action = event.get("action")
+        issue = event.get("issue", {})
+        repository = event.get("repository", {})
+        repo_full_name = repository.get("full_name")
+        issue_number = issue.get("number")
+        assignee_gh_name = event.get("assignee", {}).get("login")
+
+        if not repo_full_name or not issue_number or not assignee_gh_name:
+            logger.warning(
+                "github.webhook.missing-data",
+                extra={
+                    "integration_id": integration.id,
+                    "repo": repo_full_name,
+                    "issue_number": issue_number,
+                    "action": action,
+                },
+            )
+            return
+
+        external_issue_key = f"{repo_full_name}#{issue_number}"
+
+        # Handle issue assignment changes
+        if action in ["assigned", "unassigned"]:
+            # Sentry uses the @username format for assignees
+            assignee_name = "@" + assignee_gh_name
+
+            # Sync the assignment to Sentry
+            sync_group_assignee_inbound_by_external_actor(
+                integration=integration,
+                external_user_name=assignee_name,
+                external_issue_key=external_issue_key,
+                assign=(action == "assigned"),
+            )
+
+            logger.info(
+                "github.webhook.assignment.synced",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "assignee_name": assignee_name,
+                    "action": action,
+                },
+            )
 
 
 class PullRequestEventWebhook(GitHubWebhook):
@@ -603,6 +679,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
+        "issues": IssuesEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:

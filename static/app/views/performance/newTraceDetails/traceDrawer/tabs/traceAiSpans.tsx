@@ -10,23 +10,17 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
-import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
-import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
-import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
-import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+import {AISpanList} from 'sentry/views/insights/agents/components/aiSpanList';
+import {useAITrace} from 'sentry/views/insights/agents/hooks/useAITrace';
+import {getDefaultSelectedNode} from 'sentry/views/insights/agents/utils/getDefaultSelectedNode';
+import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
-function TraceAiSpans({
-  traceSlug,
-}: {
-  traceSlug: string;
-  viewManager: VirtualizedViewManager;
-}) {
+function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -99,7 +93,7 @@ function TraceAiSpans({
   return (
     <Wrapper>
       <HeaderCell>{t('Abbreviated Trace')}</HeaderCell>
-      <HeaderCell align={'right'}>
+      <HeaderCell align="right">
         <LinkButton
           size="xs"
           onClick={handleViewFullTraceClick}

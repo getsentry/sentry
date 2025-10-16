@@ -4,8 +4,8 @@ import random
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data

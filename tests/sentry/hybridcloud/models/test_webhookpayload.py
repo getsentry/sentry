@@ -4,7 +4,12 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 from sentry.hybridcloud.models import WebhookPayload
-from sentry.hybridcloud.models.webhookpayload import BACKOFF_INTERVAL, BACKOFF_RATE, MAX_ATTEMPTS
+from sentry.hybridcloud.models.webhookpayload import (
+    BACKOFF_INTERVAL,
+    BACKOFF_RATE,
+    MAX_ATTEMPTS,
+    DestinationType,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -19,6 +24,7 @@ class WebhookPayloadTest(TestCase):
             content_type="application/json",
         )
         hook = WebhookPayload.create_from_request(
+            destination_type=DestinationType.SENTRY_REGION,
             region="us",
             provider="github",
             identifier=123,
@@ -26,6 +32,31 @@ class WebhookPayloadTest(TestCase):
             integration_id=123,
         )
         assert hook.mailbox_name == "github:123"
+        assert hook.provider == "github"
+        assert hook.request_method == request.method
+        assert hook.request_path == request.get_full_path()
+        assert (
+            hook.request_headers
+            == '{"Cookie":"","Content-Length":"36","Content-Type":"application/json"}'
+        )
+        assert hook.request_body == '{"installation": {"id": "github:1"}}'
+
+    def test_create_from_request_for_codecov(self) -> None:
+        factory = RequestFactory()
+        request = factory.post(
+            "/extensions/github/webhook/",
+            data={"installation": {"id": "github:1"}},
+            content_type="application/json",
+        )
+        hook = WebhookPayload.create_from_request(
+            destination_type=DestinationType.CODECOV,
+            region=None,
+            provider="github",
+            identifier="installation",
+            request=request,
+            integration_id=None,
+        )
+        assert hook.mailbox_name == "github:installation"
         assert hook.provider == "github"
         assert hook.request_method == request.method
         assert hook.request_path == request.get_full_path()

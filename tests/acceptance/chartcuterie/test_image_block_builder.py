@@ -25,11 +25,11 @@ class TestSlackImageBlockBuilder(
     ProfilesSnubaTestCase,
     OccurrenceTestMixin,
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         cache.clear()
 
-    def _create_endpoint_regression_issue(self):
+    def _create_endpoint_regression_issue(self) -> Group:
         for i in range(10):
             event_id = uuid.uuid4().hex
             _ = self.process_occurrence(
@@ -57,7 +57,7 @@ class TestSlackImageBlockBuilder(
         return group
 
     @with_feature("organizations:performance-use-metrics")
-    def test_image_block_for_endpoint_regression(self):
+    def test_image_block_for_endpoint_regression(self) -> None:
         group = self._create_endpoint_regression_issue()
         image_block = ImageBlockBuilder(group=group).build_image_block()
 
@@ -65,7 +65,7 @@ class TestSlackImageBlockBuilder(
         assert "_media/" in image_block["image_url"]
 
     @with_feature("organizations:performance-use-metrics")
-    @patch("sentry.performance_issues.detectors.utils.escape_transaction")
+    @patch("sentry.issue_detection.detectors.utils.escape_transaction")
     def test_caching(self, mock_escape_transaction: MagicMock) -> None:
         mock_escape_transaction.return_value = "Test Transaction"
         group = self._create_endpoint_regression_issue()
@@ -83,7 +83,7 @@ class TestSlackImageBlockBuilder(
             assert image_block["image_url"] == image_url
 
     @with_feature("organizations:performance-use-metrics")
-    def test_image_block_for_function_regression(self):
+    def test_image_block_for_function_regression(self) -> None:
         hour_ago = (before_now(minutes=10) - timedelta(hours=1)).replace(
             minute=0, second=0, microsecond=0
         )

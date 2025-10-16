@@ -2,11 +2,13 @@ from django.urls import re_path
 
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
+from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_detector_workflow_details import OrganizationDetectorWorkflowDetailsEndpoint
 from .organization_detector_workflow_index import OrganizationDetectorWorkflowIndexEndpoint
+from .organization_open_periods import OrganizationOpenPeriodsEndpoint
 from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
@@ -39,6 +41,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/$",
         OrganizationDetectorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/count/$",
+        OrganizationDetectorCountEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-count",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/$",
@@ -84,5 +91,10 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/test-fire-actions/$",
         OrganizationTestFireActionsEndpoint.as_view(),
         name="sentry-api-0-organization-test-fire-actions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/open-periods/$",
+        OrganizationOpenPeriodsEndpoint.as_view(),
+        name="sentry-api-0-organization-open-periods",
     ),
 ]

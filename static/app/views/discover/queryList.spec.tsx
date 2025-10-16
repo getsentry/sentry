@@ -1,7 +1,6 @@
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,7 +17,7 @@ import QueryList from 'sentry/views/discover/queryList';
 
 jest.mock('sentry/actionCreators/modal');
 
-describe('Discover > QueryList', function () {
+describe('Discover > QueryList', () => {
   let location: ReturnType<typeof LocationFixture>;
   let savedQueries: Array<ReturnType<typeof DiscoverSavedQueryFixture>>;
   let organization: ReturnType<typeof OrganizationFixture>;
@@ -30,11 +29,11 @@ describe('Discover > QueryList', function () {
 
   const {router} = initializeOrg();
 
-  beforeAll(async function () {
+  beforeAll(async () => {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.resetAllMocks();
     organization = OrganizationFixture({
       features: ['discover-basic', 'discover-query'],
@@ -83,10 +82,9 @@ describe('Discover > QueryList', function () {
     jest.clearAllMocks();
   });
 
-  it('renders an empty list', function () {
+  it('renders an empty list', () => {
     render(
       <QueryList
-        router={RouterFixture()}
         organization={organization}
         savedQueries={[]}
         savedQuerySearchQuery="no matches"
@@ -103,11 +101,10 @@ describe('Discover > QueryList', function () {
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
   });
 
-  it('renders pre-built queries and saved ones', async function () {
+  it('renders pre-built queries and saved ones', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         renderPrebuilt
@@ -142,14 +139,13 @@ describe('Discover > QueryList', function () {
     );
   });
 
-  it('renders pre-built queries with dataset', async function () {
+  it('renders pre-built queries with dataset', async () => {
     organization = OrganizationFixture({
       features: ['discover-basic', 'discover-query', 'performance-view'],
     });
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={[]}
         renderPrebuilt
@@ -197,19 +193,18 @@ describe('Discover > QueryList', function () {
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.push).toHaveBeenLastCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
+      pathname: '/organizations/org-slug/explore/discover/results/',
       query: expect.objectContaining({queryDataset: 'error-events'}),
     });
   });
 
-  it('passes dataset to the query if flag is enabled', async function () {
+  it('passes dataset to the query if flag is enabled', async () => {
     const org = OrganizationFixture({
       features: ['discover-basic', 'discover-query'],
     });
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={org}
         savedQueries={savedQueries}
         renderPrebuilt
@@ -244,11 +239,10 @@ describe('Discover > QueryList', function () {
     );
   });
 
-  it('can duplicate and trigger change callback', async function () {
+  it('can duplicate and trigger change callback', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -279,12 +273,11 @@ describe('Discover > QueryList', function () {
     expect(duplicateMock).toHaveBeenCalled();
   });
 
-  it('can delete and trigger change callback', async function () {
+  it('can delete and trigger change callback', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
         renderPrebuilt={false}
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -306,11 +299,10 @@ describe('Discover > QueryList', function () {
     expect(refetchSavedQueries).toHaveBeenCalled();
   });
 
-  it('redirects to Discover on card click', async function () {
+  it('redirects to Discover on card click', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -326,16 +318,15 @@ describe('Discover > QueryList', function () {
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.push).toHaveBeenLastCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
+      pathname: '/organizations/org-slug/explore/discover/results/',
       query: {id: '1', statsPeriod: '14d'},
     });
   });
 
-  it('can redirect on last query deletion', async function () {
+  it('can redirect on last query deletion', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -365,7 +356,7 @@ describe('Discover > QueryList', function () {
     });
   });
 
-  it('renders Add to Dashboard in context menu', async function () {
+  it('renders Add to Dashboard in context menu', async () => {
     const featuredOrganization = OrganizationFixture({
       features: ['dashboards-edit'],
     });
@@ -373,7 +364,6 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -403,11 +393,10 @@ describe('Discover > QueryList', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('only renders Delete Query and Duplicate Query in context menu', async function () {
+  it('only renders Delete Query and Duplicate Query in context menu', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -437,7 +426,7 @@ describe('Discover > QueryList', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('passes yAxis from the savedQuery to MiniGraph', async function () {
+  it('passes yAxis from the savedQuery to MiniGraph', async () => {
     const featuredOrganization = OrganizationFixture({
       features: ['dashboards-edit'],
     });
@@ -450,7 +439,6 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
@@ -475,11 +463,10 @@ describe('Discover > QueryList', function () {
     );
   });
 
-  it('Set as Default updates the homepage query', async function () {
+  it('Set as Default updates the homepage query', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -502,7 +489,7 @@ describe('Discover > QueryList', function () {
     );
   });
 
-  it('disabled duplicate for transaction queries with deprecation flag', async function () {
+  it('disabled duplicate for transaction queries with deprecation flag', async () => {
     const featuredOrganization = OrganizationFixture({
       features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
     });
@@ -510,7 +497,6 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[
           DiscoverSavedQueryFixture({
@@ -539,7 +525,7 @@ describe('Discover > QueryList', function () {
     expect(duplicateMenuItem).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('does not disable duplicate for error queries with deprecation flag', async function () {
+  it('does not disable duplicate for error queries with deprecation flag', async () => {
     const featuredOrganization = OrganizationFixture({
       features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
     });
@@ -547,7 +533,6 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[
           DiscoverSavedQueryFixture({
@@ -577,14 +562,13 @@ describe('Discover > QueryList', function () {
   });
 
   describe('Add to Dashboard modal', () => {
-    it('opens a modal with the correct params for Top 5 chart', async function () {
+    it('opens a modal with the correct params for Top 5 chart', async () => {
       const featuredOrganization = OrganizationFixture({
         features: ['dashboards-edit'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
@@ -644,14 +628,13 @@ describe('Discover > QueryList', function () {
       });
     });
 
-    it('opens a modal with the correct params for other chart', async function () {
+    it('opens a modal with the correct params for other chart', async () => {
       const featuredOrganization = OrganizationFixture({
         features: ['dashboards-edit'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           renderPrebuilt={false}
           organization={featuredOrganization}
           savedQueries={[
@@ -712,14 +695,13 @@ describe('Discover > QueryList', function () {
       });
     });
 
-    it('disables Add to Dashboard for transaction queries with deprecation flag', async function () {
+    it('disables Add to Dashboard for transaction queries with deprecation flag', async () => {
       const featuredOrganization = OrganizationFixture({
         features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
@@ -749,14 +731,13 @@ describe('Discover > QueryList', function () {
       expect(addToDashboardMenuItem).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('does not disable Add to Dashboard for error queries with deprecation flag', async function () {
+    it('does not disable Add to Dashboard for error queries with deprecation flag', async () => {
       const featuredOrganization = OrganizationFixture({
         features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
@@ -787,14 +768,13 @@ describe('Discover > QueryList', function () {
     });
   });
 
-  it('passes dataset to open modal', async function () {
+  it('passes dataset to open modal', async () => {
     const featuredOrganization = OrganizationFixture({
       features: ['dashboards-edit'],
     });
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         renderPrebuilt={false}
         organization={featuredOrganization}
         savedQueries={[

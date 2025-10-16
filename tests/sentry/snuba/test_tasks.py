@@ -79,7 +79,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def task(self, subscription_id: int) -> None:
+    def task(self, subscription_id: int) -> Any:
         pass
 
     def create_subscription(
@@ -141,7 +141,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
 
 class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.CREATING
-    task = create_subscription_in_snuba
+    task = create_subscription_in_snuba  # type: ignore[assignment]
 
     def test_already_created(self) -> None:
         sub = self.create_subscription(
@@ -321,7 +321,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
-    task = update_subscription_in_snuba
+    task = update_subscription_in_snuba  # type: ignore[assignment]
 
     def test(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
@@ -403,7 +403,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
-    task = delete_subscription_from_snuba
+    task = delete_subscription_from_snuba  # type: ignore[assignment]
 
     def test(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
@@ -473,7 +473,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_query_that_raises_invalid_search_query(self):
+    def test_query_that_raises_invalid_search_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         with pytest.raises(SubscriptionError):
             sub = self.create_subscription(

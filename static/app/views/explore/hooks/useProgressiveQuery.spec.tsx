@@ -1,21 +1,16 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   SAMPLING_MODE,
-  type SamplingMode,
   useProgressiveQuery,
+  type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/usePageFilters');
 
@@ -43,21 +38,10 @@ function useMockHookImpl({
   };
 }
 
-function createWrapper(org: Organization) {
-  return function TestWrapper({children}: {children: React.ReactNode}) {
-    const queryClient = makeTestQueryClient();
-    return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
-}
-
-describe('useProgressiveQuery', function () {
-  describe('normal sampling mode', function () {
+describe('useProgressiveQuery', () => {
+  describe('normal sampling mode', () => {
     let mockNormalRequestUrl: jest.Mock;
-    beforeEach(function () {
+    beforeEach(() => {
       mockNormalRequestUrl = MockApiClient.addMockResponse({
         url: '/test',
         body: 'test',
@@ -79,7 +63,7 @@ describe('useProgressiveQuery', function () {
       );
     });
 
-    it('takes in a callback that determines if we can trigger the high accuracy request', async function () {
+    it('takes in a callback that determines if we can trigger the high accuracy request', async () => {
       mockNormalRequestUrl = MockApiClient.addMockResponse({
         url: '/test',
         body: getMockResponse({dataScanned: 'partial'}),
@@ -98,23 +82,17 @@ describe('useProgressiveQuery', function () {
           },
         ],
       });
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-            queryOptions: {
-              canTriggerHighAccuracy: results => {
-                // Simulate checking if there is data and more data is available
-                return (
-                  defined(results.data) && results.data.meta.dataScanned === 'partial'
-                );
-              },
+      renderHookWithProviders(() =>
+        useProgressiveQuery({
+          queryHookImplementation: useMockHookImpl,
+          queryHookArgs: {enabled: true, query: 'test value'},
+          queryOptions: {
+            canTriggerHighAccuracy: results => {
+              // Simulate checking if there is data and more data is available
+              return defined(results.data) && results.data.meta.dataScanned === 'partial';
             },
-          }),
-        {
-          wrapper: createWrapper(OrganizationFixture()),
-        }
+          },
+        })
       );
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -136,7 +114,7 @@ describe('useProgressiveQuery', function () {
       );
     });
 
-    it('does not trigger the high accuracy request if the callback returns false', function () {
+    it('does not trigger the high accuracy request if the callback returns false', () => {
       mockNormalRequestUrl = MockApiClient.addMockResponse({
         url: '/test',
         body: getMockResponse({dataScanned: 'partial'}),
@@ -155,21 +133,17 @@ describe('useProgressiveQuery', function () {
           },
         ],
       });
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-            queryOptions: {
-              canTriggerHighAccuracy: () => {
-                // Simulate that this callback returned false for whatever reason
-                return false;
-              },
+      renderHookWithProviders(() =>
+        useProgressiveQuery({
+          queryHookImplementation: useMockHookImpl,
+          queryHookArgs: {enabled: true, query: 'test value'},
+          queryOptions: {
+            canTriggerHighAccuracy: () => {
+              // Simulate that this callback returned false for whatever reason
+              return false;
             },
-          }),
-        {
-          wrapper: createWrapper(OrganizationFixture()),
-        }
+          },
+        })
       );
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);

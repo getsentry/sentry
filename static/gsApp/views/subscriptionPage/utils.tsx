@@ -3,29 +3,17 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 import {
-  type BillingMetricHistory,
   BillingType,
+  type BillingMetricHistory,
   type EventBucket,
   type Subscription,
 } from 'getsentry/types';
 import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
 import {isPartOfReservedBudget} from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 
 export const hasPermissions = ({access}: Organization, scope: Scope) =>
   access?.includes(scope);
-
-export const trackSubscriptionView = (
-  organization: Organization,
-  subscription: Subscription,
-  page: string
-) =>
-  trackGetsentryAnalytics('subscription_page.viewed', {
-    organization,
-    subscription,
-    page_tab: page,
-  });
 
 export function calculateCategorySpend(
   subscription: Subscription,

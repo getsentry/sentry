@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import Item from './item';
+import {SimilarStackTraceItem} from './item';
 import Toolbar from './toolbar';
 
 type DefaultProps = {
@@ -101,7 +101,7 @@ function List({
 
         <PanelBody>
           {itemsWithFiltered.map(item => (
-            <Item
+            <SimilarStackTraceItem
               key={item.issue.id}
               orgId={orgId}
               groupId={groupId}

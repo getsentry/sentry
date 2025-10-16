@@ -7,10 +7,10 @@ import {
   type TourElementProps,
 } from 'sentry/components/tours/components';
 import {
+  useTourReducer,
   type TourContextType,
   type TourEnumType,
   type TourState,
-  useTourReducer,
 } from 'sentry/components/tours/tourContext';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -18,28 +18,22 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 export const DEMO_TOURS_STATE_KEY = 'demo-mode:tours';
 
 export const enum DemoTour {
-  SIDEBAR = 'sidebar',
   ISSUES = 'issues',
   RELEASES = 'releases',
   PERFORMANCE = 'performance',
 }
 
 export const enum DemoTourStep {
-  // Sidebar steps
-  SIDEBAR_PROJECTS = 'demo-tour-sidebar-projects',
-  SIDEBAR_ISSUES = 'demo-tour-sidebar-issues',
-  SIDEBAR_PERFORMANCE = 'demo-tour-sidebar-performance',
-  SIDEBAR_RELEASES = 'demo-tour-sidebar-releases',
-  SIDEBAR_DISCOVER = 'demo-tour-sidebar-discover',
   // Issues steps
   ISSUES_STREAM = 'demo-tour-issues-stream',
   ISSUES_AGGREGATES = 'demo-tour-issues-aggregates',
   ISSUES_EVENT_DETAILS = 'demo-tour-issues-event-details',
   ISSUES_DETAIL_SIDEBAR = 'demo-tour-issues-detail-sidebar',
   // Releases steps
-  RELEASES_COMPARE = 'demo-tour-releases-compare',
-  RELEASES_DETAILS = 'demo-tour-releases-details',
-  RELEASES_STATES = 'demo-tour-releases-states',
+  RELEASES_LIST = 'demo-tour-releases-list',
+  RELEASES_CHART = 'demo-tour-releases-chart',
+  RELEASES_ISSUES = 'demo-tour-releases-issues',
+  RELEASES_STATS = 'demo-tour-releases-stats',
   // Performance steps
   PERFORMANCE_TABLE = 'demo-tour-performance-table',
   PERFORMANCE_USER_MISERY = 'demo-tour-performance-user-misery',
@@ -51,7 +45,6 @@ type DemoToursContextType = {
   issues: TourContextType<DemoTourStep>;
   performance: TourContextType<DemoTourStep>;
   releases: TourContextType<DemoTourStep>;
-  sidebar: TourContextType<DemoTourStep>;
 };
 
 const DemoToursContext = createContext<DemoToursContextType | null>(null);
@@ -62,10 +55,12 @@ export function useDemoTours(): DemoToursContextType | null {
   return tourContext;
 }
 
-export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | null {
+export function useDemoTour(
+  tourKey: DemoTour | null
+): TourContextType<DemoTourStep> | null {
   const tourContext = useDemoTours();
 
-  if (!tourContext) {
+  if (!tourContext || !tourKey) {
     return null;
   }
 
@@ -73,23 +68,17 @@ export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | 
 }
 
 const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
-  [DemoTour.SIDEBAR]: [
-    DemoTourStep.SIDEBAR_PROJECTS,
-    DemoTourStep.SIDEBAR_ISSUES,
-    DemoTourStep.SIDEBAR_PERFORMANCE,
-    DemoTourStep.SIDEBAR_RELEASES,
-    DemoTourStep.SIDEBAR_DISCOVER,
-  ],
   [DemoTour.ISSUES]: [
     DemoTourStep.ISSUES_STREAM,
-    DemoTourStep.ISSUES_AGGREGATES, // Metadata and metrics // view data in aggregate 1/6
-    DemoTourStep.ISSUES_EVENT_DETAILS, // Explore details // Explore details 3/6
-    DemoTourStep.ISSUES_DETAIL_SIDEBAR, // Share updates // 6/6
+    DemoTourStep.ISSUES_AGGREGATES,
+    DemoTourStep.ISSUES_EVENT_DETAILS,
+    DemoTourStep.ISSUES_DETAIL_SIDEBAR,
   ],
   [DemoTour.RELEASES]: [
-    DemoTourStep.RELEASES_COMPARE,
-    DemoTourStep.RELEASES_DETAILS,
-    DemoTourStep.RELEASES_STATES,
+    DemoTourStep.RELEASES_LIST,
+    DemoTourStep.RELEASES_CHART,
+    DemoTourStep.RELEASES_ISSUES,
+    DemoTourStep.RELEASES_STATS,
   ],
   [DemoTour.PERFORMANCE]: [
     DemoTourStep.PERFORMANCE_TABLE,
@@ -107,11 +96,6 @@ const emptyTourState = {
 };
 
 const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
-  [DemoTour.SIDEBAR]: {
-    ...emptyTourState,
-    orderedStepIds: TOUR_STEPS[DemoTour.SIDEBAR],
-    tourKey: DemoTour.SIDEBAR,
-  },
   [DemoTour.ISSUES]: {
     ...emptyTourState,
     orderedStepIds: TOUR_STEPS[DemoTour.ISSUES],
@@ -168,11 +152,6 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
     [handleEndTour, handleStepChange]
   );
 
-  const sidebarTour = useTourReducer<DemoTourStep>(
-    tourState[DemoTour.SIDEBAR],
-    getTourOptions(DemoTour.SIDEBAR)
-  );
-
   const issuesTour = useTourReducer<DemoTourStep>(
     tourState[DemoTour.ISSUES],
     getTourOptions(DemoTour.ISSUES)
@@ -190,24 +169,23 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
 
   const tours = useMemo(
     () => ({
-      [DemoTour.SIDEBAR]: sidebarTour,
       [DemoTour.ISSUES]: issuesTour,
       [DemoTour.RELEASES]: releasesTour,
       [DemoTour.PERFORMANCE]: performanceTour,
     }),
-    [issuesTour, releasesTour, performanceTour, sidebarTour]
+    [issuesTour, releasesTour, performanceTour]
   );
 
   return <DemoToursContext value={tours}>{children}</DemoToursContext>;
 }
 
-const getTourFromStep = (step: DemoTourStep): DemoTour => {
+const getTourFromStep = (step: DemoTourStep): DemoTour | null => {
   for (const [category, steps] of Object.entries(TOUR_STEPS)) {
     if (steps.includes(step)) {
       return category as DemoTour;
     }
   }
-  throw new Error(`Unknown tour step: ${step}`);
+  return null;
 };
 
 type DemoTourElementProps = Omit<

@@ -17,7 +17,7 @@ FEATURE_NAMES = (
 
 @no_silo_test
 class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(

@@ -6,13 +6,13 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {descopeFeatureName} from 'sentry/utils';
 import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
-describe('ProviderItem', function () {
+describe('ProviderItem', () => {
   const provider = AuthProvidersFixture()[0]!;
   const org = OrganizationFixture({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
       organization: org,
     });
@@ -22,7 +22,7 @@ describe('ProviderItem', function () {
     ).toBeInTheDocument();
   });
 
-  it('calls configure callback', async function () {
+  it('calls configure callback', async () => {
     const mock = jest.fn();
     render(<ProviderItem active={false} provider={provider} onConfigure={mock} />, {
       organization: org,
@@ -32,7 +32,7 @@ describe('ProviderItem', function () {
     expect(mock).toHaveBeenCalledWith('dummy', expect.anything());
   });
 
-  it('renders a disabled Tag when disabled', function () {
+  it('renders a disabled Tag when disabled', () => {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
       organization: OrganizationFixture(),
     });

@@ -2,15 +2,20 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
+type LayoutShift = Record<string, ReactNode[]>;
 
 interface Props {
   frame: ReplayFrame;
@@ -29,15 +34,20 @@ export function BreadcrumbWebVital({
   onMouseEnter,
   onMouseLeave,
 }: Props) {
+  const organization = useOrganization();
+  const replayReader = useReplayReader();
+
   if (!isWebVitalFrame(frame)) {
     return null;
   }
 
-  const webVitalData = {value: frame.data.value};
   const selectors = extraction?.selectors;
+  const webVitalData: Record<string, number | ReactNode | LayoutShift[]> = {
+    value: frame.data.value,
+  };
 
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: Array<Record<string, ReactNode[]>> = [];
+    const layoutShifts: LayoutShift[] = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
@@ -72,12 +82,10 @@ export function BreadcrumbWebVital({
       layoutShifts.push({[`score ${attr.value}`]: elements});
     }
     if (layoutShifts.length) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors) {
     selectors.forEach((key, value) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData[key] = (
         <span
           key={key}
@@ -95,17 +103,33 @@ export function BreadcrumbWebVital({
   }
 
   return (
-    <StructuredEventData
-      initialExpandedPaths={expandPaths ?? []}
-      onToggleExpand={(expandedPaths, path) => {
-        onInspectorExpanded(
-          path,
-          Object.fromEntries(expandedPaths.map(item => [item, true]))
-        );
-      }}
-      data={webVitalData}
-      withAnnotatedText
-    />
+    <Flex gap="lg" justify="between" align="start">
+      <NoMarginWrapper flex="1">
+        <StructuredEventData
+          initialExpandedPaths={expandPaths ?? []}
+          onToggleExpand={(expandedPaths, path) => {
+            onInspectorExpanded(
+              path,
+              Object.fromEntries(expandedPaths.map(item => [item, true]))
+            );
+          }}
+          data={webVitalData}
+          withAnnotatedText
+        />
+      </NoMarginWrapper>
+      <NoWrapButton
+        priority="link"
+        size="xs"
+        to={{
+          pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/`,
+          query: {
+            projectId: replayReader?.getReplay().project_id,
+          },
+        }}
+      >
+        {t('All Web Vitals')}
+      </NoWrapButton>
+    </Flex>
   );
 }
 
@@ -130,4 +154,15 @@ const SelectorButton = styled(Button)`
   margin: 0 ${space(0.5)};
   height: auto;
   min-height: auto;
+`;
+
+const NoMarginWrapper = styled(Flex)`
+  pre {
+    margin: 0;
+    flex: 1;
+  }
+`;
+
+const NoWrapButton = styled(LinkButton)`
+  white-space: nowrap;
 `;

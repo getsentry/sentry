@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import {
+  EventGroupVariantType,
   type Event,
   type EventGroupVariant,
-  EventGroupVariantType,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -28,9 +28,11 @@ function generatePerformanceGroupInfo({
   return group
     ? {
         [group.issueType]: {
+          contributes: true,
           description: t('performance problem'),
           hash: event.occurrence?.fingerprint[0] || '',
           hashMismatch: false,
+          hint: null,
           key: group.issueType,
           type: EventGroupVariantType.PERFORMANCE_PROBLEM,
           evidence: {
@@ -50,22 +52,17 @@ export function useEventGroupingInfo({
   event,
   group,
   projectSlug,
-  query,
 }: {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
-  query: Record<string, string>;
 }) {
   const organization = useOrganization();
 
   const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
 
   const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
-    [
-      `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`,
-      {query},
-    ],
+    [`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`],
     {enabled: !hasPerformanceGrouping, staleTime: Infinity}
   );
 

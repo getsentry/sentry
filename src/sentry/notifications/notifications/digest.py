@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import UTC, tzinfo
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
@@ -18,7 +20,6 @@ from sentry.digests.utils import (
     get_personalized_digests,
     should_get_personalized_digests,
 )
-from sentry.eventstore.models import Event
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
@@ -34,8 +35,11 @@ from sentry.notifications.utils.links import (
     get_integration_link,
     get_rules,
 )
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
 from sentry.types.rules import NotificationRuleDetails
+from sentry.users.services.user_option import user_option_service
+from sentry.users.services.user_option.service import get_option_from_list
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -77,7 +81,9 @@ class DigestNotification(ProjectNotification):
             # This shouldn't be possible but adding a message just in case.
             return "Digest Report"
 
-        return get_digest_subject(context["group"], context["counts"], context["start"])
+        # Use timezone from context if available (added by get_recipient_context)
+        timezone = context.get("timezone")
+        return get_digest_subject(context["group"], context["counts"], context["start"], timezone)
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
@@ -107,6 +113,24 @@ class DigestNotification(ProjectNotification):
     @property
     def reference(self) -> Model | None:
         return self.project
+
+    def get_recipient_context(
+        self, recipient: Actor, extra_context: Mapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        tz: tzinfo = UTC
+        if recipient.is_user:
+            user_options = user_option_service.get_many(
+                filter={"user_ids": [recipient.id], "keys": ["timezone"]}
+            )
+            user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
+            try:
+                tz = zoneinfo.ZoneInfo(user_tz)
+            except (ValueError, zoneinfo.ZoneInfoNotFoundError):
+                pass
+        return {
+            **super().get_recipient_context(recipient, extra_context),
+            "timezone": tz,
+        }
 
     def get_context(self) -> MutableMapping[str, Any]:
         rule_details = get_rules(
@@ -172,7 +196,9 @@ class DigestNotification(ProjectNotification):
 
     def get_extra_context(
         self,
-        participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
+        participants_by_provider_by_event: Mapping[
+            Event | GroupEvent, Mapping[ExternalProviders, set[Actor]]
+        ],
     ) -> Mapping[Actor, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(
             self.digest.digest, participants_by_provider_by_event

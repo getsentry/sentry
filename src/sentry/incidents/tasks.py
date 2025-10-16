@@ -19,7 +19,6 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import alerts_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -43,18 +42,10 @@ def handle_snuba_query_update(
 
 @instrumented_task(
     name="sentry.incidents.tasks.handle_trigger_action",
-    queue="incidents",
-    default_retry_delay=60,
-    max_retries=5,
+    namespace=alerts_tasks,
+    retry=Retry(times=5, delay=60),
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=alerts_tasks,
-        retry=Retry(
-            times=5,
-            delay=60,
-        ),
-        processing_deadline_duration=60,
-    ),
 )
 def handle_trigger_action(
     action_id: int,
@@ -62,9 +53,12 @@ def handle_trigger_action(
     project_id: int,
     method: str,
     new_status: int,
-    metric_value: int | None = None,
+    metric_value: float | int | None = None,
     **kwargs: Any,
 ) -> None:
+    from sentry.incidents.grouptype import MetricIssue
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     try:
         action = AlertRuleTriggerAction.objects.select_related(
             "alert_rule_trigger", "alert_rule_trigger__alert_rule"
@@ -92,35 +86,29 @@ def handle_trigger_action(
     if notification_uuid is None:
         metrics.incr("incidents.alert_rules.action.incident_activity_missing")
 
-    metrics.incr(
-        "incidents.alert_rules.action.{}.{}".format(
-            AlertRuleTriggerAction.Type(action.type).name.lower(), method
+    # We should only fire using the legacy registry if we are not using the workflow engine
+    if not should_fire_workflow_actions(incident.organization, MetricIssue.type_id):
+        metrics.incr(
+            "incidents.alert_rules.action.{}.{}".format(
+                AlertRuleTriggerAction.Type(action.type).name.lower(), method
+            )
         )
-    )
 
-    getattr(action, method)(
-        action,
-        incident,
-        project,
-        metric_value=metric_value,
-        new_status=IncidentStatus(new_status),
-        notification_uuid=notification_uuid,
-    )
+        getattr(action, method)(
+            action,
+            incident,
+            project,
+            metric_value=metric_value,
+            new_status=IncidentStatus(new_status),
+            notification_uuid=notification_uuid,
+        )
 
 
 @instrumented_task(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
-    queue="incidents",
-    default_retry_delay=60,
-    max_retries=2,
+    namespace=alerts_tasks,
+    retry=Retry(times=2, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=alerts_tasks,
-        retry=Retry(
-            times=2,
-            delay=60,
-        ),
-    ),
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status

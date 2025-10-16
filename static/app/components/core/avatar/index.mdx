@@ -1,0 +1,322 @@
+---
+title: Avatar
+description: Avatars display an image of users, teams, organizations, and other Sentry-specific items.
+source: 'sentry/components/core/avatar'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
+---
+
+import {Fragment, useEffect} from 'react';
+
+import {Flex} from 'sentry/components/core/layout';
+import Placeholder from 'sentry/components/placeholder';
+import * as Storybook from 'sentry/stories';
+import {useMembers} from 'sentry/utils/useMembers';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import AvatarList from './avatarList';
+import {DocIntegrationAvatar} from './docIntegrationAvatar';
+import {OrganizationAvatar} from './organizationAvatar';
+import {ProjectAvatar} from './projectAvatar';
+import {SentryAppAvatar} from './sentryAppAvatar';
+import {TeamAvatar} from './teamAvatar';
+import {UserAvatar} from './userAvatar';
+
+import ProjectAvatarAPIReference from '!!type-loader!sentry/components/core/avatar/projectAvatar';
+import UserAvatarAPIReference from '!!type-loader!sentry/components/core/avatar/userAvatar';
+
+export const types = {
+  UserAvatar: UserAvatarAPIReference.UserAvatar,
+  ProjectAvatar: ProjectAvatarAPIReference.ProjectAvatar,
+};
+export const PREVIEW_SIZE = 40;
+
+export const USER = {
+  id: '1',
+  name: 'John Doe',
+  email: 'john.doe@sentry.io',
+  avatar: {
+    avatarType: 'gravatar',
+    avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+    avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
+  },
+  ip_address: '127.0.0.1',
+  username: 'john.doe',
+};
+export const ORGANIZATION = {
+  id: '1',
+  slug: 'test-organization',
+  avatar: {
+    avatarType: 'gravatar',
+    avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
+    avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+  },
+  codecovAccess: false,
+  dateCreated: '2021-01-01',
+  features: [],
+  githubNudgeInvite: false,
+  githubOpenPRBot: false,
+  githubPRBot: false,
+  gitlabPRBot: false,
+  hideAiFeatures: false,
+  isEarlyAdopter: false,
+  issueAlertsThreadFlag: false,
+  metricAlertsThreadFlag: false,
+  name: 'Test Organization',
+  require2FA: false,
+  status: {
+    id: 'active',
+    name: 'Active',
+  },
+  links: {
+    organizationUrl: 'https://sentry.io/test-organization',
+    regionUrl: 'https://sentry.io/test-organization',
+  },
+};
+export const TEAM = {
+  id: '1',
+  name: 'Test Team',
+  slug: 'test-team',
+  avatar: {
+    avatarType: 'gravatar',
+    avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+    avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
+  },
+  access: ['team:read'],
+  externalTeams: [],
+  hasAccess: true,
+  isMember: true,
+  memberCount: 1,
+  isPending: false,
+  teamRole: 'member',
+  flags: {
+    'idp:provisioned': false,
+  },
+};
+export const PROJECT = {
+  id: '1',
+  slug: 'test-project',
+};
+export const SENTRY_APP = {
+  uuid: '1',
+  name: 'Test Sentry App',
+  slug: 'test-sentry-app',
+  avatars: [],
+};
+export const DOC_INTEGRATION = {
+  slug: 'test-doc-integration',
+  name: 'Test Doc Integration',
+  avatar: {
+    avatarType: 'letter_avatar',
+    avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+    avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
+  },
+  author: 'John Doe',
+  description: 'Test Doc Integration',
+  isDraft: false,
+  popularity: 0,
+  url: 'https://sentry.io/test-doc-integration',
+};
+
+There are multiple avatar components which represent users, teams, organizations, projects, and integrations.
+
+<Storybook.Demo>
+  <UserAvatar size={PREVIEW_SIZE} user={USER} />
+  <TeamAvatar size={PREVIEW_SIZE} team={TEAM} />
+  <ProjectAvatar size={PREVIEW_SIZE} project={PROJECT} />
+  <OrganizationAvatar size={PREVIEW_SIZE} organization={ORGANIZATION} />
+  <SentryAppAvatar size={PREVIEW_SIZE} sentryApp={SENTRY_APP} />
+  <DocIntegrationAvatar size={PREVIEW_SIZE} docIntegration={DOC_INTEGRATION} />
+</Storybook.Demo>
+
+## Props
+
+All avatar components accept common props, to customize `size` and render tooltips with `hasTooltip`, `tooltip`, and `tooltipOptions`.
+
+<Storybook.Demo>
+  <UserAvatar user={USER} size={64} hasTooltip tooltip="This avatar has a tooltip" />
+</Storybook.Demo>
+```jsx
+<UserAvatar user={user} size={64} hasTooltip tooltip="This avatar has a tooltip" />
+```
+
+## Types
+
+To distinguish between individuals (users) and groups (teams, organizations, etc) at glance, avatars may use different shapes. Individuals are displayed with a round avatar, but groups are displayed with a square avatar.
+
+### User
+
+The `<UserAvatar />` component displays an avatar for a user.
+
+<Storybook.Demo>
+  <UserAvatar size={PREVIEW_SIZE} user={USER} />
+</Storybook.Demo>
+```jsx
+<UserAvatar user={user} />
+```
+
+### Team
+
+The `<TeamAvatar />` component displays an avatar for a team.
+
+<Storybook.Demo>
+  <TeamAvatar size={PREVIEW_SIZE} team={TEAM} />
+</Storybook.Demo>
+```jsx
+<TeamAvatar team={team} />
+```
+
+### Project
+
+The `<ProjectAvatar project={project} />` component displays an avatar for a project.
+
+<Storybook.Demo>
+  <ProjectAvatar size={PREVIEW_SIZE} project={PROJECT} />
+</Storybook.Demo>
+```jsx
+<ProjectAvatar project={project} />
+```
+
+### Organization
+
+The `<OrganizationAvatar />` component displays an avatar for an organization.
+
+<Storybook.Demo>
+  <OrganizationAvatar size={PREVIEW_SIZE} organization={ORGANIZATION} />
+</Storybook.Demo>
+```jsx
+<OrganizationAvatar organization={organization} />
+```
+
+### Sentry App
+
+The `<SentryAppAvatar sentryApp={sentryApp} />` component displays an avatar for a SentryApp (integration).
+
+<Storybook.Demo>
+  <SentryAppAvatar size={PREVIEW_SIZE} sentryApp={SENTRY_APP} />
+</Storybook.Demo>
+```jsx
+<SentryAppAvatar sentryApp={sentryApp} />
+```
+
+### Doc Integration
+
+The `<DocIntegrationAvatar />` component displays an avatar for a doc integration.
+
+<Storybook.Demo>
+  <DocIntegrationAvatar size={PREVIEW_SIZE} docIntegration={DOC_INTEGRATION} />
+</Storybook.Demo>
+```jsx
+<DocIntegrationAvatar docIntegration={docIntegration} />
+```
+
+## Avatar Lists
+
+To display multiple avatars in a group, use the `AvatarList` component. It accepts `users` or `teams`.
+
+export function useLoadedMembers() {
+  const {members, loadMore, ...rest} = useMembers({limit: 50});
+
+useEffect(() => {
+// `loadMore` is not referentially stable, so we cannot include it in the dependencies array
+loadMore();
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+return {members, loadMore, ...rest};
+}
+
+export function BasicDemo() {
+const {teams, isLoading} = useUserTeams();
+  const {members, fetching} = useLoadedMembers();
+    if (fetching || isLoading) {
+        return <Placeholder />
+    }
+
+    return <Flex direction="column" align="center" gap="md">
+        <AvatarList users={members} />
+        <AvatarList teams={teams} />
+    </Flex>
+
+}
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+```jsx
+<AvatarList users={users} />
+<AvatarList teams={teams} />
+```
+
+### Combined Types
+
+Setting both `users` and `teams` props will display both, with `teams` always displayed first.
+
+export function TeamAndMembers() {
+    const {teams, isLoading} = useUserTeams();
+    const {members, fetching} = useLoadedMembers();
+
+    if (isLoading || fetching) {
+        return <Placeholder />
+    }
+
+    return <AvatarList teams={teams} users={members} />
+
+}
+
+<Storybook.Demo>
+  <TeamAndMembers />
+</Storybook.Demo>
+```jsx
+<AvatarList teams={teams} users={members} />
+```
+
+### Custom tooltip
+
+Pass the `typeAvatars` to customize the tooltip on the summary avatar, for example "10 other users" would become "10 other users and teams".
+
+export function TypeAvatars() {
+    const {teams, isLoading} = useUserTeams();
+    const {members, fetching} = useLoadedMembers();
+
+    if (isLoading || fetching) {
+        return <Placeholder />;
+    }
+
+    return <Fragment>
+        <AvatarList
+            teams={teams}
+            users={members}
+            maxVisibleAvatars={10}
+            typeAvatars="users and teams"
+        />
+    </Fragment>
+
+}
+
+<Storybook.Demo>
+  <TypeAvatars />
+</Storybook.Demo>
+```jsx
+<AvatarList teams={teams} users={users} typeAvatars="users and teams" />
+```
+
+### Customizing display
+
+The `avatarSize` and `maxVisibleAvatars` props can be used to adjust the display of an AvatarList. By default, `avatarSize` is `28` and `maxVisibleAvatars` is `5`.
+
+export function Display() {
+    const {members, fetching} = useLoadedMembers();
+
+    if (fetching) {
+        return <Placeholder />
+    }
+    return <AvatarList avatarSize={48} maxVisibleAvatars={10} users={members} />
+
+}
+
+<Storybook.Demo>
+  <Display />
+</Storybook.Demo>
+```jsx
+<AvatarList users={users} avatarSize={48} maxVisibleAvatars={10} />
+```

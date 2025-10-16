@@ -29,8 +29,8 @@ function mockApi({
   });
 }
 
-describe('LoaderScript', function () {
-  it('renders error', async function () {
+describe('LoaderScript', () => {
+  it('renders error', async () => {
     const {organization, project} = initializeOrg();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -48,7 +48,7 @@ describe('LoaderScript', function () {
     );
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     const {organization, project} = initializeOrg();
 
     mockApi({organization, project, projectKeys: []});
@@ -62,7 +62,7 @@ describe('LoaderScript', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders for single project', async function () {
+  it('renders for single project', async () => {
     const {organization, project} = initializeOrg();
     const projectKey = ProjectKeysFixture()[0]!;
     const projectKeys = [projectKey];
@@ -82,7 +82,7 @@ describe('LoaderScript', function () {
     expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0]!.dsn.cdn));
   });
 
-  it('renders multiple keys', async function () {
+  it('renders multiple keys', async () => {
     const {organization, project} = initializeOrg();
     const projectKeys = ProjectKeysFixture([
       {
@@ -101,6 +101,7 @@ describe('LoaderScript', function () {
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
           otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -145,7 +146,7 @@ describe('LoaderScript', function () {
     expect(allLoaderScripts).toHaveLength(2);
   });
 
-  it('allows to update key settings', async function () {
+  it('allows to update key settings', async () => {
     const {organization, project} = initializeOrg();
     const baseKey = ProjectKeysFixture()[0]!;
     const projectKey = {
@@ -176,7 +177,7 @@ describe('LoaderScript', function () {
 
     expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
-    expect(screen.getByText('Enable Debug Bundles & Logging')).toBeInTheDocument();
+    expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
     let performanceCheckbox = screen.getByRole('checkbox', {
       name: 'Enable Performance Monitoring',
@@ -191,7 +192,7 @@ describe('LoaderScript', function () {
     expect(replayCheckbox).toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Debug Bundles & Logging',
+      name: 'Enable SDK debugging',
     });
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
@@ -223,7 +224,7 @@ describe('LoaderScript', function () {
     );
   });
 
-  it('allows to update one of multiple keys', async function () {
+  it('allows to update one of multiple keys', async () => {
     const {organization, project} = initializeOrg();
     const projectKeys = ProjectKeysFixture([
       {
@@ -242,6 +243,7 @@ describe('LoaderScript', function () {
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
           otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -302,7 +304,7 @@ describe('LoaderScript', function () {
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Debug Bundles & Logging',
+        name: 'Enable SDK debugging',
         checked: false,
       })
     ).toHaveLength(2);
@@ -335,7 +337,7 @@ describe('LoaderScript', function () {
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Debug Bundles & Logging',
+        name: 'Enable SDK debugging',
         checked: false,
       })
     ).toHaveLength(2);

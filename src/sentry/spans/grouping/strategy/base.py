@@ -3,6 +3,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, NotRequired, Optional, TypedDict
 
+from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 from sentry.utils import urls
 
@@ -55,10 +56,12 @@ class SpanGroupingStrategy:
         # Treat the segment span like get_transaction_span_group for backwards
         # compatibility with transaction events, but fall back to default
         # fingerprinting if the span doesn't have a transaction.
-        sentry_tags = span.get("sentry_tags") or {}
-        if span.get("is_segment") and sentry_tags.get("transaction") is not None:
+        if (
+            attribute_value(span, "sentry.is_segment")
+            and (transaction := attribute_value(span, "sentry.transaction")) is not None
+        ):
             result = Hash()
-            result.update(sentry_tags["transaction"])
+            result.update(transaction)
             return result.hexdigest()
         else:
             return self.get_embedded_span_group(span)
@@ -117,7 +120,11 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
     strategy is only effective if the span description is a fixed string.
     Otherwise, this strategy will produce a large number of span groups.
     """
-    return [span.get("description") or ""]
+    return [raw_description(span)]
+
+
+def raw_description(span: Span) -> str:
+    return span.get("description") or attribute_value(span, "sentry.description") or ""
 
 
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
@@ -140,7 +147,7 @@ def normalized_db_span_in_condition_strategy(span: Span) -> Sequence[str] | None
     seen as different spans. We want these spans to be seen as similar spans,
     so we normalize the right hand side of `IN` conditions to `(%s) to use in
     the fingerprint."""
-    description = span.get("description") or ""
+    description = raw_description(span)
     cleaned, count = IN_CONDITION_PATTERN.subn(" IN (%s)", description)
     if count == 0:
         return None
@@ -165,7 +172,7 @@ def loose_normalized_db_span_in_condition_strategy(span: Span) -> Sequence[str] 
     """This is identical to the above
     `normalized_db_span_in_condition_strategy` but it uses a looser regular
     expression that catches database spans that come from Laravel and Rails"""
-    description = span.get("description") or ""
+    description = raw_description(span)
     cleaned, count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", description)
     if count == 0:
         return None
@@ -209,7 +216,7 @@ def parametrize_db_span_strategy(span: Span) -> Sequence[str] | None:
     conservative with the literals we target. Currently, only single-quoted
     strings are parametrized even though MySQL supports double-quoted strings as
     well, because PG uses double-quoted strings for identifiers."""
-    query = span.get("description") or ""
+    query = raw_description(span)
     query, in_count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", query)
     query, savepoint_count = DB_SAVEPOINT_PATTERN.subn("SAVEPOINT %s", query)
     query, param_count = DB_PARAMETRIZATION_PATTERN.subn("%s", query)
@@ -255,7 +262,7 @@ def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None
     """
 
     # Check the description is of the form `<HTTP METHOD> <URL>`
-    description = span.get("description") or ""
+    description = raw_description(span)
     parts = description.split(" ", 1)
     if len(parts) != 2:
         return None
@@ -276,7 +283,7 @@ def remove_redis_command_arguments_strategy(span: Span) -> Sequence[str] | None:
     The arguments to the redis command is highly variable and therefore not used as
     a part of the fingerprint.
     """
-    description = span.get("description") or ""
+    description = raw_description(span)
     parts = description.split(" ", 1)
 
     # the redis command name is the first word in the description

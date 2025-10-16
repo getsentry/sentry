@@ -68,7 +68,7 @@ function DebounceSearch({
           });
           setQueryResults(results);
         } catch (err) {
-          setError(err.message);
+          setError((err as Error).message);
         }
       }
       setLoading(false);

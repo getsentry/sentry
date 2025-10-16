@@ -7,21 +7,24 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
+  DisplayType,
+  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
-  DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
@@ -30,8 +33,8 @@ import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/compon
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
-  type ThresholdMetaState,
   WidgetPreviewContainer,
+  type ThresholdMetaState,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButtonGroup from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
@@ -41,9 +44,11 @@ import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/com
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -78,6 +83,7 @@ function WidgetBuilderSlideout({
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
@@ -85,7 +91,14 @@ function WidgetBuilderSlideout({
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
+  const {cacheBuilderState} = useCacheBuilderState();
+  const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
   const disableTransactionWidget = useDisableTransactionWidget();
+  const isTransactionsWidget = state.dataset === WidgetType.TRANSACTIONS;
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
@@ -211,12 +224,61 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {disableTransactionWidget && isEditing && (
+        {isTransactionsWidget && showTransactionsDeprecationAlert && (
           <Section>
-            <Alert type="warning">
-              {t(
-                'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
-              )}
+            <Alert
+              type="warning"
+              trailingItems={
+                <StyledCloseButton
+                  icon={<IconClose size="sm" />}
+                  aria-label={t('Close')}
+                  onClick={() => {
+                    setShowTransactionsDeprecationAlert(false);
+                  }}
+                  size="zero"
+                  borderless
+                />
+              }
+            >
+              {disableTransactionWidget && isEditing
+                ? tctCode(
+                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                    {
+                      spans: (
+                        <Link
+                          // We need to do this otherwise the dashboard filters will change
+                          to={{
+                            pathname: location.pathname,
+                            query: {
+                              project: location.query.project,
+                              start: location.query.start,
+                              end: location.query.end,
+                              statsPeriod: location.query.statsPeriod,
+                              environment: location.query.environment,
+                              utc: location.query.utc,
+                            },
+                          }}
+                          onClick={() => {
+                            cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
+                            setSegmentSpanBuilderState();
+                          }}
+                        >
+                          {t('spans')}
+                        </Link>
+                      ),
+                      FAQLink: (
+                        <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                      ),
+                    }
+                  )
+                : tctCode(
+                    'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
+                    {
+                      FAQLink: (
+                        <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                      ),
+                    }
+                  )}
             </Alert>
           </Section>
         )}
@@ -391,4 +453,15 @@ const SlideoutBodyWrapper = styled('div')`
 
 const SectionWrapper = styled('div')`
   margin-bottom: 24px;
+`;
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
 `;

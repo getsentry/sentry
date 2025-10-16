@@ -12,13 +12,14 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
-from sentry.snuba.dataset import Dataset
 
 
 @region_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
-    """The generic Events endpoints require that the `organizations:global-views` feature
+    # TODO: now that cross-project selection is enabled for all plans, we may be able to consolidate this with the generic OrganizationEventsV2Endpoint
+    """The generic Events endpoints require that the cross-project selection feature
     be enabled before they return across multiple projects.
+
 
     This endpoint is purpose built for the Session Replay product which intentionally
     requests data across multiple transactions, and therefore potentially multiple projects.
@@ -38,16 +39,14 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
         fields = [
             "error.type",
-            "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx
             "id",
             "issue.id",
             "issue",
             "timestamp",
             "title",
+            "level",
+            "timestamp_ms",
         ]
-        dataset_label = request.GET.get("dataset", Dataset.Discover.value)
-        if dataset_label == Dataset.Discover.value:
-            fields.append("timestamp_ms")
 
         return fields
 
@@ -56,7 +55,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({"count": 0})
 
@@ -106,7 +105,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             request, organization, project_ids, results, standard_meta, dataset
         )
         for event in results["data"]:
-            if "timestamp_ms" in event and event["timestamp_ms"] is not None:
+            if "timestamp_ms" in event and event["timestamp_ms"]:
                 event["timestamp"] = reformat_timestamp_ms_to_isoformat(event["timestamp_ms"])
 
             if "timestamp_ms" in event:

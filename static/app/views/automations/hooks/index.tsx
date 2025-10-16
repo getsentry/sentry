@@ -1,6 +1,5 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tn} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {
   Automation,
@@ -154,7 +153,7 @@ export function useCreateAutomation() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({type: 'error', message: t('Unable to create automation')});
+      addErrorMessage(t('Unable to create automation'));
     },
   });
 }
@@ -181,6 +180,39 @@ export function useDeleteAutomationMutation() {
   });
 }
 
+/** Bulk delete automations */
+export function useDeleteAutomationsMutation() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    RequestError,
+    {ids?: string[]; projects?: number[]; query?: string}
+  >({
+    mutationFn: params => {
+      return api.requestPromise(`/organizations/${org.slug}/workflows/`, {
+        method: 'DELETE',
+        query: {
+          id: params.ids,
+          query: params.query,
+          project: params.projects,
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/workflows/`],
+      });
+      addSuccessMessage(t('Automations deleted'));
+    },
+    onError: error => {
+      addErrorMessage(t('Unable to delete automations: %s', error.message));
+    },
+  });
+}
+
 export function useUpdateAutomation() {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -188,7 +220,7 @@ export function useUpdateAutomation() {
 
   return useMutation<
     Automation,
-    void,
+    RequestError,
     Partial<NewAutomation> & {id: Automation['id']; name: NewAutomation['name']}
   >({
     mutationFn: data =>
@@ -209,7 +241,49 @@ export function useUpdateAutomation() {
       });
     },
     onError: _ => {
-      AlertStore.addAlert({type: 'error', message: t('Unable to update automation')});
+      addErrorMessage(t('Unable to update automation'));
+    },
+  });
+}
+
+/** Bulk update automations. Currently supports enabling/disabling automations. */
+export function useUpdateAutomationsMutation() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    RequestError,
+    {enabled: boolean; ids?: string[]; projects?: number[]; query?: string}
+  >({
+    mutationFn: params => {
+      return api.requestPromise(`/organizations/${org.slug}/workflows/`, {
+        method: 'PUT',
+        data: {enabled: params.enabled},
+        query: {
+          id: params.ids,
+          query: params.query,
+          project: params.projects,
+        },
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/workflows/`],
+      });
+      addSuccessMessage(
+        variables.enabled ? t('Automations enabled') : t('Automations disabled')
+      );
+    },
+    onError: (error, variables) => {
+      addErrorMessage(
+        t(
+          'Unable to %s automations: %2$s',
+          variables.enabled ? t('enable') : t('disable'),
+          error.message
+        )
+      );
     },
   });
 }

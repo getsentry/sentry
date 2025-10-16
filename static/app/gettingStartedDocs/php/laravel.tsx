@@ -9,7 +9,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportSDKInstallFirstStep,
+  getCrashReportSDKInstallFirstBlocks,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -52,6 +52,15 @@ SENTRY_TRACES_SAMPLE_RATE=1.0`
       ? `
 # Set a sampling rate for profiling - this is relative to traces_sample_rate
 SENTRY_PROFILES_SAMPLE_RATE=1.0`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+# Enable logs to be sent to Sentry
+SENTRY_ENABLE_LOGS=true
+# Configure logging to use both file and Sentry
+LOG_CHANNEL=stack
+LOG_STACK=single,sentry_logs`
       : ''
   }`;
 
@@ -131,6 +140,26 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: getConfigureSnippet(params),
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: tct(
+                  'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it:',
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `'channels' => [
+    // ...
+    'sentry_logs' => [
+        'driver' => 'sentry_logs',
+        // The minimum logging level at which this handler will be triggered
+        // Available levels: debug, info, notice, warning, error, critical, alert, emergency
+        'level' => env('LOG_LEVEL', 'info'), // defaults to \`debug\` if not set
+    ],
+],`,
+              },
+            ]
+          : []),
         {
           description: (
             <Alert.Container>
@@ -148,7 +177,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       configurations: [
@@ -162,6 +191,35 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'php artisan sentry:test',
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: tct(
+                  "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:",
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `use Illuminate\\Support\\Facades\\Log;
+
+// Log to all channels in the stack (including Sentry)
+Log::info('This is an info message');
+Log::warning('User {id} failed to login.', ['id' => $user->id]);
+Log::error('This is an error message');
+
+// Log directly to the Sentry channel
+Log::channel('sentry')->error('This will only go to Sentry');`,
+              },
+              {
+                description: tct(
+                  'You can also test your configuration using the Sentry logger directly:',
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `\\Sentry\\logger()->info('A test log message');
+\\Sentry\\logger()->flush();`,
+              },
+            ]
+          : []),
       ],
     },
   ],
@@ -173,14 +231,18 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: [
-        getCrashReportSDKInstallFirstStep(params),
+      content: [
+        ...getCrashReportSDKInstallFirstBlocks(params),
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Next, create [code:resources/views/errors/500.blade.php], and embed the feedback code:',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'HTML',
               value: 'html',
@@ -202,18 +264,22 @@ const crashReportOnboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For Laravel 5 up to 5.4 there is some extra work needed. You need to open up [codeApp:App/Exceptions/Handler.php] and extend the [codeRender:render] method to make sure the 500 error is rendered as a view correctly, in 5.5+ this step is not required anymore.',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'PHP',
               value: 'php',
               language: 'php',
               code: `<?php
 
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\\Component\\HttpKernel\\Exception\\HttpException;
 
 class Handler extends ExceptionHandler
 {
@@ -249,9 +315,14 @@ class Handler extends ExceptionHandler
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/php/guides/laravel/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/php/guides/laravel/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -329,10 +400,148 @@ const profilingOnboarding: OnboardingConfig = {
       description: t(
         'Verify that profiling is working correctly by simply using your application.'
       ),
-      configurations: [],
     },
   ],
   nextSteps: () => [],
+};
+
+const logsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To start using logs, install the latest version of the Sentry Laravel SDK. Logs are supported in version [code:4.15.0] and above of the SDK.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'bash',
+          code: 'composer require sentry/sentry-laravel',
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'php',
+              language: 'php',
+              filename: 'config/logging.php',
+              code: `'channels' => [
+    // ...
+    'sentry_logs' => [
+        'driver' => 'sentry_logs',
+        // The minimum logging level at which this handler will be triggered
+        // Available levels: debug, info, notice, warning, error, critical, alert, emergency
+        'level' => env('LOG_LEVEL', 'info'), // defaults to \`debug\` if not set
+    ],
+],`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: t(
+            'After you configured the Sentry log channel, you can configure your app to both log to a log file and to Sentry by modifying the log stack:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'bash',
+              language: 'bash',
+              filename: '.env',
+              code: `# ...
+LOG_CHANNEL=stack
+LOG_STACK=single,sentry_logs
+# ...`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'You will also need to configure the Sentry Laravel SDK to enable the logging integration. You can do this by updating your [code:.env] file to include the following:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'bash',
+              language: 'bash',
+              filename: '.env',
+              code: `# ...
+SENTRY_ENABLE_LOGS=true
+# ...`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Also make sure your [code:config/sentry.php] file is up to date. You can find the latest version on [externalLink:GitHub].',
+            {
+              code: <code />,
+              externalLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-laravel/blob/master/config/sentry.php" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:"
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `use Illuminate\\Support\\Facades\\Log;
+
+// Log to all channels in the stack (including Sentry)
+Log::info('This is an info message');
+Log::warning('User {id} failed to login.', ['id' => $user->id]);
+Log::error('This is an error message');
+
+// Log directly to the Sentry channel
+Log::channel('sentry_logs')->error('This will only go to Sentry');`,
+        },
+      ],
+    },
+  ],
 };
 
 const docs: Docs = {
@@ -341,6 +550,7 @@ const docs: Docs = {
   profilingOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding,
 };
 
 export default docs;

@@ -1,83 +1,46 @@
-import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
+import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
 
-const BASE_FEATURES = ['ourlogs-enabled', 'ourlogs-visualize-sidebar'];
-
-describe('LogsPage', function () {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: BASE_FEATURES,
-    },
-  });
-
-  ProjectsStore.loadInitialData([project]);
-  PageFiltersStore.init();
-  PageFiltersStore.onInitializeUrlState(
-    {
-      projects: [project].map(p => parseInt(p.id, 10)),
-      environments: [],
-      datetime: {period: '12h', start: null, end: null, utc: null},
-    },
-    new Set()
-  );
+describe('LogsPage', () => {
+  let organization: Organization;
+  let project: Project;
+  let testDate: Date;
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
-  beforeEach(function () {
-    organization.features = BASE_FEATURES;
-    MockApiClient.clearMockResponses();
 
-    eventTableMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {
-        data: [
-          {
-            'sentry.item_id': '019621262d117e03bce898cb8f4f6ff7',
-            'project.id': 1,
-            trace: '17cc0bae407042eaa4bf6d798c37d026',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:12+00:00',
-            message: 'some log message1',
-            'tags[sentry.timestamp_precise,number]': 1.7443128722090732e18,
-          },
-          {
-            'sentry.item_id': '0196212624a17144aa392d01420256a2',
-            'project.id': 1,
-            trace: 'c331c2df93d846f5a2134203416d40bb',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:10+00:00',
-            message: 'some log message2',
-            'tags[sentry.timestamp_precise,number]': 1.744312870049196e18,
-          },
-        ],
-        meta: {
-          fields: {
-            'sentry.item_id': 'string',
-            'project.id': 'string',
-            trace: 'string',
-            severity_number: 'integer',
-            severity_text: 'string',
-            timestamp: 'string',
-            message: 'string',
-            'tags[sentry.timestamp_precise,number]': 'number',
-          },
-          units: {},
-        },
-      },
-    });
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    const {
+      organization: _organization,
+      project: _project,
+      setupPageFilters,
+      setupEventsMock,
+    } = initializeLogsTest();
+
+    organization = _organization;
+    project = _project;
+
+    setupPageFilters();
+
+    // Standard log fixtures for consistent testing
+    testDate = new Date('2024-01-15T10:00:00.000Z');
+    const {baseFixtures} = createLogFixtures(organization, project, testDate);
+
+    eventTableMock = setupEventsMock(baseFixtures.slice(0, 2));
 
     eventStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
@@ -110,11 +73,11 @@ describe('LogsPage', function () {
     });
   });
 
-  it('should call APIs as expected', async function () {
+  it('should call APIs as expected', async () => {
     render(<LogsPage />, {
       organization,
       initialRouterConfig: {
-        location: `/organizations/${organization.slug}/explore/logs/`,
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
       },
     });
 
@@ -127,17 +90,74 @@ describe('LogsPage', function () {
     });
 
     const table = screen.getByTestId('logs-table');
-    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Error occurred in authentication service')
+    ).toBeInTheDocument();
     expect(table).not.toHaveTextContent(/auto refresh/i);
-    expect(table).toHaveTextContent(/some log message1/);
-    expect(table).toHaveTextContent(/some log message2/);
+    expect(table).toHaveTextContent(/Error occurred in authentication service/);
+    expect(table).toHaveTextContent(/User login successful/);
   });
 
-  it('should call aggregates APIs as expected', async function () {
+  it('should show onboarding when project is not onboarded', async () => {
+    ProjectsStore.reset();
+    const {
+      organization: onboardingOrganization,
+      project: onboardingProject,
+      setupPageFilters: onboardingSetupPageFilters,
+    } = initializeLogsTest({
+      project: {
+        hasLogs: false,
+        platform: 'javascript-react',
+      },
+    });
+    TeamStore.loadInitialData([TeamFixture()]);
+    MockApiClient.addMockResponse({
+      url: `/projects/${onboardingOrganization.slug}/${onboardingProject.slug}/`,
+      method: 'GET',
+      body: [],
+    });
+    const projectSlugMock = MockApiClient.addMockResponse({
+      url: `/projects/${onboardingOrganization.slug}/${onboardingProject.slug}/keys/`,
+      method: 'GET',
+      body: [ProjectKeysFixture()[0]],
+    });
+    const sdkMock = MockApiClient.addMockResponse({
+      url: `/organizations/${onboardingOrganization.slug}/sdks/`,
+      method: 'GET',
+      body: [],
+    });
+
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          project: onboardingProject,
+          isProjectActive: true,
+        };
+      });
+
+    onboardingSetupPageFilters();
+
     render(<LogsPage />, {
       organization,
       initialRouterConfig: {
-        location: `/organizations/${organization.slug}/explore/logs/`,
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
+      },
+    });
+
+    expect(projectSlugMock).toHaveBeenCalled();
+    expect(sdkMock).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.getByText('Your Source for Log-ical Data')).toBeInTheDocument();
+    });
+  });
+
+  it('should call aggregates APIs as expected', async () => {
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
       },
     });
 
@@ -190,193 +210,143 @@ describe('LogsPage', function () {
     });
   });
 
-  it('enables autorefresh when Switch is clicked', async function () {
-    const {organization: newOrganization} = initializeOrg({
-      organization: {
-        features: [...BASE_FEATURES, 'ourlogs-infinite-scroll', 'ourlogs-live-refresh'],
-      },
+  describe('autorefresh flag enabled', () => {
+    let initialRouterConfig: ReturnType<typeof initializeLogsTest>['routerConfig'];
+    let autorefreshBaseFixtures: OurLogsResponseItem[];
+    let setupTraceItemsMock: ReturnType<typeof initializeLogsTest>['setupTraceItemsMock'];
+    let setupEventsMock: ReturnType<typeof initializeLogsTest>['setupEventsMock'];
+
+    beforeEach(() => {
+      eventTableMock.mockClear();
+
+      const {
+        organization: autorefreshOrganization,
+        setupEventsMock: _setupEventsMock,
+        project: _project,
+        setupTraceItemsMock: _setupTraceItemsMock,
+        routerConfig,
+      } = initializeLogsTest({
+        refreshInterval: '10000', // 10 seconds, should not first events multiple times.
+        liveRefresh: true,
+      });
+      organization = autorefreshOrganization;
+      project = _project;
+      initialRouterConfig = routerConfig;
+      setupTraceItemsMock = _setupTraceItemsMock;
+      setupEventsMock = _setupEventsMock;
+      const {baseFixtures} = createLogFixtures(organization, project, testDate, {
+        intervalMs: 24 * 60 * 60 * 1000, // 24 hours
+      });
+      eventTableMock = _setupEventsMock(baseFixtures.slice(0, 5));
+      autorefreshBaseFixtures = baseFixtures;
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${newOrganization.slug}/events/`,
-      method: 'GET',
-      body: {
-        data: [
-          {
-            'sentry.item_id': '1',
-            'project.id': 1,
-            trace: 'trace1',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:12+00:00',
-            message: 'some log message',
-            'tags[sentry.timestamp_precise,number]': 100,
-          },
-        ],
-        meta: {fields: {}, units: {}},
-      },
-    });
+    it('enables autorefresh when Switch is clicked', async () => {
+      render(<LogsPage />, {
+        organization,
+        initialRouterConfig,
+      });
 
-    render(<LogsPage />, {
-      organization: newOrganization,
-      initialRouterConfig: {
-        location: `/organizations/${newOrganization.slug}/explore/logs/`,
-      },
-    });
+      await waitFor(() => {
+        expect(screen.getByTestId('logs-table')).toBeInTheDocument();
+      });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('logs-table')).toBeInTheDocument();
-    });
+      const switchInput = screen.getByRole('checkbox', {name: /auto-refresh/i});
+      expect(switchInput).not.toBeChecked();
+      expect(switchInput).toBeEnabled();
 
-    const switchInput = screen.getByRole('checkbox', {name: /auto-refresh/i});
-    expect(switchInput).not.toBeChecked();
-    expect(switchInput).toBeEnabled();
+      await userEvent.click(switchInput);
 
-    await userEvent.click(switchInput);
-
-    await waitFor(
-      () => {
+      await waitFor(() => {
         expect(switchInput).toBeChecked();
-      },
-      {timeout: 5000}
-    );
-  });
-
-  it('pauses auto-refresh when enabled switch is clicked', async function () {
-    const {organization: newOrganization} = initializeOrg({
-      organization: {
-        features: [...BASE_FEATURES, 'ourlogs-infinite-scroll', 'ourlogs-live-refresh'],
-      },
+      });
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${newOrganization.slug}/events/`,
-      method: 'GET',
-      body: {
-        data: [
-          {
-            'sentry.item_id': '1',
-            'project.id': 1,
-            trace: 'trace1',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:12+00:00',
-            message: 'some log message',
-            'tags[sentry.timestamp_precise,number]': 100,
-          },
-        ],
-        meta: {fields: {}, units: {}},
-      },
-    });
-
-    const {router} = render(<LogsPage />, {
-      organization: newOrganization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${newOrganization.slug}/explore/logs/`,
-          query: {
-            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+    it('pauses auto-refresh when enabled switch is clicked', async () => {
+      const {router} = render(<LogsPage />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+            },
           },
         },
-      },
-    });
-    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+      });
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('logs-table')).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(screen.getByTestId('logs-table')).toBeInTheDocument();
+      });
 
-    const switchInput = screen.getByRole('checkbox', {name: /auto-refresh/i});
-    expect(switchInput).toBeChecked();
+      const switchInput = screen.getByRole('checkbox', {name: /auto-refresh/i});
+      expect(switchInput).toBeChecked();
 
-    await userEvent.click(switchInput);
+      await userEvent.click(switchInput);
 
-    await waitFor(() => {
-      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
-    });
-    expect(switchInput).not.toBeChecked();
-  });
-
-  it('pauses auto-refresh when row is clicked', async function () {
-    const {organization: newOrganization, project: newProject} = initializeOrg({
-      organization: {
-        features: [...BASE_FEATURES, 'ourlogs-infinite-scroll', 'ourlogs-live-refresh'],
-      },
+      await waitFor(() => {
+        expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+      });
+      expect(switchInput).not.toBeChecked();
     });
 
-    ProjectsStore.loadInitialData([newProject]);
-
-    const rowData = LogFixture({
-      [OurLogKnownFieldKey.ID]: '1',
-      [OurLogKnownFieldKey.PROJECT_ID]: newProject.id,
-      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(newOrganization.id),
-      [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
-      [OurLogKnownFieldKey.MESSAGE]: 'some log message',
-      [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 100,
-      [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
-      [OurLogKnownFieldKey.SEVERITY]: 'info',
-    });
-
-    const rowDetails = Object.entries(rowData).map(
-      ([k, v]) =>
-        ({
-          name: k,
-          value: v,
-          type: typeof v === 'string' ? 'str' : 'float',
-        }) as TraceItemResponseAttribute
-    );
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${newOrganization.slug}/events/`,
-      method: 'GET',
-      body: {
-        data: [rowData],
-        meta: {fields: {}, units: {}},
-      },
-    });
-
-    const rowDetailsMock = MockApiClient.addMockResponse({
-      url: `/projects/${newOrganization.slug}/${newProject.slug}/trace-items/${rowData[OurLogKnownFieldKey.ID]}/`,
-      method: 'GET',
-      body: {
-        itemId: rowData[OurLogKnownFieldKey.ID],
-        links: null,
-        meta: LogFixtureMeta(rowData),
-        timestamp: rowData[OurLogKnownFieldKey.TIMESTAMP],
-        attributes: rowDetails,
-      },
-    });
-
-    const {router} = render(<LogsPage />, {
-      organization: newOrganization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${newOrganization.slug}/explore/logs/`,
-          query: {
-            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+    it('pauses auto-refresh when row is clicked', async () => {
+      const rowDetailsMock = setupTraceItemsMock(autorefreshBaseFixtures.slice(0, 1))[0];
+      const {router} = render(<LogsPage />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+            },
           },
         },
-      },
-    });
+      });
 
-    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('logs-table')).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(screen.getByTestId('logs-table')).toBeInTheDocument();
+      });
 
-    expect(rowDetailsMock).not.toHaveBeenCalled();
+      expect(screen.getAllByTestId('log-table-row')).toHaveLength(5);
 
-    const row = screen.getByText('some log message');
-    await userEvent.click(row);
+      expect(rowDetailsMock).not.toHaveBeenCalled();
 
-    await waitFor(() => {
-      expect(rowDetailsMock).toHaveBeenCalled();
-    });
+      const row = screen.getByText('Error occurred in authentication service');
+      await userEvent.click(row.parentElement!.parentElement!); // Avoid clicking the cells which can have their own click handlers.
 
-    await waitFor(() => {
-      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+      await waitFor(() => {
+        expect(rowDetailsMock).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+      });
+
+      const switchInput = screen.getByRole('checkbox', {name: /auto-refresh/i});
+      expect(switchInput).not.toBeChecked();
+      expect(switchInput).toBeEnabled();
+
+      expect(eventTableMock).toHaveBeenCalledTimes(1);
+      eventTableMock.mockClear();
+      eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));
+
+      await userEvent.click(switchInput);
+
+      await waitFor(() => {
+        expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+      });
+
+      expect(eventTableMock).toHaveBeenCalledTimes(1);
+
+      expect(switchInput).toBeChecked();
     });
   });
 });

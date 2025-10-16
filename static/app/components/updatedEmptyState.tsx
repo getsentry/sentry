@@ -122,8 +122,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
     isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
@@ -147,12 +146,21 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     };
   }
 
+  if (currentPlatformKey === 'javascript') {
+    docParams.platformOptions = {
+      ...docParams.platformOptions,
+      installationMode: 'manual',
+    };
+  }
+
   const install = loadGettingStarted.docs.onboarding.install(docParams);
   const configure = loadGettingStarted.docs.onboarding.configure(docParams);
   const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
   // TODO: Is there a reason why we are only selecting a few steps?
-  const steps = [install[0], configure[0], configure[1], verify[0]].filter(Boolean);
+  const steps = [install[0], configure[0], configure[1], verify[0]]
+    // Filter optional steps
+    .filter(step => !!step && !step.collapsible);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
@@ -236,7 +244,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
             <ArcadeWrapper>
               <Arcade
-                src="https://demo.arcade.software/54VidzNthU5ykIFPCdW1?embed"
+                src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                 loading="lazy"
                 allowFullScreen
               />
@@ -329,9 +337,9 @@ const Divider = styled('hr')`
 `;
 
 const Arcade = styled('iframe')`
-  width: 750px;
+  width: 720px;
   max-width: 100%;
-  height: 500px;
+  height: 420px;
   border: 0;
   color-scheme: auto;
 `;

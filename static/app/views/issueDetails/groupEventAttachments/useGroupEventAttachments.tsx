@@ -1,13 +1,13 @@
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -108,7 +108,7 @@ export function useGroupEventAttachments({
   const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const organization = useOrganization();
-  const eventQuery = useEventQuery({groupId: group.id});
+  const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
 
   const hasSetStatsPeriod =

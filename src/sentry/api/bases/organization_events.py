@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Callable, Sequence
+import logging
+from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
 from typing import Any, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
@@ -27,9 +29,9 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQueryTypes
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.dashboard_widget import DashboardWidgetTypes
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -43,6 +45,7 @@ from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -50,8 +53,10 @@ from sentry.utils.dates import get_interval_from_range, get_rollup_from_request,
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 
+logger = logging.getLogger(__name__)
 
-def get_query_columns(columns, rollup):
+
+def get_query_columns(columns: list[str], rollup: int) -> list[str]:
     """
     Backwards compatibility for incidents which uses the old
     column aliases as it straddles both versions of events/discover.
@@ -83,14 +88,14 @@ def resolve_axis_column(
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
             features.has("organizations:discover-basic", organization, actor=request.user)
             or features.has("organizations:performance-view", organization, actor=request.user)
             or features.has(
-                "organizations:performance-issues-all-events-tab", organization, actor=request.user
+                "organizations:visibility-explore-view", organization, actor=request.user
             )
         )
 
@@ -113,7 +118,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if not request.user:
             return []
 
-        teams = get_teams(request, organization)
+        teams: Iterable[Team] = get_teams(request, organization)
         if not teams:
             teams = Team.objects.get_for_user(organization, request.user)
 
@@ -131,7 +136,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        check_global_views: bool = True,
         quantize_date_params: bool = True,
     ) -> SnubaParams:
         """Returns params to make snuba queries with"""
@@ -168,16 +172,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 query_string=query,
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and "debug" in request.GET,
+                case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
             )
-
-            if check_global_views:
-                has_global_views = features.has(
-                    "organizations:global-views", organization, actor=request.user
-                )
-                fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-                if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
-                    raise ParseError(detail="You cannot view events from multiple projects.")
-
             return params
 
     def get_orderby(self, request: Request) -> list[str] | None:
@@ -215,7 +211,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
@@ -249,7 +245,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return use_on_demand_metrics, on_demand_metric_type
 
-    def save_split_decision(self, widget, has_errors, has_transactions_data, organization, user):
+    def save_split_decision(
+        self,
+        widget: DashboardWidget,
+        has_errors: bool,
+        has_transactions_data: bool,
+        organization: Organization,
+        user: User | AnonymousUser,
+    ) -> int | None:
         """This can be removed once the discover dataset has been fully split"""
         source = DashboardDatasetSourcesTypes.INFERRED.value
         if has_errors and not has_transactions_data:
@@ -273,15 +276,19 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return decision
 
     def save_discover_saved_query_split_decision(
-        self, query, dataset_inferred_from_query, has_errors, has_transactions_data
-    ):
+        self,
+        query: DiscoverSavedQuery,
+        dataset_inferred_from_query: int | None,
+        has_errors: bool,
+        has_transactions_data: bool,
+    ) -> int | None:
         """
         This can be removed once the discover dataset has been fully split.
         If dataset is ambiguous (i.e., could be either transactions or errors),
         default to errors.
         """
         dataset_source = DatasetSourcesTypes.INFERRED.value
-        if dataset_inferred_from_query:
+        if dataset_inferred_from_query is not None:
             decision = dataset_inferred_from_query
             sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
         elif has_errors and not has_transactions_data:
@@ -314,7 +321,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
 
-    def get_unit_and_type(self, field, field_type):
+    def get_unit_and_type(self, field: str, field_type: str) -> tuple[str | None, str]:
         if field_type in SIZE_UNITS:
             return field_type, "size"
         elif field_type in DURATION_UNITS:
@@ -325,10 +332,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
                 return "1/minute", field_type
             else:
+                logger.warning(
+                    "sentry.api.bases.organization_events.get_unit_and_type encountered an unknown rate type",
+                    extra={"field": field, "field_type": field_type},
+                )
                 return None, field_type
         elif field_type == "duration":
             return "millisecond", field_type
         else:
+            # There's no unit for integers for example
             return None, field_type
 
     def handle_results_with_meta(
@@ -342,8 +354,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     ) -> dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", name="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
-            meta = results.get("meta", {})
-            fields_meta = meta.get("fields", {})
+            # these may get re-used by other timeseries
+            meta = results.get("meta", {}).copy()
+            fields_meta = meta.get("fields", {}).copy()
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
@@ -427,7 +440,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
+    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]) -> None:
         """
         If the query is for error upsampled projects, we convert various functions under the hood.
         We need to rename these fields before returning the results to the client, to hide the conversion.
@@ -526,9 +539,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 if snuba_params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views
-                        snuba_params = self.get_snuba_params(
-                            request, organization, check_global_views=False
-                        )
+                        snuba_params = self.get_snuba_params(request, organization)
                     except NoProjects:
                         return {"data": []}
 
@@ -704,7 +715,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return result
 
-    def update_meta_with_accuracy(self, meta, event_result, query_column) -> None:
+    def update_meta_with_accuracy(
+        self, meta: dict[str, Any], event_result: SnubaTSResult, query_column: str
+    ) -> None:
         if "processed_timeseries" in event_result.data:
             processed_timeseries = event_result.data["processed_timeseries"]
             meta["accuracy"] = {
@@ -724,7 +737,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         data: Any,
         column: str,
         null_zero: bool = False,
-    ):
+    ) -> list[dict[str, Any]]:
         serialized_values = []
         for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
             for row in group:

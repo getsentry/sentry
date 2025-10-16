@@ -104,7 +104,7 @@ class MetricsWrapper(Metrics):
 
 
 def _get_arroyo_subprocess_initializer(
-    initializer: Callable[[], None] | None
+    initializer: Callable[[], None] | None,
 ) -> Callable[[], None]:
     from sentry.metrics.middleware import get_current_global_tags
 

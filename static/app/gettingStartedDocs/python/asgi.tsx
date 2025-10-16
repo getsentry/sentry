@@ -1,21 +1,21 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -31,6 +31,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -96,78 +102,98 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock(),
+      ],
     },
   ],
 
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Wrap your ASGI application with [code: SentryAsgiMiddleware]:', {
-        code: <code />,
-      }),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct('Wrap your ASGI application with [code: SentryAsgiMiddleware]:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        alternativeProfilingConfiguration(params),
+        {
+          type: 'text',
+          text: t('The middleware supports both ASGI 2 and ASGI 3 transparently.'),
+        },
       ],
-      additionalInfo: (
-        <Fragment>
-          {params.isProfilingSelected &&
-            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-              <Fragment>
-                <AlternativeConfiguration />
-                <br />
-              </Fragment>
-            )}
-          {t('The middleware supports both ASGI 2 and ASGI 3 transparently.')}
-        </Fragment>
-      ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t('To verify that everything is working trigger an error on purpose:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify that everything is working trigger an error on purpose:'),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getVerifySnippet(),
         },
+        getVerifyLogsContent(params),
+        {
+          type: 'text',
+          text: tct(
+            'Run your ASGI app with uvicorn ([code:uvicorn main:app --port 8000]) and point your browser to [link:http://localhost:8000]. A transaction in the Performance section of Sentry will be created.',
+            {
+              code: <code />,
+              link: <ExternalLink href="http://localhost:8000" />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'Additionally, an error event will be sent to Sentry and will be connected to the transaction. It takes a couple of moments for the data to appear in Sentry.'
+          ),
+        },
       ],
-      additionalInfo: (
-        <span>
-          <p>
-            {tct(
-              'Run your ASGI app with uvicorn ([code:uvicorn main:app --port 8000]) and point your browser to [link:http://localhost:8000]. A transaction in the Performance section of Sentry will be created.',
-              {
-                code: <code />,
-                link: <ExternalLink href="http://localhost:8000" />,
-              }
-            )}
-          </p>
-          <p>
-            {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </span>
-      ),
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding();
 
 const docs: Docs = {
   onboarding,
-
   crashReportOnboarding: crashReportOnboardingPython,
   profilingOnboarding: getPythonProfilingOnboarding(),
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

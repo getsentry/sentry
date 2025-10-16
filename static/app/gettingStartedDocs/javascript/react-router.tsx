@@ -8,7 +8,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigOptions,
@@ -20,12 +20,66 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getClientSetupSnippet = (params: Params) => `
+const getClientSetupSnippet = (params: Params) => {
+  const logsSnippet = params.isLogsSelected
+    ? `
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
+    : '';
+
+  const performanceSnippet = params.isPerformanceSelected
+    ? `
+  tracesSampleRate: 1.0, // Capture 100% of the transactions
+  // Set \`tracePropagationTargets\` to declare which URL(s) should have trace propagation enabled
+  tracePropagationTargets: [/^\\//, /^https:\\/\\/yourserver\\.io\\/api/],`
+    : '';
+
+  const replaySnippet = params.isReplaySelected
+    ? `
+  replaysSessionSampleRate: 0.1, // Capture 10% of all sessions
+  replaysOnErrorSampleRate: 1.0, // Capture 100% of sessions with an error`
+    : '';
+
+  const integrationsList = [];
+
+  if (params.isPerformanceSelected) {
+    integrationsList.push(`
+    // Tracing
+    Sentry.reactRouterTracingIntegration(),`);
+  }
+
+  if (params.isReplaySelected) {
+    integrationsList.push(`
+    // Session Replay
+    Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`);
+  }
+
+  if (params.isFeedbackSelected) {
+    integrationsList.push(`
+    // User Feedback
+    Sentry.feedbackIntegration({
+      // Additional SDK configuration goes in here, for example:
+      colorScheme: "system",
+      ${getFeedbackConfigOptions(params.feedbackOptions)}
+    }),`);
+  }
+
+  const integrationsCode =
+    integrationsList.length > 0
+      ? `
+  integrations: [${integrationsList.join('')}
+  ],`
+      : '';
+
+  return `
 import * as Sentry from "@sentry/react-router";
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
@@ -33,53 +87,9 @@ import { HydratedRouter } from "react-router/dom";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-
   // Adds request headers and IP for users, for more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
-
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-    // Performance
-    Sentry.reactRouterTracingIntegration(),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-    // Session Replay
-    Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-    // User Feedback
-    Sentry.feedbackIntegration({
-      // Additional SDK configuration goes in here, for example:
-      colorScheme: "system",
-      ${getFeedbackConfigOptions(params.feedbackOptions)}
-    }),`
-      : ''
-  }
-  ],${
-    params.isPerformanceSelected
-      ? `
-
-  tracesSampleRate: 1.0, // Capture 100% of the transactions
-
-  // Set \`tracePropagationTargets\` to declare which URL(s) should have trace propagation enabled
-  tracePropagationTargets: [/^\\//, /^https:\\/\\/yourserver\\.io\\/api/],`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-
-  // Capture Replay for 10% of all sessions,
-  // plus 100% of sessions with an error
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,`
-      : ''
-  }
+  sendDefaultPii: true,${integrationsCode}${logsSnippet}${performanceSnippet}${replaySnippet}
 });
 
 startTransition(() => {
@@ -90,6 +100,7 @@ startTransition(() => {
     </StrictMode>
   );
 });`;
+};
 
 const getRootErrorBoundarySnippet = () => `
 import * as Sentry from "@sentry/react-router";
@@ -127,37 +138,53 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   );
 }`;
 
-const getServerSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/react-router";${
-  params.isProfilingSelected
+const getServerSetupSnippet = (params: Params) => {
+  const logsSnippet = params.isLogsSelected
+    ? `
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
+    : '';
+
+  const performanceSnippet = params.isPerformanceSelected
+    ? `
+  tracesSampleRate: 1.0, // Capture 100% of the transactions`
+    : '';
+
+  const profilingSnippet = params.isProfilingSelected
+    ? `
+  profilesSampleRate: 1.0, // profile every transaction`
+    : '';
+
+  const profilingImport = params.isProfilingSelected
     ? `
 import { nodeProfilingIntegration } from '@sentry/profiling-node';`
-    : ''
-}
+    : '';
+
+  const integrationsList = [];
+
+  if (params.isProfilingSelected) {
+    integrationsList.push(`
+    // Profiling
+    nodeProfilingIntegration(),`);
+  }
+
+  const integrationsCode =
+    integrationsList.length > 0
+      ? `
+  integrations: [${integrationsList.join('')}
+  ],`
+      : '';
+
+  return `
+import * as Sentry from "@sentry/react-router";${profilingImport}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-
   // Adds request headers and IP for users, for more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,${
-    params.isProfilingSelected
-      ? `
-
-  integrations: [nodeProfilingIntegration()],`
-      : ''
-  }${
-    params.isPerformanceSelected
-      ? `
-  tracesSampleRate: 1.0, // Capture 100% of the transactions`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-  profilesSampleRate: 1.0, // profile every transaction`
-      : ''
-  }
+  sendDefaultPii: true,${integrationsCode}${logsSnippet}${performanceSnippet}${profilingSnippet}
 });`;
+};
 
 const getServerEntrySnippet = () => `
 import * as Sentry from '@sentry/react-router';
@@ -178,21 +205,30 @@ export const handleError: HandleErrorFunction = (error, { request }) => {
   // React Router may abort some interrupted requests, don't log those
   if (!request.signal.aborted) {
     Sentry.captureException(error);
-    // optionally log the error so you can see it
+    // optionally log the error to the console so you can see it
     console.error(error);
   }
 };`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info("User triggered test error", {
+    'action': 'test_loader_error',
+  });`
+    : '';
+  return `
 import type { Route } from "./+types/error-page";
 
-export async function loader() {
+export async function loader() {${logsCode}
   throw new Error("Sentry Test Error");
 }
 
 export default function ErrorPage() {
   return <div>This page will throw an error!</div>;
 }`;
+};
 
 const getPackageJsonScriptsSnippet = () => `
 {
@@ -297,7 +333,7 @@ const onboarding: OnboardingConfig = {
     },
     {
       description: tct(
-        'Initialize the Sentry React Router SDK in your [code:entry.client.tsx] file:',
+        'Initialize the Sentry React Router SDK in your [code:entry.client.tsx] file, above where you call [code:hydrateRoot]:',
         {code: <code />}
       ),
       title: t('Client Setup'),
@@ -369,7 +405,7 @@ const onboarding: OnboardingConfig = {
       collapsible: true,
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -378,7 +414,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'tsx',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
@@ -430,7 +466,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -505,6 +541,11 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'react-router',
+    configFileName: 'instrument.server.mjs',
+  }),
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'react-router',
+    sdkPackage: '@sentry/react-router',
   }),
 };
 

@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RadioGroupPanel from 'sentry/views/alerts/wizard/radioPanelGroup';
 
-describe('RadioGroupPanel', function () {
-  it('calls onChange when clicked', async function () {
+describe('RadioGroupPanel', () => {
+  it('calls onChange when clicked', async () => {
     const mock = jest.fn();
 
     render(
@@ -11,9 +11,9 @@ describe('RadioGroupPanel', function () {
         label="test"
         value="choice_one"
         choices={[
-          ['choice_one', 'Choice One'],
-          ['choice_two', 'Choice Two'],
-          ['choice_three', 'Choice Three'],
+          {id: 'choice_one', name: 'Choice One'},
+          {id: 'choice_two', name: 'Choice Two'},
+          {id: 'choice_three', name: 'Choice Three'},
         ]}
         onChange={mock}
       />
@@ -24,7 +24,7 @@ describe('RadioGroupPanel', function () {
     expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
   });
 
-  it('Renders extra content', function () {
+  it('Renders extra content', () => {
     const mock = jest.fn();
 
     render(
@@ -32,9 +32,9 @@ describe('RadioGroupPanel', function () {
         label="test"
         value="choice_one"
         choices={[
-          ['choice_one', 'Choice One'],
-          ['choice_two', 'Choice Two', 'extra content'],
-          ['choice_three', 'Choice Three'],
+          {id: 'choice_one', name: 'Choice One'},
+          {id: 'choice_two', name: 'Choice Two', trailingContent: 'extra content'},
+          {id: 'choice_three', name: 'Choice Three'},
         ]}
         onChange={mock}
       />

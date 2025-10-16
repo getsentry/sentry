@@ -1,18 +1,9 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {Item, ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {Button} from 'sentry/components/core/button';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -45,7 +36,6 @@ export function DropdownAddTeam({
   disabled,
   isLoadingTeams,
   isAddingTeamToMember = false,
-  isAddingTeamToProject = false,
   onSearch,
   onSelect,
   onCreateTeam,
@@ -63,142 +53,68 @@ export function DropdownAddTeam({
   teams: Team[];
   canCreateTeam?: boolean;
   isAddingTeamToMember?: boolean;
-  isAddingTeamToProject?: boolean;
   onCreateTeam?: (team: Team) => void;
   project?: Project;
 }) {
-  const dropdownItems: ItemsBeforeFilter = teams
+  const dropdownItems = teams
     .filter(team => !selectedTeams.includes(team.slug))
-    .map((team, index) =>
-      getDropdownOption({
-        isAddingTeamToMember,
-        isAddingTeamToProject,
-        team,
-        index,
-        disabled,
-      })
-    );
+    .map<SelectOption<string>>(team => {
+      const isIdpProvisioned = isAddingTeamToMember && team.flags['idp:provisioned'];
 
-  const onDropdownChange = debounce<(e: React.ChangeEvent<HTMLInputElement>) => void>(
-    e => onSearch(e.target.value),
-    DEFAULT_DEBOUNCE_DURATION
-  );
+      return {
+        value: team.slug,
+        textValue: team.slug,
+        leadingItems: <TeamAvatar team={team} size={16} />,
+        label: `#${team.slug}`,
+        disabled: disabled || isIdpProvisioned,
+        tooltip: getButtonHelpText(isIdpProvisioned),
+        hideCheck: true,
+      };
+    });
 
-  return (
-    <DropdownAutoComplete
-      items={dropdownItems}
-      busyItemsStillVisible={isLoadingTeams}
-      onChange={onDropdownChange}
-      onSelect={(option: Item) => onSelect(option.value)}
-      emptyMessage={t('No teams')}
-      menuHeader={renderDropdownHeader({
-        organization,
-        project,
-        onCreateTeam,
-      })}
-      disabled={disabled}
-      alignMenu="right"
-    >
-      {({isOpen}) => (
-        <DropdownButton isOpen={isOpen} size="xs" disabled={disabled}>
-          {t('Add Team')}
-        </DropdownButton>
-      )}
-    </DropdownAutoComplete>
-  );
-}
-
-function getDropdownOption({
-  disabled,
-  index,
-  isAddingTeamToMember,
-  team,
-}: {
-  disabled: boolean;
-  index: number;
-  isAddingTeamToMember: boolean;
-  isAddingTeamToProject: boolean;
-  team: Team;
-}): ItemsBeforeFilter[number] {
-  const isIdpProvisioned = isAddingTeamToMember && team.flags['idp:provisioned'];
-  const label = isIdpProvisioned ? (
-    <Tooltip title={getButtonHelpText(isIdpProvisioned)}>
-      <DisabledTeam avatarSize={18} team={team} />
-    </Tooltip>
-  ) : (
-    <TeamBadge avatarSize={18} team={team} />
-  );
-
-  return {
-    index,
-    value: team.slug,
-    searchKey: team.slug,
-    label,
-    disabled: disabled || isIdpProvisioned,
-  };
-}
-
-function renderDropdownHeader({
-  organization,
-  project,
-  onCreateTeam,
-}: {
-  organization: Organization;
-  onCreateTeam?: (team: any) => void;
-  project?: Project;
-}) {
   const canCreateTeam = hasEveryAccess(['org:write'], {organization, project});
 
+  const createTeam = (
+    <Button
+      title={
+        canCreateTeam ? undefined : t('You must be a Org Owner/Manager to create teams')
+      }
+      borderless
+      priority="link"
+      size="zero"
+      disabled={!canCreateTeam}
+      onClick={(e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        openCreateTeamModal({
+          organization,
+          project,
+          onClose: onCreateTeam,
+        });
+      }}
+    >
+      {t('Create Team')}
+    </Button>
+  );
+
   return (
-    <StyledTeamsLabel>
-      <span>{t('Teams')}</span>
-
-      <Tooltip
-        disabled={canCreateTeam}
-        title={t('You must be a Org Owner/Manager to create teams')}
-        position="top"
-      >
-        <CreateTeamLink
-          to="#create-team"
-          disabled={!canCreateTeam}
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-            e.preventDefault();
-
-            openCreateTeamModal({
-              organization,
-              project,
-              onClose: onCreateTeam,
-            });
-          }}
-        >
-          {t('Create Team')}
-        </CreateTeamLink>
-      </Tooltip>
-    </StyledTeamsLabel>
+    <CompactSelect
+      size="xs"
+      menuWidth={300}
+      options={dropdownItems}
+      value=""
+      disabled={false}
+      onClose={() => onSearch('')}
+      onChange={selection => onSelect(selection.value)}
+      menuTitle={t('Teams')}
+      triggerProps={{children: t('Add Team')}}
+      searchPlaceholder={t('Search Teams')}
+      emptyMessage={t('No Teams')}
+      loading={isLoadingTeams}
+      searchable
+      onSearch={onSearch}
+      menuHeaderTrailingItems={createTeam}
+    />
   );
 }
-
-const DisabledTeam = styled(TeamBadge)`
-  filter: grayscale(1);
-`;
-
-const StyledTeamsLabel = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  font-size: 0.875em;
-  padding: ${space(0.5)} 0px;
-  text-transform: uppercase;
-`;
-
-const CreateTeamLink = styled(Link)`
-  float: right;
-  ${p =>
-    p.disabled &&
-    css`
-      cursor: not-allowed;
-      color: ${p.theme.disabled};
-      opacity: 0.6;
-    `};
-`;

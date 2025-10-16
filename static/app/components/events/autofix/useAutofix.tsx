@@ -1,18 +1,24 @@
 import {useCallback, useMemo, useState} from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
-  type AutofixData,
   AutofixStatus,
   AutofixStepType,
+  AutofixStoppingPoint,
+  CodingAgentStatus,
+  type AutofixData,
   type GroupWithAutofix,
 } from 'sentry/components/events/autofix/types';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {
-  type ApiQueryKey,
+  fetchMutation,
   setApiQueryData,
   useApiQuery,
-  type UseApiQueryOptions,
+  useMutation,
   useQueryClient,
+  type ApiQueryKey,
+  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -130,6 +136,18 @@ const isPolling = (
     return true;
   }
 
+  // Poll while coding agent state is pending or running
+  if (
+    autofixData.coding_agents &&
+    Object.values(autofixData.coding_agents).some(
+      agent =>
+        agent.status === CodingAgentStatus.PENDING ||
+        agent.status === CodingAgentStatus.RUNNING
+    )
+  ) {
+    return true;
+  }
+
   return (
     !autofixData ||
     ![
@@ -219,7 +237,7 @@ export const useAiAutofix = (
   );
 
   const triggerAutofix = useCallback(
-    async (instruction: string) => {
+    async (instruction: string, stoppingPoint?: AutofixStoppingPoint) => {
       setIsReset(false);
       setCurrentRunId(null);
       setWaitingForNextRun(true);
@@ -237,6 +255,7 @@ export const useAiAutofix = (
             data: {
               event_id: event.id,
               instruction,
+              ...(stoppingPoint && {stopping_point: stoppingPoint}),
             },
           }
         );
@@ -244,7 +263,7 @@ export const useAiAutofix = (
         queryClient.invalidateQueries({
           queryKey: makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
         });
-      } catch (e) {
+      } catch (e: any) {
         setWaitingForNextRun(false);
         setApiQueryData<AutofixResponse>(
           queryClient,
@@ -287,3 +306,54 @@ export const useAiAutofix = (
     reset,
   };
 };
+
+export function useCodingAgentIntegrations() {
+  const organization = useOrganization();
+
+  return useApiQuery<{
+    integrations: Array<{
+      id: string;
+      name: string;
+      provider: string;
+    }>;
+  }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+interface LaunchCodingAgentParams {
+  agentName: string;
+  integrationId: string;
+  triggerSource?: 'root_cause' | 'solution';
+}
+
+export function useLaunchCodingAgent(groupId: string, runId: string) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: LaunchCodingAgentParams) => {
+      return fetchMutation({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'POST',
+        data: {
+          integration_id: parseInt(params.integrationId, 10),
+          run_id: parseInt(runId, 10),
+          trigger_source: params.triggerSource,
+        },
+      });
+    },
+    onSuccess: (_, params) => {
+      addSuccessMessage(t('%s launched successfully', params.agentName));
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(organization.slug, groupId, false),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(organization.slug, groupId, true),
+      });
+    },
+    onError: (_, params) => {
+      addErrorMessage(t('Failed to launch %s', params.agentName));
+    },
+  });
+}

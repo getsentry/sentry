@@ -1,14 +1,16 @@
-import type {ComponentProps, CSSProperties, HTMLAttributes} from 'react';
+import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
 import {css} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex} from 'sentry/components/core/layout/flex';
 import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
+import {defined} from 'sentry/utils';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+  ref?: RefObject<HTMLDivElement | null>;
 }
 
 interface RowProps extends HTMLAttributes<HTMLDivElement> {
@@ -23,17 +25,23 @@ export function SimpleTable({children, ...props}: TableProps) {
   );
 }
 
-function Header({children}: {children: React.ReactNode}) {
-  return <StyledPanelHeader role="row">{children}</StyledPanelHeader>;
+function Header({children, ...props}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <StyledPanelHeader {...props} role="row">
+      {children}
+    </StyledPanelHeader>
+  );
 }
 
 function HeaderCell({
   children,
   sort,
   handleSortClick,
+  divider = defined(children) ? true : false,
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;
+  divider?: boolean;
   handleSortClick?: () => void;
   sort?: 'asc' | 'desc';
 }) {
@@ -48,9 +56,9 @@ function HeaderCell({
       role="columnheader"
       as={canSort ? 'button' : 'div'}
     >
-      {children && <HeaderDivider />}
+      {divider && <HeaderDivider />}
       {canSort && <InteractionStateLayer />}
-      <HeadingText>{children}</HeadingText>
+      <Flex align="center">{children}</Flex>
       {isSorted && (
         <SortIndicator
           aria-hidden
@@ -141,11 +149,6 @@ const StyledRow = styled('div', {
     `}
 `;
 
-const HeadingText = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const HeaderDivider = styled('div')`
   position: absolute;
   left: 0;
@@ -186,6 +189,21 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
     `}
 `;
 
+const rowLinkStyle = (p: {theme: Theme}) => css`
+  /** Adjust margin/padding to account for StyledRowCell padding */
+  margin: -${p.theme.space.lg} -${p.theme.space.xl};
+  padding: ${p.theme.space.lg} ${p.theme.space.xl};
+
+  /** Ensure cursor is set in case this is applied to a div */
+  cursor: pointer;
+
+  &:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+`;
+
 const SortIndicator = styled(IconArrow, {
   shouldForwardProp: prop => prop !== 'isSorted',
 })<{isSorted?: boolean}>`
@@ -213,4 +231,5 @@ SimpleTable.Header = Header;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
+SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = StyledEmptyMessage;

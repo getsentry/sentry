@@ -15,6 +15,7 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -89,7 +90,6 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams<{automationId: string}>();
-  const {mutateAsync: updateAutomation} = useUpdateAutomation();
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -116,6 +116,9 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
     Record<string, string>
   >({});
+
+  const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
+
   const removeError = useCallback((errorId: string) => {
     setAutomationBuilderErrors(prev => {
       const {[errorId]: _removedError, ...remainingErrors} = prev;
@@ -171,9 +174,17 @@ function AutomationEditForm({automation}: {automation: Automation}) {
                 errors: automationBuilderErrors,
                 setErrors: setAutomationBuilderErrors,
                 removeError,
+                mutationErrors: error?.responseJSON,
               }}
             >
-              <AutomationBuilderContext.Provider value={{state, actions}}>
+              <AutomationBuilderContext.Provider
+                value={{
+                  state,
+                  actions,
+                  showTriggerLogicTypeSelector:
+                    state.triggers.logicType === DataConditionGroupLogicType.ALL,
+                }}
+              >
                 <AutomationForm model={model} />
               </AutomationBuilderContext.Provider>
             </AutomationBuilderErrorContext.Provider>

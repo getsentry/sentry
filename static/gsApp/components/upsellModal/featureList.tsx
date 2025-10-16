@@ -87,7 +87,7 @@ const CountdownRing = withTheme(({theme, id, totalTime}: CountdownRingProps) => 
   }, [timeLeft]);
 
   // Reset time left when id changes
-  useEffect(() => void setTimeLeft(totalTime), [id, totalTime]);
+  useEffect(() => setTimeLeft(totalTime), [id, totalTime]);
 
   return (
     <RingContainer animate={{opacity: 1}} initial={{opacity: 0}} exit={{opacity: 0}}>

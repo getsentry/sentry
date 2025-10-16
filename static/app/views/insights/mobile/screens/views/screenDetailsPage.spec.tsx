@@ -2,6 +2,7 @@ import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -12,9 +13,9 @@ import ScreenDetailsPage from 'sentry/views/insights/mobile/screens/views/screen
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
-describe('ScreenDetailsPage', function () {
+describe('ScreenDetailsPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture();
 
@@ -46,10 +47,17 @@ describe('ScreenDetailsPage', function () {
     })
   );
 
-  describe('Tabs', function () {
+  describe('Tabs', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        body: {
+          timeSeries: [
+            TimeSeriesFixture({
+              yAxis: 'epm()',
+            }),
+          ],
+        },
       });
 
       MockApiClient.addMockResponse({
@@ -66,7 +74,7 @@ describe('ScreenDetailsPage', function () {
       jest.clearAllMocks();
     });
 
-    it('renders the tabs correctly', async function () {
+    it('renders the tabs correctly', async () => {
       jest.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',

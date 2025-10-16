@@ -1,21 +1,23 @@
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import orjson
+from django.contrib.auth.models import AnonymousUser
 
 from sentry import search
-from sentry.api.event_search import SearchFilter, parse_search_query
-from sentry.api.issue_search import convert_query_values
+from sentry.api.event_search import SearchFilter
+from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
-from sentry.eventstore import backend as eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
-from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
+from sentry.seer.explorer.utils import (
+    convert_profile_to_execution_tree,
+    fetch_profile_data,
+    normalize_description,
+)
 from sentry.seer.sentry_data_models import (
     IssueDetails,
     ProfileData,
@@ -25,10 +27,15 @@ from sentry.seer.sentry_data_models import (
     Transaction,
     TransactionIssues,
 )
+from sentry.services.eventstore import backend as eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger(__name__)
+
+# Regex to match unescaped quotes (not preceded by backslash)
+UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 def get_transactions_for_project(project_id: int) -> list[Transaction]:
@@ -134,9 +141,10 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
     # Step 1: Get trace IDs with their span counts in a single query
+    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
     traces_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"transaction:{transaction_name} project.id:{project_id}",
+        query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
         selected_columns=[
             "trace",
             "count()",  # This counts all spans in each trace
@@ -181,7 +189,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         ],
         orderby=["precise.start_ts"],
         offset=0,
-        limit=1000,
+        limit=5000,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",
@@ -201,7 +209,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
                     span_id=span_id,
                     parent_span_id=parent_span_id,
                     span_op=span_op,
-                    span_description=normalize_description(span_description or ""),
+                    span_description=span_description or "",
                 )
             )
 
@@ -212,31 +220,6 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         total_spans=len(spans),
         spans=spans,
     )
-
-
-def _fetch_profile_data(
-    profile_id: str, organization_id: int, project_id: int
-) -> dict[str, Any] | None:
-    """
-    Fetch raw profile data from the profiling service.
-
-    Args:
-        profile_id: The profile ID to fetch
-        organization_id: Organization ID
-        project_id: Project ID
-
-    Returns:
-        Raw profile data or None if not found
-    """
-    response = get_from_profiling_service(
-        "GET",
-        f"/organizations/{organization_id}/projects/{project_id}/profiles/{profile_id}",
-        params={"format": "sample"},
-    )
-
-    if response.status == 200:
-        return orjson.loads(response.data)
-    return None
 
 
 def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | None:
@@ -272,17 +255,21 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         auto_fields=True,
     )
 
-    # Step 1: Find spans in the trace that have profile data
+    # Step 1: Find spans in the trace that have profile data - using same constraint as flamegraph
+    profiling_constraint = "(has:profile.id) or (has:profiler.id has:thread.id)"
     profiles_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"trace:{trace_id} has:profile.id project.id:{project_id}",
+        query_string=f"trace:{trace_id} project.id:{project_id} {profiling_constraint}",
         selected_columns=[
             "span_id",
             "profile.id",
+            "profiler.id",
+            "thread.id",
             "transaction",
             "span.op",
             "is_transaction",
             "precise.start_ts",
+            "precise.finish_ts",
         ],
         orderby=["precise.start_ts"],
         offset=0,
@@ -292,26 +279,93 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         sampling_mode="NORMAL",
     )
 
-    # Step 2: Deduplicate by span_id (one profile per span/transaction)
-    seen_spans = set()
-    unique_profiles = []
+    # Step 2: Collect all profiles and merge those with same profile_id and is_continuous
+    all_profiles = []
 
     for row in profiles_result.get("data", []):
         span_id = row.get("span_id")
-        profile_id = row.get("profile.id")
+        profile_id = row.get("profile.id")  # Transaction profiles
+        profiler_id = row.get("profiler.id")  # Continuous profiles
         transaction_name = row.get("transaction")
+        start_ts = row.get("precise.start_ts")
+        end_ts = row.get("precise.finish_ts")
 
-        if not span_id or not profile_id or span_id in seen_spans:
-            continue
-
-        seen_spans.add(span_id)
-        unique_profiles.append(
-            {
+        logger.info(
+            "Iterating over span to get profiles",
+            extra={
                 "span_id": span_id,
                 "profile_id": profile_id,
+                "profiler_id": profiler_id,
                 "transaction_name": transaction_name,
+            },
+        )
+
+        if not span_id:
+            logger.info(
+                "Span doesn't have an id, skipping",
+                extra={"span_id": span_id},
+            )
+            continue
+
+        # Use profile.id first (transaction profiles), fallback to profiler.id (continuous profiles)
+        actual_profile_id = profile_id or profiler_id
+        if not actual_profile_id:
+            logger.info(
+                "Span doesn't have a profile or profiler id, skipping",
+                extra={"span_id": span_id},
+            )
+            continue
+
+        # Determine if this is a continuous profile (profiler.id without profile.id)
+        is_continuous = profile_id is None and profiler_id is not None
+
+        all_profiles.append(
+            {
+                "span_id": span_id,
+                "profile_id": actual_profile_id,
+                "transaction_name": transaction_name,
+                "is_continuous": is_continuous,
+                "start_ts": start_ts,
+                "end_ts": end_ts,
             }
         )
+
+    # Merge profiles with same profile_id and is_continuous
+    # Use the earliest start_ts and latest end_ts for merged profiles
+    profile_groups = {}
+    for profile in all_profiles:
+        key = (profile["profile_id"], profile["is_continuous"])
+
+        if key not in profile_groups:
+            profile_groups[key] = {
+                "span_id": profile["span_id"],  # Keep the first span_id
+                "profile_id": profile["profile_id"],
+                "transaction_name": profile["transaction_name"],
+                "is_continuous": profile["is_continuous"],
+                "start_ts": profile["start_ts"],
+                "end_ts": profile["end_ts"],
+            }
+        else:
+            # Merge time ranges - use earliest start and latest end
+            existing = profile_groups[key]
+            if profile["start_ts"] and (
+                existing["start_ts"] is None or profile["start_ts"] < existing["start_ts"]
+            ):
+                existing["start_ts"] = profile["start_ts"]
+            if profile["end_ts"] and (
+                existing["end_ts"] is None or profile["end_ts"] > existing["end_ts"]
+            ):
+                existing["end_ts"] = profile["end_ts"]
+
+    unique_profiles = list(profile_groups.values())
+
+    logger.info(
+        "Merged profiles",
+        extra={
+            "original_count": len(all_profiles),
+            "merged_count": len(unique_profiles),
+        },
+    )
 
     if not unique_profiles:
         logger.info(
@@ -327,12 +381,18 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         profile_id = profile_info["profile_id"]
         span_id = profile_info["span_id"]
         transaction_name = profile_info["transaction_name"]
+        is_continuous = profile_info["is_continuous"]
+        start_ts = profile_info["start_ts"]
+        end_ts = profile_info["end_ts"]
 
         # Fetch raw profile data
-        raw_profile = _fetch_profile_data(
+        raw_profile = fetch_profile_data(
             profile_id=profile_id,
             organization_id=project.organization_id,
             project_id=project_id,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            is_continuous=is_continuous,
         )
 
         if not raw_profile:
@@ -357,7 +417,19 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     transaction_name=transaction_name,
                     execution_tree=execution_tree,
                     project_id=project_id,
+                    start_ts=start_ts,
+                    end_ts=end_ts,
+                    is_continuous=is_continuous,
                 )
+            )
+        else:
+            logger.warning(
+                "Failed to convert profile to execution tree",
+                extra={
+                    "profile_id": profile_id,
+                    "trace_id": trace_id,
+                    "project_id": project_id,
+                },
             )
 
     if not processed_profiles:
@@ -398,18 +470,21 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     start_time = end_time - timedelta(hours=24)
 
     # Step 1: Search for issues using transaction filter
-    parsed_terms = parse_search_query(f'transaction:"{transaction_name}"')
-    converted_terms = convert_query_values(parsed_terms, [project], None, [])
-    search_filters = [term for term in converted_terms if isinstance(term, SearchFilter)]
+    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
+    query = f'is:unresolved transaction:"{escaped_transaction_name}"'
+    search_filters = parse_and_convert_issue_search_query(
+        query, project.organization, [project], [], AnonymousUser()
+    )
+    search_filters_only = [f for f in search_filters if isinstance(f, SearchFilter)]
 
     results_cursor = search.backend.query(
         projects=[project],
         date_from=start_time,
         date_to=end_time,
-        search_filters=search_filters,
+        search_filters=search_filters_only,
         sort_by="freq",
         limit=3,
-        environments=[],
+        referrer=Referrer.SEER_RPC,
     )
     issues = list(results_cursor)
 
@@ -451,7 +526,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
 
         issue_data_list.append(
             IssueDetails(
-                issue_id=group.id,
+                id=group.id,
                 title=group.title,
                 culprit=group.culprit,
                 transaction=full_event.transaction,

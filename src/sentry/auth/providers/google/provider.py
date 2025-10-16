@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from django.http import HttpRequest
 
@@ -20,7 +21,7 @@ class GoogleOAuth2Login(OAuth2Login):
     authorize_url = AUTHORIZE_URL
     scope = SCOPE
 
-    def __init__(self, client_id: str, domains=None) -> None:
+    def __init__(self, client_id: str, domains: list[str] | None = None) -> None:
         self.domains = domains
         super().__init__(client_id=client_id)
 
@@ -38,7 +39,13 @@ class GoogleOAuth2Provider(OAuth2Provider):
     name = "Google"
     key = "google"
 
-    def __init__(self, domain=None, domains=None, version=None, **config) -> None:
+    def __init__(
+        self,
+        domain: str | None = None,
+        domains: list[str] | None = None,
+        version: str | None = None,
+        **config: Any,
+    ) -> None:
         if domain:
             if domains:
                 domains.append(domain)
@@ -81,10 +88,10 @@ class GoogleOAuth2Provider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
-    def build_config(self, state):
+    def build_config(self, state: Mapping[str, Any]) -> dict[str, Any]:
         return {"domains": [state["domain"]], "version": DATA_VERSION}
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         # https://developers.google.com/identity/protocols/OpenIDConnect#server-flow
         # data.user => {
         #      "iss":"accounts.google.com",

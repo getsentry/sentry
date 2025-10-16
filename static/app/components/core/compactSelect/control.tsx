@@ -200,14 +200,11 @@ export interface ControlProps
    * won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    props: Omit<React.HTMLAttributes<HTMLButtonElement>, 'children'> & {
+      ref?: React.Ref<HTMLButtonElement | null>;
+    },
     isOpen: boolean
   ) => React.ReactNode;
-  /**
-   * Label text inside the default trigger button. This is optional — by default the
-   * selected option's label will be used.
-   */
-  triggerLabel?: React.ReactNode;
   /**
    * Props to be passed to the default trigger button.
    */
@@ -221,8 +218,7 @@ export function Control({
   // Control props
   autoFocus,
   trigger,
-  triggerLabel: triggerLabelProp,
-  triggerProps,
+  triggerProps: {children: triggerLabelProp, ...triggerProps} = {},
   isOpen,
   onClose,
   isDismissable,
@@ -526,7 +522,7 @@ export function Control({
           </DropdownButton>
         )}
         <StyledPositionWrapper
-          zIndex={theme.zIndex?.tooltip}
+          zIndex={theme.zIndex?.dropdown}
           visible={overlayIsOpen}
           {...overlayProps}
         >
@@ -645,6 +641,8 @@ const MenuTitle = styled('span')`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
   && {
     margin: 0;
   }

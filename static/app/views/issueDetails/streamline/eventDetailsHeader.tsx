@@ -1,10 +1,11 @@
 import {useEffect} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
@@ -25,10 +26,8 @@ import {
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
-import {
-  EventSearch,
-  useEventQuery,
-} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
@@ -52,8 +51,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
-  const searchQuery = useEventQuery({groupId: group.id});
+  const searchQuery = useEventQuery();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -94,6 +94,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     return null;
   }
 
+  const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
       <DetailsContainer
@@ -111,56 +113,65 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             )}
             position="bottom-start"
           >
-            <FilterSection>
-              <FilterContainer>
-                <EnvironmentSelector group={group} event={event} project={project} />
-                <DateFilter
-                  menuTitle={t('Filter Time Range')}
-                  start={period?.start}
-                  end={period?.end}
-                  utc={location.query.utc === 'true'}
-                  relative={period?.statsPeriod}
-                  relativeOptions={props => {
-                    return {
-                      ...props.arbitraryOptions,
-                      // Always display arbitrary issue open period
-                      ...(defaultStatsPeriod?.statsPeriod
-                        ? {
-                            [defaultStatsPeriod.statsPeriod]: t(
-                              '%s (since first seen)',
-                              getRelativeSummary(defaultStatsPeriod.statsPeriod)
-                            ),
-                          }
-                        : {}),
-                      ...props.defaultOptions,
-                    };
-                  }}
-                  onChange={({relative, start, end, utc}) => {
-                    navigate({
-                      ...location,
-                      query: {
-                        ...location.query,
-                        // If selecting the issue open period, remove the stats period query param
-                        statsPeriod:
-                          relative === defaultStatsPeriod?.statsPeriod
-                            ? undefined
-                            : relative,
-                        start: start ? getUtcDateString(start) : undefined,
-                        end: end ? getUtcDateString(end) : undefined,
-                        utc: utc ? 'true' : undefined,
+            <Flex>
+              <Grid
+                width="100%"
+                gap="sm"
+                columns="auto minmax(100px, 1fr) auto"
+                rows={`minmax(${theme.form.md.height}, auto)`}
+              >
+                <FilterBar>
+                  <EnvironmentSelector group={group} event={event} project={project} />
+                  <TimeRangeSelector
+                    menuTitle={t('Filter Time Range')}
+                    start={period?.start}
+                    end={period?.end}
+                    utc={location.query.utc === 'true'}
+                    relative={period?.statsPeriod}
+                    relativeOptions={props => {
+                      return {
+                        ...props.arbitraryOptions,
+                        // Always display arbitrary issue open period
+                        ...(defaultStatsPeriod?.statsPeriod
+                          ? {
+                              [defaultStatsPeriod.statsPeriod]: t(
+                                '%s (since first seen)',
+                                getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                              ),
+                            }
+                          : {}),
+                        ...props.defaultOptions,
+                      };
+                    }}
+                    onChange={({relative, start, end, utc}) => {
+                      navigate({
+                        ...location,
+                        query: {
+                          ...location.query,
+                          // If selecting the issue open period, remove the stats period query param
+                          statsPeriod:
+                            relative === defaultStatsPeriod?.statsPeriod
+                              ? undefined
+                              : relative,
+                          start: start ? getUtcDateString(start) : undefined,
+                          end: end ? getUtcDateString(end) : undefined,
+                          utc: utc ? 'true' : undefined,
+                        },
+                      });
+                    }}
+                    triggerProps={{
+                      children:
+                        period === defaultStatsPeriod &&
+                        !defaultStatsPeriod.isMaxRetention
+                          ? t('Since First Seen')
+                          : undefined,
+                      style: {
+                        padding: `${theme.space.md} ${theme.space.lg}`,
                       },
-                    });
-                  }}
-                  triggerLabel={
-                    period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
-                      ? t('Since First Seen')
-                      : undefined
-                  }
-                  triggerProps={{
-                    borderless: true,
-                  }}
-                />
-                <SearchFilter
+                    }}
+                  />
+                </FilterBar>
+                <EventSearch
                   group={group}
                   handleSearch={query => {
                     navigate(
@@ -176,15 +187,20 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     label: searchText,
                   }}
                 />
-              </FilterContainer>
+              </Grid>
               <ToggleSidebar />
-            </FilterSection>
+            </Flex>
           </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
             {issueTypeConfig.header.graph.type === 'discover-events' && (
-              <EventGraph event={event} group={group} style={{flex: 1}} />
+              <EventGraph
+                event={event}
+                group={group}
+                showReleasesAs="bubble"
+                style={{flex: 1}}
+              />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
               <MetricIssueChart group={group} project={project} />
@@ -213,40 +229,25 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 }
 
 function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
-  const theme = useTheme();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
-
-  const environmentCss = css`
-    display: block;
-    &:before {
-      right: 0;
-      top: ${theme.space.md};
-      bottom: ${theme.space.md};
-      width: 1px;
-      content: '';
-      position: absolute;
-      background: ${theme.translucentInnerBorder};
-    }
-  `;
+  const theme = useTheme();
+  const style = {
+    padding: `${theme.space.md} ${theme.space.lg}`,
+  };
 
   return isFixedEnvironment ? (
-    <Button
-      disabled
-      borderless
-      title={t('This issue only occurs in a single environment')}
-      css={environmentCss}
-    >
-      {eventEnvironment ?? t('All Envs')}
-    </Button>
-  ) : (
     <EnvironmentPageFilter
-      css={environmentCss}
+      disabled
       triggerProps={{
-        borderless: true,
+        label: eventEnvironment ?? t('All Envs'),
+        title: t('This issue only occurs in a single environment'),
+        style,
       }}
     />
+  ) : (
+    <EnvironmentPageFilter triggerProps={{style}} />
   );
 }
 
@@ -256,53 +257,24 @@ const DetailsContainer = styled('div')<{
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   background: ${p => p.theme.backgroundSecondary};
-  padding-left: ${p => p.theme.space.lg};
-  padding-right: ${p => p.theme.space.lg};
-  padding-top: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
+  padding-top: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
   }
 `;
-const FilterSection = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-`;
 
-const FilterContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto minmax(100px, 1fr) auto;
-  grid-template-rows: minmax(38px, auto);
-  width: 100%;
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.translucentBorder};
-`;
-
-const SearchFilter = styled(EventSearch)`
-  display: block;
-  border-color: transparent;
-  box-shadow: none;
-`;
-
-const DateFilter = styled(TimeRangeSelector)`
-  display: block;
-  &:before {
-    right: 0;
-    top: ${p => p.theme.space.md};
-    bottom: ${p => p.theme.space.md};
-    width: 1px;
-    content: '';
-    position: absolute;
-    background: ${p => p.theme.translucentInnerBorder};
-  }
+const StyledPageFilterBar = styled(PageFilterBar)`
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const GraphSection = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   & > * {
     background: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};

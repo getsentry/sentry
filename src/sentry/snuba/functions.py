@@ -29,7 +29,6 @@ def query(
     offset: int = 0,
     limit: int = 50,
     limitby: tuple[str, int] | None = None,
-    referrer: str = "",
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     use_aggregate_conditions: bool = False,
@@ -44,6 +43,8 @@ def query(
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
     debug: bool = False,
+    *,
+    referrer: str,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -82,7 +83,6 @@ def timeseries_query(
     query: str | None,
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str = "",
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
@@ -94,6 +94,8 @@ def timeseries_query(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> Any:
 
     builder = ProfileFunctionsTimeseriesQueryBuilder(
@@ -143,7 +145,6 @@ def top_events_timeseries(
     limit,
     organization,
     equations=None,
-    referrer=None,
     top_events=None,
     allow_empty=True,
     zerofill_results=True,
@@ -155,6 +156,8 @@ def top_events_timeseries(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 

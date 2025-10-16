@@ -7,8 +7,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   ActionGroup,
-  type ActionHandler,
   ActionType,
+  type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -44,7 +44,14 @@ const actionHandlers: ActionHandler[] = [
   }),
 ];
 
-describe('ActionNodeList', function () {
+const defaultErrorContextProps = {
+  errors: {},
+  mutationErrors: undefined,
+  setErrors: jest.fn(),
+  removeError: jest.fn(),
+};
+
+describe('ActionNodeList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
   const mockOnAddRow = jest.fn();
@@ -60,7 +67,7 @@ describe('ActionNodeList', function () {
     updateAction: mockUpdateAction,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/available-actions/`,
@@ -68,11 +75,9 @@ describe('ActionNodeList', function () {
     });
   });
 
-  it('renders correct action options', async function () {
+  it('renders correct action options', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -94,11 +99,9 @@ describe('ActionNodeList', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Jira'})).toBeInTheDocument();
   });
 
-  it('adds actions', async function () {
+  it('adds actions', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -111,12 +114,10 @@ describe('ActionNodeList', function () {
     expect(mockOnAddRow).toHaveBeenCalledWith(slackActionHandler);
   });
 
-  it('updates existing actions', async function () {
+  it('updates existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -131,12 +132,10 @@ describe('ActionNodeList', function () {
     });
   });
 
-  it('deletes existing actions', async function () {
+  it('deletes existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
       </AutomationBuilderErrorContext.Provider>,
       {

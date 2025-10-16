@@ -39,6 +39,13 @@ AVAILABLE_PROVIDERS = {
 
 STRICT_NAME_PROVIDERS = {
     ExternalProviders.GITHUB,
+    ExternalProviders.GITHUB_ENTERPRISE,
+    ExternalProviders.GITLAB,
+}
+
+CASE_INSENSITIVE_PROVIDERS = {
+    ExternalProviders.GITHUB,
+    ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
 }
 
@@ -95,6 +102,17 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
+
+        if validated_data["provider"] in CASE_INSENSITIVE_PROVIDERS:
+            external_name = validated_data.pop("external_name")
+
+            return ExternalActor.objects.get_or_create(
+                external_name__iexact=external_name,
+                **validated_data,
+                organization=self.organization,
+                defaults={**actor_params, "external_name": external_name},
+            )
+
         return ExternalActor.objects.get_or_create(
             **validated_data,
             organization=self.organization,

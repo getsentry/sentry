@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -20,10 +21,10 @@ import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageD
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
-  LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -75,9 +76,9 @@ jest.mock('@tanstack/react-virtual', () => {
   };
 });
 
-describe('LogsInfiniteTable', function () {
+describe('LogsInfiniteTable', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-infinite-scroll'],
+    features: ['ourlogs-enabled', 'ourlogs-replay-ui'],
   });
   const project = ProjectFixture();
 
@@ -132,26 +133,23 @@ describe('LogsInfiniteTable', function () {
 
   const frozenColumnFields = [OurLogKnownFieldKey.TIMESTAMP, OurLogKnownFieldKey.MESSAGE];
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
 
     ProjectsStore.loadInitialData([project]);
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     mockUseLocation.mockReturnValue(
       LocationFixture({
@@ -198,11 +196,12 @@ describe('LogsInfiniteTable', function () {
   const renderWithProviders = (children: React.ReactNode) => {
     return render(
       <OrganizationContext.Provider value={organization}>
-        <LogsPageParamsProvider
+        <LogsQueryParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
         >
           <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </LogsPageParamsProvider>
+        </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
   };
@@ -251,7 +250,9 @@ describe('LogsInfiniteTable', function () {
     for (const row of allTreeRows) {
       for (const field of visibleColumnFields) {
         await userEvent.hover(row, {delay: null});
-        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+        act(() => {
+          jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+        });
         const cell = await within(row).findByTestId(`log-table-cell-${field}`);
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',
@@ -323,5 +324,139 @@ describe('LogsInfiniteTable', function () {
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalled();
     });
+  });
+
+  it('quantizes log timestamps for replay links', async () => {
+    const replayId = 'abc123def456';
+    const replayId2 = 'abc123eef457';
+
+    const firstLogTime = new Date('2025-04-10T08:37:30.000Z').getTime() * 1_000_000;
+    const lastLogTime = new Date('2025-04-10T08:38:46.000Z').getTime() * 1_000_000;
+
+    MockApiClient.clearMockResponses();
+
+    const eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
+            [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+            [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T08:37:30+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'first log message',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: firstLogTime,
+            [OurLogKnownFieldKey.REPLAY_ID]: replayId,
+          },
+          {
+            [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
+            [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+            [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T08:38:46+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'last log message',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: lastLogTime,
+            [OurLogKnownFieldKey.REPLAY_ID]: replayId2,
+          },
+        ],
+        meta: {
+          fields: {
+            [OurLogKnownFieldKey.ID]: 'string',
+            [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+            [OurLogKnownFieldKey.TRACE_ID]: 'string',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+            [OurLogKnownFieldKey.SEVERITY]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+            [OurLogKnownFieldKey.MESSAGE]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+            [OurLogKnownFieldKey.REPLAY_ID]: 'string',
+          },
+          units: {},
+          isMetricsData: false,
+          isMetricsExtractedData: false,
+          tips: {},
+          datasetReason: 'unchanged',
+          dataset: 'ourlogs',
+          dataScanned: 'full',
+          accuracy: {
+            confidence: [{}, {}],
+          },
+        },
+        confidence: [{}, {}],
+      },
+    });
+
+    const replayMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {
+        [replayId]: 1,
+        [replayId2]: 1,
+      },
+    });
+
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        query: {
+          [LOGS_FIELDS_KEY]: ['message', OurLogKnownFieldKey.REPLAY_ID],
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+        },
+      })
+    );
+
+    renderWithProviders(<LogsInfiniteTable />);
+
+    expect(eventsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: expect.arrayContaining([
+            'id',
+            'project.id',
+            'trace',
+            'severity_number',
+            'severity',
+            'timestamp',
+            'timestamp_precise',
+            'observed_timestamp',
+            'message',
+            'replay_id',
+          ]),
+        }),
+      })
+    );
+
+    await screen.findByText('first log message');
+    await screen.findByText('last log message');
+
+    const table = screen.getByTestId('logs-table');
+    expect(table).toBeInTheDocument();
+    expect(table).toHaveTextContent('first log message');
+    expect(table).toHaveTextContent('last log message');
+
+    await waitFor(() => {
+      expect(replayMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/replay-count/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            data_source: 'discover',
+            project: -1,
+            query: 'replay_id:[abc123def456,abc123eef457]',
+            start: '2025-04-10T08:00:00.000Z',
+            end: '2025-04-10T10:00:00.000Z',
+            statsPeriod: undefined,
+          }),
+        })
+      );
+    });
+
+    await screen.findByText('abc123de');
+    await screen.findByText('abc123ee');
   });
 });

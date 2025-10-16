@@ -6,19 +6,18 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry.eventstore import processing
-from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.processing import get_native_symbolication_function
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services.eventstore import processing
+from sentry.services.eventstore.processing.base import Event
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import symbolication_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -157,7 +156,7 @@ def _do_symbolicate_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    def on_symbolicator_request():
+    def on_symbolicator_request() -> None:
         duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
@@ -273,21 +272,15 @@ TASK_FNS: dict[SymbolicatorTaskKind, str] = {}
 
 def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> SymbolicationTaskFn:
     """
-    Returns a parameterized version of `_do_symbolicate_event` that runs as a Celery task,
+    Returns a parameterized version of `_do_symbolicate_event` that runs as a task,
     and can be spawned as one.
     """
 
     @instrumented_task(
         name=name,
-        queue=queue,
-        time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
-        soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
-        acks_late=True,
+        namespace=symbolication_tasks,
+        processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
         silo_mode=SiloMode.REGION,
-        taskworker_config=TaskworkerConfig(
-            namespace=symbolication_tasks,
-            processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
-        ),
     )
     def symbolication_fn(
         cache_key: str,
@@ -325,14 +318,14 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         )
 
     fn_name = name.split(".")[-1]
-    symbolication_fn.__name__ = fn_name
+    setattr(symbolication_fn, "__name__", fn_name)
     TASK_FNS[task_kind] = fn_name
 
     return symbolication_fn
 
 
 # The names of tasks and metrics in this file point to tasks.store instead of tasks.symbolicator
-# for legacy reasons, namely to prevent celery from dropping older tasks and needing to
+# for legacy reasons, namely to prevent tasks from dropping older tasks and needing to
 # update metrics tooling (e.g. DataDog). All (as of 19/10/2021) of these tasks were moved
 # out of tasks/store.py, hence the "store" bit of the name.
 #

@@ -1292,7 +1292,7 @@ class CollisionTests(ImportTestCase):
     """
 
     @expect_models(COLLISION_TESTED, ApiToken)
-    def test_colliding_api_token(self, expected_models: list[type[Model]]):
+    def test_colliding_api_token(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_exhaustive_user("owner")
         expires_at = timezone.now() + DEFAULT_EXPIRATION
 
@@ -1409,7 +1409,7 @@ class CollisionTests(ImportTestCase):
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, OrganizationMemberInvite)
-    def test_colliding_member_invite_token(self, expected_models: list[type[Model]]):
+    def test_colliding_member_invite_token(self, expected_models: list[type[Model]]) -> None:
         org = self.create_organization(name="some-org")
         invite = self.create_member_invite(
             organization=org, email="user@example.com", token=generate_token()
@@ -1430,7 +1430,7 @@ class CollisionTests(ImportTestCase):
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Monitor)
-    def test_colliding_monitor(self, expected_models: list[type[Model]]):
+    def test_colliding_monitor(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         self.create_exhaustive_organization("some-org", owner, invited)
@@ -1461,7 +1461,7 @@ class CollisionTests(ImportTestCase):
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, OrgAuthToken)
-    def test_colliding_org_auth_token(self, expected_models: list[type[Model]]):
+    def test_colliding_org_auth_token(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1512,7 +1512,7 @@ class CollisionTests(ImportTestCase):
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, ProjectKey)
-    def test_colliding_project_key(self, expected_models: list[type[Model]]):
+    def test_colliding_project_key(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1551,8 +1551,8 @@ class CollisionTests(ImportTestCase):
         strict=True,
     )
     @expect_models(COLLISION_TESTED, QuerySubscription)
-    def test_colliding_query_subscription(self, expected_models: list[type[Model]]):
-        # We need a celery task running to properly test the `subscription_id` assignment, otherwise
+    def test_colliding_query_subscription(self, expected_models: list[type[Model]]) -> None:
+        # We need a task running to properly test the `subscription_id` assignment, otherwise
         # its value just defaults to `None`.
         with self.tasks():
             owner = self.create_exhaustive_user("owner")
@@ -1602,7 +1602,7 @@ class CollisionTests(ImportTestCase):
                     verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, SavedSearch)
-    def test_colliding_saved_search(self, expected_models: list[type[Model]]):
+    def test_colliding_saved_search(self, expected_models: list[type[Model]]) -> None:
         self.create_organization("some-org", owner=self.user)
         SavedSearch.objects.create(
             name="Global Search",
@@ -2197,7 +2197,7 @@ class CustomImportBehaviorTests(ImportTestCase):
     """
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
-    def test_hide_organizations_import_flag(self, expected_models: list[type[Model]]):
+    def test_hide_organizations_import_flag(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@test.com")
         member = self.create_exhaustive_user("member", email="member@test.com")
         self.create_exhaustive_organization(
@@ -2225,7 +2225,7 @@ class CustomImportBehaviorTests(ImportTestCase):
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
-    def test_organization_member_inviter_id(self, expected_models: list[type[Model]]):
+    def test_organization_member_inviter_id(self, expected_models: list[type[Model]]) -> None:
         admin = self.create_exhaustive_user("admin", email="admin@test.com", is_superuser=True)
         owner = self.create_exhaustive_user("owner", email="owner@test.com")
         member = self.create_exhaustive_user("member", email="member@test.com")
@@ -2295,7 +2295,7 @@ class CustomImportBehaviorTests(ImportTestCase):
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
-    def test_project_ids_retained_in_global_scope(self, expected_models: list[type[Model]]):
+    def test_project_ids_retained_in_global_scope(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_user("testing@example.com")
         org = self.create_organization(name="Some Org", owner=owner)
         team = self.create_team(organization=org, name="Some Team")
@@ -2326,7 +2326,9 @@ class CustomImportBehaviorTests(ImportTestCase):
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
-    def test_project_ids_reassigned_in_organization_scope(self, expected_models: list[type[Model]]):
+    def test_project_ids_reassigned_in_organization_scope(
+        self, expected_models: list[type[Model]]
+    ) -> None:
         owner = self.create_user("testing@example.com")
         org = self.create_organization(name="Some Org", owner=owner)
         team = self.create_team(organization=org, name="Some Team")

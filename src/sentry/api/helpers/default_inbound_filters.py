@@ -1,17 +1,21 @@
+from collections.abc import Sequence
+
 from sentry.ingest import inbound_filters
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 
 # Turns on certain inbound filters by default for project.
 def set_default_inbound_filters(
-    project,
-    organization,
-    filters=(
+    project: Project,
+    organization: Organization,
+    filters: Sequence[str] = (
         "browser-extensions",
         "legacy-browsers",
         "web-crawlers",
         "filtered-transaction",
     ),
-):
+) -> None:
 
     browser_subfilters = [
         "ie",

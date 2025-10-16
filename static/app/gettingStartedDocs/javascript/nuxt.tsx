@@ -11,7 +11,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
@@ -24,7 +24,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct, tctCode} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsFullStackOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -43,7 +47,7 @@ const getInstallContent = (params: Params): ContentBlock[] => [
   {
     type: 'code',
     language: 'bash',
-    code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.projectSlug}`,
+    code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.project.slug}`,
   },
 ];
 
@@ -225,7 +229,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -273,6 +277,14 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'nuxt',
+    sdkPackage: '@sentry/nuxt',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'nuxt',
+    configFileName: 'sentry.server.config.ts',
+  }),
 };
 
 export default docs;

@@ -3,8 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry import options
-from sentry.models.group import Group
-from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
@@ -12,25 +11,17 @@ from sentry.seer.similarity.grouping_records import (
 from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
     name="sentry.tasks.delete_seer_grouping_records_by_hash",
-    queue="delete_seer_grouping_records_by_hash",
-    max_retries=0,  # XXX: Why do we not retry?
+    namespace=seer_tasks,
+    processing_deadline_duration=60 * (15 + 5),
     silo_mode=SiloMode.REGION,
-    soft_time_limit=60 * 15,
-    time_limit=60 * (15 + 5),
-    taskworker_config=TaskworkerConfig(
-        namespace=seer_tasks,
-        processing_deadline_duration=60 * (15 + 5),
-    ),
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
@@ -48,7 +39,7 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     if len_hashes <= batch_size:  # Base case
         call_seer_to_delete_these_hashes(project_id, hashes)
@@ -69,49 +60,36 @@ def delete_seer_grouping_records_by_hash(
             delete_seer_grouping_records_by_hash.apply_async(args=[project_id, chunked_hashes, 0])
 
 
-def may_schedule_task_to_delete_hashes_from_seer(
-    group_ids: Sequence[int],
-) -> None:
-    project = None
-    if group_ids:
-        group = Group.objects.get(id=group_ids[0])
-        project = group.project if group else None
-    if (
+def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequence[str]) -> None:
+    if not hashes:
+        return
+
+    if killswitch_enabled(None, ReferrerOptions.DELETION) or options.get(
+        "seer.similarity-embeddings-delete-by-hash-killswitch.enabled"
+    ):
+        return
+
+    project = Project.objects.get(id=project_id)
+
+    if not (
         project
         and project.get_option("sentry:similarity_backfill_completed")
         and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
-        and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):
-        group_hashes = []
-        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+        return
 
-        for group_hash in RangeQuerySetWrapper(
-            GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids),
-            step=batch_size,
-        ):
-            group_hashes.append(group_hash.hash)
+    seer_batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
 
-            # Schedule task when we reach batch_size
-            if len(group_hashes) >= batch_size:
-                delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
-                group_hashes = []
-
-        # Handle any remaining hashes
-        if group_hashes:
-            delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
+    for i in range(0, len(hashes), seer_batch_size):
+        hash_chunk = hashes[i : i + seer_batch_size]
+        delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hash_chunk, 0])
 
 
 @instrumented_task(
     name="sentry.tasks.call_seer_delete_project_grouping_records",
-    queue="delete_seer_grouping_records_by_hash",
-    max_retries=0,
+    namespace=seer_tasks,
+    processing_deadline_duration=60 * (15 + 5),
     silo_mode=SiloMode.REGION,
-    soft_time_limit=60 * 15,
-    time_limit=60 * (15 + 5),
-    taskworker_config=TaskworkerConfig(
-        namespace=seer_tasks,
-        processing_deadline_duration=60 * (15 + 5),
-    ),
 )
 def call_seer_delete_project_grouping_records(
     project_id: int,

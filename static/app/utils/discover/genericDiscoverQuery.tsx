@@ -6,10 +6,9 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
-import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -87,10 +86,6 @@ type BaseDiscoverQueryProps = {
     UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
     'queryKey' | 'queryFn'
   > & {additionalQueryKey?: UseQueryOptions['queryKey']};
-  /**
-   * A container for query batching data and functions.
-   */
-  queryBatching?: QueryBatching;
   /**
    * Extra query parameters to be added.
    */
@@ -223,16 +218,8 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   };
 
   fetchData = async () => {
-    const {
-      queryBatching,
-      beforeFetch,
-      afterFetch,
-      didFetch,
-      eventView,
-      orgSlug,
-      route,
-      setError,
-    } = this.props;
+    const {beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
+      this.props;
     const {api} = this.state;
 
     if (!eventView.isValid()) {
@@ -253,9 +240,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     api.clear();
 
     try {
-      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
-        queryBatching,
-      });
+      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
 
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
@@ -332,8 +317,8 @@ type RetryOptions = {
   timeoutMultiplier?: number;
 };
 
-const BASE_TIMEOUT = 200;
-const TIMEOUT_MULTIPLIER = 2;
+const BASE_TIMEOUT = 500;
+const TIMEOUT_MULTIPLIER = 1.75;
 const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
 
 export async function doDiscoverQuery<T>(
@@ -341,18 +326,11 @@ export async function doDiscoverQuery<T>(
   url: string,
   params: DiscoverQueryRequestParams,
   options: {
-    queryBatching?: QueryBatching;
     retry?: RetryOptions;
     skipAbort?: boolean;
   } = {}
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
-  const {queryBatching, retry, skipAbort} = options;
-  if (queryBatching?.batchRequest) {
-    return queryBatching.batchRequest(api, url, {
-      query: params,
-      includeAllArgs: true,
-    });
-  }
+  const {retry, skipAbort} = options;
 
   const baseTimeout = retry?.baseTimeout ?? BASE_TIMEOUT;
   const timeoutMultiplier = retry?.timeoutMultiplier ?? TIMEOUT_MULTIPLIER;
@@ -430,13 +408,13 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
     queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
-        queryBatching: props.queryBatching,
         skipAbort: props.skipAbort,
       }),
     ...options,
   });
 
   return {
+    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...res,
     data: res.data?.[0] ?? undefined,
     error: parseError(res.error),

@@ -1,11 +1,9 @@
-import {Fragment} from 'react';
-
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   BasePlatformOptions,
   ContentBlock,
@@ -19,7 +17,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigOptions,
@@ -36,7 +34,10 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
 
@@ -423,8 +424,8 @@ Sentry.init({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
 });
 \`\`\`
@@ -484,42 +485,47 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-      ],
-      additionalInfo: (
-        <Fragment>
-          <h5>{t('Default Configuration')}</h5>
-          <p>
-            {t(
-              'The Loader Script settings are automatically updated based on the product selection above. Toggling products will dynamically configure the SDK defaults.'
-            )}
-          </p>
-          <p>
-            {tct(
+        {
+          type: 'subheader',
+          text: t('Default Configuration'),
+        },
+        {
+          type: 'text',
+          text: t(
+            'The Loader Script settings are automatically updated based on the product selection above. Toggling products will dynamically configure the SDK defaults.'
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
               'For Tracing, the SDK is initialized with [code:tracesSampleRate: 1], meaning all traces will be captured.',
               {
                 code: <code />,
               }
-            )}
-          </p>
-          <p>
-            {tct(
+            ),
+            tct(
               'For Session Replay, the default rates are [code:replaysSessionSampleRate: 0.1] and [code:replaysOnErrorSampleRate: 1]. This captures 10% of regular sessions and 100% of sessions with an error.',
               {
                 code: <code />,
               }
-            )}
-          </p>
-          <p>
-            {tct('You can review or change these settings in [link:Project Settings].', {
+            ),
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'You can review or change these settings in [link:Project Settings].',
+            {
               link: (
                 <Link
-                  to={`/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`}
+                  to={`/settings/${params.organization.slug}/projects/${params.project.slug}/loader-script/`}
                 />
               ),
-            })}
-          </p>
-        </Fragment>
-      ),
+            }
+          ),
+        },
+      ],
     },
   ],
   configure: params => [
@@ -540,30 +546,30 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
               label: 'HTML',
               language: 'html',
               code: `
-              <script>
-                Sentry.onLoad(function() {
-                  Sentry.init({${
-                    params.isPerformanceSelected || params.isReplaySelected
-                      ? ''
-                      : `
-                      // You can add any additional configuration here`
-                  }${
-                    params.isPerformanceSelected
-                      ? `
-                      // Tracing
-                      tracesSampleRate: 1.0, // Capture 100% of the transactions`
-                      : ''
-                  }${
-                    params.isReplaySelected
-                      ? `
-                      // Session Replay
-                      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-                      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-                      : ''
-                  }
-                    });
-                });
-              </script>`,
+<script>
+  Sentry.onLoad(function() {
+    Sentry.init({${
+      params.isPerformanceSelected || params.isReplaySelected
+        ? ''
+        : `
+      // You can add any additional configuration here`
+    }${
+      params.isPerformanceSelected
+        ? `
+      // Tracing
+      tracesSampleRate: 1.0, // Capture 100% of the transactions`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+        : ''
+    }
+    });
+  });
+</script>`,
             },
           ],
         },
@@ -573,7 +579,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           trackAnalytics('onboarding.js_loader_npm_docs_optional_shown', {
             organization: params.organization,
             platform: params.platformKey,
-            project_id: params.projectId,
+            project_id: params.project.id,
           });
         }
       },
@@ -594,7 +600,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -603,7 +609,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -611,7 +617,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     return ({previousProducts, products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         previousProducts,
         projectKey: params.projectKeyId,
@@ -623,7 +629,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     return products => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -689,7 +695,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -697,7 +703,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     return ({products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -708,7 +714,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     return products => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -720,7 +726,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -786,12 +792,16 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -800,8 +810,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
+        tracePropagationBlock,
       ],
-      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: getReplayVerifyStep(),
@@ -829,27 +839,28 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getSdkSetupSnippet(params),
-            },
-          ],
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: getSdkSetupSnippet(params),
+        },
+        {
+          type: 'text',
+          text: crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal',
+          }),
         },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal',
-      }),
     },
   ],
   verify: () => [],
@@ -858,16 +869,21 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        widgetCalloutBlock({
+          link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget',
+        }),
+      ],
     },
   ],
   verify: () => [],
@@ -919,7 +935,7 @@ Sentry.init({
   // We recommend adjusting this value in production
   tracesSampleRate: 1.0,
   // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
@@ -1004,6 +1020,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
   docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'javascript',
+  sdkPackage: '@sentry/browser',
+});
+
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
@@ -1012,62 +1034,78 @@ export const featureFlagOnboarding: OnboardingConfig = {
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
       ];
 
-    const installConfig = [
-      {
-        language: 'bash',
-        code: [
-          {
-            label: 'npm',
-            value: 'npm',
-            language: 'bash',
-            code: `npm install --save @sentry/browser ${packageName}`,
-          },
-          {
-            label: 'yarn',
-            value: 'yarn',
-            language: 'bash',
-            code: `yarn add @sentry/browser ${packageName}`,
-          },
-          {
-            label: 'pnpm',
-            value: 'pnpm',
-            language: 'bash',
-            code: `pnpm add @sentry/browser ${packageName}`,
-          },
-        ],
-      },
-    ];
-
     return [
       {
         type: StepType.INSTALL,
-        description: t('Install Sentry and the selected feature flag SDK.'),
-        configurations: installConfig,
+        content: [
+          {
+            type: 'text',
+            text: t('Install Sentry and the selected feature flag SDK.'),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'npm',
+                language: 'bash',
+                code: `npm install --save @sentry/browser ${packageName}`,
+              },
+              {
+                label: 'yarn',
+                language: 'bash',
+                code: `yarn add @sentry/browser ${packageName}`,
+              },
+              {
+                label: 'pnpm',
+                language: 'bash',
+                code: `pnpm add @sentry/browser ${packageName}`,
+              },
+            ],
+          },
+        ],
       },
       {
         type: StepType.CONFIGURE,
-        description: tct(
-          'Add [name] to your integrations list, and initialize your feature flag SDK.',
+        content: [
           {
-            name: <code>{integrationName}</code>,
-          }
-        ),
-        configurations: [
+            type: 'text',
+            text: tct(
+              'Add [name] to your integrations list, and initialize your feature flag SDK.',
+              {
+                name: <code>{integrationName}</code>,
+              }
+            ),
+          },
           {
-            language: 'JavaScript',
-            code: makeConfigureCode(dsn.public),
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                code: makeConfigureCode(dsn.public),
+              },
+            ],
           },
         ],
       },
       {
         type: StepType.VERIFY,
-        description: t(
-          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
-        ),
-        configurations: [
+        content: [
           {
-            language: 'JavaScript',
-            code: makeVerifyCode(),
+            type: 'text',
+            text: t(
+              'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                code: makeVerifyCode(),
+              },
+            ],
           },
         ],
       },
@@ -1088,6 +1126,7 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

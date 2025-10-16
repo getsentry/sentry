@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -18,15 +18,14 @@ import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {
   DashboardDetails,
@@ -64,11 +63,9 @@ type AddToDashboardModalActions =
 export type AddToDashboardModalProps = {
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
   actions?: AddToDashboardModalActions[];
-  allowCreateNewDashboard?: boolean;
   source?: DashboardWidgetSource;
 };
 
@@ -97,11 +94,9 @@ function AddToDashboardModal({
   closeModal,
   location,
   organization,
-  router,
   selection,
   widget,
   actions = DEFAULT_ACTIONS,
-  allowCreateNewDashboard = true,
   source,
 }: Props) {
   const api = useApi();
@@ -191,18 +186,16 @@ function AddToDashboardModal({
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
 
-    router.push(
-      normalizeUrl({
-        pathname,
-        query: {
-          ...widgetAsQueryParams,
-          title: newWidgetTitle,
-          sort: orderBy ?? widgetAsQueryParams.sort,
-          source,
-          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-        },
-      })
-    );
+    navigate({
+      pathname,
+      query: {
+        ...widgetAsQueryParams,
+        title: newWidgetTitle,
+        sort: orderBy ?? widgetAsQueryParams.sort,
+        source,
+        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+      },
+    });
     closeModal();
   }
 
@@ -249,34 +242,44 @@ function AddToDashboardModal({
 
   const canSubmit = selectedDashboardId !== null;
 
-  const options = useMemo(() => {
-    if (dashboards === null) {
-      return null;
-    }
+  const getOptions = useCallback(
+    (
+      hasReachedDashboardLimit: boolean,
+      isLoading: boolean,
+      limitMessage: ReactNode | null
+    ) => {
+      if (dashboards === null) {
+        return null;
+      }
 
-    return [
-      allowCreateNewDashboard && {
-        label: t('+ Create New Dashboard'),
-        value: 'new',
-      },
-      ...dashboards
-        .filter(dashboard =>
-          // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
-          currentDashboardId ? dashboard.id !== currentDashboardId : true
-        )
-        .map(({title, id, widgetDisplay}) => ({
-          label: title,
-          value: id,
-          disabled: widgetDisplay.length >= MAX_WIDGETS,
-          tooltip:
-            widgetDisplay.length >= MAX_WIDGETS &&
-            tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-              maxWidgets: MAX_WIDGETS,
-            }),
-          tooltipOptions: {position: 'right'},
-        })),
-    ].filter(Boolean) as Array<SelectValue<string>>;
-  }, [allowCreateNewDashboard, currentDashboardId, dashboards]);
+      return [
+        {
+          label: t('+ Create New Dashboard'),
+          value: 'new',
+          disabled: hasReachedDashboardLimit || isLoading,
+          tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
+          tooltipOptions: {position: 'right', isHoverable: true},
+        },
+        ...dashboards
+          .filter(dashboard =>
+            // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
+            currentDashboardId ? dashboard.id !== currentDashboardId : true
+          )
+          .map(({title, id, widgetDisplay}) => ({
+            label: title,
+            value: id,
+            disabled: widgetDisplay.length >= MAX_WIDGETS,
+            tooltip:
+              widgetDisplay.length >= MAX_WIDGETS &&
+              tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                maxWidgets: MAX_WIDGETS,
+              }),
+            tooltipOptions: {position: 'right'},
+          })),
+      ].filter(Boolean) as Array<SelectValue<string>>;
+    },
+    [currentDashboardId, dashboards]
+  );
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
@@ -308,20 +311,23 @@ function AddToDashboardModal({
       </Header>
       <Body>
         <Wrapper>
-          <Select
-            disabled={dashboards === null}
-            menuPlacement="auto"
-            name="dashboard"
-            placeholder={t('Select Dashboard')}
-            value={selectedDashboardId}
-            options={options}
-            onChange={(option: SelectValue<string>) => {
-              if (option.disabled) {
-                return;
-              }
-              setSelectedDashboardId(option.value);
-            }}
-          />
+          <DashboardCreateLimitWrapper>
+            {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
+              <Select
+                disabled={dashboards === null}
+                name="dashboard"
+                placeholder={t('Select Dashboard')}
+                value={selectedDashboardId}
+                options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
+                onChange={(option: SelectValue<string>) => {
+                  if (option.disabled) {
+                    return;
+                  }
+                  setSelectedDashboardId(option.value);
+                }}
+              />
+            )}
+          </DashboardCreateLimitWrapper>
         </Wrapper>
         <Wrapper>
           <SectionHeader title={t('Widget Name')} optional />
@@ -381,6 +387,7 @@ function AddToDashboardModal({
                       disableFullscreen
                       onWidgetTableResizeColumn={handleWidgetTableColumnResize}
                       onWidgetTableSort={handleWidgetTableSort}
+                      disableTableActions
                     />
                   </WidgetCardWrapper>
                   <IndexedEventsSelectionAlert widget={widget} />

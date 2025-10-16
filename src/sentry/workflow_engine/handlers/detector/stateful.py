@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any, Generic, cast
 from uuid import uuid4
 
@@ -391,8 +391,9 @@ class StatefulDetectorHandler(
                 group_data_values[group_key]
             )
 
-            if condition_results is None:
+            if condition_results is None or condition_results.logic_result is False:
                 # Invalid condition result, nothing we can do
+                # Or if we didn't match any conditions in the evaluation
                 continue
 
             if state_data.status == evaluated_priority:
@@ -564,18 +565,8 @@ class StatefulDetectorHandler(
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
-        priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
-
-        if self.detector.workflow_condition_group is None:
-            return []
-
-        # TODO - Is this something that should be provided by the detector itself rather
-        # than having to query the db for each level?
-        condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
-            condition_result__in=priority_levels
-        ).values_list("condition_result", flat=True)
-
-        return list(DetectorPriorityLevel(level) for level in condition_result_levels)
+        conditions = self.detector.get_conditions()
+        return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
 
     def _create_decorated_issue_occurrence(
         self,
@@ -605,7 +596,6 @@ class StatefulDetectorHandler(
             occurrence_id=str(uuid4()),
             project_id=self.detector.project_id,
             status=new_priority,
-            detection_time=datetime.now(UTC),
             additional_evidence_data=evidence_data,
         )
 

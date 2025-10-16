@@ -30,6 +30,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -228,6 +229,32 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_list_shows_count_when_stored_as_upsampled_count(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test LIST returns count() to user even when stored as upsampled_count() internally"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create rule and manually set it to upsampled_count() (simulating what happens after conversion)
+        alert_rule = self.create_alert_rule()
+        alert_rule.snuba_query.aggregate = "upsampled_count()"
+        alert_rule.snuba_query.save()
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        # Find our rule in the response (should be the second one, first is self.alert_rule)
+        rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
+
+        assert (
+            rule["aggregate"] == "count()"
+        ), "LIST should return count() to user, hiding internal upsampled_count() storage"
+
 
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
@@ -265,6 +292,86 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_count_automatically_converted_to_upsampled_count_for_upsampled_projects(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test end-to-end: count() gets auto-converted to upsampled_count() for upsampled projects"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Start with regular count() aggregate
+        count_alert_rule = self.alert_rule_dict.copy()
+        count_alert_rule["aggregate"] = "count()"
+        count_alert_rule["name"] = "AutoConvertedUpsampledCountRule"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **count_alert_rule,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+
+        # Verify count() was automatically converted to upsampled_count()
+        assert alert_rule.snuba_query.aggregate == "upsampled_count()"
+
+        # Verify the mock was called with the project ID
+        mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_count_not_converted_for_non_upsampled_projects(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test end-to-end: count() stays count() for non-upsampled projects"""
+        mock_are_any_projects_error_upsampled.return_value = False
+
+        # Start with regular count() aggregate
+        count_alert_rule = self.alert_rule_dict.copy()
+        count_alert_rule["aggregate"] = "count()"
+        count_alert_rule["name"] = "RegularCountRule"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **count_alert_rule,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+
+        # Verify count() was NOT converted
+        assert alert_rule.snuba_query.aggregate == "count()"
+
+        # Verify the mock was called with the project ID
+        mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
+
+    def test_upsampled_count_rejected_when_sent_directly_by_user(self) -> None:
+        """Test that users cannot send upsampled_count() directly - it gets rejected"""
+        upsampled_alert_rule = self.alert_rule_dict.copy()
+        upsampled_alert_rule["aggregate"] = "upsampled_count()"  # User tries to send this directly
+        upsampled_alert_rule["name"] = "DirectUpsampledCountRule"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **upsampled_alert_rule,
+            )
+
+        # Verify it was rejected with proper error message
+        assert "upsampled_count() is not allowed as user input" in str(resp.data)
+        assert "Use count() instead" in str(resp.data)
 
     def test_workflow_engine_serializer(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -421,7 +528,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_spans_timeseries_query.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:ourlogs-alerts")
+    @with_feature("organizations:ourlogs-enabled")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -513,7 +620,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:ourlogs-alerts",
+                    "organizations:ourlogs-enabled",
                 ]
             ),
         ):
@@ -1533,6 +1640,103 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # Set limit to 2 alert rules
+        mock_get_limit.return_value = 2
+
+        # Create 2 existing metric alert rules (1 active, 1 to be deleted)
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.PENDING.value
+        alert_rule.save()
+
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule.save()
+
+        # Create another alert rule, it should succeed
+        data = deepcopy(self.alert_rule_dict)
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
+
+        # Create another alert rule, it should fail
+        data = deepcopy(self.alert_rule_dict)
+        resp = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            **data,
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_metric_alert_limit_unlimited_plan(self) -> None:
+        # Create many alert rules
+        for _ in range(5):
+            self.create_alert_rule(organization=self.organization)
+
+        # Creating another alert rule, it should succeed
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
+
+    def test_eap_alert_with_invalid_time_window(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["timeWindow"] = 1
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+        )
+
+    def test_transactions_dataset_deprecation_validation(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "transactions"
+        data["alertType"] = "performance"
+
+        with self.feature(
+            ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+        ):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data[0]
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
+    def test_generic_metrics_dataset_deprecation_validation(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "generic_metrics"
+        data["alertType"] = "performance"
+        data["aggregate"] = "p95(transaction.duration)"
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover-saved-queries-deprecation",
+                "organizations:performance-view",
+            ]
+        ):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data[0]
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
 
 
 @freeze_time()

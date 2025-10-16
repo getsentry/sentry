@@ -11,8 +11,8 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 interface OpenPeriodDisplayData {
   duration: React.ReactNode;
@@ -27,26 +27,21 @@ function IssueOpenPeriodsList() {
   const [now] = useState(() => new Date());
   const params = useParams<{groupId: string}>();
   const {
-    data: group,
-    isPending: isGroupPending,
-    isError: isGroupError,
-    refetch: refetchGroup,
-  } = useGroup({groupId: params.groupId});
+    data: openPeriods,
+    isPending,
+    isError,
+    refetch,
+  } = useOpenPeriods({
+    groupId: params.groupId,
+  });
 
-  if (isGroupError) {
-    return <LoadingError onRetry={refetchGroup} />;
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  if (isGroupPending) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
-
-  // update the open periods to have date objects
-  const openPeriods = group.openPeriods?.map(period => ({
-    ...period,
-    start: new Date(period.start),
-    end: period.end ? new Date(period.end) : null,
-  }));
 
   const getDuration = (start: Date, end?: Date) => {
     const duration = end
@@ -56,16 +51,17 @@ function IssueOpenPeriodsList() {
     return <Duration seconds={duration} precision="minutes" exact />;
   };
 
-  if (!openPeriods) {
-    return <LoadingError onRetry={refetchGroup} />;
-  }
+  const data: OpenPeriodDisplayData[] = openPeriods.map(period => {
+    const startDate = new Date(period.start);
+    const endDate = period.end ? new Date(period.end) : undefined;
 
-  const data: OpenPeriodDisplayData[] = openPeriods.map(period => ({
-    title: <DateTime date={period.start} />,
-    start: <DateTime date={period.start} />,
-    end: period.end ? <DateTime date={period.end} /> : '—',
-    duration: getDuration(period.start, period.end ?? undefined),
-  }));
+    return {
+      title: <DateTime date={startDate} />,
+      start: <DateTime date={startDate} />,
+      end: endDate ? <DateTime date={endDate} /> : '—',
+      duration: getDuration(startDate, endDate),
+    };
+  });
 
   const renderHeadCell = (col: GridColumnOrder) => {
     return <AlignLeft>{col.name}</AlignLeft>;
@@ -82,7 +78,7 @@ function IssueOpenPeriodsList() {
   return (
     <EventListTable title={t('All Open Periods')} pagination={{enabled: false}}>
       <GridEditable
-        isLoading={isGroupPending}
+        isLoading={isPending}
         data={data}
         columnOrder={[
           {key: 'title', width: COL_WIDTH_UNDEFINED, name: t('Title')},

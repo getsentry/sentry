@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
 
-from django.conf import settings
 from django.core.cache import cache
 
 from sentry import features, options
@@ -56,6 +55,23 @@ class AbuseQuota:
     # Old Sentry option name still used for compatibility reasons,
     # takes precedence over `option`.
     compat_option_sentry: str | None = None
+
+
+@dataclass
+class RetentionSettings:
+    standard: int
+    downsampled: int
+
+    def to_object(self) -> Mapping[str, Any]:
+        return {
+            "standard": self.standard,
+            "downsampled": self.downsampled,
+        }
+
+
+# This mirrors the Retentions struct in relay
+# https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
+RETENTIONS_CONFIG_MAPPING = {DataCategory.SPAN: "span", DataCategory.LOG_BYTE: "log"}
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
@@ -300,10 +316,7 @@ class Quota(Service):
     """
 
     __all__ = (
-        "get_maximum_quota",
         "get_abuse_quotas",
-        "get_project_quota",
-        "get_organization_quota",
         "is_rate_limited",
         "validate",
         "refund",
@@ -392,26 +405,35 @@ class Quota(Service):
                           attachment in bytes.
         """
 
-    def get_event_retention(self, organization):
+    def get_event_retention(self, organization, category: DataCategory | None = None, **kwargs):
         """
         Returns the retention for events in the given organization in days.
         Returns ``None`` if events are to be stored indefinitely.
 
         :param organization: The organization model.
+        :param category: Return the retention policy for this data category.
+                         If this is not given, return the org-level policy.
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
+
+    def get_downsampled_event_retention(
+        self, organization, category: DataCategory | None = None, **kwargs
+    ):
+        """
+        Returns the retention for downsampled events in the given organization in days.
+        Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
+        """
+        return 0
+
+    def get_retentions(
+        self, organization: Organization, **kwargs
+    ) -> Mapping[DataCategory, RetentionSettings]:
+        return {}
 
     def validate(self):
         """
         Validates that the quota service is operational.
         """
-
-    def _translate_quota(self, quota, parent_quota):
-        if str(quota).endswith("%"):
-            pct = int(quota[:-1])
-            quota = int(parent_quota or 0) * pct / 100
-
-        return _limit_from_settings(quota or parent_quota)
 
     def get_key_quota(self, key):
         from sentry import features
@@ -446,14 +468,6 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
-                id="pati",
-                option="project-abuse-quota.transaction-limit",
-                compat_option_org="sentry:project-transaction-limit",
-                compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 categories=[DataCategory.ATTACHMENT],
@@ -469,18 +483,6 @@ class Quota(Service):
                 id="pas",
                 option="project-abuse-quota.session-limit",
                 categories=[DataCategory.SESSION],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="paspi",
-                option="project-abuse-quota.span-limit",
-                categories=[DataCategory.SPAN_INDEXED],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="pal",
-                option="project-abuse-quota.log-limit",
-                categories=[DataCategory.LOG_ITEM],
                 scope=QuotaScope.PROJECT,
             ),
         ]
@@ -544,61 +546,6 @@ class Quota(Service):
         from sentry.monitors.rate_limit import get_project_monitor_quota
 
         return get_project_monitor_quota(project)
-
-    def get_project_quota(self, project):
-        from sentry.models.options.organization_option import OrganizationOption
-        from sentry.models.organization import Organization
-
-        if not project.is_field_cached("organization"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
-        org = project.organization
-
-        max_quota_share = int(
-            OrganizationOption.objects.get_value(org, "sentry:project-rate-limit", 100)
-        )
-
-        org_quota, window = self.get_organization_quota(org)
-
-        if max_quota_share != 100 and org_quota:
-            quota = self._translate_quota(f"{max_quota_share}%", org_quota)
-        else:
-            quota = None
-
-        return (quota, window)
-
-    def get_organization_quota(self, organization):
-        from sentry.models.options.organization_option import OrganizationOption
-
-        account_limit = _limit_from_settings(
-            OrganizationOption.objects.get_value(
-                organization=organization, key="sentry:account-rate-limit", default=0
-            )
-        )
-
-        system_limit = _limit_from_settings(options.get("system.rate-limit"))
-
-        # If there is only a single org, this one org should
-        # be allowed to consume the entire quota.
-        if settings.SENTRY_SINGLE_ORGANIZATION or account_limit:
-            if system_limit and (not account_limit or system_limit < account_limit / 60):
-                return (system_limit, 60)
-            # an account limit is enforced, which is set as a fixed value and cannot
-            # utilize percentage based limits
-            return (account_limit, 3600)
-
-        default_limit = self._translate_quota(
-            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE, system_limit
-        )
-        return (default_limit, 60)
-
-    def get_maximum_quota(self, organization):
-        """
-        Return the maximum capable rate for an organization.
-        """
-        return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
         self, project: Project | None = None, organization_id: int | None = None
@@ -762,3 +709,15 @@ class Quota(Service):
                   Always False if data category is not a profile duration category.
         """
         return True
+
+    def get_dashboard_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1
+
+    def get_metric_detector_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of detectors allowed for the organization's plan type.
+        """
+        return -1

@@ -12,7 +12,7 @@ import {
 
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
-describe('ProjectKeys', function () {
+describe('ProjectKeys', () => {
   const {organization, project} = initializeOrg();
   const projectKeys = ProjectKeysFixture();
   let deleteMock: jest.Mock;
@@ -24,7 +24,7 @@ describe('ProjectKeys', function () {
     route: '/settings/:orgId/projects/:projectId/settings/keys/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/`,
@@ -37,7 +37,7 @@ describe('ProjectKeys', function () {
     });
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/`,
@@ -51,7 +51,7 @@ describe('ProjectKeys', function () {
     ).toBeInTheDocument();
   });
 
-  it('has clippable box', async function () {
+  it('has clippable box', async () => {
     render(<ProjectKeys project={ProjectFixture()} />, {initialRouterConfig});
 
     const expandButton = await screen.findByRole('button', {name: 'Expand'});
@@ -60,7 +60,7 @@ describe('ProjectKeys', function () {
     expect(expandButton).not.toBeInTheDocument();
   });
 
-  it('renders for default project', async function () {
+  it('renders for default project', async () => {
     render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {
       initialRouterConfig,
     });
@@ -88,7 +88,7 @@ describe('ProjectKeys', function () {
     expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
   });
 
-  it('renders for javascript project', async function () {
+  it('renders for javascript project', async () => {
     render(<ProjectKeys project={ProjectFixture({platform: 'javascript'})} />, {
       initialRouterConfig,
     });
@@ -121,7 +121,7 @@ describe('ProjectKeys', function () {
     );
   });
 
-  it('renders for javascript-react project', async function () {
+  it('renders for javascript-react project', async () => {
     render(<ProjectKeys project={ProjectFixture({platform: 'javascript-react'})} />, {
       initialRouterConfig,
     });
@@ -146,7 +146,7 @@ describe('ProjectKeys', function () {
     expect(screen.queryByText('Loader Script')).not.toBeInTheDocument();
   });
 
-  it('renders multiple keys', async function () {
+  it('renders multiple keys', async () => {
     const multipleProjectKeys = ProjectKeysFixture([
       {
         dsn: {
@@ -164,6 +164,7 @@ describe('ProjectKeys', function () {
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
           otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         dateCreated: '2018-02-28T07:13:51.087Z',
         public: '188ee45a58094d939428d8585aa6f662',
@@ -206,7 +207,7 @@ describe('ProjectKeys', function () {
     expect(allDsn).toHaveLength(2);
   });
 
-  it('deletes key', async function () {
+  it('deletes key', async () => {
     render(<ProjectKeys project={ProjectFixture()} />, {
       initialRouterConfig,
     });
@@ -218,7 +219,7 @@ describe('ProjectKeys', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('disable and enables key', async function () {
+  it('disable and enables key', async () => {
     render(<ProjectKeys project={ProjectFixture()} />, {
       initialRouterConfig,
     });
@@ -253,5 +254,53 @@ describe('ProjectKeys', function () {
         data: {isActive: true},
       })
     );
+  });
+
+  it('shows pagination when there are multiple pages', async () => {
+    const response = {
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      body: projectKeys,
+      headers: {
+        Link:
+          `<http://localhost/api/0/projects/${organization.slug}/${project.slug}/keys/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
+          `<http://localhost/api/0/projects/${organization.slug}/${project.slug}/keys/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
+      },
+    };
+
+    MockApiClient.addMockResponse({
+      ...response,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+    });
+
+    const nextResponse = MockApiClient.addMockResponse({
+      ...response,
+      match: [MockApiClient.matchQuery({cursor: '2:0:0'})],
+    });
+
+    const {router} = render(<ProjectKeys project={ProjectFixture()} />, {
+      initialRouterConfig,
+    });
+
+    const nextButton = await screen.findByRole('button', {name: 'Next'});
+    expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
+
+    await userEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(router.location.query.cursor).toBe('2:0:0');
+    });
+
+    expect(nextResponse).toHaveBeenCalled();
+  });
+
+  it('hides pagination when there is none', async () => {
+    render(<ProjectKeys project={ProjectFixture()} />, {
+      initialRouterConfig,
+    });
+
+    await screen.findByRole('heading', {name: 'Client Keys'});
+    expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
   });
 });

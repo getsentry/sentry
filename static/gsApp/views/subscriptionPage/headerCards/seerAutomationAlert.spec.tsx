@@ -13,9 +13,9 @@ jest.mock('sentry/utils/useLocation');
 const mockUseDismissAlert = jest.mocked(useDismissAlert);
 const mockUseLocation = jest.mocked(useLocation);
 
-describe('SeerAutomationAlert', function () {
+describe('SeerAutomationAlert', () => {
   const defaultOrganization = OrganizationFixture({
-    features: ['seer-added', 'trigger-autofix-on-issue-summary'],
+    features: ['seer-added'],
     slug: 'test-org',
   });
 
@@ -41,7 +41,7 @@ describe('SeerAutomationAlert', function () {
     jest.clearAllMocks();
   });
 
-  it('renders when all conditions are met', function () {
+  it('renders when all conditions are met', () => {
     render(<SeerAutomationAlert organization={defaultOrganization} />);
 
     expect(
@@ -57,14 +57,14 @@ describe('SeerAutomationAlert', function () {
     expect(screen.getByText('Manage Seer Automation Settings')).toBeInTheDocument();
   });
 
-  it('has correct link to seer automation settings', function () {
+  it('has correct link to seer automation settings', () => {
     render(<SeerAutomationAlert organization={defaultOrganization} />);
 
     const link = screen.getByText('Manage Seer Automation Settings');
     expect(link.closest('a')).toHaveAttribute('href', '/settings/test-org/seer/');
   });
 
-  it('calls dismiss when close button is clicked', async function () {
+  it('calls dismiss when close button is clicked', async () => {
     const dismiss = jest.fn();
     mockUseDismissAlert.mockImplementation(() => ({
       dismiss,
@@ -79,7 +79,7 @@ describe('SeerAutomationAlert', function () {
     expect(dismiss).toHaveBeenCalled();
   });
 
-  it('does not render when dismissed', function () {
+  it('does not render when dismissed', () => {
     mockUseDismissAlert.mockImplementation(() => ({
       dismiss: jest.fn(),
       isDismissed: true,
@@ -91,7 +91,7 @@ describe('SeerAutomationAlert', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not render when organization does not have seer-added feature', function () {
+  it('does not render when organization does not have seer-added feature', () => {
     const organizationWithoutSeer = OrganizationFixture({
       features: [], // No seer-added feature
       slug: 'test-org',
@@ -103,7 +103,7 @@ describe('SeerAutomationAlert', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not render when there is no showSeerAutomationAlert query parameter', function () {
+  it('does not render when there is no showSeerAutomationAlert query parameter', () => {
     mockUseLocation.mockImplementation(() => ({
       query: {}, // No showSeerAutomationAlert
       pathname: '/settings/test-org/billing/overview/',
@@ -120,7 +120,7 @@ describe('SeerAutomationAlert', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders when there is a showSeerAutomationAlert query parameter', function () {
+  it('renders when there is a showSeerAutomationAlert query parameter', () => {
     mockUseLocation.mockImplementation(() => ({
       query: {showSeerAutomationAlert: 'true'},
       pathname: '/settings/test-org/billing/overview/',
@@ -140,7 +140,7 @@ describe('SeerAutomationAlert', function () {
     ).toBeInTheDocument();
   });
 
-  it('uses correct dismiss key with organization id', function () {
+  it('uses correct dismiss key with organization id', () => {
     render(<SeerAutomationAlert organization={defaultOrganization} />);
 
     expect(mockUseDismissAlert).toHaveBeenCalledWith({

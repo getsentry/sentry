@@ -1,4 +1,5 @@
 import unittest
+from collections.abc import Generator
 from unittest import mock
 from unittest.mock import Mock
 
@@ -242,7 +243,7 @@ class AlertRuleTriggerActionActivateBaseTest:
     def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.suspended_registry.restore()
 
     def test_no_handler(self) -> None:
@@ -282,14 +283,14 @@ class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateBaseTest, 
 
 class AlertRuleTriggerActionActivateTest(TestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
+    def _setup_metric_patch(self) -> Generator[None]:
         with mock.patch("sentry.incidents.models.alert_rule.metrics") as self.metrics:
             yield
 
     def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.suspended_registry.restore()
 
     def test_unhandled(self) -> None:

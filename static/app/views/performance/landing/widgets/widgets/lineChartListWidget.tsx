@@ -112,15 +112,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
   const useEap = useInsightsEap();
+  const canUseMetrics = canUseMetricsData(organization);
+
+  // Some am1 customers have on demand metrics, so we still need to keep metrics here.
+  let metricsDataset = canUseMetrics
+    ? DiscoverDatasets.METRICS
+    : DiscoverDatasets.TRANSACTIONS;
+
   const spanDataset = DiscoverDatasets.SPANS;
 
-  const metricsDataset = useEap ? DiscoverDatasets.SPANS : DiscoverDatasets.METRICS;
+  if (useEap) {
+    metricsDataset = DiscoverDatasets.SPANS;
+  }
 
   const spanQueryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
 
   const metricsQueryParams: Record<string, string> = useEap
     ? {...EAP_QUERY_PARAMS}
-    : {dataset: DiscoverDatasets.METRICS};
+    : {dataset: metricsDataset};
 
   let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
@@ -173,7 +182,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
-          if (canUseMetricsData(organization)) {
+          if (canUseMetrics) {
             eventView.additionalConditions.setFilterValues('!transaction', [
               UNPARAMETERIZED_TRANSACTION,
             ]);
@@ -390,7 +399,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             ]);
             eventView.additionalConditions.setFilterValues('event.type', ['error']);
 
-            if (canUseMetricsData(organization)) {
+            if (canUseMetrics) {
               eventView.additionalConditions.setFilterValues('!transaction', [
                 UNPARAMETERIZED_TRANSACTION,
               ]);
@@ -652,7 +661,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <TimeSpentCell
                   percentage={listItem[fieldString] as number}
                   total={listItem[`sum(${SpanFields.SPAN_SELF_TIME})`] as number}
-                  op={'http.client'}
+                  op="http.client"
                 />
               </RightAlignedCell>
 

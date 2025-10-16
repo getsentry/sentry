@@ -23,11 +23,11 @@ import {
   sortCategoriesWithKeys,
 } from 'getsentry/utils/dataCategory';
 
-describe('hasCategoryFeature', function () {
+describe('hasCategoryFeature', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, plan: 'mm2_b_100k'});
 
-  it('returns am1 plan categories', function () {
+  it('returns am1 plan categories', () => {
     const sub = SubscriptionFixture({organization, plan: 'am1_team'});
     expect(hasCategoryFeature(DataCategory.ERRORS, sub, organization)).toBe(true);
     expect(hasCategoryFeature(DataCategory.TRANSACTIONS, sub, organization)).toBe(true);
@@ -36,7 +36,7 @@ describe('hasCategoryFeature', function () {
     expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, sub, organization)).toBe(true);
   });
 
-  it('returns mm2 plan categories', function () {
+  it('returns mm2 plan categories', () => {
     expect(hasCategoryFeature(DataCategory.ERRORS, subscription, organization)).toBe(
       true
     );
@@ -54,7 +54,7 @@ describe('hasCategoryFeature', function () {
     ).toBe(false);
   });
 
-  it('returns mm1 plan categories', function () {
+  it('returns mm1 plan categories', () => {
     const sub = SubscriptionFixture({organization, plan: 's1'});
     expect(hasCategoryFeature(DataCategory.ERRORS, sub, organization)).toBe(true);
     expect(hasCategoryFeature(DataCategory.TRANSACTIONS, sub, organization)).toBe(false);
@@ -67,7 +67,7 @@ describe('hasCategoryFeature', function () {
     ).toBe(false);
   });
 
-  it('returns org has transactions feature', function () {
+  it('returns org has transactions feature', () => {
     const org = {...organization, features: ['performance-view']};
     expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
     expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(true);
@@ -76,7 +76,7 @@ describe('hasCategoryFeature', function () {
     expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, org)).toBe(false);
   });
 
-  it('returns org has attachments feature', function () {
+  it('returns org has attachments feature', () => {
     const org = {...organization, features: ['event-attachments']};
     expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
     expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(false);
@@ -85,7 +85,7 @@ describe('hasCategoryFeature', function () {
     expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, org)).toBe(false);
   });
 
-  it('returns org has replays feature', function () {
+  it('returns org has replays feature', () => {
     const org = {...organization, features: ['session-replay']};
     expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
     expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(false);
@@ -94,7 +94,7 @@ describe('hasCategoryFeature', function () {
     expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, org)).toBe(false);
   });
 
-  it('returns org has transactions and attachments features', function () {
+  it('returns org has transactions and attachments features', () => {
     const org = {...organization, features: ['performance-view', 'event-attachments']};
     expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
     expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(true);
@@ -103,12 +103,12 @@ describe('hasCategoryFeature', function () {
     expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, org)).toBe(false);
   });
 
-  it('returns org does not have unknown feature', function () {
+  it('returns org does not have unknown feature', () => {
     const org = {...organization, features: []};
     expect(hasCategoryFeature('unknown' as DataCategory, subscription, org)).toBe(false);
   });
 
-  it('returns sorted categories', function () {
+  it('returns sorted categories', () => {
     const sub = SubscriptionFixture({organization, plan: 'am1_team'});
     expect(sortCategories(sub.categories)).toStrictEqual([
       MetricHistoryFixture({
@@ -162,7 +162,7 @@ describe('hasCategoryFeature', function () {
     ]);
   });
 
-  it('returns sorted categories with keys', function () {
+  it('returns sorted categories with keys', () => {
     const sub = SubscriptionFixture({organization, plan: 'am1_team'});
     expect(sortCategoriesWithKeys(sub.categories)).toStrictEqual([
       [
@@ -241,10 +241,10 @@ describe('hasCategoryFeature', function () {
   });
 });
 
-describe('getPlanCategoryName', function () {
+describe('getPlanCategoryName', () => {
   const plan = PlanDetailsLookupFixture('am3_team');
 
-  it('should capitalize category', function () {
+  it('should capitalize category', () => {
     expect(getPlanCategoryName({plan, category: DataCategory.TRANSACTIONS})).toBe(
       'Transactions'
     );
@@ -259,7 +259,7 @@ describe('getPlanCategoryName', function () {
     );
   });
 
-  it('should display spans as accepted spans for DS', function () {
+  it('should display spans as accepted spans for DS', () => {
     expect(
       getPlanCategoryName({
         plan,
@@ -270,10 +270,10 @@ describe('getPlanCategoryName', function () {
   });
 });
 
-describe('getReservedBudgetDisplayName', function () {
+describe('getReservedBudgetDisplayName', () => {
   const am3DsPlan = PlanDetailsLookupFixture('am3_business_ent_ds_auf');
 
-  it('should use the reserved budget name if it exists', function () {
+  it('should use the reserved budget name if it exists', () => {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
@@ -290,7 +290,7 @@ describe('getReservedBudgetDisplayName', function () {
     ).toBe('Seer Budget');
   });
 
-  it('should try to find the reserved budget name if it does not exist', function () {
+  it('should try to find the reserved budget name if it does not exist', () => {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
@@ -305,7 +305,7 @@ describe('getReservedBudgetDisplayName', function () {
     ).toBe('spans budget');
   });
 
-  it('should oxfordize the budget categories if no name exists or can be found', function () {
+  it('should oxfordize the budget categories if no name exists or can be found', () => {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
@@ -360,10 +360,10 @@ describe('getReservedBudgetDisplayName', function () {
   });
 });
 
-describe('listDisplayNames', function () {
+describe('listDisplayNames', () => {
   const plan = PlanDetailsLookupFixture('am3_business_ent_ds_auf');
 
-  it('should list categories in order given', function () {
+  it('should list categories in order given', () => {
     expect(
       listDisplayNames({
         plan: plan!,
@@ -379,17 +379,19 @@ describe('listDisplayNames', function () {
     ).toBe('spans, transactions, errors, replays, cron monitors, and attachments');
   });
 
-  it('should hide stored spans for no DS', function () {
+  it('should hide stored spans for no DS', () => {
     expect(
       listDisplayNames({
         plan: plan!,
         categories: plan!.checkoutCategories,
         hadCustomDynamicSampling: false,
       })
-    ).toBe('errors, replays, attachments, cron monitors, spans, and uptime monitors');
+    ).toBe(
+      'errors, replays, attachments, cron monitors, spans, uptime monitors, and logs'
+    );
   });
 
-  it('should include stored spans and use accepted spans for DS', function () {
+  it('should include stored spans and use accepted spans for DS', () => {
     expect(
       listDisplayNames({
         plan: plan!,
@@ -397,13 +399,13 @@ describe('listDisplayNames', function () {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, and stored spans'
     );
   });
 });
 
-describe('isByteCategory', function () {
-  it('verifies isByteCategory function handles both ATTACHMENTS and LOG_BYTE', function () {
+describe('isByteCategory', () => {
+  it('verifies isByteCategory function handles both ATTACHMENTS and LOG_BYTE', () => {
     expect(isByteCategory(DataCategory.ATTACHMENTS)).toBe(true);
     expect(isByteCategory(DataCategory.LOG_BYTE)).toBe(true);
     expect(isByteCategory(DataCategory.ERRORS)).toBe(false);

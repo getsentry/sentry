@@ -61,42 +61,4 @@ describe('Breadcrumbs', () => {
     await userEvent.click(screen.getByText('Test 3'));
     expect(router.push).not.toHaveBeenCalled();
   });
-
-  it('renders a crumb dropdown', async () => {
-    const onSelect = jest.fn();
-    render(
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: 'dropdown crumb',
-            onSelect,
-            items: [
-              {index: 0, value: 'item1', label: 'item1'},
-              {index: 1, value: 'item2', label: 'item2'},
-              {index: 2, value: 'item3', label: 'item3'},
-            ],
-          },
-          {
-            label: 'Test 2',
-            to: '/test2',
-          },
-          {
-            label: 'Test 3',
-            to: null,
-          },
-        ]}
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
-    );
-    await userEvent.hover(screen.getByText('dropdown crumb'));
-
-    const item3 = await screen.findByText('item3');
-    expect(item3).toBeInTheDocument();
-
-    await userEvent.click(item3);
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({label: 'item3'}));
-  });
 });

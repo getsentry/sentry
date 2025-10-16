@@ -22,10 +22,7 @@ function SeerAutomationRoot() {
   const organization = useOrganization();
   const {isLoading, billing, setupAcknowledgement} = useOrganizationSeerSetup();
 
-  if (
-    !organization.features.includes('trigger-autofix-on-issue-summary') ||
-    organization.hideAiFeatures
-  ) {
+  if (organization.hideAiFeatures) {
     return <NoAccess />;
   }
 
@@ -69,7 +66,7 @@ function SeerAutomationRoot() {
         subtitle={tct(
           "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
           {
-            link: <ExternalLink href={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+            link: <ExternalLink href="https://docs.sentry.io/pricing/#seer-pricing" />,
             spendlink: (
               <ExternalLink
                 href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
@@ -79,7 +76,7 @@ function SeerAutomationRoot() {
         )}
         action={
           <LinkButton
-            href={'https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities'}
+            href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities"
             external
           >
             {t('Read the docs')}

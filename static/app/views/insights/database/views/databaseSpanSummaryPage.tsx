@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
@@ -44,14 +44,11 @@ type Query = {
   aggregate?: string;
 };
 
-type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
-
-export function DatabaseSpanSummaryPage({params}: Props) {
+export function DatabaseSpanSummaryPage() {
+  const {groupId} = useParams<{groupId: string}>();
   const moduleTitle = useModuleTitle(ModuleName.DB);
   const moduleURL = useModuleURL(ModuleName.DB);
   const location = useLocation<Query>();
-
-  const {groupId} = params;
 
   const filters: SpanQueryFilters = {
     'span.group': groupId,
@@ -68,7 +65,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   const {data: indexedSpansByGroupId, isPending: areIndexedSpansByGroupIdLoading} =
     useSpans(
       {
-        search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
+        search: MutableSearch.fromQueryObject({'span.group': groupId}),
         limit: 1,
         sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
         fields: [
@@ -84,29 +81,24 @@ export function DatabaseSpanSummaryPage({params}: Props) {
           SpanFields.PLATFORM,
         ],
       },
-      'api.starfish.span-description'
+      'api.insights.span-description'
     );
 
   const {data, isPending: areSpanMetricsLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        SpanFields.SPAN_OP,
-        SpanFields.SPAN_DESCRIPTION,
-        SpanFields.SPAN_ACTION,
-        SpanFields.SPAN_DOMAIN,
-        'count()',
+        SpanFields.NORMALIZED_DESCRIPTION,
         `${SpanFunction.EPM}()`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       enabled: Boolean(groupId),
     },
-    'api.starfish.span-summary-page-metrics'
+    'api.insights.span-summary-page-metrics'
   );
 
-  const spanMetrics = data[0] ?? {};
+  const spanMetrics = data[0];
 
   const {
     isPending: isTransactionsListLoading,
@@ -129,24 +121,13 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       limit: TRANSACTIONS_TABLE_ROW_COUNT,
       cursor,
     },
-    'api.starfish.span-transaction-metrics'
+    'api.insights.span-transaction-metrics'
   );
-
-  const span = {
-    ...spanMetrics,
-    [SpanFields.SPAN_GROUP]: groupId,
-  } as {
-    [SpanFields.SPAN_OP]: string;
-    [SpanFields.SPAN_DESCRIPTION]: string;
-    [SpanFields.SPAN_ACTION]: string;
-    [SpanFields.SPAN_DOMAIN]: string[];
-    [SpanFields.SPAN_GROUP]: string;
-  };
 
   useSamplesDrawer({
     Component: (
       <SampleList
-        groupId={span[SpanFields.SPAN_GROUP]}
+        groupId={groupId}
         moduleName={ModuleName.DB}
         referrer={TraceViewSources.QUERIES_MODULE}
       />
@@ -172,7 +153,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         hideDefaultTabs
       />
 
-      <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
+      <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -188,7 +169,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   <ReadoutRibbon>
                     <MetricReadout
                       title={getThroughputTitle('db')}
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
@@ -196,7 +176,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.avg}
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`avg(${SpanFields.SPAN_SELF_TIME})`]}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areSpanMetricsLoading}
@@ -204,7 +183,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.timeSpent}
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areSpanMetricsLoading}
@@ -217,8 +195,9 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 <DescriptionContainer>
                   <DatabaseSpanDescription
                     groupId={groupId}
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    preliminaryDescription={spanMetrics?.['span.description']}
+                    preliminaryDescription={
+                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION]
+                    }
                   />
                 </DescriptionContainer>
               )}
@@ -243,10 +222,10 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 </ChartContainer>
               </ModuleLayout.Full>
 
-              {span && (
+              {groupId && (
                 <ModuleLayout.Full>
                   <QueryTransactionsTable
-                    span={span}
+                    groupId={groupId}
                     data={transactionsList}
                     error={transactionsListError}
                     isLoading={isTransactionsListLoading}
@@ -259,7 +238,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </Fragment>
   );
 }
@@ -286,10 +265,10 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
   line-height: 1.2;
 `;
 
-function PageWithProviders(props: Props) {
+function PageWithProviders() {
   return (
     <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
-      <DatabaseSpanSummaryPage {...props} />
+      <DatabaseSpanSummaryPage />
     </ModulePageProviders>
   );
 }

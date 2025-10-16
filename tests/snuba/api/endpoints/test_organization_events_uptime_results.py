@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -12,17 +12,17 @@ class OrganizationEventsUptimeResultsEndpointTest(
 ):
     dataset = "uptime_results"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {
             "organizations:uptime-eap-enabled": True,
         }
 
     def build_expected_result(self, **kwargs):
-        return {"id": None, "project.name": None, **kwargs}
+        return {"project.name": None, **kwargs}
 
     @pytest.mark.querybuilder
-    def test_simple_uptime_query(self):
+    def test_simple_uptime_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -55,15 +55,21 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
-                check_status="success", http_status_code=200, region="us-east-1"
+                id=results[0].item_id.hex(),
+                check_status="success",
+                http_status_code=200,
+                region="us-east-1",
             ),
             self.build_expected_result(
-                check_status="failure", http_status_code=500, region="us-west-2"
+                id=results[1].item_id.hex(),
+                check_status="failure",
+                http_status_code=500,
+                region="us-west-2",
             ),
         ]
 
     @pytest.mark.querybuilder
-    def test_status_filter_query(self):
+    def test_status_filter_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -97,12 +103,16 @@ class OrganizationEventsUptimeResultsEndpointTest(
         data = response.data["data"]
 
         assert data == [
-            self.build_expected_result(check_status="success", http_status_code=200),
-            self.build_expected_result(check_status="success", http_status_code=201),
+            self.build_expected_result(
+                id=results[0].item_id.hex(), check_status="success", http_status_code=200
+            ),
+            self.build_expected_result(
+                id=results[2].item_id.hex(), check_status="success", http_status_code=201
+            ),
         ]
 
     @pytest.mark.querybuilder
-    def test_timing_fields_query(self):
+    def test_timing_fields_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -144,6 +154,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[0].item_id.hex(),
                 check_status="success",
                 check_duration_us=150000,
                 request_duration_us=125000,
@@ -151,6 +162,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 tcp_connection_duration_us=15000,
             ),
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_status="failure",
                 check_duration_us=30000000,
                 request_duration_us=30000000,
@@ -160,7 +172,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_cross_level_filter_query(self):
+    def test_cross_level_filter_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -201,6 +213,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_status="failure",
                 http_status_code=504,
                 dns_lookup_duration_us=150000,
@@ -209,7 +222,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_redirect_sequence_query(self):
+    def test_redirect_sequence_query(self) -> None:
         """Test querying redirect chains using request_sequence."""
         check_id = uuid4().hex
         trace_id = uuid4().hex
@@ -259,6 +272,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_id=check_id,
                 request_sequence=1,
                 http_status_code=200,
@@ -267,7 +281,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_region_and_status_combination(self):
+    def test_region_and_status_combination(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -311,6 +325,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_status="failure",
                 region="us-east-1",
                 http_status_code=500,
@@ -318,7 +333,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_timestamp_precision(self):
+    def test_timestamp_precision(self) -> None:
         """Test that timestamp precision is maintained in queries."""
         base_time = self.ten_mins_ago
         results = [

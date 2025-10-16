@@ -1,17 +1,14 @@
 from sentry import analytics
 
 
+@analytics.eventclass("sentry_app.schema_validation_error")
 class SentryAppSchemaValidationError(analytics.Event):
-    type = "sentry_app.schema_validation_error"
-
-    attributes = (
-        analytics.Attribute("schema"),
-        analytics.Attribute("user_id"),
-        analytics.Attribute("sentry_app_id", required=False),
-        analytics.Attribute("sentry_app_name"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("error_message"),
-    )
+    schema: str
+    user_id: int | None = None
+    sentry_app_id: int | None = None
+    sentry_app_name: str
+    organization_id: int
+    error_message: str
 
 
 analytics.register(SentryAppSchemaValidationError)

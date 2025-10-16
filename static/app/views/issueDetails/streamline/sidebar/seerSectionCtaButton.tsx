@@ -1,12 +1,13 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
-  type AutofixStep,
   AutofixStepType,
+  type AutofixStep,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
@@ -147,6 +148,13 @@ export function SeerSectionCtaButton({
       return t('Open Resources');
     }
 
+    if (
+      (aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
+      !aiConfig.isAutofixSetupLoading
+    ) {
+      return t('Fix with Seer');
+    }
+
     if (!lastStep) {
       return t('Find Root Cause');
     }
@@ -168,18 +176,13 @@ export function SeerSectionCtaButton({
     }
 
     if (isAutofixCompleted) {
-      if (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
-        return t('View Root Cause');
-      }
       if (lastStep.type === AutofixStepType.SOLUTION) {
-        return t('View Solution');
+        return t('Fix with Seer');
       }
-      if (lastStep.type === AutofixStepType.CHANGES) {
-        return t('View Code Changes');
-      }
+      return t('Open Seer');
     }
 
-    return t('Find Root Cause');
+    return t('Fix with Seer');
   };
 
   if (isButtonLoading) {
@@ -194,6 +197,8 @@ export function SeerSectionCtaButton({
     <StyledButton
       to={seerLink}
       onClick={handleOpenDrawer}
+      replace
+      preventScrollReset
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
       analyticsParams={{
@@ -201,6 +206,7 @@ export function SeerSectionCtaButton({
         autofix_exists: Boolean(autofixData?.steps?.length),
         autofix_step_type: lastStep?.type ?? null,
       }}
+      priority="primary"
     >
       {getButtonText()}
       <ChevronContainer>
@@ -217,9 +223,6 @@ export function SeerSectionCtaButton({
 const StyledButton = styled(LinkButton)`
   margin-top: ${space(1)};
   width: 100%;
-  background: ${p => p.theme.background}
-    linear-gradient(to right, ${p => p.theme.background}, ${p => p.theme.pink400}20);
-  color: ${p => p.theme.pink400};
 `;
 
 const ChevronContainer = styled('div')`
@@ -234,11 +237,10 @@ const ChevronContainer = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
   margin-left: ${space(1)};
-  color: ${p => p.theme.pink400};
 
   .loading-indicator {
-    border-color: ${p => p.theme.pink100};
-    border-left-color: ${p => p.theme.pink400};
+    border-color: ${p => color(p.theme.button.primary.color).alpha(0.35).string()};
+    border-left-color: ${p => p.theme.button.primary.color};
   }
 `;
 

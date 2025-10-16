@@ -16,7 +16,7 @@ class APIOwnersTestCase(TestCase):
                 tokens = [s.strip() for s in line.split("@getsentry/")]
                 self.teams.update(tokens[1:])
 
-    def test_api_owner_owns_api(self) -> None:
+    def test_api_owner_is_a_valid_code_owner(self) -> None:
         for owner in ApiOwner:
             if owner != ApiOwner.UNOWNED:
                 assert owner.value in self.teams

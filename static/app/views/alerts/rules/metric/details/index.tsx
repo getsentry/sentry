@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -46,7 +47,7 @@ interface Props extends RouteComponentProps<{ruleId: string}> {
 }
 
 interface State {
-  error: ResponseMeta | null;
+  error: RequestError | null;
   hasError: boolean;
   isLoading: boolean;
   selectedIncident: Incident | null;
@@ -56,7 +57,12 @@ interface State {
 }
 
 class MetricAlertDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false, error: null, selectedIncident: null};
+  state: State = {
+    isLoading: false,
+    hasError: false,
+    error: null,
+    selectedIncident: null,
+  };
 
   componentDidMount() {
     const {api, organization} = this.props;
@@ -233,7 +239,12 @@ class MetricAlertDetails extends Component<Props, State> {
         hasError: false,
       });
     } catch (error) {
-      this.setState({selectedIncident, isLoading: false, hasError: true, error});
+      this.setState({
+        selectedIncident,
+        isLoading: false,
+        hasError: true,
+        error: error as RequestError,
+      });
     }
   };
 

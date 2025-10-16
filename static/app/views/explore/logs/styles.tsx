@@ -1,4 +1,5 @@
 import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -8,6 +9,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -41,11 +43,47 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       border-bottom: 0;
     }
   }
+
+  &.beforeHoverTime + &.afterHoverTime:before {
+    border-top: 1px solid ${p => p.theme.purple200};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+
+  &.beforeHoverTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple200};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
+
+  &.beforeCurrentTime + &.afterCurrentTime:before {
+    border-top: 1px solid ${p => p.theme.purple300};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+
+  &.beforeCurrentTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple300};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
 `;
 
 export const LogAttributeTreeWrapper = styled('div')`
   padding: ${space(1)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 0px;
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
@@ -66,11 +104,16 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
-export const LogTableBody = styled(TableBody)<{showHeader?: boolean}>`
+export const LogTableBody = styled(TableBody)<{
+  disableBodyPadding?: boolean;
+  showHeader?: boolean;
+}>`
   ${p =>
     p.showHeader
       ? ''
-      : `
+      : p.disableBodyPadding
+        ? ''
+        : `
     padding-top: ${space(1)};
     padding-bottom: ${space(1)};
     `}
@@ -83,6 +126,24 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   }
   &:last-child {
     padding: 0;
+  }
+`;
+export const LogDetailTableActionsCell = styled(TableBodyCell)`
+  padding: ${space(0.5)} ${space(2)};
+  min-height: 0px;
+
+  ${LogTableRow} & {
+    padding: ${space(0.5)} ${space(2)};
+  }
+  &:last-child {
+    padding: ${space(0.5)} ${space(2)};
+  }
+`;
+export const LogDetailTableActionsButtonBar = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  & button {
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 
@@ -109,6 +170,12 @@ export const DetailsContent = styled(StyledPanel)`
 export const LogFirstCellContent = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
+  ${NumberContainer} {
+    text-align: ${p => p.align || 'left'};
+  }
 `;
 
 export const DetailsBody = styled('div')`
@@ -165,6 +232,13 @@ export const LogsHighlight = styled(HighlightComponent)`
   margin-left: 2px;
 `;
 
+export const LogsFilteredHelperText = styled('span')`
+  margin-left: 4px;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.gray200};
+`;
+
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
   white-space: ${p => (p.wrapText ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
@@ -218,7 +292,9 @@ export const LogsTableActionsContainer = styled(LogsItemContainer)`
 `;
 
 export const LogsGraphContainer = styled(LogsItemContainer)`
-  height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
 `;
 
 export const StyledPageFilterBar = styled(PageFilterBar)`
@@ -314,68 +390,111 @@ export const TopSectionBody = styled(Body)`
   }
 `;
 
-export const BottomSectionBody = styled('div')`
-  padding: ${space(2)} ${space(2)};
-  padding-top: ${space(1)};
+export const BottomSectionBody = styled('div')<{sidebarOpen?: boolean}>`
+  flex: 1;
+  padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
   border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)} ${space(4)};
-    padding-top: ${space(1)};
+    ${p =>
+      p.sidebarOpen
+        ? css`
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
+          `
+        : css`
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
+          `}
   }
 `;
 
 export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
   height: 100%;
-  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0px;
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: grid;
-    grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};
+    display: flex;
+    flex-direction: row;
+    padding: 0px;
+    gap: 0px;
+  }
+`;
+
+export const ToolbarContainer = styled('div')<{sidebarOpen: boolean}>`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  background-color: ${p => p.theme.background};
+  border-right: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    border-bottom: none;
+    ${p =>
+      p.sidebarOpen
+        ? css`
+            width: 343px; /* 300px for the toolbar + padding */
+            padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
+              ${p.theme.space['3xl']};
+            border-right: 1px solid ${p.theme.border};
+          `
+        : css`
+            overflow: hidden;
+            width: 0px;
+            padding: 0px;
+            border-right: none;
+          `}
   }
 `;
 
 export const LogsSidebarCollapseButton = withChonk(
   styled(Button)<{sidebarOpen: boolean}>`
-    width: 28px;
-    border-left-color: ${p => p.theme.background};
-    border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;
-    margin-bottom: ${space(1)};
-    margin-left: -31px;
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
+    ${p =>
+      p.sidebarOpen &&
+      css`
+        border-left-color: ${p.theme.background};
+        border-top-left-radius: 0px;
+        border-bottom-left-radius: 0px;
+        margin-left: -13px;
+      `}
+
+    @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: block;
     }
   `,
   chonkStyled(Button)<{sidebarOpen: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
-    margin-left: -31px;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
+    @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: inline-flex;
     }
 
-    &::after {
-      border-left-color: ${p => p.theme.background};
-      border-top-left-radius: 0px;
-      border-bottom-left-radius: 0px;
-    }
+    ${p =>
+      p.sidebarOpen &&
+      css`
+        margin-left: -13px;
+
+        &::after {
+          border-left-color: ${p.theme.background};
+          border-top-left-radius: 0px;
+          border-bottom-left-radius: 0px;
+        }
+      `}
   `
 );
 
 export const FloatingBackToTopContainer = styled('div')<{
+  inReplay?: boolean;
   tableLeft?: number;
   tableWidth?: number;
 }>`
-  position: fixed;
-  top: 20px;
+  position: ${p => (p.inReplay ? 'absolute' : 'fixed')};
   z-index: 1;
-  opacity: 0.9;
-  left: ${p => (p.tableLeft ? `${p.tableLeft}px` : '0')};
+  opacity: ${p => (p.inReplay ? 1 : 0.9)};
+  ${p => (p.inReplay ? 'top: 90px;' : 'top: 20px;')}
+  ${p => (p.inReplay ? '' : p.tableLeft ? `left: ${p.tableLeft}px;` : 'left: 0;')}
   width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
   display: flex;
   justify-content: center;
@@ -387,10 +506,20 @@ export const FloatingBackToTopContainer = styled('div')<{
   }
 `;
 
+export const FloatingBottomContainer = styled('div')<{
+  tableWidth?: number;
+}>`
+  position: absolute;
+  bottom: 0;
+  width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  display: flex;
+  justify-content: center;
+`;
+
 export const HoveringRowLoadingRendererContainer = styled('div')<{
   headerHeight: number;
+  height: number;
   position: 'top' | 'bottom';
-  rowHeight: number;
 }>`
   position: absolute;
   left: 0;
@@ -406,6 +535,6 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   );
   align-items: center;
   justify-content: center;
-  height: ${p => p.rowHeight * 3}px;
+  height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
 `;

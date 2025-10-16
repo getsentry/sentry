@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
@@ -8,7 +9,6 @@ from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
-    from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.issues.status_change_message import StatusChangeMessage
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from sentry.models.environment import Environment
     from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
@@ -70,6 +71,20 @@ class WorkflowEventData:
     workflow_env: Environment | None = None
 
 
+class ConfigTransformer(ABC):
+    """
+    A ConfigTransformer is used to transform the config between API and internal representations.
+    """
+
+    @abstractmethod
+    def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def to_api(self, config: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
@@ -80,6 +95,10 @@ class ActionHandler:
         OTHER = "other"
 
     group: ClassVar[Group]
+
+    @classmethod
+    def get_config_transformer(cls) -> ConfigTransformer | None:
+        return None
 
     @staticmethod
     def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:

@@ -10,7 +10,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     As a developer, I can create an integration, install it, and uninstall it
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(organization=self.organization, name="Tesla Motors")
         self.project = self.create_project(
@@ -20,11 +20,11 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.org_developer_settings_path = f"/settings/{self.organization.slug}/developer-settings/"
 
-    def load_page(self, url):
+    def load_page(self, url: str) -> None:
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_create_new_public_integration(self):
+    def test_create_new_public_integration(self) -> None:
         self.load_page(self.org_developer_settings_path)
         self.browser.click('[aria-label="Create New Integration"]')
 
@@ -38,7 +38,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(xpath="//span[contains(text(), 'Client ID')]", timeout=3)
 
-    def test_create_new_internal_integration(self):
+    def test_create_new_internal_integration(self) -> None:
         self.load_page(self.org_developer_settings_path)
         self.browser.click('[aria-label="Create New Integration"]')
 
@@ -58,7 +58,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
     As a developer, I can edit an existing integration
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Tesla", owner=self.user)
@@ -75,11 +75,11 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
             f"/settings/{self.org.slug}/developer-settings/{self.sentry_app.slug}"
         )
 
-    def load_page(self, url):
+    def load_page(self, url: str) -> None:
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_edit_integration_schema(self):
+    def test_edit_integration_schema(self) -> None:
         self.load_page(self.org_developer_settings_path)
 
         textarea = self.browser.element('textarea[name="schema"]')
@@ -100,7 +100,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         schema = self.browser.element('textarea[name="schema"]')
         assert schema.text == ""
 
-    def test_remove_tokens_internal_app(self):
+    def test_remove_tokens_internal_app(self) -> None:
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
         self.create_internal_integration_token(user=self.user, internal_integration=internal_app)
         url = f"/settings/{self.org.slug}/developer-settings/{internal_app.slug}"
@@ -116,7 +116,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
             value='//p[contains(text(), "You haven\'t created any authentication tokens yet.")]',
         )
 
-    def test_add_tokens_internal_app(self):
+    def test_add_tokens_internal_app(self) -> None:
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
         url = f"/settings/{self.org.slug}/developer-settings/{internal_app.slug}"
 

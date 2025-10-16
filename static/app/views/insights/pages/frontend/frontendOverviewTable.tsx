@@ -1,12 +1,14 @@
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -22,20 +24,22 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
+import {getSpanOpFromQuery} from 'sentry/views/insights/pages/frontend/utils/pageSpanOp';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-type Row = Pick<
+export type Row = Pick<
   SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50_if(span.duration,is_transaction,true)'
-  | 'p95_if(span.duration,is_transaction,true)'
-  | 'failure_rate_if(is_transaction,true)'
+  | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
+  | 'p95_if(span.duration,is_transaction,equals,true)'
+  | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
-  | 'sum_if(span.duration,is_transaction,true)'
+  | 'sum_if(span.duration,is_transaction,equals,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -44,11 +48,12 @@ type Column = GridColumnHeader<
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50_if(span.duration,is_transaction,true)'
-  | 'p95_if(span.duration,is_transaction,true)'
-  | 'failure_rate_if(is_transaction,true)'
+  | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
+  | 'p95_if(span.duration,is_transaction,equals,true)'
+  | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
-  | 'sum_if(span.duration,is_transaction,true)'
+  | 'sum_if(span.duration,is_transaction,equals,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -69,17 +74,22 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p50_if(span.duration,is_transaction,true)`,
+    key: `p50_if(span.duration,is_transaction,equals,true)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p95_if(span.duration,is_transaction,true)`,
+    key: `p75_if(span.duration,is_transaction,equals,true)`,
+    name: t('p75()'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `p95_if(span.duration,is_transaction,equals,true)`,
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate_if(is_transaction,true)',
+    key: 'failure_rate_if(is_transaction,equals,true)',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -89,7 +99,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum_if(span.duration,is_transaction,true)',
+    key: 'sum_if(span.duration,is_transaction,equals,true)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
     tooltip: SPAN_HEADER_TOOLTIPS.timeSpent,
@@ -107,11 +117,12 @@ const SORTABLE_FIELDS = [
   'transaction',
   'project',
   'tpm()',
-  'p50_if(span.duration,is_transaction,true)',
-  'p95_if(span.duration,is_transaction,true)',
-  'failure_rate_if(is_transaction,true)',
+  'p50_if(span.duration,is_transaction,equals,true)',
+  'p75_if(span.duration,is_transaction,equals,true)',
+  'p95_if(span.duration,is_transaction,equals,true)',
+  'failure_rate_if(is_transaction,equals,true)',
   'count_unique(user)',
-  'sum_if(span.duration,is_transaction,true)',
+  'sum_if(span.duration,is_transaction,equals,true)',
   'performance_score(measurements.score.total)',
 ] as const;
 
@@ -147,11 +158,13 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+  });
 
-  let column_order = [...COLUMN_ORDER];
-
+  let filteredColumns = [...columns];
   if (!displayPerfScore) {
-    column_order = column_order.filter(
+    filteredColumns = filteredColumns.filter(
       col => col.key !== 'performance_score(measurements.score.total)'
     );
   }
@@ -162,32 +175,42 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       hasData={data.length > 0}
       isLoading={isLoading}
     >
-      <GridEditable
-        aria-label={t('Domains')}
-        isLoading={isLoading}
-        error={response.error}
-        data={data}
-        columnOrder={column_order}
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
-        grid={{
-          prependColumnWidths: ['max-content'],
-          renderPrependColumns,
-          renderHeadCell: column =>
-            renderHeadCell({
-              column,
-              sort,
-              location,
-            }),
-          renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, theme),
-        }}
-      />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <DemoTourElement
+        id={DemoTourStep.PERFORMANCE_TABLE}
+        title={t('See slow transactions')}
+        description={t(
+          `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
+      Select a transaction to see more details.`
+        )}
+      >
+        <GridEditable
+          aria-label={t('Domains')}
+          isLoading={isLoading}
+          error={response.error}
+          data={data}
+          columnOrder={filteredColumns}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
+          grid={{
+            prependColumnWidths: ['max-content'],
+            renderPrependColumns,
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+              }),
+            renderBodyCell: (column, row) =>
+              renderBodyCell(column, row, meta, location, organization, theme),
+            onResizeColumn: handleResizeColumn,
+          }}
+        />
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      </DemoTourElement>
     </VisuallyCompleteWithData>
   );
 }
@@ -218,7 +241,8 @@ function renderBodyCell(
   organization: Organization,
   theme: Theme
 ) {
-  const spanOp = decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]);
+  const spanOp = getSpanOpFromQuery(decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]));
+
   if (!meta?.fields) {
     return row[column.key];
   }
@@ -228,7 +252,7 @@ function renderBodyCell(
       <TransactionCell
         project={row.project}
         transaction={row.transaction}
-        transactionMethod={spanOp}
+        transactionMethod={spanOp === 'all' ? undefined : spanOp}
       />
     );
   }

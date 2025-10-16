@@ -11,6 +11,7 @@ from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -240,8 +241,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
     def test_get_single_user_from_email(self) -> None:
         """
-        Tests that the first useremail will be used to
-        associate a user with a commit author email
+        If 1 commit author email links to 2 users - prefer user with this as their primary email.
         """
         user = self.create_user(email="stebe@sentry.io")
         otheruser = self.create_user(email="adifferentstebe@sentry.io")
@@ -350,8 +350,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
     def test_deduplicate_users(self) -> None:
         """
         Tests that the same user is not returned more than once
-        if there are commits associated with multiple of their
-        emails
+        if there are commits associated with multiple of their emails.
         """
         email = "stebe@sentry.io"
         user = self.create_user(email=email)
@@ -363,10 +362,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         )
         release.add_project(project)
         commit_author1 = CommitAuthor.objects.create(
-            name="stebe", email=email, organization_id=project.organization_id
+            name="stebe", email=email, organization_id=project.organization_id, external_id=None
         )
         commit_author2 = CommitAuthor.objects.create(
-            name="stebe", email=new_useremail.email, organization_id=project.organization_id
+            name="stebe",
+            email=new_useremail.email,
+            organization_id=project.organization_id,
+            external_id=None,
         )
         commit1 = Commit.objects.create(
             organization_id=project.organization_id,
@@ -576,6 +578,273 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
+    def test_with_none_new_groups(self) -> None:
+        """Test that release serializer works correctly when new_groups is None."""
+        project = self.create_project()
+
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version="0.1",
+        )
+        release.add_project(project)
+
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=None)
+
+        result = serialize(release, user=self.user, project=project)
+
+        assert result["version"] == "0.1"
+        assert result["newGroups"] == 0  # Should default to 0 when None
+
+    def test_new_groups_single_release(self) -> None:
+        """
+        Test new groups counts for one release with multiple projects, each having different issue counts.
+        """
+        project_a = self.create_project(name="Project A", slug="project-a")
+        project_b = self.create_project(
+            name="Project B", slug="project-b", organization=project_a.organization
+        )
+
+        release_version = "1.0.0"
+        release = Release.objects.create(
+            organization_id=project_a.organization_id, version=release_version
+        )
+        release.add_project(project_a)
+        release.add_project(project_b)
+
+        # 3 new groups for project A, 2 new groups for project B
+        ReleaseProject.objects.filter(release=release, project=project_a).update(new_groups=3)
+        ReleaseProject.objects.filter(release=release, project=project_b).update(new_groups=2)
+
+        result = serialize(release, self.user)
+        assert result["newGroups"] == 5
+
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 3
+        assert projects[project_b.id]["newGroups"] == 2
+
+        assert projects[project_a.id]["name"] == "Project A"
+        assert projects[project_a.id]["slug"] == "project-a"
+        assert projects[project_b.id]["name"] == "Project B"
+        assert projects[project_b.id]["slug"] == "project-b"
+
+    def test_new_groups_multiple_releases(self) -> None:
+        """
+        Test new groups count for multiple releases per project.
+        """
+        project_a = self.create_project(name="Project A", slug="project-a")
+        project_b = self.create_project(
+            name="Project B", slug="project-b", organization=project_a.organization
+        )
+
+        release_1 = Release.objects.create(
+            organization_id=project_a.organization_id, version="1.0.0"
+        )
+        release_1.add_project(project_a)
+        release_1.add_project(project_b)
+        release_2 = Release.objects.create(
+            organization_id=project_a.organization_id, version="2.0.0"
+        )
+        release_2.add_project(project_a)
+        release_2.add_project(project_b)
+
+        # Release 1.0.0 has 3 new groups for project A, 2 new groups for project B
+        ReleaseProject.objects.filter(release=release_1, project=project_a).update(new_groups=3)
+        ReleaseProject.objects.filter(release=release_1, project=project_b).update(new_groups=2)
+
+        # Release 2.0.0 has 1 new groups for project A, 4 new groups for project B
+        ReleaseProject.objects.filter(release=release_2, project=project_a).update(new_groups=1)
+        ReleaseProject.objects.filter(release=release_2, project=project_b).update(new_groups=4)
+
+        # 1. Serialize Release 1.0.0
+        result = serialize(release_1, self.user)
+        assert result["version"] == "1.0.0"
+        assert result["newGroups"] == 5
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 3
+        assert projects[project_b.id]["newGroups"] == 2
+
+        # 2. Serialize Release 2.0.0
+        result = serialize(release_2, self.user)
+        assert result["version"] == "2.0.0"
+        assert result["newGroups"] == 5
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 1
+        assert projects[project_b.id]["newGroups"] == 4
+
+        # 3. Serialize both releases together
+        result = serialize([release_1, release_2], self.user)
+        assert len(result) == 2
+        serialized_releases = {r["version"]: r for r in result}
+        serialized_release_1 = serialized_releases["1.0.0"]
+        serialized_release_2 = serialized_releases["2.0.0"]
+        assert serialized_release_1["newGroups"] == 5
+        assert serialized_release_2["newGroups"] == 5
+        projects_1 = {p["id"]: p for p in serialized_release_1["projects"]}
+        projects_2 = {p["id"]: p for p in serialized_release_2["projects"]}
+        assert projects_1[project_a.id]["newGroups"] == 3
+        assert projects_1[project_b.id]["newGroups"] == 2
+        assert projects_2[project_a.id]["newGroups"] == 1
+        assert projects_2[project_b.id]["newGroups"] == 4
+
+    def test_new_groups_environment_filtering(self) -> None:
+        """
+        Test new group counts for a single release with environment filtering.
+        """
+        project_a = self.create_project(name="Project A", slug="project-a")
+        project_b = self.create_project(
+            name="Project B", slug="project-b", organization=project_a.organization
+        )
+
+        production = self.create_environment(name="production", organization=project_a.organization)
+        staging = self.create_environment(name="staging", organization=project_a.organization)
+
+        release = Release.objects.create(organization_id=project_a.organization_id, version="1.0.0")
+        release.add_project(project_a)
+        release.add_project(project_b)
+
+        # 4 new groups for project A, 2 new groups for project B
+        ReleaseProject.objects.filter(release=release, project=project_a).update(new_groups=4)
+        ReleaseProject.objects.filter(release=release, project=project_b).update(new_groups=2)
+
+        # Project A: 3 issues in production, 1 issue in staging (total = 4)
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_a, environment=production, new_issues_count=3
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_a, environment=staging, new_issues_count=1
+        )
+
+        # Project B: 2 issues in production, 0 issues in staging (total = 2)
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_b, environment=production, new_issues_count=2
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_b, environment=staging, new_issues_count=0
+        )
+
+        # 1. No environment filter
+        result = serialize(release, self.user)
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 4
+        assert projects[project_b.id]["newGroups"] == 2
+        assert result["newGroups"] == 6
+
+        # 2. Filter by production environment
+        result = serialize(release, self.user, environments=["production"])
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 3
+        assert projects[project_b.id]["newGroups"] == 2
+        assert result["newGroups"] == 5
+
+        # 3. Filter by staging environment
+        result = serialize(release, self.user, environments=["staging"])
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 1
+        assert projects[project_b.id]["newGroups"] == 0
+        assert result["newGroups"] == 1
+
+        # 4. Filter by both environments
+        result = serialize(release, self.user, environments=["production", "staging"])
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 4
+        assert projects[project_b.id]["newGroups"] == 2
+        assert result["newGroups"] == 6
+
+    def test_new_groups_multiple_releases_environment_filtering(self) -> None:
+        """
+        Test new group counts for multiple releases with different environments.
+        """
+        project_a = self.create_project(name="Project A", slug="project-a")
+        project_b = self.create_project(
+            name="Project B", slug="project-b", organization=project_a.organization
+        )
+
+        production = self.create_environment(name="production", organization=project_a.organization)
+        staging = self.create_environment(name="staging", organization=project_a.organization)
+
+        release_1 = Release.objects.create(
+            organization_id=project_a.organization_id, version="1.0.0"
+        )
+        release_1.add_project(project_a)
+        release_1.add_project(project_b)
+
+        release_2 = Release.objects.create(
+            organization_id=project_a.organization_id, version="2.0.0"
+        )
+        release_2.add_project(project_a)
+        release_2.add_project(project_b)
+
+        # Release 1.0.0: Project A = 4 (3+1), Project B = 2 (2+0)
+        ReleaseProject.objects.filter(release=release_1, project=project_a).update(new_groups=4)
+        ReleaseProject.objects.filter(release=release_1, project=project_b).update(new_groups=2)
+        # Release 2.0.0: Project A = 3 (1+2), Project B = 5 (4+1)
+        ReleaseProject.objects.filter(release=release_2, project=project_a).update(new_groups=3)
+        ReleaseProject.objects.filter(release=release_2, project=project_b).update(new_groups=5)
+
+        # Release 1.0.0 - Project A: 3 in production, 1 in staging
+        ReleaseProjectEnvironment.objects.create(
+            release=release_1, project=project_a, environment=production, new_issues_count=3
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release_1, project=project_a, environment=staging, new_issues_count=1
+        )
+        # Release 1.0.0 - Project B: 2 in production, 0 in staging (no staging record)
+        ReleaseProjectEnvironment.objects.create(
+            release=release_1, project=project_b, environment=production, new_issues_count=2
+        )
+        # Release 2.0.0 - Project A: 1 in production, 2 in staging
+        ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_a, environment=production, new_issues_count=1
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_a, environment=staging, new_issues_count=2
+        )
+        # Release 2.0.0 - Project B: 4 in production, 1 in staging
+        ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_b, environment=production, new_issues_count=4
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_b, environment=staging, new_issues_count=1
+        )
+
+        # 1. Serialize Release 1.0.0 with no environment filter
+        result = serialize(release_1, self.user)
+        assert result["newGroups"] == 6
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 4
+        assert projects[project_b.id]["newGroups"] == 2
+
+        # 2. Serialize Release 1.0.0 with production filter
+        result = serialize(release_1, self.user, environments=["production"])
+        assert result["version"] == "1.0.0"
+        assert result["newGroups"] == 5
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 3
+        assert projects[project_b.id]["newGroups"] == 2
+
+        # 3. Serialize Release 2.0.0 with production filter
+        result = serialize(release_2, self.user, environments=["production"])
+        assert result["version"] == "2.0.0"
+        assert result["newGroups"] == 5
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 1
+        assert projects[project_b.id]["newGroups"] == 4
+
+        # 4. Serialize both releases with production filter
+        result = serialize([release_1, release_2], self.user, environments=["production"])
+        assert len(result) == 2
+        serialized_releases = {r["version"]: r for r in result}
+        serialized_release_1 = serialized_releases["1.0.0"]
+        serialized_release_2 = serialized_releases["2.0.0"]
+        assert serialized_release_1["newGroups"] == 5
+        assert serialized_release_2["newGroups"] == 5
+        projects_1 = {p["id"]: p for p in serialized_release_1["projects"]}
+        projects_2 = {p["id"]: p for p in serialized_release_2["projects"]}
+        assert projects_1[project_a.id]["newGroups"] == 3
+        assert projects_1[project_b.id]["newGroups"] == 2
+        assert projects_2[project_a.id]["newGroups"] == 1
+        assert projects_2[project_b.id]["newGroups"] == 4
+
 
 class ReleaseRefsSerializerTest(TestCase):
     def test_simple(self) -> None:
@@ -669,3 +938,322 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["raw"] == release_version
         assert result["versionInfo"]["buildHash"] == release_version
         assert result["versionInfo"]["description"] == release_version[:12]
+
+
+class GetUsersForAuthorsUserMappingsTest(TestCase):
+    def test_get_users_for_authors_finds_by_username(self) -> None:
+        user = self.create_user(email="john@company.com", name="John Smith")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        ExternalActor.objects.create(
+            external_name="@johnsmith",
+            user_id=user.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+        # CommitAuthor with anonymous email
+        author = CommitAuthor.objects.create(
+            email="34950490+johnsmith@users.noreply.github.com",
+            name="Other",
+            external_id="github:johnsmith",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == str(user.id)
+        assert users[str(author.id)]["email"] == "john@company.com"
+        assert users[str(author.id)]["name"] == "John Smith"
+
+    def test_get_users_for_authors_by_external_actor_no_user_id(self) -> None:
+        """CommitAuthor has an ExternalActor but it's a team mapping"""
+        project = self.create_project()
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        team = self.create_team(organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@teamuser",
+            team_id=team.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+        author = CommitAuthor.objects.create(
+            email="teamuser@company.com",
+            name="Team User",
+            external_id="github:teamuser",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == "not present"
+        assert users[str(author.id)]["email"] == "teamuser@company.com"
+        assert users[str(author.id)]["name"] == "Team User"
+
+    def test_get_users_for_authors_no_match(self) -> None:
+        project = self.create_project()
+        author = CommitAuthor.objects.create(
+            email="unknown@company.com",
+            name="Unknown User",
+            external_id="github:unknownuser",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == "not present"
+        assert users[str(author.id)]["email"] == "unknown@company.com"
+        assert users[str(author.id)]["name"] == "Unknown User"
+
+    def test_get_users_for_authors_finds_by_email(self) -> None:
+        user = self.create_user(email="regular@company.com", name="Regular Sentry User")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+
+        author = CommitAuthor.objects.create(
+            email="regular@company.com",
+            name="Regular User",
+            external_id="github:regularuser",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == str(user.id)
+        assert users[str(author.id)]["email"] == "regular@company.com"
+        assert users[str(author.id)]["name"] == "Regular Sentry User"
+
+    def test_get_users_for_authors_external_actor_takes_precedence(self) -> None:
+        email_user = self.create_user(email="john@company.com", name="Email User")
+        mapping_user = self.create_user(email="john-external@company.com", name="external User")
+        project = self.create_project()
+        self.create_member(user=email_user, organization=project.organization)
+        self.create_member(user=mapping_user, organization=project.organization)
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        ExternalActor.objects.create(
+            external_name="@johnsmith",
+            user_id=mapping_user.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+        author = CommitAuthor.objects.create(
+            email="john@company.com",  # matches email_user
+            name="John Smith",
+            external_id="github:johnsmith",  # matches ExternalActor
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == str(mapping_user.id)
+        assert users[str(author.id)]["email"] == "john-external@company.com"
+        assert users[str(author.id)]["name"] == "external User"
+
+    def test_get_users_for_authors_mixed_authors(self) -> None:
+        project = self.create_project()
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+        email_user1 = self.create_user(email="direct1@company.com", name="Direct User 1")
+        self.create_member(user=email_user1, organization=project.organization)
+        email_user2 = self.create_user(email="direct2@company.com", name="Direct User 2")
+        self.create_member(user=email_user2, organization=project.organization)
+
+        external_user1 = self.create_user(email="external1@company.com", name="External User 1")
+        self.create_member(user=external_user1, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@externaluser1",
+            user_id=external_user1.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+        external_user2 = self.create_user(email="external2@company.com", name="External User 2")
+        self.create_member(user=external_user2, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@externaluser2",
+            user_id=external_user2.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+
+        authors = [
+            CommitAuthor.objects.create(
+                email="direct1@company.com",
+                name="Commit Author Name 1",
+                external_id="github:directuser1",
+                organization_id=project.organization_id,
+            ),
+            CommitAuthor.objects.create(
+                email="direct2@company.com",
+                name="Commit Author Name 2",
+                external_id="github:directuser2",
+                organization_id=project.organization_id,
+            ),
+            CommitAuthor.objects.create(
+                email="12345+externaluser1@users.noreply.github.com",
+                name="Commit Author Name 3",
+                external_id="github:externaluser1",
+                organization_id=project.organization_id,
+            ),
+            CommitAuthor.objects.create(
+                email="67890+externaluser2@users.noreply.github.com",
+                name="Commit Author Name 4",
+                external_id="github:externaluser2",
+                organization_id=project.organization_id,
+            ),
+            CommitAuthor.objects.create(
+                email="unknown1@company.com",
+                name="Commit Author Name 5",
+                external_id="github:unknownuser1",
+                organization_id=project.organization_id,
+            ),
+            CommitAuthor.objects.create(
+                email="unknown2@company.com",
+                name="Commit Author Name 6",
+                external_id="unknownuser2",  # non-GH CommitAuthor
+                organization_id=project.organization_id,
+            ),
+        ]
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=authors)
+        assert len(users) == 6
+
+        assert users[str(authors[0].id)].get("id", "not present") == str(email_user1.id)
+        assert users[str(authors[0].id)]["email"] == "direct1@company.com"
+        assert users[str(authors[0].id)]["name"] == "Direct User 1"
+        assert users[str(authors[1].id)].get("id", "not present") == str(email_user2.id)
+        assert users[str(authors[1].id)]["email"] == "direct2@company.com"
+        assert users[str(authors[1].id)]["name"] == "Direct User 2"
+
+        # ExternalActor resolution assertions (takes precedence over email)
+        assert users[str(authors[2].id)].get("id", "not present") == str(external_user1.id)
+        assert users[str(authors[2].id)]["email"] == "external1@company.com"
+        assert users[str(authors[2].id)]["name"] == "External User 1"
+        assert users[str(authors[3].id)].get("id", "not present") == str(external_user2.id)
+        assert users[str(authors[3].id)]["email"] == "external2@company.com"
+        assert users[str(authors[3].id)]["name"] == "External User 2"
+
+        # CommitAuthor fallback assertions
+        assert users[str(authors[4].id)].get("id", "not present") == "not present"
+        assert users[str(authors[4].id)]["email"] == "unknown1@company.com"
+        assert users[str(authors[4].id)]["name"] == "Commit Author Name 5"
+        assert users[str(authors[5].id)].get("id", "not present") == "not present"
+        assert users[str(authors[5].id)]["email"] == "unknown2@company.com"
+        assert users[str(authors[5].id)]["name"] == "Commit Author Name 6"
+
+    def test_get_users_for_authors_multiple_emails(self) -> None:
+        user = self.create_user(email="regular@company.com", name="Regular Sentry User")
+        self.create_useremail(user=user, email="backup_email@gmail.com")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+
+        author = CommitAuthor.objects.create(
+            email="backup_email@gmail.com",
+            name="RU",
+            external_id="github:regularuser",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == str(user.id)
+        assert users[str(author.id)]["email"] == "regular@company.com"  # returns primary email
+        assert users[str(author.id)]["name"] == "Regular Sentry User"
+
+    @patch("sentry.users.services.user.service.user_service.serialize_many")
+    def test_get_users_for_authors_user_dropped(self, mock_serialize) -> None:
+        """Edge case: user ID is found but doesn't come back from serialize_many"""
+        project = self.create_project()
+        user = self.create_user(email="found@company.com", name="Found User")
+        self.create_member(user=user, organization=project.organization)
+
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+
+        author = CommitAuthor.objects.create(
+            email="found@company.com",
+            name="CommitAuthor Fallback Name",
+            external_id="github:founduser",
+            organization_id=project.organization_id,
+        )
+
+        mock_serialize.return_value = []  # User ID found but not serialized
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        # fallback to CommitAuthor fields
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == "not present"
+        assert users[str(author.id)]["email"] == "found@company.com"
+        assert users[str(author.id)]["name"] == "CommitAuthor Fallback Name"
+
+    def test_external_actor_duplicate_external_name_prefers_most_recent(self) -> None:
+        """Edge case: ExternalActor objects with the same external_name
+        map to multiple sentry users - select most recently created ExternalActor"""
+        project = self.create_project()
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+
+        user0 = self.create_user(email="user0@company.com", name="User 0")
+        self.create_member(user=user0, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@duplicate_name",
+            user_id=user0.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+
+        user1 = self.create_user(email="user1@company.com", name="User 1")
+        self.create_member(user=user1, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@duplicate_name",
+            user_id=user1.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+
+        user2 = self.create_user(email="user2@company.com", name="User 2")
+        self.create_member(user=user2, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@duplicate_name",
+            user_id=user2.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+
+        author = CommitAuthor.objects.create(
+            email="12345+duplicateuser@users.noreply.github.com",
+            name="Duplicate User Commit Name",
+            external_id="github:duplicate_name",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == str(user2.id)
+        assert users[str(author.id)]["email"] == "user2@company.com"
+        assert users[str(author.id)]["name"] == "User 2"

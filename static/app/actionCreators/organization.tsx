@@ -68,7 +68,7 @@ async function fetchProjectsAndTeams(
 
   try {
     return await Promise.all([projectsPromise, teamsPromise]);
-  } catch (err) {
+  } catch (err: any) {
     // It's possible these requests fail with a 403 if the user has a role with
     // insufficient access to projects and teams, but *can* access org details
     // (e.g. billing). An example of this is in org settings.
@@ -106,7 +106,7 @@ export async function fetchOrganizationDetails(api: Client, slug: string): Promi
     let org: Organization | undefined = undefined;
     try {
       org = await fetchOrg(api, slug);
-    } catch (err) {
+    } catch (err: any) {
       if (!err) {
         throw err;
       }
@@ -118,6 +118,7 @@ export async function fetchOrganizationDetails(api: Client, slug: string): Promi
 
         if (errMessage) {
           addErrorMessage(errMessage);
+          // eslint-disable-next-line @typescript-eslint/only-throw-error
           throw errMessage;
         }
 

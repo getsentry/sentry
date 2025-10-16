@@ -78,46 +78,46 @@ export function ScreenLoadSpansContent() {
             `transaction:${transactionName}`,
           ]}
           fields={[
-            `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-            `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-            `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-            `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-            `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-            `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+            `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
+            `avg_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
+            `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`,
+            `avg_if(measurements.time_to_full_display,release,equals,${secondaryRelease})`,
+            `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
+            `count_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
           ]}
           blocks={[
             {
               unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+              dataKey: `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
               title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
             },
             {
               unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+              dataKey: `avg_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
               title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
             },
             {
               unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
+              dataKey: `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`,
               title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
             },
             {
               unit: DurationUnit.MILLISECOND,
-              dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
+              dataKey: `avg_if(measurements.time_to_full_display,release,equals,${secondaryRelease})`,
               title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
             },
             {
               unit: 'count',
-              dataKey: `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+              dataKey: `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
               title: t('Total Count (%s)', PRIMARY_RELEASE_ALIAS),
             },
             {
               unit: 'count',
-              dataKey: `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+              dataKey: `count_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
               title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
             },
           ]}
-          referrer="api.starfish.mobile-screen-totals"
+          referrer="api.insights.mobile-screen-totals"
         />
       </HeaderContainer>
 

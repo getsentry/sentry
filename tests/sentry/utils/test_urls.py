@@ -23,7 +23,7 @@ from sentry.utils.urls import (
         ("apsunknown://example.com/foo", "//aha/uhu", "apsunknown://aha/uhu"),
     ],
 )
-def test_non_standard_url_join(base, to_join, expected):
+def test_non_standard_url_join(base, to_join, expected) -> None:
     assert non_standard_url_join(base, to_join) == expected
 
 

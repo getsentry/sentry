@@ -5,20 +5,30 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {withoutLoggingSupport} from 'sentry/data/platformCategories';
+import {platforms} from 'sentry/data/platforms';
 import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
+import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsId,
+  useQueryParamsTitle,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -48,10 +58,9 @@ function FeedbackButton() {
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    logsPickableDays(organization);
+  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
 
-  const prefersStackedNav = usePrefersStackedNav();
+  const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
@@ -66,57 +75,100 @@ export default function LogsContent() {
           },
         }}
       >
-        <Layout.Page>
-          <Layout.Header unified={prefersStackedNav}>
-            <Layout.HeaderContent unified={prefersStackedNav}>
-              <Layout.Title>
-                {t('Logs')}
-                <FeatureBadge
-                  type="beta"
-                  tooltipProps={{
-                    title: t(
-                      "This feature is currently in beta and we're actively working on it"
-                    ),
-                    isHoverable: true,
-                  }}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar>
-                <FeedbackButton />
-                <LinkButton
-                  icon={<IconOpen />}
-                  priority="primary"
-                  href={LOGS_INSTRUCTIONS_URL}
-                  external
-                  size="xs"
-                  onMouseDown={() => {
-                    trackAnalytics('logs.doc_link.clicked', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Set Up Logs')}
-                </LinkButton>
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
+          <Layout.Page>
+            <LogsHeader />
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
               <LogsPageDataProvider>
-                <LogsTabContent
-                  defaultPeriod={defaultPeriod}
-                  maxPickableDays={maxPickableDays}
-                  relativeOptions={relativeOptions}
-                />
+                {defined(onboardingProject) ? (
+                  <LogsTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                ) : (
+                  <LogsTabContent
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                )}
               </LogsPageDataProvider>
-            </LogsPageParamsProvider>
-          </TraceItemAttributeProvider>
-        </Layout.Page>
+            </TraceItemAttributeProvider>
+          </Layout.Page>
+        </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>
+  );
+}
+
+function LogsHeader() {
+  const pageId = useQueryParamsId();
+  const title = useQueryParamsTitle();
+  return (
+    <Layout.Header unified>
+      <Layout.HeaderContent unified>
+        {title && defined(pageId) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
+        ) : null}
+
+        <Layout.Title>
+          {title ? title : t('Logs')}
+          <FeatureBadge type="new" />
+        </Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar>
+          <FeedbackButton />
+          <SetupLogsButton />
+        </ButtonBar>
+      </Layout.HeaderActions>
+    </Layout.Header>
+  );
+}
+
+function SetupLogsButton() {
+  const organization = useOrganization();
+  const projects = useProjects();
+  const pageFilters = usePageFilters();
+  let project = projects.projects?.[0];
+
+  const filtered = projects.projects?.filter(p =>
+    pageFilters.selection.projects.includes(parseInt(p.id, 10))
+  );
+  if (filtered && filtered.length > 0) {
+    project = filtered[0];
+  }
+
+  const currentPlatform = project?.platform
+    ? platforms.find(p => p.id === project.platform)
+    : undefined;
+
+  const doesNotSupportLogging = currentPlatform
+    ? withoutLoggingSupport.has(currentPlatform.id)
+    : false;
+
+  return (
+    <LinkButton
+      icon={<IconOpen />}
+      priority="primary"
+      href="https://docs.sentry.io/product/explore/logs/getting-started/"
+      external
+      size="xs"
+      onClick={() => {
+        trackAnalytics('logs.explorer.setup_button_clicked', {
+          organization,
+          platform: currentPlatform?.id ?? 'unknown',
+          supports_onboarding_checklist: !doesNotSupportLogging,
+        });
+      }}
+    >
+      {t('Set Up Logs')}
+    </LinkButton>
   );
 }

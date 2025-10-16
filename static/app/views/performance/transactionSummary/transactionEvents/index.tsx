@@ -164,7 +164,7 @@ function EventsContentWrapper(props: ChildProps) {
       eventView={percentilesView}
       orgSlug={organization.slug}
       location={location}
-      referrer="api.performance.transaction-events"
+      referrer="api.insights.transaction-events"
     >
       {({isLoading, tableData}) => {
         if (isLoading) {
@@ -240,10 +240,13 @@ function generateEventView({
     }
   });
 
+  const orderby = decodeScalar(location.query.sort, '-timestamp');
+
   // Default fields for relative span view
   const fields = [
     'id',
     'user.display',
+    ...(orderby.endsWith('http.method') ? ['http.method'] : []),
     SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
     'transaction.duration',
     'trace',
@@ -268,7 +271,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      orderby: decodeScalar(location.query.sort, '-timestamp'),
+      orderby,
     },
     location
   );

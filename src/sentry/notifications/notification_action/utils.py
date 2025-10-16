@@ -72,12 +72,14 @@ def execute_via_group_type_registry(
         handler = group_type_notification_registry.get(detector.type)
         handler.handle_workflow_action(event_data, action, detector)
     except NoRegistrationExistsError:
-        logger.exception(
-            "No notification handler found for detector type: %s",
-            detector.type,
+        # If the grouptype is not registered, we can just use the issue alert handler
+        # This is so that notifications will still be sent for that group type if we forget to register a handler
+        # Most grouptypes are sent to issue alert handlers
+        logger.warning(
+            "group_type_notification_registry.get.NoRegistrationExistsError",
             extra={"detector_id": detector.id, "action_id": action.id},
         )
-        raise
+        return execute_via_issue_alert_handler(event_data, action, detector)
     except Exception:
         logger.exception(
             "Error executing via group type registry",

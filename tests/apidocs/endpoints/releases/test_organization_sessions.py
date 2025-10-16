@@ -9,7 +9,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization = self.create_organization(owner=self.user, name="foo")
@@ -22,7 +22,7 @@ class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         query = {
             "project": [self.project.id],
             "statsPeriod": "30d",

@@ -4,7 +4,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_generate_bias_rules_v2(default_project):
+def test_generate_bias_rules_v2(default_project) -> None:
     rules = IgnoreHealthChecksBias().generate_rules(project=default_project, base_sample_rate=1.0)
     assert rules == [
         {

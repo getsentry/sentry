@@ -5,7 +5,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -80,7 +83,7 @@ const config = defineConfig({
 
 export default wrapVinxiConfigWithSentry(config, {
   org: "${params.organization.slug}",
-  project: "${params.projectSlug}",
+  project: "${params.project.slug}",
   authToken: process.env.SENTRY_AUTH_TOKEN,
 
   // Only print logs for uploading source maps in CI
@@ -496,6 +499,11 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'tanstackstart-react',
+    configFileName: 'app/ssr.tsx',
+  }),
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'tanstackstart-react',
+    sdkPackage: '@sentry/tanstackstart-react',
   }),
 };
 

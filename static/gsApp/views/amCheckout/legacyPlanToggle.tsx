@@ -55,7 +55,7 @@ function LegacyPlanToggle({onClick, subscription, checkoutTier}: Props) {
       setPlanMigrations(response);
       setIsLoading(false);
     } catch (err) {
-      setError(err);
+      setError(err as Error);
       Sentry.captureException(err);
       setIsLoading(false);
     }

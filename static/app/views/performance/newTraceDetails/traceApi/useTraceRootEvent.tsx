@@ -3,8 +3,8 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  type TraceItemDetailsResponse,
   useTraceItemDetails,
+  type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   OurLogKnownFieldKey,
@@ -80,11 +80,17 @@ export function useTraceRootEvent({
       : rep.event.event_id
     : '';
 
+  const itemTypes = {
+    log: TraceItemDataset.LOGS,
+    span: TraceItemDataset.SPANS,
+    uptime_check: TraceItemDataset.UPTIME_RESULTS,
+  };
+
   const rootEvent = useTraceItemDetails({
     traceItemId: String(eventId),
     projectId: String(projectId),
     traceId,
-    traceItemType: rep?.type === 'log' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS,
+    traceItemType: itemTypes[rep.type],
     referrer: 'api.explore.log-item-details',
     enabled: enabledBase && isEAPQueryEnabled,
   });

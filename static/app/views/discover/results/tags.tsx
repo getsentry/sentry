@@ -9,6 +9,7 @@ import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {TagFacetsList} from 'sentry/components/group/tagFacets';
@@ -140,7 +141,7 @@ class Tags extends Component<Props, State> {
         tags = [...this.state.tags, ...tags];
       }
       this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
-    } catch (err) {
+    } catch (err: any) {
       if (
         err.status !== 400 &&
         err.responseJSON?.detail !==
@@ -218,7 +219,7 @@ class Tags extends Component<Props, State> {
             (loading ? (
               this.renderPlaceholders()
             ) : (
-              <ButtonWrapper>
+              <Flex direction="column" align="center">
                 <Button
                   size="xs"
                   priority="primary"
@@ -230,7 +231,7 @@ class Tags extends Component<Props, State> {
                 >
                   {t('Show More')}
                 </Button>
-              </ButtonWrapper>
+              </Flex>
             ))}
         </Fragment>
       );
@@ -276,12 +277,6 @@ const StyledPlaceholderTitle = styled(Placeholder)`
 const StyledTagFacetList = styled(TagFacetsList)`
   margin-bottom: 0;
   width: 100%;
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
 export {Tags};

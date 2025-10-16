@@ -10,12 +10,12 @@ pytestmark = [requires_snuba]
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientABC.get_user_conversation_id",
+    "sentry.integrations.msteams.client.MsTeamsClientABC.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
+@patch("sentry.integrations.msteams.client.MsTeamsClientABC.send_card")
 class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
-    def test_assigned(self, mock_send_card: MagicMock):
+    def test_assigned(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly for issue assignment.
         """
@@ -51,7 +51,7 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
-    def test_assigned_automatically(self, mock_send_card: MagicMock):
+    def test_assigned_automatically(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly for issue assignment by Sentry.
         """

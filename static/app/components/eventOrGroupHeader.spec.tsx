@@ -34,21 +34,21 @@ const event = EventFixture({
   },
 });
 
-describe('EventOrGroupHeader', function () {
+describe('EventOrGroupHeader', () => {
   beforeEach(() => {
     jest.useRealTimers();
   });
 
   const {router} = initializeOrg();
 
-  describe('Group', function () {
-    it('renders with `type = error`', function () {
+  describe('Group', () => {
+    it('renders with `type = error`', () => {
       render(<EventOrGroupHeader data={group} {...router} />, {
         deprecatedRouterMocks: true,
       });
     });
 
-    it('renders with `type = csp`', function () {
+    it('renders with `type = csp`', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -63,7 +63,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('renders with `type = default`', function () {
+    it('renders with `type = default`', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -82,7 +82,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('renders metadata values in message for error events', function () {
+    it('renders metadata values in message for error events', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -99,7 +99,7 @@ describe('EventOrGroupHeader', function () {
       expect(screen.getByText('metadata value')).toBeInTheDocument();
     });
 
-    it('preloads group on hover', async function () {
+    it('preloads group on hover', async () => {
       jest.useFakeTimers();
       const mockFetchGroup = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/${group.id}/`,
@@ -122,8 +122,8 @@ describe('EventOrGroupHeader', function () {
     });
   });
 
-  describe('Event', function () {
-    it('renders with `type = error`', function () {
+  describe('Event', () => {
+    it('renders with `type = error`', () => {
       render(
         <EventOrGroupHeader
           data={EventFixture({
@@ -138,7 +138,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('renders with `type = csp`', function () {
+    it('renders with `type = csp`', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -153,7 +153,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('renders with `type = default`', function () {
+    it('renders with `type = default`', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -172,7 +172,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('hides level tag', function () {
+    it('hides level tag', () => {
       render(
         <EventOrGroupHeader
           hideLevel
@@ -191,7 +191,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('keeps sort in link when query has sort', function () {
+    it('keeps sort in link when query has sort', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -221,7 +221,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('lack of project adds all parameter', function () {
+    it('lack of project adds all parameter', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -249,7 +249,7 @@ describe('EventOrGroupHeader', function () {
     });
   });
 
-  it('renders group tombstone without link to group', function () {
+  it('renders group tombstone without link to group', () => {
     render(
       <EventOrGroupHeader
         data={{

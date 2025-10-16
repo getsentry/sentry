@@ -4,8 +4,8 @@ import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
-describe('computePreviewConfigView', function () {
-  it('uses early exit with 0', function () {
+describe('computePreviewConfigView', () => {
+  it('uses early exit with 0', () => {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,
@@ -44,7 +44,7 @@ describe('computePreviewConfigView', function () {
     expect(mode).toBe('anchorTop');
   });
 
-  it('uses max depth', function () {
+  it('uses max depth', () => {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,
@@ -84,7 +84,7 @@ describe('computePreviewConfigView', function () {
     expect(mode).toBe('anchorBottom');
   });
 
-  it('uses max depth in window', function () {
+  it('uses max depth in window', () => {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,
@@ -125,7 +125,7 @@ describe('computePreviewConfigView', function () {
     expect(mode).toBe('anchorBottom');
   });
 
-  it('uses 0 when view is taller than profile', function () {
+  it('uses 0 when view is taller than profile', () => {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,
@@ -164,7 +164,7 @@ describe('computePreviewConfigView', function () {
     expect(mode).toBe('anchorTop');
   });
 
-  it('uses parent frame depth', function () {
+  it('uses parent frame depth', () => {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,
@@ -202,7 +202,7 @@ describe('computePreviewConfigView', function () {
     expect(mode).toBe('anchorTop');
   });
 
-  it('uses max depth because there is room above parent to show more', function () {
+  it('uses max depth because there is room above parent to show more', () => {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,

@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.day_ago = before_now(days=1).replace(microsecond=0)
@@ -24,7 +24,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.min_ago_iso = self.min_ago.isoformat()
-        self.features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        self.features = {"organizations:discover-basic": True}
 
     def assert_facet(self, response, key, expected):
         actual = None
@@ -37,7 +37,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         key = lambda row: row["name"] if row["name"] is not None else ""
         assert sorted(expected, key=key) == sorted(actual["topValues"], key=key)
 
-    def test_performance_view_feature(self):
+    def test_performance_view_feature(self) -> None:
         self.features.update(
             {
                 "organizations:discover-basic": False,
@@ -49,7 +49,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -85,7 +85,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "number", expected)
 
-    def test_order_by(self):
+    def test_order_by(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -121,7 +121,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         keys = [facet["key"] for facet in response.data]
         assert ["alpha", "beta", "charlie", "environment", "level", "project"] == keys
 
-    def test_with_message_query(self):
+    def test_with_message_query(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -160,7 +160,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "color", expected)
 
-    def test_with_condition(self):
+    def test_with_condition(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -196,7 +196,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         expected = [{"count": 1, "name": "yellow", "value": "yellow"}]
         self.assert_facet(response, "color", expected)
 
-    def test_with_conditional_filter(self):
+    def test_with_conditional_filter(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -237,7 +237,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "color", expected)
 
-    def test_start_end(self):
+    def test_start_end(self) -> None:
         two_days_ago = self.day_ago - timedelta(days=1)
         hour_ago = self.min_ago - timedelta(hours=1)
         two_hours_ago = hour_ago - timedelta(hours=1)
@@ -286,7 +286,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         expected = [{"count": 2, "name": "red", "value": "red"}]
         self.assert_facet(response, "color", expected)
 
-    def test_excluded_tag(self):
+    def test_excluded_tag(self) -> None:
         self.user = self.create_user()
         self.user2 = self.create_user()
         self.store_event(
@@ -327,7 +327,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "user", expected)
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
         url = reverse(
             "sentry-api-0-organization-events-facets", kwargs={"organization_id_or_slug": org.slug}
@@ -337,16 +337,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_multiple_projects_without_global_view(self):
-        self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
-        self.store_event(data={"event_id": uuid4().hex}, project_id=self.project2.id)
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(self.url, format="json")
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": "You cannot view events from multiple projects."}
-
-    def test_project_selected(self):
+    def test_project_selected(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -371,7 +362,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         expected = [{"name": "two", "value": "two", "count": 1}]
         self.assert_facet(response, "number", expected)
 
-    def test_project_filtered(self):
+    def test_project_filtered(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -398,7 +389,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         expected = [{"name": "two", "value": "two", "count": 1}]
         self.assert_facet(response, "number", expected)
 
-    def test_project_key(self):
+    def test_project_key(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -438,7 +429,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "project", expected)
 
-    def test_project_key_with_project_tag(self):
+    def test_project_key_with_project_tag(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -492,7 +483,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         self.assert_facet(response, "project", expected)
 
-    def test_malformed_query(self):
+    def test_malformed_query(self) -> None:
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project2.id)
 
@@ -511,7 +502,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_environment(self):
+    def test_environment(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -585,7 +576,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             ]
             self.assert_facet(response, "environment", expected)
 
-    def test_out_of_retention(self):
+    def test_out_of_retention(self) -> None:
         with self.options({"system.event-retention-days": 10}):
             with self.feature(self.features):
                 response = self.client.get(
@@ -631,7 +622,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
             assert len(mock_quantize.mock_calls) == 2
 
-    def test_device_class(self):
+    def test_device_class(self) -> None:
         self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -668,7 +659,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "device.class", expected)
 
-    def test_with_cursor_parameter(self):
+    def test_with_cursor_parameter(self) -> None:
         test_project = self.create_project()
         test_tags = {
             "a": "one",
@@ -729,7 +720,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "level", expected)
 
-    def test_projects_data_are_injected_on_first_page_with_multiple_projects_selected(self):
+    def test_projects_data_are_injected_on_first_page_with_multiple_projects_selected(self) -> None:
         test_project = self.create_project()
         test_project2 = self.create_project()
         test_tags = {
@@ -806,7 +797,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "level", expected)
 
-    def test_multiple_pages_with_single_project(self):
+    def test_multiple_pages_with_single_project(self) -> None:
         test_project = self.create_project()
         test_tags = {str(i): str(i) for i in range(22)}
 
@@ -857,7 +848,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert links[1]["results"] == "false"  # There should be no more tags to fetch
         assert len(response.data) == 3
 
-    def test_multiple_pages_with_multiple_projects(self):
+    def test_multiple_pages_with_multiple_projects(self) -> None:
         test_project = self.create_project()
         test_project2 = self.create_project()
         test_tags = {str(i): str(i) for i in range(22)}  # At least 3 pages worth of information
@@ -917,7 +908,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert links[1]["results"] == "false"  # There should be no more tags to fetch
         assert len(response.data) == 4  # 4 because projects and levels were added to the base 22
 
-    def test_get_all_tags(self):
+    def test_get_all_tags(self) -> None:
         test_project = self.create_project()
         test_tags = {str(i): str(i) for i in range(22)}
 

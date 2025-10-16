@@ -14,11 +14,11 @@ import ProjectCreationModal from 'sentry/components/modals/projectCreationModal'
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-describe('Project Creation Modal', function () {
+describe('Project Creation Modal', () => {
   const closeModal = jest.fn();
   const organization = OrganizationFixture();
 
-  it('renders modal', async function () {
+  it('renders modal', async () => {
     render(
       <ProjectCreationModal
         defaultCategory="browser"
@@ -33,7 +33,7 @@ describe('Project Creation Modal', function () {
     expect(await screen.findByText('Create a Project')).toBeInTheDocument();
   });
 
-  it('closes modal when closed', async function () {
+  it('closes modal when closed', async () => {
     render(
       <ProjectCreationModal
         defaultCategory="browser"
@@ -49,7 +49,7 @@ describe('Project Creation Modal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('creates project', async function () {
+  it('creates project', async () => {
     const team = TeamFixture({
       access: ['team:admin', 'team:write', 'team:read'],
     });
@@ -115,7 +115,7 @@ describe('Project Creation Modal', function () {
       await screen.findByText('Name your project and assign it a team')
     ).toBeInTheDocument();
     await userEvent.type(
-      screen.getByPlaceholderText('project-name'),
+      screen.getByPlaceholderText('project-slug'),
       'test-react-project'
     );
 

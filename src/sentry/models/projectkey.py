@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import re
 import secrets
-from typing import Any, ClassVar
+from typing import ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -22,11 +22,11 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -120,7 +120,7 @@ class ProjectKey(Model):
         cache_ttl=60 * 30,
     )
 
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = LegacyTextJSONField(default=dict)
 
     use_case = models.CharField(
         max_length=32,
@@ -146,7 +146,7 @@ class ProjectKey(Model):
 
     __repr__ = sane_repr("project_id", "public_key")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.public_key)
 
     @classmethod
@@ -272,11 +272,17 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/otlp/v1/traces"
 
     @property
-    def unreal_endpoint(self):
+    def otlp_logs_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/integration/otlp/v1/logs"
+
+    @property
+    def unreal_endpoint(self) -> str:
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
     @property
-    def crons_endpoint(self):
+    def crons_endpoint(self) -> str:
         return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
 
     @property

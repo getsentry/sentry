@@ -13,6 +13,7 @@ import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 
 interface UseTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   enabled?: boolean;
+  query?: string;
 }
 
 export function useTraceItemAttributeKeys({
@@ -20,6 +21,7 @@ export function useTraceItemAttributeKeys({
   type,
   traceItemType,
   projects,
+  query,
 }: UseTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
 
@@ -33,8 +35,9 @@ export function useTraceItemAttributeKeys({
       type,
       datetime: selection.datetime,
       projectIds,
+      query,
     });
-  }, [selection, traceItemType, type, projectIds]);
+  }, [selection, traceItemType, type, projectIds, query]);
 
   const queryKey = useMemo(
     () => ['use-trace-item-attribute-keys', queryOptions],
@@ -45,6 +48,7 @@ export function useTraceItemAttributeKeys({
     traceItemType,
     type,
     projectIds,
+    query,
   });
 
   const {data, isFetching, error} = useQuery<TagCollection>({
@@ -60,4 +64,14 @@ export function useTraceItemAttributeKeys({
     error,
     isLoading: isFetching,
   };
+}
+
+/**
+ * We want to remove attributes that have tag wrapper in some cases (eg. datascrubbing attribute field)
+ * As they are not valid in some contexts (eg. relay event selectors).
+ */
+export function elideTagBasedAttributes(attributes: TagCollection) {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(([key]) => !key.startsWith('tags['))
+  );
 }

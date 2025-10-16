@@ -29,13 +29,13 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   );
 }
 
-describe('GlobalDrawer', function () {
+describe('GlobalDrawer', () => {
   const ariaLabel = 'drawer-test-aria-label';
   beforeEach(() => {
     jest.resetAllMocks();
   });
 
-  it('useDrawer hook can open and close the Drawer', async function () {
+  it('useDrawer hook can open and close the Drawer', async () => {
     render(
       <GlobalDrawerTestComponent
         config={{
@@ -67,7 +67,7 @@ describe('GlobalDrawer', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('closes the drawer on URL change', async function () {
+  it('closes the drawer on URL change', async () => {
     const {router} = render(
       <GlobalDrawerTestComponent
         config={{
@@ -83,7 +83,7 @@ describe('GlobalDrawer', function () {
           },
         }}
       />,
-      {initialRouterConfig: {location: '/my-modal-view/'}}
+      {initialRouterConfig: {location: {pathname: '/my-modal-view/'}}}
     );
 
     await userEvent.click(screen.getByTestId('drawer-test-open'));
@@ -94,7 +94,7 @@ describe('GlobalDrawer', function () {
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
 
-  it('calls onClose handler when close button is clicked', async function () {
+  it('calls onClose handler when close button is clicked', async () => {
     const closeSpy = jest.fn();
 
     render(
@@ -122,7 +122,7 @@ describe('GlobalDrawer', function () {
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
 
-  it('calls onClose handler when clicking outside the drawer', async function () {
+  it('calls onClose handler when clicking outside the drawer', async () => {
     const closeSpy = jest.fn();
 
     render(
@@ -149,7 +149,7 @@ describe('GlobalDrawer', function () {
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
 
-  it('calls onClose handler when closeDrawer prop is called', async function () {
+  it('calls onClose handler when closeDrawer prop is called', async () => {
     const closeSpy = jest.fn();
 
     render(
@@ -177,7 +177,7 @@ describe('GlobalDrawer', function () {
     expect(button).not.toBeInTheDocument();
   });
 
-  it('ignores some close events press when option is set', async function () {
+  it('ignores some close events press when option is set', async () => {
     const closeSpy = jest.fn();
 
     render(
@@ -222,7 +222,7 @@ describe('GlobalDrawer', function () {
     expect(content).not.toBeInTheDocument();
   });
 
-  it('renders custom header content when specified', async function () {
+  it('renders custom header content when specified', async () => {
     const closeSpy = jest.fn();
     const customHeader = 'Look at my neat drawer header';
     render(

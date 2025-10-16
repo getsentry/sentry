@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
@@ -12,7 +13,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.helpers.teams import is_team_admin
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
@@ -86,22 +87,14 @@ class LinkageView(BaseView, ABC):
         metrics.incr(event, tags=(tags or {}), sample_rate=1.0)
         return event
 
-    @property
-    def analytics_operation_key(self) -> str | None:
-        """Operation description to use in analytics. Return None to skip."""
+    def get_analytics_event(
+        self, provider: str, actor_id: int, actor_type: str
+    ) -> analytics.Event | None:
         return None
 
     def record_analytic(self, actor_id: int) -> None:
-        if self.analytics_operation_key is None:
-            # This preserves legacy differences between messaging integrations,
-            # in that some record analytics and some don't.
-            # TODO: Make consistent across all messaging integrations.
-            return
-
-        event = ".".join(("integrations", self.provider_slug, self.analytics_operation_key))
-        analytics.record(
-            event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
-        )
+        if event := self.get_analytics_event(self.provider_slug, actor_id, ActorType.USER):
+            analytics.record(event)
 
     @staticmethod
     def render_error_page(request: HttpRequest, status: int, body_text: str) -> HttpResponse:
@@ -399,6 +392,7 @@ class LinkTeamView(TeamLinkageView, ABC):
     def execute(
         self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
+        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
         from sentry.integrations.slack.views.link_team import (
             SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
@@ -496,32 +490,30 @@ class LinkTeamView(TeamLinkageView, ABC):
             ),
         )
 
-        analytics.record(
-            "integrations.identity_linked",
-            provider=self.provider_slug,
-            actor_id=team.id,
-            actor_type="team",
-        )
+        try:
+            analytics.record(
+                SlackIntegrationIdentityLinked(
+                    provider=self.provider_slug,
+                    actor_id=team.id,
+                    actor_type="team",
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if not created:
             self.capture_metric("failure.team_already_linked")
             return self.notify_team_already_linked(request, channel_id, integration, team)
 
-        has_team_workflow = features.has(
-            "organizations:team-workflow-notifications", team.organization
+        notifications_service.enable_all_settings_for_provider(
+            external_provider=self.external_provider_enum,
+            team_id=team.id,
+            types=[NotificationSettingEnum.ISSUE_ALERTS],
         )
-        # Turn on notifications for all of a team's projects.
-        # TODO(jangjodi): Remove this once the flag is removed
-        if not has_team_workflow:
-            notifications_service.enable_all_settings_for_provider(
-                external_provider=self.external_provider_enum,
-                team_id=team.id,
-                types=[NotificationSettingEnum.ISSUE_ALERTS],
-            )
 
         message = SUCCESS_LINKED_MESSAGE.format(
             slug=team.slug,
-            workflow_addon=" and workflow" if has_team_workflow else "",
+            workflow_addon="",
             channel_name=channel_name,
         )
         self.notify_on_success(channel_id, integration, message)

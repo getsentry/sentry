@@ -288,7 +288,7 @@ class QueryResult:
     result: Mapping[str, Any]
     has_more: bool
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.series_query and not self.totals_query:
             raise MetricsQueryExecutionError(
                 "A query result must contain at least one series or totals query"
@@ -665,7 +665,7 @@ class QueryExecutor:
 
         return True
 
-    def _execution_loop(self):
+    def _execution_loop(self) -> None:
         """
         Executes the next batch of queries until no query is left.
         """
@@ -699,7 +699,7 @@ class QueryExecutor:
 
         return cast(list[QueryResult], self._query_results)
 
-    def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType):
+    def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType) -> None:
         """
         Lazily schedules an IntermediateQuery for execution and runs initialization code for each ScheduledQuery.
         """

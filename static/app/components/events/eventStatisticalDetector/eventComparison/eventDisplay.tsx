@@ -10,12 +10,12 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
-import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {
   ActualMinimap,
+  MINIMAP_HEIGHT,
   MinimapBackground,
-} from 'sentry/components/events/interfaces/spans/header';
+} from 'sentry/components/events/interfaces/spans/minimap';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -217,16 +217,18 @@ function EventDisplay({
               }))}
               value={selectedEventId}
               onChange={({value}) => setSelectedEventId(value)}
-              triggerLabel={
-                <ButtonLabelWrapper>
-                  <TextOverflow>
-                    {eventSelectLabel}:{' '}
-                    <SelectionTextWrapper>
-                      {getShortEventId(selectedEventId)}
-                    </SelectionTextWrapper>
-                  </TextOverflow>
-                </ButtonLabelWrapper>
-              }
+              triggerProps={{
+                children: (
+                  <ButtonLabelWrapper>
+                    <TextOverflow>
+                      {eventSelectLabel}:{' '}
+                      <SelectionTextWrapper>
+                        {getShortEventId(selectedEventId)}
+                      </SelectionTextWrapper>
+                    </TextOverflow>
+                  </ButtonLabelWrapper>
+                ),
+              }}
             />
             <LinkButton
               title={t('Full Event Details')}

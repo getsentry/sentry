@@ -1,13 +1,16 @@
 from unittest import mock
 
+import sentry_sdk
 from google.api_core.exceptions import RetryError
 
-from sentry.issues.status_change_consumer import update_status
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.status_change_consumer import process_status_change_message, update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
 from sentry.workflow_engine.tasks.utils import fetch_event
@@ -89,10 +92,40 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             workflow_status_update_handler(group, message, activity)
             mock_delay.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test(self) -> None:
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    def test_single_processing(self) -> None:
         detector = self.create_detector(project=self.project)
-        group = self.create_group(project=self.project)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        activity = Activity(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"fingerprint": ["test_fingerprint"]},
+        )
+        message = StatusChangeMessageData(
+            id="test_message_id",
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            fingerprint=["test_fingerprint"],
+            detector_id=detector.id,
+            activity_data={"test": "test"},
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
+        ) as mock_delay:
+            workflow_status_update_handler(group, message, activity)
+            mock_delay.assert_called_once_with(
+                activity_id=activity.id,
+                group_id=group.id,
+                detector_id=detector.id,
+            )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_dual_processing(self) -> None:
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
         activity = Activity(
             project=self.project,
             group=group,
@@ -122,7 +155,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
 class TestProcessWorkflowActivity(TestCase):
     def setUp(self) -> None:
-        self.group = self.create_group(project=self.project)
+        self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
         self.activity = Activity(
             project=self.project,
             group=self.group,
@@ -130,14 +163,14 @@ class TestProcessWorkflowActivity(TestCase):
             data={"fingerprint": ["test_fingerprint"]},
         )
         self.activity.save()
-        self.detector = self.create_detector()
+        self.detector = self.create_detector(type=MetricIssue.slug)
 
     def test_process_workflow_activity__no_workflows(self) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
             return_value=set(),
         ) as mock_evaluate:
-            process_workflow_activity.run(
+            process_workflow_activity(
                 activity_id=self.activity.id,
                 group_id=self.group.id,
                 detector_id=self.detector.id,
@@ -146,7 +179,8 @@ class TestProcessWorkflowActivity(TestCase):
             assert mock_evaluate.call_count == 0
 
     @mock.patch(
-        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers", return_value=set()
+        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
+        return_value=(set(), {}),
     )
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
@@ -161,7 +195,7 @@ class TestProcessWorkflowActivity(TestCase):
             workflow=self.workflow,
         )
 
-        process_workflow_activity.run(
+        process_workflow_activity(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,
@@ -172,10 +206,10 @@ class TestProcessWorkflowActivity(TestCase):
             group=self.group,
         )
 
-        mock_evaluate.assert_called_once_with({self.workflow}, event_data)
+        mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
         assert mock_eval_actions.call_count == 0
 
-    @mock.patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    @mock.patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
@@ -197,7 +231,7 @@ class TestProcessWorkflowActivity(TestCase):
             group=self.group,
         )
 
-        process_workflow_activity.run(
+        process_workflow_activity(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,
@@ -205,9 +239,14 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @mock.patch(
+        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
+    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
-    def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
+    def test__e2e__issue_plat_to_processed(
+        self, mock_incr: mock.MagicMock, mock_update_igop: mock.MagicMock
+    ) -> None:
         self.message = StatusChangeMessageData(
             id="test-id",
             fingerprint=["group-1"],
@@ -244,3 +283,73 @@ class TestProcessWorkflowActivity(TestCase):
                 },
                 sample_rate=1.0,
             )
+
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
+    @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
+    @mock.patch(
+        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
+    )  # rollout code that is independently tested
+    @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
+    def test__e2e__issue_plat_to_processed_activity_data_is_set(
+        self,
+        mock_incr: mock.MagicMock,
+        mock_update_igop: mock.MagicMock,
+        mock_get_group_from_fingerprint: mock.MagicMock,
+    ) -> None:
+        mock_get_group_from_fingerprint.return_value = self.group
+
+        self.message = StatusChangeMessageData(
+            id="test-id",
+            fingerprint=["test-fingerprint"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            detector_id=self.detector.id,
+            activity_data={"test": "test"},
+        )
+
+        with (
+            self.tasks(),
+            sentry_sdk.start_transaction(
+                op="process_status_change_message",
+                name="issues.status_change_consumer",
+            ) as txn,
+        ):
+            process_status_change_message(self.message, txn)
+
+            # Issue platform is forwarding the activity update
+            mock_incr.assert_any_call(
+                "workflow_engine.issue_platform.status_change_handler",
+                amount=1,
+                tags={"activity_type": self.activity.type},
+                sample_rate=1.0,
+            )
+
+            # Workflow engine is correctly registered for the activity update
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update",
+                tags={"activity_type": self.activity.type},
+            )
+
+            # Workflow engine evaluated activity update in process_workflows
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={
+                    "activity_type": self.activity.type,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
+            )
+
+            # Check that the activity data is correctly stored in the database and the data is populated correctly
+            with assume_test_silo_mode_of(Activity):
+                latest_activity = (
+                    Activity.objects.filter(group_id=self.group.id, type=self.activity.type)
+                    .order_by("-datetime")
+                    .first()
+                )
+                assert latest_activity is not None
+                assert latest_activity.data == {
+                    "test": "test",
+                }

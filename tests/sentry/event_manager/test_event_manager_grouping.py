@@ -109,6 +109,7 @@ class EventManagerGroupingTest(TestCase):
             {"message": "Dogs are great!", "fingerprint": ["maisey"]}, self.project
         )
 
+        assert event1.group_id is not None
         group = Group.objects.get(id=event1.group_id)
 
         assert group.times_seen == 1
@@ -123,6 +124,7 @@ class EventManagerGroupingTest(TestCase):
             {"message": "Adopt don't shop", "fingerprint": ["maisey"]}, self.project
         )
 
+        assert event1.group_id is not None and event2.group_id is not None
         assert event1.group_id == event2.group_id
         group = Group.objects.get(id=event2.group_id)
 
@@ -257,6 +259,7 @@ class PlaceholderTitleTest(TestCase):
             self.project,
         )
 
+        assert event1.group_id is not None
         group = Group.objects.get(id=event1.group_id)
 
         assert group.title == event1.title == "DogsAreNeverAnError: Dogs are great!"
@@ -293,6 +296,7 @@ class PlaceholderTitleTest(TestCase):
                     self.project,
                 )
 
+        assert event1.group_id is not None and event2.group_id is not None
         assert event2.group_id == event1.group_id
 
         # Pull the group again to get updated data
@@ -322,6 +326,9 @@ class PlaceholderTitleTest(TestCase):
             self.project,
         )
 
+        assert event1.group_id is not None
+        assert event2.group_id is not None
+        assert event3.group_id is not None
         assert event3.group_id == event2.group_id == event1.group_id
 
         # Pull the group again to get updated data
@@ -351,6 +358,7 @@ class PlaceholderTitleTest(TestCase):
             self.project,
         )
 
+        assert event1.group_id is not None
         group = Group.objects.get(id=event1.group_id)
 
         assert group.title == event1.title == "DogsAreNeverAnError: Dogs are great!"
@@ -373,6 +381,7 @@ class PlaceholderTitleTest(TestCase):
                 self.project,
             )
 
+        assert event1.group_id is not None and event2.group_id is not None
         assert event2.group_id == event1.group_id
 
         # Pull the group again to get updated data
@@ -398,6 +407,9 @@ class PlaceholderTitleTest(TestCase):
             self.project,
         )
 
+        assert event1.group_id is not None
+        assert event2.group_id is not None
+        assert event3.group_id is not None
         assert event3.group_id == event2.group_id == event1.group_id
 
         # Pull the group again to get updated data
@@ -427,7 +439,7 @@ class PlaceholderTitleTest(TestCase):
         (None, None, None),
     ],
 )
-def test_get_updated_group_title(existing_title, incoming_title, expected_title):
+def test_get_updated_group_title(existing_title, incoming_title, expected_title) -> None:
     existing_data = {"title": existing_title} if existing_title is not None else {}
     incoming_data = {"title": incoming_title} if incoming_title is not None else {}
 
@@ -436,7 +448,7 @@ def test_get_updated_group_title(existing_title, incoming_title, expected_title)
 
 class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
-    def test_records_avg_calculations_per_event_metrics(self, mock_metrics_incr: MagicMock):
+    def test_records_avg_calculations_per_event_metrics(self, mock_metrics_incr: MagicMock) -> None:
         project = self.project
 
         cases: list[Any] = [

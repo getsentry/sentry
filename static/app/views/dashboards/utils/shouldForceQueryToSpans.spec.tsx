@@ -3,8 +3,8 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 
-describe('shouldForceQueryToSpans', function () {
-  it('return true if the widget is a transactions widget and uses measurements.inp', function () {
+describe('shouldForceQueryToSpans', () => {
+  it('return true if the widget is a transactions widget and uses measurements.inp', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.TRANSACTIONS,
       queries: [
@@ -22,7 +22,7 @@ describe('shouldForceQueryToSpans', function () {
     expect(shouldForceQueryToSpans(widget)).toBe(true);
   });
 
-  it('return false if the widget is not a transactions widget', function () {
+  it('return false if the widget is not a transactions widget', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.TRANSACTIONS,
       queries: [
@@ -40,7 +40,7 @@ describe('shouldForceQueryToSpans', function () {
     expect(shouldForceQueryToSpans(widget)).toBe(false);
   });
 
-  it('return false if the widget is a transactions widget and uses equations', function () {
+  it('return false if the widget is a transactions widget and uses equations', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.TRANSACTIONS,
       queries: [
@@ -58,7 +58,7 @@ describe('shouldForceQueryToSpans', function () {
     expect(shouldForceQueryToSpans(widget)).toBe(false);
   });
 
-  it('return false if the widget is a transactions widget and uses percentile', function () {
+  it('return false if the widget is a transactions widget and uses percentile', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.TRANSACTIONS,
       queries: [

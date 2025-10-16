@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import abc
 import logging
 import secrets
 from collections.abc import Mapping
 from time import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
-from django.http import HttpRequest, HttpResponse
-from django.http.response import HttpResponseRedirect
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth.exceptions import IdentityNotValid
@@ -17,6 +19,9 @@ from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.models.authidentity import AuthIdentity
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.auth.helper import AuthHelper
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
@@ -28,9 +33,16 @@ def _get_redirect_url() -> str:
 class OAuth2Login(AuthView):
     authorize_url: str | None = None
     client_id: str | None = None
-    scope = ""
+    scope: str = ""
 
-    def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        authorize_url: str | None = None,
+        client_id: str | None = None,
+        scope: str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
@@ -54,7 +66,7 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         if "code" in request.GET:
             return pipeline.next_step()
 
@@ -76,7 +88,12 @@ class OAuth2Callback(AuthView):
     client_secret: str | None = None
 
     def __init__(
-        self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs
+        self,
+        access_token_url: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         if access_token_url is not None:
@@ -86,7 +103,7 @@ class OAuth2Callback(AuthView):
         if client_secret is not None:
             self.client_secret = client_secret
 
-    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_token_params(self, code: str, redirect_uri: str) -> Mapping[str, str | None]:
         return {
             "grant_type": "authorization_code",
             "code": code,
@@ -95,7 +112,9 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request: HttpRequest, pipeline, code: str):
+    def exchange_token(
+        self, request: HttpRequest, pipeline: AuthHelper, code: str
+    ) -> Mapping[str, Any]:
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=_get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
@@ -104,7 +123,7 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return orjson.loads(body)
 
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")
@@ -156,7 +175,7 @@ class OAuth2Provider(Provider, abc.ABC):
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
 
-    def get_refresh_token_params(self, refresh_token: str) -> dict[str, str | None]:
+    def get_refresh_token_params(self, refresh_token: str) -> Mapping[str, str | None]:
         return {
             "client_id": self.get_client_id(),
             "client_secret": self.get_client_secret(),
@@ -164,7 +183,7 @@ class OAuth2Provider(Provider, abc.ABC):
             "refresh_token": refresh_token,
         }
 
-    def get_oauth_data(self, payload):
+    def get_oauth_data(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         data = {"access_token": payload["access_token"], "token_type": payload["token_type"]}
         if "expires_in" in payload:
             data["expires"] = int(time()) + int(payload["expires_in"])
@@ -186,7 +205,9 @@ class OAuth2Provider(Provider, abc.ABC):
         """
         raise NotImplementedError
 
-    def update_identity(self, new_data, current_data):
+    def update_identity(
+        self, new_data: dict[str, Any], current_data: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
         # we want to maintain things like refresh_token that might not
         # exist on a refreshed state
         if "refresh_token" in current_data:

@@ -4,11 +4,11 @@ from sentry.api.serializers import serialize
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.endpoints.serializers import (
+from sentry.workflow_engine.endpoints.serializers.workflow_group_history_serializer import (
     WorkflowGroupHistory,
     WorkflowGroupHistorySerializer,
 )
-from sentry.workflow_engine.models import WorkflowFireHistory
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 

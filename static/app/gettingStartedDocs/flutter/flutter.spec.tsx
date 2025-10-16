@@ -2,54 +2,18 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import docs from './flutter';
 
-import docs, {InstallationMode} from './flutter';
-
-describe('flutter onboarding docs', function () {
-  it('renders manual installation docs correctly', async function () {
+describe('flutter onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
           version: '1.99.9',
         },
       },
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
     });
 
-    // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Renders SDK version from registry
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/sentry_flutter: \^1\.99\.9/))
-    ).toBeInTheDocument();
-  });
-
-  it('renders wizard docs correctly', async function () {
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart.flutter': {
-          version: '1.99.9',
-        },
-      },
-      selectedOptions: {
-        installationMode: InstallationMode.AUTO,
-      },
-    });
-
-    // Renders install heading only
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', {name: 'Configure SDK'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', {name: 'Verify'})).not.toBeInTheDocument();
-
-    // Renders wizard text
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -57,120 +21,17 @@ describe('flutter onboarding docs', function () {
         )
       )
     ).toBeInTheDocument();
-  });
-
-  it('renders performance onboarding docs correctly', async function () {
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart.flutter': {
-          version: '1.99.9',
-        },
-      },
-      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-    });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options.tracesSampleRate/))
+      screen.getByRole('heading', {name: /automatic configuration/i})
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          /You'll be able to monitor the performance of your app using the SDK./
-        )
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('renders profiling onboarding docs correctly', async function () {
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart.flutter': {
-          version: '1.99.9',
-        },
-      },
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-      ],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-    });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options.profilesSampleRate/))
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(/Flutter Profiling alpha is available/)
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('renders replay onboarding docs correctly', async function () {
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart.flutter': {
-          version: '1.99.9',
-        },
-      },
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-        ProductSolution.SESSION_REPLAY,
-      ],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-    });
-
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/options.replay.sessionSampleRate/))
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/options.replay.onErrorSampleRate/))
-    ).toBeInTheDocument();
-  });
-
-  it('renders logs configuration for manual installation when logs are selected', async function () {
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart.flutter': {
-          version: '1.99.9',
-        },
-      },
-      selectedProducts: [ProductSolution.LOGS],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-    });
-
-    // Should include logs configuration
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/options\.enableLogs = true/))
+      screen.getByRole('heading', {name: /manual configuration/i})
     ).toBeInTheDocument();
 
-    // Should include logging next step
-    expect(await screen.findByText('Structured Logs')).toBeInTheDocument();
-  });
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-  it('renders logs configuration for auto installation when logs are selected', async function () {
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart.flutter': {
-          version: '1.99.9',
-        },
-      },
-      selectedProducts: [ProductSolution.LOGS],
-      selectedOptions: {
-        installationMode: InstallationMode.AUTO,
-      },
-    });
-
-    // Should include logging next step even in auto mode
-    expect(await screen.findByText('Structured Logs')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Structured Logs'})).toBeInTheDocument();
   });
 });

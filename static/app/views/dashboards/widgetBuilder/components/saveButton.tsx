@@ -7,10 +7,11 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {Widget} from 'sentry/views/dashboards/types';
+import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
@@ -38,11 +39,14 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       organization,
     });
     const widget = convertBuilderStateToWidget(state);
+    if (widget.widgetType === WidgetType.SPANS) {
+      widget.datasetSource = DatasetSource.USER;
+    }
     setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
       onSave({index: defined(widgetIndex) ? Number(widgetIndex) : undefined, widget});
-    } catch (error) {
+    } catch (error: any) {
       let errorMessage = t('Unable to save widget');
       setIsSaving(false);
       const errorDetails = flattenErrors(error.responseJSON || error, {});

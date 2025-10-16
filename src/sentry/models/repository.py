@@ -14,11 +14,11 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.pending_deletion import (
     delete_pending_deletion_option,
     rename_on_pending_deletion,
@@ -38,7 +38,7 @@ class Repository(Model):
     provider = models.CharField(max_length=64, null=True)
     # The external_id is the id of the repo in the provider's system. (e.g. GitHub's repo id)
     external_id = models.CharField(max_length=64, null=True)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
+    config = LegacyTextJSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), db_index=True
     )

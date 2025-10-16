@@ -2,15 +2,15 @@ import {useMemo} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {
-  UseInfiniteLogsQueryResult,
-  UseLogsQueryResult,
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
+import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  useInfiniteLogsQuery,
+  useLogsQueryHighFidelity,
 } from 'sentry/views/explore/logs/useLogsQuery';
-import {useInfiniteLogsQuery, useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 
 interface LogsPageData {
   infiniteLogsQueryResult: UseInfiniteLogsQueryResult;
-  logsQueryResult: UseLogsQueryResult;
 }
 
 const [_LogsPageDataProvider, _useLogsPageData, _ctx] =
@@ -19,27 +19,28 @@ const [_LogsPageDataProvider, _useLogsPageData, _ctx] =
   });
 export const useLogsPageData = _useLogsPageData;
 
-export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
+export function LogsPageDataProvider({
+  children,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
   const organization = useOrganization();
-  const feature = organization.features.includes('ourlogs-enabled');
-  const infiniteScroll = organization.features.includes('ourlogs-infinite-scroll');
-  const logsQueryResult = useLogsQuery({disabled: infiniteScroll || !feature});
+  const feature = isLogsEnabled(organization);
+  const highFidelity = useLogsQueryHighFidelity();
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
-    disabled: !infiniteScroll || !feature,
+    disabled: !feature,
+    highFidelity,
   });
   const value = useMemo(() => {
     return {
-      logsQueryResult,
       infiniteLogsQueryResult,
     };
-  }, [logsQueryResult, infiniteLogsQueryResult]);
+  }, [infiniteLogsQueryResult]);
   return <_LogsPageDataProvider value={value}>{children}</_LogsPageDataProvider>;
 }
 
 export function useLogsPageDataQueryResult() {
-  const hasInfiniteFeature = useOrganization().features.includes(
-    'ourlogs-infinite-scroll'
-  );
   const pageData = useLogsPageData();
-  return hasInfiniteFeature ? pageData.infiniteLogsQueryResult : pageData.logsQueryResult;
+  return pageData.infiniteLogsQueryResult;
 }

@@ -4,7 +4,6 @@ import {
   getCurlCommand,
   getCurrentThread,
   getThreadById,
-  objectToSortedTupleArray,
   stringifyQueryList,
   userContextToActor,
 } from 'sentry/components/events/interfaces/utils';
@@ -12,9 +11,9 @@ import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
 import {FILTER_MASK} from 'sentry/constants';
 import {EntryType} from 'sentry/types/event';
 
-describe('components/interfaces/utils', function () {
-  describe('getCurlCommand()', function () {
-    it('should convert an http request object to an equivalent unix curl command string', function () {
+describe('components/interfaces/utils', () => {
+  describe('getCurlCommand()', () => {
+    it('should convert an http request object to an equivalent unix curl command string', () => {
       expect(
         getCurlCommand({
           apiTarget: null,
@@ -211,7 +210,7 @@ describe('components/interfaces/utils', function () {
       );
     });
 
-    it('works with a Proxy', function () {
+    it('works with a Proxy', () => {
       const spy = jest.spyOn(MetaProxy.prototype, 'get');
       const data = {
         apiTarget: null,
@@ -247,32 +246,19 @@ describe('components/interfaces/utils', function () {
     });
   });
 
-  describe('objectToSortedTupleArray()', function () {
-    it('should convert a key/value object to a sorted array of key/value tuples', function () {
-      expect(
-        objectToSortedTupleArray({
-          foo: ['bar', 'baz'],
-        })
-      ).toEqual([
-        ['foo', 'bar'],
-        ['foo', 'baz'],
-      ]);
-    });
-  });
-
-  describe('removeFilterMaskedEntries()', function () {
+  describe('removeFilterMaskedEntries()', () => {
     const rawData = {
       id: '26',
       name: FILTER_MASK,
       username: 'maiseythedog',
       email: FILTER_MASK,
     };
-    it('should remove filtered values', function () {
+    it('should remove filtered values', () => {
       const result = userContextToActor(rawData);
       expect(result).not.toHaveProperty('name');
       expect(result).not.toHaveProperty('email');
     });
-    it('should remove boolean values', function () {
+    it('should remove boolean values', () => {
       const result = userContextToActor({
         ...rawData,
         name: true,
@@ -281,7 +267,7 @@ describe('components/interfaces/utils', function () {
       expect(result).not.toHaveProperty('name');
       expect(result).not.toHaveProperty('email');
     });
-    it('should preserve unfiltered values', function () {
+    it('should preserve unfiltered values', () => {
       const result = userContextToActor(rawData);
       expect(result).toHaveProperty('id');
       expect(result.id).toBe('26');
@@ -290,12 +276,12 @@ describe('components/interfaces/utils', function () {
     });
   });
 
-  describe('stringifyQueryList()', function () {
-    it('should return query if it is a string', function () {
+  describe('stringifyQueryList()', () => {
+    it('should return query if it is a string', () => {
       const query = stringifyQueryList('query');
       expect(query).toBe('query');
     });
-    it('should parse query tuples', function () {
+    it('should parse query tuples', () => {
       const query = stringifyQueryList([
         ['field', 'ops.http'],
         ['field', 'ops.db'],
@@ -306,8 +292,8 @@ describe('components/interfaces/utils', function () {
     });
   });
 
-  describe('getCurrentThread()', function () {
-    it('should return current thread if available', function () {
+  describe('getCurrentThread()', () => {
+    it('should return current thread if available', () => {
       const thread = getCurrentThread(
         EventFixture({
           entries: [
@@ -334,8 +320,8 @@ describe('components/interfaces/utils', function () {
     });
   });
 
-  describe('getThreadById()', function () {
-    it('should return thread by given id if available', function () {
+  describe('getThreadById()', () => {
+    it('should return thread by given id if available', () => {
       const thread = getThreadById(
         EventFixture({
           entries: [

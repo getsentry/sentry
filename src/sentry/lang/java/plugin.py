@@ -11,7 +11,7 @@ from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 class JavaPlugin(Plugin2):
     can_disable = False
 
-    def can_configure_for_project(self, project, **kwargs):
+    def can_configure_for_project(self, project, **kwargs) -> bool:
         return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):

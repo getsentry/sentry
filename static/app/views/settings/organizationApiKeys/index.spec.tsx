@@ -9,11 +9,11 @@ import {
 
 import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
-describe('OrganizationApiKeys', function () {
+describe('OrganizationApiKeys', () => {
   let getMock: jest.Mock;
   let deleteMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
@@ -31,14 +31,14 @@ describe('OrganizationApiKeys', function () {
     });
   });
 
-  it('fetches api keys', async function () {
+  it('fetches api keys', async () => {
     render(<OrganizationApiKeys />);
 
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('can delete a key', async function () {
+  it('can delete a key', async () => {
     render(<OrganizationApiKeys />);
     renderGlobalModal();
 

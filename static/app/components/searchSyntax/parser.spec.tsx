@@ -13,7 +13,6 @@ import {
   parseSearch,
   Token,
 } from 'sentry/components/searchSyntax/parser';
-import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 
 type TestCase = {
   /**
@@ -33,6 +32,82 @@ type TestCase = {
    */
   raisesError?: boolean;
 };
+
+type TreeTransformerOpts = {
+  /**
+   * The function used to transform each node
+   */
+  transform: (token: TokenResult<Token>) => any;
+  /**
+   * The tree to transform
+   */
+  tree: Array<TokenResult<Token>>;
+};
+
+/**
+ * Utility function to visit every Token node within an AST tree and apply
+ * a transform to those nodes.
+ */
+function treeTransformer({tree, transform}: TreeTransformerOpts) {
+  const nodeVisitor = (token: TokenResult<Token> | null): any => {
+    if (token === null) {
+      return null;
+    }
+
+    switch (token.type) {
+      case Token.FILTER:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+          value: nodeVisitor(token.value),
+        });
+      case Token.KEY_EXPLICIT_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
+      case Token.KEY_AGGREGATE:
+        return transform({
+          ...token,
+          name: nodeVisitor(token.name),
+          args: token.args ? nodeVisitor(token.args) : token.args,
+          argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
+          argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
+        });
+      case Token.KEY_EXPLICIT_NUMBER_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
+      case Token.KEY_EXPLICIT_STRING_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
+      case Token.LOGIC_GROUP:
+        return transform({
+          ...token,
+          inner: token.inner.map(nodeVisitor),
+        });
+      case Token.KEY_AGGREGATE_ARGS:
+        return transform({
+          ...token,
+          args: token.args.map(v => ({...v, value: nodeVisitor(v.value)})),
+        });
+      case Token.VALUE_NUMBER_LIST:
+      case Token.VALUE_TEXT_LIST:
+        return transform({
+          ...token,
+          items: token.items.map(v => ({...v, value: nodeVisitor(v.value)})),
+        });
+
+      default:
+        return transform(token);
+    }
+  };
+
+  return tree.map(nodeVisitor);
+}
 
 /**
  * Normalize results to match the json test cases
@@ -78,7 +153,7 @@ const normalizeResult = (tokens: Array<TokenResult<Token>>) =>
     },
   });
 
-describe('searchSyntax/parser', function () {
+describe('searchSyntax/parser', () => {
   const testData = loadFixtures('search-syntax') as unknown as Record<string, TestCase[]>;
 
   const registerTestCase = (

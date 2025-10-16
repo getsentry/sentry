@@ -1,4 +1,5 @@
 import time
+from collections.abc import Generator
 from functools import cached_property
 from unittest import mock
 
@@ -79,8 +80,6 @@ class RedisQuotaTest(TestCase):
     def test_abuse_quotas(self) -> None:
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
-        self.get_project_quota.return_value = (100, 10)
-        self.get_organization_quota.return_value = (1000, 10)
         self.get_monitor_quota.return_value = (15, 60)
 
         # A negative quota means reject-all.
@@ -114,13 +113,10 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-        self.organization.update_option("project-abuse-quota.transaction-limit", 600)
         self.organization.update_option("project-abuse-quota.attachment-limit", 601)
         self.organization.update_option("project-abuse-quota.attachment-item-limit", 6010)
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
-        self.organization.update_option("project-abuse-quota.span-limit", 605)
-        self.organization.update_option("project-abuse-quota.log-limit", 606)
 
         metric_abuse_limit_by_id = dict()
         for i, mabq in enumerate(build_metric_abuse_quotas()):
@@ -130,53 +126,29 @@ class RedisQuotaTest(TestCase):
         with self.feature("organizations:transaction-metrics-extraction"):
             quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[1].id == "pati"
+        assert quotas[1].id == "paa"
         assert quotas[1].scope == QuotaScope.PROJECT
         assert quotas[1].scope_id is None
-        assert quotas[1].categories == {DataCategory.TRANSACTION_INDEXED}
-        assert quotas[1].limit == 6000
+        assert quotas[1].categories == {DataCategory.ATTACHMENT}
+        assert quotas[1].limit == 6010
         assert quotas[1].window == 10
         assert quotas[1].reason_code == "project_abuse_limit"
 
-        assert quotas[2].id == "paa"
+        assert quotas[2].id == "paai"
         assert quotas[2].scope == QuotaScope.PROJECT
         assert quotas[2].scope_id is None
-        assert quotas[2].categories == {DataCategory.ATTACHMENT}
-        assert quotas[2].limit == 6010
+        assert quotas[2].categories == {DataCategory.ATTACHMENT_ITEM}
+        assert quotas[2].limit == 60100
         assert quotas[2].window == 10
         assert quotas[2].reason_code == "project_abuse_limit"
 
-        assert quotas[3].id == "paai"
+        assert quotas[3].id == "pas"
         assert quotas[3].scope == QuotaScope.PROJECT
         assert quotas[3].scope_id is None
-        assert quotas[3].categories == {DataCategory.ATTACHMENT_ITEM}
-        assert quotas[3].limit == 60100
+        assert quotas[3].categories == {DataCategory.SESSION}
+        assert quotas[3].limit == 6020
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
-
-        assert quotas[4].id == "pas"
-        assert quotas[4].scope == QuotaScope.PROJECT
-        assert quotas[4].scope_id is None
-        assert quotas[4].categories == {DataCategory.SESSION}
-        assert quotas[4].limit == 6020
-        assert quotas[4].window == 10
-        assert quotas[4].reason_code == "project_abuse_limit"
-
-        assert quotas[5].id == "paspi"
-        assert quotas[5].scope == QuotaScope.PROJECT
-        assert quotas[5].scope_id is None
-        assert quotas[5].categories == {DataCategory.SPAN_INDEXED}
-        assert quotas[5].limit == 6050
-        assert quotas[5].window == 10
-        assert quotas[5].reason_code == "project_abuse_limit"
-
-        assert quotas[6].id == "pal"
-        assert quotas[6].scope == QuotaScope.PROJECT
-        assert quotas[6].scope_id is None
-        assert quotas[6].categories == {DataCategory.LOG_ITEM}
-        assert quotas[6].limit == 6060
-        assert quotas[6].window == 10
-        assert quotas[6].reason_code == "project_abuse_limit"
 
         expected_quotas: dict[tuple[QuotaScope, UseCaseID | None], str] = dict()
         for scope, prefix in [
@@ -267,73 +239,22 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 20
         assert quotas[0].reason_code == "project_abuse_limit"
 
-    def test_legacy_transaction_quota(self) -> None:
-        # These legacy options need to be set, otherwise we'll run into
-        # AssertionError: reject-all quotas cannot be tracked
-        self.get_project_quota.return_value = (100, 10)
-        self.get_organization_quota.return_value = (1000, 10)
-        self.get_monitor_quota.return_value = (15, 60)
-
-        self.organization.update_option("project-abuse-quota.transaction-limit", 600)
-        with self.feature({"organizations:transaction-metrics-extraction": False}):
-            quotas = self.quota.get_quotas(self.project)
-
-        assert quotas[0].id == "pati"
-        assert quotas[0].scope == QuotaScope.PROJECT
-        assert quotas[0].scope_id is None
-        assert quotas[0].categories == {DataCategory.TRANSACTION}
-        assert quotas[0].limit == 6000
-        assert quotas[0].window == 10
-        assert quotas[0].reason_code == "project_abuse_limit"
-
-        # These legacy options need to be set, otherwise we'll run into
-        # AssertionError: reject-all quotas cannot be tracked
-        self.get_project_quota.return_value = (100, 10)
-        self.get_organization_quota.return_value = (1000, 10)
-        self.get_monitor_quota.return_value = (15, 60)
-
     @pytest.fixture(autouse=True)
-    def _patch_get_project_quota(self):
-        with mock.patch.object(
-            RedisQuota, "get_project_quota", return_value=(0, 60)
-        ) as self.get_project_quota:
-            yield
-
-    @pytest.fixture(autouse=True)
-    def _patch_get_organization_quota(self):
-        with mock.patch.object(
-            RedisQuota, "get_organization_quota", return_value=(0, 60)
-        ) as self.get_organization_quota:
-            yield
-
-    @pytest.fixture(autouse=True)
-    def _patch_get_monitor_quota(self):
+    def _patch_get_monitor_quota(self) -> Generator[None]:
         with mock.patch.object(
             RedisQuota, "get_monitor_quota", return_value=(0, 60)
         ) as self.get_monitor_quota:
             yield
 
     def test_uses_defined_quotas(self) -> None:
-        self.get_project_quota.return_value = (200, 60)
-        self.get_organization_quota.return_value = (300, 60)
         self.get_monitor_quota.return_value = (15, 60)
         quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[0].id == "p"
+        assert quotas[0].id == "mrl"
         assert quotas[0].scope == QuotaScope.PROJECT
         assert quotas[0].scope_id == str(self.project.id)
-        assert quotas[0].limit == 200
+        assert quotas[0].limit == 15
         assert quotas[0].window == 60
-        assert quotas[1].id == "o"
-        assert quotas[1].scope == QuotaScope.ORGANIZATION
-        assert quotas[1].scope_id == str(self.organization.id)
-        assert quotas[1].limit == 300
-        assert quotas[1].window == 60
-        assert quotas[2].id == "mrl"
-        assert quotas[2].scope == QuotaScope.PROJECT
-        assert quotas[2].scope_id == str(self.project.id)
-        assert quotas[2].limit == 15
-        assert quotas[2].window == 60
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
@@ -343,20 +264,6 @@ class RedisQuotaTest(TestCase):
         result = self.quota.is_rate_limited(self.project)
         assert not is_rate_limited.called
         assert not result.is_limited
-
-    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
-    def test_is_not_limited_without_rejections(self, is_rate_limited: mock.MagicMock) -> None:
-        self.get_organization_quota.return_value = (100, 60)
-        self.get_project_quota.return_value = (200, 60)
-        self.get_monitor_quota.return_value = (15, 60)
-        assert not self.quota.is_rate_limited(self.project).is_limited
-
-    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(True, False))
-    def test_is_limited_on_rejections(self, is_rate_limited: mock.MagicMock) -> None:
-        self.get_organization_quota.return_value = (100, 60)
-        self.get_project_quota.return_value = (200, 60)
-        self.get_monitor_quota.return_value = (15, 60)
-        assert self.quota.is_rate_limited(self.project).is_limited
 
     @mock.patch.object(RedisQuota, "get_quotas")
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
@@ -409,33 +316,6 @@ class RedisQuotaTest(TestCase):
         )
 
         assert self.quota.is_rate_limited(self.project).is_limited
-
-    def test_get_usage(self) -> None:
-        timestamp = time.time()
-
-        self.get_project_quota.return_value = (200, 60)
-        self.get_organization_quota.return_value = (300, 60)
-        self.get_monitor_quota.return_value = (15, 60)
-
-        n = 10
-        for _ in range(n):
-            self.quota.is_rate_limited(self.project, timestamp=timestamp)
-
-        quotas = self.quota.get_quotas(self.project)
-        all_quotas = quotas + [
-            QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
-            QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),
-        ]
-
-        usage = self.quota.get_usage(self.project.organization_id, all_quotas, timestamp=timestamp)
-
-        assert usage == [
-            n,  # project quota is consumed
-            n,  # organization quota is consumed
-            0,  # monitor quota is not consumed
-            0,  # unlimited quota is not consumed
-            0,  # dummy quota is not consumed
-        ]
 
     @mock.patch.object(RedisQuota, "get_quotas")
     def test_refund_defaults(self, mock_get_quotas: mock.MagicMock) -> None:
@@ -534,35 +414,3 @@ class RedisQuotaTest(TestCase):
 
         for key in attachment_keys:
             assert client.get(key) == b"100"
-
-    def test_get_usage_uses_refund(self) -> None:
-        timestamp = time.time()
-
-        self.get_project_quota.return_value = (200, 60)
-        self.get_organization_quota.return_value = (300, 60)
-        self.get_monitor_quota.return_value = (15, 60)
-
-        n = 10
-        for _ in range(n):
-            self.quota.is_rate_limited(self.project, timestamp=timestamp)
-
-        self.quota.refund(self.project, timestamp=timestamp)
-
-        quotas = self.quota.get_quotas(self.project)
-        all_quotas = quotas + [
-            QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
-            QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),
-        ]
-
-        usage = self.quota.get_usage(self.project.organization_id, all_quotas, timestamp=timestamp)
-
-        # Only quotas with an ID are counted in Redis (via this ID). Assume the
-        # count for these quotas and None for the others.
-        # The ``- 1`` is because we refunded once.
-        assert usage == [
-            n - 1,  # project quota has been refunded one
-            n - 1,  # organization quota has been refunded one
-            0,  # monitor quota was not consumed
-            0,  # unlimited quota was not consumed
-            0,  # dummy quota was not consumed
-        ]

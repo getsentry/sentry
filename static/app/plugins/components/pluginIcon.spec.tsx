@@ -7,8 +7,8 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 // jest.mock('images/logos/logo-default.svg', () => 'default', {});
 jest.mock('images/logos/logo-github.svg', () => 'github', {});
 
-describe('PluginIcon', function () {
-  it('renders', function () {
+describe('PluginIcon', () => {
+  it('renders', () => {
     render(<PluginIcon pluginId="github" size={20} />);
   });
 });

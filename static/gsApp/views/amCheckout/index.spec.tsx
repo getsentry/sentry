@@ -24,14 +24,27 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 
-describe('AM1 Checkout', function () {
+function assertCheckoutV3Steps(tier: PlanTier) {
+  expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
+  [
+    'Build your plan',
+    [PlanTier.AM1, PlanTier.AM2].includes(tier)
+      ? /Set your on-demand limit/
+      : /Set your pay-as-you-go limit/,
+    'Pay monthly or yearly, your choice',
+    'Edit billing information',
+  ].forEach(step => {
+    expect(screen.getByText(step)).toBeInTheDocument();
+  });
+}
+
+describe('AM1 Checkout', () => {
   let mockResponse: any;
   const api = new MockApiClient();
   const organization = OrganizationFixture({features: []});
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.clearMockResponses();
@@ -57,12 +70,12 @@ describe('AM1 Checkout', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
         checkoutTier={PlanTier.AM1}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
       />,
@@ -87,12 +100,47 @@ describe('AM1 Checkout', function () {
     });
   });
 
-  it('can skip to step and continue', async function () {
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM1}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am1'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM1);
+  });
+
+  it('can skip to step and continue', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         checkoutTier={PlanTier.AM1}
       />,
@@ -116,14 +164,14 @@ describe('AM1 Checkout', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders cancel subscription button', async function () {
+  it('renders cancel subscription button', async () => {
     const sub: SubscriptionType = {...subscription, canCancel: true};
     SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -138,7 +186,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('button', {name: 'Cancel Subscription'})).toBeInTheDocument();
   });
 
-  it('renders pending cancellation button', async function () {
+  it('renders pending cancellation button', async () => {
     const sub: SubscriptionType = {
       ...subscription,
       canCancel: true,
@@ -149,7 +197,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -164,11 +212,11 @@ describe('AM1 Checkout', function () {
     expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument();
   });
 
-  it('does not renders cancel subscription button if cannot cancel', async function () {
+  it('does not renders cancel subscription button if cannot cancel', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -185,7 +233,7 @@ describe('AM1 Checkout', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders annual terms for annual plan', async function () {
+  it('renders annual terms for annual plan', async () => {
     const sub: SubscriptionType = {
       ...subscription,
       plan: 'am1_team_auf',
@@ -198,7 +246,7 @@ describe('AM1 Checkout', function () {
     const {container} = render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -215,14 +263,14 @@ describe('AM1 Checkout', function () {
     );
   });
 
-  it('does not render annual terms for monthly plan', async function () {
+  it('does not render annual terms for monthly plan', async () => {
     const sub = {...subscription};
     SubscriptionStore.set(organization.slug, sub);
 
     const {container} = render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -239,11 +287,11 @@ describe('AM1 Checkout', function () {
     );
   });
 
-  it('renders default plan data', async function () {
+  it('renders default plan data', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -282,7 +330,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('');
   });
 
-  it('prefills with am1 team subscription data', async function () {
+  it('prefills with am1 team subscription data', async () => {
     const sub: SubscriptionType = SubscriptionFixture({
       organization,
       plan: 'am1_business',
@@ -302,7 +350,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -343,7 +391,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('100');
   });
 
-  it('prefills with am1 business subscription data', async function () {
+  it('prefills with am1 business subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_business',
@@ -363,7 +411,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -404,7 +452,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('100');
   });
 
-  it('prefills with mm2 team subscription data', async function () {
+  it('prefills with mm2 team subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_b_100k',
@@ -418,7 +466,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -455,7 +503,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills with mm2 biz subscription data', async function () {
+  it('prefills with mm2 biz subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_100k',
@@ -469,7 +517,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -503,7 +551,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills with s1 subscription data', async function () {
+  it('prefills with s1 subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 's1',
@@ -517,7 +565,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -554,7 +602,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills with l1 subscription data', async function () {
+  it('prefills with l1 subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'l1',
@@ -568,7 +616,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -605,14 +653,14 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('handles subscription with unlimited ondemand', async function () {
+  it('handles subscription with unlimited ondemand', async () => {
     const sub = {...subscription, onDemandMaxSpend: -1};
     SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -631,15 +679,14 @@ describe('AM1 Checkout', function () {
   });
 });
 
-describe('AM2 Checkout', function () {
+describe('AM2 Checkout', () => {
   let mockResponse: any;
 
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.clearMockResponses();
@@ -668,14 +715,49 @@ describe('AM2 Checkout', function () {
     });
   });
 
-  it('renders for am1 team plan', async function () {
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM2}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am2'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM2);
+  });
+
+  it('renders for am1 team plan', async () => {
     const sub = SubscriptionFixture({organization, plan: 'am1_team'});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -689,7 +771,6 @@ describe('AM2 Checkout', function () {
 
     expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-    expect(screen.getByText('Cross-project visibility')).toBeInTheDocument();
 
     expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByText('Unlimited members')).toBeInTheDocument();
@@ -703,14 +784,14 @@ describe('AM2 Checkout', function () {
     );
   });
 
-  it('renders for am2 free plan', async function () {
+  it('renders for am2 free plan', async () => {
     const sub = SubscriptionFixture({organization, plan: 'am2_f'});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -724,7 +805,6 @@ describe('AM2 Checkout', function () {
 
     expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-    expect(screen.getByText('Cross-project visibility')).toBeInTheDocument();
 
     expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByText('Unlimited members')).toBeInTheDocument();
@@ -738,7 +818,7 @@ describe('AM2 Checkout', function () {
     );
   });
 
-  it('prefills subscription data based on price with same plan type', async function () {
+  it('prefills subscription data based on price with same plan type', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_business',
@@ -758,7 +838,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -797,7 +877,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills subscription data based on price with annual plan', async function () {
+  it('prefills subscription data based on price with annual plan', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_business_auf',
@@ -817,7 +897,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -856,7 +936,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills subscription data based on events with different plan type', async function () {
+  it('prefills subscription data based on events with different plan type', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_team',
@@ -876,7 +956,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -915,7 +995,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('displays 40% india promotion', async function () {
+  it('displays 40% india promotion', async () => {
     const promotionData = {
       completedPromotions: [
         {
@@ -950,7 +1030,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -970,7 +1050,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getAllByText('53.40')).toHaveLength(2);
   });
 
-  it('skips step 1 for business plan in same tier', async function () {
+  it('skips step 1 for business plan in same tier', async () => {
     const am2BizSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -991,7 +1071,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1003,7 +1083,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
   });
 
-  it('does not skip step 1 for business plan pre-backfill', async function () {
+  it('does not skip step 1 for business plan pre-backfill', async () => {
     const launchOrg = OrganizationFixture({features: ['seer-billing']});
     const am2BizSubscription = SubscriptionFixture({
       organization: launchOrg,
@@ -1025,7 +1105,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1037,7 +1117,7 @@ describe('AM2 Checkout', function () {
     expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
   });
 
-  it('skips step 1 for business plan with seer', async function () {
+  it('skips step 1 for business plan with seer', async () => {
     const seerOrg = OrganizationFixture({features: ['seer-billing']});
     const seerSubscription = SubscriptionWithSeerFixture({
       organization: seerOrg,
@@ -1050,7 +1130,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1062,7 +1142,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
   });
 
-  it('does not skip step 1 for business plan without seer', async function () {
+  it('does not skip step 1 for business plan without seer', async () => {
     const nonSeerOrg = OrganizationFixture({features: ['seer-billing']});
     const nonSeerSubscription = SubscriptionFixture({
       organization: nonSeerOrg,
@@ -1075,7 +1155,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1087,7 +1167,7 @@ describe('AM2 Checkout', function () {
     expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
   });
 
-  it('test business bundle standard checkout', async function () {
+  it('test business bundle standard checkout', async () => {
     const am2BizSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_business_bundle',
@@ -1107,7 +1187,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1128,7 +1208,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
   });
 
-  it('handles missing categories in subscription.categories', async function () {
+  it('handles missing categories in subscription.categories', async () => {
     /**
      * In this test, we create a subscription where some categories are missing from
      * `subscription.categories`. We then verify that the component renders correctly
@@ -1153,7 +1233,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1198,16 +1278,16 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('does not use trial volumes for trial subscriptions in checkout', async function () {
+  it('does not use trial volumes for trial subscriptions in checkout', async () => {
     /**
      * Test for the trial checkout slider fix. When subscription.isTrial is true,
      * the checkout should use default volumes instead of trial reserved volumes.
      */
     const trialSub = SubscriptionFixture({
       organization,
-      plan: 'am2_business',
+      plan: 'am2_t',
       planTier: 'am2',
-      isTrial: true,
+      isTrial: true, // This is true for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 500_000}), // High trial volume
@@ -1225,7 +1305,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1274,7 +1354,7 @@ describe('AM2 Checkout', function () {
     expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
   });
 
-  it('continues to use reserved volumes for non-trial subscriptions', async function () {
+  it('continues to use reserved volumes for non-trial subscriptions', async () => {
     /**
      * Regression test to ensure non-trial subscriptions still work as expected
      * and use their actual reserved volumes in checkout.
@@ -1300,7 +1380,7 @@ describe('AM2 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1349,14 +1429,13 @@ describe('AM2 Checkout', function () {
   });
 });
 
-describe('AM3 Checkout', function () {
+describe('AM3 Checkout', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
   });
-  const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -1377,7 +1456,47 @@ describe('AM3 Checkout', function () {
     });
   });
 
-  it('renders for new customers (AM3 free plan)', async function () {
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM3}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM3);
+  });
+
+  it('renders for new customers (AM3 free plan)', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -1393,7 +1512,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1412,7 +1531,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('renders for customers migrating from partner billing', async function () {
+  it('renders for customers migrating from partner billing', async () => {
     organization.features.push('partner-billing-migration');
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
@@ -1442,7 +1561,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1470,7 +1589,7 @@ describe('AM3 Checkout', function () {
     organization.features.pop(); // clean up
   });
 
-  it('renders for self-serve partners', async function () {
+  it('renders for self-serve partners', async () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
@@ -1499,7 +1618,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1527,7 +1646,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('renders banner for self-serve partners', async function () {
+  it('renders banner for self-serve partners', async () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
@@ -1556,7 +1675,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1570,7 +1689,7 @@ describe('AM3 Checkout', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders for VC partners', async function () {
+  it('renders for VC partners', async () => {
     organization.features.push('vc-marketplace-active-customer');
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
@@ -1600,7 +1719,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1623,7 +1742,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('does not render for AM2 customers', async function () {
+  it('does not render for AM2 customers', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am2_f',
@@ -1640,7 +1759,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1660,7 +1779,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('does not render for AM1 customers', async function () {
+  it('does not render for AM1 customers', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_f',
@@ -1677,7 +1796,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM1}
@@ -1697,7 +1816,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('prefills with existing subscription data', async function () {
+  it('prefills with existing subscription data', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -1732,7 +1851,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1773,7 +1892,84 @@ describe('AM3 Checkout', function () {
     expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
   });
 
-  it('allows setting PAYG for customers switching to AM3', async function () {
+  it('prefills with existing subscription data with plan trial', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      planTier: PlanTier.AM3,
+      categories: {
+        errors: MetricHistoryFixture({reserved: 100_000}),
+        attachments: MetricHistoryFixture({reserved: 25}),
+        replays: MetricHistoryFixture({reserved: 50}),
+        monitorSeats: MetricHistoryFixture({reserved: 1}),
+        spans: MetricHistoryFixture({reserved: 20_000_000}),
+        profileDuration: MetricHistoryFixture({reserved: 1}),
+      },
+      onDemandBudgets: {
+        onDemandSpendUsed: 0,
+        sharedMaxBudget: 2000,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        enabled: true,
+      },
+      onDemandMaxSpend: 2000,
+      supportsOnDemand: true,
+      isFree: false,
+      isTrial: true, // isTrial is true for both subscription trials and plan trials
+    });
+
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
+    // TODO: Can better write this once we have
+    // https://github.com/testing-library/jest-dom/issues/478
+    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
+      'aria-valuetext',
+      '100000'
+    );
+    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
+      'aria-valuetext',
+      '50'
+    );
+    expect(screen.getByRole('slider', {name: 'Spans'})).toHaveAttribute(
+      'aria-valuetext',
+      '20000000'
+    );
+    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
+      'aria-valuetext',
+      '25'
+    );
+
+    expect(
+      screen.queryByRole('slider', {name: 'Accepted Spans'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', {name: 'Stored Spans'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
+  });
+
+  it('allows setting PAYG for customers switching to AM3', async () => {
     const sub = SubscriptionFixture({
       organization,
       // This plan does not have hasOnDemandModes
@@ -1791,7 +1987,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1821,7 +2017,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('handles missing categories in subscription.categories', async function () {
+  it('handles missing categories in subscription.categories', async () => {
     // Add billing config mock response
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -1861,7 +2057,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1901,7 +2097,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('handles zero platform reserve', function () {
+  it('handles zero platform reserve', () => {
     const formData = {
       plan: 'am3_business',
       reserved: {
@@ -1930,7 +2126,7 @@ describe('AM3 Checkout', function () {
     });
   });
 
-  it('does not use trial volumes for trial subscriptions in AM3 checkout', async function () {
+  it('does not use trial volumes for trial subscriptions in AM3 checkout', async () => {
     /**
      * Test for the trial checkout slider fix in AM3 tier. When subscription.isTrial is true,
      * the checkout should use default volumes instead of trial reserved volumes.
@@ -1943,9 +2139,9 @@ describe('AM3 Checkout', function () {
 
     const trialSub = SubscriptionFixture({
       organization,
-      plan: 'am3_business',
+      plan: 'am3_t',
       planTier: PlanTier.AM3,
-      isTrial: true, // This is the key - subscription is in trial mode
+      isTrial: true, // This is true for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume
@@ -1971,7 +2167,7 @@ describe('AM3 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1983,10 +2179,8 @@ describe('AM3 Checkout', function () {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
-    // For AM3, first step is pay-as-you-go budget
-    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
-
-    // Continue to Reserved Volumes step
+    // Continue to Reserved Volumes step (step 3 in AM3 checkout)
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
 

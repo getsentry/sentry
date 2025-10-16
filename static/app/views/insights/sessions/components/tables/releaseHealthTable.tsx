@@ -1,4 +1,4 @@
-import {type ReactNode, useCallback, useMemo} from 'react';
+import {useCallback, useMemo, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -75,7 +75,6 @@ export default function ReleaseHealthTable({
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
-    location,
   });
 
   const organization = useOrganization();

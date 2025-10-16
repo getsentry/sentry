@@ -48,7 +48,7 @@ export default function AdminMail() {
     try {
       await api.requestPromise('/internal/mail/', {method: 'POST'});
       addSuccessMessage(t('A test email has been sent to %s', testMailEmail));
-    } catch (error) {
+    } catch (error: any) {
       addErrorMessage(
         error.responseJSON
           ? error.responseJSON.error

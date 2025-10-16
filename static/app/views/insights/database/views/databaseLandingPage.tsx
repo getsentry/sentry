@@ -11,10 +11,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import DatabaseLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget';
 import DatabaseLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget';
 import {useDatabaseLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingChartFilter';
@@ -31,11 +31,7 @@ import {
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
-import {
-  BASE_FILTERS,
-  DEFAULT_DURATION_AGGREGATE,
-} from 'sentry/views/insights/database/settings';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export function DatabaseLandingPage() {
@@ -46,7 +42,6 @@ export function DatabaseLandingPage() {
   const hasModuleData = useHasFirstSpan(moduleName);
   const {search, enabled} = useDatabaseLandingChartFilter();
 
-  const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription =
     decodeScalar(location.query?.['sentry.normalized_description'], '') ||
     decodeScalar(location.query?.['span.description'], '');
@@ -110,7 +105,7 @@ export function DatabaseLandingPage() {
       limit: LIMIT,
       cursor,
     },
-    'api.starfish.use-span-list'
+    'api.insights.use-span-list'
   );
 
   const {isPending: isThroughputDataLoading, data: throughputData} =
@@ -124,15 +119,13 @@ export function DatabaseLandingPage() {
 
   const isAnyCriticalDataAvailable =
     (queryListResponse.data ?? []).length > 0 ||
-    durationData[`${selectedAggregate}(span.self_time)`].data?.some(
-      ({value}) => value > 0
-    ) ||
-    throughputData['epm()'].data?.some(({value}) => value > 0);
+    [...(durationData?.timeSeries ?? []), ...(throughputData?.timeSeries ?? [])]
+      .flatMap(timeSeries => timeSeries.values)
+      .some(({value}) => value && value > 0);
 
   return (
     <React.Fragment>
-      <BackendHeader module={ModuleName.DB} />
-      <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
+      <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -178,7 +171,7 @@ export function DatabaseLandingPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

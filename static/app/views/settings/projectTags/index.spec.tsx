@@ -11,10 +11,10 @@ import {
 
 import ProjectTags from 'sentry/views/settings/projectTags';
 
-describe('ProjectTags', function () {
-  const {organization: org, project, routerProps} = initializeOrg();
+describe('ProjectTags', () => {
+  const {organization: org, project} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -32,11 +32,19 @@ describe('ProjectTags', function () {
     });
   });
 
-  it('renders', function () {
-    render(<ProjectTags {...routerProps} />);
+  it('renders', () => {
+    render(<ProjectTags />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
+    });
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -49,13 +57,27 @@ describe('ProjectTags', function () {
       body: [],
     });
 
-    render(<ProjectTags {...routerProps} />);
+    render(<ProjectTags />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
+    });
     expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
-  it('disables delete button for users without access', async function () {
-    render(<ProjectTags {...routerProps} />, {
+  it('disables delete button for users without access', async () => {
+    render(<ProjectTags />, {
       organization: OrganizationFixture({access: []}),
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
     });
 
     (await screen.findAllByRole('button', {name: 'Remove tag'})).forEach(button =>
@@ -63,8 +85,16 @@ describe('ProjectTags', function () {
     );
   });
 
-  it('deletes tag', async function () {
-    render(<ProjectTags {...routerProps} />);
+  it('deletes tag', async () => {
+    render(<ProjectTags />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
+    });
 
     // First tag exists
     const tagCount = (await screen.findAllByTestId('tag-row')).length;

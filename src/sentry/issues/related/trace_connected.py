@@ -1,13 +1,13 @@
 # Module to evaluate if other errors happened in the same trace.
 #
 # Refer to README in module for more details.
-from sentry import eventstore
 from sentry.api.utils import default_start_end_dates
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries

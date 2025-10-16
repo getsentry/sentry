@@ -1,47 +1,25 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils');
-
-function createWrapper(org: Organization) {
-  return function TestWrapper({children}: {children: React.ReactNode}) {
-    const queryClient = makeTestQueryClient();
-    return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
-}
 
 describe('useMultiQueryTimeseries', () => {
   let mockNormalRequestUrl: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     jest.clearAllMocks();
   });
 
-  it('triggers the high accuracy request when there is no data and a partial scan', async function () {
+  it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     jest.mocked(useReadQueriesFromLocation).mockReturnValue([
       {
         query: 'test value',
@@ -82,15 +60,11 @@ describe('useMultiQueryTimeseries', () => {
       ],
       method: 'GET',
     });
-    renderHook(
-      () =>
-        useMultiQueryTimeseries({
-          enabled: true,
-          index: 0,
-        }),
-      {
-        wrapper: createWrapper(OrganizationFixture()),
-      }
+    renderHookWithProviders(() =>
+      useMultiQueryTimeseries({
+        enabled: true,
+        index: 0,
+      })
     );
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);

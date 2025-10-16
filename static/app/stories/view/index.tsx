@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useEffect} from 'react';
+import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,7 +6,6 @@ import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -38,10 +37,11 @@ function StoriesLanding() {
 
 function StoryDetail() {
   useStoryRedirect();
-  useScrollToHash();
+
   const location = useLocation<{name: string; query?: string}>();
-  const files = [location.state?.storyPath ?? location.query.name];
-  const story = useStoriesLoader({files});
+  const story = useStoriesLoader({
+    files: [location.state?.storyPath ?? location.query.name],
+  });
 
   return (
     <StoriesLayout>
@@ -82,71 +82,13 @@ function StoriesLayout(props: PropsWithChildren) {
             <HeaderContainer>
               <StoryHeader />
             </HeaderContainer>
-
             <StorySidebar />
-
             {props.children}
           </Layout>
         </OrganizationContainer>
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
-}
-
-function scrollToHash() {
-  if (window.location.hash) {
-    const hash = window.location.hash.replace(/^#/, '');
-
-    try {
-      const element = document.querySelector(`#${hash}`);
-      if (element) {
-        element.scrollIntoView({behavior: 'instant', block: 'start'});
-        return true; // Successfully scrolled
-      }
-      return false; // Element not found
-    } catch {
-      // hash might be an invalid querySelector and lead to a DOMException
-      return false;
-    }
-  }
-  return true; // No hash to scroll to
-}
-
-function useScrollToHash() {
-  useEffect(() => {
-    const timers: NodeJS.Timeout[] = [];
-    let attempts = 0;
-    const maxAttempts = 20; // Maximum number of attempts
-    const baseDelay = 50; // Base delay in ms
-    const maxDelay = 2000; // Maximum delay in ms
-
-    const tryScroll = () => {
-      if (scrollToHash()) {
-        return; // Successfully scrolled or no hash
-      }
-
-      attempts++;
-      if (attempts >= maxAttempts) {
-        return; // Give up after max attempts
-      }
-
-      // Exponential backoff with jitter
-      const delay = Math.min(baseDelay * Math.pow(1.5, attempts), maxDelay);
-      const jitter = Math.random() * 0.1 * delay; // Add up to 10% jitter
-
-      timers.push(setTimeout(tryScroll, delay + jitter));
-    };
-
-    // Start with a small initial delay to allow initial render
-    requestAnimationFrame(() => {
-      timers.push(setTimeout(tryScroll, 100));
-    });
-    return () => {
-      for (const timer of timers) {
-        clearTimeout(timer);
-      }
-    };
-  }, []);
 }
 
 function GlobalStoryStyles() {
@@ -193,7 +135,7 @@ const Layout = styled('div')`
   grid-template-columns: 256px minmax(auto, 1fr);
   place-items: stretch;
   min-height: calc(100dvh - 52px);
-  padding-bottom: ${space(4)};
+  padding-bottom: ${p => p.theme.space['3xl']};
   position: absolute;
   top: 52px;
   left: 0;
@@ -215,7 +157,7 @@ const VerticalScroll = styled('main')`
 
   grid-row: 1;
   grid-column: 2;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const StoryMainContainer = styled('div')`
@@ -224,7 +166,7 @@ const StoryMainContainer = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   h1,
   h2,
@@ -241,7 +183,7 @@ const StoryMainContainer = styled('div')`
     margin: 0;
   }
 
-  code:not(pre > code) {
+  code:not([class]):not(pre > code) {
     background: ${p => p.theme.tokens.background.secondary};
     color: ${p => p.theme.tokens.content.primary};
   }
@@ -255,7 +197,7 @@ const StoryMainContainer = styled('div')`
     border-collapse: collapse;
     border-radius: ${p => p.theme.borderRadius};
     box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-    margin-bottom: 32px;
+    margin-bottom: ${p => p.theme.space['3xl']};
 
     & thead {
       height: 36px;
@@ -265,8 +207,8 @@ const StoryMainContainer = styled('div')`
     }
 
     & th {
-      padding-inline: ${space(2)};
-      padding-block: ${space(0.75)};
+      padding-inline: ${p => p.theme.space.xl};
+      padding-block: ${p => p.theme.space.sm};
 
       &:first-of-type {
         border-radius: ${p => p.theme.borderRadius} 0 0 0;
@@ -297,9 +239,15 @@ const StoryMainContainer = styled('div')`
       }
     }
 
+    td:first-child {
+      white-space: nowrap;
+      word-break: break-all;
+      hyphens: none;
+    }
+
     td {
-      padding-inline: ${space(2)};
-      padding-block: ${space(1.5)};
+      padding-inline: ${p => p.theme.space.xl};
+      padding-block: ${p => p.theme.space.lg};
     }
   }
 
@@ -311,7 +259,7 @@ const StoryMainContainer = styled('div')`
   }
 
   .expressive-code .frame {
-    margin-bottom: 32px;
+    margin-bottom: ${p => p.theme.space['3xl']};
     box-shadow: none;
     border: 1px solid #000000;
     pre {

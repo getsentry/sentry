@@ -6,6 +6,8 @@ on:
       - 'Makefile'
       - '.github/workflows/development-environment.yml'
       - 'requirements-*.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
       - '.python-version'
       - '.envrc'
       - 'Brewfile'
@@ -31,13 +33,19 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
+          # we just cache the venv-dir directly in action-setup-venv
+          enable-cache: false
+
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
           python-version: 3.13.1
-          cache-dependency-path: |
-            requirements-dev.txt
-            requirements-dev-frozen.txt
-          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          cache-dependency-path: uv.lock
+          install-cmd: uv sync --only-dev --frozen --active
+
       - name: test-tools
         run: make test-tools
       - name: Handle artifacts
@@ -45,18 +53,26 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+
   devenv:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
+          # we just cache the venv-dir directly in action-setup-venv
+          enable-cache: false
+
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
           python-version: 3.13.1
-          cache-dependency-path: |
-            requirements-dev.txt
-            requirements-dev-frozen.txt
-          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          cache-dependency-path: uv.lock
+          # technically we can just use --only-dev but more cache is nice
+          install-cmd: uv sync --frozen --active
+
       - name: devenv sync
         run: |
           devenv --nocoderoot sync

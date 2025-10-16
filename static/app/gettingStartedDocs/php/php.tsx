@@ -9,7 +9,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportPHPInstallStep,
+  getCrashReportPHPInstallSteps,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -31,6 +31,12 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
       ? `
   // Set a sampling rate for profiling - this is relative to traces_sample_rate
   'profiles_sample_rate' => 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable logs to be sent to Sentry
+  'enable_logs' => true,`
       : ''
   }
 ]);`;
@@ -138,7 +144,7 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportPHPInstallStep(params),
+  install: (params: Params) => getCrashReportPHPInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -306,10 +312,103 @@ const profilingOnboarding: OnboardingConfig = {
       description: t(
         'Verify that profiling is working correctly by simply using your application.'
       ),
-      configurations: [],
     },
   ],
   nextSteps: () => [],
+};
+
+const logsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To start using logs, install the latest version of the Sentry PHP SDK. Logs are supported in version [code:4.12.0] and above of the SDK.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'bash',
+          code: 'composer require sentry/sentry',
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+            {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry-php/blob/master/UPGRADE-4.0.md" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable logging, you need to initialize the SDK with the [code:enable_logs] option set to [code:true].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `\\Sentry\\init([
+  'dsn' => '${params.dsn.public}',
+  'enable_logs' => true,
+]);
+
+// Somewhere at the end of your execution, you should flush
+// the logger to send pending logs to Sentry.
+\\Sentry\\logger()->flush();`,
+        },
+        {
+          type: 'text',
+          text: tct(
+            'For more detailed configuration options, see the [link:logs documentation].',
+            {
+              link: <ExternalLink href="https://docs.sentry.io/platforms/php/logs/" />,
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that logging is working correctly by sending logs via the Sentry logger.'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `\\Sentry\\logger()->info('A test log message');
+
+// Somewhere at the end of your execution, you should flush
+// the logger to send pending logs to Sentry.
+\\Sentry\\logger()->flush();`,
+        },
+      ],
+    },
+  ],
 };
 
 const docs: Docs = {
@@ -319,6 +418,7 @@ const docs: Docs = {
   profilingOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding,
 };
 
 export default docs;

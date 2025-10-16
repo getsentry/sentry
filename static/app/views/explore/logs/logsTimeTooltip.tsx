@@ -1,29 +1,37 @@
 import React, {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration/duration';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 type Props = {
   attributes: Record<string, string | number | boolean>;
   children: React.ReactNode;
   timestamp: string | number;
+  relativeTimeToReplay?: number;
   shouldRender?: boolean;
 };
 
 function TimestampTooltipBody({
   timestamp,
   attributes,
+  relativeTime,
 }: {
   attributes: Record<string, string | number | boolean>;
   timestamp: string | number;
+  relativeTime?: number;
 }) {
   const currentTimezone = useTimezone();
+  const organization = useOrganization();
   const preciseTimestamp = attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
   const preciseTimestampMs = preciseTimestamp
     ? Number(preciseTimestamp) / 1_000_000
@@ -37,7 +45,7 @@ function TimestampTooltipBody({
       : null;
   const observedTime = observedTimeMs ? new Date(observedTimeMs) : null;
 
-  const isUTC = currentTimezone === 'UTC';
+  const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
     <DescriptionList>
@@ -47,7 +55,7 @@ function TimestampTooltipBody({
           <AutoSelectText>
             <DateTime date={timestampToUse} seconds milliseconds timeZone />
           </AutoSelectText>
-          {!isUTC && (
+          {!isUTCLocalTimezone && (
             <AutoSelectText>
               <DateTime date={timestampToUse} seconds milliseconds timeZone utc />
             </AutoSelectText>
@@ -57,6 +65,35 @@ function TimestampTooltipBody({
           </TimestampLabel>
         </TimestampValues>
       </dd>
+      {relativeTime && (
+        <Fragment>
+          <dt>{t('Relative to Replay Start')}</dt>
+          <dd>
+            <TimestampValues>
+              <Duration duration={[Math.abs(relativeTime), 'ms']} precision="ms" />
+            </TimestampValues>
+          </dd>
+        </Fragment>
+      )}
+      {isUTCLocalTimezone && (
+        <Fragment>
+          <dt />
+          <TimestampLabelLinkContainer>
+            <TimestampLabelLink
+              target="_blank"
+              to="/settings/account/details/#timezone"
+              onClick={() =>
+                trackAnalytics('logs.timestamp_tooltip.add_timezone_clicked', {
+                  organization,
+                })
+              }
+            >
+              <br />
+              {t('Add your local timezone')}
+            </TimestampLabelLink>
+          </TimestampLabelLinkContainer>
+        </Fragment>
+      )}
 
       {observedTime && (
         <Fragment>
@@ -82,6 +119,7 @@ export default function LogsTimestampTooltip({
   attributes,
   children,
   shouldRender = true,
+  relativeTimeToReplay: relativeTime,
 }: Props) {
   if (!shouldRender) {
     return <Fragment>{children}</Fragment>;
@@ -95,7 +133,11 @@ export default function LogsTimestampTooltip({
     <Tooltip
       title={
         <div onPointerUp={handleTooltipPointerUp}>
-          <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
+          <TimestampTooltipBody
+            timestamp={timestamp}
+            attributes={attributes}
+            relativeTime={relativeTime}
+          />
         </div>
       }
       maxWidth={400}
@@ -128,6 +170,14 @@ const HorizontalRule = styled('hr')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
+const TimestampLabelLink = styled(Link)`
+  line-height: 0.8;
+`;
+
 const TimestampLabel = styled('span')`
   color: ${p => p.theme.gray400};
+`;
+
+const TimestampLabelLinkContainer = styled('dd')`
+  line-height: 0.8;
 `;

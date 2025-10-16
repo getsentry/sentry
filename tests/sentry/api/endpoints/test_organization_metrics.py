@@ -1,9 +1,11 @@
 import copy
 
 import pytest
+from django.http import HttpResponse
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
+from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -43,7 +45,9 @@ class OrganizationMetricsPermissionTest(APITestCase):
     def setUp(self) -> None:
         self.create_project(name="Bar", slug="bar", teams=[self.team], fire_project_created=True)
 
-    def send_request(self, organization, token, method, endpoint, *args):
+    def send_request(
+        self, organization: Organization, token: ApiToken, method: str, endpoint: str, *args: str
+    ) -> HttpResponse:
         url = reverse(endpoint, args=(organization.slug,) + args)
         return getattr(self.client, method)(
             url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"

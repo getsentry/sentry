@@ -74,7 +74,7 @@ pytest
 pytest tests/sentry/api/test_base.py
 ```
 
-### Code Quality
+### Code Quality and Style
 
 ```bash
 # Preferred: Run pre-commit hooks on specific files
@@ -87,7 +87,6 @@ pre-commit run --all-files
 black --check  # Run black first
 isort --check
 flake8
-
 ```
 
 ### Database Operations
@@ -137,12 +136,52 @@ Sentry uses `devservices` to manage local development dependencies:
 3. Set appropriate `queue` and `max_retries`
 4. Test location: `tests/sentry/tasks/test_{category}.py`
 
+## On Commenting
+
+Comments should not repeat what the code is saying. Instead, reserve comments
+for explaining **why** something is being done, or to provide context that is not
+obvious from the code itself.
+
+Bad:
+
+```py
+# Increment the retry count by 1
+retries += 1
+```
+
+Good:
+
+```py
+# Some APIs occasionally return 500s on valid requests. We retry up to 3 times
+# before surfacing an error.
+retries += 1
+```
+
+When to Comment
+
+- To explain why a particular approach or workaround was chosen.
+- To clarify intent when the code could be misread or misunderstood.
+- To provide context from external systems, specs, or requirements.
+- To document assumptions, edge cases, or limitations.
+
+When Not to Comment
+
+- Don't narrate what the code is doing — the code already says that.
+- Don't duplicate function or variable names in plain English.
+- Don't leave stale comments that contradict the code.
+
+Avoid comments that reference removed or obsolete code paths (e.g. “No longer
+uses X format”). If compatibility code or legacy behavior is deleted, comments
+about it should also be deleted. The comment should describe the code that
+exists now, not what used to be there. Historic details belong in commit
+messages or documentation, not in-line comments.
+
 ## Critical Patterns (Copy-Paste Ready)
 
 ### API Endpoint Pattern
 
 ```python
-# src/sentry/api/endpoints/organization_details.py
+# src/sentry/core/endpoints/organization_details.py
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
@@ -230,7 +269,7 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 ### Test Pattern
 
 ```python
-# tests/sentry/api/endpoints/test_organization_details.py
+# tests/sentry/core/endpoints/test_organization_details.py
 from sentry.testutils.cases import APITestCase
 
 class OrganizationDetailsTest(APITestCase):
@@ -272,6 +311,7 @@ class MyPermission(SentryPermission):
 ```python
 import logging
 from sentry import analytics
+from sentry.analytics.events.feature_used import FeatureUsedEvent  # does not exist, only for demonstration purposes
 
 logger = logging.getLogger(__name__)
 
@@ -287,10 +327,11 @@ logger.info(
 
 # Analytics event
 analytics.record(
-    "feature.used",
-    user_id=user.id,
-    organization_id=org.id,
-    feature="new-dashboard",
+    FeatureUsedEvent(
+        user_id=user.id,
+        organization_id=org.id,
+        feature="new-dashboard",
+    )
 )
 ```
 
@@ -375,6 +416,12 @@ x: str | None = "hello"
 if isinstance(x, str):
     x = x.replace("e", "a")
 
+# WRONG: Importing inside function bodies.
+# RIGHT: Import at the top of python modules. ONLY import in a function body if
+# to avoid a circular import (very rare)
+def my_function():
+    from sentry.models.project import Project # NO!
+    ...
 ```
 
 ## Performance Considerations

@@ -9,14 +9,15 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {PlanTier} from 'getsentry/types';
 import {UsageLog} from 'getsentry/views/subscriptionPage/usageLog';
 
-describe('Subscription Usage Log', function () {
+describe('Subscription Usage Log', () => {
   const organization = OrganizationFixture({
     access: ['org:billing'],
   });
   const sub = SubscriptionFixture({organization});
   const mockLocation = LocationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
+    organization.features = [];
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -70,7 +71,7 @@ describe('Subscription Usage Log', function () {
     'trial.extended',
   ];
 
-  it('renders usage log', async function () {
+  it('renders usage log', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',
@@ -80,6 +81,9 @@ describe('Subscription Usage Log', function () {
     render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
 
     await screen.findByText(/Select Action/i);
+    expect(
+      screen.queryByRole('heading', {name: /Activity Logs/i})
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/cancelled plan/i)).toBeInTheDocument();
     expect(screen.getByText(/Sentry Staff/i)).toBeInTheDocument();
     expect(screen.getByText(/Jun/i)).toBeInTheDocument();
@@ -87,7 +91,27 @@ describe('Subscription Usage Log', function () {
     expect(screen.getByText(/Trial Extended/i)).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders usage log in new billing UI', async () => {
+    organization.features = ['subscriptions-v3'];
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/usage-logs/`,
+      method: 'GET',
+      body: {rows: [UsageLogFixture()], eventNames},
+    });
+
+    render(<UsageLog location={mockLocation} subscription={sub} />, {organization});
+
+    await screen.findByText(/Select Action/i);
+    expect(screen.getByRole('heading', {name: /Activity Logs/i})).toBeInTheDocument();
+    expect(screen.getByText(/cancelled plan/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sentry Staff/i)).toBeInTheDocument();
+    expect(screen.getByText(/Jun/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByText(/Select Action/i));
+    expect(screen.getByText(/Trial Extended/i)).toBeInTheDocument();
+  });
+
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',
@@ -100,7 +124,7 @@ describe('Subscription Usage Log', function () {
     expect(screen.getByText(/No entries available/i)).toBeInTheDocument();
   });
 
-  it('keeps hypens in on-demand and PAYG', async function () {
+  it('keeps hypens in on-demand and PAYG', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',

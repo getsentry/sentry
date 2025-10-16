@@ -28,7 +28,7 @@ def _assert_settings_warnings(warninfo, expected):
     assert actual == expected
 
 
-def test_bootstrap_options_simple(settings, config_yml):
+def test_bootstrap_options_simple(settings, config_yml) -> None:
     "Config options are specified in both places, but config.yml should prevail"
     settings.SECRET_KEY = "xxx"
     settings.EMAIL_BACKEND = "xxx"
@@ -85,7 +85,7 @@ mail.subject-prefix: my-mail-subject-prefix
     assert settings.EMAIL_SUBJECT_PREFIX == "my-mail-subject-prefix"
 
 
-def test_bootstrap_options_malformed_yml(settings, config_yml):
+def test_bootstrap_options_malformed_yml(settings, config_yml) -> None:
     config_yml.write("1")
     with pytest.raises(ConfigurationError):
         bootstrap_options(settings, str(config_yml))
@@ -95,7 +95,7 @@ def test_bootstrap_options_malformed_yml(settings, config_yml):
         bootstrap_options(settings, str(config_yml))
 
 
-def test_bootstrap_options_no_config(settings):
+def test_bootstrap_options_no_config(settings) -> None:
     "No config file should gracefully extract values out of settings"
     settings.SECRET_KEY = "my-system-secret-key"
     settings.EMAIL_BACKEND = "my-mail-backend"
@@ -140,7 +140,7 @@ def test_bootstrap_options_no_config(settings):
     }
 
 
-def test_bootstrap_options_no_config_only_sentry_options(settings):
+def test_bootstrap_options_no_config_only_sentry_options(settings) -> None:
     "SENTRY_OPTIONS is only declared, but should be promoted into settings"
     settings.SENTRY_OPTIONS = {
         "system.secret-key": "my-system-secret-key",
@@ -168,29 +168,28 @@ def test_bootstrap_options_no_config_only_sentry_options(settings):
     assert settings.EMAIL_SUBJECT_PREFIX == "my-mail-subject-prefix"
 
 
-def test_bootstrap_options_mail_aliases(settings):
+def test_bootstrap_options_mail_aliases(settings) -> None:
     settings.SENTRY_OPTIONS = {"mail.backend": "dummy"}
     bootstrap_options(settings)
     assert settings.EMAIL_BACKEND == "alias-for-dummy"
 
 
-def test_bootstrap_options_missing_file(settings):
+def test_bootstrap_options_missing_file(settings) -> None:
     bootstrap_options(settings, "this-file-does-not-exist-xxxxxxxxxxxxxx.yml")
     assert settings.SENTRY_OPTIONS == {}
 
 
-def test_bootstrap_options_empty_file(settings, config_yml):
+def test_bootstrap_options_empty_file(settings, config_yml) -> None:
     config_yml.write("")
     bootstrap_options(settings, str(config_yml))
     assert settings.SENTRY_OPTIONS == {}
 
 
-def test_apply_legacy_settings(settings):
+def test_apply_legacy_settings(settings) -> None:
     settings.ALLOWED_HOSTS = []
     settings.SENTRY_USE_QUEUE = True
     settings.SENTRY_ALLOW_REGISTRATION = True
     settings.SENTRY_ADMIN_EMAIL = "admin-email"
-    settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 10
     settings.SENTRY_REDIS_OPTIONS = {"foo": "bar"}
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
     settings.SENTRY_SMTP_HOSTNAME = "reply-hostname"
@@ -203,11 +202,9 @@ def test_apply_legacy_settings(settings):
     settings.SENTRY_RELOCATION_OPTIONS = {"relocation-baz": "relocation-qux"}
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         apply_legacy_settings(settings)
-    assert settings.CELERY_ALWAYS_EAGER is False
     assert settings.SENTRY_FEATURES["auth:register"] is True
     assert settings.SENTRY_OPTIONS == {
         "system.admin-email": "admin-email",
-        "system.rate-limit": 10,
         "system.secret-key": "secret-key",
         "redis.clusters": {"default": {"foo": "bar"}},
         "mail.from": "mail-from",
@@ -238,20 +235,18 @@ def test_apply_legacy_settings(settings):
             ),
             ("SENTRY_REDIS_OPTIONS", 'SENTRY_OPTIONS["redis.clusters"]'),
             ("SENTRY_SMTP_HOSTNAME", "SENTRY_OPTIONS['mail.reply-hostname']"),
-            ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "SENTRY_OPTIONS['system.rate-limit']"),
-            ("SENTRY_USE_QUEUE", "CELERY_ALWAYS_EAGER"),
         },
     )
 
 
-def test_initialize_app(settings):
+def test_initialize_app(settings) -> None:
     "Just a sanity check of the full initialization process"
     settings.SENTRY_OPTIONS = {"system.secret-key": "secret-key"}
     bootstrap_options(settings)
     apply_legacy_settings(settings)
 
 
-def test_require_secret_key(settings):
+def test_require_secret_key(settings) -> None:
     assert "system.secret-key" not in settings.SENTRY_OPTIONS
     with pytest.raises(ConfigurationError):
         apply_legacy_settings(settings)

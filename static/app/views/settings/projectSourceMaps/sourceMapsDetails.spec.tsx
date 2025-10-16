@@ -85,13 +85,13 @@ function renderDebugIdBundlesMockRequests({
   return {artifactBundlesFiles, artifactBundlesDeletion};
 }
 
-describe('SourceMapsDetails', function () {
-  beforeEach(function () {
+describe('SourceMapsDetails', () => {
+  beforeEach(() => {
     OrganizationStore.init();
   });
 
-  describe('Release Bundles', function () {
-    it('renders default state', async function () {
+  describe('Release Bundles', () => {
+    it('renders default state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser'],
@@ -152,7 +152,7 @@ describe('SourceMapsDetails', function () {
       );
     });
 
-    it('renders empty state', async function () {
+    it('renders empty state', async () => {
       const {organization, routerProps, project} = initializeOrg({
         router: {
           location: {
@@ -189,8 +189,8 @@ describe('SourceMapsDetails', function () {
     });
   });
 
-  describe('Artifact Bundles', function () {
-    it('renders default state', async function () {
+  describe('Artifact Bundles', () => {
+    it('renders default state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser', 'project:releases'],
@@ -294,7 +294,7 @@ describe('SourceMapsDetails', function () {
       });
     });
 
-    it('renders empty state', async function () {
+    it('renders empty state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {

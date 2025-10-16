@@ -11,9 +11,9 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {
-  type ModalRenderProps,
   openConsoleModal,
   openProjectCreationModal,
+  type ModalRenderProps,
 } from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -75,6 +75,7 @@ export default function ProjectCreationModal({
           ...selectedPlatform,
           key: selectedPlatform.id,
         },
+        origin: 'project-creation',
         onClose: () => {
           openProjectCreationModal({
             defaultCategory: selectedPlatform.category,
@@ -188,13 +189,13 @@ export default function ProjectCreationModal({
           <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
           <ProjectNameTeamSection>
             <div>
-              <Label>{t('Project name')}</Label>
+              <Label>{t('Project slug')}</Label>
               <ProjectNameInputWrap>
                 <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
                 <ProjectNameInput
                   type="text"
                   name="project-name"
-                  placeholder={t('project-name')}
+                  placeholder={t('project-slug')}
                   autoComplete="off"
                   value={projectName}
                   onChange={e => setProjectName(slugify(e.target.value))}
@@ -207,7 +208,6 @@ export default function ProjectCreationModal({
                 allowCreate
                 name="select-team"
                 aria-label={t('Select a Team')}
-                menuPlacement="auto"
                 clearable={false}
                 value={team}
                 placeholder={t('Select a Team')}

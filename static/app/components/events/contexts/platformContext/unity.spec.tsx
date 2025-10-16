@@ -25,8 +25,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('UnityContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('UnityContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getUnityContextData({data: MOCK_UNITY_CONTEXT})).toEqual([
       {
         key: 'copy_texture_support',
@@ -54,7 +54,7 @@ describe('UnityContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {unity: MOCK_REDACTION}},
     });
@@ -62,8 +62,8 @@ describe('UnityContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'unity'}
-        alias={'unity'}
+        type="unity"
+        alias="unity"
         value={{...MOCK_UNITY_CONTEXT, install_mode: ''}}
       />
     );

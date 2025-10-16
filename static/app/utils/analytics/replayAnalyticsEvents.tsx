@@ -5,7 +5,12 @@ export type ReplayEventParameters = {
   'replay.ai-summary.chapter-clicked': {
     chapter_type?: 'error' | 'feedback';
   };
-  'replay.ai-summary.regenerate-requested': Record<string, unknown>;
+  'replay.ai-summary.regenerate-requested': {
+    area: string;
+  };
+  'replay.ai_tab_shown': {
+    isSeerSetup: boolean;
+  };
   'replay.canvas-detected-banner-clicked': {
     sdk_needs_update?: boolean;
   };
@@ -134,6 +139,7 @@ export type ReplayEventParameters = {
 type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
+  'replay.ai_tab_shown': 'Replay AI Tab Shown',
   'replay.ai-summary.chapter-clicked': 'Clicked Replay AI Summary Chapter',
   'replay.ai-summary.regenerate-requested': 'Requested to Regenerate Replay AI Summary',
   'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',

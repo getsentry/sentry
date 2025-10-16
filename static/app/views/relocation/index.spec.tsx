@@ -15,8 +15,8 @@ IAxCAaGQJVsg9dhKOORjAf4XK9aXHvy/jUSyT43opj6AgNqXlKEQjb1NBA8qbJJS
 8wIDAQAB
 -----END PUBLIC KEY-----`;
 
-describe('Relocation Onboarding Container', function () {
-  beforeEach(function () {
+describe('Relocation Onboarding Container', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
@@ -30,7 +30,7 @@ describe('Relocation Onboarding Container', function () {
     });
   });
 
-  it('should render if feature enabled', async function () {
+  it('should render if feature enabled', async () => {
     const {routerProps, organization} = initializeOrg({
       router: {
         params: {step: 'get-started'},
@@ -39,6 +39,12 @@ describe('Relocation Onboarding Container', function () {
     ConfigStore.set('features', new Set(['relocation:enabled']));
     render(<RelocationOnboardingContainer {...routerProps} />, {
       organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/relocation/get-started/',
+        },
+        route: '/relocation/:step/',
+      },
     });
     expect(
       await screen.findByText(/Choose where to store your organization's data/)
@@ -48,7 +54,7 @@ describe('Relocation Onboarding Container', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('should not render if feature disabled', async function () {
+  it('should not render if feature disabled', async () => {
     const {routerProps, organization} = initializeOrg({
       router: {
         params: {step: 'get-started'},
@@ -57,6 +63,12 @@ describe('Relocation Onboarding Container', function () {
     ConfigStore.set('features', new Set([]));
     render(<RelocationOnboardingContainer {...routerProps} />, {
       organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/relocation/get-started/',
+        },
+        route: '/relocation/:step/',
+      },
     });
     expect(
       await screen.findByText("You don't have access to this feature")

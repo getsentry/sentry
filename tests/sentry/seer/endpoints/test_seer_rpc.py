@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import patch
 
@@ -8,17 +9,21 @@ import responses
 from cryptography.fernet import Fernet
 from django.test import override_settings
 from django.urls import reverse
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
+    get_attributes_for_span,
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
+    get_sentry_organization_ids,
 )
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -62,16 +67,16 @@ class TestSeerRpcMethods(APITestCase):
         self.organization = self.create_organization(owner=self.user)
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture):
         self._caplog = caplog
 
     def test_get_organization_seer_consent_by_org_name_no_integrations(self) -> None:
         """Test when no organization integrations are found"""
         # Test with a non-existent organization name
         result = get_organization_seer_consent_by_org_name(org_name="non-existent-org")
-        assert result == {"consent": False}
+        assert result == {"consent": False, "consent_url": None}
 
-    def test_get_organization_seer_consent_by_org_name_no_consent(self):
+    def test_get_organization_seer_consent_by_org_name_no_consent(self) -> None:
         """Test when organization exists but has no consent"""
         self.create_integration(
             organization=self.organization,
@@ -87,9 +92,12 @@ class TestSeerRpcMethods(APITestCase):
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
-    def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self):
+    def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self) -> None:
         """Test when organization has seer acknowledgement"""
         self.create_integration(
             organization=self.organization,
@@ -101,9 +109,12 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return True since PR review is enabled by default
-        assert result == {"consent": True}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
-    def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(self):
+    def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(self) -> None:
         """Test when multiple organizations exist, one with consent"""
         org_without_consent = self.create_organization(owner=self.user)
         org_with_consent = self.create_organization(owner=self.user)
@@ -122,9 +133,12 @@ class TestSeerRpcMethods(APITestCase):
             external_id="github:test-org-2",
         )
 
-        # Disable PR review for first org, enable for second (or leave default)
+        # Disable PR review for first org, enable for second (default is False)
         OrganizationOption.objects.set_value(
             org_without_consent, "sentry:enable_pr_review_test_generation", False
+        )
+        OrganizationOption.objects.set_value(
+            org_with_consent, "sentry:enable_pr_review_test_generation", True
         )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
@@ -153,7 +167,10 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because hide_ai_features=True makes this org not contribute consent
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_with_hide_ai_features_disabled(
         self,
@@ -169,11 +186,13 @@ class TestSeerRpcMethods(APITestCase):
         # Explicitly disable hide_ai_features
         OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
 
-        # PR review is enabled by default, so (NOT hide_ai_features AND pr_review_enabled) = True
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
-        # Should return True because hide_ai_features=False and PR review is enabled by default
-        assert result == {"consent": True}
+        # Should return False because hide_ai_features=False and PR review is disabled by default
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_with_hide_ai_features(
         self,
@@ -204,15 +223,18 @@ class TestSeerRpcMethods(APITestCase):
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
-        # Should return True because second org has (NOT hide_ai_features AND pr_review_enabled) = True
-        assert result == {"consent": True}
+        # Should return False because second org has (NOT hide_ai_features AND pr_review_enabled) = False
+        assert result == {
+            "consent": False,
+            "consent_url": org_with_visible_ai.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_all_hide_ai_features(
         self,
     ):
         """Test multiple orgs where all have hide_ai_features=True"""
-        org1 = self.create_organization(owner=self.user)
-        org2 = self.create_organization(owner=self.user)
+        org1 = self.create_organization(owner=self.user, slug="test-org-1")
+        org2 = self.create_organization(owner=self.user, slug="test-org-2")
 
         # Create integrations for both organizations with the same name
         self.create_integration(
@@ -235,7 +257,10 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because no org can contribute consent (all have hide_ai_features=True)
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": org2.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_hide_ai_false_pr_review_false(
         self,
@@ -257,13 +282,43 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because even though hide_ai_features=False, pr_review_enabled=False
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
+
+    def test_get_attributes_for_span(self) -> None:
+        project = self.create_project(organization=self.organization)
+
+        response = TraceItemDetailsResponse()
+        response.item_id = "deadbeefdeadbeef"
+        response.timestamp.FromDatetime(datetime(2024, 1, 1, tzinfo=timezone.utc))
+        attribute = response.attributes.add()
+        attribute.name = "span.description"
+        attribute.value.val_str = "example"
+
+        with patch(
+            "sentry.seer.endpoints.seer_rpc.snuba_rpc.trace_item_details_rpc",
+            return_value=response,
+        ) as mock_rpc:
+            result = get_attributes_for_span(
+                org_id=self.organization.id,
+                project_id=project.id,
+                trace_id="5fa0d282b446407cb279202490ee2e8a",
+                span_id="deadbeefdeadbeef",
+            )
+
+        assert len(result["attributes"]) == 1
+        attribute = result["attributes"][0]
+        assert attribute["type"] == "str"
+        assert attribute["value"] == "example"
+        assert attribute["name"] in {"span.description", "tags[span.description,string]"}
+        mock_rpc.assert_called_once()
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config(self, mock_get_jwt):
+    def test_get_github_enterprise_integration_config(self, mock_get_jwt) -> None:
         """Test when organization has github enterprise integration"""
 
         installation_id = 1234
@@ -329,7 +384,6 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_jwt.assert_called_once_with(github_id=1, github_private_key=private_key)
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_integration_id(self) -> None:
         # Test with invalid integration_id
         with self._caplog.at_level(logging.ERROR):
@@ -342,7 +396,6 @@ class TestSeerRpcMethods(APITestCase):
         assert "Integration -1 does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_organization_id(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
@@ -374,7 +427,6 @@ class TestSeerRpcMethods(APITestCase):
         assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_disabled_integration(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
@@ -395,9 +447,10 @@ class TestSeerRpcMethods(APITestCase):
             },
         )
 
-        # Test with disabled integration
-        integration.status = ObjectStatus.DISABLED
-        integration.save()
+        with assume_test_silo_mode_of(Integration):
+            # Test with disabled integration
+            integration.status = ObjectStatus.DISABLED
+            integration.save()
 
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -410,9 +463,10 @@ class TestSeerRpcMethods(APITestCase):
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config_invalid_encrypt_key(self, mock_get_jwt):
+    def test_get_github_enterprise_integration_config_invalid_encrypt_key(
+        self, mock_get_jwt
+    ) -> None:
         installation_id = 1234
         private_key = "private_key_1"
         access_token = "access_token_1"
@@ -446,3 +500,284 @@ class TestSeerRpcMethods(APITestCase):
 
         assert not result["success"]
         assert "Failed to encrypt access token" in self._caplog.text
+
+    def test_get_sentry_organization_ids_repository_found(self) -> None:
+        """Test when repository exists and is active"""
+
+        # Create a repository
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # By default the organization has pr_review turned off
+        result = get_sentry_organization_ids(
+            full_repo_name="getsentry/sentry", external_id="1234567890"
+        )
+        assert result == {"org_ids": []}
+
+        # Turn on pr_review
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+        result = get_sentry_organization_ids(
+            full_repo_name="getsentry/sentry", external_id="1234567890"
+        )
+        assert result == {"org_ids": [self.organization.id]}
+
+    def test_get_sentry_organization_ids_repository_not_found(self) -> None:
+        """Test when repository does not exist"""
+        result = get_sentry_organization_ids(
+            full_repo_name="nonexistent/repo", external_id="1234567890"
+        )
+
+        assert result == {"org_ids": []}
+
+    def test_get_sentry_organization_ids_repository_inactive(self) -> None:
+        """Test when repository exists but is not active"""
+
+        # Create a repository with inactive status
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            external_id="1234567890",
+            provider="integrations:github",
+            status=ObjectStatus.DISABLED,
+        )
+
+        result = get_sentry_organization_ids(
+            full_repo_name="getsentry/sentry", external_id="1234567890"
+        )
+
+        # Should not find the repository because it's not active
+        assert result == {"org_ids": []}
+
+    def test_get_sentry_organization_ids_different_provider(self) -> None:
+        """Test when repository exists but with different provider"""
+
+        # Create a repository with different provider
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Search with default provider (integrations:github)
+        result = get_sentry_organization_ids(
+            full_repo_name="getsentry/sentry", external_id="1234567890"
+        )
+
+        # Should not find the repository because provider doesn't match
+        assert result == {"org_ids": []}
+
+    def test_get_sentry_organization_ids_multiple_repos_same_name_different_providers(self) -> None:
+        """Test when multiple repositories exist with same name but different providers"""
+        org2 = self.create_organization(owner=self.user)
+
+        # Create repositories with same name but different providers
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=org2.id,
+            provider="integrations:gitlab",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+        OrganizationOption.objects.set_value(org2, "sentry:enable_pr_review_test_generation", True)
+
+        # Search for GitHub provider
+        result = get_sentry_organization_ids(
+            full_repo_name="getsentry/sentry", external_id="1234567890"
+        )
+
+        assert result == {"org_ids": [self.organization.id]}
+
+        # Search for GitLab provider
+        result = get_sentry_organization_ids(
+            full_repo_name="getsentry/sentry",
+            provider="integrations:gitlab",
+            external_id="1234567890",
+        )
+
+        assert result == {"org_ids": [org2.id]}
+
+    def test_get_sentry_organization_ids_multiple_orgs_same_repo(self) -> None:
+        """Test when multiple repositories exist with same name but different providers and provider is provided"""
+        org2 = self.create_organization(owner=self.user)
+        org3 = self.create_organization(owner=self.user)
+        # org3 did not give us consent for AI features
+        # so it should be excluded from the results
+        OrganizationOption.objects.set_value(org3, "sentry:hide_ai_features", True)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+        OrganizationOption.objects.set_value(org2, "sentry:enable_pr_review_test_generation", True)
+        OrganizationOption.objects.set_value(org3, "sentry:enable_pr_review_test_generation", True)
+
+        # repo in org 1
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # repo in org 2
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=org2.id,
+            provider="integrations:github",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # repo in org 3
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=org3.id,
+            provider="integrations:github",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Search for GitHub provider
+        result = get_sentry_organization_ids(
+            full_repo_name="getsentry/sentry", external_id="1234567890"
+        )
+
+        assert result == {"org_ids": [self.organization.id, org2.id]}
+
+    def test_send_seer_webhook_invalid_event_name(self) -> None:
+        """Test that send_seer_webhook returns error for invalid event names"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        # Test with an invalid event name
+        result = send_seer_webhook(
+            event_name="invalid_event_name",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Invalid event type: seer.invalid_event_name",
+        }
+
+    def test_send_seer_webhook_organization_does_not_exist(self) -> None:
+        """Test that send_seer_webhook returns error for non-existent organization"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        # Test with a non-existent organization ID
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=99999,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Organization not found or not active",
+        }
+
+    def test_send_seer_webhook_organization_inactive(self) -> None:
+        """Test that send_seer_webhook returns error for inactive organization"""
+        from sentry.models.organization import OrganizationStatus
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        # Create an inactive organization
+        inactive_org = self.create_organization(status=OrganizationStatus.PENDING_DELETION)
+
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=inactive_org.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Organization not found or not active",
+        }
+
+    @patch("sentry.features.has")
+    def test_send_seer_webhook_feature_disabled(self, mock_features_has) -> None:
+        """Test that send_seer_webhook returns error when feature is disabled"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        mock_features_has.return_value = False
+
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Seer webhooks are not enabled for this organization",
+        }
+        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+
+    @patch("sentry.features.has")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_success(self, mock_delay, mock_features_has) -> None:
+        """Test that send_seer_webhook successfully enqueues webhook when all conditions are met"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        mock_features_has.return_value = True
+
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {"success": True}
+        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_delay.assert_called_once_with(
+            resource_name="seer",
+            event_name="root_cause_started",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+    @patch("sentry.features.has")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_all_valid_event_names(self, mock_delay, mock_features_has) -> None:
+        """Test that send_seer_webhook works with all valid seer event names"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+        from sentry.sentry_apps.metrics import SentryAppEventType
+
+        mock_features_has.return_value = True
+
+        # Get all seer event types
+        seer_events = [
+            event_type.value.split(".", 1)[1]  # Remove "seer." prefix
+            for event_type in SentryAppEventType
+            if event_type.value.startswith("seer.")
+        ]
+
+        for event_name in seer_events:
+            result = send_seer_webhook(
+                event_name=event_name,
+                organization_id=self.organization.id,
+                payload={"test": "data"},
+            )
+            assert result == {"success": True}
+
+        # Verify that the task was called for each valid event
+        assert mock_delay.call_count == len(seer_events)

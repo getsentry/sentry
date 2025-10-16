@@ -6,13 +6,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import NotificationSettingsByEntity from 'sentry/views/settings/account/notifications/notificationSettingsByEntity';
 
-describe('NotificationSettingsByEntity', function () {
+describe('NotificationSettingsByEntity', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
 
-  it('should default to the subdomain org', async function () {
+  it('should default to the subdomain org', async () => {
     const organization = OrganizationFixture();
     const otherOrganization = OrganizationFixture({
       id: '2',
@@ -44,7 +44,7 @@ describe('NotificationSettingsByEntity', function () {
     expect(projectsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should load from the organization region', async function () {
+  it('should load from the organization region', async () => {
     const organization = OrganizationFixture();
     const deOrg = OrganizationFixture({
       id: '2',

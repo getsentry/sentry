@@ -1,3 +1,99 @@
+25.10.0
+-------
+
+### Various fixes & improvements
+
+- fix(sub v3): Rework usage and reserved columns (#101514) by @isabellaenriquez
+- feat(ai_grouping): Send token length metrics on stacktraces sent to Seer (#101477) by @yuvmen
+- fix(aci): conditionally show trigger logic type selector on automation edit (#100711) by @ameliahsu
+- feat(aci): Hide transactions dataset option (#101497) by @scttcper
+- perf(replays): Optimize memory usage and deserialization performance (#101195) by @cmanallen
+- fix(aci): Return empty list from open periods endpoint when detector has no linked group  (#101046) by @malwilley
+- fix(spans-migration): changed type and wording of dropped fields warnings (#101479) by @nikkikapadia
+- fix(tracemetrics): Switch experimental backend to kwarg rate (#101520) by @k-fish
+- fix(alert): Delete IncidentTrigger as child of AlertRuleTrigger (#101460) by @kcons
+- fix(replay) - fix use fetch parallel pages (#101462) by @jerryzhou196
+- feat(tracemetrics): Add extrapolation warning iff we scan partial data (#101517) by @narsaynorath
+- fix(inc-1453): Do not crash hard if end_timestamp violates the schema (#101512) by @untitaker
+- chore(timeseries): Mark `TimeSeries` meta property as optional (#101463) by @gggritso
+- fix(ai-insights): llm calls count (#101509) by @obostjancic
+- feat(tracemetrics): Update UX to separate query builder from charts (#101465) by @narsaynorath
+- fix(spans-migration): changed reason format (#101466) by @nikkikapadia
+- chore(sub v3): prep for EA (#101437) by @isabellaenriquez
+- fix(ui): Make build details more like release details (#101348) by @chromy
+- fix(sub v3): Misc feedback + bugs (#101474) by @isabellaenriquez
+- fix(sub v3): Make row clickability more obvious (#101467) by @isabellaenriquez
+- feat(agent-spans): Display used tools (#101506) by @ArthurKnaus
+- feat(sdk): Enable HTTP request source (#101502) by @alexander-alderman-webb
+- feat(auto_source): Use consistent stack trace granularity (#101432) by @armenzg
+- chore(search-bar): Default to contains for filtering strings (#101450) by @nsdeschenes
+
+_Plus 1679 more_
+
+25.9.0
+------
+
+### Various fixes & improvements
+
+- ref(feedback): simplify categories test coverage to be more efficient (#99451) by @aliu39
+- fix(checkout v3): Keep customers on current tiers (#99423) by @isabellaenriquez
+- fix(billing): Use ff for prevent notification (#99489) by @brendanhsentry
+- feat(aci): Allow specific detector types to be passed to fetching hooks (#99486) by @malwilley
+- perf(aci): Avoid unnecessary organization db load (#99487) by @kcons
+- chore(detectors): Reset noise config limit for query injection issues  (#99427) by @roggenkemper
+- feat(on-demand): Add feature flag check before cardinality check (#98726) by @narsaynorath
+- chore(issue-details): Add `num_exceptions` to issue details viewed analytics event (#99436) by @roggenkemper
+- perf(aci): Cache Group lookup for process_workflows/trigger_action (#99449) by @kcons
+- ref(search): Remove spaces from wildcard operators (#99399) by @nsdeschenes
+- feat: add explore equation to dashboards (#99404) by @shruthilayaj
+- ref(billing): remove cross-project selection upsells (#99444) by @cvxluo
+- feat(flamegraph): Cycle through flamegraph search results with enter (#99424) by @Zylphrex
+- ref: use pickle protocol 5 (#99119) by @asottile-sentry
+- ref: upgrade django-stubs and move cache hax to plugin (#99482) by @asottile-sentry
+- fix(js): Directly access process.env.NODE_ENV (#99481) by @evanpurkhiser
+- feat(tasks) Enable taskworkers by default in self-hosted (#99374) by @markstory
+- feat(analytics): log an error when an Event class was instantiated that lacks the eventclass decorator (#98922) by @constantinius
+- feat: Add taskbroker mode that doesn't start workers (#99474) by @markstory
+- ci(jest): regenerate jest-balance.json (#99453) by @getsentry-bot
+- feat(dashboards): Remove PlanFeature feature flag workaround (#99372) by @narsaynorath
+- feat(performance): Add beta badge to web vitals seer suggestions (#99476) by @edwardgou-sentry
+- chore(feedback) remove `Feedback` model (#99380) by @jerryzhou196
+- ref: upgrade pydantic (#99473) by @asottile-sentry
+
+_Plus 1112 more_
+
+25.8.0
+------
+
+### Various fixes & improvements
+
+- fix(ci): Push docker image on release branches (#97936) by @hubertdeng123
+- fix(explore): Insert group bys before visualizes if possible (#97923) by @Zylphrex
+- feat(logs): Support multiple visualizes and groupbys in logs (#97912) by @Zylphrex
+- ref(dashboards): make `WidgetCardChart` functional (#97885) by @lzhao-sentry
+- feat(summarization): Route s4s traffic to new pod (#97926) by @Mihir-Mavalankar
+- aci(feat): Use propagated timestamp to track triggering latency (#97612) by @kcons
+- feat(detectors): Update detection algorithm for MN+1 Experimental Detector (#97533) by @roggenkemper
+- fix(aci): Make rule/workflow redis buffer interactions non-transactional (#97917) by @kcons
+- ref: remove coreapi, use ParseError in sentry_app logic (#97913) by @JoshFerge
+- chore(cell-actions): use popper strategy fixed instead of portalling (#97593) by @lzhao-sentry
+- ref(replay): Refactor how we refresh bulk delete notifications (#97893) by @ryan953
+- feat(replay): Add a dropdown to make it easier to select replays inside stories (#97713) by @ryan953
+- feat(otlp): Collapse Trace Waterfall spans based on span name (#97706) by @gggritso
+- feat(otlp): Use `name` attribute in more spaces in the span waterfall (#97704) by @gggritso
+- ref: move codeowners endpoints into issues module (#97916) by @JoshFerge
+- ref(groupingInfo): Hide client fingerprint in Contributing Values view if it doesn't contribute (#97904) by @shayna-ch
+- ref(groupingInfo): add highlight to contributing values when All Values is set (#97812) by @shayna-ch
+- ref(issues): improve similar issues stacktrace diff (#97645) by @shayna-ch
+- chore: add good example of `SENTRY_DISALLOWED_IPS` (#97847) by @oioki
+- feat(trace-eap-waterfall): Exclude missing instrumentation nodes from FE traces (#97879) by @Abdkhan14
+- ref(cell-actions): better interactions for ID and clearer menu indication (#97888) by @lzhao-sentry
+- :running: perf(aci): measure trigger action execution time (#97918) by @iamrajjoshi
+- chore(autofix): add more copy button content (#97891) by @roaga
+- feat(autofix): Show error message when drafting PR (#97867) by @roaga
+
+_Plus 1946 more_
+
 25.7.0
 ------
 

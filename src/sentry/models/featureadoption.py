@@ -10,7 +10,8 @@ from rediscluster import RedisCluster
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
@@ -235,7 +236,7 @@ class FeatureAdoption(Model):
     date_completed = models.DateTimeField(default=timezone.now)
     complete = models.BooleanField(default=False)
     applicable = models.BooleanField(default=True)  # Is this feature applicable to this team?
-    data = JSONField()
+    data = LegacyTextJSONField(default=dict)
 
     objects: ClassVar[FeatureAdoptionManager] = FeatureAdoptionManager()
 

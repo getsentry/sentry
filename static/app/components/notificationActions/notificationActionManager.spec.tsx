@@ -12,7 +12,7 @@ import {
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 import type {NotificationAction} from 'sentry/types/notificationActions';
 
-describe('Adds, deletes, and updates notification actions', function () {
+describe('Adds, deletes, and updates notification actions', () => {
   const {project, organization} = initializeOrg();
   const availableActions = AvailableNotificationActionsFixture().actions;
   MockApiClient.addMockResponse({
@@ -71,7 +71,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     },
   ];
 
-  it('renders notification actions', function () {
+  it('renders notification actions', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/`,
       body: notificationActions,
@@ -89,7 +89,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(projectNotificationActions).toHaveLength(4);
   });
 
-  it('disables buttons and dropdowns when disabled is True', function () {
+  it('disables buttons and dropdowns when disabled is True', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/`,
       body: notificationActions,
@@ -109,7 +109,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(screen.getByTestId('edit-dropdown')).toBeDisabled();
   });
 
-  it('Adds a Sentry notification action', async function () {
+  it('Adds a Sentry notification action', async () => {
     const mockPOST = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/`,
       method: 'POST',
@@ -161,7 +161,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
   });
 
-  it('Removes a Sentry notification action', async function () {
+  it('Removes a Sentry notification action', async () => {
     const mockDELETE = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[0]!.id}/`,
       method: 'DELETE',
@@ -186,7 +186,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(screen.queryByTestId('sentry_notification-action')).not.toBeInTheDocument();
   });
 
-  it('Adds a Slack action', async function () {
+  it('Adds a Slack action', async () => {
     const mockPOST = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/`,
       method: 'POST',
@@ -235,7 +235,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
   });
 
-  it('Removes a Slack action', async function () {
+  it('Removes a Slack action', async () => {
     const mockDELETE = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[1]!.id}/`,
       method: 'DELETE',
@@ -260,7 +260,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(screen.queryByTestId('slack-action')).not.toBeInTheDocument();
   });
 
-  it('Edits a Slack action', async function () {
+  it('Edits a Slack action', async () => {
     const mockPUT = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[1]!.id}/`,
       method: 'PUT',
@@ -321,7 +321,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     );
   });
 
-  it('Adds a Pagerduty action', async function () {
+  it('Adds a Pagerduty action', async () => {
     const mockPOST = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/`,
       method: 'POST',
@@ -371,7 +371,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
   });
 
-  it('Edits a Pagerduty action', async function () {
+  it('Edits a Pagerduty action', async () => {
     const mockPUT = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[2]!.id}/`,
       method: 'PUT',
@@ -426,7 +426,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     );
   });
 
-  it('Adds an Opsgenie action', async function () {
+  it('Adds an Opsgenie action', async () => {
     const mockPOST = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/`,
       method: 'POST',
@@ -476,7 +476,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
   });
 
-  it('Edits an Opsgenie Action', async function () {
+  it('Edits an Opsgenie Action', async () => {
     const mockPUT = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[3]!.id}/`,
       method: 'PUT',

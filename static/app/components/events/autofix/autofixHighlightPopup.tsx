@@ -1,4 +1,5 @@
-import {
+import React, {
+  Fragment,
   startTransition,
   useEffect,
   useLayoutEffect,
@@ -10,12 +11,13 @@ import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
+import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
   makeAutofixQueryKey,
   useAutofixData,
@@ -25,11 +27,13 @@ import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import type {CommentThreadMessage} from './types';
 
@@ -41,6 +45,7 @@ interface Props {
   selectedText: string;
   stepIndex: number;
   blockName?: string;
+  hasUserSelection?: boolean;
   isAgentComment?: boolean;
   onShouldPersistChange?: (shouldPersist: boolean) => void;
 }
@@ -139,6 +144,52 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
   });
 }
 
+function useRethinkWithCommentThread({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
+
+  return useMutation({
+    mutationFn: (params: {
+      is_agent_comment: boolean;
+      retain_insight_card_index: number | null;
+      selected_text: string;
+      step_index: number;
+      thread_id: string;
+    }) => {
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'rethink_with_comment_thread',
+              thread_id: params.thread_id,
+              step_index: params.step_index,
+              is_agent_comment: params.is_agent_comment,
+              selected_text: params.selected_text,
+              retain_insight_card_index: params.retain_insight_card_index,
+            },
+          },
+        }
+      );
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
+      addLoadingMessage(t('Rethinking based on this thread...'));
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when rethinking with the thread.'));
+    },
+  });
+}
+
 function AutofixHighlightPopupContent({
   selectedText,
   groupId,
@@ -148,12 +199,17 @@ function AutofixHighlightPopupContent({
   isAgentComment,
   blockName,
   isFocused,
+  hasUserSelection,
   onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
   const organization = useOrganization();
 
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
+  const {mutate: rethinkWithCommentThread} = useRethinkWithCommentThread({
+    groupId,
+    runId,
+  });
 
   const [hidden, setHidden] = useState(false);
   const [comment, setComment] = useState('');
@@ -227,10 +283,8 @@ function AutofixHighlightPopupContent({
   }, [serverMessages, pendingUserMessage, showLoadingAssistant]);
 
   const truncatedText =
-    selectedText.length > 70
-      ? selectedText.slice(0, 35).split(' ').slice(0, -1).join(' ') +
-        '... ...' +
-        selectedText.slice(-35)
+    selectedText.length > 35
+      ? selectedText.slice(0, 35).split(' ').slice(0, -1).join(' ') + '...'
       : selectedText;
 
   const currentUser = useUser();
@@ -296,6 +350,25 @@ function AutofixHighlightPopupContent({
     });
   };
 
+  const handleRework = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    rethinkWithCommentThread({
+      thread_id: threadId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+      selected_text: selectedText,
+      retain_insight_card_index: retainInsightCardIndex,
+    });
+
+    trackAnalytics('autofix.comment_thread.rework', {
+      organization,
+      group_id: groupId,
+      run_id: runId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+    });
+  };
+
   useEffect(() => {
     if (onShouldPersistChange) {
       onShouldPersistChange(!!commentThread && commentThread.is_completed !== true);
@@ -307,86 +380,142 @@ function AutofixHighlightPopupContent({
   }
 
   return (
-    <Container onClick={handleContainerClick} isFocused={isFocused}>
-      <Header>
-        <SelectedText>
-          {blockName ? (
-            <span>{blockName}</span>
-          ) : (
-            truncatedText && <span>"{truncatedText}"</span>
-          )}
-        </SelectedText>
-        {allMessages.length > 0 && (
-          <ResolveButton
-            size="zero"
-            borderless
-            aria-label={t('Resolve thread')}
-            onClick={handleResolve}
-            icon={<IconClose size="xs" />}
-          />
-        )}
-      </Header>
+    <Fragment>
+      <Arrow />
+      <Container onClick={handleContainerClick} isFocused={isFocused}>
+        <Header>
+          <AnimatePresence mode="wait">
+            {allMessages.filter(msg => !msg.isLoading).length >= 2 ? (
+              <motion.div
+                key="rework-header"
+                initial={{opacity: 0, y: 10}}
+                animate={{opacity: 1, y: 0}}
+                exit={{opacity: 0, y: -10}}
+                transition={{duration: 0.2, ease: 'easeInOut'}}
+                style={{display: 'flex', alignItems: 'center', width: '100%'}}
+              >
+                <ReworkHeaderSection onClick={handleRework}>
+                  <ReworkText>{t('Rethink based on this convo?')}</ReworkText>
 
-      {allMessages.length > 0 && (
-        <MessagesContainer>
-          {allMessages.map((message, i) => (
-            <Message key={i} role={message.role}>
-              {message.role === 'assistant' ? (
-                <CircularSeerIcon>
-                  <IconSeer />
-                </CircularSeerIcon>
-              ) : (
-                <UserAvatar user={currentUser} size={24} />
-              )}
-              <MessageContent>
-                {message.isLoading ? (
-                  <LoadingWrapper>
-                    <LoadingIndicator mini size={12} />
-                  </LoadingWrapper>
-                ) : (
-                  message.content
+                  <ReworkArrow
+                    title={t(
+                      'Seer will use this chat as context to re-work its analysis from this point.'
+                    )}
+                  >
+                    <FlippedReturnIcon />
+                  </ReworkArrow>
+                </ReworkHeaderSection>
+                <HeaderRight>
+                  <Divider />
+                  <ResolveButton
+                    size="zero"
+                    borderless
+                    aria-label={t('Resolve thread')}
+                    onClick={handleResolve}
+                    icon={<IconClose size="xs" />}
+                  />
+                </HeaderRight>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="selected-text-header"
+                initial={{opacity: 0, y: 10}}
+                animate={{opacity: 1, y: 0}}
+                exit={{opacity: 0, y: -10}}
+                transition={{duration: 0.2, ease: 'easeInOut'}}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                }}
+              >
+                <SelectedText>
+                  {blockName ? (
+                    <span>{blockName}</span>
+                  ) : (
+                    truncatedText && <span>"{truncatedText}"</span>
+                  )}
+                </SelectedText>
+                {allMessages.length > 0 && (
+                  <ResolveButton
+                    size="zero"
+                    borderless
+                    aria-label={t('Resolve thread')}
+                    onClick={handleResolve}
+                    icon={<IconClose size="xs" />}
+                  />
                 )}
-              </MessageContent>
-            </Message>
-          ))}
-          <div ref={messagesEndRef} />
-        </MessagesContainer>
-      )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Header>
 
-      {commentThread?.is_completed !== true && (
-        <InputWrapper onSubmit={handleSubmit}>
-          <StyledInput
-            placeholder={
-              isAgentComment ? t('Share your context...') : t('Questions? Instructions?')
-            }
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            maxLength={4096}
-            size="sm"
-            autoFocus={!isAgentComment}
-            maxRows={5}
-            autosize
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                resolveThread();
-              }
-            }}
-          />
-          <StyledButton
-            size="zero"
-            type="submit"
-            borderless
-            aria-label={t('Submit Comment')}
-          >
-            {'\u23CE'}
-          </StyledButton>
-        </InputWrapper>
-      )}
-    </Container>
+        {allMessages.length > 0 && (
+          <MessagesContainer>
+            {allMessages.map((message, i) => (
+              <Message key={i} role={message.role}>
+                {message.role === 'assistant' ? (
+                  <CircularSeerIcon>
+                    <IconSeer />
+                  </CircularSeerIcon>
+                ) : (
+                  <UserAvatar user={currentUser} size={24} />
+                )}
+                <MessageContent>
+                  {message.isLoading ? (
+                    <LoadingWrapper>
+                      <LoadingIndicator mini size={12} />
+                    </LoadingWrapper>
+                  ) : (
+                    <MarkedText text={message.content} inline />
+                  )}
+                </MessageContent>
+              </Message>
+            ))}
+            <div ref={messagesEndRef} />
+          </MessagesContainer>
+        )}
+
+        {commentThread?.is_completed !== true && (
+          <Fragment>
+            <InputWrapper onSubmit={handleSubmit}>
+              <StyledInput
+                placeholder={
+                  isAgentComment
+                    ? t('Share your context...')
+                    : t('Questions? Instructions?')
+                }
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                maxLength={4096}
+                size="sm"
+                autoFocus={!isAgentComment && !hasUserSelection}
+                maxRows={5}
+                autosize
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    resolveThread();
+                  }
+                }}
+              />
+              <StyledButton
+                size="zero"
+                type="submit"
+                borderless
+                aria-label={t('Submit Comment')}
+              >
+                {'\u23CE'}
+              </StyledButton>
+            </InputWrapper>
+          </Fragment>
+        )}
+      </Container>
+    </Fragment>
   );
 }
 
@@ -530,7 +659,6 @@ function AutofixHighlightPopup(props: Props) {
       tabIndex={-1}
     >
       <ScaleContainer isFocused={isFocused}>
-        <Arrow />
         <AutofixHighlightPopupContent {...props} isFocused={isFocused} />
       </ScaleContainer>
     </Wrapper>,
@@ -598,8 +726,6 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  background: ${p => p.theme.background}
-    linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
   padding-right: ${space(4)};
   padding-top: ${space(0.75)};
@@ -636,12 +762,15 @@ const Header = styled('div')`
 const SelectedText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  display: flex;
   align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   span {
-    overflow: wrap;
-    white-space: wrap;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -684,6 +813,11 @@ const MessageContent = styled('div')`
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+
+  code {
+    font-size: ${p => p.theme.fontSize.xs};
+    background: transparent;
+  }
 `;
 
 const CircularSeerIcon = styled('div')`
@@ -712,6 +846,40 @@ const LoadingWrapper = styled('div')`
 
 const ResolveButton = styled(Button)`
   margin-left: ${space(1)};
+`;
+
+const ReworkHeaderSection = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  flex: 1;
+`;
+
+const HeaderRight = styled('div')`
+  display: flex;
+  align-items: center;
+  padding-left: ${p => p.theme.space.lg};
+`;
+
+const ReworkText = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+
+  ${ReworkHeaderSection}:hover & {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const ReworkArrow = styled('div')`
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+
+  ${ReworkHeaderSection}:hover & {
+    transform: translateX(2px);
+  }
 `;
 
 function getScrollParents(element: HTMLElement): Element[] {

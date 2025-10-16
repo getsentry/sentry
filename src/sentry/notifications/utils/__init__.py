@@ -8,14 +8,17 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 from urllib.parse import parse_qs, urlparse
 
+import sentry_sdk
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
+from sentry.issue_detection.detectors.utils import get_url_from_span
+from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsExperimentalGroupType,
@@ -34,13 +37,15 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.performance_issues.base import get_url_from_span
-from sentry.performance_issues.performance_problem import PerformanceProblem
-from sentry.performance_issues.types import Span
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
-from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.committers import (
+    AuthorCommitsSerialized,
+    get_serialized_committers,
+    get_serialized_event_file_committers,
+)
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -132,9 +137,59 @@ def get_rules(
     ]
 
 
+def process_serialized_committers(
+    committers: Sequence[AuthorCommitsSerialized], commits: MutableMapping[str, Mapping[str, Any]]
+) -> MutableMapping[str, Mapping[str, Any]]:
+    """
+    Transform committer data from nested structure to flat commit dictionary.
+
+    Args:
+        committers: List of {author, commits}
+        commits: Dict to store processed commits (modified in-place)
+
+    Returns:
+        Dict mapping commit IDs to enriched commit data with shortId, author, subject
+    """
+    for committer in committers:
+        for commit in committer["commits"]:
+            if commit["id"] not in commits:
+                commit_data = dict(commit)
+                commit_data["shortId"] = commit_data["id"][:7]
+                commit_data["author"] = committer["author"]
+                commit_data["subject"] = (
+                    commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
+                )
+                if commit.get("pullRequest"):
+                    commit_data["pull_request"] = commit["pullRequest"]
+                commits[commit["id"]] = commit_data
+    return commits
+
+
+def get_suspect_commits_by_group_id(
+    project: Project,
+    group_id: int,
+) -> Sequence[Mapping[str, Any]]:
+    """
+    Get suspect commits for workflow notifications that only have a group ID (no Event).
+
+    Uses Commit Context (SCM integrations) only - no release-based fallback.
+    Returns commits sorted by recency, not suspicion score.
+    """
+    commits: MutableMapping[str, Mapping[str, Any]] = {}
+    try:
+        committers = get_serialized_committers(project, group_id)
+    except (Commit.DoesNotExist, Release.DoesNotExist):
+        pass
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+    else:
+        commits = process_serialized_committers(committers=committers, commits=commits)
+    return list(commits.values())
+
+
 def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
-    # lets identify possibly suspect commits and owners
-    commits: MutableMapping[int, Mapping[str, Any]] = {}
+    # let's identify possible suspect commits and owners
+    commits: MutableMapping[str, Mapping[str, Any]] = {}
     try:
         committers = get_serialized_event_file_committers(project, event)
     except (Commit.DoesNotExist, Release.DoesNotExist):
@@ -142,20 +197,11 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     except Exception as exc:
         logging.exception(str(exc))
     else:
-        for committer in committers:
-            for commit in committer["commits"]:
-                if commit["id"] not in commits:
-                    commit_data = dict(commit)
-                    commit_data["shortId"] = commit_data["id"][:7]
-                    commit_data["author"] = committer["author"]
-                    commit_data["subject"] = (
-                        commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
-                    )
-                    if commit.get("pullRequest"):
-                        commit_data["pull_request"] = commit["pullRequest"]
-                    commits[commit["id"]] = commit_data
+        commits = process_serialized_committers(committers=committers, commits=commits)
     # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
     # commits from Commit Context dont have a "score" key
+    # keep this sort while release_based SuspectCommitStrategy is active.
+    # scm_based SuspectCommitStrategy does not use this scoring system.
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
@@ -290,7 +336,10 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
     """Generate the issue alert subtitle for performance issues"""
     if event.occurrence is None:
         return ""
-    return event.occurrence.evidence_data.get("repeating_spans_compact", "").replace("`", '"')
+    repeating_spans_compact = event.occurrence.evidence_data.get("repeating_spans_compact", "")
+    if isinstance(repeating_spans_compact, list):
+        repeating_spans_compact = repeating_spans_compact[0]
+    return repeating_spans_compact.replace("`", '"')
 
 
 def get_notification_group_title(

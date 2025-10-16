@@ -1,39 +1,17 @@
-import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from openai.types.chat.chat_completion import ChatCompletion, Choice
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
-
-
-def create_dummy_openai_response(*args, **kwargs):
-    return ChatCompletion(
-        id="test",
-        choices=[
-            Choice(
-                index=0,
-                message=ChatCompletionMessage(
-                    content=(
-                        "spam"
-                        if "this is definitely spam"
-                        in kwargs["messages"][0][
-                            "content"
-                        ]  # assume make_input_prompt lower-cases the msg
-                        else "not spam"
-                    ),
-                    role="assistant",
-                ),
-                finish_reason="stop",
-            )
-        ],
-        created=int(time.time()),
-        model="gpt3.5-turbo",
-        object="chat.completion",
-    )
+from sentry.utils import json
 
 
-def mock_feedback_event(project_id: int, dt: datetime | None = None):
+def mock_feedback_event(
+    project_id: int,
+    dt: datetime | None = None,
+    message: str | None = None,
+    tags: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     if dt is None:
-        dt = datetime.now(UTC)
+        dt = datetime.now(UTC) - timedelta(minutes=5)
 
     return {
         "project_id": project_id,
@@ -60,11 +38,22 @@ def mock_feedback_event(project_id: int, dt: datetime | None = None):
             "feedback": {
                 "contact_email": "josh.ferge@sentry.io",
                 "name": "Josh Ferge",
-                "message": "Testing!!",
+                "message": message or "Testing!!",
                 "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
                 "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             },
         },
+        "tags": tags or {},
         "breadcrumbs": [],
         "platform": "javascript",
     }
+
+
+class MockSeerResponse:
+    def __init__(self, status: int, json_data: dict):
+        self.status = status
+        self.json_data = json_data
+        self.data = json.dumps(json_data)
+
+    def json(self):
+        return self.json_data

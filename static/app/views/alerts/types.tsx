@@ -36,6 +36,7 @@ export type Incident = {
   activities?: ActivityType[];
 };
 
+/** @internal exported for tests */
 export type IncidentStats = {
   eventStats: {
     data: Data;
@@ -116,7 +117,7 @@ export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert | CronRule;
 
 export type Anomaly = {
   anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
-  timestamp: string | number;
+  timestamp: number;
   value: number;
 };
 

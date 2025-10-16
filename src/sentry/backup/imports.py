@@ -41,7 +41,7 @@ from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.nodestore.django.models import Node
+from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils.env import is_split_db
@@ -354,7 +354,7 @@ def _import(
         if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
             # Maybe we are resuming an import on a retry. Check to see if this
             # `ControlImportChunkReplica` already exists, and only write it if it does not. There
-            # can't be races here, since there is only one celery task running at a time, pushing
+            # can't be races here, since there is only one task running at a time, pushing
             # updates in a synchronous manner.
             existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
                 import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal

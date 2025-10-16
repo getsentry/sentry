@@ -10,9 +10,9 @@ import {
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -22,14 +22,13 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -121,31 +120,27 @@ function AddMemberDropdown({
     const existingMembers = new Set(teamMembers.map(member => member.id));
     return (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
-      .map(
-        m =>
-          ({
-            textValue: `${m.name} ${m.email}`,
-            value: m.id,
-            label: (
-              <StyledUserListElement>
-                <UserAvatar
-                  user={{
-                    id: m.user?.id ?? m.id,
-                    name: m.user?.name ?? m.name,
-                    email: m.user?.email ?? m.email,
-                    avatar: m.user?.avatar ?? undefined,
-                    avatarUrl: m.user?.avatarUrl ?? undefined,
-                    type: 'user',
-                  }}
-                  title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
-                  size={24}
-                  className="avatar"
-                />
-                <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
-              </StyledUserListElement>
-            ),
-          }) satisfies SelectOption<string>
-      );
+      .map<SelectOption<string>>(m => ({
+        textValue: `${m.name} ${m.email}`,
+        value: m.id,
+        leadingItems: (
+          <UserAvatar
+            user={{
+              id: m.user?.id ?? m.id,
+              name: m.user?.name ?? m.name,
+              email: m.user?.email ?? m.email,
+              avatar: m.user?.avatar ?? undefined,
+              avatarUrl: m.user?.avatarUrl ?? undefined,
+              type: 'user',
+            }}
+            title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
+            size={16}
+            className="avatar"
+          />
+        ),
+        label: m.name || m.email,
+        hideCheck: true,
+      }));
   }, [teamMembers, orgMembers]);
 
   return (
@@ -165,18 +160,19 @@ function AddMemberDropdown({
               })
       }
       menuHeaderTrailingItems={
-        <StyledCreateMemberLink
-          to=""
+        <Button
+          size="zero"
+          priority="link"
           onClick={() => openInviteMembersModal({source: 'teams'})}
           data-test-id="invite-member"
         >
           {t('Invite Member')}
-        </StyledCreateMemberLink>
+        </Button>
       }
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
-      triggerLabel={t('Add Member')}
+      triggerProps={{children: t('Add Member')}}
       searchPlaceholder={t('Search Members')}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}
@@ -391,24 +387,6 @@ function TeamMembers({team}: TeamMembersProps) {
     </Fragment>
   );
 }
-
-const StyledUserListElement = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
-  align-items: center;
-  text-transform: initial;
-  font-weight: normal;
-`;
-
-const StyledNameOrEmail = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const StyledCreateMemberLink = styled(Link)`
-  text-transform: initial;
-`;
 
 const StyledPanelHeader = styled(PanelHeader)`
   ${GRID_TEMPLATE}

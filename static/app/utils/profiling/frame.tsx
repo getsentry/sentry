@@ -1,8 +1,10 @@
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
 const ROOT_KEY = 'sentry root';
-const BROWSER_EXTENSION_REGEXP = /^(\@moz-extension\:\/\/|chrome-extension\:\/\/)/;
+const BROWSER_EXTENSION_REGEXP = /^(@moz-extension:\/\/|chrome-extension:\/\/)/;
 export class Frame {
   readonly key: string | number;
   readonly name: string;
@@ -26,9 +28,9 @@ export class Frame {
 
   readonly isRoot: boolean;
 
-  totalWeight = 0;
-  selfWeight = 0;
-  aggregateDuration = 0;
+  readonly totalCallCount?: number;
+  readonly totalCallDuration?: number;
+  readonly averageCallDuration?: number;
 
   static Root = new Frame({
     key: ROOT_KEY,
@@ -37,40 +39,49 @@ export class Frame {
   });
 
   constructor(
-    frameInfo: Profiling.FrameInfo,
+    frame: Profiling.Frame,
     type?: 'mobile' | 'javascript' | 'node' | string,
     // In aggregate mode, we miss certain info like lineno/col and so
     // we need to make sure we don't try to use it or infer data based on it
     mode?: 'detailed' | 'aggregate'
   ) {
-    this.key = frameInfo.key;
-    this.file = frameInfo.file;
-    this.name = frameInfo.name;
-    this.resource = frameInfo.resource;
-    this.line = frameInfo.line;
-    this.column = frameInfo.column;
-    this.is_application = !!frameInfo.is_application;
-    this.package = frameInfo.package;
-    this.module = frameInfo.module ?? frameInfo.image;
-    this.threadId = frameInfo.threadId;
-    this.path = frameInfo.path;
-    this.platform = frameInfo.platform;
-    this.instructionAddr = frameInfo.instructionAddr;
-    this.symbol = frameInfo.symbol;
-    this.symbolAddr = frameInfo.symbolAddr;
-    this.symbolicatorStatus = frameInfo.symbolicatorStatus;
+    this.key = frame.key;
+    this.file = frame.file;
+    this.name = frame.name;
+    this.resource = frame.resource;
+    this.line = frame.line;
+    this.column = frame.column;
+    this.is_application = !!frame.is_application;
+    this.package = frame.package;
+    this.module = frame.module ?? frame.image;
+    this.threadId = frame.threadId;
+    this.path = frame.path;
+    this.platform = frame.platform;
+    this.instructionAddr = frame.instructionAddr;
+    this.symbol = frame.symbol;
+    this.symbolAddr = frame.symbolAddr;
+    this.symbolicatorStatus = frame.symbolicatorStatus;
     this.isRoot = this.key === ROOT_KEY;
+
+    this.totalCallCount = frame.count;
+    this.totalCallDuration = frame.weight;
+    this.averageCallDuration =
+      defined(frame.weight) && defined(frame.count)
+        ? frame.count
+          ? frame.weight / frame.count
+          : 0
+        : undefined;
 
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.
-    if (frameInfo.columnNumber && this.column === undefined) {
-      this.column = frameInfo.columnNumber;
+    if (frame.columnNumber && this.column === undefined) {
+      this.column = frame.columnNumber;
     }
-    if (frameInfo.lineNumber && this.column === undefined) {
-      this.line = frameInfo.lineNumber;
+    if (frame.lineNumber && this.column === undefined) {
+      this.line = frame.lineNumber;
     }
-    if (frameInfo.scriptName && this.column === undefined) {
-      this.resource = frameInfo.scriptName;
+    if (frame.scriptName && this.column === undefined) {
+      this.resource = frame.scriptName;
     }
 
     // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
@@ -159,8 +170,9 @@ export class Frame {
   }
 
   getSourceLocation(): string {
+    const trimmedPackage = this.package ? trimPackage(this.package) : this.package;
     const packageFileOrPath: string =
-      this.file ?? this.module ?? this.package ?? this.path ?? '<unknown>';
+      this.file ?? this.module ?? trimmedPackage ?? this.path ?? '<unknown>';
 
     const line = typeof this.line === 'number' ? this.line : '<unknown line>';
     const column = typeof this.column === 'number' ? this.column : '<unknown column>';

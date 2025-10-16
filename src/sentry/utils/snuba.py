@@ -27,7 +27,6 @@ from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
-from sentry import options
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
@@ -1223,7 +1222,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                         log_snuba_info("{}.err: {}".format(referrer, body["error"]))
             except ValueError:
                 if response.status != 200:
-                    logger.exception(
+                    logger.warning(
                         "snuba.query.invalid-json",
                         extra={"response.data": response.data},
                     )
@@ -1256,33 +1255,33 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 if body.get("error"):
                     error = body["error"]
                     if response.status == 429:
-                        if options.get("issues.use-snuba-error-data"):
-                            try:
-                                if "stats" not in error:
-                                    # Should not hit this - snuba always returns stats when there is an error
-                                    raise RateLimitExceeded(error["message"])
-                                quota_allowance_summary = error["stats"]["quota_allowance"][
-                                    "details"
-                                ]["summary"]
-                                rejected_by = quota_allowance_summary["rejected_by"]
-                                throttled_by = quota_allowance_summary["throttled_by"]
+                        try:
+                            if (
+                                "quota_allowance" not in body
+                                or "summary" not in body["quota_allowance"]
+                            ):
+                                # Should not hit this - snuba gives us quota_allowance with a 429
+                                raise RateLimitExceeded(error["message"])
+                            quota_allowance_summary = body["quota_allowance"]["summary"]
+                            rejected_by = quota_allowance_summary["rejected_by"]
+                            throttled_by = quota_allowance_summary["throttled_by"]
 
-                                policy_info = rejected_by or throttled_by
+                            policy_info = rejected_by or throttled_by
 
-                                if policy_info:
-                                    raise RateLimitExceeded(
-                                        error["message"],
-                                        policy=policy_info["policy"],
-                                        quota_unit=policy_info["quota_unit"],
-                                        storage_key=policy_info["storage_key"],
-                                        quota_used=policy_info["quota_used"],
-                                        rejection_threshold=policy_info["rejection_threshold"],
-                                    )
-                            except KeyError:
-                                logger.warning(
-                                    "Failed to parse rate limit error details from Snuba response",
-                                    extra={"error": error["message"]},
+                            if policy_info:
+                                raise RateLimitExceeded(
+                                    error["message"],
+                                    policy=policy_info["policy"],
+                                    quota_unit=policy_info["quota_unit"],
+                                    storage_key=policy_info["storage_key"],
+                                    quota_used=policy_info["quota_used"],
+                                    rejection_threshold=policy_info["rejection_threshold"],
                                 )
+                        except KeyError:
+                            logger.warning(
+                                "Failed to parse rate limit error details from Snuba response",
+                                extra={"error": error["message"]},
+                            )
 
                         raise RateLimitExceeded(error["message"])
 
@@ -1746,6 +1745,16 @@ def aliased_query_params(
             else:
                 new_aggs.append(aggregation)
         aggregations = new_aggs
+
+    # Apply error upsampling conversion for Events dataset when project_ids are present.
+    # This mirrors the behavior in query(), ensuring aliased_query paths also convert count()
+    # to sum(sample_weight) for allowlisted projects.
+    if dataset == Dataset.Events and filter_keys and filter_keys.get("project_id") and aggregations:
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
 
     if conditions:
         if condition_resolver:

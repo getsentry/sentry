@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -12,11 +12,12 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
+  AutofixStatus,
   type AutofixChangesStep,
   type AutofixCodebaseChange,
-  AutofixStatus,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
@@ -104,7 +105,7 @@ function AutofixRepoChange({
   );
 }
 
-const cardAnimationProps: AnimationProps = {
+const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
@@ -246,8 +247,9 @@ export function AutofixChanges({
             <Alert.Container>
               <MarkdownAlert
                 text={
-                  step.termination_reason ||
-                  t('Seer had trouble applying its code changes.')
+                  step.termination_reason
+                    ? replaceHeadersWithBold(step.termination_reason)
+                    : t('Seer had trouble applying its code changes.')
                 }
               />
             </Alert.Container>
@@ -271,24 +273,63 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
+          <HeaderWrapper>
+            <HeaderText>
+              <HeaderIconWrapper ref={iconCodeRef}>
+                <IconCode size="md" color="blue400" />
+              </HeaderIconWrapper>
+              {t('Code Changes')}
+              <Button
+                size="zero"
+                borderless
+                title={t('Chat with Seer')}
+                onClick={handleSelectFirstChange}
+                analyticsEventName="Autofix: Changes Chat"
+                analyticsEventKey="autofix.changes.chat"
+              >
+                <IconChat />
+              </Button>
+            </HeaderText>
+          </HeaderWrapper>
+          <AnimatePresence>
+            {agentCommentThread && iconCodeRef.current && (
+              <AutofixHighlightPopup
+                selectedText=""
+                referenceElement={iconCodeRef.current}
+                groupId={groupId}
+                runId={runId}
+                stepIndex={previousDefaultStepIndex ?? 0}
+                retainInsightCardIndex={
+                  previousInsightCount !== undefined && previousInsightCount >= 0
+                    ? previousInsightCount
+                    : null
+                }
+                isAgentComment
+                blockName={t('Seer is uncertain of the code changes...')}
+              />
+            )}
+          </AnimatePresence>
           <ClippedBox clipHeight={408}>
-            <HeaderWrapper>
-              <HeaderText>
-                <HeaderIconWrapper ref={iconCodeRef}>
-                  <IconCode size="sm" color="blue400" />
-                </HeaderIconWrapper>
-                {t('Code Changes')}
-                <ChatButton
-                  size="zero"
-                  borderless
-                  title={t('Chat with Seer')}
-                  onClick={handleSelectFirstChange}
-                  analyticsEventName="Autofix: Changes Chat"
-                  analyticsEventKey="autofix.changes.chat"
-                >
-                  <IconChat size="xs" />
-                </ChatButton>
-              </HeaderText>
+            {step.changes.map((change, i) => (
+              <Fragment key={change.repo_external_id}>
+                {i > 0 && <Separator />}
+                <AutofixRepoChange
+                  change={change}
+                  groupId={groupId}
+                  runId={runId}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                  ref={i === 0 ? firstChangeRef : undefined}
+                />
+              </Fragment>
+            ))}
+          </ClippedBox>
+          <BottomDivider />
+          <BottomButtonContainer hasTerminationReason={!!step.termination_reason}>
+            {step.termination_reason && (
+              <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
+            )}
+            <ButtonContainer>
               {!prsMade && (
                 <ButtonBar>
                   {branchesMade ? (
@@ -297,10 +338,10 @@ export function AutofixChanges({
                     ) : (
                       <ScrollCarousel aria-label={t('Check out branches')}>
                         {step.changes.map(
-                          change =>
+                          (change, idx) =>
                             change.branch_name && (
                               <BranchButton
-                                key={`${change.repo_external_id}-${Math.random()}`}
+                                key={`${change.repo_external_id}-${idx}`}
                                 change={change}
                               />
                             )
@@ -339,10 +380,10 @@ export function AutofixChanges({
                 ) : (
                   <ScrollCarousel aria-label={t('View pull requests')}>
                     {step.changes.map(
-                      change =>
+                      (change, idx) =>
                         change.pull_request?.pr_url && (
                           <LinkButton
-                            key={`${change.repo_external_id}-${Math.random()}`}
+                            key={`${change.repo_external_id}-${idx}`}
                             size="xs"
                             priority="primary"
                             icon={<IconOpen size="xs" />}
@@ -355,39 +396,8 @@ export function AutofixChanges({
                     )}
                   </ScrollCarousel>
                 ))}
-            </HeaderWrapper>
-            <AnimatePresence>
-              {agentCommentThread && iconCodeRef.current && (
-                <AutofixHighlightPopup
-                  selectedText=""
-                  referenceElement={iconCodeRef.current}
-                  groupId={groupId}
-                  runId={runId}
-                  stepIndex={previousDefaultStepIndex ?? 0}
-                  retainInsightCardIndex={
-                    previousInsightCount !== undefined && previousInsightCount >= 0
-                      ? previousInsightCount
-                      : null
-                  }
-                  isAgentComment
-                  blockName={t('Seer is uncertain of the code changes...')}
-                />
-              )}
-            </AnimatePresence>
-            {step.changes.map((change, i) => (
-              <Fragment key={change.repo_external_id}>
-                {i > 0 && <Separator />}
-                <AutofixRepoChange
-                  change={change}
-                  groupId={groupId}
-                  runId={runId}
-                  previousDefaultStepIndex={previousDefaultStepIndex}
-                  previousInsightCount={previousInsightCount}
-                  ref={i === 0 ? firstChangeRef : undefined}
-                />
-              </Fragment>
-            ))}
-          </ClippedBox>
+            </ButtonContainer>
+          </BottomButtonContainer>
         </ChangesContainer>
       </AnimationWrapper>
     </AnimatePresence>
@@ -411,8 +421,8 @@ const ChangesContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding: ${p => p.theme.space.xl};
+  background: ${p => p.theme.background};
 `;
 
 const Content = styled('div')`
@@ -423,6 +433,10 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
+  text-decoration: underline dashed;
+  text-decoration-color: ${p => p.theme.blue300};
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 `;
 
 const PullRequestTitle = styled('div')`
@@ -430,8 +444,6 @@ const PullRequestTitle = styled('div')`
 `;
 
 const RepoChangesHeader = styled('div')`
-  padding-top: ${space(2)};
-  padding-bottom: 0;
   display: grid;
   align-items: center;
   grid-template-columns: 1fr auto;
@@ -456,7 +468,7 @@ const Separator = styled('hr')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
@@ -478,9 +490,29 @@ const HeaderIconWrapper = styled('div')`
   justify-content: center;
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
+  display: flex;
+  justify-content: ${p => (p.hasTerminationReason ? 'space-between' : 'flex-end')};
+  align-items: center;
+  gap: ${p => p.theme.space.xl};
+`;
+
+const TerminationReasonText = styled('div')`
+  color: ${p => p.theme.errorText};
+  font-size: ${p => p.theme.fontSize.sm};
+  flex: 1;
+  min-width: 0;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 function CreatePRsButton({
@@ -642,7 +674,7 @@ function CreateBranchButton({
       analyticsEventKey="autofix.push_to_branch_clicked"
       analyticsParams={{group_id: groupId}}
     >
-      Check Out Locally
+      {t('Check Out Locally')}
     </Button>
   );
 }

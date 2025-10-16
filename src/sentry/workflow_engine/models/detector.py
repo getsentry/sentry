@@ -17,9 +17,12 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.db.models.utils import is_model_attr_cached
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+from sentry.utils.cache import cache
+from sentry.workflow_engine.models import DataCondition
 
 from .json_config import JSONConfigBase
 
@@ -85,6 +88,25 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "resolve_age": "sentry:resolve_age",
     }
 
+    CACHE_TTL = 60 * 10
+
+    @classmethod
+    def _get_detector_project_type_cache_key(cls, project_id: int, detector_type: str) -> str:
+        """Generate cache key for detector lookup by project and type."""
+        return f"detector:by_proj_type:{project_id}:{detector_type}"
+
+    @classmethod
+    def get_error_detector_for_project(cls, project_id: int) -> Detector:
+        from sentry.grouping.grouptype import ErrorGroupType
+
+        detector_type = ErrorGroupType.slug
+        cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
+        detector = cache.get(cache_key)
+        if detector is None:
+            detector = cls.objects.get(project_id=project_id, type=ErrorGroupType.slug)
+            cache.set(cache_key, detector, cls.CACHE_TTL)
+        return detector
+
     @property
     def group_type(self) -> builtins.type[GroupType]:
         group_type = grouptype.registry.get_by_slug(self.type)
@@ -128,12 +150,31 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return self.project.get_option(key, default=default, validate=validate)
 
+    def get_conditions(self) -> BaseQuerySet[DataCondition]:
+        has_cached_condition_group = is_model_attr_cached(self, "workflow_condition_group")
+        conditions = None
 
-@receiver(pre_save, sender=Detector)
-def enforce_config_schema(sender, instance: Detector, **kwargs):
+        if has_cached_condition_group:
+            if self.workflow_condition_group is not None:
+                has_cached_conditions = is_model_attr_cached(
+                    self.workflow_condition_group, "conditions"
+                )
+                if has_cached_conditions:
+                    conditions = self.workflow_condition_group.conditions.all()
+
+        if conditions is None:
+            # if we don't have the information cached execute a single query to return them
+            # (accessing as self.workflow_condition_group.conditions.all() issues 2 queries)
+            conditions = DataCondition.objects.filter(condition_group__detector=self)
+
+        return conditions
+
+
+def enforce_config_schema(instance: Detector) -> None:
     """
     Ensures the detector type is valid in the grouptype registry.
-    This needs to be a signal because the grouptype registry's entries are not available at import time.
+    This needs to be available independently so callers can validate configs
+    without saving.
     """
     group_type = instance.group_type
     if not group_type:
@@ -146,3 +187,11 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
         raise ValidationError("Detector config must be a dictionary")
 
     instance.validate_config(group_type.detector_settings.config_schema)
+
+
+@receiver(pre_save, sender=Detector)
+def enforce_config_schema_signal(sender, instance: Detector, **kwargs):
+    """
+    This needs to be a signal because the grouptype registry's entries are not available at import time.
+    """
+    enforce_config_schema(instance)

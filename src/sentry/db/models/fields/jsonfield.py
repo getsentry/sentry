@@ -28,8 +28,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
 from django.utils.translation import gettext_lazy as _
 
@@ -93,10 +96,10 @@ class JSONField(models.TextField):
             return json.loads(self.json_dumps(default))
         return super().get_default()
 
-    def get_internal_type(self):
+    def get_internal_type(self) -> str:
         return "TextField"
 
-    def db_type(self, connection):
+    def db_type(self, connection) -> str:
         return "text"
 
     def to_python(self, value):
@@ -176,3 +179,22 @@ JSONField.register_lookup(JSONFieldIExactLookup)
 JSONField.register_lookup(JSONFieldInLookup)
 JSONField.register_lookup(JSONFieldContainsLookup)
 JSONField.register_lookup(JSONFieldIContainsLookup)
+
+
+class LegacyTextJSONField(models.JSONField):
+    """django JSONField but with `text` database backing
+
+    allows migration off of our JSONField without needing a data type
+    change for large tables
+
+    do not use me for new things!
+    """
+
+    def db_type(self, connection: BaseDatabaseWrapper) -> str:
+        # usually `jsonb`
+        return "text"
+
+    def get_db_prep_value(self, *args: Any, **kwargs: Any) -> Any:
+        jsonb = super().get_db_prep_value(*args, **kwargs)
+        # convert JSONField's ::jsonb back to plain text
+        return jsonb.dumps(jsonb.adapted)

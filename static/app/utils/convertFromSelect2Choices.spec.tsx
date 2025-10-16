@@ -1,7 +1,7 @@
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 
-describe('convertFromSelect2Choices', function () {
-  it('changes a flat array of strings into array of {label, value}', function () {
+describe('convertFromSelect2Choices', () => {
+  it('changes a flat array of strings into array of {label, value}', () => {
     expect(convertFromSelect2Choices(['a', 'b', 'c'])).toEqual([
       {
         label: 'a',
@@ -18,7 +18,7 @@ describe('convertFromSelect2Choices', function () {
     ]);
   });
 
-  it('changes a paired array of strings into array of {label, value}', function () {
+  it('changes a paired array of strings into array of {label, value}', () => {
     expect(
       convertFromSelect2Choices([
         ['a', 'A'],
@@ -41,7 +41,7 @@ describe('convertFromSelect2Choices', function () {
     ]);
   });
 
-  it('returns null on invalid values', function () {
+  it('returns null on invalid values', () => {
     expect(convertFromSelect2Choices('test')).toBeUndefined();
     expect(convertFromSelect2Choices(1)).toBeUndefined();
     expect(convertFromSelect2Choices({})).toBeUndefined();

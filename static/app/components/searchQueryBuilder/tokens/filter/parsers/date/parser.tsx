@@ -1,6 +1,6 @@
 import {
-  type Token,
   TokenConverter,
+  type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 

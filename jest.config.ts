@@ -1,8 +1,9 @@
-import type {Config} from '@jest/types';
+import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
-import {execFileSync} from 'node:child_process';
+
 import type {TransformOptions} from '@babel/core';
+import type {Config} from '@jest/types';
 
 const babelConfig: TransformOptions = {
   presets: [
@@ -74,7 +75,7 @@ if (CI && !process.env.JEST_LIST_TESTS_INNER) {
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
     });
     JEST_TESTS = JSON.parse(stdout);
-  } catch (err) {
+  } catch (err: any) {
     if (err.code) {
       throw new Error(`err code ${err.code} when spawning process`);
     } else {
@@ -252,7 +253,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -266,6 +267,7 @@ const config: Config.InitialOptions = {
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
+    '^@sentry/scraps/(.*)': '<rootDir>/static/app/components/core/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',

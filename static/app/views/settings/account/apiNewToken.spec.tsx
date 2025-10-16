@@ -3,18 +3,18 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 
-describe('ApiNewToken', function () {
-  it('renders', function () {
+describe('ApiNewToken', () => {
+  it('renders', () => {
     render(<ApiNewToken />);
   });
 
-  it('renders with disabled "Create Token" button', function () {
+  it('renders with disabled "Create Token" button', () => {
     render(<ApiNewToken />);
 
     expect(screen.getByRole('button', {name: 'Create Token'})).toBeDisabled();
   });
 
-  it('submits with correct hierarchical scopes', async function () {
+  it('submits with correct hierarchical scopes', async () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
@@ -67,7 +67,7 @@ describe('ApiNewToken', function () {
     );
   });
 
-  it('creates token with optional name', async function () {
+  it('creates token with optional name', async () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
@@ -105,7 +105,7 @@ describe('ApiNewToken', function () {
     );
   });
 
-  it('creates token without name', async function () {
+  it('creates token without name', async () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',

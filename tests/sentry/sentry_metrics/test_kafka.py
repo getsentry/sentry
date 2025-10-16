@@ -8,6 +8,7 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from arroyo.utils.clock import MockedClock as Clock
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.sentry_metrics.client.kafka import KafkaMetricsBackend
 from sentry.testutils.metrics_backend import GenericMetricsTestMixIn
 from sentry.utils import json
@@ -15,6 +16,7 @@ from sentry.utils import json
 
 class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
     @pytest.mark.django_db
+    @thread_leaks.thread_leak_allowlist(reason="kafka tests", issue=97046)
     def test_produce_metrics(self) -> None:
         generic_metrics_backend = KafkaMetricsBackend()
         # For testing, we are calling close() here because we

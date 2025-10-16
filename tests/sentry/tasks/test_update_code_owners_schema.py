@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from unittest import mock
 
 import pytest
@@ -19,7 +20,7 @@ class UpdateCodeOwnersSchemaTest(TestCase):
             self.integration = Integration.objects.get()
 
     @pytest.fixture(autouse=True)
-    def patch_update_schema(self):
+    def patch_update_schema(self) -> Generator[None]:
         with mock.patch.object(ProjectCodeOwners, "update_schema") as self.mock_update:
             yield
 

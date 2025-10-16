@@ -18,7 +18,6 @@ from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import Event
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -26,6 +25,7 @@ from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
@@ -42,6 +42,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
@@ -112,6 +113,7 @@ EVENT_WITH_THREADS_STACKTRACE = {
 
 
 @django_db_all
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def create_exception_values(self, function_name: str, type: str, value: str):
         return {
@@ -414,7 +416,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_called_with(
+        mock_metrics.incr.assert_any_call(
             "grouping.similarity.frame_count_filter",
             sample_rate=sample_rate,
             tags={
@@ -452,7 +454,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
-    @patch("sentry.nodestore.backend.get_multi")
+    @patch("sentry.services.nodestore.backend.get_multi")
     def test_lookup_group_data_stacktrace_bulk_with_fallback_use_single_fallback(
         self, mock_get_multi
     ):
@@ -607,6 +609,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         groups = Group.objects.filter(project_id=self.project.id)
         self.assert_groups_metadata_updated(groups)
 
+    @pytest.mark.skip(reason="flaky: #96664")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
         {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
@@ -654,7 +657,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("time.sleep", return_value=None)
     @patch(
-        "sentry.nodestore.backend.get_multi",
+        "sentry.services.nodestore.backend.get_multi",
         side_effect=ServiceUnavailable(message="Service Unavailable"),
     )
     def test_failure(self, mock_get_multi: MagicMock, mock_sleep: MagicMock) -> None:

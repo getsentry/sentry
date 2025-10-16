@@ -9,18 +9,24 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkContext, SpawnContext
 from multiprocessing.process import BaseProcess
+from pathlib import Path
 from typing import Any
 
 import grpc
-from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
 from sentry import options
-from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry.taskworker.app import import_app
+from sentry.taskworker.client.client import (
+    HealthCheckSettings,
+    HostTemporarilyUnavailable,
+    TaskworkerClient,
+)
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import (
     DEFAULT_REBALANCE_AFTER,
+    DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
     DEFAULT_WORKER_QUEUE_SIZE,
     MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE,
 )
@@ -45,8 +51,8 @@ class TaskWorker:
 
     def __init__(
         self,
-        rpc_host: str,
-        num_brokers: int | None,
+        app_module: str,
+        broker_hosts: list[str],
         max_child_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
@@ -55,13 +61,28 @@ class TaskWorker:
         rebalance_after: int = DEFAULT_REBALANCE_AFTER,
         processing_pool_name: str | None = None,
         process_type: str = "spawn",
-        **options: dict[str, Any],
+        health_check_file_path: str | None = None,
+        health_check_sec_per_touch: float = DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
+        **kwargs: dict[str, Any],
     ) -> None:
-        self.options = options
+        self.options = kwargs
+        self._app_module = app_module
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
+        app = import_app(app_module)
+
+        self.client = TaskworkerClient(
+            hosts=broker_hosts,
+            max_tasks_before_rebalance=rebalance_after,
+            health_check_settings=(
+                None
+                if health_check_file_path is None
+                else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
+            ),
+            rpc_secret=app.config["rpc_secret"],
+            grpc_config=options.get("taskworker.grpc_service_config"),
+        )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
         elif process_type == "spawn":
@@ -86,10 +107,6 @@ class TaskWorker:
 
         self._processing_pool_name: str = processing_pool_name or "unknown"
 
-    def do_imports(self) -> None:
-        for module in settings.TASKWORKER_IMPORTS:
-            __import__(module)
-
     def start(self) -> int:
         """
         Run the worker main loop
@@ -97,7 +114,6 @@ class TaskWorker:
         Once started a Worker will loop until it is killed, or
         completes its max_task_count when it shuts down.
         """
-        self.do_imports()
         self.start_result_thread()
         self.start_spawn_children_thread()
 
@@ -329,6 +345,7 @@ class TaskWorker:
                         name=f"taskworker-child-{i}",
                         target=child_process,
                         args=(
+                            self._app_module,
                             self._child_tasks,
                             self._processed_tasks,
                             self._shutdown_event,
@@ -342,6 +359,10 @@ class TaskWorker:
                     logger.info(
                         "taskworker.spawn_child",
                         extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
+                    )
+                    metrics.incr(
+                        "taskworker.worker.spawn_child",
+                        tags={"processing_pool": self._processing_pool_name},
                     )
 
         self._spawn_children_thread = threading.Thread(

@@ -12,6 +12,7 @@ import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
@@ -42,7 +43,7 @@ export class Visualize {
   chartType: ChartType;
   yAxis: string;
   stack?: string;
-  private selectedChartType?: ChartType;
+  selectedChartType?: ChartType;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
@@ -151,11 +152,11 @@ export function parseBaseVisualize(
 export function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
-  oldArgument,
+  oldArguments,
 }: {
   newAggregate: string;
   oldAggregate?: string;
-  oldArgument?: string;
+  oldArguments?: string[];
 }): string {
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
@@ -175,6 +176,16 @@ export function updateVisualizeAggregate({
     return `${newAggregate}()`;
   }
 
+  const newFieldDefinition = getFieldDefinition(newAggregate, 'span');
+  const oldFieldDefinition = oldAggregate
+    ? getFieldDefinition(oldAggregate, 'span')
+    : undefined;
+
+  if (newFieldDefinition?.parameters?.length !== oldFieldDefinition?.parameters?.length) {
+    const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');
+    return `${newAggregate}(${params?.join(',')})`;
+  }
+
   // switching away from count_unique means we need to reset the field
   if (
     oldAggregate === AggregationKey.COUNT_UNIQUE ||
@@ -183,7 +194,9 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
-  return `${newAggregate}(${oldArgument})`;
+  return oldArguments
+    ? `${newAggregate}(${oldArguments?.join(',')})`
+    : `${newAggregate}()`;
 }
 
 const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {

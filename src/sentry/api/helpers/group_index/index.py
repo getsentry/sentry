@@ -14,10 +14,10 @@ from rest_framework.response import Response
 from sentry import features, search
 from sentry.api.event_search import AggregateFilter, SearchFilter
 from sentry.api.helpers.environments import get_environment
-from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
 from sentry.models.organization import Organization
@@ -25,6 +25,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.signals import advanced_search_feature_gated
+from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -74,6 +75,7 @@ def build_query_params_from_request(
     query_kwargs: dict[str, Any] = {
         "projects": projects,
         "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION),
+        "referrer": Referrer.SEARCH_GROUP_INDEX,
     }
 
     limit = request.GET.get("limit")
@@ -273,28 +275,6 @@ def prep_search(
     return result, query_kwargs
 
 
-def get_first_last_release(
-    request: Request,
-    group: Group,
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    first_release_s = group.get_first_release()
-    if first_release_s is not None:
-        last_release_s = group.get_last_release()
-    else:
-        last_release_s = None
-
-    if first_release_s is not None and last_release_s is not None:
-        first_release, last_release = serialize_releases(
-            request, group, [first_release_s, last_release_s]
-        )
-        return first_release, last_release
-    elif first_release_s is not None:
-        (first_release,) = serialize_releases(request, group, [first_release_s])
-        return (first_release, None)
-    else:
-        return None, None
-
-
 def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
     releases = {
         release.version: release
@@ -313,3 +293,26 @@ def serialize_releases(request: Request, group: Group, versions: list[str]) -> l
         item if item is not None else {"version": version}
         for item, version in zip(serialized_releases, versions)
     ]
+
+
+def get_first_last_release(
+    request: Request,
+    group: Group,
+    environment_names: list[str] | None = None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    first_release_s = group.get_first_release(environment_names=environment_names)
+    if first_release_s is not None:
+        last_release_s = group.get_last_release(environment_names=environment_names)
+    else:
+        last_release_s = None
+
+    if first_release_s is not None and last_release_s is not None:
+        first_release, last_release = serialize_releases(
+            request, group, [first_release_s, last_release_s]
+        )
+        return first_release, last_release
+    elif first_release_s is not None:
+        (first_release,) = serialize_releases(request, group, [first_release_s])
+        return (first_release, None)
+    else:
+        return None, None

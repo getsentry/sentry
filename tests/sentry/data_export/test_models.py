@@ -94,7 +94,9 @@ class ExportedDataTest(TestCase):
             tf.seek(0)
             self.file1.putfile(tf)
         self.data_export.finalize_upload(file=self.file1)
-        assert self.data_export._get_file().getfile().read() == self.TEST_STRING
+        file = self.data_export._get_file()
+        assert isinstance(file, File)
+        assert file.getfile().read() == self.TEST_STRING
         assert self.data_export.date_finished is not None
         assert self.data_export.date_expired is not None
         assert self.data_export.date_expired == self.data_export.date_finished + DEFAULT_EXPIRATION
@@ -104,7 +106,9 @@ class ExportedDataTest(TestCase):
             tf.seek(0)
             self.file2.putfile(tf)
         self.data_export.finalize_upload(file=self.file2, expiration=timedelta(weeks=2))
-        assert self.data_export._get_file().getfile().read() == self.TEST_STRING + self.TEST_STRING
+        file = self.data_export._get_file()
+        assert isinstance(file, File)
+        assert file.getfile().read() == self.TEST_STRING + self.TEST_STRING
         # Ensure the first file is deleted
         assert not File.objects.filter(id=self.file1.id).exists()
         assert self.data_export.date_expired == self.data_export.date_finished + timedelta(weeks=2)

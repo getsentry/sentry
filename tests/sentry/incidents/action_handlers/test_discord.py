@@ -1,10 +1,9 @@
 from unittest.mock import MagicMock, patch
 
-import orjson
 import responses
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.discord.client import CHANNEL_URL, DISCORD_BASE_URL, MESSAGE_URL
 from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.messaging.spec import MessagingActionHandler
@@ -51,7 +50,7 @@ class DiscordActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def run_test(self, incident, method):
+    def run_test(self, incident: Incident, method: str) -> None:
         responses.add(
             method=responses.POST,
             url=f"{DISCORD_BASE_URL}{MESSAGE_URL.format(channel_id=self.channel_id)}",
@@ -68,9 +67,6 @@ class DiscordActionHandlerTest(FireTest):
                 new_status=IncidentStatus(incident.status),
                 metric_value=metric_value,
             )
-
-        data = orjson.loads(responses.calls[0].request.body)
-        return data
 
     def test_fire_metric_alert(self) -> None:
         self.run_fire_test()

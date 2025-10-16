@@ -1,11 +1,8 @@
-import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import {useTraceMeta} from './useTraceMeta';
@@ -15,7 +12,6 @@ jest.mock('sentry/utils/useSyncedLocalStorageState', () => ({
 }));
 
 const organization = OrganizationFixture();
-const queryClient = makeTestQueryClient();
 
 const mockedReplayTraces: ReplayTrace[] = [
   {
@@ -33,9 +29,8 @@ const mockedReplayTraces: ReplayTrace[] = [
 ];
 
 describe('useTraceMeta', () => {
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useSyncedLocalStorageState).mockReturnValue(['non-eap', jest.fn()]);
-    queryClient.clear();
     jest.clearAllMocks();
   });
 
@@ -87,13 +82,9 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-
-    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
+    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+      organization,
+    });
 
     expect(result.current).toEqual({
       data: undefined,
@@ -143,6 +134,7 @@ describe('useTraceMeta', () => {
         span_count_map: {
           op1: 1,
         },
+        uptime_checks: 0,
         transaction_child_count_map: [{'transaction.id': '1', count: 1}],
       },
     });
@@ -158,6 +150,7 @@ describe('useTraceMeta', () => {
           op1: 1,
           op2: 1,
         },
+        uptime_checks: 0,
         transaction_child_count_map: [{'transaction.id': '2', count: 2}],
       },
     });
@@ -172,17 +165,14 @@ describe('useTraceMeta', () => {
         span_count_map: {
           op3: 1,
         },
+        uptime_checks: 1,
         transaction_child_count_map: [{'transaction.id': '3', count: 1}],
       },
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-
-    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
+    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+      organization: org,
+    });
 
     expect(result.current).toEqual({
       data: undefined,
@@ -208,6 +198,7 @@ describe('useTraceMeta', () => {
           '2': 2,
           '3': 1,
         },
+        uptime_checks: 0,
       },
       errors: [],
       status: 'success',
@@ -231,13 +222,9 @@ describe('useTraceMeta', () => {
       statusCode: 400,
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-
-    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
+    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+      organization,
+    });
 
     expect(result.current).toEqual({
       data: undefined,
@@ -303,13 +290,9 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-
-    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
+    const {result} = renderHookWithProviders(() => useTraceMeta(mockedReplayTraces), {
+      organization,
+    });
 
     expect(result.current).toEqual({
       data: undefined,

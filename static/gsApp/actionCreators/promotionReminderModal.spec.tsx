@@ -5,7 +5,7 @@ import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {openPromotionReminderModal} from 'getsentry/actionCreators/modal';
 import type {PromotionClaimed} from 'getsentry/types';
 
-describe('Promotion Reminder Modal', function () {
+describe('Promotion Reminder Modal', () => {
   const cancelFn = jest.fn();
 
   const promotionClaimed: PromotionClaimed = {
@@ -33,7 +33,7 @@ describe('Promotion Reminder Modal', function () {
     isLastCycleForFreeEvents: false,
   };
 
-  it('renders promotion reminder modal', async function () {
+  it('renders promotion reminder modal', async () => {
     openPromotionReminderModal(promotionClaimed, cancelFn);
 
     renderGlobalModal();

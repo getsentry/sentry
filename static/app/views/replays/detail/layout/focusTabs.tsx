@@ -1,18 +1,19 @@
-import {type ReactNode} from 'react';
+import {useEffect, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {IconLab} from 'sentry/icons/iconLab';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
+import {hasLogsOnReplays} from 'sentry/views/explore/logs/hasLogsOnReplays';
 
 function getReplayTabs({
   isVideoReplay,
@@ -26,20 +27,17 @@ function getReplayTabs({
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
     [TabKey.AI]:
-      organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed ? (
+      organization.features.includes('replay-ai-summaries') &&
+      areAiFeaturesAllowed &&
+      !isVideoReplay ? (
         <Flex align="center" gap="sm">
-          {t('Summary')}
-          <Tooltip
-            title={t(
-              'This feature is experimental! Try it out and let us know what you think. No promises!'
-            )}
-          >
-            <IconLab isSolid />
-          </Tooltip>
+          {t('AI Summary')}
+          <FeatureBadge type="beta" />
         </Flex>
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
+    [TabKey.LOGS]: hasLogsOnReplays(organization) ? t('Logs') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: t('Trace'),
@@ -54,13 +52,32 @@ type Props = {
 
 export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
-  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
 
   const tabs = Object.entries(
     getReplayTabs({isVideoReplay, organization, areAiFeaturesAllowed})
   ).filter(([_, v]) => v !== null);
+
+  useEffect(() => {
+    const isAiTabAvailable =
+      organization.features.includes('replay-ai-summaries') &&
+      areAiFeaturesAllowed &&
+      !isVideoReplay;
+
+    if (isAiTabAvailable) {
+      trackAnalytics('replay.ai_tab_shown', {
+        organization,
+        isSeerSetup: setupAcknowledgement.orgHasAcknowledged,
+      });
+    }
+  }, [
+    organization,
+    areAiFeaturesAllowed,
+    isVideoReplay,
+    setupAcknowledgement.orgHasAcknowledged,
+  ]);
 
   return (
     <TabContainer>
@@ -79,7 +96,11 @@ export default function FocusTabs({isVideoReplay}: Props) {
       >
         <TabList hideBorder>
           {tabs.map(([tab, label]) => (
-            <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
+            <TabList.Item
+              key={tab}
+              textValue={tab}
+              data-test-id={`replay-details-${tab}-btn`}
+            >
               {label}
             </TabList.Item>
           ))}

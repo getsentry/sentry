@@ -1,6 +1,6 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -11,14 +11,16 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -31,6 +33,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -63,51 +71,56 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:django] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[django]'}),
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[django]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Initialize the Sentry SDK in your Django [code:settings.py] file:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct('Initialize the Sentry SDK in your Django [code:settings.py] file:', {
+            code: <code />,
+          }),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'settings.py',
-              value: 'settings.py',
               language: 'python',
               code: getSdkSetupSnippet(params),
             },
           ],
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'urls.py',
-              value: 'urls.py',
               language: 'python',
               code: `
 from django.urls import path
@@ -123,28 +136,38 @@ urlpatterns = [
             },
           ],
         },
-      ],
-      additionalInfo: (
-        <div>
-          <p>
-            {tct(
+        getVerifyLogsContent(params),
+        {
+          type: 'text',
+          text: [
+            tct(
               'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
               {
                 link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
-            )}
-          </p>
-          <br />
-          <p>
-            {t(
+            ),
+            t(
               'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
-            )}
-          </p>
-        </div>
-      ),
+            ),
+          ],
+        },
+      ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
 
 const performanceOnboarding: OnboardingConfig = {
@@ -219,6 +242,10 @@ sentry_sdk.init(
   nextSteps: () => [],
 };
 
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[django]',
+});
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
@@ -228,6 +255,7 @@ const docs: Docs = {
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

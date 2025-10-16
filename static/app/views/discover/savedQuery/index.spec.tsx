@@ -1,6 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +16,6 @@ jest.mock('sentry/actionCreators/modal');
 function mount(
   location: ReturnType<typeof LocationFixture>,
   organization: Organization,
-  router: ReturnType<typeof RouterFixture>,
   eventView: EventView,
   savedQuery: SavedQuery | NewQuery | undefined,
   yAxis: string[],
@@ -33,7 +31,6 @@ function mount(
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
-      router={router}
       queryDataLoading={false}
       setSavedQuery={setSavedQuery}
       setHomepageQuery={jest.fn()}
@@ -41,7 +38,7 @@ function mount(
   );
 }
 
-describe('Discover > SaveQueryButtonGroup', function () {
+describe('Discover > SaveQueryButtonGroup', () => {
   let organization: Organization;
   let errorsView: EventView;
   let savedQuery: SavedQuery;
@@ -51,9 +48,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
   const location = LocationFixture({
     pathname: '/organization/eventsv2/',
     query: {},
-  });
-  const router = RouterFixture({
-    location: {query: {}},
   });
   const yAxis = ['count()', 'failure_count()'];
 
@@ -102,13 +96,13 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('renders disabled buttons when disabled prop is used', () => {
-      mount(location, organization, router, errorsView, undefined, yAxis, true);
+      mount(location, organization, errorsView, undefined, yAxis, true);
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeDisabled();
     });
 
     it('renders the correct set of buttons', async () => {
-      mount(location, organization, router, errorsView, undefined, yAxis);
+      mount(location, organization, errorsView, undefined, yAxis);
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
       expect(
@@ -124,7 +118,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       organization = OrganizationFixture({
         features: ['discover-query', 'dashboards-edit'],
       });
-      mount(location, organization, router, errorsView, undefined, yAxis);
+      mount(location, organization, errorsView, undefined, yAxis);
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /set as default/i})).toBeInTheDocument();
@@ -150,7 +144,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mount(
         location,
         organization,
-        router,
         errorsView,
         {...savedQuery, queryDataset: SavedQueryDatasets.ERRORS},
         yAxis
@@ -192,7 +185,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('saves a well-formed query', async () => {
-      mount(location, organization, router, errorsView, undefined, yAxis);
+      mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
       await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -219,7 +212,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('saves on enter', async () => {
-      mount(location, organization, router, errorsView, undefined, yAxis);
+      mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
       await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -244,7 +237,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('rejects if query.name is empty', async () => {
-      mount(location, organization, router, errorsView, undefined, yAxis);
+      mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
       await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -278,7 +271,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mount(
         location,
         organization,
-        router,
         EventView.fromSavedQuery({...errorsQuery, yAxis}),
         savedQuery,
         yAxis
@@ -296,14 +288,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('treats undefined yAxis the same as count() when checking for changes', async () => {
-      mount(
-        location,
-        organization,
-        router,
-        errorsViewSaved,
-        {...savedQuery, yAxis: undefined},
-        ['count()']
-      );
+      mount(location, organization, errorsViewSaved, {...savedQuery, yAxis: undefined}, [
+        'count()',
+      ]);
 
       expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
       expect(
@@ -319,7 +306,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mount(
         location,
         organization,
-        router,
         errorsViewSaved,
         {...savedQuery, yAxis: ['count()']},
         ['count()']
@@ -336,7 +322,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('deletes the saved query', async () => {
-      mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
+      mount(location, organization, errorsViewSaved, savedQuery, yAxis);
 
       await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
       await userEvent.click(
@@ -358,7 +344,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mount(
         location,
         organization,
-        router,
         errorsViewModified,
         errorsViewSaved.toNewQuery(),
         yAxis
@@ -389,7 +374,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
         mount(
           location,
           organization,
-          router,
           errorsViewModified,
           savedQuery,
           yAxis,
@@ -426,7 +410,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       });
 
       it('checks that it is forked from a saved query', async () => {
-        mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
+        mount(location, organization, errorsViewModified, savedQuery, yAxis);
 
         // Click on ButtonSaveAs to open dropdown
         await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -458,12 +442,12 @@ describe('Discover > SaveQueryButtonGroup', function () {
         ...organization,
         features: ['incidents'],
       };
-      mount(location, metricAlertOrg, router, errorsViewModified, savedQuery, yAxis);
+      mount(location, metricAlertOrg, errorsViewModified, savedQuery, yAxis);
 
       expect(screen.getByRole('button', {name: /create alert/i})).toBeInTheDocument();
     });
     it('does not render create alert button without metric alerts', () => {
-      mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
+      mount(location, organization, errorsViewModified, savedQuery, yAxis);
 
       expect(
         screen.queryByRole('button', {name: /create alert/i})
@@ -480,14 +464,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
         query: 'foo:bar',
       };
       const transactionView = EventView.fromSavedQuery(transactionSavedQuery);
-      mount(
-        location,
-        metricAlertOrg,
-        router,
-        transactionView,
-        transactionSavedQuery,
-        yAxis
-      );
+      mount(location, metricAlertOrg, transactionView, transactionSavedQuery, yAxis);
 
       const createAlertButton = screen.getByRole('button', {name: /create alert/i});
       const href = createAlertButton.getAttribute('href')!;
@@ -508,7 +485,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
         query: 'foo:bar',
       };
       const transactionView = EventView.fromSavedQuery(errorSavedQuery);
-      mount(location, metricAlertOrg, router, transactionView, errorSavedQuery, yAxis);
+      mount(location, metricAlertOrg, transactionView, errorSavedQuery, yAxis);
 
       const createAlertButton = screen.getByRole('button', {name: /create alert/i});
       const href = createAlertButton.getAttribute('href')!;

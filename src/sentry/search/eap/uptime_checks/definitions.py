@@ -14,4 +14,6 @@ UPTIME_CHECK_DEFINITIONS = ColumnDefinitions(
     contexts=UPTIME_CHECK_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
     filter_aliases={},
+    alias_to_column=None,
+    column_to_alias=None,
 )

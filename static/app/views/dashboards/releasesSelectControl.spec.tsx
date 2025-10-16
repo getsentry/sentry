@@ -45,8 +45,8 @@ function renderReleasesSelect({
   );
 }
 
-describe('Dashboards > ReleasesSelectControl', function () {
-  it('updates menu title with selection', async function () {
+describe('Dashboards > ReleasesSelectControl', () => {
+  it('updates menu title with selection', async () => {
     renderReleasesSelect({});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     expect(screen.queryByText('+1')).not.toBeInTheDocument();
   });
 
-  it('updates menu title with multiple selections', async function () {
+  it('updates menu title with multiple selections', async () => {
     renderReleasesSelect({});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     expect(screen.getByText('+1')).toBeInTheDocument();
   });
 
-  it('calls onSearch when filtering by releases', async function () {
+  it('calls onSearch when filtering by releases', async () => {
     const mockOnSearch = jest.fn();
     renderReleasesSelect({onSearch: mockOnSearch});
 
@@ -88,7 +88,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     await waitFor(() => expect(mockOnSearch).toHaveBeenCalledWith('se'));
   });
 
-  it('resets search on close', async function () {
+  it('resets search on close', async () => {
     const mockOnSearch = jest.fn();
     renderReleasesSelect({onSearch: mockOnSearch});
 
@@ -103,7 +103,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     await waitFor(() => expect(mockOnSearch).toHaveBeenCalledWith(''));
   });
 
-  it('triggers handleChangeFilter with the release versions', async function () {
+  it('triggers handleChangeFilter with the release versions', async () => {
     const mockHandleChangeFilter = jest.fn();
     renderReleasesSelect({handleChangeFilter: mockHandleChangeFilter});
     expect(screen.getByText('All Releases')).toBeInTheDocument();
@@ -122,7 +122,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     });
   });
 
-  it('includes Latest Release(s) even if no matching releases', async function () {
+  it('includes Latest Release(s) even if no matching releases', async () => {
     render(
       <ReleasesContext
         value={{

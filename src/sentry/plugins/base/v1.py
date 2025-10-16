@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from threading import local
 from typing import TYPE_CHECKING, Any
 
+from django import forms
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
@@ -68,7 +69,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     conf_key: str | None = None
     conf_title: str | _StrPromise | None = None
 
-    project_conf_form: Any = None
+    project_conf_form: type[forms.Form] | None = None
 
     # Global enabled state
     enabled = True
@@ -80,10 +81,10 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     # used by queries to determine if the plugin is configured
     required_field: str | None = None
 
-    def _get_option_key(self, key):
+    def _get_option_key(self, key) -> str:
         return f"{self.get_conf_key()}:{key}"
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "default"
 
     def is_enabled(self, project: Project | RpcProject | None = None):

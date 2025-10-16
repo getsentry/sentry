@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
@@ -33,11 +34,7 @@ import {
 } from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import type {
-  AggregateField,
-  BaseAggregateField,
-  GroupBy,
-} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
   isGroupBy,
   isVisualize,
@@ -45,18 +42,27 @@ import {
 import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
-  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
+import {
+  isVisualizeEquation,
+  Visualize,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   columns: AggregateField[];
   numberTags: TagCollection;
-  onColumnsChange: (columns: BaseAggregateField[]) => void;
+  onColumnsChange: (columns: WritableAggregateField[]) => void;
   stringTags: TagCollection;
 }
 
@@ -81,7 +87,17 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
+    const newColumns: WritableAggregateField[] = [];
+
+    for (const col of tempColumns) {
+      if (isGroupBy(col)) {
+        newColumns.push(col);
+      } else if (isVisualize(col)) {
+        newColumns.push(col.serialize());
+      }
+    }
+
+    onColumnsChange(newColumns);
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
@@ -127,7 +143,8 @@ export function AggregateColumnEditorModal({
                     key: 'add-visualize',
                     label: t('Visualize / Function'),
                     details: t('ex. p50(span.duration)'),
-                    onAction: () => insertColumn(new Visualize(DEFAULT_VISUALIZATION)),
+                    onAction: () =>
+                      insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
                   ...(organization.features.includes('visibility-explore-equations')
                     ? [
@@ -135,7 +152,8 @@ export function AggregateColumnEditorModal({
                           key: 'add-equation',
                           label: t('Equation'),
                           details: t('ex. p50(span.duration) / 2'),
-                          onAction: () => insertColumn(new Visualize(EQUATION_PREFIX)),
+                          onAction: () =>
+                            insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
                         },
                       ]
                     : []),
@@ -216,6 +234,7 @@ function ColumnEditorRow({
         <GroupBySelector
           groupBy={column.column}
           groupBys={groupBys}
+          numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
         />
@@ -243,6 +262,7 @@ function ColumnEditorRow({
 interface GroupBySelectorProps {
   groupBy: GroupBy;
   groupBys: string[];
+  numberTags: TagCollection;
   onChange: (groupBy: GroupBy) => void;
   stringTags: TagCollection;
 }
@@ -250,12 +270,14 @@ interface GroupBySelectorProps {
 function GroupBySelector({
   groupBy,
   groupBys,
+  numberTags,
   onChange,
   stringTags,
 }: GroupBySelectorProps) {
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
-    tags: stringTags,
+    numberTags,
+    stringTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
@@ -275,11 +297,11 @@ function GroupBySelector({
     <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
-      triggerLabel={label}
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
       triggerProps={{
+        children: label,
         prefix: t('Group By'),
         style: {
           width: '100%',
@@ -298,7 +320,7 @@ interface VisualizeSelectorProps {
 }
 
 function VisualizeSelector(props: VisualizeSelectorProps) {
-  if (props.visualize.isEquation) {
+  if (isVisualizeEquation(props.visualize)) {
     return <EquationSelector {...props} />;
   }
 
@@ -313,6 +335,10 @@ function AggregateSelector({
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
+  const aggregateFunc = parsedFunction?.name;
+  const aggregateDefinition = aggregateFunc
+    ? getFieldDefinition(aggregateFunc, 'span')
+    : undefined;
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -336,7 +362,7 @@ function AggregateSelector({
       const newYAxis = updateVisualizeAggregate({
         newAggregate: option.value as string,
         oldAggregate: parsedFunction?.name,
-        oldArgument: parsedFunction?.arguments[0]!,
+        oldArguments: parsedFunction?.arguments,
       });
       onChange(visualize.replace({yAxis: newYAxis}));
     },
@@ -344,9 +370,17 @@ function AggregateSelector({
   );
 
   const handleArgumentChange = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      const newYAxis = `${parsedFunction?.name}(${option.value})`;
-      onChange(visualize.replace({yAxis: newYAxis}));
+    (index: number, option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        let args = cloneDeep(parsedFunction?.arguments);
+        if (args) {
+          args[index] = option.value;
+        } else {
+          args = [option.value];
+        }
+        const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
+        onChange(visualize.replace({yAxis: newYAxis}));
+      }
     },
     [parsedFunction, onChange, visualize]
   );
@@ -366,19 +400,39 @@ function AggregateSelector({
           },
         }}
       />
-      <DoubleWidthCompactSelect
-        data-test-id="editor-visualize-argument"
-        options={argumentOptions}
-        value={parsedFunction?.arguments[0] ?? ''}
-        onChange={handleArgumentChange}
-        searchable
-        disabled={argumentOptions.length === 1}
-        triggerProps={{
-          style: {
-            width: '100%',
-          },
-        }}
-      />
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        return (
+          <DoubleWidthCompactSelect
+            key={param.name}
+            data-test-id="editor-visualize-argument"
+            options={argumentOptions}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => handleArgumentChange(index, option)}
+            searchable
+            disabled={argumentOptions.length === 1}
+            triggerProps={{
+              style: {
+                width: '100%',
+              },
+            }}
+          />
+        );
+      })}
+      {aggregateDefinition?.parameters?.length === 0 && (
+        <DoubleWidthCompactSelect
+          data-test-id="editor-visualize-argument"
+          options={argumentOptions}
+          value={parsedFunction?.arguments[0] ?? ''}
+          onChange={option => handleArgumentChange(0, option)}
+          searchable
+          disabled
+          triggerProps={{
+            style: {
+              width: '100%',
+            },
+          }}
+        />
+      )}
     </Fragment>
   );
 }

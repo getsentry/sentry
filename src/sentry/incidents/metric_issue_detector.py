@@ -3,13 +3,21 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry import features, quotas
+from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
+from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
+    DetectorQuota,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     BaseDataConditionValidator,
@@ -19,12 +27,56 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
+def fetch_snuba_query(detector: Detector) -> SnubaQuery | None:
+    try:
+        source_instance = DataSource.objects.get(detector=detector)
+    except DataSource.DoesNotExist:
+        return None
+    if source_instance:
+        try:
+            query_subscription = QuerySubscription.objects.get(id=source_instance.source_id)
+        except QuerySubscription.DoesNotExist:
+            return None
+    if query_subscription:
+        try:
+            snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+        except SnubaQuery.DoesNotExist:
+            return None
+    return snuba_query
+
+
+def schedule_update_project_config(detector: Detector) -> None:
+    """
+    If `should_use_on_demand`, then invalidate the project configs
+    """
+    enabled_features = on_demand_metrics_feature_flags(detector.project.organization)
+    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+    if "organizations:on-demand-metrics-extraction" not in enabled_features and not prefilling:
+        return
+
+    snuba_query = fetch_snuba_query(detector)
+    if not snuba_query:
+        return
+
+    should_use_on_demand = should_use_on_demand_metrics(
+        snuba_query.dataset,
+        snuba_query.aggregate,
+        snuba_query.query,
+        None,
+        prefilling,
+    )
+    if should_use_on_demand:
+        schedule_invalidate_project_config(
+            trigger="alerts:create-on-demand-metric", project_id=detector.project.id
+        )
+
+
 class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
         (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
     )
     supported_condition_results = frozenset(
-        (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
+        (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.OK)
     )
 
     def validate_type(self, value: str) -> Condition:
@@ -75,7 +127,10 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=True, timeWindowSeconds=True)
+    data_source = SnubaQueryValidator(required=False, timeWindowSeconds=True)
+    data_sources = serializers.ListField(
+        child=SnubaQueryValidator(timeWindowSeconds=True), required=False
+    )
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate(self, attrs):
@@ -87,6 +142,32 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError("Too many conditions")
 
         return attrs
+
+    def get_quota(self) -> DetectorQuota:
+        organization = self.context.get("organization")
+        request = self.context.get("request")
+        if organization is None or request is None:
+            raise serializers.ValidationError("Missing organization/request context")
+
+        detector_limit = quotas.backend.get_metric_detector_limit(organization.id)
+        if (
+            not features.has(
+                "organizations:workflow-engine-metric-detector-limit",
+                organization,
+                actor=request.user,
+            )
+            or detector_limit == -1
+        ):
+            return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
+
+        detector_count = Detector.objects.filter(
+            project__organization=organization,
+            type="metric_issue",  # Avoided circular import. TODO: move magic strings to constant file
+            status=ObjectStatus.ACTIVE,
+        ).count()
+        has_exceeded = detector_count >= detector_limit
+
+        return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
@@ -137,4 +218,15 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 self.update_data_source(instance, data_source)
 
         instance.save()
+
+        schedule_update_project_config(instance)
         return instance
+
+    def create(self, validated_data: dict[str, Any]):
+        detector = super().create(validated_data)
+
+        if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC.value:
+            send_new_detector_data(detector)
+
+        schedule_update_project_config(detector)
+        return detector

@@ -123,7 +123,7 @@ class GetMaxAlertsTest(ProjectRuleBaseTestCase):
 class GetProjectRulesTest(ProjectRuleBaseTestCase):
     method = "get"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         # attaches lastTriggered by default
         response = self.get_success_response(
             self.organization.slug,
@@ -693,7 +693,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert resp.data["actions"][0] == "You must add an action for this alert to fire."
 
     @patch(
-        "sentry.integrations.slack.actions.notification.get_channel_id",
+        "sentry.integrations.slack.actions.form.get_channel_id",
         return_value=SlackChannelIdData("#", None, True),
     )
     @patch.object(find_channel_id_for_rule, "apply_async")

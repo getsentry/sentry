@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SentryApplicationRowButtons from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow/sentryApplicationRowButtons';
 
-describe('Sentry App Row Buttons', function () {
+describe('Sentry App Row Buttons', () => {
   const removeApp = jest.fn();
   const publishApp = jest.fn();
   const sentryApp = SentryAppFixture();

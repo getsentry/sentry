@@ -12,8 +12,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -43,6 +43,7 @@ const rightAlignColumns = new Set([
 
 export function McpPromptsTable() {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -87,11 +88,10 @@ export function McpPromptsTable() {
     [handleSort]
   );
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case SpanFields.MCP_PROMPT_NAME:
           return <McpPromptCell prompt={dataRow[SpanFields.MCP_PROMPT_NAME]} />;
@@ -100,6 +100,12 @@ export function McpPromptsTable() {
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
+              issuesLink={getExploreUrl({
+                query: `${query} span.status:internal_error ${SpanFields.MCP_PROMPT_NAME}:${dataRow[SpanFields.MCP_PROMPT_NAME]}`,
+                selection,
+                organization,
+                referrer: MCPReferrer.MCP_PROMPT_TABLE,
+              })}
             />
           );
         case 'count()':
@@ -111,7 +117,7 @@ export function McpPromptsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    [organization, query, selection]
   );
 
   return (
@@ -119,7 +125,7 @@ export function McpPromptsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
@@ -145,6 +151,13 @@ function McpPromptCell({prompt}: {prompt: string}) {
         chartType: ChartType.BAR,
         yAxes: ['count(span.duration)'],
       },
+    ],
+    field: [
+      'span.description',
+      'span.status',
+      'mcp.prompt.result.message_content',
+      'span.duration',
+      'timestamp',
     ],
     query: `span.op:mcp.server ${SpanFields.MCP_PROMPT_NAME}:"${prompt}"`,
     sort: `-count(span.duration)`,

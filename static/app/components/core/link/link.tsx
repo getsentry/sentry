@@ -13,7 +13,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 export interface LinkProps
   extends React.RefAttributes<HTMLAnchorElement>,
-    Pick<ReactRouterLinkProps, 'to' | 'replace' | 'preventScrollReset' | 'state'>,
+    Pick<
+      ReactRouterLinkProps,
+      'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'
+    >,
     Omit<
       React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
       'href' | 'target' | 'as' | 'css'

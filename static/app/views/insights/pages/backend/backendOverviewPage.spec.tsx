@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -55,15 +55,16 @@ describe('BackendOverviewPage', () => {
       });
       render(<BackendOverviewPage />, {organization});
 
-      expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent('Backend');
-      expect(mainTableApiCall).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query:
-              'transaction:transaction-name ( ( !transaction.op:pageload !transaction.op:navigation !transaction.op:ui.render !transaction.op:interaction !transaction.op:ui.action.swipe !transaction.op:ui.action.scroll !transaction.op:ui.action.click !transaction.op:ui.action !transaction.op:ui.load !transaction.op:app.lifecycle !project.id:[1] ) OR ( transaction.op:http.server ) ) event.type:transaction',
-          }),
-        })
+      await waitFor(() =>
+        expect(mainTableApiCall).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query:
+                'transaction:transaction-name ( ( !transaction.op:pageload !transaction.op:navigation !transaction.op:ui.render !transaction.op:interaction !transaction.op:ui.action.swipe !transaction.op:ui.action.scroll !transaction.op:ui.action.click !transaction.op:ui.action !transaction.op:ui.load !transaction.op:app.lifecycle !project.id:[1] ) OR ( transaction.op:http.server ) ) event.type:transaction',
+            }),
+          })
+        )
       );
     });
   });
@@ -108,7 +109,7 @@ const setupMocks = () => {
         dataset: 'metrics',
       },
     },
-    match: [MockApiClient.matchQuery({referrer: 'api.performance.landing-table'})],
+    match: [MockApiClient.matchQuery({referrer: 'api.insights.backend.landing-table'})],
   });
   mainTableApiCall = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',

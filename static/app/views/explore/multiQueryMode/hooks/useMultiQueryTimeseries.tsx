@@ -6,8 +6,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
@@ -34,14 +34,14 @@ export function useMultiQueryTimeseries({
     (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
       const hasData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
-          return series.sampleCount?.some(({value}) => {
-            return value > 0;
+          return series.values.some(value => {
+            return (value.sampleCount ?? 0) > 0;
           });
         });
       });
       const canGetMoreData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
-          return series.dataScanned === 'partial';
+          return series.meta.dataScanned === 'partial';
         });
       });
 
@@ -106,7 +106,7 @@ function useMultiQueryTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(
     options,
-    'api.explorer.stats',
+    'api.explore.spans-stats',
     DiscoverDatasets.SPANS
   );
 

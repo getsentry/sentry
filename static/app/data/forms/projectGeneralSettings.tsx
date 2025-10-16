@@ -2,8 +2,13 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
+import {Hovercard} from 'sentry/components/hovercard';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,10 +45,6 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
-const PlatformWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
@@ -53,9 +54,9 @@ export const fields = {
     name: 'name',
     type: 'string',
     required: true,
-    label: t('Name'),
+    label: t('Slug'),
     placeholder: t('my-awesome-project'),
-    help: t('A name for this project'),
+    help: t('A unique ID used to identify this project'),
     transformInput: slugify,
     getData: (data: {name?: string}) => {
       return {
@@ -67,7 +68,7 @@ export const fields = {
     saveOnBlur: false,
     saveMessageAlertType: 'warning',
     saveMessage: t(
-      "Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully."
+      "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
   },
 
@@ -78,10 +79,10 @@ export const fields = {
     options: platforms.map(({id, name}) => ({
       value: id,
       label: (
-        <PlatformWrapper key={id}>
+        <Flex key={id} align="center">
           <StyledPlatformIcon platform={id} />
           {name}
-        </PlatformWrapper>
+        </Flex>
       ),
     })),
     help: t('The primary platform for this project'),
@@ -140,9 +141,21 @@ export const fields = {
     rows: 1,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
-    help: t(
-      'Examples: https://example.com, *, *.example.com, *:80. Separate multiple entries with a newline'
-    ),
+    help: tct('Separate multiple entries with a newline. [examples]', {
+      examples: (
+        <Hovercard
+          body={
+            <CodeBlock hideCopyButton>
+              {`https://example.com\n*.example.com\n*:80\n*`}
+            </CodeBlock>
+          }
+        >
+          <Button priority="link" size="xs">
+            {t('View Examples')}
+          </Button>
+        </Hovercard>
+      ),
+    }),
     getValue: val => extractMultilineFields(val),
     setValue: val => convertMultilineFieldValue(val),
   },
@@ -185,5 +198,53 @@ export const fields = {
     type: 'boolean',
     label: t('Verify TLS/SSL'),
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
+  },
+  debugFilesRole: {
+    name: 'debugFilesRole',
+    type: 'select',
+    label: t('Debug Files Access'),
+    help: ({organization}) =>
+      tct(
+        'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
+        {
+          organizationSettingsLink: (
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'debugFilesRole',
+              }}
+            />
+          ),
+        }
+      ),
+    placeholder: ({organization, name, model}) => {
+      const value = model.getValue(name);
+      // empty value means that this project should inherit organization settings
+      if (value === null || value === undefined) {
+        const orgRoleName =
+          organization.orgRoleList?.find(
+            (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+          )?.name || organization.debugFilesRole;
+        return tct('Inherit organization setting ([organizationValue])', {
+          organizationValue: orgRoleName,
+        });
+      }
+      return value;
+    },
+    choices: ({organization}) => [
+      [
+        null,
+        tct('Inherit organization setting ([organizationValue])', {
+          organizationValue:
+            organization.orgRoleList?.find(
+              (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+            )?.name || organization.debugFilesRole,
+        }),
+      ],
+      ...(organization?.orgRoleList?.map((r: {id: string; name: string}) => [
+        r.id,
+        r.name,
+      ]) ?? []),
+    ],
   },
 } satisfies Record<string, Field>;

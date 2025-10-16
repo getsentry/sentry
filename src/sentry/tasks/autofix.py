@@ -5,7 +5,6 @@ from sentry.models.group import Group
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import get_autofix_state
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
 
@@ -14,16 +13,11 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.autofix.check_autofix_status",
-    max_retries=1,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        retry=Retry(
-            times=1,
-        ),
-    ),
+    namespace=issues_tasks,
+    retry=Retry(times=1),
 )
-def check_autofix_status(run_id: int):
-    state = get_autofix_state(run_id=run_id)
+def check_autofix_status(run_id: int, organization_id: int) -> None:
+    state = get_autofix_state(run_id=run_id, organization_id=organization_id)
 
     if (
         state
@@ -38,19 +32,11 @@ def check_autofix_status(run_id: int):
 
 @instrumented_task(
     name="sentry.tasks.autofix.start_seer_automation",
-    queue="seer.seer_automation",
-    max_retries=1,
-    time_limit=30,
-    soft_time_limit=25,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_tasks,
-        processing_deadline_duration=35,
-        retry=Retry(
-            times=1,
-        ),
-    ),
+    namespace=ingest_errors_tasks,
+    processing_deadline_duration=35,
+    retry=Retry(times=1),
 )
-def start_seer_automation(group_id: int):
+def start_seer_automation(group_id: int) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
 
     group = Group.objects.get(id=group_id)

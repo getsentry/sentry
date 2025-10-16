@@ -23,7 +23,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly"))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {}
 
     def test_generic_post_create(self, mock_incr: MagicMock) -> None:

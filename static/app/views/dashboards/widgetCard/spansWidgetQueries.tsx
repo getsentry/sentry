@@ -13,7 +13,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
-import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -63,17 +63,15 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
       let seriesIsSampled: boolean | null;
 
       if (isEventsStats(result)) {
-        seriesConfidence = determineSeriesConfidence(result);
+        const [_order, timeSeries] = convertEventsStatsToTimeSeriesData(
+          props.widget.queries[0]?.aggregates[0] ?? '',
+          result
+        );
+
+        seriesConfidence = determineTimeSeriesConfidence(timeSeries);
+
         const {sampleCount: calculatedSampleCount, isSampled: calculatedIsSampled} =
-          determineSeriesSampleCountAndIsSampled(
-            [
-              convertEventsStatsToTimeSeriesData(
-                props.widget.queries[0]?.aggregates[0] ?? '',
-                result
-              )[1],
-            ],
-            false
-          );
+          determineSeriesSampleCountAndIsSampled([timeSeries], false);
         seriesSampleCount = calculatedSampleCount;
         seriesIsSampled = calculatedIsSampled;
       } else {

@@ -13,6 +13,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
     validate_preprod_artifact_schema,
 )
+from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.cases import APITestCase, TestCase
@@ -38,8 +39,35 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         data = {
             "checksum": "a" * 40,
             "chunks": ["b" * 40, "c" * 40],
-            "git_sha": "d" * 40,
             "build_configuration": "release",
+            "head_sha": "e" * 40,
+            "base_sha": "f" * 40,
+            "provider": "github",
+            "head_repo_name": "owner/repo",
+            "base_repo_name": "owner/repo",
+            "head_ref": "feature/xyz",
+            "base_ref": "main",
+            "pr_number": 123,
+        }
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert result == data
+
+    def test_valid_schema_with_commit_comparison(self) -> None:
+        """Test valid schema with CommitComparison fields passes validation."""
+        data = {
+            "checksum": "a" * 40,
+            "chunks": ["b" * 40, "c" * 40],
+            "build_configuration": "release",
+            "head_sha": "e" * 40,
+            "base_sha": "f" * 40,
+            "provider": "github",
+            "head_repo_name": "owner/repo",
+            "base_repo_name": "owner/repo",
+            "head_ref": "feature/xyz",
+            "base_ref": "main",
+            "pr_number": 123,
         }
         body = orjson.dumps(data)
         result, error = validate_preprod_artifact_schema(body)
@@ -105,24 +133,32 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert error is not None
         assert result == {}
 
-    def test_git_sha_wrong_type(self) -> None:
-        """Test non-string git_sha returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "git_sha": 123})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
-    def test_git_sha_invalid_format(self) -> None:
-        """Test invalid git_sha format returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "git_sha": "invalid"})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert "git_sha" in error
-        assert result == {}
-
     def test_build_configuration_wrong_type(self) -> None:
         """Test non-string build_configuration returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "build_configuration": 123})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert result == {}
+
+    def test_head_sha_invalid_format(self) -> None:
+        """Test invalid head_sha format returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "head_sha": "invalid"})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert "head_sha" in error
+        assert result == {}
+
+    def test_base_sha_invalid_format(self) -> None:
+        """Test invalid base_sha format returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "base_sha": "invalid"})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert "base_sha" in error
+        assert result == {}
+
+    def test_pr_number_invalid(self) -> None:
+        """Test invalid pr_number returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "pr_number": 0})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
@@ -152,7 +188,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
@@ -199,6 +235,16 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
         )
         assert response.status_code == 400, response.content
+
+    def test_assemble_json_schema_invalid_provider(self) -> None:
+        """Test that invalid provider is rejected."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": [], "provider": "invalid"},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["error"] == "Unsupported provider"
 
     def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""
@@ -255,26 +301,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_git_sha_wrong_type(self) -> None:
-        """Test that non-string git_sha is rejected."""
-        checksum = sha1(b"1").hexdigest()
-        response = self.client.post(
-            self.url,
-            data={"checksum": checksum, "chunks": [], "git_sha": 123},
-            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-        )
-        assert response.status_code == 400, response.content
-
-    def test_assemble_json_schema_git_sha_invalid_format(self) -> None:
-        """Test that invalid git_sha format is rejected."""
-        checksum = sha1(b"1").hexdigest()
-        response = self.client.post(
-            self.url,
-            data={"checksum": checksum, "chunks": [], "git_sha": "invalid_sha"},
-            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-        )
-        assert response.status_code == 400, response.content
-
     def test_assemble_json_schema_build_configuration_wrong_type(self) -> None:
         """Test that non-string build_configuration is rejected."""
         checksum = sha1(b"1").hexdigest()
@@ -304,8 +330,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": checksum,
                 "chunks": [],
-                "git_sha": "c076e3b84d9d7c43f456908535ea78b9de6ec59b",
                 "build_configuration": "release",
+                "head_sha": "e" * 40,
+                "base_sha": "f" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                "base_repo_name": "owner/repo",
+                "head_ref": "feature/xyz",
+                "base_ref": "main",
+                "pr_number": 123,
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -314,9 +347,23 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
     )
-    def test_assemble_basic(self, mock_assemble_preprod_artifact: MagicMock) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_basic(
+        self, mock_create_preprod_artifact: MagicMock, mock_assemble_preprod_artifact: MagicMock
+    ) -> None:
         content = b"test preprod artifact content"
         total_checksum = sha1(content).hexdigest()
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
+
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -332,6 +379,26 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
+        assert expected_url in response.data["artifactUrl"]
+
+        mock_create_preprod_artifact.assert_called_once_with(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
+        )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
             kwargs={
@@ -339,7 +406,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "git_sha": None,
+                "artifact_id": artifact_id,
                 "build_configuration": None,
             }
         )
@@ -347,9 +414,23 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
     )
-    def test_assemble_with_metadata(self, mock_assemble_preprod_artifact: MagicMock) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_with_metadata(
+        self, mock_create_preprod_artifact: MagicMock, mock_assemble_preprod_artifact: MagicMock
+    ) -> None:
         content = b"test preprod artifact with metadata"
         total_checksum = sha1(content).hexdigest()
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
+
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -359,14 +440,41 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "git_sha": "c076e3b84d9d7c43f456908535ea78b9de6ec59b",
                 "build_configuration": "release",
+                "head_sha": "e" * 40,
+                "base_sha": "f" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                "base_repo_name": "owner/repo",
+                "head_ref": "feature/xyz",
+                "base_ref": "main",
+                "pr_number": 123,
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
+        assert expected_url in response.data["artifactUrl"]
+
+        mock_create_preprod_artifact.assert_called_once_with(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration="release",
+            release_notes=None,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
+        )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
             kwargs={
@@ -374,7 +482,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "git_sha": "c076e3b84d9d7c43f456908535ea78b9de6ec59b",
+                "artifact_id": artifact_id,
                 "build_configuration": "release",
             }
         )
@@ -541,34 +649,36 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["missingChunks"] == []
 
     def test_check_existing_assembly_status(self) -> None:
+        """Test that endpoint doesn't check existing assembly status - it processes new requests."""
         checksum = sha1(b"test existing status").hexdigest()
 
+        # Even if assembly status exists, endpoint doesn't check it
         set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.OK
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.CREATED
         )
 
         response = self.client.post(
             self.url,
             data={
                 "checksum": checksum,
-                "chunks": [],
+                "chunks": [],  # No chunks means NOT_FOUND
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
         assert response.status_code == 200
-        assert response.data["state"] == ChunkFileState.OK
+        # Endpoint returns NOT_FOUND when no chunks are provided, regardless of existing status
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert response.data["missingChunks"] == []
 
     def test_integration_task_sets_status_api_can_read_it(self) -> None:
         """
-        Integration test that verifies the task and API endpoint use consistent scope.
+        Test showing that this endpoint doesn't poll for status - it only processes new assembly requests.
 
-        This test reproduces the real workflow:
-        1. Task assembles artifact and sets status with project_id scope
-        2. API endpoint polls for status using project_id scope
-
-        Both should use consistent project-level scope since preprod artifacts are project-specific.
+        This endpoint doesn't check existing assembly status. Instead, it:
+        1. Checks for missing chunks
+        2. Creates artifacts and queues assembly tasks
+        3. Returns NOT_FOUND when no chunks are provided
         """
         content = b"test integration content"
         total_checksum = sha1(content).hexdigest()
@@ -576,21 +686,23 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
 
+        # Even if task sets status, this endpoint doesn't read it
         set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.OK
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.CREATED
         )
 
         response = self.client.post(
             self.url,
             data={
                 "checksum": total_checksum,
-                "chunks": [],
+                "chunks": [],  # No chunks means NOT_FOUND
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
         assert response.status_code == 200
-        assert response.data["state"] == ChunkFileState.OK
+        # Endpoint doesn't check existing status, returns NOT_FOUND for empty chunks
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert response.data["missingChunks"] == []
 
     def test_permission_required(self) -> None:
@@ -606,3 +718,89 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 401
+
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_create_artifact_failure(
+        self, mock_create_preprod_artifact: MagicMock
+    ) -> None:
+        """Test that endpoint returns error when create_preprod_artifact fails."""
+        content = b"test preprod artifact content"
+        total_checksum = sha1(content).hexdigest()
+
+        mock_create_preprod_artifact.return_value = None
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 500, response.content
+        assert response.data["state"] == ChunkFileState.ERROR
+        assert response.data["detail"] == "Failed to create preprod artifact row."
+
+        mock_create_preprod_artifact.assert_called_once_with(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
+        )
+
+    def test_assemble_missing_vcs_parameters(self) -> None:
+        """Test that providing partial VCS parameters returns a 400 error with specific missing params."""
+        content = b"test missing vcs params"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        # Test missing head_ref
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "head_sha": "e" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                # Missing head_ref
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "error" in response.data
+        assert "Missing parameters: head_ref" in response.data["error"]
+
+        # Test missing multiple parameters
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "head_sha": "e" * 40,
+                # Missing provider, head_repo_name, head_ref
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "error" in response.data
+        assert "Missing parameters:" in response.data["error"]
+        assert "head_repo_name" in response.data["error"]
+        assert "provider" in response.data["error"]
+        assert "head_ref" in response.data["error"]

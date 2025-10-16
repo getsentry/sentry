@@ -16,8 +16,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 
 import {UptimeRulesEdit} from './edit';
 
-describe('uptime/edit', function () {
-  beforeEach(function () {
+describe('uptime/edit', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture()],
@@ -28,7 +28,7 @@ describe('uptime/edit', function () {
     });
   });
 
-  it('displays the edit form', async function () {
+  it('displays the edit form', async () => {
     const {organization, project, routerProps} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
@@ -48,7 +48,6 @@ describe('uptime/edit', function () {
         onChangeTitle={handleChangeTitle}
         userTeamIds={[]}
         organization={organization}
-        project={project}
         params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,
       {organization}
@@ -65,7 +64,7 @@ describe('uptime/edit', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Foo Bar'})).toBeChecked();
   });
 
-  it('can delete rule', async function () {
+  it('can delete rule', async () => {
     const {organization, project, routerProps} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
@@ -85,7 +84,6 @@ describe('uptime/edit', function () {
         onChangeTitle={handleChangeTitle}
         userTeamIds={[]}
         organization={organization}
-        project={project}
         params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,
       {organization}

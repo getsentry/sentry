@@ -22,11 +22,11 @@ function TestButton({org}: {org: Organization}) {
   );
 }
 
-describe('AnalyticsAreaProvider', function () {
+describe('AnalyticsAreaProvider', () => {
   const organization = OrganizationFixture();
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  it('Appends names when nested', async function () {
+  it('Appends names when nested', async () => {
     render(
       <AnalyticsArea name="feedback">
         <AnalyticsArea name="details">
@@ -46,7 +46,7 @@ describe('AnalyticsAreaProvider', function () {
     });
   });
 
-  it('Overrides parent area when specified', async function () {
+  it('Overrides parent area when specified', async () => {
     render(
       <AnalyticsArea name="feedback">
         <AnalyticsArea name="details">

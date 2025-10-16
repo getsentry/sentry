@@ -1,5 +1,4 @@
-from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import rest_framework
@@ -13,6 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -29,7 +29,7 @@ class HandleIssueMergeTest(TestCase):
             self.groups.append(group)
 
     @patch("sentry.tasks.merge.merge_groups.delay")
-    def test_handle_merge(self, merge_groups: Any) -> None:
+    def test_handle_merge(self, merge_groups: MagicMock) -> None:
         Activity.objects.all().delete()
         merge = handle_merge(self.groups, self.project_lookup, self.user)
 
@@ -39,7 +39,11 @@ class HandleIssueMergeTest(TestCase):
         assert len(groups.filter(substatus__isnull=True)) == 4
         assert merge_groups.called
 
-        primary_group = self.groups[-1]
+        assert merge_groups.call_args[1]["eventstream_state"][
+            "new_group_first_seen"
+        ] == json.datetime_to_str(min([g.first_seen for g in groups]))
+
+        primary_group = self.groups[0]
         assert Activity.objects.filter(type=ActivityType.MERGE.value, group=primary_group)
         assert merge["parent"] == str(primary_group.id)
         assert len(merge["children"]) == 4

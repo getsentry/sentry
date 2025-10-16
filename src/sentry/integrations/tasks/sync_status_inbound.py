@@ -20,7 +20,6 @@ from sentry.models.release import Release, ReleaseStatus, follows_semver_version
 from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
@@ -191,19 +190,10 @@ def group_was_recently_resolved(group: Group) -> bool:
 
 @instrumented_task(
     name="sentry.integrations.tasks.sync_status_inbound",
-    queue="integrations",
-    default_retry_delay=60 * 5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
+    namespace=integrations_tasks,
     processing_deadline_duration=150,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        processing_deadline_duration=30,
-        retry=Retry(
-            times=5,
-            delay=60 * 5,
-        ),
-    ),
+    retry=Retry(times=5, delay=60 * 5),
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
@@ -275,7 +265,7 @@ def sync_status_inbound(
             activity_type=activity_type,
             activity_data=activity_data,
         )
-        # after we update the group, pdate the resolutions
+        # after we update the group, update the resolutions
         for group in resolvable_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
             if resolution_params:

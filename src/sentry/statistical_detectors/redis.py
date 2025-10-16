@@ -28,7 +28,7 @@ class RedisDetectorStore(DetectorStore):
     def client(
         self,
         client: RedisCluster | StrictRedis | None = None,
-    ):
+    ) -> RedisCluster | StrictRedis:
         if self._client is None:
             self._client = self.get_redis_client() if client is None else client
         return self._client
@@ -46,7 +46,7 @@ class RedisDetectorStore(DetectorStore):
         self,
         payloads: list[DetectorPayload],
         states: list[Mapping[str | bytes, bytes | float | int | str] | None],
-    ):
+    ) -> None:
         # the number of new states must match the number of payloads
         assert len(states) == len(payloads)
 
@@ -60,7 +60,7 @@ class RedisDetectorStore(DetectorStore):
 
             pipeline.execute()
 
-    def make_key(self, payload: DetectorPayload):
+    def make_key(self, payload: DetectorPayload) -> str:
         return (
             f"sd:p:{payload.project_id}:{self.regression_type.abbreviate()}:{payload.fingerprint}"
         )

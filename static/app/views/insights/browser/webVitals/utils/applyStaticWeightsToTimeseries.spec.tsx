@@ -1,7 +1,7 @@
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 
-describe('applyStaticWeightsToTimeseries', function () {
-  it('updates timeseries scores with static weighing', function () {
+describe('applyStaticWeightsToTimeseries', () => {
+  it('updates timeseries scores with static weighing', () => {
     const timeseriesData = {
       lcp: [
         {name: '2024-07-01T00:00:00.000Z', value: 90},

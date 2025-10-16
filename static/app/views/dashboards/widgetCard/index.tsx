@@ -10,6 +10,7 @@ import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/uti
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -24,13 +25,13 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DisplayType,
@@ -44,8 +45,15 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
+import {
+  getMenuOptions,
+  useDroppedColumnsWarning,
+  useIndexedEventsWarning,
+  useTransactionsDeprecationWarning,
+} from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
+
+const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
@@ -72,6 +80,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
@@ -118,6 +127,7 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
+  const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
@@ -150,7 +160,6 @@ function WidgetCard(props: Props) {
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
-    onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
     disableFullscreen,
@@ -158,9 +167,9 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
-    router,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
+    disableTableActions,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -183,7 +192,11 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
-  const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
+  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
+    widget,
+    selection,
+  });
+  const droppedColumnsWarning = useDroppedColumnsWarning(widget);
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
@@ -223,10 +236,14 @@ function WidgetCard(props: Props) {
 
       navigate(
         {
-          pathname: `${location.pathname}${
-            location.pathname.endsWith('/') ? '' : '/'
-          }widget/${props.index}/`,
-          query: location.query,
+          pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
+          query: {
+            ...location.query,
+            sort:
+              widget.displayType === DisplayType.TABLE
+                ? widget.queries[0]?.orderby
+                : location.query.sort,
+          },
         },
         {preventScrollReset: true}
       );
@@ -248,9 +265,10 @@ function WidgetCard(props: Props) {
 
   const warnings = [
     onDemandWarning,
-    discoverSplitAlert,
     sessionDurationWarning,
     spanTimeRangeWarning,
+    transactionsDeprecationWarning,
+    droppedColumnsWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
@@ -268,7 +286,6 @@ function WidgetCard(props: Props) {
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
-        router,
         props.onDelete,
         props.onDuplicate,
         props.onEdit
@@ -299,15 +316,19 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
-          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+          onFullScreenViewClick={
+            disableFullscreen
+              ? undefined
+              : currentDashboardId
+                ? onFullScreenViewClick
+                : undefined
+          }
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
         >
           <WidgetCardChartContainer
-            location={location}
             api={api}
-            organization={organization}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
@@ -329,6 +350,7 @@ function WidgetCard(props: Props) {
             showLoadingText={showLoadingText && isLoadingTextVisible}
             onWidgetTableSort={onWidgetTableSort}
             onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+            disableTableActions={disableTableActions}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
@@ -374,20 +396,40 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   return null;
 }
 
-function useTimeRangeWarning(props: {widget: Widget}) {
+function useTimeRangeWarning({widget}: {widget: Widget}) {
   const {
     selection: {datetime},
   } = usePageFilters();
+  const useRetentionLimit =
+    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ?? (() => null);
+  const retentionLimitDays = useRetentionLimit({
+    dataset: widget.widgetType ?? WidgetType.ERRORS,
+  });
 
-  if (props.widget.widgetType !== WidgetType.SPANS) {
+  if (!retentionLimitDays) {
     return null;
   }
 
-  if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 30) {
-    // This message applies if the user has selected a time range >30d because we truncate the
-    // snuba response to 30 days to reduce load on the system.
-    return t(
-      "Spans-based widgets have been truncated to 30 days of data. We're working on ramping this up."
+  // Number of days from now using the stats period
+  const statsPeriodDaysFromNow = statsPeriodToDays(
+    datetime.period,
+    datetime.start,
+    datetime.end
+  );
+
+  // Convert the number of days to ms so we can get an end date to check if the
+  // widget is querying more than its retention allows
+  const statsPeriodToEnd = new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS);
+  const retentionLimitDate = new Date(Date.now() - retentionLimitDays * DAYS_TO_MS);
+  if (
+    (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
+    (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
+  ) {
+    return tct(
+      `You've selected a time range longer than the retention period for this dataset. Data older than [numDays] days may be unavailable.`,
+      {
+        numDays: retentionLimitDays,
+      }
     );
   }
 

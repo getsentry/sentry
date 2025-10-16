@@ -1,4 +1,4 @@
-import {type ChangeEvent, useEffect, useState} from 'react';
+import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
@@ -11,10 +11,10 @@ import type {BranchOverride, RepoSettings} from 'sentry/components/events/autofi
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   IconAdd,
-  IconChevron as IconExpandToggle,
   IconClose,
   IconCommit,
   IconDelete,
+  IconChevron as IconExpandToggle,
   IconTag,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -48,9 +48,13 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setBranchInputValue(settings.branch);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setInstructionsValue(settings.instructions);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setBranchOverridesValue(settings.branch_overrides || []);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setOriginalValues({
       branch: settings.branch,
       instructions: settings.instructions,

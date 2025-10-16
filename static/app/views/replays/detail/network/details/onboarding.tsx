@@ -1,12 +1,16 @@
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {
+  MIN_REPLAY_NETWORK_BODIES_SDK,
+  MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG,
+} from 'sentry/utils/replays/sdkVersions';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -59,13 +63,11 @@ export function Setup({
   showSnippet: Output;
   visibleTab: TabKey;
 }) {
-  const organization = useOrganization();
   const {isFetching, needsUpdate} = useProjectSdkNeedsUpdate({
-    // Only show update instructions if not >= 7.50.0, but our instructions
+    // Only show update instructions if <7.50.0, but our instructions
     // will show a different min version as there are known bugs in 7.50 ->
     // 7.53
-    minVersion: '7.50.0',
-    organization,
+    minVersion: MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG.minVersion,
     projectId: [projectId],
   });
   const sdkNeedsUpdate = !isFetching && Boolean(needsUpdate);
@@ -89,7 +91,7 @@ export function Setup({
     ) : null
   ) : (
     <SetupInstructions
-      minVersion="7.53.1"
+      minVersion={MIN_REPLAY_NETWORK_BODIES_SDK.minVersion}
       sdkNeedsUpdate={sdkNeedsUpdate}
       showSnippet={showSnippet}
       url={url}
@@ -202,9 +204,9 @@ function SetupInstructions({
         <li>{t('That’s it!')}</li>
       </ol>
       {url !== '[Filtered]' && (
-        <CodeSnippet filename="JavaScript" language="javascript">
+        <CodeBlock filename="JavaScript" language="javascript">
           {code}
-        </CodeSnippet>
+        </CodeBlock>
       )}
     </StyledInstructions>
   );

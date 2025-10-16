@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -128,7 +128,7 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
       <div>{description}</div>
       {status === 'none' ? null : (
         <Fragment>
-          <SectionDivider />
+          <SectionDivider orientation="horizontal" />
           <div>
             {formattedMeterValueText} - {STATUS_TEXT[status]}
           </div>

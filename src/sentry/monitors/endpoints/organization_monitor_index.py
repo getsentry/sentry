@@ -39,7 +39,6 @@ from sentry.monitors.models import (
     MONITOR_ENVIRONMENT_ORDERING,
     Monitor,
     MonitorEnvironment,
-    MonitorLimitsExceeded,
     MonitorStatus,
 )
 from sentry.monitors.serializers import (
@@ -47,7 +46,7 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
@@ -262,54 +261,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         Create a new monitor.
         """
         validator = MonitorValidator(
-            data=request.data, context={"organization": organization, "access": request.access}
+            data=request.data,
+            context={"organization": organization, "access": request.access, "request": request},
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.validated_data
-
-        owner = result.get("owner")
-        owner_user_id = None
-        owner_team_id = None
-        if owner and owner.is_user:
-            owner_user_id = owner.id
-        elif owner and owner.is_team:
-            owner_team_id = owner.id
-
-        try:
-            monitor = Monitor.objects.create(
-                project_id=result["project"].id,
-                organization_id=organization.id,
-                owner_user_id=owner_user_id,
-                owner_team_id=owner_team_id,
-                name=result["name"],
-                slug=result.get("slug"),
-                status=result["status"],
-                config=result["config"],
-            )
-        except MonitorLimitsExceeded as e:
-            return self.respond({type(e).__name__: str(e)}, status=403)
-
-        # Attempt to assign a seat for this monitor
-        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
-        if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
-
-        project = result["project"]
-        signal_monitor_created(project, request.user, False, monitor, request)
-
-        validated_issue_alert_rule = result.get("alert_rule")
-        if validated_issue_alert_rule:
-            issue_alert_rule_id = create_issue_alert_rule(
-                request, project, monitor, validated_issue_alert_rule
-            )
-
-            if issue_alert_rule_id:
-                config = monitor.config
-                config["alert_rule_id"] = issue_alert_rule_id
-                monitor.update(config=config)
-
+        monitor = validator.save()
+        ensure_cron_detector(monitor)
         return self.respond(serialize(monitor, request.user), status=201)
 
     @extend_schema(

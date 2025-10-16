@@ -1,5 +1,9 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  ErrorDetectorFixture,
+  MetricDetectorFixture,
+  SnubaQueryDataSourceFixture,
+} from 'sentry-fixture/detectors';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -15,6 +19,13 @@ import {
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
 describe('DetectorEdit', () => {
@@ -238,6 +249,12 @@ describe('DetectorEdit', () => {
     const name = 'Test Metric Detector';
     const mockDetector = MetricDetectorFixture({name, projectId: project.id});
 
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/metrics/data/`,
+      });
+    });
+
     it('allows editing the detector name/environment and saving changes', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
@@ -278,7 +295,7 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-      const snubaQuery = mockDetector.dataSources[0].queryObj!.snubaQuery;
+      const snubaQuery = mockDetector.dataSources[0].queryObj.snubaQuery;
       await waitFor(() => {
         expect(updateRequest).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/detectors/1/`,
@@ -365,6 +382,56 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('option', {name: 'Last 24 hours'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Last 3 days'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Last 7 days'})).toBeInTheDocument();
+    });
+
+    it('sets resolution method to Default when OK equals critical threshold', async () => {
+      const detectorWithOkEqualsHigh = MetricDetectorFixture({
+        conditionGroup: {
+          id: 'cg2',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              id: 'c-main',
+              type: DataConditionType.GREATER,
+              comparison: 5,
+              conditionResult: DetectorPriorityLevel.MEDIUM,
+            },
+            {
+              id: 'c-high',
+              type: DataConditionType.GREATER,
+              comparison: 10,
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+            {
+              id: 'c-ok',
+              type: DataConditionType.LESS,
+              comparison: 10, // equals high threshold
+              conditionResult: DetectorPriorityLevel.OK,
+            },
+          ],
+        },
+        dataSources: [SnubaQueryDataSourceFixture()],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${detectorWithOkEqualsHigh.id}/`,
+        body: detectorWithOkEqualsHigh,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('link', {name: detectorWithOkEqualsHigh.name})
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('Default').closest('label')).toHaveClass(
+        'css-1aktlwe-RadioLineItem'
+      );
+
+      // Switching to Custom should reveal prefilled resolution input with the current OK value
+      await userEvent.click(screen.getByText('Custom').closest('label')!);
+      const resolutionInput = await screen.findByLabelText('Resolution threshold');
+      expect(resolutionInput).toHaveValue(10);
     });
 
     it('includes comparisonDelta in events-stats request when using percent change detection', async () => {
@@ -486,6 +553,46 @@ describe('DetectorEdit', () => {
       expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
     });
 
+    it('disables column select when spans + count()', async () => {
+      const spansDetector = MetricDetectorFixture({
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'count()',
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${spansDetector.id}/`,
+        body: spansDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('link', {name: spansDetector.name})
+      ).toBeInTheDocument();
+
+      // Column parameter should be locked to "spans" and disabled
+      const button = screen.getByRole('button', {name: 'spans'});
+      expect(button).toBeDisabled();
+    });
+
     it('resets 1 day interval to 15 minutes when switching to dynamic detection', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
@@ -509,6 +616,198 @@ describe('DetectorEdit', () => {
 
       // Verify interval changed to 15 minutes
       expect(await screen.findByText('15 minutes')).toBeInTheDocument();
+    });
+
+    it('calls anomaly API when using dynamic detection', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      // Current data for chart
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        match: [MockApiClient.matchQuery({statsPeriod: '9998m'})],
+        body: {
+          data: [
+            [1609459200000, [{count: 100}]],
+            [1609462800000, [{count: 120}]],
+            [1609466400000, [{count: 90}]],
+            [1609470000000, [{count: 150}]],
+          ],
+        },
+      });
+
+      // Historical data
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        match: [MockApiClient.matchQuery({statsPeriod: '35d'})],
+        body: {
+          data: [
+            [1607459200000, [{count: 80}]],
+            [1607462800000, [{count: 95}]],
+            [1607466400000, [{count: 110}]],
+            [1607470000000, [{count: 75}]],
+          ],
+        },
+      });
+
+      const anomalyRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/anomalies/`,
+        method: 'POST',
+        body: [],
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
+
+      await waitFor(() => {
+        expect(anomalyRequest).toHaveBeenCalled();
+      });
+      const payload = anomalyRequest.mock.calls[0][1];
+      expect(payload.data).toEqual({
+        config: {
+          direction: 'both',
+          expected_seasonality: 'auto',
+          sensitivity: 'medium',
+          time_period: 15,
+        },
+        current_data: [
+          [1609459200000, {count: 100}],
+          [1609462800000, {count: 120}],
+          [1609466400000, {count: 90}],
+          [1609470000000, {count: 150}],
+        ],
+        historical_data: [
+          [1607459200000, {count: 80}],
+          [1607462800000, {count: 95}],
+          [1607466400000, {count: 110}],
+          [1607470000000, {count: 75}],
+        ],
+        organization_id: organization.id,
+        project_id: project.id,
+      });
+    });
+
+    describe('releases dataset', () => {
+      it('can save crash_free_rate(sessions)', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          body: mockDetector,
+        });
+
+        const updateRequest = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          method: 'PUT',
+          body: mockDetector,
+        });
+
+        render(<DetectorEdit />, {
+          organization,
+          initialRouterConfig,
+        });
+
+        expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+        // Change dataset to releases
+        const datasetField = screen.getByLabelText('Dataset');
+        await userEvent.click(datasetField);
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Releases'}));
+
+        await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+        await waitFor(() => {
+          expect(updateRequest).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              data: expect.objectContaining({
+                dataSource: expect.objectContaining({
+                  // Aggreate needs to be transformed to this in order to save correctly
+                  aggregate:
+                    'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+                  dataset: Dataset.METRICS,
+                  eventTypes: [],
+                  queryType: SnubaQueryType.CRASH_RATE,
+                }),
+              }),
+            })
+          );
+        });
+      });
+    });
+
+    it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
+      const organizationWithDeprecation = OrganizationFixture({
+        features: [
+          'workflow-engine-ui',
+          'visibility-explore-view',
+          'discover-saved-queries-deprecation',
+        ],
+      });
+
+      const existingTransactionsDetector = MetricDetectorFixture({
+        id: '123',
+        name: 'Transactions Detector',
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'count()',
+                dataset: Dataset.GENERIC_METRICS,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRANSACTION],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organizationWithDeprecation.slug}/detectors/123/`,
+        body: existingTransactionsDetector,
+      });
+
+      const editRouterConfig = {
+        route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+        location: {
+          pathname: `/organizations/${organizationWithDeprecation.slug}/issues/monitors/123/edit/`,
+        },
+      };
+
+      render(<DetectorEdit />, {
+        organization: organizationWithDeprecation,
+        initialRouterConfig: editRouterConfig,
+      });
+
+      // Wait for the detector to load
+      expect(
+        await screen.findByRole('link', {name: 'Transactions Detector'})
+      ).toBeInTheDocument();
+
+      // Open dataset dropdown
+      const datasetField = screen.getByLabelText('Dataset');
+      await userEvent.click(datasetField);
+
+      // Verify transactions option IS available when editing existing transactions detector
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Transactions'})
+      ).toBeInTheDocument();
+
+      // Verify other datasets are also available
+      expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
     });
   });
 });

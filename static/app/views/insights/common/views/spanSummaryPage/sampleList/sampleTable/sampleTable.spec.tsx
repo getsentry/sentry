@@ -7,6 +7,7 @@ import {
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {PageFilters} from 'sentry/types/core';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 import SampleTable from './sampleTable';
@@ -29,7 +30,7 @@ jest.mock('sentry/utils/usePageFilters', () => {
   };
 });
 
-describe('SampleTable', function () {
+describe('SampleTable', () => {
   beforeEach(() => {
     initializeMockRequests();
   });
@@ -172,7 +173,7 @@ const initializeMockRequests = () => {
     match: [
       (_, options) => {
         const match =
-          options.query?.referrer === 'api.starfish.span-summary-panel-samples-table-avg';
+          options.query?.referrer === 'api.insights.span-summary-panel-samples-table-avg';
         return match;
       },
     ],
@@ -193,27 +194,40 @@ const initializeMockRequests = () => {
       (_, options) => {
         const match =
           options.query?.referrer ===
-          'api.starfish.span-summary-panel-samples-table-transactions';
+          'api.insights.span-summary-panel-samples-table-transactions';
         return match;
       },
     ],
   });
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-stats/',
+    url: '/organizations/org-slug/events-timeseries/',
     body: {
-      data: [
-        [1689710400, [{count: 1.5}]],
-        [1689714000, [{count: 1.65}]],
+      timeSeries: [
+        {
+          yAxis: 'avg(span.self_time)',
+          meta: {
+            valueType: 'duration',
+            valueUnit: DurationUnit.MILLISECOND,
+          },
+          values: [
+            {
+              timestamp: 1689710400000,
+              value: 1.5,
+            },
+            {
+              timestamp: 1689714000000,
+              value: 1.65,
+            },
+          ],
+        },
       ],
-      end: 1690315200,
-      start: 1689710400,
     },
     match: [
       (_, options) => {
         const {query} = options;
         return (
-          query?.referrer === 'api.starfish.sidebar-span-metrics' &&
-          query?.yAxis === 'avg(span.self_time)'
+          query?.referrer === 'api.insights.sidebar-span-metrics' &&
+          query?.yAxis[0] === 'avg(span.self_time)'
         );
       },
     ],

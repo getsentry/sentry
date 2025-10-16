@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './rails';
 
-describe('rails onboarding docs', function () {
-  it('renders errors onboarding doc correctly', function () {
+describe('rails onboarding docs', () => {
+  it('renders errors onboarding doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -22,11 +22,11 @@ describe('rails onboarding docs', function () {
 
     // Renders import
     expect(
-      screen.getByText(textWithMarkupMatcher(/gem \"sentry-ruby\"/))
+      screen.getByText(textWithMarkupMatcher(/gem "sentry-ruby"/))
     ).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
@@ -36,7 +36,7 @@ describe('rails onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders profiling onboarding docs correctly', async function () {
+  it('renders profiling onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
@@ -57,7 +57,7 @@ describe('rails onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enable_logs to true', function () {
+  it('enables logs by setting enable_logs to true', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });

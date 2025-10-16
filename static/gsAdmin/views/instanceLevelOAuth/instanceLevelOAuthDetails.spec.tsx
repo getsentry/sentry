@@ -7,7 +7,7 @@ import {
 
 import InstanceLevelOAuthDetails from './instanceLevelOAuthDetails';
 
-describe('instance level OAuth client details', function () {
+describe('instance level OAuth client details', () => {
   const mockClientDetails = {
     name: 'CodeCov',
     clientID: 'e535bb78-706c-4c3d-816c-95b4d9bc8a04eda5aa18-9ea2-44b2-af38-664512b911b9',
@@ -59,7 +59,7 @@ describe('instance level OAuth client details', function () {
     });
   });
 
-  it('renders client details properly', async function () {
+  it('renders client details properly', async () => {
     render(<InstanceLevelOAuthDetails />, {
       initialRouterConfig,
     });
@@ -92,7 +92,7 @@ describe('instance level OAuth client details', function () {
     expect(mockGetDetailsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('allows a client to be updated', async function () {
+  it('allows a client to be updated', async () => {
     render(<InstanceLevelOAuthDetails />, {
       initialRouterConfig,
     });
@@ -138,7 +138,7 @@ describe('instance level OAuth client details', function () {
     expect(submittedPutRequestBody).toEqual(newClientDetails);
   });
 
-  it('deletes a client correctly', async function () {
+  it('deletes a client correctly', async () => {
     render(<InstanceLevelOAuthDetails />, {
       initialRouterConfig,
     });

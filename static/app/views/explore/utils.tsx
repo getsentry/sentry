@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -7,11 +8,13 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {Flex} from 'sentry/components/core/layout';
+import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -25,23 +28,31 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  BaseVisualize,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {
   RawGroupBy,
   RawVisualize,
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getSavedQueryTraceItemDataset,
+  isRawVisualize,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {
+  TraceItemAttributeMeta,
+  TraceItemDetailsMeta,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -106,7 +117,7 @@ export function getExploreUrl({
   );
 }
 
-export function getExploreUrlFromSavedQueryUrl({
+function getExploreUrlFromSavedQueryUrl({
   savedQuery,
   organization,
 }: {
@@ -182,12 +193,14 @@ export function getExploreMultiQueryUrl({
   queries,
   title,
   id,
+  referrer,
 }: {
   interval: string;
   organization: Organization;
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
+  referrer?: string;
   title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection.datetime;
@@ -212,22 +225,22 @@ export function getExploreMultiQueryUrl({
     title,
     id,
     utc,
+    referrer,
   };
 
   return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
-export function combineConfidenceForSeries(
-  series: Array<Pick<TimeSeries, 'confidence'>>
-): Confidence {
+export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   let lows = 0;
   let highs = 0;
   let nulls = 0;
 
   for (const s of series) {
-    if (s.confidence === 'low') {
+    const confidence = determineTimeSeriesConfidence(s);
+    if (confidence === 'low') {
       lows += 1;
-    } else if (s.confidence === 'high') {
+    } else if (confidence === 'high') {
       highs += 1;
     } else {
       nulls += 1;
@@ -245,27 +258,27 @@ export function combineConfidenceForSeries(
   return 'high';
 }
 
-export function viewSamplesTarget({
-  location,
-  query,
+export function generateTargetQuery({
   fields,
   groupBys,
-  visualizes,
-  sorts,
-  row,
+  location,
   projects,
+  search,
+  row,
+  sorts,
+  yAxes,
 }: {
-  fields: string[];
-  groupBys: string[];
+  fields: readonly string[];
+  groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
-  query: string;
   row: Record<string, any>;
-  sorts: Sort[];
-  visualizes: Visualize[];
+  search: MutableSearch;
+  sorts: readonly Sort[];
+  yAxes: string[];
 }) {
-  const search = new MutableSearch(query);
+  search = search.copy();
 
   // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
@@ -289,8 +302,8 @@ export function viewSamplesTarget({
   const seenFields = new Set(newFields);
 
   // add all the arguments of the visualizations as columns
-  for (const visualize of visualizes) {
-    const parsedFunction = parseFunction(visualize.yAxis);
+  for (const yAxis of yAxes) {
+    const parsedFunction = parseFunction(yAxis);
     if (!parsedFunction?.arguments[0]) {
       continue;
     }
@@ -336,16 +349,60 @@ export function viewSamplesTarget({
     break;
   }
 
+  return {
+    fields: newFields,
+    search,
+    sortBys: [sortBy],
+  };
+}
+
+export function viewSamplesTarget({
+  location,
+  query,
+  fields,
+  groupBys,
+  visualizes,
+  sorts,
+  row,
+  projects,
+}: {
+  fields: readonly string[];
+  groupBys: readonly string[];
+  location: Location;
+  // needed to generate targets when `project` is in the group by
+  projects: Project[];
+  query: string;
+  row: Record<string, any>;
+  sorts: readonly Sort[];
+  visualizes: readonly Visualize[];
+}) {
+  const search = new MutableSearch(query);
+
+  const {
+    fields: newFields,
+    search: newSearch,
+    sortBys: newSortBys,
+  } = generateTargetQuery({
+    fields,
+    groupBys,
+    location,
+    projects,
+    search,
+    row,
+    sorts,
+    yAxes: visualizes.map(visualize => visualize.yAxis),
+  });
+
   return newExploreTarget(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
-    query: search.formatString(),
-    sampleSortBys: [sortBy],
+    query: newSearch.formatString(),
+    sampleSortBys: newSortBys,
   });
 }
 
-type MaxPickableDays = 7 | 14 | 30;
-type DefaultPeriod = '24h' | '7d' | '14d' | '30d';
+type MaxPickableDays = 7 | 14 | 30 | 90;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d' | '90d';
 
 export interface PickableDays {
   defaultPeriod: DefaultPeriod;
@@ -364,21 +421,21 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
     7: '7d',
     14: '14d',
     30: '30d',
+    90: '90d',
   };
 
   const relativeOptions: Array<[DefaultPeriod, ReactNode]> = [
     ['7d', t('Last 7 days')],
     ['14d', t('Last 14 days')],
     ['30d', t('Last 30 days')],
+    ['90d', t('Last 90 days')],
   ];
 
   const maxPickableDays: MaxPickableDays = organization.features.includes(
     'visibility-explore-range-high'
   )
-    ? 30
-    : organization.features.includes('visibility-explore-range-medium')
-      ? 14
-      : 7;
+    ? 90
+    : 30;
   const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
 
   const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
@@ -442,13 +499,12 @@ export function getDefaultExploreRoute(organization: Organization) {
 }
 
 export function computeVisualizeSampleTotals(
-  visualizes: Visualize[],
+  yAxes: string[],
   data: ReturnType<typeof useSortedTimeSeries>['data'],
   isTopN: boolean
 ) {
-  return visualizes.map(visualize => {
-    const dedupedYAxes = [visualize.yAxis];
-    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+  return yAxes.map(yAxis => {
+    const series = data?.[yAxis]?.filter(defined) ?? [];
     const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return sampleCount;
   });
@@ -456,17 +512,12 @@ export function computeVisualizeSampleTotals(
 
 function DisabledDateOption({label}: {label: ReactNode}) {
   return (
-    <DisabledDateOptionContainer>
+    <Flex align="center">
       {label}
       <StyledIconBuisness />
-    </DisabledDateOptionContainer>
+    </Flex>
   );
 }
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
@@ -610,72 +661,6 @@ function normalizeKey(key: string): string {
   return key.startsWith('!') ? key.slice(1) : key;
 }
 
-export function formatQueryToNaturalLanguage(query: string): string {
-  if (!query.trim()) return '';
-  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  const formattedTokens = tokens.map(formatToken);
-
-  return formattedTokens.reduce((result, token, index) => {
-    if (index === 0) return token;
-
-    const currentOriginalToken = tokens[index] || '';
-    const prevOriginalToken = tokens[index - 1] || '';
-
-    const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
-    const prevIsLogicalOp =
-      formattedTokens[index - 1]?.toUpperCase() === 'AND' ||
-      formattedTokens[index - 1]?.toUpperCase() === 'OR';
-
-    if (isLogicalOp || prevIsLogicalOp) {
-      return `${result} ${token}`;
-    }
-
-    const isCurrentFilter = /[:>=<!]/.test(currentOriginalToken);
-    const isPrevFilter = /[:>=<!]/.test(prevOriginalToken);
-
-    if (isCurrentFilter && isPrevFilter) {
-      return `${result}, ${token}`;
-    }
-
-    return `${result} ${token}`;
-  }, '');
-}
-
-function formatToken(token: string): string {
-  const isNegated = token.startsWith('!') && token.includes(':');
-  const actualToken = isNegated ? token.slice(1) : token;
-
-  const operators = [
-    [':>=', 'greater than or equal to'],
-    [':<=', 'less than or equal to'],
-    [':!=', 'not'],
-    [':>', 'greater than'],
-    [':<', 'less than'],
-    ['>=', 'greater than or equal to'],
-    ['<=', 'less than or equal to'],
-    ['!=', 'not'],
-    ['!:', 'not'],
-    ['>', 'greater than'],
-    ['<', 'less than'],
-    [':', ''],
-  ] as const;
-
-  for (const [op, desc] of operators) {
-    if (actualToken.includes(op)) {
-      const [key, value] = actualToken.split(op);
-      const cleanKey = key?.trim() || '';
-      const cleanVal = value?.trim() || '';
-
-      const negation = isNegated ? 'not ' : '';
-      const description = desc ? `${negation}${desc}` : negation ? 'not' : '';
-
-      return `${cleanKey} is ${description} ${cleanVal}`.replace(/\s+/g, ' ').trim();
-    }
-  }
-
-  return token;
-}
-
 export function prettifyAggregation(aggregation: string): string | null {
   if (isEquation(aggregation)) {
     const expression = new Expression(stripEquationPrefix(aggregation));
@@ -712,3 +697,122 @@ export const removeHiddenKeys = (
   }
   return result;
 };
+
+export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
+  const result: Tag[] = [];
+  tagCollection.forEach(tag => {
+    if (keys.includes(tag.key) && tag.name) {
+      result.push(tag);
+    }
+  });
+  return result;
+};
+
+export function getSavedQueryTraceItemUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const traceItemDataset = getSavedQueryTraceItemDataset(savedQuery.dataset);
+  const urlFunction = TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
+  if (urlFunction) {
+    return urlFunction({savedQuery, organization});
+  }
+  // Invariant, only spans and logs are currently supported.
+  Sentry.captureMessage(
+    `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
+  );
+  return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+const TRACE_ITEM_TO_URL_FUNCTION: Record<
+  TraceItemDataset,
+  | (({
+      savedQuery,
+      organization,
+    }: {
+      organization: Organization;
+      savedQuery: SavedQuery;
+    }) => string)
+  | undefined
+> = {
+  [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
+  [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
+  [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: undefined,
+};
+
+/**
+ * Metadata about trace item attributes.
+ *
+ * This can be used to extract additional information about attributes
+ * like remarks (e.g. why a value was redacted).
+ */
+export class TraceItemMetaInfo {
+  private static readonly META_PATH_CURRENT = '';
+
+  private meta: TraceItemDetailsMeta;
+
+  constructor(meta: TraceItemDetailsMeta) {
+    this.meta = meta;
+  }
+
+  getAttributeMeta(attribute: string): TraceItemAttributeMeta | undefined {
+    return this.meta?.[attribute]?.meta?.value?.[TraceItemMetaInfo.META_PATH_CURRENT];
+  }
+
+  getRemarks(attribute: string): RemarkObject[] {
+    const attributeMeta = this.getAttributeMeta(attribute);
+    if (!attributeMeta?.rem?.length) {
+      return [];
+    }
+
+    const properlyFormedRemarks = attributeMeta.rem.filter(r => r.length >= 2); // Defensive against unexpected length remarks.
+
+    return properlyFormedRemarks.map((rem): RemarkObject => {
+      const [ruleId, type, rangeStart, rangeEnd] = rem;
+      return {
+        ruleId: String(ruleId),
+        type: String(type),
+        rangeStart: Number(rangeStart),
+        rangeEnd: Number(rangeEnd),
+      };
+    });
+  }
+
+  hasRemarks(attribute: string): boolean {
+    const attributeMeta = this.getAttributeMeta(attribute);
+    return (attributeMeta?.rem?.length ?? 0) > 0;
+  }
+
+  static getTooltipText(
+    attribute: string,
+    meta: TraceItemDetailsMeta,
+    organization?: Organization,
+    project?: Project
+  ): string | React.ReactNode | null {
+    const metaInfo = new TraceItemMetaInfo(meta);
+    const remarks = metaInfo.getRemarks(attribute);
+
+    const firstRemark = remarks[0];
+    if (!firstRemark) {
+      return null;
+    }
+
+    return getAnnotatedTooltipText({
+      remark: firstRemark.type,
+      rule_id: firstRemark.ruleId,
+      organization,
+      project,
+    });
+  }
+}
+
+interface RemarkObject {
+  rangeEnd: number;
+  rangeStart: number;
+  ruleId: string;
+  type: string;
+}

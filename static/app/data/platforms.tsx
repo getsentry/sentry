@@ -484,6 +484,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/',
   },
   {
+    id: 'node-hono',
+    name: 'Hono',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/hono/',
+  },
+  {
     id: 'node-gcpfunctions',
     name: 'Google Cloud Functions (Node)',
     type: 'framework',
@@ -629,6 +636,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/legacy-sdk/integrations/pylons/',
+    deprecated: true,
   },
   {
     id: 'python-pymongo',
@@ -636,6 +644,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'library',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/pymongo/',
+    deprecated: true,
   },
   {
     id: 'python-pyramid',

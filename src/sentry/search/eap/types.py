@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Reliability
 
 from sentry.search.events.types import EventsResponse
@@ -43,6 +44,17 @@ class SupportedTraceItemType(str, Enum):
     LOGS = "logs"
     SPANS = "spans"
     UPTIME_RESULTS = "uptime_results"
+    TRACEMETRICS = "tracemetrics"
+
+
+class AttributeSourceType(str, Enum):
+    SENTRY = "sentry"
+    USER = "user"
+
+
+class AttributeSource(TypedDict):
+    source_type: AttributeSourceType
+    is_transformed_alias: NotRequired[bool]
 
 
 class TraceItemAttribute(TypedDict):
@@ -53,3 +65,11 @@ class TraceItemAttribute(TypedDict):
 
 class EAPResponse(EventsResponse):
     confidence: ConfidenceData
+    page_token: NotRequired[PageToken]
+
+
+@dataclass()
+class AdditionalQueries:
+    span: list[str] | None
+    log: list[str] | None
+    metric: list[str] | None

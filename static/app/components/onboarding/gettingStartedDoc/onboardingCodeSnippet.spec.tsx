@@ -1,7 +1,7 @@
 import {replaceTokensWithSpan} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 
-describe('replaceTokenWithSpan', function () {
-  it('replaces __ORG_AUTH_TOKEN___ token', function () {
+describe('replaceTokenWithSpan', () => {
+  it('replaces __ORG_AUTH_TOKEN___ token', () => {
     const element = document.createElement('div');
     element.innerHTML =
       '<span class="token assign-left variable">SENTRY_AUTH_TOKEN</span><span class="token operator">=</span>___ORG_AUTH_TOKEN___';
@@ -14,7 +14,7 @@ describe('replaceTokenWithSpan', function () {
     expect(element.contains(tokenNodes[0]!)).toBe(true);
   });
 
-  it('replaces multiple ___ORG_AUTH_TOKEN___ tokens', function () {
+  it('replaces multiple ___ORG_AUTH_TOKEN___ tokens', () => {
     const element = document.createElement('div');
     element.innerHTML = `
 const cdn = '___ORG_AUTH_TOKEN___';

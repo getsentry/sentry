@@ -3,6 +3,7 @@ from unittest import mock
 from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
+from django.contrib.auth import get_user
 from django.test import override_settings
 from django.urls import reverse
 
@@ -12,7 +13,7 @@ from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
@@ -28,11 +29,11 @@ from sentry.utils import json
 @control_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.create_organization(name="foo", owner=self.user)
 
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
     def test_renders_basic(self) -> None:
@@ -1275,11 +1276,11 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
 
     def setUp(self) -> None:
-        self.demo_user = self.create_user(id=1)
-        self.demo_org = self.create_organization(id=1, owner=self.demo_user)
+        self.demo_user = self.create_user()
+        self.demo_org = self.create_organization(owner=self.demo_user)
 
-        self.normal_user = self.create_user(id=2)
-        self.normal_org = self.create_organization(id=2, owner=self.normal_user)
+        self.normal_user = self.create_user()
+        self.normal_org = self.create_organization(owner=self.normal_user)
 
     def is_logged_in_to_org(self, response, org):
         return response.status_code == 200 and response.redirect_chain == [
@@ -1293,26 +1294,115 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
             follow=True,
         )
 
-    @override_options({"demo-mode.enabled": False, "demo-mode.users": [1], "demo-mode.orgs": [1]})
     def test_auto_login_demo_mode_disabled(self) -> None:
-        resp = self.fetch_org_login_page(self.demo_org)
-        assert not self.is_logged_in_to_org(resp, self.demo_org)
+        with override_options(
+            {
+                "demo-mode.enabled": False,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        ):
+            resp = self.fetch_org_login_page(self.demo_org)
+            assert not self.is_logged_in_to_org(resp, self.demo_org)
 
-        resp = self.fetch_org_login_page(self.normal_org)
-        assert not self.is_logged_in_to_org(resp, self.normal_org)
+            resp = self.fetch_org_login_page(self.normal_org)
+            assert not self.is_logged_in_to_org(resp, self.normal_org)
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [1], "demo-mode.orgs": [1]})
     def test_auto_login_demo_mode(self) -> None:
-        resp = self.fetch_org_login_page(self.demo_org)
-        assert self.is_logged_in_to_org(resp, self.demo_org)
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        ):
+            resp = self.fetch_org_login_page(self.demo_org)
+            assert self.is_logged_in_to_org(resp, self.demo_org)
 
-        resp = self.fetch_org_login_page(self.normal_org)
-        assert not self.is_logged_in_to_org(resp, self.normal_org)
+            resp = self.fetch_org_login_page(self.normal_org)
+            assert not self.is_logged_in_to_org(resp, self.normal_org)
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [], "demo-mode.orgs": []})
     def test_auto_login_not_demo_org(self) -> None:
-        resp = self.fetch_org_login_page(self.demo_org)
-        assert not self.is_logged_in_to_org(resp, self.demo_org)
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [], "demo-mode.orgs": []}
+        ):
+            resp = self.fetch_org_login_page(self.demo_org)
+            assert not self.is_logged_in_to_org(resp, self.demo_org)
 
-        resp = self.fetch_org_login_page(self.normal_org)
-        assert not self.is_logged_in_to_org(resp, self.normal_org)
+            resp = self.fetch_org_login_page(self.normal_org)
+            assert not self.is_logged_in_to_org(resp, self.normal_org)
+
+    def test_demo_user_joins_existing_sso_organization(self) -> None:
+        """
+        Test that when a demo user is logged in and tries to join an existing SSO organization,
+        they are logged in as a new user with a proper auth identity linked.
+
+        This can happen in production when a user visits the sandbox, gets logged in as a demo user,
+        and then attempts to join an organization that has SSO configured (e.g., via invite link).
+
+        The demo user's session is treated as unauthenticated for the SSO pipeline
+        but the user property still resolves to the demo user as a fallback.
+        When the user chooses "newuser", a completely new account is created with SSO identity.
+        """
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+                "demo-user.auth.pipelines.always.unauthenticated.enabled": True,
+            }
+        ):
+            sso_org = self.create_organization(name="sso-org", owner=self.normal_user)
+            # Create an organization with SSO (not the demo org)
+            auth_provider = AuthProvider.objects.create(
+                organization_id=sso_org.id, provider="dummy"
+            )
+
+            # Log in as demo user
+            self.login_as(self.demo_user)
+
+            # Initiate SSO flow
+            path = reverse("sentry-auth-organization", args=[sso_org.slug])
+            resp = self.client.post(path, {"init": True})
+
+            assert resp.status_code == 200
+            assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
+
+            # Complete SSO with a new email
+            sso_path = reverse("sentry-auth-sso")
+            new_email = "newuser@example.com"
+            resp = self.client.post(sso_path, {"email": new_email})
+
+            # Even though demo user is logged in, they're treated as unauthenticated in pipeline
+            # So we get auth-confirm-identity screen, but existing_user still shows the demo user
+            # as a fallback (because user property returns request.user when email doesn't match)
+            self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
+            assert resp.status_code == 200
+
+            # Create new user account
+            resp = self.client.post(sso_path, {"op": "newuser"}, follow=True)
+
+            # Should redirect and log in as the new user
+            assert resp.status_code == 200
+
+            # Verify a new user was created (not the demo user)
+            auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+            new_user = auth_identity.user
+
+            # Verify it's not the demo user
+            assert new_user.id != self.demo_user.id
+            assert new_user.email == new_email
+
+            logged_in_user = get_user(self.client)
+            assert logged_in_user.id == new_user.id
+
+            # Verify demo user has NO auth identity linked to this provider
+            assert not AuthIdentity.objects.filter(
+                auth_provider=auth_provider, user_id=self.demo_user.id
+            ).exists()
+
+            # Verify the new user has organization membership with SSO linked
+            with assume_test_silo_mode(SiloMode.REGION):
+                member = OrganizationMember.objects.get(organization=sso_org, user_id=new_user.id)
+            assert getattr(member.flags, "sso:linked")
+            assert not getattr(member.flags, "sso:invalid")

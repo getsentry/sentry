@@ -1,17 +1,20 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {PlatformKey, ProjectKey} from 'sentry/types/project';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
+import {t, tct} from 'sentry/locale';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/insights/crons/components/quickStartEntries';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  DotNetCronQuickStart,
+  DotNetHangfireCronQuickStart,
   GoCronQuickStart,
   JavaCronQuickStart,
   JavaQuartzCronQuickStart,
@@ -25,10 +28,10 @@ import {
   RubyRailsCronQuickStart,
   RubySidekiqCronQuickStart,
 } from 'sentry/views/insights/crons/components/quickStartEntries';
-import type {Monitor} from 'sentry/views/insights/crons/types';
 
 interface Props {
-  monitor: Monitor;
+  monitorSlug: string;
+  project: Project;
 }
 
 interface OnboardingGuide {
@@ -124,6 +127,38 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     Guide: RubySidekiqCronQuickStart,
     platforms: new Set(['ruby', 'ruby-rails']),
   },
+  dotnet: {
+    label: '.NET',
+    Guide: DotNetCronQuickStart,
+    platforms: new Set([
+      'dotnet',
+      'dotnet-aspnet',
+      'dotnet-aspnetcore',
+      'dotnet-awslambda',
+      'dotnet-gcpfunctions',
+      'dotnet-maui',
+      'dotnet-uwp',
+      'dotnet-winforms',
+      'dotnet-wpf',
+      'dotnet-xamarin',
+    ]),
+  },
+  dotnetHangfire: {
+    label: 'Hangfire',
+    Guide: DotNetHangfireCronQuickStart,
+    platforms: new Set([
+      'dotnet',
+      'dotnet-aspnet',
+      'dotnet-aspnetcore',
+      'dotnet-awslambda',
+      'dotnet-gcpfunctions',
+      'dotnet-maui',
+      'dotnet-uwp',
+      'dotnet-winforms',
+      'dotnet-wpf',
+      'dotnet-xamarin',
+    ]),
+  },
 };
 
 /**
@@ -138,11 +173,11 @@ export const platformsWithGuides = Array.from(
 
 const guideToSelectOption = ({key, label}: any) => ({label, value: key});
 
-export default function MonitorQuickStartGuide({monitor}: Props) {
+export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const org = useOrganization();
 
   const {data: projectKeys} = useApiQuery<ProjectKey[]>(
-    [`/projects/${org.slug}/${monitor.project.slug}/keys/`],
+    [`/projects/${org.slug}/${project.slug}/keys/`],
     {staleTime: Infinity}
   );
 
@@ -162,7 +197,7 @@ export default function MonitorQuickStartGuide({monitor}: Props) {
   ];
 
   const platformSpecific = platformGuides.filter(guide =>
-    guide.platforms?.has(monitor.project.platform ?? 'other')
+    guide.platforms?.has(project.platform ?? 'other')
   );
 
   const defaultExample = platformSpecific.length > 0 ? platformSpecific[0]!.key : 'cli';
@@ -171,26 +206,33 @@ export default function MonitorQuickStartGuide({monitor}: Props) {
   const {Guide} = onboardingGuides[selectedGuide]!;
 
   return (
-    <Container>
+    <Flex gap="xl" direction="column">
+      <Text>
+        {tct(
+          'Select an integration method for your monitor. For in-depth instructions on integrating Crons, view [docsLink:our complete documentation].',
+          {
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/crons/getting-started/" />
+            ),
+          }
+        )}
+      </Text>
       <CompactSelect
+        triggerProps={{prefix: t('Guide')}}
+        searchable
         options={exampleOptions}
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
+        size="sm"
       />
       <Guide
-        slug={monitor.slug}
+        slug={monitorSlug}
         orgSlug={org.slug}
         orgId={org.id}
-        projectId={monitor.project.id}
+        projectId={project.id}
         cronsUrl={projectKeys?.[0]!.dsn.crons}
         dsnKey={projectKeys?.[0]!.dsn.public}
       />
-    </Container>
+    </Flex>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

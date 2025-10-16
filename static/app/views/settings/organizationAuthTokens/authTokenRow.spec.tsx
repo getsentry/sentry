@@ -13,7 +13,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
-describe('OrganizationAuthTokensAuthTokenRow', function () {
+describe('OrganizationAuthTokensAuthTokenRow', () => {
   const {organization, router} = initializeOrg();
 
   const revokeToken = jest.fn();
@@ -39,15 +39,15 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
     routeParams: router.params,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationsStore.addOrReplace(organization);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows token without last used information', function () {
+  it('shows token without last used information', () => {
     render(<OrganizationAuthTokensAuthTokenRow {...defaultProps} />);
 
     expect(screen.getByLabelText('Token preview')).toHaveTextContent(
@@ -57,8 +57,8 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
     expect(screen.getByText('My Token')).toBeInTheDocument();
   });
 
-  describe('last used info', function () {
-    it('shows full last used info', function () {
+  describe('last used info', () => {
+    it('shows full last used info', () => {
       const props = {
         ...defaultProps,
         projectLastUsed: ProjectFixture(),
@@ -81,7 +81,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
       expect(screen.getByText('My Token')).toBeInTheDocument();
     });
 
-    it('shows last used project only', function () {
+    it('shows last used project only', () => {
       const props = {
         ...defaultProps,
         projectLastUsed: ProjectFixture(),
@@ -101,7 +101,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
       expect(screen.getByText('My Token')).toBeInTheDocument();
     });
 
-    it('shows last used date only', function () {
+    it('shows last used date only', () => {
       const props = {
         ...defaultProps,
         token: {
@@ -122,8 +122,8 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
     });
   });
 
-  describe('revoking', function () {
-    it('does not allow to revoke without access', function () {
+  describe('revoking', () => {
+    it('does not allow to revoke without access', () => {
       const props = {
         ...defaultProps,
         revokeToken: undefined,
@@ -134,7 +134,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
       expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
     });
 
-    it('allows to revoke', async function () {
+    it('allows to revoke', async () => {
       render(<OrganizationAuthTokensAuthTokenRow {...defaultProps} />);
       renderGlobalModal();
 
@@ -147,7 +147,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
       expect(revokeToken).toHaveBeenCalledWith(token);
     });
 
-    it('does not allow to revoke while revoking in progress', function () {
+    it('does not allow to revoke while revoking in progress', () => {
       const props = {
         ...defaultProps,
         isRevoking: true,

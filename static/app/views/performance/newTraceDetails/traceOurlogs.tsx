@@ -7,16 +7,13 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  LogsPageParamsProvider,
-  useLogsSearch,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
+import {
+  useQueryParamsSearch,
+  useSetQueryParamsQuery,
+} from 'sentry/views/explore/queryParams/context';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -28,13 +25,13 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsPageParamsProvider
-      isTableFrozen
-      limitToTraceId={traceSlug}
+    <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      source="state"
+      freeze={{traceId: traceSlug}}
     >
       <LogsPageDataProvider>{children}</LogsPageDataProvider>
-    </LogsPageParamsProvider>
+    </LogsQueryParamsProvider>
   );
 }
 
@@ -55,10 +52,8 @@ function LogsSectionContent({
 }: {
   scrollContainer: React.RefObject<HTMLDivElement | null>;
 }) {
-  const organization = useOrganization();
-  const setLogsSearch = useSetLogsSearch();
-  const logsSearch = useLogsSearch();
-  const hasInfiniteFeature = organization.features.includes('ourlogs-infinite-scroll');
+  const setLogsQuery = useSetQueryParamsQuery();
+  const logsSearch = useQueryParamsSearch();
 
   return (
     <Fragment>
@@ -68,14 +63,10 @@ function LogsSectionContent({
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={logsSearch.formatString()}
         searchSource="ourlogs"
-        onSearch={query => setLogsSearch(new MutableSearch(query))}
+        onSearch={query => setLogsQuery(query)}
       />
       <TableContainer>
-        {hasInfiniteFeature ? (
-          <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
-        ) : (
-          <LogsTable embedded />
-        )}
+        <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
       </TableContainer>
     </Fragment>
   );

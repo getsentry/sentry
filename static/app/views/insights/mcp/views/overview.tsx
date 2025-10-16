@@ -1,11 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
   EAPSpanSearchQueryBuilder,
@@ -27,12 +25,13 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
-import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
+import {unsetQueryCursors} from 'sentry/views/insights/agents/utils/unsetQueryCursors';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
@@ -51,8 +50,7 @@ import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTr
 import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTrafficByClientWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
-import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
+import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -120,6 +118,8 @@ function McpOverviewPage() {
   });
   const activeView = view ?? ViewType.TOOL;
 
+  useRemoveUrlCursorsOnSearch();
+
   useEffect(() => {
     trackAnalytics('mcp-monitoring.page-view', {
       organization,
@@ -140,8 +140,7 @@ function McpOverviewPage() {
           query: {
             ...location.query,
             view: newTable,
-            // Clear the tableCursor param when switching tables
-            tableCursor: undefined,
+            ...unsetQueryCursors(location.query),
           },
         },
         {replace: true}
@@ -158,9 +157,6 @@ function McpOverviewPage() {
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasMatchKeySuggestions = organization.features.includes(
-    'search-query-builder-match-key-suggestions'
-  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -174,15 +170,12 @@ function McpOverviewPage() {
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
-      matchKeySuggestions: hasMatchKeySuggestions
-        ? [
-            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-          ]
-        : undefined,
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
     }),
     [
-      hasMatchKeySuggestions,
       hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
@@ -204,16 +197,7 @@ function McpOverviewPage() {
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <AgentsPageHeader
-        module={ModuleName.MCP}
-        headerTitle={
-          <Fragment>
-            {getAIModuleTitle(organization)}
-            <FeatureBadge type="beta" />
-          </Fragment>
-        }
-      />
-      <ModuleBodyUpsellHook moduleName={ModuleName.MCP}>
+      <ModuleFeature moduleName={ModuleName.MCP}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -221,7 +205,7 @@ function McpOverviewPage() {
                 <ToolRibbon>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
@@ -234,7 +218,7 @@ function McpOverviewPage() {
 
               <ModuleLayout.Full>
                 {showOnboarding ? (
-                  <ModulesOnboardingPanel moduleName={ModuleName.MCP} />
+                  <Onboarding />
                 ) : (
                   <Fragment>
                     <WidgetGrid>
@@ -283,20 +267,18 @@ function McpOverviewPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </SearchQueryBuilderProvider>
   );
 }
 
 function PageWithProviders() {
   return (
-    <McpInsightsFeature>
-      <ModulePageProviders moduleName={ModuleName.MCP}>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <McpOverviewPage />
-        </TraceItemAttributeProvider>
-      </ModulePageProviders>
-    </McpInsightsFeature>
+    <ModulePageProviders moduleName={ModuleName.MCP}>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <McpOverviewPage />
+      </TraceItemAttributeProvider>
+    </ModulePageProviders>
   );
 }
 

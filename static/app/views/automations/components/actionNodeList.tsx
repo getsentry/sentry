@@ -5,11 +5,11 @@ import {Alert} from 'sentry/components/core/alert';
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {
-  type Action,
   ActionGroup,
-  type ActionHandler,
   ActionType,
   SentryAppIdentifier,
+  type Action,
+  type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import {
   ActionNodeContext,

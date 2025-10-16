@@ -7,7 +7,7 @@ from rest_framework import serializers
 from sentry.api.fields import ActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
@@ -23,7 +23,7 @@ from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
         "snoozeDuration",
     ]
 )
-class GroupValidator(serializers.Serializer):
+class GroupValidator(serializers.Serializer[Group]):
     inbox = serializers.BooleanField(
         help_text="If true, marks the issue as reviewed by the requestor."
     )

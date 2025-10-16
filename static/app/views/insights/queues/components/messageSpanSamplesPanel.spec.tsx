@@ -1,8 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -14,7 +16,7 @@ describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
 
   let eventsRequestMock: jest.Mock;
-  let eventsStatsRequestMock: jest.Mock;
+  let eventsTimeseriesRequestMock: jest.Mock;
   let samplesRequestMock: jest.Mock;
   let traceItemAttributesMock: jest.Mock;
 
@@ -44,19 +46,26 @@ describe('messageSpanSamplesPanel', () => {
   });
 
   beforeEach(() => {
-    eventsStatsRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    eventsTimeseriesRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        data: [[1699907700, [{count: 7810}]]],
-        meta: {
-          fields: {
-            count: 'number',
-          },
-          units: {
-            count: 'millisecond',
-          },
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'avg(span.duration)',
+            values: [
+              {
+                timestamp: 1699907700000,
+                value: 7810,
+              },
+            ],
+            meta: {
+              valueType: 'duration',
+              valueUnit: DurationUnit.MILLISECOND,
+              interval: 1_800_000,
+            },
+          }),
+        ],
       },
     });
 
@@ -70,8 +79,8 @@ describe('messageSpanSamplesPanel', () => {
             'trace_status_rate(ok)': 0.8,
             'count_op(queue.publish)': 222,
             'count_op(queue.process)': 333,
-            'avg_if(span.duration,span.op,queue.publish)': 3.0,
-            'avg_if(span.duration,span.op,queue.process)': 4.0,
+            'avg_if(span.duration,span.op,equals,queue.publish)': 3.0,
+            'avg_if(span.duration,span.op,equals,queue.process)': 4.0,
             'count()': 555,
             'avg(messaging.message.receive.latency)': 2.0,
             'avg(span.duration)': 3.5,
@@ -83,8 +92,8 @@ describe('messageSpanSamplesPanel', () => {
             'trace_status_rate(ok)': 'percentage',
             'count_op(queue.publish)': 'integer',
             'count_op(queue.process)': 'integer',
-            'avg_if(span.duration,span.op,queue.publish)': 'duration',
-            'avg_if(span.duration,span.op,queue.process)': 'duration',
+            'avg_if(span.duration,span.op,equals,queue.publish)': 'duration',
+            'avg_if(span.duration,span.op,equals,queue.process)': 'duration',
             'count()': 'integer',
             'avg(messaging.message.receive.latency)': 'number',
             'avg(span.duration)': 'duration',
@@ -94,8 +103,8 @@ describe('messageSpanSamplesPanel', () => {
             'trace_status_rate(ok)': null,
             'count_op(queue.publish)': null,
             'count_op(queue.process)': null,
-            'avg_if(span.duration,span.op,queue.publish)': 'millisecond',
-            'avg_if(span.duration,span.op,queue.process)': 'millisecond',
+            'avg_if(span.duration,span.op,equals,queue.publish)': 'millisecond',
+            'avg_if(span.duration,span.op,equals,queue.process)': 'millisecond',
             'count()': null,
             'avg(messaging.message.receive.latency)': null,
             'avg(span.duration)': 'millisecond',
@@ -170,7 +179,7 @@ describe('messageSpanSamplesPanel', () => {
     });
     render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    expect(eventsStatsRequestMock).toHaveBeenCalled();
+    expect(eventsTimeseriesRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
@@ -184,8 +193,8 @@ describe('messageSpanSamplesPanel', () => {
             'count_op(queue.process)',
             'sum(span.duration)',
             'avg(span.duration)',
-            'avg_if(span.duration,span.op,queue.publish)',
-            'avg_if(span.duration,span.op,queue.process)',
+            'avg_if(span.duration,span.op,equals,queue.publish)',
+            'avg_if(span.duration,span.op,equals,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
           ],
@@ -282,7 +291,7 @@ describe('messageSpanSamplesPanel', () => {
     });
     render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    expect(eventsStatsRequestMock).toHaveBeenCalled();
+    expect(eventsTimeseriesRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
@@ -296,8 +305,8 @@ describe('messageSpanSamplesPanel', () => {
             'count_op(queue.process)',
             'sum(span.duration)',
             'avg(span.duration)',
-            'avg_if(span.duration,span.op,queue.publish)',
-            'avg_if(span.duration,span.op,queue.process)',
+            'avg_if(span.duration,span.op,equals,queue.publish)',
+            'avg_if(span.duration,span.op,equals,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
           ],

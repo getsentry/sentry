@@ -8,7 +8,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesResponse, TraceAttribute
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 
-from sentry.api.endpoints.organization_traces import TracesExecutor, process_breakdowns
+from sentry.api.endpoints.organization_traces import process_breakdowns
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -17,9 +17,9 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_query
 
 
-class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
-    view: str
-    is_eap: bool = False
+class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
+    view = "sentry-api-0-organization-traces"
+    is_eap: bool = True
 
     def setUp(self) -> None:
         super().setUp()
@@ -76,7 +76,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             timestamp=timestamp,
             duration=duration,
             organization_id=project.organization.id,
-            is_eap=self.is_eap,
+            is_eap=True,
             environment=data.get("environment"),
             **kwargs,
         )
@@ -165,7 +165,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=1_000,
             exclusive_time=1_000,
             op="http.client",
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         timestamps.append(now - timedelta(days=1, minutes=19, seconds=40))
@@ -197,7 +197,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=3,
             exclusive_time=3,
             op="db.sql",
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         timestamps.append(now - timedelta(days=2, minutes=30))
@@ -261,21 +261,13 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             span_ids,
         )
 
-
-class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
-    view = "sentry-api-0-organization-traces"
-
     def do_request(self, query, features=None, **kwargs):
         if features is None:
             features = [
                 "organizations:visibility-explore-view",
-                "organizations:global-views",
             ]
 
-        if self.is_eap:
-            query["dataset"] = "spans"
-        else:
-            query["dataset"] = "spansIndexed"
+        query["dataset"] = "spans"
 
         with self.feature(features):
             return self.client.get(
@@ -637,6 +629,70 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
+    def test_case_insensitive_filter(self) -> None:
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        parent_span_id = "1" + uuid4().hex[:15]
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        ts = now - timedelta(minutes=10)
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            parent_span_id=parent_span_id,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            op="pageload",
+        )
+
+        timestamp = int(ts.timestamp() * 1000)
+
+        query = {
+            "project": [],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "",
+            "maxSpansPerTrace": 3,
+            "caseInsensitive": 1,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60_100,
+                        "start": timestamp,
+                        "end": timestamp + 60_100,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "isRoot": False,
+                        "kind": "project",
+                        "project": self.project.slug,
+                        "sdkName": "sentry.javascript.node",
+                    },
+                ],
+                "duration": 60_100,
+                "end": timestamp + 60_100,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "matchingSpans": 1,
+                "project": self.project.slug,
+                "start": timestamp,
+                "trace": trace_id,
+                "rootDuration": 60_100,
+            },
+        ]
+
     def test_use_separate_referrers(self) -> None:
         now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
         start = now - timedelta(days=2)
@@ -644,10 +700,31 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         trace_id = uuid4().hex
 
         with (
-            patch.object(
-                TracesExecutor,
-                "get_traces_matching_conditions",
-                return_value=(start, end, trace_id),
+            patch(
+                "sentry.api.endpoints.organization_traces.get_traces_rpc",
+                return_value=GetTracesResponse(
+                    traces=[
+                        GetTracesResponse.Trace(
+                            attributes=[
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_TRACE_ID,
+                                    value=AttributeValue(val_str=trace_id),
+                                    type=AttributeKey.Type.TYPE_STRING,
+                                ),
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_START_TIMESTAMP,
+                                    value=AttributeValue(val_double=start.timestamp()),
+                                    type=AttributeKey.Type.TYPE_DOUBLE,
+                                ),
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_END_TIMESTAMP,
+                                    value=AttributeValue(val_double=end.timestamp()),
+                                    type=AttributeKey.Type.TYPE_DOUBLE,
+                                ),
+                            ],
+                        )
+                    ],
+                ),
             ),
             patch("sentry.utils.snuba._snuba_query", wraps=_snuba_query) as mock_snuba_query,
         ):
@@ -664,8 +741,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             }
 
         assert {
-            Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS.value,
-            Referrer.API_TRACE_EXPLORER_TRACES_META.value,
             Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
             Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
         } == actual_referrers
@@ -681,125 +756,116 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             span_ids,
         ) = self.create_mock_traces()
 
-        for q in [
-            ["foo:[bar, baz]"],
-            ["foo:bar span.duration:>10s", "foo:baz"],
-            [
-                "(foo:bar AND span.duration:>10s) OR (foo:bar AND span.duration:<10m)",
-                "foo:baz",
-            ],
+        q = ["foo:[bar, baz]"]
+
+        for features in [
+            None,  # use the default features
+            ["organizations:visibility-explore-view"],
         ]:
-            if len(q) > 1 and self.is_eap:
-                continue
+            query = {
+                # only query for project_2 but expect traces to start from project_1
+                "project": [project_2.id],
+                "field": ["id", "parent_span", "span.duration"],
+                "query": q,
+                "maxSpansPerTrace": 4,
+            }
 
-            for features in [
-                None,  # use the default features
-                ["organizations:visibility-explore-view"],
-            ]:
-                query = {
-                    # only query for project_2 but expect traces to start from project_1
-                    "project": [project_2.id],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "query": q,
-                    "maxSpansPerTrace": 4,
-                }
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.data
 
-                response = self.do_request(query, features=features)
-                assert response.status_code == 200, response.data
+            assert response.data["meta"] == {
+                "dataScanned": "full",
+                "dataset": "unknown",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {},
+            }
 
-                assert response.data["meta"] == {
-                    "dataScanned": "full",
-                    "dataset": "unknown",
-                    "datasetReason": "unchanged",
-                    "fields": {},
-                    "isMetricsData": False,
-                    "isMetricsExtractedData": False,
-                    "tips": {},
-                    "units": {},
-                }
+            result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
 
-                result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
-
-                assert result_data == [
-                    {
-                        "trace": trace_id_1,
-                        "numErrors": 1,
-                        "numOccurrences": 0,
-                        "numSpans": 4,
-                        "matchingSpans": 3,
-                        "project": project_1.slug,
-                        "name": "foo",
-                        "duration": 60_100,
-                        "start": timestamps[0],
-                        "end": timestamps[0] + 60_100,
-                        "rootDuration": 60_100,
-                        "breakdowns": [
-                            {
-                                "project": project_1.slug,
-                                "sdkName": "sentry.javascript.node",
-                                "isRoot": True,
-                                "start": timestamps[0],
-                                "end": timestamps[0] + 60_100,
-                                "sliceStart": 0,
-                                "sliceEnd": 40,
-                                "sliceWidth": 40,
-                                "kind": "project",
-                                "duration": 60_100,
-                            },
-                            {
-                                "project": project_2.slug,
-                                "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
-                                "start": timestamps[1] + 522,
-                                "end": timestamps[3] + 30_003 + 61,
-                                "sliceStart": 11,
-                                "sliceEnd": 32,
-                                "sliceWidth": 21,
-                                "kind": "project",
-                                "duration": timestamps[3] - timestamps[1] + 30_003,
-                            },
-                        ],
-                    },
-                    {
-                        "trace": trace_id_2,
-                        "numErrors": 0,
-                        "numOccurrences": 0,
-                        "numSpans": 6,
-                        "matchingSpans": 2,
-                        "project": project_1.slug,
-                        "name": "bar",
-                        "duration": 90_123,
-                        "start": timestamps[4],
-                        "end": timestamps[4] + 90_123,
-                        "rootDuration": 90_123,
-                        "breakdowns": [
-                            {
-                                "project": project_1.slug,
-                                "sdkName": "sentry.javascript.node",
-                                "isRoot": True,
-                                "start": timestamps[4],
-                                "end": timestamps[4] + 90_123,
-                                "sliceStart": 0,
-                                "sliceEnd": 40,
-                                "sliceWidth": 40,
-                                "kind": "project",
-                                "duration": 90_123,
-                            },
-                            {
-                                "project": project_2.slug,
-                                "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
-                                "start": timestamps[5] - 988,
-                                "end": timestamps[6] + 20_006 + 536,
-                                "sliceStart": 4,
-                                "sliceEnd": 14,
-                                "sliceWidth": 10,
-                                "kind": "project",
-                                "duration": timestamps[6] - timestamps[5] + 20_006,
-                            },
-                        ],
-                    },
-                ]
+            assert result_data == [
+                {
+                    "trace": trace_id_1,
+                    "numErrors": 1,
+                    "numOccurrences": 0,
+                    "numSpans": 4,
+                    "matchingSpans": 3,
+                    "project": project_1.slug,
+                    "name": "foo",
+                    "duration": 60_100,
+                    "start": timestamps[0],
+                    "end": timestamps[0] + 60_100,
+                    "rootDuration": 60_100,
+                    "breakdowns": [
+                        {
+                            "project": project_1.slug,
+                            "sdkName": "sentry.javascript.node",
+                            "isRoot": True,
+                            "start": timestamps[0],
+                            "end": timestamps[0] + 60_100,
+                            "sliceStart": 0,
+                            "sliceEnd": 40,
+                            "sliceWidth": 40,
+                            "kind": "project",
+                            "duration": 60_100,
+                        },
+                        {
+                            "project": project_2.slug,
+                            "sdkName": "sentry.javascript.node",
+                            "isRoot": False,
+                            "start": timestamps[1] + 522,
+                            "end": timestamps[3] + 30_003 + 61,
+                            "sliceStart": 11,
+                            "sliceEnd": 32,
+                            "sliceWidth": 21,
+                            "kind": "project",
+                            "duration": timestamps[3] - timestamps[1] + 30_003,
+                        },
+                    ],
+                },
+                {
+                    "trace": trace_id_2,
+                    "numErrors": 0,
+                    "numOccurrences": 0,
+                    "numSpans": 6,
+                    "matchingSpans": 2,
+                    "project": project_1.slug,
+                    "name": "bar",
+                    "duration": 90_123,
+                    "start": timestamps[4],
+                    "end": timestamps[4] + 90_123,
+                    "rootDuration": 90_123,
+                    "breakdowns": [
+                        {
+                            "project": project_1.slug,
+                            "sdkName": "sentry.javascript.node",
+                            "isRoot": True,
+                            "start": timestamps[4],
+                            "end": timestamps[4] + 90_123,
+                            "sliceStart": 0,
+                            "sliceEnd": 40,
+                            "sliceWidth": 40,
+                            "kind": "project",
+                            "duration": 90_123,
+                        },
+                        {
+                            "project": project_2.slug,
+                            "sdkName": "sentry.javascript.node",
+                            "isRoot": False,
+                            "start": timestamps[5] - 988,
+                            "end": timestamps[6] + 20_006 + 536,
+                            "sliceStart": 4,
+                            "sliceEnd": 14,
+                            "sliceWidth": 10,
+                            "kind": "project",
+                            "duration": timestamps[6] - timestamps[5] + 20_006,
+                        },
+                    ],
+                },
+            ]
 
     def test_environment_filter(self) -> None:
         trace_id = uuid4().hex
@@ -875,133 +941,159 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
-
-class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
-    view = "sentry-api-0-organization-trace-spans"
-
-    def do_request(self, trace_id, query, features=None, **kwargs):
-        if features is None:
-            features = [
-                "organizations:performance-trace-explorer",
-                "organizations:global-views",
-            ]
-
-        if self.is_eap:
-            query["dataset"] = "spans"
-        else:
-            query["dataset"] = "spansIndexed"
-
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={
-                        "organization_id_or_slug": self.organization.slug,
-                        "trace_id": trace_id,
-                    },
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_no_feature(self) -> None:
-        query = {
-            "project": [self.project.id],
-        }
-        response = self.do_request(uuid4().hex, query, features=[])
-        assert response.status_code == 404, response.data
-
-    def test_no_project(self) -> None:
-        response = self.do_request(uuid4().hex, {})
-        assert response.status_code == 404, response.data
-
-    def test_bad_params_missing_field(self) -> None:
-        query = {
-            "project": [self.project.id],
-        }
-        response = self.do_request(uuid4().hex, query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "field": [
-                ErrorDetail(string="This field is required.", code="required"),
-            ],
-        }
-
-    def test_get_spans_for_trace(self) -> None:
-        (
-            project_1,
-            project_2,
-            trace_id,
-            _,
-            _,
-            timestamps,
-            span_ids,
-        ) = self.create_mock_traces()
-
-        query = {
-            "project": [],
-            "field": ["id"],
-            "sort": "id",
-        }
-
-        response = self.do_request(trace_id, query)
-        assert response.status_code == 200, response.data
-        assert response.data["meta"] == {
-            "dataScanned": "full",
-            "dataset": "unknown",
-            "datasetReason": "unchanged",
-            "fields": {
-                "id": "string",
-            },
-            "isMetricsData": False,
-            "isMetricsExtractedData": False,
-            "tips": {},
-            "units": {
-                "id": None,
-            },
-        }
-        assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[:4])]
-
-    def test_get_spans_for_trace_matching_tags(self) -> None:
-        (
-            project_1,
-            project_2,
-            trace_id,
-            _,
-            _,
-            timestamps,
-            span_ids,
-        ) = self.create_mock_traces()
-
-        for user_query in [
-            ["foo:bar", "foo:baz"],
-            ["foo:[bar, baz]"],
-        ]:
+    def test_invalid_sort(self) -> None:
+        for sort in ["foo", "-foo"]:
             query = {
-                "project": [],
-                "field": ["id"],
-                "sort": "id",
-                "query": user_query,
+                "project": [self.project.id],
+                "field": ["id", "parent_span"],
+                "sort": sort,
             }
 
-            response = self.do_request(trace_id, query)
-            assert response.status_code == 200, response.data
-            assert response.data["meta"] == {
-                "dataScanned": "full",
-                "dataset": "unknown",
-                "datasetReason": "unchanged",
-                "fields": {
-                    "id": "string",
-                },
-                "isMetricsData": False,
-                "isMetricsExtractedData": False,
-                "tips": {},
-                "units": {
-                    "id": None,
-                },
+            response = self.do_request(query)
+            assert response.status_code == 400, response.data
+            assert response.data == {
+                "detail": ErrorDetail(string=f"Unsupported sort: {sort}", code="parse_error"),
             }
-            assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[1:4])]
+
+    def test_sort_by_timestamp(self) -> None:
+        (
+            project_1,
+            project_2,
+            trace_id_1,
+            trace_id_2,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        expected = [
+            {
+                "trace": trace_id_1,
+                "numErrors": 1,
+                "numOccurrences": 0,
+                "numSpans": 4,
+                "matchingSpans": 3,
+                "project": project_1.slug,
+                "name": "foo",
+                "duration": 60_100,
+                "start": timestamps[0],
+                "end": timestamps[0] + 60_100,
+                "rootDuration": 60_100,
+                "breakdowns": [
+                    {
+                        "project": project_1.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": True,
+                        "start": timestamps[0],
+                        "end": timestamps[0] + 60_100,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "kind": "project",
+                        "duration": 60_100,
+                    },
+                    {
+                        "project": project_2.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": False,
+                        "start": timestamps[1] + 522,
+                        "end": timestamps[3] + 30_003 + 61,
+                        "sliceStart": 11,
+                        "sliceEnd": 32,
+                        "sliceWidth": 21,
+                        "kind": "project",
+                        "duration": timestamps[3] - timestamps[1] + 30_003,
+                    },
+                ],
+            },
+            {
+                "trace": trace_id_2,
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 6,
+                "matchingSpans": 2,
+                "project": project_1.slug,
+                "name": "bar",
+                "duration": 90_123,
+                "start": timestamps[4],
+                "end": timestamps[4] + 90_123,
+                "rootDuration": 90_123,
+                "breakdowns": [
+                    {
+                        "project": project_1.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": True,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "kind": "project",
+                        "duration": 90_123,
+                    },
+                    {
+                        "project": project_2.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": False,
+                        "start": timestamps[5] - 988,
+                        "end": timestamps[6] + 20_006 + 536,
+                        "sliceStart": 4,
+                        "sliceEnd": 14,
+                        "sliceWidth": 10,
+                        "kind": "project",
+                        "duration": timestamps[6] - timestamps[5] + 20_006,
+                    },
+                ],
+            },
+        ]
+
+        descending = True
+
+        q = ["foo:[bar, baz]"]
+
+        expected = sorted(
+            expected,
+            key=lambda trace: trace["start"],
+            reverse=descending,
+        )
+
+        query = {
+            # only query for project_2 but expect traces to start from project_1
+            "project": [str(project_2.id)],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": q,
+            "sort": "-timestamp" if descending else "timestamp",
+            "per_page": "1",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [expected[0]]
+
+        links = parse_link_header(response.headers["Link"])
+        prev_link = next(link for link in links.values() if link["rel"] == "previous")
+        assert prev_link["results"] == "false"
+        next_link = next(link for link in links.values() if link["rel"] == "next")
+        assert next_link["results"] == "true"
+        assert next_link["cursor"]
+
+        query = {
+            # only query for project_2 but expect traces to start from project_1
+            "project": [str(project_2.id)],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": q,
+            "sort": "-timestamp" if descending else "timestamp",
+            "per_page": "1",
+            "cursor": next_link["cursor"],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [expected[1]]
+
+        links = parse_link_header(response.headers["Link"])
+        prev_link = next(link for link in links.values() if link["rel"] == "previous")
+        assert prev_link["results"] == "true"
+        next_link = next(link for link in links.values() if link["rel"] == "next")
+        assert next_link["results"] == "false"
 
 
 @pytest.mark.parametrize(
@@ -2255,7 +2347,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         ),
     ],
 )
-def test_process_breakdowns(data, traces_range, expected):
+def test_process_breakdowns(data, traces_range, expected) -> None:
     traces_range = {
         trace: {
             "start": trace_start,
@@ -2338,218 +2430,3 @@ def test_build_breakdown_error(
     mock_capture_exception.assert_called_with(
         exception, contexts={"bad_trace": {"trace": "a" * 32}}
     )
-
-
-class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
-    is_eap: bool = True
-
-    def test_invalid_sort(self) -> None:
-        for sort in ["foo", "-foo"]:
-            query = {
-                "project": [self.project.id],
-                "field": ["id", "parent_span"],
-                "sort": sort,
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 400, response.data
-            assert response.data == {
-                "detail": ErrorDetail(string=f"Unsupported sort: {sort}", code="parse_error"),
-            }
-
-    def test_sort_by_timestamp(self) -> None:
-        (
-            project_1,
-            project_2,
-            trace_id_1,
-            trace_id_2,
-            _,
-            timestamps,
-            span_ids,
-        ) = self.create_mock_traces()
-
-        expected = [
-            {
-                "trace": trace_id_1,
-                "numErrors": 1,
-                "numOccurrences": 0,
-                "numSpans": 4,
-                "matchingSpans": 3,
-                "project": project_1.slug,
-                "name": "foo",
-                "duration": 60_100,
-                "start": timestamps[0],
-                "end": timestamps[0] + 60_100,
-                "rootDuration": 60_100,
-                "breakdowns": [
-                    {
-                        "project": project_1.slug,
-                        "sdkName": "sentry.javascript.node",
-                        "isRoot": True,
-                        "start": timestamps[0],
-                        "end": timestamps[0] + 60_100,
-                        "sliceStart": 0,
-                        "sliceEnd": 40,
-                        "sliceWidth": 40,
-                        "kind": "project",
-                        "duration": 60_100,
-                    },
-                    {
-                        "project": project_2.slug,
-                        "sdkName": "sentry.javascript.node",
-                        "isRoot": False,
-                        "start": timestamps[1] + 522,
-                        "end": timestamps[3] + 30_003 + 61,
-                        "sliceStart": 11,
-                        "sliceEnd": 32,
-                        "sliceWidth": 21,
-                        "kind": "project",
-                        "duration": timestamps[3] - timestamps[1] + 30_003,
-                    },
-                ],
-            },
-            {
-                "trace": trace_id_2,
-                "numErrors": 0,
-                "numOccurrences": 0,
-                "numSpans": 6,
-                "matchingSpans": 2,
-                "project": project_1.slug,
-                "name": "bar",
-                "duration": 90_123,
-                "start": timestamps[4],
-                "end": timestamps[4] + 90_123,
-                "rootDuration": 90_123,
-                "breakdowns": [
-                    {
-                        "project": project_1.slug,
-                        "sdkName": "sentry.javascript.node",
-                        "isRoot": True,
-                        "start": timestamps[4],
-                        "end": timestamps[4] + 90_123,
-                        "sliceStart": 0,
-                        "sliceEnd": 40,
-                        "sliceWidth": 40,
-                        "kind": "project",
-                        "duration": 90_123,
-                    },
-                    {
-                        "project": project_2.slug,
-                        "sdkName": "sentry.javascript.node",
-                        "isRoot": False,
-                        "start": timestamps[5] - 988,
-                        "end": timestamps[6] + 20_006 + 536,
-                        "sliceStart": 4,
-                        "sliceEnd": 14,
-                        "sliceWidth": 10,
-                        "kind": "project",
-                        "duration": timestamps[6] - timestamps[5] + 20_006,
-                    },
-                ],
-            },
-        ]
-
-        descending = True
-
-        for q in [
-            ["foo:[bar, baz]"],
-            ["foo:bar span.duration:>10s", "foo:baz"],
-        ]:
-            if len(q) > 1 and self.is_eap:
-                continue
-
-            expected = sorted(
-                expected,
-                key=lambda trace: trace["start"],
-                reverse=descending,
-            )
-
-            query = {
-                # only query for project_2 but expect traces to start from project_1
-                "project": [str(project_2.id)],
-                "field": ["id", "parent_span", "span.duration"],
-                "query": q,
-                "sort": "-timestamp" if descending else "timestamp",
-                "per_page": "1",
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-            assert response.data["data"] == [expected[0]]
-
-            links = parse_link_header(response.headers["Link"])
-            prev_link = next(link for link in links.values() if link["rel"] == "previous")
-            assert prev_link["results"] == "false"
-            next_link = next(link for link in links.values() if link["rel"] == "next")
-            assert next_link["results"] == "true"
-            assert next_link["cursor"]
-
-            query = {
-                # only query for project_2 but expect traces to start from project_1
-                "project": [str(project_2.id)],
-                "field": ["id", "parent_span", "span.duration"],
-                "query": q,
-                "sort": "-timestamp" if descending else "timestamp",
-                "per_page": "1",
-                "cursor": next_link["cursor"],
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-            assert response.data["data"] == [expected[1]]
-
-            links = parse_link_header(response.headers["Link"])
-            prev_link = next(link for link in links.values() if link["rel"] == "previous")
-            assert prev_link["results"] == "true"
-            next_link = next(link for link in links.values() if link["rel"] == "next")
-            assert next_link["results"] == "false"
-
-    def test_use_separate_referrers(self) -> None:
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
-        start = now - timedelta(days=2)
-        end = now - timedelta(days=1)
-        trace_id = uuid4().hex
-
-        with (
-            patch(
-                "sentry.api.endpoints.organization_traces.get_traces_rpc",
-                return_value=GetTracesResponse(
-                    traces=[
-                        GetTracesResponse.Trace(
-                            attributes=[
-                                TraceAttribute(
-                                    key=TraceAttribute.Key.KEY_TRACE_ID,
-                                    value=AttributeValue(val_str=trace_id),
-                                    type=AttributeKey.Type.TYPE_STRING,
-                                ),
-                                TraceAttribute(
-                                    key=TraceAttribute.Key.KEY_START_TIMESTAMP,
-                                    value=AttributeValue(val_double=start.timestamp()),
-                                    type=AttributeKey.Type.TYPE_DOUBLE,
-                                ),
-                                TraceAttribute(
-                                    key=TraceAttribute.Key.KEY_END_TIMESTAMP,
-                                    value=AttributeValue(val_double=end.timestamp()),
-                                    type=AttributeKey.Type.TYPE_DOUBLE,
-                                ),
-                            ],
-                        )
-                    ],
-                ),
-            ),
-            patch("sentry.utils.snuba._snuba_query", wraps=_snuba_query) as mock_snuba_query,
-        ):
-            query = {
-                "project": [self.project.id],
-                "field": ["id", "parent_span", "span.duration"],
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-
-            actual_referrers = {
-                call[0][0][2].headers["referer"] for call in mock_snuba_query.call_args_list
-            }
-
-        assert {
-            Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
-            Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
-        } == actual_referrers

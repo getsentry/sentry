@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
@@ -15,7 +16,7 @@ export function useSpanTableData<Fields extends SpanProperty>({
 }: {
   cursorParamName: string;
   fields: Fields[];
-  query: string;
+  query: string | MutableSearch;
   referrer: string;
 }) {
   const location = useLocation();
@@ -47,7 +48,7 @@ export function useTableDataWithController<Fields extends SpanProperty>({
 }: {
   cursorParamName: string;
   fields: Fields[];
-  query: string;
+  query: string | MutableSearch;
   referrer: string;
 }) {
   const transactionsRequest = useSpanTableData({

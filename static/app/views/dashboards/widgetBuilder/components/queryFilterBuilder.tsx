@@ -20,11 +20,11 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
-  type ValidateWidgetResponse,
   WidgetType,
+  type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
-import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
+import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/components/widgetOnDemandQueryWarning';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
@@ -203,18 +203,34 @@ function WidgetBuilderQueryFilterBuilder({
           {canHaveAlias && (
             <LegendAliasInput
               type="text"
-              name="name"
+              name="alias"
               placeholder={t('Legend Alias')}
               value={state.legendAlias?.[index] || ''}
               onChange={e => {
-                dispatch({
-                  type: BuilderStateAction.SET_LEGEND_ALIAS,
-                  payload: state.legendAlias?.length
-                    ? state.legendAlias?.map((q, i) => (i === index ? e.target.value : q))
-                    : [e.target.value],
-                });
+                dispatch(
+                  {
+                    type: BuilderStateAction.SET_LEGEND_ALIAS,
+                    payload: state.legendAlias?.length
+                      ? state.legendAlias?.map((q, i) =>
+                          i === index ? e.target.value : q
+                        )
+                      : [e.target.value],
+                  },
+                  {updateUrl: false}
+                );
               }}
-              onBlur={() => {
+              onBlur={e => {
+                dispatch(
+                  {
+                    type: BuilderStateAction.SET_LEGEND_ALIAS,
+                    payload: state.legendAlias?.length
+                      ? state.legendAlias?.map((q, i) =>
+                          i === index ? e.target.value : q
+                        )
+                      : [e.target.value],
+                  },
+                  {updateUrl: true}
+                );
                 trackAnalytics('dashboards_views.widget_builder.change', {
                   builder_version: WidgetBuilderVersion.SLIDEOUT,
                   field: 'filter.alias',

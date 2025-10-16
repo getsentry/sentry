@@ -7,7 +7,7 @@ from sentry.auth.superuser import Superuser, logger
 
 
 class SuperuserMiddleware(MiddlewareMixin):
-    def process_request(self, request: Request):
+    def process_request(self, request: Request) -> None:
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.

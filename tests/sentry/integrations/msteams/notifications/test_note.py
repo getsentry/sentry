@@ -10,12 +10,12 @@ pytestmark = [requires_snuba]
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientABC.get_user_conversation_id",
+    "sentry.integrations.msteams.client.MsTeamsClientABC.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
+@patch("sentry.integrations.msteams.client.MsTeamsClientABC.send_card")
 class MSTeamsNoteNotificationTest(MSTeamsActivityNotificationTest):
-    def test_note(self, mock_send_card: MagicMock):
+    def test_note(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly when a comment is made on an issue.
         """

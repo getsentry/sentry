@@ -46,11 +46,11 @@ else like actual grouping happens elsewhere like test_variants.py.
 
 from __future__ import annotations
 
-import contextlib
 import json  # NOQA
 import os
 import uuid
 from collections.abc import Callable, Generator
+from contextlib import _GeneratorContextManager, contextmanager
 from typing import Any
 
 import pytest
@@ -125,7 +125,9 @@ def get_stacktrace_render(data: dict[str, Any]) -> str:
 
 
 INPUTS = [
-    CategorizationInput(fname) for fname in os.listdir(_fixture_path) if fname.endswith(".json")
+    CategorizationInput(fname)
+    for fname in sorted(os.listdir(_fixture_path))
+    if fname.endswith(".json")
 ]
 
 
@@ -133,7 +135,7 @@ INPUTS = [
 def test_categorization(
     input: CategorizationInput,
     insta_snapshot: InstaSnapshotter,
-    track_enhancers_coverage: Callable[[CategorizationInput], Any],
+    track_enhancers_coverage: Callable[[CategorizationInput], _GeneratorContextManager[None]],
 ) -> None:
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
@@ -146,13 +148,11 @@ def test_categorization(
 
 @pytest.fixture(scope="session", autouse=True)
 def track_enhancers_coverage() -> (
-    Generator[
-        Callable[[CategorizationInput], contextlib._GeneratorContextManager[None, None, None]]
-    ]
+    Generator[Callable[[CategorizationInput], _GeneratorContextManager[None]]]
 ):
     ran_tests = {}
 
-    @contextlib.contextmanager
+    @contextmanager
     def inner(input: CategorizationInput) -> Generator[None]:
         ran_tests[input.filename] = True
         yield
@@ -225,20 +225,13 @@ def _strip_sensitive_keys(data: dict[str, Any], keep_keys: list[str]) -> bool:
 
     keys_stripped = False
 
-    for key in list(data):
-        if key not in keep_keys:
-            del data[key]
-            keys_stripped = True
-
-        elif data[key] is None:
-            del data[key]
-            keys_stripped = True
-
-        elif any(x in key.lower() for x in _DELETE_KEYWORDS):
-            del data[key]
-            keys_stripped = True
-
-        elif any(x in json.dumps(data[key]).lower() for x in _DELETE_KEYWORDS):
+    for key in data:
+        if (
+            key not in keep_keys
+            or data[key] is None
+            or any(x in key.lower() for x in _DELETE_KEYWORDS)
+            or any(x in json.dumps(data[key]).lower() for x in _DELETE_KEYWORDS)
+        ):
             del data[key]
             keys_stripped = True
 

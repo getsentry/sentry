@@ -7,12 +7,11 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
+import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
 jest.mock('sentry/utils/usePageFilters');
 
 const usePageFilters = jest.mocked(importedUsePageFilters);
-
-import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
 describe('NoDataMessage', () => {
   beforeEach(() => {
@@ -41,7 +40,7 @@ describe('NoDataMessage', () => {
     ProjectsStore.reset();
   });
 
-  it('does not show anything if there is recent data', function () {
+  it('does not show anything if there is recent data', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -54,7 +53,7 @@ describe('NoDataMessage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows a no data message if there is no recent data', async function () {
+  it('shows a no data message if there is no recent data', async () => {
     const sdkMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -74,7 +73,7 @@ describe('NoDataMessage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows a list of outdated SDKs if there is no data available and SDKs are outdated', async function () {
+  it('shows a list of outdated SDKs if there is no data available and SDKs are outdated', async () => {
     const sdkMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [ProjectSdkUpdatesFixture({projectId: '2'})],
@@ -96,34 +95,7 @@ describe('NoDataMessage', () => {
 
     expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/projects/awesome-api/'
-    );
-  });
-
-  it('shows a list of denylisted projects if any are are set even if data is available', async function () {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({
-        name: 'Awful API',
-        slug: 'awful-api',
-        features: [],
-      }),
-    ]);
-
-    render(<NoDataMessage isDataAvailable />);
-
-    await tick(); // There is no visual indicator, this awaits the promise resolve
-
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'Some of your projects have been omitted from query performance analysis'
-        )
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getAllByRole('link')[1]).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/projects/awful-api/'
+      '/organizations/org-slug/insights/projects/awesome-api/'
     );
   });
 });

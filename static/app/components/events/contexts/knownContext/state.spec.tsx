@@ -29,8 +29,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('StateContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('StateContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getStateContextData({data: MOCK_STATE_CONTEXT})).toEqual([
       {
         key: 'state',
@@ -53,7 +53,7 @@ describe('StateContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {state: MOCK_REDACTION}},
     });
@@ -61,8 +61,8 @@ describe('StateContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'state'}
+        type="default"
+        alias="state"
         value={{...MOCK_STATE_CONTEXT, extra_data: ''}}
       />
     );

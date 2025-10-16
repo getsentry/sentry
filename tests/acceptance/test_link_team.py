@@ -12,7 +12,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 @no_silo_test
 class SlackLinkTeamTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=self.user)
@@ -62,7 +62,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         )
         self.path = linking_url.path
 
-    def test_link_team(self):
+    def test_link_team(self) -> None:
         self.login_as(self.user)
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
@@ -81,7 +81,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
             external_id="CXXXXXXX9",
         ).exists()
 
-    def test_link_team_as_team_admin(self):
+    def test_link_team_as_team_admin(self) -> None:
         self.create_team(organization=self.org, name="Team Two")
         self.create_team(organization=self.org, name="Team Three")
         self.login_as(self.team_admin_user)

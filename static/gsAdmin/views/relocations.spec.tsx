@@ -5,8 +5,8 @@ import Relocations from 'admin/views/relocations';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('Relocations', function () {
-  beforeEach(function () {
+describe('Relocations', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/relocations/',
       method: 'GET',
@@ -134,7 +134,7 @@ describe('Relocations', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const {routerProps} = initializeOrg();
     render(<Relocations {...routerProps} />);
 

@@ -1,12 +1,16 @@
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import type {
   UptimeDetector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
+import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
+
+export const UPTIME_DEFAULT_RECOVERY_THRESHOLD = 1;
+export const UPTIME_DEFAULT_DOWNTIME_THRESHOLD = 3;
 
 interface UptimeDetectorFormData {
   body: string;
+  downtimeThreshold: number;
   environment: string;
   headers: Array<[string, string]>;
   intervalSeconds: number;
@@ -14,45 +18,12 @@ interface UptimeDetectorFormData {
   name: string;
   owner: string;
   projectId: string;
+  recoveryThreshold: number;
   timeoutMs: number;
   traceSampling: boolean;
   url: string;
   workflowIds: string[];
 }
-
-type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
-
-/**
- * Small helper to automatically get the type of the form field.
- */
-export function useUptimeDetectorFormField<T extends UptimeDetectorFormFieldName>(
-  name: T
-): UptimeDetectorFormData[T] {
-  const value = useFormField(name);
-  return value;
-}
-
-/**
- * Enables type-safe form field names.
- * Helps you find areas setting specific fields.
- */
-export const UPTIME_DETECTOR_FORM_FIELDS = {
-  // Core detector fields
-  name: 'name',
-  environment: 'environment',
-  projectId: 'projectId',
-  owner: 'owner',
-  workflowIds: 'workflowIds',
-
-  // Uptime fields
-  intervalSeconds: 'intervalSeconds',
-  timeoutMs: 'timeoutMs',
-  url: 'url',
-  method: 'method',
-  traceSampling: 'traceSampling',
-  headers: 'headers',
-  body: 'body',
-} satisfies Record<UptimeDetectorFormFieldName, UptimeDetectorFormFieldName>;
 
 export function uptimeFormDataToEndpointPayload(
   data: UptimeDetectorFormData
@@ -70,6 +41,12 @@ export function uptimeFormDataToEndpointPayload(
       traceSampling: data.traceSampling,
       url: data.url,
     },
+    config: {
+      mode: UptimeMonitorMode.MANUAL,
+      recoveryThreshold: data.recoveryThreshold ?? UPTIME_DEFAULT_RECOVERY_THRESHOLD,
+      downtimeThreshold: data.downtimeThreshold ?? UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+      environment: data.environment ? data.environment : null,
+    },
   };
 }
 
@@ -78,12 +55,18 @@ export function uptimeSavedDetectorToFormData(
 ): UptimeDetectorFormData {
   const dataSource = detector.dataSources?.[0];
   const environment = getDetectorEnvironment(detector) ?? '';
+  const recoveryThreshold =
+    detector.config?.recoveryThreshold ?? UPTIME_DEFAULT_RECOVERY_THRESHOLD;
+  const downtimeThreshold =
+    detector.config?.downtimeThreshold ?? UPTIME_DEFAULT_DOWNTIME_THRESHOLD;
 
   const common = {
     name: detector.name,
     environment,
-    owner: detector.owner || '',
+    owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
     projectId: detector.projectId,
+    recoveryThreshold,
+    downtimeThreshold,
   };
 
   if (dataSource?.type === 'uptime_subscription') {

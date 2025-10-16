@@ -2,15 +2,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {canCreateProject} from './canCreateProject';
 
-describe('ProjectCreationAccess', function () {
+describe('ProjectCreationAccess', () => {
   const organization = OrganizationFixture();
 
-  it('passes project creation eligibility for org-manager', function () {
+  it('passes project creation eligibility for org-manager', () => {
     const result = canCreateProject(organization);
     expect(result).toBeTruthy();
   });
 
-  it('passes for members if org has team-roles', function () {
+  it('passes for members if org has team-roles', () => {
     const experiment_org = OrganizationFixture({
       access: ['org:read', 'team:read', 'project:read'],
       features: ['team-roles'],
@@ -21,7 +21,7 @@ describe('ProjectCreationAccess', function () {
     expect(result).toBeTruthy();
   });
 
-  it('fails for members if org has team-roles but disabled allowMemberProjectCreation', function () {
+  it('fails for members if org has team-roles but disabled allowMemberProjectCreation', () => {
     const experiment_org = OrganizationFixture({
       access: ['org:read', 'team:read', 'project:read'],
       features: ['team-roles'],
@@ -32,7 +32,7 @@ describe('ProjectCreationAccess', function () {
     expect(result).toBeFalsy();
   });
 
-  it('fails for members if org does not have team-roles', function () {
+  it('fails for members if org does not have team-roles', () => {
     const no_team_role_org = OrganizationFixture({
       access: ['org:read', 'team:read', 'project:read'],
     });

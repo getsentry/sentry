@@ -4,23 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {mockMatchMedia} from 'sentry-test/utils';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProfileSummaryPage from 'sentry/views/profiling/profileSummary';
-
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(), // Deprecated
-    removeListener: jest.fn(), // Deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
 
 window.ResizeObserver =
   window.ResizeObserver ||
@@ -31,6 +18,14 @@ window.ResizeObserver =
   }));
 
 describe('ProfileSummaryPage', () => {
+  beforeEach(() => {
+    mockMatchMedia(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders new page', async () => {
     const organization = OrganizationFixture({features: []});
     OrganizationStore.onUpdate(organization);

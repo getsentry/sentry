@@ -9,7 +9,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import {type DateTimeObject, getInterval} from 'sentry/components/charts/utils';
+import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -43,7 +43,6 @@ type SeriesItem = {
   subSeries?: SubSeries[];
 };
 
-/** @internal exported for tests only */
 export type StatsGroup = {
   by: {
     outcome: string;
@@ -112,7 +111,6 @@ function zeroFillDates(start: number, end: number, {color}: {color: string}) {
   return zero;
 }
 
-/** @internal exported for tests only */
 export function populateChartData(
   intervals: Array<string | number>,
   groups: StatsGroup[],

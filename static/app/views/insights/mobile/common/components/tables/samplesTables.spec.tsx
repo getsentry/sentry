@@ -18,7 +18,7 @@ describe('SamplesTables', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.get-span-operations',
+          referrer: 'api.insights.get-span-operations',
         }),
       ],
       body: {
@@ -56,7 +56,7 @@ describe('SamplesTables', () => {
           <div>{`This is a custom Event Samples table for release: ${release}`}</div>
         )}
         SpanOperationTable={_props => <div>This is a custom Span Operation table</div>}
-        transactionName={''}
+        transactionName=""
       />
     );
 

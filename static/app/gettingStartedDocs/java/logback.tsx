@@ -76,7 +76,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -94,7 +94,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -128,6 +128,12 @@ dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info
 send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+    : ''
+}${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -150,7 +156,14 @@ const getConsoleAppenderSnippet = (params: Params) => `
     <options>
       <dsn>${params.dsn.public}</dsn>
       <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
-      <sendDefaultPii>true</sendDefaultPii>
+      <sendDefaultPii>true</sendDefaultPii>${
+        params.isLogsSelected
+          ? `
+      <logs>
+        <enabled>true</enabled>
+      </logs>`
+          : ''
+      }
     </options>`
       : ''
   }
@@ -171,14 +184,27 @@ const getLogLevelSnippet = (params: Params) => `
   <options>
     <dsn>${params.dsn.public}</dsn>
     <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
-    <sendDefaultPii>true</sendDefaultPii>
+    <sendDefaultPii>true</sendDefaultPii>${
+      params.isLogsSelected
+        ? `
+    <logs>
+      <enabled>true</enabled>
+    </logs>`
+        : ''
+    }
   </options>`
     : ''
 }
   <!-- Optionally change minimum Event level. Default for Events is ERROR -->
   <minimumEventLevel>WARN</minimumEventLevel>
   <!-- Optionally change minimum Breadcrumbs level. Default for Breadcrumbs is INFO -->
-  <minimumBreadcrumbLevel>DEBUG</minimumBreadcrumbLevel>
+  <minimumBreadcrumbLevel>DEBUG</minimumBreadcrumbLevel>${
+    params.isLogsSelected
+      ? `
+  <!-- Optionally change minimum Log level. Default for Log Events is INFO -->
+  <minimumLevel>DEBUG</minimumLevel>`
+      : ''
+  }
 </appender>`;
 
 const getVerifyJavaSnippet = () => `
@@ -252,7 +278,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           ? [
               {
                 language: 'xml',
-                partialLoading: params.sourcePackageRegistries?.isLoading,
                 description: tct(
                   'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
                   {
@@ -316,7 +341,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 ),
                 configurations: [
                   {
-                    language: 'java',
+                    label: 'Properties',
+                    value: 'properties',
+                    language: 'properties',
                     code: getSentryPropertiesSnippet(params),
                   },
                 ],
@@ -424,11 +451,99 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
+const logsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            "To start using logs, make sure your application uses Sentry Java SDK version [code:8.15.0] or higher. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade.",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/migration/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable logging, you need to configure the enabled logs option in the appender configuration. You may also set [code:minimumLevel] to configure which log messages are sent to Sentry.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'logback.xml',
+              language: 'xml',
+              code: `<appender name="sentry" class="io.sentry.logback.SentryAppender">
+  <options>
+    <dsn>${params.dsn.public}</dsn>
+    <logs>
+      <enabled>true</enabled>
+    </logs>
+  </options>
+  <!-- Default for Log Events is INFO -->
+  <minimumLevel>DEBUG</minimumLevel>
+</appender>`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Once the handler is configured with logging enabled, any logs at or above the [code:minimumLevel] will be sent to Sentry.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'java',
+          code: `import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class SentryLogbackExample {
+  private static Logger logger = LoggerFactory.getLogger(SentryLogbackExample.class);
+
+  public static void main(String[] args) {
+    logger.info("A test log message");
+  }
+}`,
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   platformOptions,
+  logsOnboarding,
 };
 
 export default docs;

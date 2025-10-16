@@ -19,8 +19,6 @@ from sentry.runner.decorators import configuration, log_options
 # If you are looking to add a kafka consumer, please do not create a new click
 # subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
-    "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
-    "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
     "taskworker": ["sentry", "run", "taskworker"],
     "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
@@ -31,7 +29,6 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
     "metrics-subscription-results",
-    "eap-spans-subscription-results",
     "subscription-results-eap-items",
 ]
 
@@ -59,16 +56,6 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     "--watchers/--no-watchers",
     default=True,
     help="Watch static files and recompile on changes.",
-)
-@click.option(
-    "--workers/--no-workers",
-    default=False,
-    help="Run celery workers (excluding celerybeat).",
-)
-@click.option(
-    "--celery-beat/--no-celery-beat",
-    default=False,
-    help="Run celerybeat workers.",
 )
 @click.option(
     "--ingest/--no-ingest",
@@ -134,14 +121,14 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="The silo mode to run this devserver instance in. Choices are control, region, none",
 )
 @click.option(
-    "--taskworker/--no-taskworker",
+    "--workers/--no-workers",
     default=False,
-    help="Run kafka-based task workers",
+    help="Run a taskworker instance with 1 child process.",
 )
 @click.option(
-    "--taskworker-scheduler/--no-taskworker-scheduler",
+    "--task-scheduler/--no-task-scheduler",
     default=False,
-    help="Run periodic task scheduler for taskworkers.",
+    help="Run task scheduler for periodically scheduled tasks.",
 )
 @click.argument(
     "bind",
@@ -157,8 +144,6 @@ def devserver(
     ctx: click.Context,
     reload: bool,
     watchers: bool,
-    workers: bool,
-    celery_beat: bool,
     ingest: bool,
     occurrence_ingest: bool,
     experimental_spa: bool,
@@ -171,8 +156,8 @@ def devserver(
     client_hostname: str,
     ngrok: str | None,
     silo: str | None,
-    taskworker: bool,
-    taskworker_scheduler: bool,
+    workers: bool,
+    task_scheduler: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     sentry_sdk.init(
@@ -308,30 +293,18 @@ def devserver(
             click.echo("--ingest was provided, implicitly enabling --workers")
             workers = True
 
-        if taskworker:
-            daemons.append(_get_daemon("taskworker"))
-
-        if taskworker_scheduler:
+        if task_scheduler and silo != "control":
             daemons.append(_get_daemon("taskworker-scheduler"))
-
-        if workers and not celery_beat:
-            click.secho(
-                "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
-                fg="yellow",
-            )
-
-        if celery_beat and silo != "control":
-            daemons.append(_get_daemon("celery-beat"))
 
         if workers and silo != "control":
             kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
 
-            if settings.CELERY_ALWAYS_EAGER:
+            if settings.TASKWORKER_ALWAYS_EAGER:
                 raise click.ClickException(
-                    "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+                    "Disable TASKWORKER_ALWAYS_EAGER in your settings file to spawn workers."
                 )
 
-            daemons.append(_get_daemon("worker"))
+            daemons.append(_get_daemon("taskworker"))
 
             from sentry import eventstream
 
@@ -375,25 +348,30 @@ def devserver(
             if occurrence_ingest:
                 kafka_consumers.add("ingest-occurrences")
 
-        # Create all topics if the Kafka eventstream is selected
+        # Check if Kafka is available and create all topics if it is running
+        kafka_container_name = "kafka-kafka-1"
+        kafka_is_running = kafka_container_name in containers
+
+        if kafka_is_running:
+            from sentry_kafka_schemas import list_topics
+
+            from sentry.utils.batching_kafka_consumer import create_topics
+            from sentry.utils.kafka_config import get_topic_definition_from_name
+
+            for topic in list_topics():
+                topic_defn = get_topic_definition_from_name(topic)
+                create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+
+        # Set up Kafka consumers if they are configured
         if kafka_consumers:
-            use_old_devservices = os.environ.get("USE_OLD_DEVSERVICES") == "1"
-            valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
-            kafka_container_name = "sentry_kafka" if use_old_devservices else "kafka-kafka-1"
-            kafka_container_warning_message = (
-                f"""
-    Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
-    Please run `sentry devservices up kafka` to start it."""
-                if use_old_devservices
-                else f"""
-    Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
+            kafka_container_warning_message = f"""
+    Devserver is configured to work with devservices. Looks like the `{kafka_container_name}` container is not running.
     Please run `devservices up` to start it."""
-            )
-            if not any(name in containers for name in valid_kafka_container_names):
+            if not kafka_is_running:
                 raise click.ClickException(
                     f"""
     Devserver is configured to start some kafka consumers, but Kafka
-    don't seem to be running.
+    doesn't seem to be running.
 
     The following consumers were intended to be started: {kafka_consumers}
 
@@ -411,18 +389,12 @@ def devserver(
             """
                 )
 
-            from sentry_kafka_schemas import list_topics
-
-            from sentry.utils.batching_kafka_consumer import create_topics
-            from sentry.utils.kafka_config import get_topic_definition_from_name
-
-            for topic in list_topics():
-                topic_defn = get_topic_definition_from_name(topic)
-                create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
-
             if dev_consumer:
                 daemons.append(
-                    ("dev-consumer", ["sentry", "run", "dev-consumer"] + list(kafka_consumers))
+                    (
+                        "dev-consumer",
+                        ["sentry", "run", "dev-consumer"] + list(kafka_consumers),
+                    )
                 )
             else:
                 for name in kafka_consumers:
@@ -532,9 +504,9 @@ def devserver(
             merged_env.update(control_environ)
             control_services = ["server"]
             if workers:
-                control_services.append("worker")
-            if celery_beat:
-                control_services.append("celery-beat")
+                control_services.append("taskworker")
+            if task_scheduler:
+                control_services.append("taskworker-scheduler")
 
             for service in control_services:
                 name, cmd = _get_daemon(service)

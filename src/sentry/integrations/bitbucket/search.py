@@ -30,7 +30,7 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     }
 
     @property
-    def repository_field(self):
+    def repository_field(self) -> str:
         return "repo"
 
     @property
@@ -43,7 +43,9 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         with self.record_event(
-            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES,
+            organization_id=installation.organization_id,
+            integration_id=installation.org_integration.integration_id,
         ).capture() as lifecycle:
             assert repo
 
@@ -75,6 +77,10 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     def handle_search_repositories(
         self, integration: Integration, installation: T, query: str
     ) -> Response:
-        with self.record_event(SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES).capture():
+        with self.record_event(
+            SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES,
+            organization_id=installation.organization_id,
+            integration_id=integration.id,
+        ).capture():
             result = installation.get_repositories(query)
             return Response([{"label": i["name"], "value": i["name"]} for i in result])

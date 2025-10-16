@@ -13,7 +13,7 @@ import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
 jest.unmock('sentry/utils/recreateRoute');
 
-describe('OrganizationCrumb', function () {
+describe('OrganizationCrumb', () => {
   let initialData: Config;
   const {organization, project, routerProps} = initializeOrg();
   const organizations = [
@@ -41,11 +41,11 @@ describe('OrganizationCrumb', function () {
       organization,
     });
 
-  afterEach(function () {
+  afterEach(() => {
     ConfigStore.loadInitialData(initialData);
   });
 
-  it('switches organizations on settings index', async function () {
+  it('switches organizations on settings index', async () => {
     const route = {name: 'Organizations', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
@@ -65,7 +65,7 @@ describe('OrganizationCrumb', function () {
     });
   });
 
-  it('switches organizations while on API Keys Details route', async function () {
+  it('switches organizations while on API Keys Details route', async () => {
     const route = {name: 'Organizations', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
@@ -89,7 +89,7 @@ describe('OrganizationCrumb', function () {
     });
   });
 
-  it('switches organizations while on API Keys List route', async function () {
+  it('switches organizations while on API Keys List route', async () => {
     const route = {name: 'Organizations', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
@@ -111,7 +111,7 @@ describe('OrganizationCrumb', function () {
     });
   });
 
-  it('switches organizations while in Project Client Keys Details route', async function () {
+  it('switches organizations while in Project Client Keys Details route', async () => {
     const route = {name: 'Organization', path: ':orgId/'};
     const routes: RouteWithName[] = [
       {path: '/'},
@@ -140,7 +140,7 @@ describe('OrganizationCrumb', function () {
     });
   });
 
-  it('switches organizations for child route with customer domains', async function () {
+  it('switches organizations for child route with customer domains', async () => {
     ConfigStore.set('customerDomain', {
       subdomain: 'albertos-apples',
       organizationUrl: 'https://albertos-apples.sentry.io',

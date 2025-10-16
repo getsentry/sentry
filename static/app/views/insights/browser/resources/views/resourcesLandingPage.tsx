@@ -13,14 +13,13 @@ import {
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
@@ -31,8 +30,7 @@ function ResourcesLandingPage() {
   return (
     <React.Fragment>
       <PageAlertProvider>
-        <FrontendHeader module={ModuleName.RESOURCE} />
-        <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
+        <ModuleFeature moduleName={ModuleName.RESOURCE}>
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageAlert />
@@ -48,7 +46,9 @@ function ResourcesLandingPage() {
                           emptyOptionLocation="top"
                           value={filters[SPAN_DOMAIN] || ''}
                           additionalQuery={[
-                            ...DEFAULT_RESOURCE_FILTERS,
+                            ...DEFAULT_RESOURCE_FILTERS.filter(
+                              filter => filter !== 'has:sentry.normalized_description'
+                            ),
                             `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
                           ]}
                         />
@@ -63,7 +63,7 @@ function ResourcesLandingPage() {
               </ModulesOnboarding>
             </Layout.Main>
           </Layout.Body>
-        </ModuleBodyUpsellHook>
+        </ModuleFeature>
       </PageAlertProvider>
     </React.Fragment>
   );

@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -17,8 +18,11 @@ from sentry.snuba import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.uptime_checks import UptimeChecks
 from sentry.snuba.uptime_results import UptimeResults
+
+logger = logging.getLogger(__name__)
 
 # Doesn't map 1:1 with real datasets, but rather what we present to users
 # ie. metricsEnhanced is not a real dataset
@@ -27,7 +31,9 @@ DATASET_OPTIONS = {
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
+    # ourlogs is deprecated, please use logs instead
     "ourlogs": OurLogs,
+    "logs": OurLogs,
     "uptimeChecks": UptimeChecks,
     "uptime_results": UptimeResults,
     "profiles": profiles,
@@ -36,15 +42,20 @@ DATASET_OPTIONS = {
     "spans": Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
+    "tracemetrics": TraceMetrics,
     "transactions": transactions,
 }
+DEPRECATED_LABELS = {"ourlogs"}
 RPC_DATASETS = {
     Spans,
+    TraceMetrics,
     OurLogs,
     UptimeResults,
     UptimeChecks,
 }
-DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
+DATASET_LABELS = {
+    value: key for key, value in DATASET_OPTIONS.items() if key not in DEPRECATED_LABELS
+}
 
 
 TRANSACTION_ONLY_FIELDS = [
@@ -101,7 +112,11 @@ ERROR_ONLY_FIELDS = [
 ]
 
 
-def get_dataset(dataset_label: str) -> Any | None:
+def get_dataset(dataset_label: str | None) -> Any | None:
+    if dataset_label in DEPRECATED_LABELS:
+        logger.warning("query.deprecated_dataset.%s", dataset_label)
+    if dataset_label is None:
+        return None
     return DATASET_OPTIONS.get(dataset_label)
 
 

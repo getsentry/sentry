@@ -17,9 +17,9 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
 
-describe('OrganizationTeams', function () {
-  describe('Open Membership', function () {
-    const {organization, project, routerProps} = initializeOrg({
+describe('OrganizationTeams', () => {
+  describe('Open Membership', () => {
+    const {organization} = initializeOrg({
       organization: {
         openMembership: true,
       },
@@ -30,18 +30,16 @@ describe('OrganizationTeams', function () {
     ) =>
       render(
         <OrganizationTeams
-          {...routerProps}
-          onRemoveAccessRequest={() => {}}
-          requestList={[]}
-          params={{projectId: project.slug}}
-          features={new Set(['open-membership'])}
-          access={new Set(['project:admin'])}
           organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set(['open-membership'])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
           {...props}
         />
       );
 
-    it('opens "create team modal" when creating a new team from header', async function () {
+    it('opens "create team modal" when creating a new team from header', async () => {
       createWrapper();
 
       // Click "Create Team" in Panel Header
@@ -57,14 +55,14 @@ describe('OrganizationTeams', function () {
       );
     });
 
-    it('can join team and have link to details', function () {
+    it('can join team and have link to details', () => {
       const mockTeams = [
         TeamFixture({
           hasAccess: true,
           isMember: false,
         }),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -74,7 +72,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByTestId('team-link')).toBeInTheDocument();
     });
 
-    it('reloads projects after joining a team', async function () {
+    it('reloads projects after joining a team', async () => {
       const team = TeamFixture({
         hasAccess: true,
         isMember: false,
@@ -90,7 +88,7 @@ describe('OrganizationTeams', function () {
       });
 
       const mockTeams = [team];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
 
       createWrapper({access: new Set([])});
       await userEvent.click(screen.getByLabelText('Join Team'));
@@ -100,19 +98,19 @@ describe('OrganizationTeams', function () {
       });
     });
 
-    it('cannot leave idp-provisioned team', function () {
+    it('cannot leave idp-provisioned team', () => {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper();
 
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
     });
 
-    it('cannot join idp-provisioned team', function () {
+    it('cannot join idp-provisioned team', () => {
       const mockTeams = [
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -121,8 +119,8 @@ describe('OrganizationTeams', function () {
     });
   });
 
-  describe('Closed Membership', function () {
-    const {organization, project, routerProps} = initializeOrg({
+  describe('Closed Membership', () => {
+    const {organization} = initializeOrg({
       organization: {
         openMembership: false,
       },
@@ -132,25 +130,23 @@ describe('OrganizationTeams', function () {
     ) =>
       render(
         <OrganizationTeams
-          {...routerProps}
-          onRemoveAccessRequest={() => {}}
-          requestList={[]}
-          params={{projectId: project.slug}}
-          features={new Set([])}
-          access={new Set([])}
           organization={organization}
+          access={new Set([])}
+          features={new Set([])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
           {...props}
         />
       );
 
-    it('can request access to team and does not have link to details', function () {
+    it('can request access to team and does not have link to details', () => {
       const mockTeams = [
         TeamFixture({
           hasAccess: false,
           isMember: false,
         }),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({access: new Set([])});
 
       expect(screen.getByLabelText('Request Access')).toBeInTheDocument();
@@ -159,14 +155,14 @@ describe('OrganizationTeams', function () {
       expect(screen.queryByTestId('team-link')).not.toBeInTheDocument();
     });
 
-    it('can leave team when you are a member', function () {
+    it('can leave team when you are a member', () => {
       const mockTeams = [
         TeamFixture({
           hasAccess: true,
           isMember: true,
         }),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -174,11 +170,11 @@ describe('OrganizationTeams', function () {
       expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
     });
 
-    it('cannot request to join idp-provisioned team', function () {
+    it('cannot request to join idp-provisioned team', () => {
       const mockTeams = [
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -186,9 +182,9 @@ describe('OrganizationTeams', function () {
       expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
     });
 
-    it('cannot leave idp-provisioned team', function () {
+    it('cannot leave idp-provisioned team', () => {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -197,8 +193,8 @@ describe('OrganizationTeams', function () {
     });
   });
 
-  describe('Team Requests', function () {
-    const {organization, project, routerProps} = initializeOrg({
+  describe('Team Requests', () => {
+    const {organization} = initializeOrg({
       organization: {
         openMembership: false,
       },
@@ -220,18 +216,16 @@ describe('OrganizationTeams', function () {
     ) =>
       render(
         <OrganizationTeams
-          {...routerProps}
-          onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={new Set([])}
-          access={new Set([])}
           organization={organization}
+          access={new Set([])}
+          features={new Set([])}
           requestList={requestList}
+          onRemoveAccessRequest={() => {}}
           {...props}
         />
       );
 
-    it('renders team request panel', function () {
+    it('renders team request panel', () => {
       createWrapper();
 
       expect(screen.getByText('Pending Team Requests')).toBeInTheDocument();
@@ -241,7 +235,7 @@ describe('OrganizationTeams', function () {
       );
     });
 
-    it('can approve', async function () {
+    it('can approve', async () => {
       const onUpdateRequestListMock = jest.fn();
       const approveMock = MockApiClient.addMockResponse({
         url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
@@ -266,7 +260,7 @@ describe('OrganizationTeams', function () {
       expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id, true);
     });
 
-    it('can deny', async function () {
+    it('can deny', async () => {
       const onUpdateRequestListMock = jest.fn();
       const denyMock = MockApiClient.addMockResponse({
         url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
@@ -293,42 +287,38 @@ describe('OrganizationTeams', function () {
     });
   });
 
-  describe('Team Roles', function () {
+  describe('Team Roles', () => {
     const features = new Set(['team-roles']);
     const access = new Set<string>();
 
-    it('does not render alert without feature flag', function () {
-      const {organization, project, routerProps} = initializeOrg({
+    it('does not render alert without feature flag', () => {
+      const {organization} = initializeOrg({
         organization: {orgRole: 'admin'},
       });
       render(
         <OrganizationTeams
-          {...routerProps}
+          organization={organization}
+          access={access}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={new Set()}
-          access={access}
-          organization={organization}
         />
       );
 
       expect(screen.queryByText('a minimum team-level role of')).not.toBeInTheDocument();
     });
 
-    it('renders alert with elevated org role', function () {
-      const {organization, project, routerProps} = initializeOrg({
+    it('renders alert with elevated org role', () => {
+      const {organization} = initializeOrg({
         organization: {orgRole: 'admin'},
       });
       render(
         <OrganizationTeams
-          {...routerProps}
+          organization={organization}
+          access={access}
+          features={features}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={features}
-          access={access}
-          organization={organization}
         />
       );
 
@@ -340,19 +330,17 @@ describe('OrganizationTeams', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not render alert with lowest org role', function () {
-      const {organization, project, routerProps} = initializeOrg({
+    it('does not render alert with lowest org role', () => {
+      const {organization} = initializeOrg({
         organization: {orgRole: 'member'},
       });
       render(
         <OrganizationTeams
-          {...routerProps}
+          organization={organization}
+          access={access}
+          features={features}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={features}
-          access={access}
-          organization={organization}
         />
       );
 

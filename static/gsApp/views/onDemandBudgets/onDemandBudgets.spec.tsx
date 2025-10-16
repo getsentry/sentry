@@ -10,8 +10,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
-
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
@@ -38,7 +36,7 @@ describe('OnDemandBudgets', () => {
     setOnDemandBudget: jest.fn(),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
@@ -54,7 +52,7 @@ describe('OnDemandBudgets', () => {
     SubscriptionStore.set(organization.slug, {});
   });
 
-  it('renders on-demand not supported state', function () {
+  it('renders on-demand not supported state', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -83,7 +81,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('Contact Support')).toBeInTheDocument();
   });
 
-  it('renders credit card modal on the on-demand setting for account without a credit card', async function () {
+  it('renders credit card modal on the on-demand setting for account without a credit card', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -116,11 +114,9 @@ describe('OnDemandBudgets', () => {
 
     await userEvent.click(screen.getByTestId('add-cc-card'));
     expect(await screen.findByText('Stripe')).toBeInTheDocument();
-
-    ModalStore.reset();
   });
 
-  it('allows VC partner accounts to set up on-demand budget without credit card', function () {
+  it('allows VC partner accounts to set up on-demand budget without credit card', () => {
     const subscription = SubscriptionFixture({
       plan: 'am3_business',
       planTier: PlanTier.AM3,
@@ -159,7 +155,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.queryByText('Add Credit Card')).not.toBeInTheDocument();
   });
 
-  it('renders initial on-demand budget setup state', function () {
+  it('renders initial on-demand budget setup state', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -185,7 +181,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('Set Up On-Demand')).toBeInTheDocument();
   });
 
-  it('renders shared on-demand budget', function () {
+  it('renders shared on-demand budget', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -217,7 +213,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('$42')).toBeInTheDocument();
   });
 
-  it('renders per-category budget', function () {
+  it('renders per-category budget', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -256,7 +252,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('$30')).toBeInTheDocument();
   });
 
-  it('initialize shared budget', async function () {
+  it('initialize shared budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -332,7 +328,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByTestId('shared-budget-info')).toBeInTheDocument();
   });
 
-  it('initialize per-category budget', async function () {
+  it('initialize per-category budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -437,7 +433,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByTestId('per-category-budget-info')).toBeInTheDocument();
   });
 
-  it('renders pay-as-you-go instead of on-demand for am3', async function () {
+  it('renders pay-as-you-go instead of on-demand for am3', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -517,7 +513,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByTestId('shared-budget-info')).toBeInTheDocument();
   });
 
-  it('renders billed through partner for self serve partner', async function () {
+  it('renders billed through partner for self serve partner', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -589,7 +585,7 @@ describe('OnDemandBudgets', () => {
     ).toBeInTheDocument();
   });
 
-  it('always displays Seer warning alert in per-category section', () => {
+  it('displays original Seer warning copy by default in per-category section', () => {
     organization.features = ['seer-billing'];
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
@@ -643,8 +639,118 @@ describe('OnDemandBudgets', () => {
 
     expect(
       screen.getByText(
-        "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+        'Additional Seer usage is only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('displays per-category warning for multiple categories', () => {
+    // Test with logs-billing only
+    organization.features = ['logs-billing'];
+    const subscription = SubscriptionFixture({
+      plan: 'am2_business',
+      planTier: PlanTier.AM2,
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am2_business')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        budgets: {
+          errors: 1000,
+          transactions: 2000,
+          attachments: 3000,
+          monitorSeats: 4000,
+        },
+        usedSpends: {},
+      },
+    });
+
+    const activePlan = subscription.planDetails;
+
+    const onDemandBudget = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY as const,
+      budgets: {
+        errors: 1000,
+        transactions: 2000,
+        attachments: 3000,
+        monitorSeats: 4000,
+      },
+    };
+
+    const {rerender} = render(
+      <OnDemandBudgetEdit
+        {...defaultProps}
+        subscription={subscription}
+        activePlan={activePlan}
+        onDemandBudget={onDemandBudget}
+      />
+    );
+
+    expect(screen.getByTestId('per-category-budget-radio')).toBeInTheDocument();
+    expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
+
+    // When logs-billing is enabled, should show the logs warning
+    expect(
+      screen.getByText(
+        'Additional logs usage is only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
+      )
+    ).toBeInTheDocument();
+
+    // Test with both seer-billing and logs-billing
+    organization.features = ['seer-billing', 'logs-billing'];
+
+    rerender(
+      <OnDemandBudgetEdit
+        {...defaultProps}
+        subscription={subscription}
+        activePlan={activePlan}
+        onDemandBudget={onDemandBudget}
+      />
+    );
+
+    // When both features are enabled
+    expect(
+      screen.getByText(
+        'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('displays does not display contact support for education sponsored', () => {
+    const subscription = SubscriptionFixture({
+      plan: 'am3_sponsored_team_auf',
+      planTier: PlanTier.AM3,
+      sponsoredType: 'education',
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am3_team_auf')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: false,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 0,
+        onDemandSpendUsed: 0,
+      },
+    });
+
+    render(
+      <OnDemandBudgets
+        {...defaultProps}
+        subscription={subscription}
+        organization={organization}
+        onDemandEnabled={false}
+        hasPaymentSource={false}
+      />
+    );
+
+    expect(screen.queryByText('Contact Support')).not.toBeInTheDocument();
   });
 });

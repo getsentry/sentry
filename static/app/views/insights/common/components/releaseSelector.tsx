@@ -19,8 +19,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   ReleasesSort,
-  type ReleasesSortByOption,
   SORT_BY_OPTIONS,
+  type ReleasesSortByOption,
 } from 'sentry/views/insights/common/components/releasesSort';
 import {
   useReleases,
@@ -99,8 +99,8 @@ function ReleaseSelector({
         icon: <IconReleases />,
         title: selectorValue,
         prefix: triggerLabelPrefix,
+        children: triggerLabelContent,
       }}
-      triggerLabel={triggerLabelContent}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable

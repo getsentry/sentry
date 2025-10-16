@@ -134,8 +134,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return issue_type_meta
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
-        fields = super().get_new_issue_fields(request, group, event, **kwargs)
+    def get_new_issue_fields(self, request: Request | None, group, event, **kwargs):
+        fields = super()._get_new_issue_fields_impl(group, event)
 
         jira_project_key = self.get_option("default_project", group.project)
 
@@ -414,7 +414,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
-    def create_issue(self, request: Request, group, form_data):
+    def create_issue(self, request: Request | None, group, form_data):
         cleaned_data = {}
 
         # protect against mis-configured plugin submitting a form without an
@@ -678,7 +678,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             )
 
         try:
-            issue_id = self.create_issue(request={}, group=group, form_data=post_data)
+            issue_id = self.create_issue(request=None, group=group, form_data=post_data)
         except PluginError as e:
             logger.info("post_process.fail", extra={"error": str(e)})
         else:

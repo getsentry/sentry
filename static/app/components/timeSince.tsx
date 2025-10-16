@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
@@ -6,9 +6,10 @@ import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useUser} from 'sentry/utils/useUser';
+
+import {useTimezone} from './timezoneProvider';
 
 function getDateObj(date: RelaxedDateType): Date {
   return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
@@ -121,19 +122,17 @@ function TimeSince({
   ...props
 }: Props) {
   const user = useUser();
-  const tickerRef = useRef<number | undefined>(undefined);
+  const tz = useTimezone();
 
-  const computeRelativeDate = useCallback(
-    () => getRelativeDate(date, suffix, prefix, unitStyle),
-    [date, suffix, prefix, unitStyle]
-  );
+  // Counter to trigger periodic re-computation of relative time
+  const [tick, setTick] = useState(0);
 
-  const [relative, setRelative] = useState<string>(computeRelativeDate());
+  const relative = useMemo(() => {
+    void tick; // Ensure recomputation when tick changes
+    return getRelativeDate(date, suffix, prefix, unitStyle);
+  }, [date, suffix, prefix, unitStyle, tick]);
 
   useEffect(() => {
-    // Immediately update if props change
-    setRelative(computeRelativeDate());
-
     const interval =
       liveUpdateInterval === 'minute'
         ? 60 * 1000
@@ -142,13 +141,10 @@ function TimeSince({
           : liveUpdateInterval;
 
     // Start a ticker to update the relative time
-    tickerRef.current = window.setInterval(
-      () => setRelative(computeRelativeDate()),
-      interval
-    );
+    const ticker = window.setInterval(() => setTick(prev => prev + 1), interval);
 
-    return () => window.clearInterval(tickerRef.current);
-  }, [liveUpdateInterval, computeRelativeDate]);
+    return () => window.clearInterval(ticker);
+  }, [liveUpdateInterval]);
 
   const dateObj = getDateObj(date);
   const options = user ? user.options : null;
@@ -160,12 +156,7 @@ function TimeSince({
     : 'MMMM D, YYYY h:mm A z';
   const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
-  const tooltip = getDynamicText({
-    fixed: options?.clock24Hours
-      ? 'November 3, 2020 08:57 UTC'
-      : 'November 3, 2020 8:58 AM UTC',
-    value: moment(dateObj).format(format),
-  });
+  const tooltip = moment.tz(dateObj, tz).format(format);
 
   return (
     <Tooltip

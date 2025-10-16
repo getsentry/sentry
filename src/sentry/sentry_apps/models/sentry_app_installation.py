@@ -8,6 +8,7 @@ from django.db import models
 from django.utils import timezone
 from jsonschema import ValidationError
 
+from sentry.api.exceptions import BadRequest
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
@@ -235,7 +236,6 @@ def prepare_ui_component(
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | RpcSentryAppComponent | None:
-    from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer
 
     if values is None:
@@ -246,7 +246,7 @@ def prepare_ui_component(
         ).run()
         return component
     except (
-        APIError,
+        BadRequest,
         ValidationError,
         SentryAppIntegratorError,
         SentryAppError,

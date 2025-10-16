@@ -1,10 +1,12 @@
 from collections.abc import Iterable
+from unittest import skip
 from unittest.mock import MagicMock, patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
@@ -13,11 +15,13 @@ from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
@@ -227,6 +231,49 @@ class ProjectTest(APITestCase, TestCase):
             project=project, release=release, environment=environment
         ).exists()
         assert not ReleaseProject.objects.filter(project=project, release=release).exists()
+
+    def test_delete_on_transfer_repository_project_path_configs(self) -> None:
+        from_org = self.create_organization()
+        to_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        project = self.create_project(teams=[team])
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration, org_integration = self.create_provider_integration_for(
+                from_org, self.user, provider="github"
+            )
+
+        repository = Repository.objects.create(
+            organization_id=from_org.id,
+            name="example-repo",
+            integration_id=integration.id,
+        )
+
+        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
+            repository=repository,
+            project=project,
+            organization_integration_id=org_integration.id,
+            organization_id=from_org.id,
+            integration_id=integration.id,
+            stack_root="/app",
+            source_root="/src",
+            default_branch="main",
+        )
+
+        ProjectCodeOwners.objects.create(
+            project=project,
+            repository_project_path_config=repository_project_path_config,
+            raw="*.py @getsentry/test-team",
+        )
+
+        project.transfer_to(organization=to_org)
+
+        assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
+        assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
+
+        assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 0
+
+        assert ProjectCodeOwners.objects.filter(project_id=project.id).count() == 0
 
     def test_transfer_to_organization_alert_rules(self) -> None:
         from_org = self.create_organization()
@@ -460,7 +507,7 @@ class ProjectOptionsTests(TestCase):
         self.project_template = self.create_project_template(organization=self.project.organization)
         self.project.template = self.project_template
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
         self.project_template.delete()
@@ -471,6 +518,7 @@ class ProjectOptionsTests(TestCase):
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         assert self.project.get_option(self.option_key) is True
 
+    @skip("Template feature is not active at the moment")
     def test_get_template_option(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")

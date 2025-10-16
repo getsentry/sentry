@@ -10,12 +10,12 @@ import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/comp
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('WebVitalsDetailPanel', function () {
+describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
   let eventsMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -35,17 +35,14 @@ describe('WebVitalsDetailPanel', function () {
       },
     });
     eventsStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {
-        data: [
-          [1543449600, [20, 12]],
-          [1543449601, [10, 5]],
-        ],
+        timeSeries: [],
       },
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 
@@ -136,7 +133,7 @@ describe('WebVitalsDetailPanel', function () {
             'opportunity_score(measurements.score.total)',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,\"\"] !transaction:\"<< unparameterized >>\" avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
         }),
       })
     );

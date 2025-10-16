@@ -12,6 +12,7 @@ export function RawReplayErrorFixture(
     'issue.id': error['issue.id'] ?? 3740335939,
     'project.name': error['project.name'] ?? 'javascript',
     timestamp: error.timestamp.toISOString(),
+    level: error.level ?? 'Error',
     title: error.title ?? 'A Redirect with :orgId param on customer domain',
   };
 }

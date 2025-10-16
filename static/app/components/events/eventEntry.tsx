@@ -18,7 +18,6 @@ import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
-import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
 import {Template} from './interfaces/template';
 import {Threads} from './interfaces/threads';
@@ -123,20 +122,18 @@ function EventEntryContent({
       );
 
     case EntryType.SPANS:
-      // XXX: We currently do not show spans in the share view,
-      if (isShare) {
+      // XXX: We currently do not show spans in the share view.
+      if (isShare || !issueTypeConfig?.spanEvidence.enabled) {
         return null;
       }
-      if (issueTypeConfig?.spanEvidence.enabled) {
-        return (
-          <SpanEvidenceSection
-            event={event as EventTransaction}
-            organization={organization as Organization}
-            projectSlug={projectSlug}
-          />
-        );
-      }
-      return <Spans event={event as EventTransaction} />;
+
+      return (
+        <SpanEvidenceSection
+          event={event as EventTransaction}
+          organization={organization as Organization}
+          projectSlug={projectSlug}
+        />
+      );
 
     // this should not happen
     default:

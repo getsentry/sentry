@@ -17,7 +17,7 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLink} from './stacktraceLink';
 
-describe('StacktraceLink', function () {
+describe('StacktraceLink', () => {
   const org = OrganizationFixture();
   const platform = 'python';
   const project = ProjectFixture();
@@ -34,14 +34,14 @@ describe('StacktraceLink', function () {
 
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     HookStore.init?.();
   });
 
-  it('renders setup CTA with integration but no configs', async function () {
+  it('renders setup CTA with integration but no configs', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: [integration]},
@@ -52,7 +52,7 @@ describe('StacktraceLink', function () {
     expect(await screen.findByText('Set up Code Mapping')).toBeInTheDocument();
   });
 
-  it('renders source url link', async function () {
+  it('renders source url link', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
@@ -60,12 +60,11 @@ describe('StacktraceLink', function () {
     render(
       <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
     );
-    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'Open this line in GitHub'});
     expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
-  it('displays fix modal on error', async function () {
+  it('displays fix modal on error', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -82,7 +81,7 @@ describe('StacktraceLink', function () {
     ).toBeInTheDocument();
   });
 
-  it('should hide stacktrace link error state on minified javascript frames', async function () {
+  it('should hide stacktrace link error state on minified javascript frames', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -104,7 +103,7 @@ describe('StacktraceLink', function () {
     });
   });
 
-  it('should hide stacktrace link error state on unsupported platforms', async function () {
+  it('should hide stacktrace link error state on unsupported platforms', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -126,7 +125,7 @@ describe('StacktraceLink', function () {
     });
   });
 
-  it('renders the codecov link', async function () {
+  it('renders the codecov link', async () => {
     const organization = {
       ...org,
       codecovAccess: true,
@@ -155,8 +154,7 @@ describe('StacktraceLink', function () {
       }
     );
 
-    const link = await screen.findByRole('link', {name: 'Open in Codecov'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'Open in Codecov'});
     expect(link).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py#L233'
@@ -169,7 +167,7 @@ describe('StacktraceLink', function () {
     );
   });
 
-  it('renders the missing coverage warning', async function () {
+  it('renders the missing coverage warning', async () => {
     const organization = {
       ...org,
       codecovAccess: true,
@@ -196,7 +194,7 @@ describe('StacktraceLink', function () {
     expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
   });
 
-  it('skips codecov when the feature is disabled at org level', async function () {
+  it('skips codecov when the feature is disabled at org level', async () => {
     const organization = {
       ...org,
       codecovAccess: false,
@@ -221,12 +219,12 @@ describe('StacktraceLink', function () {
       }
     );
     expect(
-      await screen.findByRole('link', {name: 'Open this line in GitHub'})
+      await screen.findByRole('button', {name: 'Open this line in GitHub'})
     ).toBeInTheDocument();
     expect(stacktraceCoverageMock).not.toHaveBeenCalled();
   });
 
-  it('renders the link using a valid sourceLink for a .NET project', async function () {
+  it('renders the link using a valid sourceLink for a .NET project', async () => {
     const dotnetFrame = {
       filename: 'path/to/file.py',
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
@@ -247,15 +245,14 @@ describe('StacktraceLink', function () {
         disableSetup={false}
       />
     );
-    const link = await screen.findByRole('link', {name: 'GitHub'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'GitHub'});
     expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
     );
   });
 
-  it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
+  it('renders in-frame stacktrace links and fetches data with 100ms delay', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
@@ -264,8 +261,7 @@ describe('StacktraceLink', function () {
       <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
     );
 
-    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'Open this line in GitHub'});
     expect(link).toHaveAttribute('href', 'https://something.io#L233');
     // The link is an icon with aira label
     expect(link).toHaveTextContent('');
@@ -273,7 +269,7 @@ describe('StacktraceLink', function () {
     expect(mockRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('does not render the setup button when disableSetup is true', async function () {
+  it('does not render the setup button when disableSetup is true', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: [integration]},

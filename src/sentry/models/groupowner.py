@@ -4,13 +4,12 @@ import itertools
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from enum import Enum
-from typing import Any, TypedDict
+from enum import Enum, StrEnum
+from typing import ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
 from django.db.models import BigIntegerField, F
-from django.db.models import JSONField as DjangoJSONField
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast
 from django.utils import timezone
@@ -18,7 +17,8 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.group import Group
 from sentry.utils.cache import cache
 
@@ -48,10 +48,56 @@ GROUP_OWNER_TYPE = {
 }
 
 
+class SuspectCommitStrategy(StrEnum):
+    RELEASE_BASED = "release_based"  # legacy strategy, used as fallback if scm_based fails
+    SCM_BASED = "scm_based"
+
+
 class OwnersSerialized(TypedDict):
     type: str
     owner: str
     date_added: datetime
+
+
+class GroupOwnerManager(BaseManager["GroupOwner"]):
+    def update_or_create_and_preserve_context(
+        self, lookup_kwargs: dict, defaults: dict, context_defaults: dict
+    ) -> tuple[GroupOwner, bool]:
+        """
+        update_or_create doesn't have great support for json fields like context.
+        To preserve the existing content and update only the keys we specify,
+        we have to handle the operation this way.
+
+        use lookup_kwargs to perform the .get()
+        if found: update the object with defaults and the context with context_defaults
+        if not found: create the object with the values in lookup_kwargs, defaults, and context_defaults
+
+        Note: lookup_kwargs is modified if the GroupOwner is created, do not reuse it for other purposes!
+        """
+        try:
+            group_owner = GroupOwner.objects.annotate(
+                context__asjsonb=Cast("context", models.JSONField())
+            ).get(**lookup_kwargs)
+
+            for k, v in defaults.items():
+                setattr(group_owner, k, v)
+
+            existing_context = group_owner.context or {}
+            existing_context.update(context_defaults)
+            group_owner.context = existing_context
+
+            group_owner.save()
+            return group_owner, False
+        except GroupOwner.DoesNotExist:
+            # modify lookup_kwargs so they can be used to create the GroupOwner
+            keys_to_delete = [k for k in lookup_kwargs.keys() if "__" in k]
+            for k in keys_to_delete:
+                del lookup_kwargs[k]
+
+            lookup_kwargs.update(defaults)
+            lookup_kwargs["context"] = context_defaults
+
+            return GroupOwner.objects.create(**lookup_kwargs), True
 
 
 @region_silo_model
@@ -72,10 +118,12 @@ class GroupOwner(Model):
             (GroupOwnerType.CODEOWNERS, "Codeowners"),
         )
     )
-    context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    context = LegacyTextJSONField(null=True)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects: ClassVar[GroupOwnerManager] = GroupOwnerManager()
 
     class Meta:
         app_label = "sentry"
@@ -87,7 +135,7 @@ class GroupOwner(Model):
                 Cast(
                     KeyTextTransform(
                         "commitId",
-                        Cast(F("context"), DjangoJSONField()),
+                        Cast(F("context"), models.JSONField()),
                     ),
                     BigIntegerField(),
                 ),

@@ -11,9 +11,9 @@ import {
 } from 'sentry/views/performance/trends/utils';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-describe('Trend parameter utils', function () {
-  describe('performanceTypeToTrendParameterLabel', function () {
-    it('returns correct trend parameter label based on performance type', function () {
+describe('Trend parameter utils', () => {
+  describe('performanceTypeToTrendParameterLabel', () => {
+    it('returns correct trend parameter label based on performance type', () => {
       const lcp = {
         label: TrendParameterLabel.LCP,
         column: TrendParameterColumn.LCP,
@@ -51,7 +51,7 @@ describe('Trend parameter utils', function () {
     });
   });
 
-  describe('getCurrentTrendParameter', function () {
+  describe('getCurrentTrendParameter', () => {
     it('returns trend parameter from location', () => {
       const location = LocationFixture({query: {trendParameter: 'FCP'}});
       const expectedTrendParameter = {
@@ -65,7 +65,7 @@ describe('Trend parameter utils', function () {
       expect(output).toEqual(expectedTrendParameter);
     });
 
-    it('returns default trend parameter based on project type if no trend parameter set in location', function () {
+    it('returns default trend parameter based on project type if no trend parameter set in location', () => {
       const location = LocationFixture();
       const expectedTrendParameter = {
         label: TrendParameterLabel.DURATION,

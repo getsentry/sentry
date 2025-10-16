@@ -13,10 +13,10 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import InvoiceDetails from 'admin/views/invoiceDetails';
 
-describe('InvoiceDetails', function () {
+describe('InvoiceDetails', () => {
   const mockOrg = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/`,
@@ -43,8 +43,8 @@ describe('InvoiceDetails', function () {
     ]);
   });
 
-  describe('Close Invoice', function () {
-    it('can close invoice', async function () {
+  describe('Close Invoice', () => {
+    it('can close invoice', async () => {
       const invoice = InvoiceFixture({isClosed: false});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,
@@ -77,7 +77,7 @@ describe('InvoiceDetails', function () {
       expect(updateMock).toHaveBeenCalled();
     });
 
-    it('cannot close already closed invoice', async function () {
+    it('cannot close already closed invoice', async () => {
       const invoice = InvoiceFixture({isClosed: true});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,
@@ -104,7 +104,7 @@ describe('InvoiceDetails', function () {
       );
     });
 
-    it('requires billing admin permission', async function () {
+    it('requires billing admin permission', async () => {
       ConfigStore.set('user', UserFixture({permissions: new Set([])}));
 
       const invoice = InvoiceFixture({isClosed: false});
@@ -134,8 +134,8 @@ describe('InvoiceDetails', function () {
     });
   });
 
-  describe('Retry Payment', function () {
-    it('can retry payment', async function () {
+  describe('Retry Payment', () => {
+    it('can retry payment', async () => {
       const invoice = InvoiceFixture({isPaid: false});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,
@@ -171,7 +171,7 @@ describe('InvoiceDetails', function () {
       expect(updateMock).toHaveBeenCalled();
     });
 
-    it('cannot retry already paid invoice', async function () {
+    it('cannot retry already paid invoice', async () => {
       const invoice = InvoiceFixture({isPaid: true});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,

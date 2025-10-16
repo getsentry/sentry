@@ -4,10 +4,12 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './aiohttp';
 
-describe('aiohttp onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('aiohttp onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -16,7 +18,7 @@ describe('aiohttp onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -32,7 +34,7 @@ describe('aiohttp onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders transaction profiling', function () {
+  it('renders transaction profiling', () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
@@ -49,7 +51,7 @@ describe('aiohttp onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });
@@ -74,5 +76,47 @@ describe('aiohttp onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).toBeInTheDocument();
+  });
+
+  it('renders with logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    // Renders logs config
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).toBeInTheDocument();
+
+    // Renders logs verification steps
+    expect(
+      screen.getByText('You can send logs to Sentry using the Sentry logging APIs:')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders without logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render logs config
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
+
+    // Does not render logs verification steps
+    expect(
+      screen.queryByText('You can send logs to Sentry using the Sentry logging APIs:')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+      )
+    ).not.toBeInTheDocument();
   });
 });

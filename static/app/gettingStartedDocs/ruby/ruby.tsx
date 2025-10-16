@@ -7,30 +7,38 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
+import {getRubyLogsOnboarding} from 'sentry/utils/gettingStartedDocs/ruby';
 
 type Params = DocsParams;
 
 export const getRubyProfilingOnboarding = ({
   frameworkPackage,
-}: {frameworkPackage?: string} = {}) => ({
+}: {frameworkPackage?: string} = {}): OnboardingConfig => ({
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'We use the [code:stackprof] [stackprofLink:gem] to collect profiles for Ruby.',
+      content: [
         {
-          code: <code />,
-          stackprofLink: <ExternalLink href="https://github.com/tmm1/stackprof" />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'We use the [code:stackprof] [stackprofLink:gem] to collect profiles for Ruby.',
+            {
+              code: <code />,
+              stackprofLink: <ExternalLink href="https://github.com/tmm1/stackprof" />,
+            }
+          ),
+        },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before the Sentry SDK.',
             {
               code: <code />,
             }
           ),
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: `
 gem 'stackprof'
@@ -47,18 +55,21 @@ gem '${frameworkPackage}'`
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Then, make sure both [code:traces_sample_rate] and [code:profiles_sample_rate] are set and non-zero in your Sentry initializer.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Then, make sure both [code:traces_sample_rate] and [code:profiles_sample_rate] are set and non-zero in your Sentry initializer.',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Ruby',
-              value: 'ruby',
               filename: 'config/initializers/sentry.rb',
               language: 'ruby',
               code: `
@@ -74,7 +85,19 @@ end
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
+    },
+  ],
 });
 
 const getInstallSnippet = (params: Params) =>
@@ -134,16 +157,23 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
+      content: [
         {
-          gemfileCode: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
+            {
+              gemfileCode: <code />,
+            }
+          ),
+        },
         {
-          description: params.isProfilingSelected
-            ? tct(
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
                 'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
@@ -151,13 +181,21 @@ const onboarding: OnboardingConfig = {
                   ),
                   code: <code />,
                 }
-              )
-            : undefined,
+              ),
+            },
+          ],
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: getInstallSnippet(params),
         },
         {
-          description: t('After adding the gems, run the following to install the SDK:'),
+          type: 'text',
+          text: t('After adding the gems, run the following to install the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: 'bundle install',
         },
@@ -167,12 +205,16 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To use Sentry Ruby all you need is your DSN. Like most Sentry libraries it will honor the [code:SENTRY_DSN] environment variable. You can find it on the project settings page under API Keys. You can either export it as environment variable or manually configure it with [code:Sentry.init]:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'To use Sentry Ruby all you need is your DSN. Like most Sentry libraries it will honor the [code:SENTRY_DSN] environment variable. You can find it on the project settings page under API Keys. You can either export it as environment variable or manually configure it with [code:Sentry.init]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: getConfigureSnippet(params),
         },
@@ -182,11 +224,15 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: getVerifySnippet(),
         },
@@ -199,6 +245,9 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
   profilingOnboarding: getRubyProfilingOnboarding(),
+  logsOnboarding: getRubyLogsOnboarding({
+    docsPlatform: 'ruby',
+  }),
 };
 
 export default docs;

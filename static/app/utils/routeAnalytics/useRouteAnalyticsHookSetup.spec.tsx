@@ -12,8 +12,8 @@ function TestComponent() {
   return <div>hi</div>;
 }
 
-describe('useRouteAnalyticsHookSetup', function () {
-  it('registers callback', function () {
+describe('useRouteAnalyticsHookSetup', () => {
+  it('registers callback', () => {
     const {organization} = initializeOrg();
     const setOrganization = jest.fn();
     render(

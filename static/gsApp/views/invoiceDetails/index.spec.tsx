@@ -15,7 +15,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
 
-describe('InvoiceDetails', function () {
+describe('InvoiceDetails', () => {
   const {organization, router, routerProps} = initializeOrg();
   const basicInvoice = InvoiceFixture(
     {
@@ -61,7 +61,7 @@ describe('InvoiceDetails', function () {
   );
   const params = {invoiceGuid: basicInvoice.id};
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
 
@@ -72,7 +72,7 @@ describe('InvoiceDetails', function () {
     });
   });
 
-  it('renders basic invoice details', async function () {
+  it('renders basic invoice details', async () => {
     const mockapi = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
       method: 'GET',
@@ -94,7 +94,7 @@ describe('InvoiceDetails', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders disclaimer with annual billing', async function () {
+  it('renders disclaimer with annual billing', async () => {
     const annualInvoice = InvoiceFixture(
       {
         customer: SubscriptionFixture({
@@ -120,7 +120,7 @@ describe('InvoiceDetails', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders credit applied', async function () {
+  it('renders credit applied', async () => {
     const mockapi = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/${creditInvoice.id}/`,
       method: 'GET',
@@ -135,7 +135,7 @@ describe('InvoiceDetails', function () {
     expect(screen.getByText('$89.00 USD')).toBeInTheDocument();
   });
 
-  it('renders an error', async function () {
+  it('renders an error', async () => {
     const mockapi = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
       method: 'GET',
@@ -150,7 +150,7 @@ describe('InvoiceDetails', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders without pay now for self serve partner', async function () {
+  it('renders without pay now for self serve partner', async () => {
     router.location = {
       ...router.location,
       query: {referrer: 'billing-failure'},
@@ -191,12 +191,12 @@ describe('InvoiceDetails', function () {
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
-    expect(screen.getByText(/Invoice Details/)).toBeInTheDocument();
+    expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
     expect(screen.getByText(/AWAITING PAYMENT/)).toBeInTheDocument();
     expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
   });
 
-  it('sends a request to email the invoice', async function () {
+  it('sends a request to email the invoice', async () => {
     const mockget = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
       method: 'GET',
@@ -227,7 +227,7 @@ describe('InvoiceDetails', function () {
     expect(screen.queryByText('user@example.com')).not.toBeInTheDocument();
   });
 
-  it('renders with open pay now with billing failure referrer', async function () {
+  it('renders with open pay now with billing failure referrer', async () => {
     const pastDueInvoice = InvoiceFixture(
       {
         amount: 8900,
@@ -272,20 +272,20 @@ describe('InvoiceDetails', function () {
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
     await waitFor(() => expect(mockapiPayments).toHaveBeenCalled());
 
-    expect(screen.getByText(/Invoice Details/)).toBeInTheDocument();
+    expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
     expect(screen.getAllByText(/Pay Now/)).toHaveLength(2);
-    expect(screen.getByText(/Pay Invoice/)).toBeInTheDocument();
+    expect(screen.getByText(/Pay Bill/)).toBeInTheDocument();
     expect(screen.getByText(/Card Details/)).toBeInTheDocument();
     expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument();
     expect(screen.getByTestId('cancel')).toBeInTheDocument();
     expect(screen.getByTestId('submit')).toBeInTheDocument();
   });
 
-  describe('Invoice Details Attributes', function () {
+  describe('Invoice Details Attributes', () => {
     const billingDetails = BillingDetailsFixture({taxNumber: '123456789'});
     SubscriptionFixture({organization});
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
       SubscriptionStore.set(organization.slug, {});
 
@@ -296,7 +296,7 @@ describe('InvoiceDetails', function () {
       });
     });
 
-    it('renders with billing address', async function () {
+    it('renders with billing address', async () => {
       const mockInvoice = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
         method: 'GET',
@@ -318,7 +318,7 @@ describe('InvoiceDetails', function () {
       expect(screen.queryByText('Regional Tax Id: 5678')).not.toBeInTheDocument();
     });
 
-    it('renders sentry tax ids', async function () {
+    it('renders sentry tax ids', async () => {
       const basicInvoiceWithSentryTaxIds = InvoiceFixture(
         {
           sentryTaxIds: {
@@ -346,7 +346,7 @@ describe('InvoiceDetails', function () {
       expect(screen.getByText('Regional Tax Id: 5678')).toBeInTheDocument();
     });
 
-    it('renders reverse charge row', async function () {
+    it('renders reverse charge row', async () => {
       const basicInvoiceReverseCharge = InvoiceFixture(
         {
           isReverseCharge: true,

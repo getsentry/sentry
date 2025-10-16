@@ -13,7 +13,7 @@ signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 class RedisScriptMinHashIndexBackendTestCase(TestCase):
     @cached_property
-    def index(self):
+    def index(self) -> RedisScriptMinHashIndexBackend:
         return RedisScriptMinHashIndexBackend(
             redis.clusters.get("default").get_local_client(0),
             "sim",

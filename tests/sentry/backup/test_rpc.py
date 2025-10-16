@@ -57,7 +57,7 @@ class RpcImportRetryTests(TestCase):
         option_count = Option.objects.count()
         import_chunk_count = RegionImportChunk.objects.count()
 
-        def verify_option_write():
+        def verify_option_write() -> RegionImportChunk:
             result = import_export_service.import_by_model(
                 import_model_name="sentry.option",
                 scope=RpcImportScope.Global,
@@ -132,7 +132,7 @@ class RpcImportRetryTests(TestCase):
             control_option_count = ControlOption.objects.count()
             import_chunk_count = ControlImportChunk.objects.count()
 
-        def verify_control_option_write():
+        def verify_control_option_write() -> ControlImportChunk:
             result = import_export_service.import_by_model(
                 import_model_name="sentry.controloption",
                 scope=RpcImportScope.Global,

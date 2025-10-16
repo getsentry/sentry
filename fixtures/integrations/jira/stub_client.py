@@ -44,7 +44,7 @@ class StubJiraApiClient(StubService):
     def transition_issue(self, issue_key, transition_id):
         pass
 
-    def user_id_field(self):
+    def user_id_field(self) -> str:
         return "accountId"
 
     def get_user(self, user_id):

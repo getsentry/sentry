@@ -1,9 +1,9 @@
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 
-describe('getDetectorResolutionDescription', function () {
-  describe('dynamic detection type', function () {
-    it('returns automatic resolution message for dynamic detection', function () {
+describe('getDetectorResolutionDescription', () => {
+  describe('dynamic detection type', () => {
+    it('returns automatic resolution message for dynamic detection', () => {
       const result = getResolutionDescription({
         detectionType: 'dynamic',
         thresholdSuffix: '%',
@@ -15,8 +15,8 @@ describe('getDetectorResolutionDescription', function () {
     });
   });
 
-  describe('static detection type', function () {
-    it('returns less than message for GREATER condition', function () {
+  describe('static detection type', () => {
+    it('returns less than message for GREATER condition', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.GREATER,
@@ -29,7 +29,7 @@ describe('getDetectorResolutionDescription', function () {
       );
     });
 
-    it('returns more than message for non-GREATER condition', function () {
+    it('returns more than message for non-GREATER condition', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.LESS,
@@ -42,7 +42,7 @@ describe('getDetectorResolutionDescription', function () {
       );
     });
 
-    it('handles empty threshold suffix', function () {
+    it('handles empty threshold suffix', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.GREATER,
@@ -56,8 +56,8 @@ describe('getDetectorResolutionDescription', function () {
     });
   });
 
-  describe('percent detection type', function () {
-    it('returns higher than message for GREATER condition', function () {
+  describe('percent detection type', () => {
+    it('returns higher than message for GREATER condition', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
@@ -71,7 +71,7 @@ describe('getDetectorResolutionDescription', function () {
       );
     });
 
-    it('returns not configured message when conditionType is undefined', function () {
+    it('returns not configured message when conditionType is undefined', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: undefined,
@@ -83,7 +83,7 @@ describe('getDetectorResolutionDescription', function () {
       expect(result).toBe('Resolution conditions not configured');
     });
 
-    it('returns not configured message when conditionValue is undefined', function () {
+    it('returns not configured message when conditionValue is undefined', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
@@ -95,7 +95,7 @@ describe('getDetectorResolutionDescription', function () {
       expect(result).toBe('Resolution conditions not configured');
     });
 
-    it('returns lower than message for non-GREATER condition', function () {
+    it('returns lower than message for non-GREATER condition', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.LESS,
@@ -109,7 +109,7 @@ describe('getDetectorResolutionDescription', function () {
       );
     });
 
-    it('formats different time durations correctly', function () {
+    it('formats different time durations correctly', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,

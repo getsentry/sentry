@@ -22,7 +22,7 @@ import {
   updateLocationWithId,
 } from 'sentry/views/explore/contexts/pageParamsContext/id';
 
-import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateFields';
+import type {AggregateField, GroupBy} from './aggregateFields';
 import {
   defaultAggregateFields,
   getAggregateFieldsFromLocation,
@@ -249,60 +249,6 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
-interface UseExploreAggregateFieldsOptions {
-  validate?: boolean;
-}
-
-export function useExploreAggregateFields(
-  options?: UseExploreAggregateFieldsOptions
-): AggregateField[] {
-  const {validate = false} = options || {};
-  const pageParams = useExplorePageParams();
-  return useMemo(() => {
-    if (validate) {
-      return pageParams.aggregateFields.filter(aggregateField => {
-        if (isVisualize(aggregateField)) {
-          return aggregateField.isValid();
-        }
-        return true;
-      });
-    }
-    return pageParams.aggregateFields;
-  }, [pageParams.aggregateFields, validate]);
-}
-
-export function useExploreFields(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.fields;
-}
-
-export function useExploreGroupBys(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.groupBys;
-}
-
-export function useExploreMode(): Mode {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode;
-}
-
-export function useExploreQuery(): string {
-  const pageParams = useExplorePageParams();
-  return pageParams.query;
-}
-
-export function useExploreSortBys(): Sort[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode === Mode.AGGREGATE
-    ? pageParams.aggregateSortBys
-    : pageParams.sortBys;
-}
-
-export function useExploreAggregateSortBys(): Sort[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.aggregateSortBys;
-}
-
 export function useExploreTitle(): string | undefined {
   const pageParams = useExplorePageParams();
   return pageParams.title;
@@ -311,22 +257,6 @@ export function useExploreTitle(): string | undefined {
 export function useExploreId(): string | undefined {
   const pageParams = useExplorePageParams();
   return pageParams.id;
-}
-
-interface UseExploreVisualizesOptions {
-  validate: boolean;
-}
-
-export function useExploreVisualizes(options?: UseExploreVisualizesOptions): Visualize[] {
-  const {validate = false} = options || {};
-  const pageParams = useExplorePageParams();
-
-  return useMemo(() => {
-    if (validate) {
-      return pageParams.visualizes.filter(visualize => visualize.isValid());
-    }
-    return pageParams.visualizes;
-  }, [pageParams.visualizes, validate]);
 }
 
 export function newExploreTarget(
@@ -553,153 +483,5 @@ export function useSetExplorePageParams(): (
       navigate(target);
     },
     [location, navigate, readablePageParams, managedFields, setManagedFields]
-  );
-}
-
-export function useSetExploreAggregateFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (aggregateFields: BaseAggregateField[]) => {
-      setPageParams({aggregateFields});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (fields: string[]) => {
-      setPageParams({fields});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreGroupBys() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (groupBys: string[], mode?: Mode) => {
-      const aggregateFields = [];
-      let i = 0;
-      for (const aggregateField of pageParams.aggregateFields) {
-        if (isGroupBy(aggregateField)) {
-          if (i < groupBys.length) {
-            const groupBy: GroupBy = {groupBy: groupBys[i++]!};
-            aggregateFields.push(groupBy);
-          }
-        } else {
-          aggregateFields.push(aggregateField.toJSON());
-        }
-      }
-      for (; i < groupBys.length; i++) {
-        const groupBy = {groupBy: groupBys[i]!};
-        aggregateFields.push(groupBy);
-      }
-
-      setPageParams({aggregateFields, mode});
-    },
-    [pageParams, setPageParams]
-  );
-}
-
-export function useSetExploreMode() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-
-  return useCallback(
-    (mode: Mode) => {
-      if (mode === Mode.SAMPLES && pageParams.groupBys.some(groupBy => groupBy !== '')) {
-        // When switching from the aggregates to samples mode, carry
-        // over any group bys as they are helpful context when looking
-        // for examples.
-        const fields = [...pageParams.fields];
-        for (const groupBy of pageParams.groupBys) {
-          if (groupBy !== '' && !fields.includes(groupBy)) {
-            fields.push(groupBy);
-          }
-        }
-
-        setPageParams({
-          mode,
-          fields,
-        });
-      } else {
-        setPageParams({mode});
-      }
-    },
-    [pageParams, setPageParams]
-  );
-}
-
-export function useSetExploreQuery() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (query: string) => {
-      setPageParams({query});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreSortBys() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (sortBys: Sort[]) => {
-      setPageParams(
-        pageParams.mode === Mode.AGGREGATE
-          ? {aggregateSortBys: sortBys}
-          : {sampleSortBys: sortBys}
-      );
-    },
-    [pageParams, setPageParams]
-  );
-}
-
-export function useSetExploreVisualizes() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (visualizes: BaseVisualize[]) => {
-      const aggregateFields: WritablePageParams['aggregateFields'] = [];
-      let i = 0;
-      for (const aggregateField of pageParams.aggregateFields) {
-        if (isVisualize(aggregateField)) {
-          if (i < visualizes.length) {
-            aggregateFields.push(visualizes[i++]!);
-          }
-        } else {
-          aggregateFields.push(aggregateField);
-        }
-      }
-      for (; i < visualizes.length; i++) {
-        aggregateFields.push(visualizes[i]!);
-      }
-
-      setPageParams({aggregateFields});
-    },
-    [pageParams, setPageParams]
-  );
-}
-
-export function useSetExploreTitle() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (title: string) => {
-      setPageParams({title});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreId() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (id: string) => {
-      setPageParams({id});
-    },
-    [setPageParams]
   );
 }

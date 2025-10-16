@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers import serialize
@@ -21,6 +22,7 @@ from sentry.models.rule import Rule
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.types.actor import Actor
+from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.users.services.user.service import user_service
 
 NOT_SET = object()
@@ -82,7 +84,7 @@ class BaseAlertRuleSerializerTest:
         else:
             assert result["comparisonDelta"] is None
 
-    def create_issue_alert_rule(self, data):
+    def create_issue_alert_rule(self, data: dict[str, Any]) -> Rule:
         """data format
         {
             "project": project
@@ -258,10 +260,10 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
             }
         )
         other_alert_rule = self.create_alert_rule()
-        uptime_monitor = self.create_project_uptime_subscription()
+        uptime_detector = self.create_uptime_detector()
 
         result = serialize(
-            [alert_rule, issue_rule, other_alert_rule, uptime_monitor],
+            [alert_rule, issue_rule, other_alert_rule, uptime_detector],
             serializer=CombinedRuleSerializer(),
         )
 
@@ -270,7 +272,9 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         assert result[1]["status"] == "active"
         assert not result[1]["snooze"]
         self.assert_alert_rule_serialized(other_alert_rule, result[2])
-        serialized_uptime_monitor = serialize(uptime_monitor)
+        serialized_uptime_monitor = serialize(
+            uptime_detector, serializer=UptimeDetectorSerializer()
+        )
         serialized_uptime_monitor["type"] = "uptime"
         assert result[3] == serialized_uptime_monitor
 

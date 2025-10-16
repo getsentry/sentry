@@ -10,12 +10,12 @@ import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
 
 const ENDPOINT = '/users/me/user-identities/';
 
-describe('AccountIdentities', function () {
-  beforeEach(function () {
+describe('AccountIdentities', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty', function () {
+  it('renders empty', () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -25,7 +25,7 @@ describe('AccountIdentities', function () {
     render(<AccountIdentities />);
   });
 
-  it('renders list', async function () {
+  it('renders list', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -63,7 +63,7 @@ describe('AccountIdentities', function () {
     expect(await screen.findByText('Google')).toBeInTheDocument();
   });
 
-  it('renders loading error', async function () {
+  it('renders loading error', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -77,7 +77,7 @@ describe('AccountIdentities', function () {
     ).toBeInTheDocument();
   });
 
-  it('disconnects identity', async function () {
+  it('disconnects identity', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',

@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {
   addErrorMessage,
   addLoadingMessage,
+  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -63,8 +64,16 @@ export async function updateMonitor(
       {method: 'PUT', data}
     );
     clearIndicators();
+
+    if (data.status !== undefined) {
+      const isEnabled = data.status === 'active';
+      addSuccessMessage(
+        isEnabled ? t('Cron Monitor enabled') : t('Cron Monitor disabled')
+      );
+    }
+
     return resp;
-  } catch (err) {
+  } catch (err: any) {
     const respError: RequestError = err;
     const updateKeys = Object.keys(data);
 
@@ -165,7 +174,7 @@ export async function deleteMonitorProcessingErrorByType(
       }
     );
     clearIndicators();
-  } catch (err) {
+  } catch (err: any) {
     Sentry.captureException(err);
     if (err.status === 403) {
       addErrorMessage(t('You do not have permission to dismiss these processing errors'));
@@ -189,7 +198,7 @@ export async function deleteProjectProcessingErrorByType(
       query: {errortype},
     });
     clearIndicators();
-  } catch (err) {
+  } catch (err: any) {
     Sentry.captureException(err);
     if (err.status === 403) {
       addErrorMessage(t('You do not have permission to dismiss these processing errors'));

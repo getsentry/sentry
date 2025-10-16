@@ -335,6 +335,19 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         with pytest.raises(ValidationError):
             update_migrated_issue_alert(self.issue_alert)
 
+    def test_keeps_snooze_status(self) -> None:
+        RuleSnooze.objects.create(rule=self.issue_alert)
+        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        assert workflow.enabled is False
+
+        self.issue_alert.data["frequency"] = 5
+        self.issue_alert.save()
+
+        update_migrated_issue_alert(self.issue_alert)
+
+        workflow.refresh_from_db()
+        assert workflow.enabled is False
+
 
 class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
     def setUp(self) -> None:

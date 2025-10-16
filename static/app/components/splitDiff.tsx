@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Change} from 'diff';
 import {diffChars, diffLines, diffWords} from 'diff';
@@ -23,23 +24,68 @@ type Props = {
   type?: keyof typeof diffFnMap;
 };
 
+// this function splits the lines from diffLines into words that are diffed
+function getDisplayData(
+  line: Change[],
+  highlightAdded: Change | undefined,
+  highlightRemoved: Change | undefined
+): Change[] {
+  if (!highlightAdded && !highlightRemoved) {
+    return line;
+  }
+
+  const leftText = line.reduce(
+    (acc, result) => (result.added ? acc : acc + result.value),
+    ''
+  );
+  const rightText = line.reduce(
+    (acc, result) => (result.removed ? acc : acc + result.value),
+    ''
+  );
+
+  if (!leftText && !rightText) {
+    return line;
+  }
+
+  return diffWords(leftText, rightText);
+}
+
 function SplitDiff({className, type = 'lines', base, target}: Props) {
   const diffFn = diffFnMap[type];
 
-  const baseLines = base.split('\n');
-  const targetLines = target.split('\n');
-  const [largerArray] =
-    baseLines.length > targetLines.length
-      ? [baseLines, targetLines]
-      : [targetLines, baseLines];
-  const results = largerArray.map((_line, index) =>
-    diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
-  );
+  const results = diffFn(base, target, {newlineIsToken: true});
+
+  // split one change that includes multiple lines into one change per line (for formatting)
+  const groupedChanges = useMemo((): Change[][] => {
+    let currentLine: Change[] = [];
+    const processedLines: Change[][] = [];
+    for (const change of results) {
+      const lines = change.value.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const lineValue = lines[i];
+        if (lineValue !== undefined && lineValue !== '') {
+          currentLine.push({
+            value: lineValue,
+            added: change.added,
+            removed: change.removed,
+          });
+        }
+        if (i < lines.length - 1) {
+          processedLines.push(currentLine);
+          currentLine = [];
+        }
+      }
+    }
+    if (currentLine.length > 0) {
+      processedLines.push(currentLine);
+    }
+    return processedLines;
+  }, [results]);
 
   return (
     <SplitTable className={className} data-test-id="split-diff">
       <SplitBody>
-        {results.map((line, j) => {
+        {groupedChanges.map((line, j) => {
           const highlightAdded = line.find(result => result.added);
           const highlightRemoved = line.find(result => result.removed);
 
@@ -47,7 +93,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
             <tr key={j}>
               <Cell isRemoved={highlightRemoved}>
                 <Line>
-                  {line
+                  {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.added)
                     .map((result, i) => (
                       <Word key={i} isRemoved={result.removed}>
@@ -61,7 +107,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
 
               <Cell isAdded={highlightAdded}>
                 <Line>
-                  {line
+                  {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.removed)
                     .map((result, i) => (
                       <Word key={i} isAdded={result.added}>

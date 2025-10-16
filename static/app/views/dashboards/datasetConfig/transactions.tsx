@@ -13,10 +13,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {
   getAggregations,
-  type QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   TRANSACTION_FIELDS,
   TRANSACTIONS_AGGREGATION_FUNCTIONS,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {
   DiscoverQueryExtras,
@@ -28,8 +28,8 @@ import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
-  type OnDemandControlContext,
   shouldUseOnDemandMetrics,
+  type OnDemandControlContext,
 } from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -40,7 +40,7 @@ import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
-import {type DatasetConfig, handleOrderByReset} from './base';
+import {handleOrderByReset, type DatasetConfig} from './base';
 import {
   doOnDemandMetricsRequest,
   filterAggregateParams,
@@ -217,7 +217,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );

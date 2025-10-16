@@ -228,6 +228,7 @@ export function ComboBox({
       listBoxRef,
       inputRef,
       popoverRef,
+      shouldFocusWrap: true,
       onFocus: handleComboBoxFocus,
       onBlur: handleComboBoxBlur,
       onKeyDown: handleComboBoxKeyDown,
@@ -338,7 +339,6 @@ export function ComboBox({
             listState={state}
             hasSearch={!!filterValue}
             hiddenOptions={hiddenOptions}
-            keyDownHandler={() => true}
             overlayIsOpen={isOpen}
             size="sm"
           />

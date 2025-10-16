@@ -22,7 +22,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -30,6 +29,7 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
@@ -844,8 +844,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            # The trace view isn't useful without global views, so skipping the check here
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -1024,9 +1023,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
-            snuba_params = self.get_snuba_params(
-                self.request, self.request.organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(self.request, self.request.organization)
             if current_generation is None:
                 for root in roots:
                     # We might not be necessarily connected to the root if we're on an orphan event
@@ -1178,9 +1175,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        snuba_params = self.get_snuba_params(
-            self.request, self.request.organization, check_global_views=False
-        )
+        snuba_params = self.get_snuba_params(self.request, self.request.organization)
         # The root of the orphan tree we're currently navigating through
         orphan_root: SnubaTransaction | None = None
         if roots:
@@ -1484,8 +1479,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            # The trace meta isn't useful without global views, so skipping the check here
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 

@@ -1,5 +1,6 @@
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.match import MatchType
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -9,7 +10,7 @@ pytestmark = [requires_snuba]
 class TaggedEventConditionTest(RuleTestCase):
     rule_cls = TaggedEventCondition
 
-    def get_event(self):
+    def get_event(self) -> Event:
         event = self.event
         event.data["tags"] = (
             ("logger", "sentry.example"),

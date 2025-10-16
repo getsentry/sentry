@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         min_ago = before_now(minutes=1).isoformat()
         self.org = self.create_organization(owner=self.user)
@@ -26,7 +26,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         self.group = self.event.group
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         url = reverse(
             "sentry-api-0-event-id-lookup",
             kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
@@ -40,7 +40,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["eventId"] == str(self.event.event_id)
         assert response.data["event"]["id"] == str(self.event.event_id)
 
-    def test_missing_eventid(self):
+    def test_missing_eventid(self) -> None:
         url = reverse(
             "sentry-api-0-event-id-lookup",
             kwargs={"organization_id_or_slug": self.org.slug, "event_id": "c" * 32},
@@ -50,7 +50,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.content
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
+    def test_ratelimit(self) -> None:
         url = reverse(
             "sentry-api-0-event-id-lookup",
             kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
@@ -61,7 +61,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
             resp = self.client.get(url, format="json")
             assert resp.status_code == 429
 
-    def test_invalid_event_id(self):
+    def test_invalid_event_id(self) -> None:
         with pytest.raises(NoReverseMatch):
             reverse(
                 "sentry-api-0-event-id-lookup",

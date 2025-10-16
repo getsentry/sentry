@@ -1,5 +1,10 @@
+from collections.abc import Callable, Collection
+from types import ModuleType
+
 import pytest
 
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.utils.sdk_crashes.path_replacer import FixedPathReplacer
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
@@ -9,8 +14,10 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 
 
 @pytest.fixture
-def store_event(default_project, factories):
-    def inner(data):
+def store_event(
+    default_project: Project, factories: ModuleType
+) -> Callable[[dict[str, Collection[str]]], Event]:
+    def inner(data: dict[str, Collection[str]]) -> Event:
         return factories.store_event(data=data, project_id=default_project.id)
 
     return inner

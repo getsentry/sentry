@@ -16,14 +16,13 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -35,8 +34,8 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -54,34 +53,9 @@ export function useFeatureFlagOnboardingDrawer() {
       });
 
       // Reset store
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     }
   }, [isActive, hasProjectAccess, openDrawer]);
-}
-
-/**
- * @deprecated Use useFeatureFlagOnboardingDrawer instead.
- */
-function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
-  const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const organization = useOrganization();
-
-  const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
-  const hasProjectAccess = organization.access.includes('project:read');
-
-  if (!isActive || !hasProjectAccess) {
-    return null;
-  }
-
-  return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
-      <SidebarContent />
-    </TaskSidebarPanel>
-  );
 }
 
 function SidebarContent() {
@@ -92,8 +66,8 @@ function SidebarContent() {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
-    targetPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
+    currentPanel: OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING,
+    targetPanel: OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING,
     onboardingPlatforms: featureFlagOnboardingPlatforms,
     allPlatforms: featureFlagOnboardingPlatforms,
   });
@@ -153,18 +127,6 @@ function SidebarContent() {
             }}
           >
             <CompactSelect
-              triggerLabel={
-                currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                )
-              }
               value={currentProject?.id}
               onChange={opt => {
                 const newProject = allProjects.find(p => p.id === opt.value);
@@ -174,7 +136,19 @@ function SidebarContent() {
                   platform: newProject?.platform,
                 });
               }}
-              triggerProps={{'aria-label': currentProject?.slug}}
+              triggerProps={{
+                'aria-label': currentProject?.slug,
+                children: currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                ),
+              }}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -251,7 +225,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 sdkSelect: (
                   <CompactSelect
                     size="xs"
-                    triggerLabel={sdkProvider.label}
+                    triggerProps={{children: sdkProvider.label}}
                     value={sdkProvider.value}
                     onChange={value => {
                       setsdkProvider(value);
@@ -361,8 +335,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         projectKeyId={projectKeyId}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         integration={
           setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
         }
@@ -378,11 +351,6 @@ const StyledDefaultContent = styled('div')`
   align-items: flex-start;
   gap: ${space(2)};
   margin: ${space(1)} 0;
-`;
-
-const TaskSidebarPanel = styled(SidebarPanel)`
-  width: 600px;
-  max-width: 100%;
 `;
 
 const TopRightBackgroundImage = styled('img')`
@@ -434,5 +402,3 @@ const SdkSelect = styled('div')`
   align-items: center;
   flex-wrap: wrap;
 `;
-
-export default LegacyFeatureFlagOnboardingSidebar;

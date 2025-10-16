@@ -351,7 +351,7 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
     def test_exception_type_keyerror(self, mock_interface: MagicMock) -> None:
         event = self.get_event()
         rule = self.get_rule(
@@ -388,7 +388,7 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
     def test_error_handled_keyerror(self, mock_interface: MagicMock) -> None:
         event = self.get_event(
             exception={

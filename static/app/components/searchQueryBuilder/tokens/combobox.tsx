@@ -1,11 +1,11 @@
 import {
-  type MouseEventHandler,
-  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  type MouseEventHandler,
+  type ReactNode,
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -13,7 +13,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
-import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
+import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';
@@ -29,11 +29,9 @@ import {
 import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
-import {
-  ASK_SEER_CONSENT_ITEM_KEY,
-  ASK_SEER_ITEM_KEY,
-  AskSeer,
-} from 'sentry/components/searchQueryBuilder/askSeer';
+import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
@@ -43,6 +41,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -320,7 +319,6 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           listState={state}
           hasSearch={!!filterValue}
           hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
           overlayIsOpen={isOpen}
           size="sm"
         />
@@ -415,6 +413,8 @@ export function SearchQueryBuilderCombobox<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the custom menu
     shouldCloseOnBlur: false,
+    // We handle opening and closing ourselves to prevent the combobox from opening unexpectedly
+    menuTrigger: 'manual',
     ...comboBoxProps,
   });
 
@@ -425,6 +425,7 @@ export function SearchQueryBuilderCombobox<
       listBoxRef,
       inputRef,
       popoverRef,
+      shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
           state.open();
@@ -440,20 +441,31 @@ export function SearchQueryBuilderCombobox<
       },
       onKeyDown: e => {
         onKeyDown?.(e, {state});
-        switch (e.key) {
-          case 'Escape':
-            state.close();
-            onExit?.();
+
+        if (e.key === 'Escape') {
+          state.close();
+          onExit?.();
+          return;
+        }
+
+        if (e.key === 'Enter') {
+          if (isOpen && state.selectionManager.focusedKey) {
             return;
-          case 'Enter':
-            if (isOpen && state.selectionManager.focusedKey) {
-              return;
-            }
-            state.close();
-            onCustomValueCommitted(inputValue);
-            return;
-          default:
-            return;
+          }
+          state.close();
+          onCustomValueCommitted(inputValue);
+          return;
+        }
+
+        if (
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowUp' ||
+          /^\w$/i.test(e.key) ||
+          e.key === ','
+        ) {
+          if (isOpen || isCtrlKeyPressed(e)) return;
+          state.open();
+          return;
         }
       },
       onKeyUp,
@@ -499,7 +511,16 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        // We don't want to close the menu when clicking on an anchor element that is
+        // located inside of a tooltip, as the tooltip is technically outside of the
+        // combobox. This is required to enable the Ask Seer tooltip link to work.
+        //
+        // Source: static/app/components/searchQueryBuilder/askSeer/askSeerOption.tsx:71
+        el instanceof HTMLAnchorElement
+      ) {
         return false;
       }
 

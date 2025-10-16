@@ -1,19 +1,19 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {initializeLogsTest} from 'sentry-fixture/log';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
-  LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
@@ -28,11 +28,9 @@ const datePageFilterProps: PickableDays = {
   }),
 };
 
-describe('LogsTabContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['ourlogs-enabled'],
-    },
+describe('LogsTabContent', () => {
+  const {organization, project, setupPageFilters} = initializeLogsTest({
+    orgFeatures: ['search-query-builder-case-insensitivity'],
   });
 
   let eventTableMock: jest.Mock;
@@ -40,11 +38,14 @@ describe('LogsTabContent', function () {
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
           <LogsPageDataProvider>{children}</LogsPageDataProvider>
         </TraceItemAttributeProvider>
-      </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>
     );
   }
 
@@ -63,72 +64,58 @@ describe('LogsTabContent', function () {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  beforeEach(function () {
+  setupPageFilters();
+
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    ProjectsStore.loadInitialData([project]);
-
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
-      },
-      new Set()
-    );
-
+    // Default API mocks
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
         data: [
           {
-            'sentry.item_id': '019621262d117e03bce898cb8f4f6ff7',
-            'project.id': 1,
-            trace: '17cc0bae407042eaa4bf6d798c37d026',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:12+00:00',
-            message: 'some log message1',
-            'tags[sentry.timestamp_precise,number]': 1.7443128722090732e18,
+            [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
+            [OurLogKnownFieldKey.PROJECT_ID]: 1,
+            [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'some log message1',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
           },
           {
-            'sentry.item_id': '0196212624a17144aa392d01420256a2',
-            'project.id': 1,
-            trace: 'c331c2df93d846f5a2134203416d40bb',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:10+00:00',
-            message: 'some log message2',
-            'tags[sentry.timestamp_precise,number]': 1.744312870049196e18,
+            [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
+            [OurLogKnownFieldKey.PROJECT_ID]: 1,
+            [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'some log message2',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
           },
         ],
         meta: {
           fields: {
-            'sentry.item_id': 'string',
-            'project.id': 'string',
-            trace: 'string',
-            severity_number: 'integer',
-            severity_text: 'string',
-            timestamp: 'string',
-            message: 'string',
-            'tags[sentry.timestamp_precise,number]': 'number',
+            [OurLogKnownFieldKey.ID]: 'string',
+            [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+            [OurLogKnownFieldKey.TRACE_ID]: 'string',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+            [OurLogKnownFieldKey.SEVERITY]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+            [OurLogKnownFieldKey.MESSAGE]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
           },
           units: {
-            'sentry.item_id': null,
-            'project.id': null,
-            trace: null,
-            severity_number: null,
-            severity_text: null,
-            timestamp: null,
-            message: null,
-            'tags[sentry.timestamp_precise,number]': null,
+            [OurLogKnownFieldKey.ID]: null,
+            [OurLogKnownFieldKey.PROJECT_ID]: null,
+            [OurLogKnownFieldKey.TRACE_ID]: null,
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: null,
+            [OurLogKnownFieldKey.SEVERITY]: null,
+            [OurLogKnownFieldKey.TIMESTAMP]: null,
+            [OurLogKnownFieldKey.MESSAGE]: null,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
           },
           isMetricsData: false,
           isMetricsExtractedData: false,
@@ -175,7 +162,7 @@ describe('LogsTabContent', function () {
     });
   });
 
-  it('should call APIs as expected', async function () {
+  it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
         <LogsTabContent {...datePageFilterProps} />
@@ -206,8 +193,7 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
-          query:
-            'severity:error tags[sentry.timestamp_precise,number]:<=1508208040000000000',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
         }),
       })
     );
@@ -216,5 +202,95 @@ describe('LogsTabContent', function () {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('should switch between modes', async () => {
+    render(
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
+    );
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
+    expect(screen.getByTestId('logs-toolbar')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Logs'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
+
+  it('should pass caseInsensitive to the query', async () => {
+    render(
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
+    );
+
+    expect(eventTableMock).toHaveBeenCalled();
+
+    const caseInsensitiveBtn = await screen.findByRole('button', {
+      name: 'Ignore case',
+    });
+    await userEvent.click(caseInsensitiveBtn);
+
+    expect(eventTableMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'ourlogs',
+          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+          sort: 'sentry.message.parameters.0',
+          query: 'severity:error',
+          caseInsensitive: 1,
+        }),
+      })
+    );
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'ourlogs',
+          yAxis: 'count(message)',
+          interval: '1h',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
+          caseInsensitive: 1,
+        }),
+      })
+    );
   });
 });

@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
@@ -14,6 +15,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
@@ -26,12 +28,15 @@ import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
+
+const PROFILE_TYPE = 'landing aggregate flamegraph';
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
@@ -69,6 +74,7 @@ interface AggregateFlamegraphToolbarProps {
 }
 
 function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
+  const organization = useOrganization();
   const flamegraph = useFlamegraph();
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
@@ -84,7 +90,11 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   const onResetZoom = useCallback(() => {
     props.scheduler.dispatch('reset zoom');
-  }, [props.scheduler]);
+    trackAnalytics('profiling_views.aggregate_flamegraph.zoom.reset', {
+      organization,
+      profile_type: 'landing aggregate flamegraph',
+    });
+  }, [props.scheduler, organization]);
 
   const onFrameFilterChange = useCallback(
     (value: {value: 'application' | 'system' | 'all'}) => {
@@ -148,16 +158,12 @@ const CollapseExpandButton = styled(Button)`
 
 function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   return (
-    <DoubleChevronWrapper>
+    <Flex>
       <IconChevron style={{marginRight: `-3px`}} {...props} />
       <IconChevron style={{marginLeft: `-3px`}} {...props} />
-    </DoubleChevronWrapper>
+    </Flex>
   );
 }
-
-const DoubleChevronWrapper = styled('div')`
-  display: flex;
-`;
 
 interface LandingAggregateFlamegraphProps {
   onDataState?: (dataState: DataState) => void;
@@ -167,6 +173,7 @@ export function LandingAggregateFlamegraph({
   onDataState,
 }: LandingAggregateFlamegraphProps): React.ReactNode {
   const location = useLocation();
+  const organization = useOrganization();
 
   const {
     data,
@@ -253,6 +260,20 @@ export function LandingAggregateFlamegraph({
 
   const [showSidePanel, setShowSidePanel] = useState(true);
 
+  const initial = useRef(true);
+
+  useEffect(() => {
+    trackAnalytics('profiling_views.aggregate_profile_flamegraph', {
+      organization,
+      profile_type: 'landing aggregate flamegraph',
+      frame_filter: frameFilter,
+      visualization,
+      render: initial.current ? 'initial' : 're-render',
+    });
+
+    initial.current = false;
+  }, [organization, frameFilter, visualization]);
+
   return (
     <ProfileGroupProvider
       traceID=""
@@ -264,7 +285,7 @@ export function LandingAggregateFlamegraph({
         <FlamegraphThemeProvider>
           <FlamegraphProvider>
             <AggregateFlamegraphLayout>
-              <AggregateFlamegraphContainer>
+              <Stack flex="1 1 100%">
                 <AggregateFlamegraphToolbar
                   scheduler={scheduler}
                   canvasPoolManager={canvasPoolManager}
@@ -294,6 +315,7 @@ export function LandingAggregateFlamegraph({
                     onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}
+                    profileType={PROFILE_TYPE}
                   />
                 ) : (
                   <AggregateFlamegraphTreeTable
@@ -302,9 +324,10 @@ export function LandingAggregateFlamegraph({
                     withoutBorders
                     frameFilter={frameFilter}
                     canvasPoolManager={canvasPoolManager}
+                    profileType={PROFILE_TYPE}
                   />
                 )}
-              </AggregateFlamegraphContainer>
+              </Stack>
               <AggregateFlamegraphSidePanelContainer visible={showSidePanel}>
                 <AggregateFlamegraphSidePanel scheduler={scheduler} />
               </AggregateFlamegraphSidePanelContainer>
@@ -361,13 +384,8 @@ const RequestStateMessageContainer = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const AggregateFlamegraphContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-`;
-
 const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`
+  border-left: 1px solid ${p => p.theme.border};
   overflow-y: scroll;
   ${p => !p.visible && 'display: none;'}
 `;

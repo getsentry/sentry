@@ -7,7 +7,6 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GroupStore from 'sentry/stores/groupStore';
-import ModalStore from 'sentry/stores/modalStore';
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 
 describe('ShareIssueModal', () => {
@@ -24,7 +23,6 @@ describe('ShareIssueModal', () => {
     });
   });
   afterEach(() => {
-    ModalStore.reset();
     GroupStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();

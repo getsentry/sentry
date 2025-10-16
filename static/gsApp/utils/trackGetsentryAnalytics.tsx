@@ -4,8 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import type {CheckoutType, Subscription} from 'getsentry/types';
-import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {AddOnCategory, CheckoutType, Subscription} from 'getsentry/types';
 
 type HasSub = {subscription: Subscription};
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
@@ -23,6 +22,11 @@ type AddEventCTA = HasSub & {
   source: string;
   event_types?: string;
 };
+type BillingInfoUpdateEvent = {
+  isStripeComponent: boolean;
+  referrer?: string;
+};
+type ManualPaymentEvent = BillingInfoUpdateEvent;
 
 type OnDemandBudgetStrategy = 'per_category' | 'shared';
 
@@ -44,9 +48,8 @@ export type ProductUnavailableUpsellAlert = {
 type GetsentryEventParameters = {
   'add_event_cta.clicked_cta': AddEventCTA;
   'am_checkout.viewed': HasSub;
-  'billing_details.updated_cc': {
-    referrer?: string;
-  };
+  'billing_details.updated_billing_details': BillingInfoUpdateEvent;
+  'billing_details.updated_cc': BillingInfoUpdateEvent;
   'billing_failure.button_clicked': {
     has_link?: boolean;
     has_permissions?: boolean;
@@ -56,12 +59,8 @@ type GetsentryEventParameters = {
     has_permissions?: boolean;
     referrer?: string;
   };
-  'billing_failure.paid_now': {
-    referrer?: string;
-  };
-  'billing_failure.updated_cc': {
-    referrer?: string;
-  };
+  'billing_failure.paid_now': ManualPaymentEvent;
+  'billing_failure.updated_cc': BillingInfoUpdateEvent;
   'business_landing.clicked': BusinessLanding & {type: string};
   'business_landing.clicked_compare': BusinessLanding;
   'business_landing.clicked_maybe_later': BusinessLanding & {closing_feature: string};
@@ -80,22 +79,28 @@ type GetsentryEventParameters = {
   'checkout.data_slider_changed': {data_type: string; quantity: number};
   // no sub here;
   'checkout.data_sliders_viewed': Record<PropertyKey, unknown>;
+  // only used for checkout v3
+  'checkout.exit': HasSub;
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
-  'checkout.product_select': Record<
-    SelectableProduct,
-    {
-      enabled: boolean;
-      previously_enabled: boolean;
-    }
+  'checkout.product_select': Partial<
+    Record<
+      AddOnCategory,
+      {
+        enabled: boolean;
+        previously_enabled: boolean;
+      }
+    >
   > &
     HasSub;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;
   } & Checkout;
+  'checkout.updated_billing_details': BillingInfoUpdateEvent;
+  'checkout.updated_cc': BillingInfoUpdateEvent;
   // no sub here
   'checkout.upgrade': Partial<
     Record<DataCategory | `previous_${DataCategory}`, number | undefined>
@@ -159,7 +164,12 @@ type GetsentryEventParameters = {
     partner: undefined | string;
   } & HasSub;
   'past_due_modal.seen': HasSub;
-  'performance.quota_exceeded_alert.displayed': {referrer: string};
+  'payg_inline_form.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
+  'payg_inline_form.ondemand_budget.update': OnDemandBudgetUpdate;
+  'performance.quota_exceeded_alert.displayed': {
+    referrer: string;
+    traceItemDataset: string;
+  };
   'power_icon.clicked': {
     source?: string;
   } & HasSub;
@@ -183,10 +193,23 @@ type GetsentryEventParameters = {
   } & HasSub;
   'spend_allocations.open_form': {create_or_edit: string} & HasSub;
   'spend_allocations.submit': {create_or_edit: string} & HasSub;
-  'subscription_page.usagelog_filter.clicked': {selection: string};
-  'subscription_page.viewed': {
-    page_tab: string;
+  'subscription_page.display_mode.changed': {
+    display_mode: 'usage' | 'cost';
   } & HasSub;
+  'subscription_page.download_reports.clicked': {
+    reportType: 'summary' | 'project_breakdown';
+  };
+  'subscription_page.usage_overview.add_on_toggled': {
+    addOnCategory: AddOnCategory;
+    isOpen: boolean;
+  } & HasSub;
+  'subscription_page.usage_overview.row_clicked': {
+    dataCategory: DataCategory;
+  } & HasSub;
+  'subscription_page.usage_overview.transform_changed': {
+    transform: string;
+  } & HasSub;
+  'subscription_page.usagelog_filter.clicked': {selection: string};
   'trial_ended_notice.dismissed_understood': HasSub;
   'trial_reset_notification.modal_dismissed': HasSub;
   'upgrade_now.alert.dismiss': UpdateProps;
@@ -220,7 +243,7 @@ type UpdateProps = Pick<Subscription, 'planTier' | 'canSelfServe' | 'channel'> &
 
 export type GetsentryEventKey = keyof GetsentryEventParameters;
 
-const getsentryEventMap: Record<GetsentryEventKey, string> = {
+export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'power_icon.clicked': 'Clicked Power Icon',
   'github.multi_org.upsell': 'Github Multi-Org Upsell Clicked',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
@@ -273,25 +296,33 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'checkout.click_continue': 'Checkout: Click Continue',
   'checkout.data_slider_changed': 'Checkout: Data Slider Changed',
   'checkout.data_sliders_viewed': 'Checkout: Data Slider Viewed',
+  'checkout.exit': 'Checkout: Back to Subscription Overview',
   'checkout.upgrade': 'Application: Upgrade',
+  'checkout.updated_cc': 'Checkout: Updated CC',
+  'checkout.updated_billing_details': 'Checkout: Updated billing details',
   'checkout.transactions_upgrade': 'Application: Transactions Upgrade',
   'billing_details.updated_cc': 'Billing Details: Updated CC',
+  'billing_details.updated_billing_details': 'Billing Details: Updated billing details',
   'billing_failure.displayed_banner': 'Billing Failure: Displayed Banner',
   'billing_failure.button_clicked': 'Billing Failure: Button Clicked',
   'billing_failure.paid_now': 'Billing Failure: Paid Now',
   'billing_failure.updated_cc': 'Billing Failure: Updated CC',
   'add_event_cta.clicked_cta': 'Add Event CTA: Clicked CTA',
   'subscription_page.usagelog_filter.clicked': 'Usage Log Filter: Clicked',
-  'subscription_page.viewed': 'Subscription Page: Viewed',
+  'subscription_page.download_reports.clicked':
+    'Subscription Page: Download Reports Clicked',
   'sales.contact_us_clicked': 'Clicked Contact Sales',
   'disabled_member_view.loaded': 'Disabled Member View: Loaded',
   'disabled_member_view.clicked_upgrade_request':
     'Disabled Member View: Clicked Upgrade Request',
   'disabled_member_view.clicked_leave_org': 'Disabled Member View: Clicked Leave Org',
-  'ondemand_budget_modal.ondemand_budget.turned_off': 'Disabled On-demand Budget',
-  'ondemand_budget_modal.ondemand_budget.update': 'Update On-demand Budget',
-  'checkout.ondemand_budget.turned_off': 'Checkout: Disabled On-demand Budget',
-  'checkout.ondemand_budget.update': 'Checkout: Update On-demand Budget',
+  'ondemand_budget_modal.ondemand_budget.turned_off': 'Disabled PAYG Budget',
+  'ondemand_budget_modal.ondemand_budget.update': 'Update PAYG Budget',
+  'payg_inline_form.ondemand_budget.turned_off':
+    'PAYG In-line Form: Disabled PAYG Budget',
+  'payg_inline_form.ondemand_budget.update': 'PAYG In-line Form: Update PAYG Budget',
+  'checkout.ondemand_budget.turned_off': 'Checkout: Disabled PAYG Budget',
+  'checkout.ondemand_budget.update': 'Checkout: Update PAYG Budget',
   'trial_reset_notification.modal_dismissed': 'Trial Reset Notification: Modal Dismissed',
   'growth.disabled_dashboard.viewed': 'Growth: Disabled Dashboard Viewed',
   'product_unavailable_upsell_alert.viewed': 'Product Unavailable Upsell: Viewed Alert',
@@ -327,11 +358,18 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'gen_ai_consent.settings_clicked': 'Gen AI Consent: Settings Toggle Clicked',
   'gen_ai_consent.in_drawer_clicked': 'Gen AI Consent: Clicked In Drawer',
   'gen_ai_consent.view_in_settings_clicked': 'Gen AI Consent: View in Settings Clicked',
+  'subscription_page.display_mode.changed': 'Subscription Page: Display Mode Changed',
+  'subscription_page.usage_overview.row_clicked':
+    'Subscription Page: Usage Overview Row Clicked',
+  'subscription_page.usage_overview.transform_changed':
+    'Subscription Page: Usage Overview Transform Changed',
+  'subscription_page.usage_overview.add_on_toggled':
+    'Subscription Page: Usage Overview Add On Toggled',
 };
 
 const trackGetsentryAnalytics = makeAnalyticsFunction<
   GetsentryEventParameters,
   {organization: Organization}
->(getsentryEventMap);
+>(GETSENTRY_EVENT_MAP);
 
 export default trackGetsentryAnalytics;

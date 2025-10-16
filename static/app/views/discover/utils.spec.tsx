@@ -2,13 +2,11 @@ import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -26,7 +24,6 @@ import {
   generateFieldOptions,
   getExpandedResults,
   handleAddQueryToDashboard,
-  pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
 
 jest.mock('sentry/actionCreators/modal');
@@ -48,15 +45,15 @@ const baseView: EventViewOptions = {
   topEvents: undefined,
 };
 
-describe('decodeColumnOrder', function () {
-  it('can decode 0 elements', function () {
+describe('decodeColumnOrder', () => {
+  it('can decode 0 elements', () => {
     const results = decodeColumnOrder([]);
 
     expect(Array.isArray(results)).toBeTruthy();
     expect(results).toHaveLength(0);
   });
 
-  it('can decode fields', function () {
+  it('can decode fields', () => {
     const results = decodeColumnOrder([{field: 'title', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -74,7 +71,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode measurement fields', function () {
+  it('can decode measurement fields', () => {
     const results = decodeColumnOrder([{field: 'measurements.foo', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -92,7 +89,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode span op breakdown fields', function () {
+  it('can decode span op breakdown fields', () => {
     const results = decodeColumnOrder([{field: 'spans.foo', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -110,7 +107,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode aggregate functions with no arguments', function () {
+  it('can decode aggregate functions with no arguments', () => {
     let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -133,7 +130,7 @@ describe('decodeColumnOrder', function () {
     expect(results[0]!.type).toBe('duration');
   });
 
-  it('can decode elements with aggregate functions with arguments', function () {
+  it('can decode elements with aggregate functions with arguments', () => {
     const results = decodeColumnOrder([{field: 'avg(transaction.duration)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -151,7 +148,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode elements with aggregate functions with multiple arguments', function () {
+  it('can decode elements with aggregate functions with multiple arguments', () => {
     const results = decodeColumnOrder([
       {field: 'percentile(transaction.duration, 0.65)'},
     ]);
@@ -171,7 +168,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode elements with aggregate functions using measurements', function () {
+  it('can decode elements with aggregate functions using measurements', () => {
     const results = decodeColumnOrder([{field: 'avg(measurements.foo)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -189,7 +186,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode elements with aggregate functions with multiple arguments using measurements', function () {
+  it('can decode elements with aggregate functions with multiple arguments using measurements', () => {
     const results = decodeColumnOrder([{field: 'percentile(measurements.lcp, 0.65)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -207,7 +204,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode elements with aggregate functions using span op breakdowns', function () {
+  it('can decode elements with aggregate functions using span op breakdowns', () => {
     const results = decodeColumnOrder([{field: 'avg(spans.foo)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -225,7 +222,7 @@ describe('decodeColumnOrder', function () {
     });
   });
 
-  it('can decode elements with aggregate functions with multiple arguments using span op breakdowns', function () {
+  it('can decode elements with aggregate functions with multiple arguments using span op breakdowns', () => {
     const results = decodeColumnOrder([{field: 'percentile(spans.lcp, 0.65)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -244,93 +241,7 @@ describe('decodeColumnOrder', function () {
   });
 });
 
-describe('pushEventViewToLocation', function () {
-  const state: EventViewOptions = {
-    ...baseView,
-    id: '1234',
-    name: 'best query',
-    fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
-    sorts: [{field: 'count', kind: 'desc'}],
-    query: 'event.type:error',
-    project: [42],
-    start: '2019-10-01T00:00:00',
-    end: '2019-10-02T00:00:00',
-    statsPeriod: '14d',
-    environment: ['staging'],
-  };
-
-  const location = LocationFixture({
-    query: {
-      bestCountry: 'canada',
-    },
-  });
-
-  it('correct query string object pushed to history', function () {
-    const navigate = jest.fn();
-    const eventView = new EventView({...baseView, ...state});
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView: eventView,
-    });
-
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          id: '1234',
-          name: 'best query',
-          field: ['count()', 'project.id'],
-          widths: '420',
-          sort: '-count',
-          query: 'event.type:error',
-          project: '42',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          statsPeriod: '14d',
-          environment: 'staging',
-          yAxis: 'count()',
-        }),
-      })
-    );
-  });
-
-  it('extra query params', function () {
-    const navigate = jest.fn();
-    const eventView = new EventView({...baseView, ...state});
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView: eventView,
-      extraQuery: {
-        cursor: 'some cursor',
-      },
-    });
-
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          id: '1234',
-          name: 'best query',
-          field: ['count()', 'project.id'],
-          widths: '420',
-          sort: '-count',
-          query: 'event.type:error',
-          project: '42',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          statsPeriod: '14d',
-          environment: 'staging',
-          cursor: 'some cursor',
-          yAxis: 'count()',
-        }),
-      })
-    );
-  });
-});
-
-describe('getExpandedResults()', function () {
+describe('getExpandedResults()', () => {
   const state: EventViewOptions = {
     ...baseView,
     id: '1234',
@@ -625,7 +536,7 @@ describe('getExpandedResults()', function () {
     expect(result.environment).toEqual(['staging']);
   });
 
-  it('applies the normalized user tag', function () {
+  it('applies the normalized user tag', () => {
     const view = new EventView({
       ...baseView,
       ...state,
@@ -651,7 +562,7 @@ describe('getExpandedResults()', function () {
     expect(result.query).toBe('event.type:error user:1234 title:"something bad"');
   });
 
-  it('applies the user field in a table row', function () {
+  it('applies the user field in a table row', () => {
     const view = new EventView({
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
@@ -756,13 +667,13 @@ describe('getExpandedResults()', function () {
   });
 });
 
-describe('downloadAsCsv', function () {
+describe('downloadAsCsv', () => {
   const messageColumn = {key: 'message', name: 'message'};
   const environmentColumn = {key: 'environment', name: 'environment'};
   const countColumn = {key: 'count', name: 'count'};
   const userColumn = {key: 'user', name: 'user'};
   const equationColumn = {key: 'equation| count() + count()', name: 'count() + count()'};
-  it('handles raw data', function () {
+  it('handles raw data', () => {
     const result = {
       data: [
         {message: 'test 1', environment: 'prod'},
@@ -773,7 +684,7 @@ describe('downloadAsCsv', function () {
       downloadAsCsv(result, [messageColumn, environmentColumn], 'filename.csv')
     ).toContain(encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test'));
   });
-  it('handles aggregations', function () {
+  it('handles aggregations', () => {
     const result = {
       data: [{count: 3}],
     };
@@ -781,7 +692,7 @@ describe('downloadAsCsv', function () {
       encodeURI('count\r\n3')
     );
   });
-  it('quotes unsafe strings', function () {
+  it('quotes unsafe strings', () => {
     const result = {
       data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
     };
@@ -789,7 +700,7 @@ describe('downloadAsCsv', function () {
       encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
     );
   });
-  it('handles the user column', function () {
+  it('handles the user column', () => {
     const result = {
       data: [
         {message: 'test 0', user: 'name:baz'},
@@ -804,7 +715,7 @@ describe('downloadAsCsv', function () {
       )
     );
   });
-  it('handles equations', function () {
+  it('handles equations', () => {
     const result = {
       data: [{'equation| count() + count()': 3}],
     };
@@ -814,7 +725,7 @@ describe('downloadAsCsv', function () {
   });
 });
 
-describe('eventViewToWidgetQuery', function () {
+describe('eventViewToWidgetQuery', () => {
   const state: EventViewOptions = {
     ...baseView,
     id: '1234',
@@ -829,7 +740,7 @@ describe('eventViewToWidgetQuery', function () {
     environment: ['staging'],
   };
 
-  it('updates orderby to function format for top N query', function () {
+  it('updates orderby to function format for top N query', () => {
     const view = new EventView({...baseView, ...state});
     const widgetQuery = eventViewToWidgetQuery({
       eventView: view,
@@ -839,7 +750,7 @@ describe('eventViewToWidgetQuery', function () {
     expect(widgetQuery.orderby).toBe('-count()');
   });
 
-  it('updates orderby to function format for complex function', function () {
+  it('updates orderby to function format for complex function', () => {
     const view = new EventView({
       ...baseView,
       ...state,
@@ -853,7 +764,7 @@ describe('eventViewToWidgetQuery', function () {
     expect(widgetQuery.orderby).toBe('-count_unique(device.locale)');
   });
 
-  it('updates orderby to field', function () {
+  it('updates orderby to field', () => {
     const view = new EventView({
       ...baseView,
       ...state,
@@ -867,8 +778,8 @@ describe('eventViewToWidgetQuery', function () {
   });
 });
 
-describe('generateFieldOptions', function () {
-  it('generates custom measurement field options', function () {
+describe('generateFieldOptions', () => {
+  it('generates custom measurement field options', () => {
     expect(
       generateFieldOptions({
         organization: initializeOrg().organization,
@@ -889,7 +800,7 @@ describe('generateFieldOptions', function () {
     });
   });
 
-  it('disambiguates tags that are also fields', function () {
+  it('disambiguates tags that are also fields', () => {
     expect(
       generateFieldOptions({
         organization: initializeOrg().organization,
@@ -922,10 +833,10 @@ describe('generateFieldOptions', function () {
   });
 });
 
-describe('constructAddQueryToDashboardLink', function () {
+describe('constructAddQueryToDashboardLink', () => {
   let organization: Organization;
   let location: Location;
-  describe('new widget builder', function () {
+  describe('new widget builder', () => {
     beforeEach(() => {
       organization = OrganizationFixture({
         features: [],
@@ -933,7 +844,7 @@ describe('constructAddQueryToDashboardLink', function () {
       location = LocationFixture();
     });
 
-    it('should construct a link with the correct params - total period', function () {
+    it('should construct a link with the correct params - total period', () => {
       const eventView = new EventView({
         ...baseView,
         display: DisplayModes.DEFAULT,
@@ -963,7 +874,7 @@ describe('constructAddQueryToDashboardLink', function () {
         source: DashboardWidgetSource.DISCOVERV2,
       });
     });
-    it('should construct a link with the correct params - topN', function () {
+    it('should construct a link with the correct params - topN', () => {
       // This test assigns a grouping through the fields array in the event view
       const eventView = new EventView({
         ...baseView,
@@ -995,7 +906,7 @@ describe('constructAddQueryToDashboardLink', function () {
         source: DashboardWidgetSource.DISCOVERV2,
       });
     });
-    it('should construct a link with the correct params - daily top N', function () {
+    it('should construct a link with the correct params - daily top N', () => {
       // This test assigns a grouping through the fields array in the event view
       const eventView = new EventView({
         ...baseView,
@@ -1030,19 +941,17 @@ describe('constructAddQueryToDashboardLink', function () {
   });
 });
 
-describe('handleAddQueryToDashboard', function () {
+describe('handleAddQueryToDashboard', () => {
   let organization: Organization;
   let location: Location;
-  let router: InjectedRouter;
   let mockedOpenAddToDashboardModal: jest.Mock;
   beforeEach(() => {
     organization = OrganizationFixture();
     location = LocationFixture();
-    router = RouterFixture();
     mockedOpenAddToDashboardModal = jest.mocked(openAddToDashboardModal);
   });
 
-  it('constructs the correct widget queries for the modal with single yAxis', function () {
+  it('constructs the correct widget queries for the modal with single yAxis', () => {
     const eventView = new EventView({
       ...baseView,
       display: DisplayModes.DEFAULT,
@@ -1052,7 +961,6 @@ describe('handleAddQueryToDashboard', function () {
       eventView,
       organization,
       location,
-      router,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
       source: DashboardWidgetSource.DISCOVERV2,
@@ -1080,7 +988,7 @@ describe('handleAddQueryToDashboard', function () {
     );
   });
 
-  it('constructs the correct widget queries for the modal with single yAxis top N', function () {
+  it('constructs the correct widget queries for the modal with single yAxis top N', () => {
     const eventView = new EventView({
       ...baseView,
       display: DisplayModes.TOP5,
@@ -1091,7 +999,6 @@ describe('handleAddQueryToDashboard', function () {
       eventView,
       organization,
       location,
-      router,
       source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
@@ -1119,7 +1026,7 @@ describe('handleAddQueryToDashboard', function () {
     );
   });
 
-  it('constructs the correct widget queries for the modal with multiple yAxes', function () {
+  it('constructs the correct widget queries for the modal with multiple yAxes', () => {
     const eventView = new EventView({
       ...baseView,
       display: DisplayModes.DEFAULT,
@@ -1129,7 +1036,6 @@ describe('handleAddQueryToDashboard', function () {
       eventView,
       organization,
       location,
-      router,
       source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()', 'count_unique(user)'],
@@ -1157,14 +1063,14 @@ describe('handleAddQueryToDashboard', function () {
     );
   });
 
-  describe('new widget builder', function () {
+  describe('new widget builder', () => {
     beforeEach(() => {
       organization = OrganizationFixture({
         features: [],
       });
     });
 
-    it('constructs the correct widget queries for the modal with single yAxis', function () {
+    it('constructs the correct widget queries for the modal with single yAxis', () => {
       const eventView = new EventView({
         ...baseView,
         display: DisplayModes.DEFAULT,
@@ -1174,7 +1080,6 @@ describe('handleAddQueryToDashboard', function () {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
@@ -1203,7 +1108,7 @@ describe('handleAddQueryToDashboard', function () {
       );
     });
 
-    it('constructs the correct widget queries for the modal with single yAxis top N', function () {
+    it('constructs the correct widget queries for the modal with single yAxis top N', () => {
       const eventView = new EventView({
         ...baseView,
         display: DisplayModes.TOP5,
@@ -1214,7 +1119,6 @@ describe('handleAddQueryToDashboard', function () {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
@@ -1243,7 +1147,7 @@ describe('handleAddQueryToDashboard', function () {
       );
     });
 
-    it('constructs the correct widget queries for the modal with multiple yAxes', function () {
+    it('constructs the correct widget queries for the modal with multiple yAxes', () => {
       const eventView = new EventView({
         ...baseView,
         display: DisplayModes.DEFAULT,
@@ -1253,7 +1157,6 @@ describe('handleAddQueryToDashboard', function () {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()', 'count_unique(user)'],

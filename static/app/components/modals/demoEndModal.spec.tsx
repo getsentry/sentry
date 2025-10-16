@@ -3,8 +3,8 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 import {openModal} from 'sentry/actionCreators/modal';
 import DemoEndModal from 'sentry/components/modals/demoEndModal';
 
-describe('DemoEndModal', function () {
-  it('closes on close button click', async function () {
+describe('DemoEndModal', () => {
+  it('closes on close button click', async () => {
     const closeModal = jest.fn();
 
     renderGlobalModal();
@@ -19,7 +19,7 @@ describe('DemoEndModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('opens sign up page on button click', function () {
+  it('opens sign up page on button click', () => {
     renderGlobalModal();
 
     act(() => openModal(modalProps => <DemoEndModal {...modalProps} tour="issues" />));

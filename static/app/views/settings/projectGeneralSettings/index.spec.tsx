@@ -25,7 +25,7 @@ function getField(role: string, name: string) {
   return screen.getByRole(role, {name});
 }
 
-describe('projectGeneralSettings', function () {
+describe('projectGeneralSettings', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({
     subjectPrefix: '[my-org]',
@@ -47,7 +47,7 @@ describe('projectGeneralSettings', function () {
     route: '/settings/:orgId/projects/:projectId/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/grouping-configs/`,
@@ -72,12 +72,12 @@ describe('projectGeneralSettings', function () {
     mockOnChangeSlug.mockClear();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
 
-  it('renders form fields', async function () {
+  it('renders form fields', async () => {
     render(
       <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />,
 
@@ -87,7 +87,7 @@ describe('projectGeneralSettings', function () {
       }
     );
 
-    expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(
+    expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
       'Project Name'
     );
     expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
@@ -105,7 +105,7 @@ describe('projectGeneralSettings', function () {
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
-  it('disables scrapeJavaScript when equivalent org setting is false', async function () {
+  it('disables scrapeJavaScript when equivalent org setting is false', async () => {
     const orgWithoutScrapeJavaScript = OrganizationFixture({
       scrapeJavaScript: false,
     });
@@ -123,7 +123,7 @@ describe('projectGeneralSettings', function () {
     ).not.toBeChecked();
   });
 
-  it('project admins can remove project', async function () {
+  it('project admins can remove project', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'DELETE',
@@ -150,7 +150,7 @@ describe('projectGeneralSettings', function () {
     expect(router.location.pathname).toBe('/settings/org-slug/projects/');
   });
 
-  it('project admins can transfer project', async function () {
+  it('project admins can transfer project', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/transfer/`,
       method: 'POST',
@@ -183,7 +183,7 @@ describe('projectGeneralSettings', function () {
     expect(addSuccessMessage).toHaveBeenCalled();
   });
 
-  it('handles errors on transfer project', async function () {
+  it('handles errors on transfer project', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/transfer/`,
       method: 'POST',
@@ -215,7 +215,7 @@ describe('projectGeneralSettings', function () {
     );
   });
 
-  it('displays transfer/remove message for non-admins', async function () {
+  it('displays transfer/remove message for non-admins', async () => {
     const nonAdminOrg = OrganizationFixture({
       access: ['org:read'],
     });
@@ -238,7 +238,7 @@ describe('projectGeneralSettings', function () {
     ).toBeInTheDocument();
   });
 
-  it('disables the form for users without write permissions', async function () {
+  it('disables the form for users without write permissions', async () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
@@ -252,7 +252,7 @@ describe('projectGeneralSettings', function () {
     expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
   });
 
-  it('changing project platform updates ProjectsStore', async function () {
+  it('changing project platform updates ProjectsStore', async () => {
     ProjectsStore.loadInitialData([project]);
 
     putMock = MockApiClient.addMockResponse({
@@ -283,7 +283,7 @@ describe('projectGeneralSettings', function () {
     expect(ProjectsStore.getById('2')!.platform).toBe('javascript');
   });
 
-  it('changing name updates ProjectsStore', async function () {
+  it('changing name updates ProjectsStore', async () => {
     ProjectsStore.loadInitialData([project]);
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -305,7 +305,7 @@ describe('projectGeneralSettings', function () {
     );
 
     await userEvent.type(
-      await screen.findByRole('textbox', {name: 'Name'}),
+      await screen.findByRole('textbox', {name: 'Slug'}),
       'New Project'
     );
 
@@ -322,8 +322,8 @@ describe('projectGeneralSettings', function () {
     expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 
-  describe('Non-"save on blur" Field', function () {
-    beforeEach(function () {
+  describe('Non-"save on blur" Field', () => {
+    beforeEach(() => {
       ProjectsStore.loadInitialData([project]);
 
       putMock = MockApiClient.addMockResponse({
@@ -348,7 +348,7 @@ describe('projectGeneralSettings', function () {
       );
     }
 
-    it('can cancel unsaved changes for a field', async function () {
+    it('can cancel unsaved changes for a field', async () => {
       renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
 
@@ -372,7 +372,7 @@ describe('projectGeneralSettings', function () {
       expect(putMock).not.toHaveBeenCalled();
     });
 
-    it('saves when value is changed and "Save" clicked', async function () {
+    it('saves when value is changed and "Save" clicked', async () => {
       renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
 
@@ -402,6 +402,107 @@ describe('projectGeneralSettings', function () {
       });
 
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Console Platform Access Control', () => {
+    beforeEach(() => {
+      mockOnChangeSlug.mockClear();
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/grouping-configs/`,
+        method: 'GET',
+        body: groupingConfigs,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project-slug/environments/`,
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/users/`,
+        method: 'GET',
+        body: [],
+      });
+
+      // required for async updates
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    it('shows all platform options when all console platforms enabled', async () => {
+      const orgWithGamingAccess = OrganizationFixture({
+        enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
+      });
+
+      const projectWithPlatform = ProjectFixture();
+
+      // Add project API mock for this specific org
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithGamingAccess.slug}/${projectWithPlatform.slug}/`,
+        method: 'GET',
+        body: projectWithPlatform,
+      });
+
+      const routerConfig = {
+        location: {
+          pathname: `/settings/${orgWithGamingAccess.slug}/projects/${projectWithPlatform.slug}/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/',
+      };
+
+      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+        organization: orgWithGamingAccess,
+        initialRouterConfig: routerConfig,
+      });
+
+      const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
+      await userEvent.click(platformSelect);
+
+      // Should also show non-console platforms
+      expect(screen.getByText('React')).toBeInTheDocument();
+
+      // Should show console platforms
+      expect(screen.getByText('PlayStation')).toBeInTheDocument();
+      expect(screen.getByText('Xbox')).toBeInTheDocument();
+      expect(screen.getByText('Nintendo Switch')).toBeInTheDocument();
+    });
+
+    it('shows only enabled console platforms', async () => {
+      const orgWithoutGamingFeature = OrganizationFixture({
+        enabledConsolePlatforms: ['nintendo-switch'], // only has nintendo access
+      });
+      const baseProject = ProjectFixture();
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithoutGamingFeature.slug}/${baseProject.slug}/`,
+        method: 'GET',
+        body: baseProject,
+      });
+
+      const routerConfig = {
+        location: {
+          pathname: `/settings/${orgWithoutGamingFeature.slug}/projects/${baseProject.slug}/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/',
+      };
+
+      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+        organization: orgWithoutGamingFeature,
+        initialRouterConfig: routerConfig,
+      });
+
+      const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
+      await userEvent.click(platformSelect);
+
+      // Should not show console platforms except nintendo
+      expect(screen.queryByText('PlayStation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Xbox')).not.toBeInTheDocument();
+
+      // Should show nintendo
+      expect(screen.getByText('Nintendo Switch')).toBeInTheDocument();
+
+      // Should still show non-console platforms
+      expect(screen.getByText('React')).toBeInTheDocument();
     });
   });
 });

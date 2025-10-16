@@ -2,13 +2,12 @@ from time import time
 
 from sentry import nodestore
 from sentry.api.serializers import serialize
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.http import safe_urlopen
 from sentry.models.group import Group
 from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import sentryapp_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
@@ -34,16 +33,9 @@ def get_payload_v0(event):
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.service_hooks.process_service_hook",
-    default_retry_delay=60 * 5,
-    max_retries=5,
+    namespace=sentryapp_tasks,
+    retry=Retry(times=3, delay=60 * 5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=sentryapp_tasks,
-        retry=Retry(
-            times=3,
-            delay=60 * 5,
-        ),
-    ),
 )
 @retry
 def process_service_hook(

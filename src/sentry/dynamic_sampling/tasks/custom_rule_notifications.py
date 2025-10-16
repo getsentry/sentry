@@ -2,57 +2,42 @@
 Task for sending notifications when custom rules have gathered enough samples.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
+import sentry_sdk
 from django.http import QueryDict
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.tasks.common import TimedIterator, to_context_iterator
-from sentry.dynamic_sampling.tasks.constants import MAX_TASK_SECONDS
-from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import (
-    dynamic_sampling_task,
-    dynamic_sampling_task_with_context,
-)
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.search.events.types import SnubaParams
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
+from sentry.utils.json import JSONDecodeError
 
 MIN_SAMPLES_FOR_NOTIFICATION = 10
 
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=1 * 60,  # 1 minute
-    time_limit=1 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=1 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=1 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
-@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def custom_rule_notifications(context: TaskContext) -> None:
+@dynamic_sampling_task
+def custom_rule_notifications() -> None:
     """
     Iterates through all active CustomRules and sends a notification to the rule creator
     whenever enough samples have been collected.
     """
-    log_state = DynamicSamplingLogState()
-    cur_org_id = None
     now = datetime.now(tz=timezone.utc)
     # just for protection filter out rules that are outside the time range (in case the
     # task that deactivates rules is not working)
@@ -67,14 +52,7 @@ def custom_rule_notifications(context: TaskContext) -> None:
         .iterator()
     )
 
-    custom_active_rules = to_context_iterator(custom_active_rules)
-
-    for rule in TimedIterator(context, custom_active_rules, name="custom_rule_notifications"):
-        if rule.organization_id != cur_org_id:
-            cur_org_id = rule.organization_id
-            log_state.num_orgs += 1
-        log_state.num_rows_total += 1
-
+    for rule in custom_active_rules:
         num_samples = get_num_samples(rule)
 
         if num_samples >= MIN_SAMPLES_FOR_NOTIFICATION:
@@ -106,14 +84,19 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         organization=rule.organization,
     )
 
-    result = discover.query(
-        selected_columns=["count()"],
-        snuba_params=params,
-        query=rule.query if rule.query is not None else "",
-        referrer="dynamic_sampling.tasks.custom_rule_notifications",
-    )
-
-    return result["data"][0]["count"]
+    try:
+        result = discover.query(
+            selected_columns=["count()"],
+            snuba_params=params,
+            query=rule.query if rule.query is not None else "",
+            referrer="dynamic_sampling.tasks.custom_rule_notifications",
+        )
+        return result["data"][0]["count"]
+    except JSONDecodeError:
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag("rule_id", rule.id)
+            sentry_sdk.capture_exception()
+        return 0
 
 
 def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None:
@@ -190,20 +173,10 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=3 * 60,  # 3 minutes
-    time_limit=3 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def clean_custom_rule_notifications() -> None:

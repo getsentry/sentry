@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -23,7 +23,14 @@ class NotificationCategory(StrEnum):
 
 
 NOTIFICATION_SOURCE_MAP = {
-    NotificationCategory.DEBUG: ["test"],
+    NotificationCategory.DEBUG: [
+        "test",
+        "error-alert-service",
+        "deployment-service",
+        "slow-load-metric-alert",
+        "performance-monitoring",
+        "team-communication",
+    ],
 }
 
 
@@ -80,7 +87,8 @@ class NotificationData(Protocol):
     """
 
 
-class NotificationRenderedAction(TypedDict):
+@dataclass(frozen=True)
+class NotificationRenderedAction:
     """
     A rendered action for an integration.
     """
@@ -93,6 +101,22 @@ class NotificationRenderedAction(TypedDict):
     link: str
     """
     The underlying link of the action.
+    """
+
+
+@dataclass(frozen=True)
+class NotificationRenderedImage:
+    """
+    An image that will be displayed in the notification.
+    """
+
+    url: str
+    """
+    The URL of the image.
+    """
+    alt_text: str
+    """
+    The alt text of the image.
     """
 
 
@@ -110,13 +134,13 @@ class NotificationRenderedTemplate:
     keeping it concise and useful to the receiver. This string should not contain any formatting,
     and will be displayed as is.
     """
-    actions: list[NotificationRenderedAction]
+    actions: list[NotificationRenderedAction] = field(default_factory=list)
     """
     The list of actions that a receiver may take after having received the notification.
     """
-    chart: str | None = None
+    chart: NotificationRenderedImage | None = None
     """
-    The accessible URL of a chart that will be displayed in the notification.
+    The image that will be displayed in the notification.
     """
     footer: str | None = None
     """
@@ -149,14 +173,10 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     The category that a notification belongs to. This will be used to determine which settings a
     user needs to modify to manage receipt of these notifications (if applicable).
     """
-    # @property
-    # @abc.abstractmethod
-    # def category(self) -> NotificationCategory:
-    #     """
-    #     The category that a notification belongs to. This will be used to determine which settings a
-    #     user needs to modify to manage receipt of these notifications (if applicable).
-    #     """
-    #     ...
+    example_data: T
+    """
+    The example data for this notification.
+    """
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:
@@ -166,9 +186,9 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         """
         ...
 
-    @abc.abstractmethod
     def render_example(self) -> NotificationRenderedTemplate:
         """
         Used to produce a debugging example rendered template for this notification. This
         implementation should be pure, and not populate with any live data.
         """
+        return self.render(data=self.example_data)

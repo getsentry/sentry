@@ -45,10 +45,6 @@ export type Configuration = {
    * A callback to be invoked when the configuration is selected and copied to the clipboard
    */
   onSelectAndCopy?: () => void;
-  /**
-   * Whether or not the configuration or parts of it are currently being loaded
-   */
-  partialLoading?: boolean;
 };
 
 export enum StepType {
@@ -161,9 +157,8 @@ export interface DocsParams<
   organization: Organization;
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
-  projectId: Project['id'];
+  project: Project;
   projectKeyId: ProjectKey['id'];
-  projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   urlPrefix: string;
   /**
@@ -224,6 +219,8 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
+  logsOnboarding?: OnboardingConfig<PlatformOptions>;
+  mcpOnboarding?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   profilingOnboarding?: OnboardingConfig<PlatformOptions>;

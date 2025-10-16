@@ -4,12 +4,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {
   feedbackOnboardingPlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
+import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
@@ -31,25 +31,22 @@ function createWrapper(projectSlug?: string) {
       memoryRouter.navigate(`/${projectSlug}/`);
     }
 
-    return <RouterProvider router={memoryRouter} />;
+    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
   };
 }
 
 function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.init();
-  PageFiltersStore.onInitializeUrlState(
-    {
-      projects: projects.map(p => parseInt(p.id, 10)),
-      environments: [],
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+  PageFiltersStore.onInitializeUrlState({
+    projects: projects.map(p => parseInt(p.id, 10)),
+    environments: [],
+    datetime: {
+      period: '7d',
+      start: null,
+      end: null,
+      utc: null,
     },
-    new Set()
-  );
+  });
 }
 
 describe('useCurrentProjectState', () => {
@@ -71,8 +68,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },
@@ -86,8 +83,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript, angular]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
@@ -101,8 +98,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
@@ -116,8 +113,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript, angular]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
@@ -131,8 +128,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([rust_1, rust_2]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayPlatforms,
       },
@@ -146,8 +143,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([rust_1, javascript]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },
@@ -161,8 +158,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayPlatforms,
       },
@@ -176,8 +173,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayPlatforms,
       },
@@ -191,8 +188,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript, angular]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },
@@ -208,8 +205,8 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([angular]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
+        targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },

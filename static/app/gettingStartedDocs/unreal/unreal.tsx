@@ -1,23 +1,18 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
-
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Params = DocsParams;
 
@@ -167,44 +162,42 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
-          type: 'custom',
-          content: (
-            <Fragment>
-              <h5>{t('Include the UE Crash Reporter')}</h5>
-              <p>
-                {tct(
-                  'You can add the crash reporter client to your game in [strong:Project Settings].',
-                  {strong: <strong />}
-                )}
-              </p>
-              <p>
-                {tct(
-                  'The option is located under [strong:Project > Packaging]; select "show advanced" followed by checking the box for "Include Crash Reporter".',
-                  {strong: <strong />}
-                )}
-              </p>
-            </Fragment>
+          type: 'subheader',
+          text: t('Include the UE Crash Reporter'),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'You can add the crash reporter client to your game in [strong:Project Settings].',
+            {strong: <strong />}
           ),
         },
         {
-          type: 'custom',
-          content: (
-            <Fragment>
-              <h5>{t('Configure the Crash Reporter Endpoint')}</h5>
-              <p>
-                {tct(
-                  "Now that the crash reporter is included, UE needs to know where to send the crash. For that, add the Sentry 'Unreal Engine Endpoint' from the 'Client Keys' settings page to the game's configuration file. This will include which project in Sentry you want to see crashes displayed in. That's accomplished by configuring the [code:CrashReportClient] in the [italic:DefaultEngine.ini] file. Changing the engine is necessary for this to work. Edit the file:",
-                  {
-                    code: <code />,
-                    italic: <i />,
-                  }
-                )}
-              </p>
-              <Alert type="info" showIcon={false}>
-                engine-dir\Engine\Programs\CrashReportClient\Config\DefaultEngine.ini
-              </Alert>
-            </Fragment>
+          type: 'text',
+          text: tct(
+            'The option is located under [strong:Project > Packaging]; select "show advanced" followed by checking the box for "Include Crash Reporter".',
+            {strong: <strong />}
           ),
+        },
+        {
+          type: 'subheader',
+          text: t('Configure the Crash Reporter Endpoint'),
+        },
+        {
+          type: 'text',
+          text: tct(
+            "Now that the crash reporter is included, UE needs to know where to send the crash. For that, add the Sentry 'Unreal Engine Endpoint' from the 'Client Keys' settings page to the game's configuration file. This will include which project in Sentry you want to see crashes displayed in. That's accomplished by configuring the [code:CrashReportClient] in the [italic:DefaultEngine.ini] file. Changing the engine is necessary for this to work. Edit the file:",
+            {
+              code: <code />,
+              italic: <i />,
+            }
+          ),
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          showIcon: false,
+          text: 'engine-dir\\Engine\\Programs\\CrashReportClient\\Config\\DefaultEngine.ini',
         },
         {
           type: 'text',
@@ -256,24 +249,20 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
-          type: 'custom',
-          content: (
-            <Fragment>
-              <h5>{t('Automated Upload')}</h5>
-              <p>
-                {tct(
-                  "The automated debug symbols upload is disabled by default and requires configuration. To enable it, go to [strong:Project Settings > Plugins > Code Plugins] in your editor and turn on 'Upload debug symbols automatically'.",
-                  {
-                    strong: <strong />,
-                  }
-                )}
-              </p>
-              <p>
-                {t(
-                  'Alternatively, you can enable automatic upload by setting the following environment variable:'
-                )}
-              </p>
-            </Fragment>
+          type: 'subheader',
+          text: t('Automated Upload'),
+        },
+        {
+          type: 'text',
+          text: tct(
+            "The automated debug symbols upload is disabled by default and requires configuration. To enable it, go to [strong:Project Settings > Plugins > Code Plugins] in your editor and turn on 'Upload debug symbols automatically'.",
+            {strong: <strong />}
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'Alternatively, you can enable automatic upload by setting the following environment variable:'
           ),
         },
         {
@@ -288,47 +277,38 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
-          type: 'custom',
-          content: (
-            <Fragment>
-              <h5>{t('Manual Upload')}</h5>
-              <p>
-                {tct(
-                  "To manually upload debug symbols, you'll need to use [code:sentry-cli]. This requires your [strong:organization slug], [strong:project slug], and an [strong:authentication token]. These can be configured in one of two ways:",
-                  {
-                    code: <code />,
-                    strong: <strong />,
-                  }
-                )}
-              </p>
-              <List
-                symbol="bullet"
-                css={css`
-                  margin-bottom: ${space(3)};
-                `}
-              >
-                <ListItem>{t('Environment variables (recommended)')}</ListItem>
-                <ListItem>
-                  {tct(
-                    'A [code:sentry.properties] file (automatically created by the Unreal Engine SDK)',
-                    {code: <code />}
-                  )}
-                </ListItem>
-              </List>
-              <p>
-                {tct(
-                  'If the properties file is not found, [code:sentry-cli] will fall back to these environment variables if they are set:',
-                  {code: <code />}
-                )}
-              </p>
-            </Fragment>
+          type: 'subheader',
+          text: t('Manual Upload'),
+        },
+        {
+          type: 'text',
+          text: tct(
+            "To manually upload debug symbols, you'll need to use [code:sentry-cli]. This requires your [strong:organization slug], [strong:project slug], and an [strong:authentication token]. These can be configured in one of two ways:",
+            {code: <code />, strong: <strong />}
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            t('Environment variables (recommended)'),
+            tct(
+              'A [code:sentry.properties] file (automatically created by the Unreal Engine SDK)',
+              {code: <code />}
+            ),
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If the properties file is not found, [code:sentry-cli] will fall back to these environment variables if they are set:',
+            {code: <code />}
           ),
         },
         {
           type: 'code',
           language: 'bash',
           code: `export SENTRY_ORG=${params.organization.slug}
-export SENTRY_PROJECT=${params.projectSlug}
+export SENTRY_PROJECT=${params.project.slug}
 export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
         {
@@ -338,7 +318,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         {
           type: 'code',
           language: 'bash',
-          code: `sentry-cli --auth-token ___ORG_AUTH_TOKEN___ debug-files upload --org ${params.organization.slug} --project ${params.projectSlug} PATH_TO_SYMBOLS`,
+          code: `sentry-cli --auth-token ___ORG_AUTH_TOKEN___ debug-files upload --org ${params.organization.slug} --project ${params.project.slug} PATH_TO_SYMBOLS`,
         },
         {
           type: 'text',
@@ -353,6 +333,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
       ],
     },
+    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
     {
       title: t('Further Settings'),
       content: [
@@ -361,7 +342,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
           content: (
             <StoreCrashReportsConfig
               organization={params.organization}
-              projectSlug={params.projectSlug}
+              projectSlug={params.project.slug}
             />
           ),
         },
@@ -375,13 +356,16 @@ const feedbackOnboardingCrashApi: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'C++',
-              value: 'cpp',
               language: 'cpp',
               code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
 

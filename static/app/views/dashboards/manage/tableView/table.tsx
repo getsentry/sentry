@@ -14,6 +14,7 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useResetDashboardLists} from 'sentry/views/dashboards/hooks/useResetDashboardLists';
@@ -62,7 +63,7 @@ export function DashboardTable({
         header={
           <SavedEntityTable.Header>
             <SavedEntityTable.HeaderCell data-column="star" />
-            <SavedEntityTable.HeaderCell data-column="name">
+            <SavedEntityTable.HeaderCell data-column="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="project">
@@ -83,7 +84,7 @@ export function DashboardTable({
             <SavedEntityTable.HeaderCell data-column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="created" noBorder>
+            <SavedEntityTable.HeaderCell data-column="created">
               {t('Date Created')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="actions" />
@@ -135,7 +136,7 @@ export function DashboardTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created-by">
               {dashboard.createdBy === null ? (
-                <Tooltip title={'Sentry'}>
+                <Tooltip title="Sentry">
                   <ActivityAvatar type="system" size={20} />
                 </Tooltip>
               ) : dashboard.createdBy ? (
@@ -149,33 +150,44 @@ export function DashboardTable({
               <SavedEntityTable.CellTimeSince date={dashboard.dateCreated ?? null} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="actions" hasButton>
-              <SavedEntityTable.CellActions
-                items={[
-                  {
-                    key: 'duplicate',
-                    label: t('Duplicate'),
-                    onAction: () => handleDuplicateDashboard(dashboard, 'table'),
-                  },
-                  ...(dashboard.createdBy === null
-                    ? []
-                    : [
-                        {
-                          key: 'delete',
-                          label: t('Delete'),
-                          priority: 'danger' as const,
-                          onAction: () => {
-                            openConfirmModal({
-                              message: t(
-                                'Are you sure you want to delete this dashboard?'
-                              ),
-                              priority: 'danger',
-                              onConfirm: () => handleDeleteDashboard(dashboard, 'table'),
-                            });
-                          },
-                        },
-                      ]),
-                ]}
-              />
+              <DashboardCreateLimitWrapper>
+                {({
+                  hasReachedDashboardLimit,
+                  isLoading: isLoadingDashboardsLimit,
+                  limitMessage,
+                }) => (
+                  <SavedEntityTable.CellActions
+                    items={[
+                      {
+                        key: 'duplicate',
+                        label: t('Duplicate'),
+                        onAction: () => handleDuplicateDashboard(dashboard, 'table'),
+                        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                        tooltip: limitMessage,
+                      },
+                      ...(dashboard.createdBy === null
+                        ? []
+                        : [
+                            {
+                              key: 'delete',
+                              label: t('Delete'),
+                              priority: 'danger' as const,
+                              onAction: () => {
+                                openConfirmModal({
+                                  message: t(
+                                    'Are you sure you want to delete this dashboard?'
+                                  ),
+                                  priority: 'danger',
+                                  onConfirm: () =>
+                                    handleDeleteDashboard(dashboard, 'table'),
+                                });
+                              },
+                            },
+                          ]),
+                    ]}
+                  />
+                )}
+              </DashboardCreateLimitWrapper>
             </SavedEntityTable.Cell>
           </SavedEntityTable.Row>
         ))}

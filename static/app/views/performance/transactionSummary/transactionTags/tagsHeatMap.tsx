@@ -7,7 +7,7 @@ import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {truncate} from '@sentry/core';
 import type {VisualMapComponentOption} from 'echarts';
-import type {Location} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 import memoize from 'lodash/memoize';
 
 import HeatMapChart from 'sentry/components/charts/heatMapChart';
@@ -15,12 +15,12 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MenuItem from 'sentry/components/menuItem';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,8 +33,8 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
-  TableData as TagTableData,
   TableDataRow,
+  TableData as TagTableData,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -125,7 +125,7 @@ function TagsHeatMap(
   // TODO(k-fish): Replace with actual theme colors.
   const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
 
-  const xValues = new Set();
+  const xValues = new Set<string>();
 
   const histogramData = tableData?.histogram?.data?.length
     ? tableData.histogram.data
@@ -184,7 +184,8 @@ function TagsHeatMap(
         show: true,
         showMinLabel: true,
         showMaxLabel: true,
-        formatter: (value: number) => axisLabelFormatter(value, 'number'),
+        formatter: (value: string | number) =>
+          axisLabelFormatter(value as number, 'number'),
       },
       axisLine: {},
       axisPointer: {
@@ -328,7 +329,7 @@ function TagsHeatMap(
               eventView={transactionEventView}
               orgSlug={organization.slug}
               limit={4}
-              referrer="api.performance.tag-page"
+              referrer="api.insights.tag-page"
             >
               {({isLoading: isTransactionsLoading, tableData: transactionTableData}) => {
                 if (isTransactionsLoading) {
@@ -465,5 +466,52 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)``;
+
+const SectionSubtext = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+`;
+
+const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
+  width: ${p => (p.width === 'large' ? '350px' : '200px')};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+`;
+
+const MenuItemContent = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+type DropdownItemProps = {
+  children: React.ReactNode;
+  allowDefaultEvent?: boolean;
+  onSelect?: (eventKey: any) => void;
+  to?: LocationDescriptor;
+  width?: 'small' | 'large';
+};
+
+function DropdownItem({
+  children,
+  onSelect,
+  allowDefaultEvent,
+  to,
+  width = 'large',
+}: DropdownItemProps) {
+  return (
+    <StyledMenuItem
+      data-test-id="dropdown-item"
+      to={to}
+      onSelect={onSelect}
+      width={width}
+      allowDefaultEvent={allowDefaultEvent}
+    >
+      <MenuItemContent>{children}</MenuItemContent>
+    </StyledMenuItem>
+  );
+}
 
 export default TagsHeatMap;

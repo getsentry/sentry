@@ -11,13 +11,13 @@ import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 
 import Context, {getLineCoverage} from './context';
 
-describe('Frame - Context', function () {
+describe('Frame - Context', () => {
   const org = OrganizationFixture();
   const project = ProjectFixture();
   const event = EventFixture({projectID: project.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
   });
@@ -36,14 +36,14 @@ describe('Frame - Context', function () {
     [234, Coverage.NOT_COVERED],
   ];
 
-  it("gets coverage data for the frame's lines", function () {
+  it("gets coverage data for the frame's lines", () => {
     expect(getLineCoverage(lines, lineCoverage)).toEqual([
       [Coverage.PARTIAL, Coverage.COVERED, undefined, Coverage.NOT_COVERED],
       true,
     ]);
   });
 
-  it("doesn't query stacktrace coverage if the flag is off", function () {
+  it("doesn't query stacktrace coverage if the flag is off", () => {
     const mock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
       body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
@@ -55,8 +55,8 @@ describe('Frame - Context', function () {
     expect(mock).not.toHaveBeenCalled();
   });
 
-  describe('syntax highlighting', function () {
-    it('renders code correctly when context lines end in newline characters', function () {
+  describe('syntax highlighting', () => {
+    it('renders code correctly when context lines end in newline characters', () => {
       const organization = {
         ...org,
         codecovAccess: true,

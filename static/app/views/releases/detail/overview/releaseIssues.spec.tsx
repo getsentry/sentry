@@ -9,7 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ReleaseIssues from 'sentry/views/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'sentry/views/releases/utils';
 
-describe('ReleaseIssues', function () {
+describe('ReleaseIssues', () => {
   let newIssuesEndpoint: jest.Mock;
   let resolvedIssuesEndpoint: jest.Mock;
   let unhandledIssuesEndpoint: jest.Mock;
@@ -23,7 +23,7 @@ describe('ReleaseIssues', function () {
     releaseBounds: getReleaseBounds(ReleaseFixture({version: '1.0.0'})),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -67,7 +67,7 @@ describe('ReleaseIssues', function () {
     });
   });
 
-  it('shows an empty state', async function () {
+  it('shows an empty state', async () => {
     const {rerender} = render(<ReleaseIssues {...props} />);
 
     expect(await screen.findByText('No new issues in this release.')).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('ReleaseIssues', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows an empty sttate with stats period', async function () {
+  it('shows an empty sttate with stats period', async () => {
     const query = {pageStatsPeriod: '24h'};
     const {rerender} = render(
       <ReleaseIssues {...props} location={LocationFixture({query})} />
@@ -112,7 +112,7 @@ describe('ReleaseIssues', function () {
     ).toBeInTheDocument();
   });
 
-  it('can switch issue filters', async function () {
+  it('can switch issue filters', async () => {
     const {rerender} = render(<ReleaseIssues {...props} />);
 
     // New
@@ -167,7 +167,7 @@ describe('ReleaseIssues', function () {
     expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
   });
 
-  it('includes release context when linking to issue', async function () {
+  it('includes release context when linking to issue', async () => {
     newIssuesEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [GroupFixture({id: '123'})],
@@ -179,10 +179,10 @@ describe('ReleaseIssues', function () {
 
     const link = await screen.findByRole('link', {name: /RequestError/});
 
-    // Should pass the query param `query` with value `release:1.0.0`
+    // Should pass the query param `query` with value `release:"1.0.0"`
     expect(link).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/123/?_allp=1&project=2&query=release%3A1.0.0&referrer=release-issue-stream'
+      '/organizations/org-slug/issues/123/?_allp=1&project=2&query=release%3A%221.0.0%22&referrer=release-issue-stream'
     );
   });
 });

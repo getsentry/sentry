@@ -6,8 +6,8 @@ import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction';
 
-describe('Cancel Subscription', function () {
-  it('cancels immediately', async function () {
+describe('Cancel Subscription', () => {
+  it('cancels immediately', async () => {
     const onConfirm = jest.fn();
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
@@ -30,7 +30,7 @@ describe('Cancel Subscription', function () {
     });
   });
 
-  it('shows contract period if set', function () {
+  it('shows contract period if set', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,

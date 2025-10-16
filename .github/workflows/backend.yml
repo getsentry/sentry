@@ -27,6 +27,7 @@ jobs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend_all }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
     steps:
@@ -130,7 +131,9 @@ jobs:
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -167,7 +170,9 @@ jobs:
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -213,25 +218,68 @@ jobs:
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
+
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
           python-version: 3.13.1
-          cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: pip install -q --constraint requirements-dev-frozen.txt pip-tools
+          cache-dependency-path: uv.lock
+          install-cmd: echo
+
       - name: check requirements
         run: |
-          python -S -m tools.freeze_requirements
+          make freeze-requirements
           if ! git diff --exit-code; then
             echo $'\n\nrun `make freeze-requirements` locally to update requirements'
             exit 1
           fi
+
       - name: apply any requirements changes
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':snowflake: re-freeze requirements'
+
+  api-url-typescript:
+    if: needs.files-changed.outputs.backend_api_urls == 'true'
+    needs: files-changed
+    name: api url typescript generation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - # get a non-default github token so that any changes are verified by CI
+        if: env.SECRET_ACCESS == 'true'
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+        id: token
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Sync API Urls to TypeScirpt
+        run: |
+          python3 -m tools.api_urls_to_typescript
+
+      - name: Apply any file changes
+        # note: this runs "always" or else it's skipped when pre-commit fails
+        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          message: ':hammer_and_wrench: Sync API Urls to TypeScirpt'
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
@@ -305,7 +353,9 @@ jobs:
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -321,11 +371,17 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
+          # we just cache the venv-dir directly in action-setup-venv
+          enable-cache: false
+
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
           python-version: 3.13.1
-          cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: pip install -r requirements-dev-frozen.txt
+          cache-dependency-path: uv.lock
+          install-cmd: uv sync --frozen --active
 
       - name: setup sentry (lite)
         run: |

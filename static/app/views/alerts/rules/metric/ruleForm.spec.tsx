@@ -436,7 +436,6 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'ourlogs-alerts',
         'ourlogs-enabled',
       ];
       const rule = MetricRuleFixture();
@@ -490,7 +489,7 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'performance-transaction-deprecation-alerts',
+        'discover-saved-queries-deprecation',
       ];
       const rule = MetricRuleFixture();
       createWrapper({
@@ -531,6 +530,43 @@ describe('Incident Rules Form', () => {
             thresholdPeriod: 1,
             thresholdType: 0,
             timeWindow: 60,
+          }),
+        })
+      );
+    });
+
+    it('creates a metrics Apdex rule without satisfaction parameter', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'mep-rollout-flag',
+      ];
+
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: Dataset.TRANSACTIONS,
+        },
+      });
+
+      // Open the wizard and switch to Apdex
+      await userEvent.click(screen.getAllByText('Throughput')[1]!);
+      await userEvent.click(await screen.findByText('Apdex'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            // Apdex should be saved without a satisfaction parameter
+            aggregate: 'apdex()',
+            dataset: Dataset.GENERIC_METRICS,
+            eventTypes: ['transaction'],
           }),
         })
       );
@@ -612,7 +648,7 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'performance-transaction-deprecation-alerts',
+        'discover-saved-queries-deprecation',
       ];
       const metricRule = MetricRuleFixture();
       createWrapper({
@@ -627,16 +663,12 @@ describe('Incident Rules Form', () => {
 
       await userEvent.hover(screen.getAllByText('Throughput')[1]!);
       expect(
-        await screen.findByText(
-          'Transaction based alerts are no longer supported. Create span alerts instead.'
-        )
+        await screen.findByText(/The transaction dataset is being deprecated./)
       ).toBeInTheDocument();
 
       await userEvent.hover(screen.getByText('project-slug'));
       expect(
-        await screen.findByText(
-          'Transaction based alerts are no longer supported. Create span alerts instead.'
-        )
+        await screen.findByText(/The transaction dataset is being deprecated./)
       ).toBeInTheDocument();
 
       const radio = screen.getByRole('radio', {

@@ -1,18 +1,23 @@
+import logging
 from datetime import datetime, timezone
+from unittest import mock
 
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry.monitors.models import (
+    CronMonitorDataSourceHandler,
     Monitor,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
     ScheduleType,
 )
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.models import DataSource
 
 
 class MonitorTestCase(TestCase):
@@ -250,23 +255,150 @@ class MonitorEnvironmentTestCase(TestCase):
         }
 
     def test_config_validator(self) -> None:
+        config = {
+            "checkin_margin": None,
+            "max_runtime": None,
+            "schedule": [1, "month"],
+            "schedule_type": ScheduleType.INTERVAL,
+            "alert_rule_id": 1,
+        }
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="Unicron",
             slug="unicron",
-            config={
-                "checkin_margin": None,
-                "max_runtime": None,
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "alert_rule_id": 1,
-            },
+            config=config,
         )
         validated_config = monitor.get_validated_config()
-        assert validated_config is not None
+        assert validated_config == config
 
-        # Check to make sure bad config fails validation
         validated_config["bad_key"] = 100
         monitor.config = validated_config
-        assert monitor.get_validated_config() is None
+
+        with self.assertLogs(logger="root", level=logging.WARNING) as cm:
+            bad_config = monitor.get_validated_config()
+            assert bad_config == validated_config
+            assert bad_config["bad_key"] == 100
+
+        assert len(cm.records) == 1
+        assert "invalid config" in cm.records[0].message
+
+    def test_build_occurrence_fingerprint(self):
+        """Test that build_occurrence_fingerprint returns the expected format"""
+        monitor = self.create_monitor()
+        monitor_environment = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=self.environment.id,
+        )
+        fingerprint = monitor_environment.build_occurrence_fingerprint()
+        assert fingerprint == f"crons:{monitor_environment.id}"
+
+    def test_build_occurrence_fingerprint_different_environments(self):
+        """Test that different MonitorEnvironments get different fingerprints"""
+        monitor = self.create_monitor()
+        env1 = self.create_environment(name="production")
+        env2 = self.create_environment(name="staging")
+
+        monitor_env1 = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=env1.id,
+        )
+        monitor_env2 = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=env2.id,
+        )
+        fingerprint1 = monitor_env1.build_occurrence_fingerprint()
+        fingerprint2 = monitor_env2.build_occurrence_fingerprint()
+        assert fingerprint1 != fingerprint2
+        assert fingerprint1 == f"crons:{monitor_env1.id}"
+        assert fingerprint2 == f"crons:{monitor_env2.id}"
+
+
+class CronMonitorDataSourceHandlerTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.monitor = self.create_monitor(
+            project=self.project,
+            name="Test Monitor",
+        )
+
+        self.data_source = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            source_id=str(self.monitor.id),
+            organization_id=self.organization.id,
+        )
+
+    def test_bulk_get_query_object(self) -> None:
+        result = CronMonitorDataSourceHandler.bulk_get_query_object([self.data_source])
+        assert result[self.data_source.id] == self.monitor
+
+    def test_bulk_get_query_object__multiple_monitors(self) -> None:
+        monitor2 = self.create_monitor(
+            project=self.project,
+            name="Test Monitor 2",
+        )
+        data_source2 = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            source_id=str(monitor2.id),
+            organization_id=self.organization.id,
+        )
+
+        data_sources = [self.data_source, data_source2]
+        result = CronMonitorDataSourceHandler.bulk_get_query_object(data_sources)
+
+        assert result[self.data_source.id] == self.monitor
+        assert result[data_source2.id] == monitor2
+
+    def test_bulk_get_query_object__incorrect_data_source(self) -> None:
+        ds_with_invalid_monitor_id = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            source_id="not_an_int",
+            organization_id=self.organization.id,
+        )
+
+        with mock.patch("sentry.monitors.models.logger.exception") as mock_logger:
+            data_sources = [self.data_source, ds_with_invalid_monitor_id]
+            result = CronMonitorDataSourceHandler.bulk_get_query_object(data_sources)
+
+            assert result[self.data_source.id] == self.monitor
+            assert result[ds_with_invalid_monitor_id.id] is None
+
+            mock_logger.assert_called_once_with(
+                "Invalid DataSource.source_id fetching Monitor",
+                extra={
+                    "id": ds_with_invalid_monitor_id.id,
+                    "source_id": ds_with_invalid_monitor_id.source_id,
+                },
+            )
+
+    def test_bulk_get_query_object__missing_monitor(self) -> None:
+        ds_with_deleted_monitor = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            source_id="99999999",
+            organization_id=self.organization.id,
+        )
+
+        data_sources = [self.data_source, ds_with_deleted_monitor]
+        result = CronMonitorDataSourceHandler.bulk_get_query_object(data_sources)
+
+        assert result[self.data_source.id] == self.monitor
+        assert result[ds_with_deleted_monitor.id] is None
+
+    def test_bulk_get_query_object__empty_list(self) -> None:
+        result = CronMonitorDataSourceHandler.bulk_get_query_object([])
+        assert result == {}
+
+    def test_related_model(self) -> None:
+        relations = CronMonitorDataSourceHandler.related_model(self.data_source)
+        assert len(relations) == 1
+        relation = relations[0]
+
+        assert relation.params["model"] == Monitor
+        assert relation.params["query"] == {"id": self.data_source.source_id}
+
+    def test_get_instance_limit(self) -> None:
+        assert CronMonitorDataSourceHandler.get_instance_limit(self.organization) is None
+
+    def test_get_current_instance_count(self) -> None:
+        with pytest.raises(NotImplementedError):
+            CronMonitorDataSourceHandler.get_current_instance_count(self.organization)

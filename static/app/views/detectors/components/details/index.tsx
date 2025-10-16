@@ -1,3 +1,4 @@
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -16,15 +17,32 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
   const detectorType = detector.type;
   switch (detectorType) {
     case 'metric_issue':
+      // Metric issue detectors do not support time period filters since the interval dictates what time periods are available.
       return <MetricDetectorDetails detector={detector} project={project} />;
     case 'uptime_domain_failure':
-      return <UptimeDetectorDetails detector={detector} project={project} />;
+      return (
+        <PageFiltersContainer>
+          <UptimeDetectorDetails detector={detector} project={project} />
+        </PageFiltersContainer>
+      );
     case 'error':
-      return <ErrorDetectorDetails detector={detector} project={project} />;
-    case 'uptime_subscription':
-      return <CronDetectorDetails detector={detector} project={project} />;
+      return (
+        <PageFiltersContainer>
+          <ErrorDetectorDetails detector={detector} project={project} />
+        </PageFiltersContainer>
+      );
+    case 'monitor_check_in_failure':
+      return (
+        <PageFiltersContainer>
+          <CronDetectorDetails detector={detector} project={project} />
+        </PageFiltersContainer>
+      );
     default:
       unreachable(detectorType);
-      return <FallbackDetectorDetails detector={detector} project={project} />;
+      return (
+        <PageFiltersContainer>
+          <FallbackDetectorDetails detector={detector} project={project} />
+        </PageFiltersContainer>
+      );
   }
 }

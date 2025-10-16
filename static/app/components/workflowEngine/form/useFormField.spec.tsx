@@ -5,18 +5,18 @@ import FormModel from 'sentry/components/forms/model';
 
 import {useFormField} from './useFormField';
 
-describe('useFormField', function () {
+describe('useFormField', () => {
   let model: FormModel;
 
   const withFormContext = ({children}: {children: React.ReactNode}) => (
     <FormContext value={{form: model}}>{children}</FormContext>
   );
 
-  beforeEach(function () {
+  beforeEach(() => {
     model = new FormModel();
   });
 
-  it('returns field values and handles updates correctly', function () {
+  it('returns field values and handles updates correctly', () => {
     model.setInitialData({targetField: 'initial', otherField: 'other'});
 
     const {result} = renderHook(() => useFormField('targetField'), {
@@ -36,7 +36,7 @@ describe('useFormField', function () {
     expect(result.current).toBe('changed');
   });
 
-  it('handles undefined values and type parameters', function () {
+  it('handles undefined values and type parameters', () => {
     const {result: undefinedResult} = renderHook(() => useFormField('nonexistent'), {
       wrapper: withFormContext,
     });
@@ -50,7 +50,7 @@ describe('useFormField', function () {
     expect(typeof typedResult.current).toBe('number');
   });
 
-  it('handles fields that are added after subscription', function () {
+  it('handles fields that are added after subscription', () => {
     // Start with a hook subscribed to a field that doesn't exist yet
     const {result} = renderHook(() => useFormField('laterField'), {
       wrapper: withFormContext,
@@ -75,7 +75,7 @@ describe('useFormField', function () {
     expect(result.current).toBe('updated value');
   });
 
-  it('handles fields that are removed after subscription', function () {
+  it('handles fields that are removed after subscription', () => {
     model.setInitialData({targetField: 'initial'});
 
     const {result} = renderHook(() => useFormField('targetField'), {

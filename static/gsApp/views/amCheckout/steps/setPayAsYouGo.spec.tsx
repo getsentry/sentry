@@ -9,12 +9,11 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
-describe('SetPayAsYouGo', function () {
+describe('SetPayAsYouGo', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
   });
-  const params = {};
 
   const stepBody =
     /Pay-as-you-go applies across all Sentry products, on a first-come, first-served basis./;
@@ -27,7 +26,7 @@ describe('SetPayAsYouGo', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
@@ -50,7 +49,7 @@ describe('SetPayAsYouGo', function () {
     });
   });
 
-  it('renders with business plan and default PAYG budget by default for new customers', async function () {
+  it('renders with business plan and default PAYG budget by default for new customers', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -60,7 +59,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -76,7 +75,7 @@ describe('SetPayAsYouGo', function () {
     expect(screen.getByText(/Suggested Amount/)).toBeInTheDocument();
   });
 
-  it('renders with team plan and default PAYG budget by default for new customers', async function () {
+  it('renders with team plan and default PAYG budget by default for new customers', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -86,7 +85,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -102,7 +101,7 @@ describe('SetPayAsYouGo', function () {
     expect(screen.getByText(/Suggested Amount/)).toBeInTheDocument();
   });
 
-  it('renders with existing PAYG budget', async function () {
+  it('renders with existing PAYG budget', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -120,7 +119,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -134,7 +133,7 @@ describe('SetPayAsYouGo', function () {
     expect(screen.queryByText(/Suggested Amount/)).not.toBeInTheDocument();
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -144,7 +143,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -163,7 +162,7 @@ describe('SetPayAsYouGo', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders with closest plan and default PAYG budget by default for customers migrating from partner billing', async function () {
+  it('renders with closest plan and default PAYG budget by default for customers migrating from partner billing', async () => {
     organization.features.push('partner-billing-migration');
     const sub = SubscriptionFixture({
       organization,
@@ -184,7 +183,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -200,7 +199,7 @@ describe('SetPayAsYouGo', function () {
     expect(screen.getByText(/Suggested Amount/)).toBeInTheDocument();
   });
 
-  it('renders warnings when setting PAYG budget to 0', async function () {
+  it('renders warnings when setting PAYG budget to 0', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -210,7 +209,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -240,7 +239,7 @@ describe('SetPayAsYouGo', function () {
     expect(screen.getByText(/Products locked/)).toBeInTheDocument();
   });
 
-  it('can increment and decrement PAYG budget with buttons', async function () {
+  it('can increment and decrement PAYG budget with buttons', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -250,7 +249,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
@@ -284,7 +283,7 @@ describe('SetPayAsYouGo', function () {
     expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('0');
   });
 
-  it('updates when default budget changes', async function () {
+  it('updates when default budget changes', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -294,7 +293,7 @@ describe('SetPayAsYouGo', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}

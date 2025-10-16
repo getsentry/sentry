@@ -3,8 +3,8 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
-  type DiscoverQueryProps,
   useGenericDiscoverQuery,
+  type DiscoverQueryProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -13,8 +13,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
   getRetryDelay,
   shouldRetryHandler,

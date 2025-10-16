@@ -13,6 +13,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -395,6 +396,8 @@ class AnotherClassInSameFile {
 
 
 @pytest.mark.django_db(transaction=True)
+@thread_leak_allowlist(reason="kafka testutils", issue=97046)
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):
@@ -434,7 +437,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_resolving(self):
+    def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -496,7 +499,70 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_value(self):
+    def test_value_only_class_names_are_deobfuscated(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        # No module/type, only value with obfuscated class reference
+                        "value": "Encountered class org.a.b.g$a during processing",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        # Ensure the value got deobfuscated via classes mapping
+        assert "org.slf4j.helpers.Util$ClassContextSecurityManager" in exc.value
+        assert "org.a.b.g$a" not in exc.value
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_value_only_multiple_exceptions_are_all_deobfuscated(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {"value": "First mentions org.a.b.g$a"},
+                    {"value": "Second mentions org.a.b.g$b"},
+                ]
+            },
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        excs = event.interfaces["exception"].values
+        assert any(
+            "org.slf4j.helpers.Util$ClassContextSecurityManager" in e.value
+            and "org.a.b.g$a" not in e.value
+            for e in excs
+        )
+        # Util$ClassContext maps to g$b as well in the provided mapping
+        assert any(
+            "org.slf4j.helpers.Util$ClassContext" in e.value and "org.a.b.g$b" not in e.value
+            for e in excs
+        )
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_value(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -541,7 +607,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_module_or_function(self):
+    def test_resolving_does_not_fail_when_no_module_or_function(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -598,7 +664,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sets_inapp_after_resolving(self):
+    def test_sets_inapp_after_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         version = "org.slf4j@1.2.3"
@@ -682,7 +748,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline(self):
+    def test_resolving_inline(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
         event_data = {
@@ -745,7 +811,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline_with_native_frames(self):
+    def test_resolving_inline_with_native_frames(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
         event_data = {
@@ -833,7 +899,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_on_resolving(self):
+    def test_error_on_resolving(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -938,7 +1004,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_source_lookup(self):
+    def test_basic_source_lookup(self) -> None:
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
 
@@ -1129,7 +1195,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip(reason="flaky: #93951")
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_source_lookup_with_proguard(self):
+    def test_source_lookup_with_proguard(self) -> None:
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())
         self.upload_jvm_bundle(
@@ -1425,7 +1491,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip(reason="flaky: #93949")
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_invalid_exception(self):
+    def test_invalid_exception(self) -> None:
         event_data = {
             "user": {"ip_address": "31.172.207.97"},
             "extra": {},
@@ -1453,7 +1519,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         assert received == expected
 
-    def test_is_jvm_event(self):
+    def test_is_jvm_event(self) -> None:
         from sentry.lang.java.utils import is_jvm_event
 
         event = {
