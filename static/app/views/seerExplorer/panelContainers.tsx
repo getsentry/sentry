@@ -2,15 +2,19 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
 
-import type {PanelSize} from './types';
+import {Text} from 'sentry/components/core/text';
+import {IconSeer} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
+import type {PanelSize} from 'sentry/views/seerExplorer/types';
 
 interface PanelContainersProps {
   children: React.ReactNode;
   isMinimized: boolean;
   isOpen: boolean;
   panelSize: PanelSize;
+  onUnminimize?: () => void;
   ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -19,6 +23,7 @@ function PanelContainers({
   isMinimized,
   panelSize,
   children,
+  onUnminimize,
   ref,
 }: PanelContainersProps) {
   return (
@@ -55,6 +60,22 @@ function PanelContainers({
           >
             <PanelContent ref={ref} data-seer-explorer-root="">
               {children}
+              {isMinimized && (
+                <MinimizedOverlay
+                  initial={{opacity: 0}}
+                  animate={{opacity: 1}}
+                  exit={{opacity: 0}}
+                  transition={{duration: 0.2}}
+                  onClick={onUnminimize}
+                >
+                  <Flex direction="column" align="center" gap="lg">
+                    <IconSeer variant="waiting" size="lg" color="purple400" />
+                    <Text variant="muted">
+                      Press Tab ⇥ or click to continue with Seer
+                    </Text>
+                  </Flex>
+                </MinimizedOverlay>
+              )}
             </PanelContent>
           </PanelContainer>
         </Fragment>
@@ -119,4 +140,34 @@ export const BlocksContainer = styled('div')`
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+`;
+
+const MinimizedOverlay = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: ${p => p.theme.background};
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: ${p => p.theme.space.lg};
+  border-radius: ${p => p.theme.borderRadius};
+  z-index: 1;
+  cursor: pointer;
+
+  /* Purple tint */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: ${p => p.theme.purple200};
+    border-radius: inherit;
+    z-index: -1;
+    pointer-events: none;
+  }
 `;
