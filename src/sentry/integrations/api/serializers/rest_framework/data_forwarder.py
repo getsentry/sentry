@@ -2,7 +2,7 @@ import re
 from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
-from django import router, transaction
+from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
