@@ -68,4 +68,24 @@ describe('PreventAIManageRepos', () => {
     expect(img).toBeInTheDocument();
     expect(img.tagName).toBe('IMG');
   });
+
+  it('starts with "All Repos" selected by default', async () => {
+    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
+    const repoButton = await screen.findByRole('button', {
+      name: /All Repos \(Organization Defaults\)/i,
+    });
+    expect(repoButton).toBeInTheDocument();
+  });
+
+  it('shows organization defaults message in panel when "All Repos" is selected', async () => {
+    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
+    const settingsButton = await screen.findByTestId('manage-repos-settings-button');
+    await userEvent.click(settingsButton);
+
+    expect(
+      await screen.findByText(
+        'These settings apply as defaults to all repositories in this organization. Individual repositories can override these settings.'
+      )
+    ).toBeInTheDocument();
+  });
 });
