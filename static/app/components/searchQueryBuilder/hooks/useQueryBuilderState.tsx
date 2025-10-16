@@ -752,8 +752,7 @@ export function replaceFreeTextTokens(
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition) ?? [];
   const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
   const focusedToken = newParsedQuery?.findLast(
-    (token: any) =>
-      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+    token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
   const focusOverride = focusedToken
