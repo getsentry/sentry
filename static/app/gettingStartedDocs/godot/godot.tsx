@@ -92,12 +92,17 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Further Settings'),
-      description: (
-        <StoreCrashReportsConfig
-          organization={params.organization}
-          projectSlug={params.project.slug}
-        />
-      ),
+      content: [
+        {
+          type: 'custom',
+          content: (
+            <StoreCrashReportsConfig
+              organization={params.organization}
+              projectSlug={params.project.slug}
+            />
+          ),
+        },
+      ],
     },
   ],
 };
