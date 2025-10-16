@@ -1,12 +1,15 @@
 import logging
 from typing import Final
 
+from sentry import features, options
+from sentry.models.organization import Organization
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationStrategy,
     NotificationTarget,
 )
+from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,23 @@ class NotificationServiceError(Exception):
 class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
+
+    @staticmethod
+    def has_access(organization: Organization, source: str) -> bool:
+        if not features.has("organizations:notification-platform", organization):
+            return False
+
+        option_key = f"notifications.platform-rate.{source}"
+        try:
+            options.get(option_key)
+        except options.UnknownOption:
+            logger.warning(
+                "Notification platform key '%s' has not been registered in options/default.py",
+                option_key,
+            )
+            return False
+
+        return sample_modulo(option_key, organization.id)
 
     # TODO(ecosystem): Eventually this should be converted to spawn a task with the business logic below
     def notify_target(self, *, target: NotificationTarget) -> None:
