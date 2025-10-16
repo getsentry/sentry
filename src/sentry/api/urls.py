@@ -325,6 +325,7 @@ from sentry.issues.endpoints.group_current_release import GroupCurrentReleaseEnd
 from sentry.issues.endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from sentry.issues.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.issues.endpoints.group_integrations import GroupIntegrationsEndpoint
+from sentry.issues.endpoints.group_reactions import GroupReactionsEndpoint
 from sentry.issues.endpoints.group_reprocessing import GroupReprocessingEndpoint
 from sentry.issues.endpoints.group_stats import GroupStatsEndpoint
 from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
@@ -855,6 +856,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/(?:notes|comments)/(?P<note_id>[^/]+)/$",
             GroupNotesDetailsEndpoint.as_view(),
             name=f"{name_prefix}-group-note-details",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/reactions/$",
+            GroupReactionsEndpoint.as_view(),
+            name=f"{name_prefix}-group-reactions",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/hashes/$",

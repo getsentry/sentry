@@ -388,6 +388,21 @@ function GroupActivityItem({
           ),
         });
       }
+      case GroupActivityType.SUSPECT_COMMIT_DISMISSED: {
+        if (activity.data.commit) {
+          return tct('[author] dismissed suspect commit [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] dismissed a suspect commit', {author});
+      }
       case GroupActivityType.SET_UNRESOLVED: {
         // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;

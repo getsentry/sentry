@@ -656,6 +656,27 @@ export default function getGroupActivityItem(
             };
         }
       }
+      case GroupActivityType.SUSPECT_COMMIT_DISMISSED: {
+        if (activity.data.commit) {
+          return {
+            title: t('Suspect Commit Dismissed'),
+            message: tct('[commit] by [author]', {
+              author,
+              commit: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+            }),
+          };
+        }
+        return {
+          title: t('Suspect Commit Dismissed'),
+          message: tct('by [author]', {author}),
+        };
+      }
       case GroupActivityType.DELETED_ATTACHMENT:
         return {
           title: t('Attachment Deleted'),

@@ -494,6 +494,7 @@ export enum GroupActivityType {
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
   DELETED_ATTACHMENT = 'deleted_attachment',
+  SUSPECT_COMMIT_DISMISSED = 'suspect_commit_dismissed',
 }
 
 interface GroupActivityBase {
@@ -758,6 +759,13 @@ interface GroupActivityDeletedAttachment extends GroupActivityBase {
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
+interface GroupActivitySuspectCommitDismissed extends GroupActivityBase {
+  data: {
+    commit: Commit;
+  };
+  type: GroupActivityType.SUSPECT_COMMIT_DISMISSED;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -786,7 +794,8 @@ export type GroupActivity =
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
   | GroupActivitySetPriority
-  | GroupActivityDeletedAttachment;
+  | GroupActivityDeletedAttachment
+  | GroupActivitySuspectCommitDismissed;
 
 export type Activity = GroupActivity;
 

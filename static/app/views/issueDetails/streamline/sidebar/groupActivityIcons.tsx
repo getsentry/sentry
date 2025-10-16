@@ -134,6 +134,7 @@ export const groupActivityTypeIconMapping: Record<
     },
   },
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
+  [GroupActivityType.SUSPECT_COMMIT_DISMISSED]: {Component: IconUser, defaultProps: {}},
 };
 
 const StyledUserAvatar = styled(UserAvatar)`
