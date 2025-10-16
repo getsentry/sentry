@@ -178,7 +178,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
-        logger.exception(
+        logger.warning(
             "get_trace_waterfall: Organization does not exist",
             extra={"organization_id": organization_id, "trace_id": trace_id},
         )
@@ -213,7 +213,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         full_trace_id = trace_id
 
     if not isinstance(full_trace_id, str):
-        logger.info(
+        logger.warning(
             "get_trace_waterfall: Trace not found from short id",
             extra={
                 "organization_id": organization_id,

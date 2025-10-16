@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -20,10 +20,8 @@ import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import type {
-  AppSizeApiResponse,
-  TreemapType,
-} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
   type BuildDetailsApiResponse,
@@ -120,20 +118,30 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
-  const [selectedCategories, setSelectedCategories] = useState<Set<TreemapType>>(
-    new Set()
-  );
+  const [selectedCategoriesParam, setSelectedCategoriesParam] =
+    useQueryParamState<string>({
+      fieldName: 'categories',
+    });
+
+  const selectedCategories: Set<TreemapType> = selectedCategoriesParam
+    ? new Set(
+        selectedCategoriesParam
+          .split(',')
+          .filter(
+            c => c.trim() !== '' && Object.values(TreemapType).includes(c as TreemapType)
+          )
+          .map(c => c as TreemapType)
+      )
+    : new Set();
 
   const handleToggleCategory = (category: TreemapType) => {
-    setSelectedCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
-      return next;
-    });
+    const next = new Set(selectedCategories);
+    if (next.has(category)) {
+      next.delete(category);
+    } else {
+      next.add(category);
+    }
+    setSelectedCategoriesParam(next.size > 0 ? Array.from(next).join(',') : undefined);
   };
 
   const sizeInfo = buildDetailsData?.size_info;
