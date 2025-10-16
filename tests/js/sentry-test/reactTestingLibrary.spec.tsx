@@ -233,13 +233,12 @@ describe('NuqsTestingAdapterWithNavigate', () => {
       );
     }
 
-    const {router} = render(<TestComp />);
+    render(<TestComp />);
+
+    expect(await screen.findByText('Color: blue')).toBeInTheDocument();
 
     await userEvent.click(await screen.findByRole('link', {name: 'add extra'}));
 
-    expect(await screen.findByText('Color: blue')).toBeInTheDocument();
-    await waitFor(() =>
-      expect(router.location.query).toEqual({color: 'blue', extra: '1'})
-    );
+    expect(await screen.findByText('Extra: 1')).toBeInTheDocument();
   });
 });

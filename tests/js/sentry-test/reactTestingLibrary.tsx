@@ -192,7 +192,9 @@ function NuqsTestingAdapterWithNavigate({
         // Pass navigation events to the test router
         const newParams = qs.parse(queryString);
         const newLocation = {...location, query: newParams};
-        navigate(newLocation, {replace: nuqsOptions.history === 'replace'});
+        setTimeout(() => {
+          navigate(newLocation, {replace: nuqsOptions.history === 'replace'});
+        }, 10);
       }}
     >
       {children}
