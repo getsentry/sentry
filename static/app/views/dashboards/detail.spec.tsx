@@ -1315,7 +1315,8 @@ describe('Dashboards > Detail', () => {
         expect(router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
-              release: '',
+              release: [''],
+              globalFilter: [''],
             }),
           })
         );
