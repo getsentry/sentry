@@ -697,9 +697,6 @@ export function replaceFreeTextTokens(
   }
 
   const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
-  if (tokens.length === 0) {
-    return undefined;
-  }
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
   let replaceToken: TokenResult<Token.FILTER> | undefined;
