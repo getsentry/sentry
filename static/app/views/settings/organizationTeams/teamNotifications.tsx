@@ -26,7 +26,6 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 const DOCS_LINK =
@@ -150,7 +149,23 @@ export default function TeamNotificationSettings() {
   const api = useApi();
   const params = useParams<{teamId: string}>();
   const organization = useOrganization();
-  const {team} = useTeamDetailsOutlet();
+
+  const {
+    data: team,
+    isPending: isTeamPending,
+    isError: isTeamError,
+    refetch: refetchTeam,
+  } = useApiQuery<Team>(
+    [
+      `/teams/${organization.slug}/${params.teamId}/`,
+      {
+        query: {expand: ['externalTeams']},
+      },
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const {
     data: integrations,
@@ -169,14 +184,15 @@ export default function TeamNotificationSettings() {
     }
   );
 
-  if (isIntegrationsPending) {
+  if (isTeamPending || isIntegrationsPending) {
     return <LoadingIndicator />;
   }
 
-  if (isIntegrationsError) {
+  if (isTeamError || isIntegrationsError) {
     return (
       <LoadingError
         onRetry={() => {
+          refetchTeam();
           refetchIntegrations();
         }}
       />
@@ -196,6 +212,7 @@ export default function TeamNotificationSettings() {
       addErrorMessage(t('An error occurred'));
     }
 
+    refetchTeam();
     refetchIntegrations();
   };
 

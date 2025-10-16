@@ -46,6 +46,11 @@ describe('TeamNotificationSettings', () => {
 
   it('should render empty message when there are no integrations', async () => {
     MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithExternalTeam.slug}/`,
+      body: teamWithExternalTeam,
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [],
     });
@@ -53,7 +58,6 @@ describe('TeamNotificationSettings', () => {
     render(<TeamNotificationSettings />, {
       organization,
       initialRouterConfig,
-      outletContext: {team: teamWithExternalTeam},
     });
 
     expect(
@@ -63,20 +67,10 @@ describe('TeamNotificationSettings', () => {
 
   it('should render empty message when there are no externalTeams', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      body: [EXAMPLE_INTEGRATION],
+      url: `/teams/${organization.slug}/${teamWithExternalTeam.slug}/`,
+      body: teamWithoutExternalTeam,
     });
 
-    render(<TeamNotificationSettings />, {
-      organization,
-      initialRouterConfig,
-      outletContext: {team: teamWithoutExternalTeam},
-    });
-
-    expect(await screen.findByText('No teams have been linked yet.')).toBeInTheDocument();
-  });
-
-  it('should render each externalTeam', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [EXAMPLE_INTEGRATION],
@@ -85,7 +79,25 @@ describe('TeamNotificationSettings', () => {
     render(<TeamNotificationSettings />, {
       organization,
       initialRouterConfig,
-      outletContext: {team: teamWithExternalTeam},
+    });
+
+    expect(await screen.findByText('No teams have been linked yet.')).toBeInTheDocument();
+  });
+
+  it('should render each externalTeam', async () => {
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithExternalTeam.slug}/`,
+      body: teamWithExternalTeam,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [EXAMPLE_INTEGRATION],
+    });
+
+    render(<TeamNotificationSettings />, {
+      organization,
+      initialRouterConfig,
     });
 
     const input = await screen.findByRole('textbox', {
@@ -98,6 +110,11 @@ describe('TeamNotificationSettings', () => {
   });
 
   it('should delete be able to delete the externalTeam', async () => {
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithExternalTeam.slug}/`,
+      body: teamWithExternalTeam,
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [EXAMPLE_INTEGRATION],
@@ -112,7 +129,6 @@ describe('TeamNotificationSettings', () => {
     render(<TeamNotificationSettings />, {
       organization,
       initialRouterConfig,
-      outletContext: {team: teamWithExternalTeam},
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Unlink'}));
