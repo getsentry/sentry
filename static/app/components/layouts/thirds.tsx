@@ -1,5 +1,8 @@
+import type {HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
@@ -142,7 +145,7 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   }
 `;
 
-interface MainProps extends React.ComponentProps<typeof MainSection> {
+interface MainProps extends HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
   /**
    * Set the width of the main content.
@@ -160,35 +163,25 @@ interface MainProps extends React.ComponentProps<typeof MainSection> {
 export function Main({children, width = 'twothirds', ...props}: MainProps) {
   // We need the extra DOM element when the width is constrained because Main is a part of a grid layout.
   // If we apply the max width directly the right end of the page background will be missing
-  if (width === 'full-constrained') {
-    return (
-      <MainSection width={width} {...props}>
-        <MaxWidthContainer>{children}</MaxWidthContainer>
-      </MainSection>
-    );
-  }
-
   return (
-    <MainSection width={width} {...props}>
-      {children}
-    </MainSection>
+    <Container
+      column={width === 'twothirds' ? '1/2' : '1/3'}
+      as="section"
+      width="100%"
+      {...props}
+    >
+      {width === 'full-constrained' ? (
+        <Container maxWidth="1440px">{children}</Container>
+      ) : (
+        children
+      )}
+    </Container>
   );
 }
-
-const MainSection = styled('section')<{
-  width?: 'twothirds' | 'full' | 'full-constrained';
-}>`
-  grid-column: ${p => (p.width === 'twothirds' ? '1/2' : '1/3')};
-  max-width: 100%;
-`;
 
 /**
  * Container for the right column the 66/33 layout
  */
 export const Side = styled('aside')`
   grid-column: 2/3;
-`;
-
-const MaxWidthContainer = styled('div')`
-  max-width: 1440px;
 `;
