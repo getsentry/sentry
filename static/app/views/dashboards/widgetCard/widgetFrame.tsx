@@ -79,6 +79,10 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 </WidgetBadge>
               )
             )}
+
+          {props.conflictingFilterKeys && props.conflictingFilterKeys.length > 0 && (
+            <FilterConflictWarning conflictingFilterKeys={props.conflictingFilterKeys} />
+          )}
         </Fragment>
       }
       revealActions={
@@ -87,10 +91,6 @@ export function WidgetFrame(props: WidgetFrameProps) {
       TitleBadges={props.titleBadges}
       Actions={
         <Fragment>
-          {props.conflictingFilterKeys && props.conflictingFilterKeys.length > 0 && (
-            <FilterConflictWarning conflictingFilterKeys={props.conflictingFilterKeys} />
-          )}
-
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
             <Widget.WidgetDescription
