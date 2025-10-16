@@ -2153,10 +2153,6 @@ function buildRoutes(): RouteObject[] {
       path: 'summary/',
       children: transactionSummaryChildren,
     },
-    {
-      path: 'vitaldetail/',
-      component: make(() => import('sentry/views/performance/vitalDetail')),
-    },
     traceView,
     ...insightsRedirectObjects,
     {

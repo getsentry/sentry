@@ -5,10 +5,8 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 
 import type Tab from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
@@ -24,21 +22,12 @@ type Props = {
     name: string;
     project: string;
   };
-  vitalName?: string;
 };
 
 function Breadcrumb(props: Props) {
   function getCrumbs() {
     const crumbs: Crumb[] = [];
-    const {
-      organization,
-      location,
-      transaction,
-      vitalName,
-      spanSlug,
-      eventSlug,
-      traceSlug,
-    } = props;
+    const {organization, location, transaction, spanSlug, eventSlug, traceSlug} = props;
 
     crumbs.push({
       label: DOMAIN_VIEW_BASE_TITLE,
@@ -49,7 +38,6 @@ function Breadcrumb(props: Props) {
         location,
         organization,
         transaction,
-        vitalName,
         spanSlug,
         eventSlug,
         traceSlug,
@@ -70,7 +58,6 @@ export const getTabCrumbs = ({
   eventSlug,
   traceSlug,
   view,
-  vitalName,
   shouldUseOTelFriendlyUI,
 }: {
   location: Location;
@@ -84,24 +71,8 @@ export const getTabCrumbs = ({
     project: string;
   };
   view?: DomainView;
-  vitalName?: string;
 }) => {
   const crumbs: Crumb[] = [];
-
-  if (vitalName) {
-    const webVitalsTarget = vitalDetailRouteWithQuery({
-      orgSlug: organization.slug,
-      vitalName: 'fcp',
-      projectID: decodeScalar(location.query.project),
-      query: location.query,
-    });
-    crumbs.push({
-      to: webVitalsTarget,
-      label: t('Vital Detail'),
-      preservePageFilters: true,
-    });
-    return crumbs;
-  }
 
   if (!transaction) {
     return crumbs;
