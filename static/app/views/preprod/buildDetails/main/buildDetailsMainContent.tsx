@@ -20,10 +20,8 @@ import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import type {
-  AppSizeApiResponse,
-  TreemapType,
-} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
   type BuildDetailsApiResponse,
@@ -126,7 +124,14 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     });
 
   const selectedCategories: Set<TreemapType> = selectedCategoriesParam
-    ? new Set(selectedCategoriesParam.split(',') as TreemapType[])
+    ? new Set(
+        selectedCategoriesParam
+          .split(',')
+          .filter(
+            c => c.trim() !== '' && Object.values(TreemapType).includes(c as TreemapType)
+          )
+          .map(c => c as TreemapType)
+      )
     : new Set();
 
   const handleToggleCategory = (category: TreemapType) => {
