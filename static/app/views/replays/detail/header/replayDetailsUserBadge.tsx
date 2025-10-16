@@ -43,7 +43,10 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const [showRefreshButton, setShowRefreshButton] = useState(false);
 
   const countSegments = usePollReplayRecord({
-    enabled: isLive && !showRefreshButton,
+    enabled:
+      isLive &&
+      !showRefreshButton &&
+      organization.features.includes('replay-refresh-background'),
     replayId,
     orgSlug,
   });
