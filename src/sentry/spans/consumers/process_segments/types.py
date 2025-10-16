@@ -6,11 +6,9 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
     _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueObject,
 )
 
-Attributes = dict[
-    str,
-    None
-    | _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueObject,
-]
+Attribute = _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueObject
+
+Attributes = dict[str, None | Attribute]
 
 
 # The default span.op to assume if it is missing on the span. This should be

@@ -50,6 +50,7 @@ def test_basic(kafka_slice_id: int | None) -> None:
                                     "project_id": 12,
                                     "span_id": "a" * 16,
                                     "trace_id": "b" * 32,
+                                    "start_timestamp": 1699999999.0,
                                     "end_timestamp": 1700000000.0,
                                 }
                             ),
@@ -84,6 +85,7 @@ def test_basic(kafka_slice_id: int | None) -> None:
                         "span_id": "aaaaaaaaaaaaaaaa",
                         "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                         "end_timestamp": 1700000000.0,
+                        "start_timestamp": 1699999999.0,
                     },
                 ],
             }
