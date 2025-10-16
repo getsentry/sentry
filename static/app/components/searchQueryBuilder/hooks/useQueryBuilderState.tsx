@@ -664,7 +664,7 @@ function isReplaceToken(
 ): token is TokenResult<Token.FILTER> {
   return (
     token.type === Token.FILTER &&
-    token.text.includes(primarySearchKey) &&
+    getKeyName(token.key) === primarySearchKey &&
     token.operator === TermOperator.CONTAINS
   );
 }
