@@ -186,6 +186,9 @@ def process_batch(
             # those assertions here but later will crash the consumer and is
             # also violating mypy types.
             assert val["end_timestamp"] is not None
+            assert val["start_timestamp"] is not None
+            assert val["trace_id"] is not None
+            assert val["span_id"] is not None
 
             span = Span(
                 trace_id=val["trace_id"],
