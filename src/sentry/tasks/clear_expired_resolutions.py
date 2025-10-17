@@ -59,6 +59,8 @@ def clear_future_release_resolutions(release):
     ) or not Release.is_semver_version(release.version):
         return
 
+    release_parsed = parse_release(release.version, json_loads=orjson.loads).get("version_raw")
+
     resolution_candidates = GroupResolution.objects.filter(
         type=GroupResolution.Type.in_future_release,
         status=GroupResolution.Status.pending,
@@ -73,15 +75,11 @@ def clear_future_release_resolutions(release):
 
         # If release.version >= future_release_version, clear the resolution
         try:
-            release_parsed = parse_release(release.version, json_loads=orjson.loads).get(
-                "version_raw"
-            )
             future_parsed = parse_release(
                 resolution.future_release_version, json_loads=orjson.loads
             ).get("version_raw")
 
-            comparison = compare_version_relay(release_parsed, future_parsed)
-            if comparison >= 0:
+            if compare_version_relay(release_parsed, future_parsed) >= 0:
                 resolution_list.append(resolution)
         except Exception:
             continue
