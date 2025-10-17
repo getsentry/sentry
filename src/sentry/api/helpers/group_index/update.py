@@ -416,12 +416,11 @@ def handle_resolve_in_release(
             res_type = GroupResolution.Type.in_future_release
             res_type_str = "in_future_release"
             res_status = GroupResolution.Status.pending
+            activity_data = {"version": ""}
+            # Set activity_data["future_release_version"] in process_group_resolution
 
             # Pass placeholder release to process_group_resolution
             release = release_placeholder
-
-            # Leave activity_data["version"] as ""
-            # and set activity_data["future_release_version"] in process_group_resolution
 
     elif status_details.get("inRelease"):
         # TODO(jess): We could update validation to check if release
