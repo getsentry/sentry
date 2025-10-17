@@ -8,7 +8,7 @@ from typing import Any, Literal, TypedDict
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
-from sentry.models.project import Project
+from sentry.models.options.project_option import ProjectOption
 from sentry.replays.lib.eap.write import write_trace_items
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta, TapEvent
@@ -16,6 +16,7 @@ from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
 )
+from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.utils import json, metrics
 
 logger = logging.getLogger()
@@ -295,9 +296,10 @@ def log_rage_click_events(
 @sentry_sdk.trace
 def report_hydration_error(
     event_meta: ParsedEventMeta,
-    project: Project,
+    project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    context: ProcessorContext,
 ) -> None:
     metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
 
@@ -305,13 +307,13 @@ def report_hydration_error(
     if (
         len(event_meta.hydration_errors) == 0
         or not replay_event
-        or not _should_report_hydration_error_issue(project)
+        or not _should_report_hydration_error_issue(project_id, context)
     ):
         return None
 
     for error in event_meta.hydration_errors:
         report_hydration_error_issue_with_replay_event(
-            project.id,
+            project_id,
             replay_id,
             error.timestamp,
             error.url,
@@ -369,12 +371,13 @@ def gen_rage_clicks(
 @sentry_sdk.trace
 def report_rage_click(
     event_meta: ParsedEventMeta,
-    project: Project,
+    project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    context: ProcessorContext,
 ) -> None:
-    clicks = list(gen_rage_clicks(event_meta, project.id, replay_id, replay_event))
-    if len(clicks) == 0 or not _should_report_rage_click_issue(project):
+    clicks = list(gen_rage_clicks(event_meta, project_id, replay_id, replay_event))
+    if len(clicks) == 0 or not _should_report_rage_click_issue(project_id, context):
         return None
 
     metrics.incr("replay.rage_click_detected", amount=len(clicks))
@@ -398,19 +401,33 @@ def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
 
 
 @sentry_sdk.trace
-def _should_report_hydration_error_issue(project: Project) -> bool:
+def _should_report_hydration_error_issue(project_id: int, context: ProcessorContext) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    return project.get_option("sentry:replay_hydration_error_issues")
+    if context["options_cache"]:
+        return context["options_cache"][project_id][0]
+    else:
+        return ProjectOption.objects.get_value(
+            project_id,
+            "sentry:replay_hydration_error_issues",
+            default=False,
+        )
 
 
 @sentry_sdk.trace
-def _should_report_rage_click_issue(project: Project) -> bool:
+def _should_report_rage_click_issue(project_id: int, context: ProcessorContext) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    return project.get_option("sentry:replay_rage_click_issues")
+    if context["options_cache"]:
+        return context["options_cache"][project_id][1]
+    else:
+        return ProjectOption.objects.get_value(
+            project_id,
+            "sentry:replay_rage_click_issues",
+            default=False,
+        )
 
 
 def encode_as_uuid(message: str) -> str:
