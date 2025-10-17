@@ -161,19 +161,21 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: getConfigureSnippet(params),
         },
-        ...(params.isLogsSelected
-          ? ([
-              {
-                type: 'text',
-                text: tct(
-                  'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it:',
-                  {code: <code />}
-                ),
-              },
-              {
-                type: 'code',
-                language: 'php',
-                code: `'channels' => [
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it:',
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              language: 'php',
+              code: `'channels' => [
     // ...
     'sentry_logs' => [
         'driver' => 'sentry_logs',
@@ -182,9 +184,9 @@ const onboarding: OnboardingConfig = {
         'level' => env('LOG_LEVEL', 'info'), // defaults to \`debug\` if not set
     ],
 ],`,
-              },
-            ] satisfies ContentBlock[])
-          : []),
+            },
+          ],
+        },
         {
           type: 'alert',
           alertType: 'warning',
@@ -217,19 +219,21 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'php artisan sentry:test',
         },
-        ...(params.isLogsSelected
-          ? ([
-              {
-                type: 'text',
-                text: tct(
-                  "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:",
-                  {code: <code />}
-                ),
-              },
-              {
-                type: 'code',
-                language: 'php',
-                code: `use Illuminate\\Support\\Facades\\Log;
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:",
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              language: 'php',
+              code: `use Illuminate\\Support\\Facades\\Log;
 
 // Log to all channels in the stack (including Sentry)
 Log::info('This is an info message');
@@ -238,22 +242,22 @@ Log::error('This is an error message');
 
 // Log directly to the Sentry channel
 Log::channel('sentry')->error('This will only go to Sentry');`,
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'You can also test your configuration using the Sentry logger directly:',
-                  {code: <code />}
-                ),
-              },
-              {
-                type: 'code',
-                language: 'php',
-                code: `\\Sentry\\logger()->info('A test log message');
+            },
+            {
+              type: 'text',
+              text: tct(
+                'You can also test your configuration using the Sentry logger directly:',
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              language: 'php',
+              code: `\\Sentry\\logger()->info('A test log message');
 \\Sentry\\logger()->flush();`,
-              },
-            ] satisfies ContentBlock[])
-          : []),
+            },
+          ],
+        },
       ],
     },
   ],
