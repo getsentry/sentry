@@ -2209,12 +2209,10 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/profiling/content')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'summary/:projectId/',
       component: make(() => import('sentry/views/profiling/profileSummary')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'profile/:projectId/differential-flamegraph/',
@@ -2224,7 +2222,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'profile/:projectId/',
       component: make(() => import('sentry/views/profiling/continuousProfileProvider')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
@@ -2237,7 +2234,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'profile/:projectId/:eventId/',
       component: make(() => import('sentry/views/profiling/transactionProfileProvider')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
@@ -2251,7 +2247,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/profiling')),
     withOrgPath: true,
     children: profilingChildren,
-    deprecatedRouteProps: true,
   };
 
   const exploreChildren: SentryRouteObject[] = [
