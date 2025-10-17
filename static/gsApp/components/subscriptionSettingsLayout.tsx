@@ -58,7 +58,7 @@ function SubscriptionSettingsLayout(props: Props) {
   return (
     <SettingsColumn direction="column" flex={1} minWidth="0">
       <StyledSettingsHeader>
-        <Flex align="center" justify="between">
+        <Flex align="center" justify="between" gap="xl">
           <StyledSettingsBreadcrumb params={params} routes={routes} />
           <Flex align="center" gap="xl">
             {openFeedbackForm ? (
@@ -107,4 +107,8 @@ const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
 
 const StyledSettingsHeader = styled(SettingsHeader)`
   border: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    overflow: scroll;
+  }
 `;

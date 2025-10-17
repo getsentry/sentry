@@ -26,6 +26,7 @@ function SubscriptionHeaderCard({
       border={isHighlighted ? 'accent' : 'primary'}
       radius="md"
       gap="lg"
+      maxWidth={{xs: 'calc(100vw - 48px)', sm: undefined}}
     >
       {title && (
         <Flex align="center" gap="sm">

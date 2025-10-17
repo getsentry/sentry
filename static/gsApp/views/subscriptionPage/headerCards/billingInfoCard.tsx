@@ -4,6 +4,8 @@ import {Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useNavContext} from 'sentry/views/nav/context';
+import {NavLayout} from 'sentry/views/nav/types';
 
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
@@ -49,6 +51,8 @@ function BillingInfoCard({
 }
 
 function BillingDetailsInfo() {
+  const {layout} = useNavContext();
+  const isMobile = layout === NavLayout.MOBILE;
   const {data: billingDetails, isLoading} = useBillingDetails();
 
   if (isLoading) {
@@ -62,7 +66,10 @@ function BillingDetailsInfo() {
 
   if (!billingDetails || !hasSomeBillingDetails(billingDetails)) {
     return (
-      <Container maxWidth="100%" overflow="hidden">
+      <Container
+        overflow="hidden"
+        maxWidth={isMobile ? 'calc(100vw - 48px - 32px)' : '100%'}
+      >
         <Text size="sm" variant="muted">
           {t('No billing details on file')}
         </Text>
@@ -90,7 +97,12 @@ function BillingDetailsInfo() {
   }
 
   return (
-    <Flex maxWidth="100%" overflow="hidden" direction="column" gap="sm">
+    <Flex
+      overflow="hidden"
+      direction="column"
+      gap="sm"
+      maxWidth={isMobile ? 'calc(100vw - 48px - 32px)' : '100%'}
+    >
       <Text ellipsis size="sm" variant="muted">
         {primaryDetails.length > 0
           ? primaryDetails.join(', ')
