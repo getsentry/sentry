@@ -120,6 +120,7 @@ class GithubProxyClient(IntegrationProxyClient):
     class AccessTokenData(TypedDict):
         access_token: str
         permissions: dict[str, str] | None
+        expires_at: datetime | None
 
     def _get_installation_id(self) -> str:
         """
@@ -152,7 +153,8 @@ class GithubProxyClient(IntegrationProxyClient):
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
         access_token = data["token"]
-        expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
+        expiration_time = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
+        expires_at = expiration_time.isoformat()
         permissions = data.get("permissions")
         integration.metadata.update(
             {
@@ -175,6 +177,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return {
             "access_token": access_token,
             "permissions": permissions,
+            "expires_at": expiration_time,
         }
 
     @control_silo_function
@@ -233,6 +236,7 @@ class GithubProxyClient(IntegrationProxyClient):
             return {
                 "access_token": access_token,
                 "permissions": self.integration.metadata.get("permissions"),
+                "expires_at": datetime.fromisoformat(expires_at) if expires_at else None,
             }
 
         return None

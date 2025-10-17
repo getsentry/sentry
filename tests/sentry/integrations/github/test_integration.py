@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
@@ -16,6 +16,7 @@ from django.urls import reverse
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
+from sentry.integrations.credentials_service.types import CredentialLease
 from sentry.integrations.github import client
 from sentry.integrations.github import integration as github_integration
 from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
@@ -1724,3 +1725,96 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert not OrganizationIntegration.objects.filter(
             integration=integration, organization_id=self.organization.id
         ).exists()
+
+
+@control_silo_test
+class GithubIntegrationCredentialLeasingTest(IntegrationTestCase):
+    base_url = "https://api.github.com"
+    access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+
+    def setUp(self) -> None:
+        self.organization = self.create_organization(owner=self.create_user("test@example.com"))
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Test Integration",
+            external_id="123",
+        )
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt(self):
+        with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt_function(self):
+        with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
+            yield
+
+    def _stub_github_credentials(self):
+        responses.add(
+            responses.POST,
+            "https://github.com/login/oauth/access_token",
+            body=f"access_token={self.access_token}",
+        )
+
+        responses.add(responses.GET, self.base_url + "/user", json={"login": "octocat"})
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.integration.external_id}/access_tokens",
+            json={
+                "token": self.access_token,
+                "expires_at": "2025-01-01T12:00:00Z",
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
+        )
+
+    @responses.activate
+    def test_get_active_access_token(self) -> None:
+        self._stub_github_credentials()
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert installation is not None
+        assert installation._get_active_access_token() == CredentialLease(
+            access_token=self.access_token,
+            permissions={
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+            expires_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        )
+
+    @responses.activate
+    def test_get_maximum_lease_duration_seconds(self) -> None:
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert installation is not None
+        assert installation.get_maximum_lease_duration_seconds() == 3600
+
+    @responses.activate
+    def test_refresh_access_token_with_minimum_validity_time(self) -> None:
+        self._stub_github_credentials()
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert installation is not None
+        assert installation._refresh_access_token_with_minimum_validity_time(
+            timedelta(minutes=1)
+        ) == CredentialLease(
+            access_token=self.access_token,
+            permissions={
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+            expires_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        )
