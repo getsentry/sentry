@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -20,7 +19,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import type {PageFiltersState} from 'sentry/components/organizations/pageFilters/types';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
@@ -32,8 +30,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
@@ -60,7 +56,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   FlamegraphProvider,
