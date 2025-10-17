@@ -37,6 +37,56 @@ function getInstallSnippet({
   return `npm install ${packages.join(' ')} --save`;
 }
 
+export function getInstallCodeBlock(
+  params: DocsParams,
+  {
+    basePackage = '@sentry/node',
+    additionalPackages,
+  }: {
+    additionalPackages?: string[];
+    basePackage?: string;
+  } = {}
+): ContentBlock {
+  return {
+    type: 'code',
+    tabs: [
+      {
+        label: 'npm',
+        language: 'bash',
+        code: getInstallSnippet({
+          params,
+          additionalPackages,
+          packageManager: 'npm',
+          basePackage,
+        }),
+      },
+      {
+        label: 'yarn',
+        language: 'bash',
+        code: getInstallSnippet({
+          params,
+          additionalPackages,
+          packageManager: 'yarn',
+          basePackage,
+        }),
+      },
+      {
+        label: 'pnpm',
+        language: 'bash',
+        code: getInstallSnippet({
+          params,
+          additionalPackages,
+          packageManager: 'pnpm',
+          basePackage,
+        }),
+      },
+    ],
+  };
+}
+
+/**
+ * @deprecated Use getInstallCodeBlock instead.
+ */
 export function getInstallConfig(
   params: DocsParams,
   {
