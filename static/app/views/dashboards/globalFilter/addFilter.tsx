@@ -12,18 +12,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import type {DatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
+import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
-export type SupportedDataset =
-  | WidgetType.ERRORS
-  | WidgetType.SPANS
-  | WidgetType.LOGS
-  | WidgetType.RELEASE
-  | WidgetType.ISSUE;
-
-export const DATASET_CHOICES = new Map<SupportedDataset, string>([
+export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ERRORS, t('Errors')],
   [WidgetType.SPANS, t('Spans')],
   [WidgetType.LOGS, t('Logs')],
@@ -34,10 +27,10 @@ export const DATASET_CHOICES = new Map<SupportedDataset, string>([
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
 
 export function getDatasetLabel(dataset: WidgetType) {
-  return DATASET_CHOICES.get(dataset as SupportedDataset) ?? '';
+  return DATASET_CHOICES.get(dataset) ?? '';
 }
 
-function getTagType(tag: Tag, dataset: SupportedDataset | null) {
+function getTagType(tag: Tag, dataset: WidgetType) {
   const fieldType =
     dataset === WidgetType.SPANS ? 'span' : dataset === WidgetType.LOGS ? 'log' : 'event';
   const fieldDefinition = getFieldDefinition(tag.key, fieldType, tag.kind);
@@ -46,12 +39,12 @@ function getTagType(tag: Tag, dataset: SupportedDataset | null) {
 }
 
 type AddFilterProps = {
-  datasetSearchBarData: DatasetSearchBarData;
+  getSearchBarData: (widgetType: WidgetType) => SearchBarData;
   onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddFilter({datasetSearchBarData, onAddFilter}: AddFilterProps) {
-  const [selectedDataset, setSelectedDataset] = useState<SupportedDataset | null>(null);
+function AddFilter({getSearchBarData, onAddFilter}: AddFilterProps) {
+  const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
 
@@ -66,7 +59,7 @@ function AddFilter({datasetSearchBarData, onAddFilter}: AddFilterProps) {
 
   const filterKeys: Record<string, Tag> = selectedDataset
     ? Object.fromEntries(
-        Object.entries(datasetSearchBarData[selectedDataset].getFilterKeys()).filter(
+        Object.entries(getSearchBarData(selectedDataset).getFilterKeys()).filter(
           ([key, value]) =>
             !shouldExcludeTracingKeys(key) &&
             (!value.kind || !UNSUPPORTED_FIELD_KINDS.includes(value.kind))
@@ -75,13 +68,15 @@ function AddFilter({datasetSearchBarData, onAddFilter}: AddFilterProps) {
     : {};
 
   // Get filter keys for the selected dataset
-  const filterKeyOptions = Object.entries(filterKeys).map(([_, tag]) => {
-    return {
-      value: tag.key,
-      label: prettifyTagKey(tag.key),
-      trailingItems: <TagBadge>{getTagType(tag, selectedDataset)}</TagBadge>,
-    };
-  });
+  const filterKeyOptions = selectedDataset
+    ? Object.entries(filterKeys).map(([_, tag]) => {
+        return {
+          value: tag.key,
+          label: prettifyTagKey(tag.key),
+          trailingItems: <TagBadge>{getTagType(tag, selectedDataset)}</TagBadge>,
+        };
+      })
+    : [];
 
   // Footer for filter key selection for adding filters and returning to dataset selection
   const filterOptionsMenuFooter = ({closeOverlay}: {closeOverlay: () => void}) => (
@@ -132,7 +127,7 @@ function AddFilter({datasetSearchBarData, onAddFilter}: AddFilterProps) {
           setSelectedFilterKey(filterKeys[option.value] ?? null);
           return;
         }
-        setSelectedDataset(option.value as SupportedDataset);
+        setSelectedDataset(option.value as WidgetType);
         setSelectedFilterKey(null);
         setIsSelectingFilterKey(true);
       }}

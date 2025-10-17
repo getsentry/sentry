@@ -5,15 +5,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
-export type DatasetSearchBarData = {
-  [WidgetType.ERRORS]: SearchBarData;
-  [WidgetType.LOGS]: SearchBarData;
-  [WidgetType.SPANS]: SearchBarData;
-  [WidgetType.ISSUE]: SearchBarData;
-  [WidgetType.RELEASE]: SearchBarData;
-};
-
-export function useDatasetSearchBarData(): DatasetSearchBarData {
+export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBarData {
   const {selection} = usePageFilters();
 
   const errorsData = getDatasetConfig(WidgetType.ERRORS).useSearchBarDataProvider!({
@@ -36,11 +28,26 @@ export function useDatasetSearchBarData(): DatasetSearchBarData {
     pageFilters: selection,
   });
 
-  return {
-    [WidgetType.ERRORS]: errorsData,
-    [WidgetType.LOGS]: logsData,
-    [WidgetType.SPANS]: spansData,
-    [WidgetType.ISSUE]: issuesData,
-    [WidgetType.RELEASE]: releasesData,
+  const getSearchBarData = (widgetType: WidgetType): SearchBarData => {
+    switch (widgetType) {
+      case WidgetType.ERRORS:
+        return errorsData;
+      case WidgetType.LOGS:
+        return logsData;
+      case WidgetType.SPANS:
+        return spansData;
+      case WidgetType.ISSUE:
+        return issuesData;
+      case WidgetType.RELEASE:
+        return releasesData;
+      default:
+        return {
+          getFilterKeySections: () => [],
+          getFilterKeys: () => ({}),
+          getTagValues: () => Promise.resolve([]),
+        };
+    }
   };
+
+  return getSearchBarData;
 }

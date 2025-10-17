@@ -18,9 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import AddFilter, {
-  type SupportedDataset,
-} from 'sentry/views/dashboards/globalFilter/addFilter';
+import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -62,7 +60,7 @@ export default function FiltersBar({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const datasetSearchBarData = useDatasetSearchBarData();
+  const getSearchBarData = useDatasetSearchBarData();
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -152,7 +150,7 @@ export default function FiltersBar({
                 <FilterSelector
                   key={filter.tag.key}
                   globalFilter={filter}
-                  searchBarData={datasetSearchBarData[filter.dataset as SupportedDataset]}
+                  searchBarData={getSearchBarData(filter.dataset)}
                   onUpdateFilter={updatedFilter => {
                     updateGlobalFilters(
                       activeGlobalFilters.map(f =>
@@ -168,7 +166,7 @@ export default function FiltersBar({
                 />
               ))}
               <AddFilter
-                datasetSearchBarData={datasetSearchBarData}
+                getSearchBarData={getSearchBarData}
                 onAddFilter={newFilter => {
                   updateGlobalFilters([...activeGlobalFilters, newFilter]);
                 }}
