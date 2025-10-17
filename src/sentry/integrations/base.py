@@ -377,6 +377,8 @@ class IntegrationInstallation(abc.ABC):
             organization_id=self.organization_id,
         )
         if integration is None:
+            sentry_sdk.set_tag("integration_id", self.model.id)
+            sentry_sdk.set_tag("organization_id", self.organization_id)
             raise OrganizationIntegrationNotFound("missing org_integration")
         return integration
 
