@@ -138,6 +138,7 @@ const desktop: Set<PlatformKey> = new Set([
   'dotnet-maui',
   'dotnet-winforms',
   'dotnet-wpf',
+  'dotnet-uwp',
   'electron',
   'dart',
   'flutter',
