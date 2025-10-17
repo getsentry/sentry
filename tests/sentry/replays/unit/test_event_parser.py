@@ -993,21 +993,19 @@ def test_which() -> None:
 
     assert which(event) == EventType.TAP
 
-    event = (
-        {
-            "type": 5,
-            "timestamp": 1753203886279,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "type": "default",
-                    "timestamp": 1753203886.279,
-                    "category": "device.battery",
-                    "data": {"level": 100.0, "charging": False},
-                },
+    event = {
+        "type": 5,
+        "timestamp": 1753203886279,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1753203886.279,
+                "category": "device.battery",
+                "data": {"level": 100.0, "charging": False},
             },
         },
-    )
+    }
     assert which(event) == EventType.DEVICE_BATTERY
 
     event = {
@@ -1026,21 +1024,19 @@ def test_which() -> None:
     }
     assert which(event) == EventType.DEVICE_ORIENTATION
 
-    event = (
-        {
-            "type": 5,
-            "timestamp": 1758733250547,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "type": "default",
-                    "timestamp": 1758733250.547,
-                    "category": "device.connectivity",
-                    "data": {"state": "wifi"},
-                },
+    event = {
+        "type": 5,
+        "timestamp": 1758733250547,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.547,
+                "category": "device.connectivity",
+                "data": {"state": "wifi"},
             },
         },
-    )
+    }
     assert which(event) == EventType.DEVICE_CONNECTIVITY
 
     assert which({}) == EventType.UNKNOWN
