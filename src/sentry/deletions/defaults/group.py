@@ -6,6 +6,8 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import sentry_sdk
+
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
@@ -216,19 +218,22 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
+@sentry_sdk.tracing.trace
 def batch_nullify_group_hash_metadata_references(hash_ids: Sequence[int]) -> None:
     """
     Batch nullify group_hash_metadata.seer_matched_grouphash_id references to avoid database timeouts.
     """
-    # This function call is necessary because the GroupHashMetadata model has a foreign key to the GroupHash model,
-    # and we need to nullify the seer_matched_grouphash_id field in the GroupHashMetadata model before deleting the GroupHash model
-    # to prevent the implicit ON DELETE SET NULL cascade from timing out.
-    # Process in small batches to avoid statement timeouts on high fan-out relationships
-    for i in range(0, len(hash_ids), GROUP_HASH_METADATA_BATCH_SIZE):
-        batch = hash_ids[i : i + GROUP_HASH_METADATA_BATCH_SIZE]
-        GroupHashMetadata.objects.filter(
-            seer_matched_grouphash_id__in=batch, seer_matched_grouphash_id__isnull=False
-        ).update(seer_matched_grouphash_id=None)
+    # XXX: This may be slow and may need to be optimized.
+    with metrics.timer("deletions.groups.group_hash_metadata.nullify_references"):
+        # This function call is necessary because the GroupHashMetadata model has a foreign key to the GroupHash model,
+        # and we need to nullify the seer_matched_grouphash_id field in the GroupHashMetadata model before deleting the GroupHash model
+        # to prevent the implicit ON DELETE SET NULL cascade from timing out.
+        # Process in small batches to avoid statement timeouts on high fan-out relationships
+        for i in range(0, len(hash_ids), GROUP_HASH_METADATA_BATCH_SIZE):
+            hash_ids_batch = hash_ids[i : i + GROUP_HASH_METADATA_BATCH_SIZE]
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids_batch).update(
+                seer_matched_grouphash_id=None
+            )
 
 
 def delete_project_group_hashes(project_id: int) -> None:
@@ -282,12 +287,12 @@ def delete_group_hashes(
 
         iterations += 1
 
-        if iterations == GROUP_HASH_ITERATIONS:
-            metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
-            logger.warning(
-                "Group hashes batch deletion reached the maximum number of iterations. "
-                "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
-            )
+    if iterations == GROUP_HASH_ITERATIONS:
+        metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
+        logger.warning(
+            "Group hashes batch deletion reached the maximum number of iterations. "
+            "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
+        )
 
 
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
