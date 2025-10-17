@@ -48,20 +48,6 @@ class MockBatchHandler(features.BatchFeatureHandler):
         raise NotImplementedError
 
     def has_batch_for_organizations(self, feature_names, actor, organizations):
-        """
-        Check the same feature flag for multiple organizations at once.
-
-        This method optimizes the case where you need to check the same feature
-        for many different organizations by parsing the feature configuration once
-        and reusing it across all organization contexts.
-
-        Args:
-            feature_names: The names of the features to check
-            organizations: List of organizations to check the feature for
-
-        Returns:
-            Mapping from organization keys (format: "organization:{id}") to feature results
-        """
         # This implementation assumes self.features contains the feature names this handler can evaluate.
         # Returns a dict from org key to subdict {feature: bool}
         results = {}
