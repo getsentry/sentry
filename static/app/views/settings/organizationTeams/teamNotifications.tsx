@@ -145,7 +145,7 @@ function TeamNotificationSettingsPanel({
   ));
 }
 
-function TeamNotificationSettings() {
+export default function TeamNotificationSettings() {
   const api = useApi();
   const params = useParams<{teamId: string}>();
   const organization = useOrganization();
@@ -235,8 +235,6 @@ function TeamNotificationSettings() {
     </Fragment>
   );
 }
-
-export default TeamNotificationSettings;
 
 const NotDisabledText = styled('div')`
   color: ${p => p.theme.textColor};
