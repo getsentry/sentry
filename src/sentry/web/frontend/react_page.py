@@ -90,11 +90,15 @@ class ReactMixin:
         react_config = get_client_config(request, org_context)
 
         user_theme = ""
-        prefers_chonk_ui = False
         if react_config.get("user", None) and react_config["user"].get("options", {}).get(
             "theme", None
         ):
             user_theme = f"theme-{react_config['user']['options']['theme']}"
+
+        prefers_chonk_ui = False
+        if react_config.get("user", None) and react_config["user"].get("options", {}).get(
+            "prefersChonkUI", False
+        ):
             prefers_chonk_ui = react_config["user"]["options"]["prefersChonkUI"]
 
         context = {
