@@ -132,6 +132,7 @@ export function hasAIInputAttribute(
   return (
     getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.embeddings.input', node, event, attributes) ||
     getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
     getTraceNodeAttribute('ai.prompt', node, event, attributes)
   );
@@ -196,6 +197,12 @@ export function AIInputSection({
   const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
+  const embeddingsInput = getTraceNodeAttribute(
+    'gen_ai.embeddings.input',
+    node,
+    event,
+    attributes
+  );
 
   const roles = Array.isArray(messages) ? messages.map(m => m.role) : [];
   useInvalidRoleDetection(roles);
@@ -219,6 +226,12 @@ export function AIInputSection({
       {Array.isArray(messages) ? <MessagesArrayRenderer messages={messages} /> : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+      ) : null}
+      {embeddingsInput ? (
+        <TraceDrawerComponents.MultilineJSON
+          value={embeddingsInput}
+          maxDefaultDepth={1}
+        />
       ) : null}
     </FoldSection>
   );
