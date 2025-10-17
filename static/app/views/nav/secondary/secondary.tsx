@@ -385,7 +385,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.component.link.muted.default};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
   border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
@@ -410,7 +410,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.component.link.muted.default};
+    color: ${p => p.theme.tokens.content.primary};
     background-color: ${p => p.theme.colors.gray100};
   }
 

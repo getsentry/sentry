@@ -391,7 +391,7 @@ const NavLinkLabel = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.fontSize.xs};
   font-weight: ${p => p.theme.fontWeight.bold};
-  letter-spacing: -0.05em;
+  letter-spacing: ${p => (p.theme.isChonk ? undefined : '-0.05em')};
 `;
 
 const ChonkNavLink = chonkStyled(Link, {
@@ -410,7 +410,7 @@ const ChonkNavLink = chonkStyled(Link, {
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
 
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.primary};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -448,7 +448,7 @@ const ChonkNavLink = chonkStyled(Link, {
 
   &:hover,
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.content.primary};
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.gray100};
     }
