@@ -479,6 +479,88 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
 
+    def test_get_trace_waterfall_sliding_window_second_period(self) -> None:
+        """Test that sliding window finds traces in the second 14-day period (14-28 days ago)"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        twenty_days_ago = before_now(days=20)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=twenty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace using short ID by sliding back to the second window
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_old_trace(self) -> None:
+        """Test that sliding window finds traces near the 90-day limit"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        eighty_days_ago = before_now(days=80)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=eighty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace by sliding back through multiple windows
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_beyond_limit(self) -> None:
+        """Test that traces beyond 90 days are not found"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        one_hundred_days_ago = before_now(days=100)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=one_hundred_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should not find the trace since it's beyond the 90-day limit
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert result is None
+
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
 

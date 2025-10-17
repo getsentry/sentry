@@ -115,9 +115,9 @@ function GridList({
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
-      <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
-        {overlayIsOpen &&
-          listItems.map(item => {
+      {overlayIsOpen && (
+        <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
+          {listItems.map(item => {
             if (item.type === 'section') {
               return (
                 <GridListSection
@@ -140,12 +140,13 @@ function GridList({
             );
           })}
 
-        {!search && hiddenOptions.size > 0 && (
-          <SizeLimitMessage>
-            {sizeLimitMessage ?? t('Use search to find more options…')}
-          </SizeLimitMessage>
-        )}
-      </ListWrap>
+          {!search && hiddenOptions.size > 0 && (
+            <SizeLimitMessage>
+              {sizeLimitMessage ?? t('Use search to find more options…')}
+            </SizeLimitMessage>
+          )}
+        </ListWrap>
+      )}
     </Fragment>
   );
 }
