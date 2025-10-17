@@ -196,6 +196,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         cohort_2_distribution = []
         cohort_2_distribution_map = defaultdict(list)
+        processed_cohort_2_buckets = set()
 
         for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
             for bucket in attribute.buckets:
@@ -221,7 +222,18 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                         cohort_2_distribution.append(
                             (attribute.attribute_name, bucket.label, baseline_value)
                         )
+                        processed_cohort_2_buckets.add((attribute.attribute_name, bucket.label))
                         break
+
+        # Add remaining cohort_2 buckets that weren't in cohort_1 (exist only in baseline)
+        cohort_2_distribution.extend(
+            [
+                (attribute_name, cast(str, bucket["label"]), cast(float, bucket["value"]))
+                for attribute_name, buckets in cohort_2_distribution_map.items()
+                for bucket in buckets
+                if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets
+            ]
+        )
 
         total_outliers = (
             int(totals_1_result["data"][0]["count(span.duration)"])
