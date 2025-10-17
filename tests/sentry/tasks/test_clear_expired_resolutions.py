@@ -194,12 +194,12 @@ class ClearExpiredResolutionsTest(TestCase):
 
     @with_feature("organizations:resolve-in-future-release")
     def test_in_future_release_multiple_groups(self) -> None:
-        """Test that multiple groups with same future_release_version are all cleared."""
+        """Test that multiple groups with future_release_version <= new_release.version are all cleared."""
         project = self.create_project()
 
         old_release = self.create_release(project=project, version="package@1.0.0")
 
-        # group 1: resolved in future release 2.0.0
+        # group 1: resolved in future release 1.0.0
         group1 = self.create_group(
             project=project, status=GroupStatus.RESOLVED, active_at=timezone.now()
         )
@@ -207,7 +207,7 @@ class ClearExpiredResolutionsTest(TestCase):
             group=group1,
             release=old_release,
             type=GroupResolution.Type.in_future_release,
-            future_release_version="package@2.0.0",
+            future_release_version="package@1.0.0",
             status=GroupResolution.Status.pending,
         )
         activity1 = self.create_group_activity(

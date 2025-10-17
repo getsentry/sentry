@@ -1,4 +1,7 @@
+import orjson
 from django.db.models import Q
+from sentry_relay.processing import compare_version as compare_version_relay
+from sentry_relay.processing import parse_release
 
 from sentry import features
 from sentry.models.activity import Activity
@@ -47,21 +50,41 @@ def clear_future_release_resolutions(release):
     """
     Clear group resolutions of type `in_future_release` where:
     1. The organization the release belongs to has the "resolve-in-future-release" feature flag enabled
-    2. The future_release_version matches the newly created release version
+    2. The future_release_version is <= the newly created release version (using semver comparison)
     3. The resolution is still pending
     4. The resolution belongs to the same organization as the release
     """
-    if not features.has("organizations:resolve-in-future-release", release.organization):
+    if not features.has(
+        "organizations:resolve-in-future-release", release.organization
+    ) or not Release.is_semver_version(release.version):
         return
 
-    resolution_list = list(
-        GroupResolution.objects.filter(
-            type=GroupResolution.Type.in_future_release,
-            future_release_version=release.version,
-            status=GroupResolution.Status.pending,
-            group__project__organization=release.organization,
-        )
+    resolution_candidates = GroupResolution.objects.filter(
+        type=GroupResolution.Type.in_future_release,
+        status=GroupResolution.Status.pending,
+        group__project__organization=release.organization,
+        future_release_version__isnull=False,
     )
+
+    resolution_list = []
+    for resolution in resolution_candidates:
+        if not Release.is_semver_version(resolution.future_release_version):
+            continue
+
+        # If release.version >= future_release_version, clear the resolution
+        try:
+            release_parsed = parse_release(release.version, json_loads=orjson.loads).get(
+                "version_raw"
+            )
+            future_parsed = parse_release(
+                resolution.future_release_version, json_loads=orjson.loads
+            ).get("version_raw")
+
+            comparison = compare_version_relay(release_parsed, future_parsed)
+            if comparison >= 0:
+                resolution_list.append(resolution)
+        except Exception:
+            continue
 
     if not resolution_list:
         return

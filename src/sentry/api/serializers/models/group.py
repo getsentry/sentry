@@ -479,8 +479,7 @@ class GroupSerializerBase(Serializer, ABC):
                 elif res_type == GroupResolution.Type.in_release:
                     status_details["inRelease"] = res_version
                 elif res_type == GroupResolution.Type.in_future_release:
-                    # Use the actual future release version if available, otherwise fall back to placeholder
-                    status_details["inFutureRelease"] = future_release_version or res_version
+                    status_details["inFutureRelease"] = future_release_version
                 status_details["actor"] = attrs["resolution_actor"]
             elif attrs["resolution_type"] == "commit":
                 status_details["inCommit"] = attrs["resolution"]
