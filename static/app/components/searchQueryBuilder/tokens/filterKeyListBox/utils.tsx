@@ -1,4 +1,9 @@
 import styled from '@emotion/styled';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import * as Sentry from '@sentry/react';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -28,6 +33,7 @@ import {
   getKeyLabel as getFilterKeyLabel,
   getKeyName,
 } from 'sentry/components/searchSyntax/utils';
+import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -102,15 +108,38 @@ export function createSection(
 export function createItem(
   tag: Tag,
   fieldDefinition: FieldDefinition | null,
-  section?: FilterKeySection
+  section?: FilterKeySection,
+  hasSentryConventions?: boolean
 ): KeyItem {
   const description = fieldDefinition?.desc;
 
   const key = section ? `${section.value}:${tag.key}` : tag.key;
 
+  let isSentryAttribute = false;
+  if (hasSentryConventions) {
+    isSentryAttribute = defined(
+      ATTRIBUTE_METADATA?.[tag.key as keyof typeof ATTRIBUTE_METADATA]
+    );
+    // while we're rolling this out, we can keep track to see if we're missing any attributes.
+    Sentry.logger.info(
+      isSentryAttribute
+        ? Sentry.logger.fmt`${tag.key} is a sentry attribute`
+        : Sentry.logger.fmt`${tag.key} is not a sentry attribute`
+    );
+  }
+
   return {
     key: getEscapedKey(key),
-    label: getKeyLabel(tag, fieldDefinition),
+    label: (
+      <Flex align="center" gap="xs">
+        {props => (
+          <Text {...props}>
+            {getKeyLabel(tag, fieldDefinition)}
+            {isSentryAttribute ? <IconSentry data-testid="sentry-icon" /> : null}
+          </Text>
+        )}
+      </Flex>
+    ),
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,

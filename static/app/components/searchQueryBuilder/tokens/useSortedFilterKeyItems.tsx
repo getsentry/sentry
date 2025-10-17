@@ -143,8 +143,12 @@ export function useSortedFilterKeyItems({
     gaveSeerConsent,
   } = useSearchQueryBuilder();
 
-  const hasWildcardOperators = useOrganization().features.includes(
+  const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
+  );
+  const hasSentryConventions = organization.features.includes(
+    'search-query-builder-use-conventions-field-defs'
   );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
@@ -178,7 +182,9 @@ export function useSortedFilterKeyItems({
     if (!filterValue || !search) {
       if (!filterKeySections.length) {
         return flatKeys
-          .map(key => createItem(key, getFieldDefinition(key.key)))
+          .map(key =>
+            createItem(key, getFieldDefinition(key.key), undefined, hasSentryConventions)
+          )
           .sort((a, b) => a.textValue.localeCompare(b.textValue));
       }
 
@@ -189,7 +195,9 @@ export function useSortedFilterKeyItems({
       return filterSectionKeys
         .map(key => filterKeys[key])
         .filter(defined)
-        .map(key => createItem(key, getFieldDefinition(key.key)));
+        .map(key =>
+          createItem(key, getFieldDefinition(key.key), undefined, hasSentryConventions)
+        );
     }
 
     const searched = search.search(filterValue);
@@ -198,7 +206,12 @@ export function useSortedFilterKeyItems({
       .map(({item}) => item)
       .filter(item => item.type === 'key' && filterKeys[item.item.key])
       .map(({item}) => {
-        return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
+        return createItem(
+          filterKeys[item.key]!,
+          getFieldDefinition(item.key),
+          undefined,
+          hasSentryConventions
+        );
       });
 
     const askSeerItem = [];
@@ -308,6 +321,7 @@ export function useSortedFilterKeyItems({
     flatKeys,
     gaveSeerConsent,
     getFieldDefinition,
+    hasSentryConventions,
     hasWildcardOperators,
     includeSuggestions,
     inputValue,
