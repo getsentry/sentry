@@ -115,6 +115,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'dotnet',
     link: 'https://docs.sentry.io/platforms/dotnet/guides/uwp/',
+    deprecated: true,
   },
   {
     id: 'dotnet-winforms',
