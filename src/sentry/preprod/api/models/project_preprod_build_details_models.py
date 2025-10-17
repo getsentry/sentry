@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from enum import StrEnum
 from typing import Annotated, Literal

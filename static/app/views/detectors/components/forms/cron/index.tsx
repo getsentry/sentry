@@ -43,6 +43,7 @@ export function NewCronDetectorForm() {
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
+        name: 'New Monitor',
       }}
     >
       <CronDetectorForm />
