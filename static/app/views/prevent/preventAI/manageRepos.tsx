@@ -144,7 +144,9 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         key={`${selectedOrgName || 'no-org'}-${selectedRepoName || 'no-repo'}`}
         collapsed={!isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
+        orgId={selectedOrg?.id ?? ''}
         orgName={selectedOrg?.name ?? ''}
+        repoId={selectedRepo?.id ?? ''}
         repoName={selectedRepo?.name ?? ''}
         allRepos={selectedOrg?.repos ?? []}
         isEditingOrgDefaults={selectedRepoName === ALL_REPOS_VALUE}

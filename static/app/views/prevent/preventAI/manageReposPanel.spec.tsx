@@ -16,8 +16,10 @@ describe('ManageReposPanel', () => {
   const defaultProps = {
     collapsed: false,
     onClose: jest.fn(),
-    repoName: 'repo-1',
+    orgId: 'org-1',
     orgName: 'org-1',
+    repoId: 'repo-1',
+    repoName: 'repo-1',
     repoFullName: 'org-1/repo-1',
     isEditingOrgDefaults: false,
   };
@@ -74,6 +76,7 @@ describe('ManageReposPanel', () => {
 
   it('renders the panel header and description with org defaults when "All Repos" is selected', async () => {
     const props = {...defaultProps};
+    props.repoId = '';
     props.repoName = '';
     props.isEditingOrgDefaults = true;
     render(<ManageReposPanel {...props} />, {organization: mockOrganization});
@@ -87,6 +90,7 @@ describe('ManageReposPanel', () => {
 
   it('renders [none] when no repos have overrides when editing org defaults', async () => {
     const props = {...defaultProps};
+    props.repoId = '';
     props.repoName = '';
     props.isEditingOrgDefaults = true;
     const mockOrg = structuredClone(mockOrganization);
@@ -267,15 +271,18 @@ describe('ManageReposPanel', () => {
     expect(mockEnableFeature).toHaveBeenCalledWith({
       feature: 'use_org_defaults',
       enabled: false,
-      orgName: 'org-1',
-      repoName: 'repo-1',
+      orgId: 'org-1',
+      repoId: 'repo-1',
     });
   });
 
   it('does not show toggle when editing organization defaults', async () => {
-    render(<ManageReposPanel {...defaultProps} repoName="" isEditingOrgDefaults />, {
-      organization: mockOrganization,
-    });
+    render(
+      <ManageReposPanel {...defaultProps} repoId="" repoName="" isEditingOrgDefaults />,
+      {
+        organization: mockOrganization,
+      }
+    );
     expect(
       await screen.findByText(/These settings apply to all repositories by default/i)
     ).toBeInTheDocument();
