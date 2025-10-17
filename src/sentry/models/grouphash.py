@@ -53,7 +53,8 @@ class GroupHash(Model):
         except AttributeError:
             return None
 
-    __repr__ = sane_repr("group_id", "hash")
+    __repr__ = sane_repr("group_id", "hash", "metadata")
+    __str__ = __repr__
 
     def get_associated_fingerprint(self) -> list[str] | None:
         """
