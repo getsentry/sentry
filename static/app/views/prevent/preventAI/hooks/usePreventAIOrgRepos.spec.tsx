@@ -16,7 +16,7 @@ describe('usePreventAIOrgRepos', () => {
   const mockResponse: PreventAIOrgReposResponse = {
     orgRepos: [
       {
-        id: '1',
+        githubOrganizationId: '1',
         name: 'repo1',
         provider: 'github',
         repos: [
@@ -24,7 +24,7 @@ describe('usePreventAIOrgRepos', () => {
         ],
       },
       {
-        id: '2',
+        githubOrganizationId: '2',
         name: 'repo2',
         provider: 'github',
         repos: [
