@@ -22,6 +22,7 @@ from sentry.constants import (
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
+from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +97,9 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
 @region_silo_endpoint
 class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
     """
-    Returns the resolved config for a single repo under a GitHub org.
+    Returns the resolved config for a Sentry organization.
 
-    GET /prevent/pr-review/configs/resolved?ghOrg={org}&repo={repo}
+    GET /prevent/pr-review/configs/resolved?sentryOrgId={orgId}
     """
 
     publish_status = {
@@ -114,12 +115,22 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             request.successful_authenticator, OverwatchRpcSignatureAuthentication
         ):
             raise PermissionDenied
-        gh_org = request.GET.get("ghOrg")
-        repo = request.GET.get("repo")
-        if not gh_org or not repo:
-            raise ParseError("Missing required query parameters: ghOrg, repo")
-        # Stub: return empty dict for now
-        return Response(data={})
+        sentry_org_id = request.GET.get("sentryOrgId")
+        if not sentry_org_id:
+            raise ParseError("Missing required query parameter: sentryOrgId")
+
+        try:
+            organization = Organization.objects.get(id=sentry_org_id)
+        except Organization.DoesNotExist:
+            raise ParseError(f"Organization with ID {sentry_org_id} not found")
+        except ValueError:
+            raise ParseError(f"Invalid organization ID: {sentry_org_id}")
+
+        prevent_ai_config = organization.get_option(
+            "sentry:prevent_ai_config_github", PREVENT_AI_CONFIG_GITHUB_DEFAULT
+        )
+
+        return Response(data=prevent_ai_config)
 
 
 @region_silo_endpoint
