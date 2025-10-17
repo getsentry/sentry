@@ -590,7 +590,55 @@ def should_use_on_demand_metrics_for_querying(organization: Organization, **kwar
                 logger.error("Add the feature flag to create the spec for this function.")
             return False
 
+    supported_by = _query_supported_by(**kwargs)
+    if (
+        kwargs.get("prefilling", False)
+        and supported_by.on_demand_metrics
+        and supported_by.standard_metrics
+    ):
+        return False
+
     return should_use_on_demand_metrics(**kwargs)
+
+
+def _query_supported_by(
+    dataset: str | Dataset | None,
+    aggregate: str,
+    query: str,
+    groupbys: Sequence[str] | None = None,
+    prefilling: bool = False,
+) -> SupportedBy:
+    """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
+    groupbys = groupbys or []
+    supported_datasets = [Dataset.PerformanceMetrics]
+    # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
+    # metrics that will be needed after a query is converted from using transactions to metrics.
+    if prefilling:
+        supported_datasets.append(Dataset.Transactions)
+
+    if not dataset or Dataset(dataset) not in supported_datasets:
+        return SupportedBy(standard_metrics=False, on_demand_metrics=False)
+
+    components = _extract_aggregate_components(aggregate)
+    if components is None:
+        return SupportedBy(standard_metrics=False, on_demand_metrics=False)
+
+    function, args = components
+
+    mri_aggregate = _extract_mri(args)
+    if mri_aggregate is not None:
+        # For now, we do not support MRIs in on demand metrics.
+        return SupportedBy(standard_metrics=True, on_demand_metrics=False)
+
+    aggregate_supported_by = _get_aggregate_supported_by(function, args)
+    query_supported_by = _get_query_supported_by(query)
+    groupbys_supported_by = _get_groupbys_support(groupbys)
+
+    supported_by = SupportedBy.combine(
+        aggregate_supported_by, query_supported_by, groupbys_supported_by
+    )
+
+    return supported_by
 
 
 def _should_use_on_demand_metrics(
@@ -601,34 +649,10 @@ def _should_use_on_demand_metrics(
     prefilling: bool = False,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
-    groupbys = groupbys or []
-    supported_datasets = [Dataset.PerformanceMetrics]
-    # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
-    # metrics that will be needed after a query is converted from using transactions to metrics.
+    supported_by = _query_supported_by(dataset, aggregate, query, groupbys, prefilling)
+
     if prefilling:
-        supported_datasets.append(Dataset.Transactions)
-
-    if not dataset or Dataset(dataset) not in supported_datasets:
-        return False
-
-    components = _extract_aggregate_components(aggregate)
-    if components is None:
-        return False
-
-    function, args = components
-
-    mri_aggregate = _extract_mri(args)
-    if mri_aggregate is not None:
-        # For now, we do not support MRIs in on demand metrics.
-        return False
-
-    aggregate_supported_by = _get_aggregate_supported_by(function, args)
-    query_supported_by = _get_query_supported_by(query)
-    groupbys_supported_by = _get_groupbys_support(groupbys)
-
-    supported_by = SupportedBy.combine(
-        aggregate_supported_by, query_supported_by, groupbys_supported_by
-    )
+        return supported_by.on_demand_metrics
 
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
