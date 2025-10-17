@@ -41,7 +41,7 @@ function AlertBlock({
   icon,
 }: Extract<ContentBlock, {type: 'alert'}>) {
   return (
-    <div css={baseBlockStyles}>
+    <div css={[baseBlockStyles, coloredCodeStyles]}>
       <Alert
         type={alertType}
         showIcon={showIcon}
