@@ -3127,7 +3127,6 @@ function buildRoutes(): RouteObject[] {
       {
         path: '/',
         component: errorHandler(App),
-        deprecatedRouteProps: true,
         children: [
           rootRoutes,
           authV2Routes,
