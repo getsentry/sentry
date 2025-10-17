@@ -1,8 +1,4 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import type {
   Docs,
   DocsParams,
@@ -90,22 +86,24 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct('Install the [strong:NuGet] package:', {
-        strong: <strong />,
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct('Install the [strong:NuGet] package:', {
+            strong: <strong />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'shell',
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'shell',
               code: getInstallSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallSnippetCoreCli(params),
             },
           ],
@@ -116,14 +114,18 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Initialize the SDK as early as possible, like in the constructor of the [code:App]:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Initialize the SDK as early as possible, like in the constructor of the [code:App]:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'csharp',
           code: getConfigureSnippet(params),
         },
@@ -133,93 +135,113 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t('To verify your set up, you can capture a message with the SDK:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify your set up, you can capture a message with the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Hello Sentry");',
         },
-      ],
-      additionalInfo: tct(
-        "If you don't want to depend on the static class, the SDK registers a client in the DI container. In this case, you can [link:take [code:IHub] as a dependency].",
         {
-          code: <code />,
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/unit-testing/" />
+          type: 'text',
+          text: tct(
+            "If you don't want to depend on the static class, the SDK registers a client in the DI container. In this case, you can [link:take [code:IHub] as a dependency].",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/unit-testing/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
     {
       title: t('Tracing'),
-      description: t(
-        'You can measure the performance of your code by capturing transactions and spans.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can measure the performance of your code by capturing transactions and spans.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: getPerformanceInstrumentationSnippet(),
         },
-      ],
-      additionalInfo: tct(
-        'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/uwp/tracing/instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
     {
       title: t('Documentation'),
-      description: tct(
-        "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete UWP docs].",
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/uwp/" />
+          type: 'text',
+          text: tct(
+            "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete UWP docs].",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/uwp/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
     {
       title: t('Samples'),
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              'You can find an example UWP app with Sentry integrated [link:on this GitHub repository].',
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'You can find an example UWP app with Sentry integrated [link:on this GitHub repository].',
+            {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/examples/tree/master/dotnet/UwpCSharp" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
+              '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
               {
                 link: (
-                  <ExternalLink href="https://github.com/getsentry/examples/tree/master/dotnet/UwpCSharp" />
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
                 ),
-              }
-            )}
-          </p>
-          {t(
-            'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              {tct(
-                '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-                {
-                  link: (
-                    <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                  ),
-                  code: <code />,
-                  strong: <strong />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {tct('[link:Basic F# sample] [strong:(F#)]', {
-                link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+                code: <code />,
                 strong: <strong />,
-              })}
-            </ListItem>
-          </List>
-        </Fragment>
-      ),
+              }
+            ),
+            tct('[link:Basic F# sample] [strong:(F#)]', {
+              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+              strong: <strong />,
+            }),
+          ],
+        },
+      ],
     },
   ],
 };
