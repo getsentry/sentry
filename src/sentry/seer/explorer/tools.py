@@ -213,8 +213,8 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
             subquery_result = Spans.run_table_query(
                 params=snuba_params,
                 query_string=f"trace:{trace_id}",
-                selected_columns=["trace", "precise.start_ts"],
-                orderby=["-precise.start_ts"],  # Get most recent trace if there's multiple.
+                selected_columns=["trace"],
+                orderby=[],
                 offset=0,
                 limit=1,
                 referrer=Referrer.SEER_RPC,
@@ -222,12 +222,23 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
                 sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,  # Maximize likelihood of finding a span.
             )
 
-            if subquery_result.get("data"):
-                full_trace_id = (
-                    subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
+            data = subquery_result.get("data")
+            if not data:
+                # Temporary debug log
+                logger.warning(
+                    "get_trace_waterfall: No data returned from short id query",
+                    extra={
+                        "organization_id": organization_id,
+                        "trace_id": trace_id,
+                        "subquery_result": subquery_result,
+                        "start": window_start,
+                        "end": window_end,
+                    },
                 )
-                if full_trace_id:
-                    break
+
+            full_trace_id = data[0].get("trace") if data else None
+            if full_trace_id:
+                break
     else:
         full_trace_id = trace_id
 
