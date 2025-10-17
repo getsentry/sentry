@@ -1677,8 +1677,8 @@ def build_chunk_functions_eap_trace_items(
             if release is not None:
                 attributes["release"] = AnyValue(string_value=release)
 
-            attributes["self_times_ns"] = AnyValue(int_value=f.get_self_times_ns()[i])
-            attributes["total_times_ns"] = AnyValue(int_value=f.get_total_times_ns()[i])
+            attributes["self_time_ns"] = AnyValue(int_value=f.get_self_times_ns()[i])
+            attributes["total_time_ns"] = AnyValue(int_value=f.get_total_times_ns()[i])
 
             item = TraceItem(
                 organization_id=chunk.get_organization_id(),
