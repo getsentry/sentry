@@ -37,6 +37,48 @@ function hasValidContent(content: string): boolean {
   return trimmed.length > 0 && trimmed !== '.'; // sometimes the LLM just says '.' when calling a tool
 }
 
+/**
+ * Determine the dot color based on tool execution status
+ */
+function getToolStatus(
+  block: Block
+): 'loading' | 'content' | 'success' | 'failure' | 'mixed' {
+  if (block.loading) {
+    return 'loading';
+  }
+
+  const hasContent = hasValidContent(block.message.content);
+  if (hasContent) {
+    return 'content';
+  }
+
+  // Check tool_links for empty_results metadata
+  const toolLinks = block.tool_links || [];
+  if (toolLinks.length === 0) {
+    // No metadata available, assume success
+    return 'success';
+  }
+
+  let hasSuccess = false;
+  let hasFailure = false;
+
+  toolLinks.forEach(link => {
+    if (link?.params?.empty_results === true) {
+      hasFailure = true;
+    } else if (link !== null) {
+      hasSuccess = true;
+    }
+  });
+
+  if (hasFailure && hasSuccess) {
+    return 'mixed';
+  }
+  if (hasFailure) {
+    return 'failure';
+  }
+  return 'success';
+}
+
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
@@ -200,7 +242,7 @@ function BlockComponent({
           ) : (
             <BlockRow>
               <ResponseDot
-                isLoading={block.loading}
+                status={getToolStatus(block)}
                 hasOnlyTools={!hasContent && hasTools}
               />
               <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
@@ -293,17 +335,35 @@ const BlockChevronIcon = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-const ResponseDot = styled('div')<{hasOnlyTools?: boolean; isLoading?: boolean}>`
+const ResponseDot = styled('div')<{
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed';
+  hasOnlyTools?: boolean;
+}>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
   margin-top: ${p => (p.hasOnlyTools ? '12px' : '22px')};
   margin-left: ${space(2)};
   flex-shrink: 0;
-  background: ${p => (p.isLoading ? p.theme.pink400 : p.theme.purple400)};
+  background: ${p => {
+    switch (p.status) {
+      case 'loading':
+        return p.theme.pink400;
+      case 'content':
+        return p.theme.purple400;
+      case 'success':
+        return p.theme.green400;
+      case 'failure':
+        return p.theme.red400;
+      case 'mixed':
+        return p.theme.yellow400;
+      default:
+        return p.theme.purple400;
+    }
+  }};
 
   ${p =>
-    p.isLoading &&
+    p.status === 'loading' &&
     `
     animation: blink 1s infinite;
 
