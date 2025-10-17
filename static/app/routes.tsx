@@ -2419,6 +2419,26 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'ai/',
+      children: [
+        // Render AI page with layout wrapper
+        {
+          component: make(() => import('sentry/views/codecov/ai/aiWrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/ai/ai')),
+            },
+          ],
+        },
+        // Render AI onboarding without any layout wrapping
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/ai/onboarding')),
+        },
+      ],
+    },
+    {
       path: 'tokens/',
       component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
       children: [

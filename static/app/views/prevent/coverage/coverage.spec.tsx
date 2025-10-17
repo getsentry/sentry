@@ -12,7 +12,7 @@ describe('CoveragePage', () => {
       organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
     });
 
-    const testContent = screen.getByText('Coverage Analytics');
+    const testContent = screen.getByText('Code Coverage');
     expect(testContent).toBeInTheDocument();
   });
 });
