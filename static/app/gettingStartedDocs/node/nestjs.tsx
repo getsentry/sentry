@@ -1,4 +1,3 @@
-import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -16,7 +15,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -116,12 +115,9 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Add the Sentry NestJS SDK as a dependency:'),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params, {
-            basePackage: '@sentry/nestjs',
-          })[0]!.code,
-        },
+        getInstallCodeBlock(params, {
+          basePackage: '@sentry/nestjs',
+        }),
       ],
     },
   ],
