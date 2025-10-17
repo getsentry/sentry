@@ -53,9 +53,18 @@ describe('ManageReposPanel', () => {
     },
   });
 
-  it('renders the panel header and description with repo link', async () => {
+  it('calls onClose when the close button is clicked', async () => {
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
-    expect(await screen.findByText('AI Code Review Settings')).toBeInTheDocument();
+    const closeButton = await screen.findByLabelText(/Close Settings/i);
+    await userEvent.click(closeButton);
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it('renders the panel header and description with repo link when repo is selected', async () => {
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+    expect(
+      await screen.findByText('AI Code Review Repository Settings')
+    ).toBeInTheDocument();
     expect(
       await screen.findByText(/These settings apply to the selected/i)
     ).toBeInTheDocument();
@@ -63,11 +72,27 @@ describe('ManageReposPanel', () => {
     expect(repoLink).toHaveAttribute('href', 'https://github.com/org-1/repo-1');
   });
 
-  it('calls onClose when the close button is clicked', async () => {
-    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
-    const closeButton = await screen.findByLabelText(/Close Settings/i);
-    await userEvent.click(closeButton);
-    expect(defaultProps.onClose).toHaveBeenCalled();
+  it('renders the panel header and description with org defaults when "All Repos" is selected', async () => {
+    const props = {...defaultProps};
+    props.repoName = '';
+    props.isEditingOrgDefaults = true;
+    render(<ManageReposPanel {...props} />, {organization: mockOrganization});
+    expect(
+      await screen.findByText('AI Code Review Default Settings')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/These settings apply to all repositories by default/i)
+    ).toBeInTheDocument();
+  });
+
+  it('renders [none] when no repos have overrides when editing org defaults', async () => {
+    const props = {...defaultProps};
+    props.repoName = '';
+    props.isEditingOrgDefaults = true;
+    const mockOrg = structuredClone(mockOrganization);
+    mockOrg.preventAiConfigGithub!.default_org_config.repo_overrides = {};
+    render(<ManageReposPanel {...props} />, {organization: mockOrg});
+    expect(await screen.findByText(/\[none\]/i)).toBeInTheDocument();
   });
 
   it('shows feature toggles with correct initial state when repo has overrides', async () => {
@@ -80,7 +105,7 @@ describe('ManageReposPanel', () => {
           'org-1': {
             org_defaults: defaultOrgConfig.org_defaults,
             repo_overrides: {
-              'repo-1': defaultOrgConfig.org_defaults, // Use org defaults as the override
+              'repo-1': defaultOrgConfig.org_defaults,
             },
           },
         },
@@ -180,6 +205,9 @@ describe('ManageReposPanel', () => {
 
   it('shows sensitivity options when feature is enabled and repo has overrides', async () => {
     const defaultOrgConfig = mockOrganization.preventAiConfigGithub!.default_org_config;
+    const repoOverride = {...defaultOrgConfig.org_defaults};
+    repoOverride.bug_prediction.sensitivity = 'high';
+
     const orgWithOverride = OrganizationFixture({
       preventAiConfigGithub: {
         schema_version: 'v1',
@@ -188,7 +216,7 @@ describe('ManageReposPanel', () => {
           'org-1': {
             org_defaults: defaultOrgConfig.org_defaults,
             repo_overrides: {
-              'repo-1': defaultOrgConfig.org_defaults,
+              'repo-1': repoOverride,
             },
           },
         },
@@ -207,6 +235,9 @@ describe('ManageReposPanel', () => {
     expect(
       await screen.findByTestId(/error-prediction-sensitivity-dropdown/i)
     ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId(/error-prediction-sensitivity-dropdown/i)
+    ).toHaveTextContent(/High/i);
   });
 
   it('shows toggle for overriding organization defaults', async () => {
@@ -219,24 +250,23 @@ describe('ManageReposPanel', () => {
     ).toBeInTheDocument();
     const toggle = await screen.findByLabelText('Override Organization Defaults');
     expect(toggle).toBeInTheDocument();
-    expect(toggle).not.toBeChecked(); // Should be unchecked since repo uses org defaults
+    expect(toggle).not.toBeChecked();
   });
 
-  it('calls updatePreventAIFeature when toggle is clicked', async () => {
-    const mockUpdatePreventAIFeature = jest.fn();
+  it('calls enableFeature when toggle is clicked', async () => {
+    const mockEnableFeature = jest.fn();
     mockUpdatePreventAIFeatureReturn = {
-      updatePreventAIFeature: mockUpdatePreventAIFeature,
+      enableFeature: mockEnableFeature,
       isLoading: false,
     };
+
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     const toggle = await screen.findByLabelText('Override Organization Defaults');
     await userEvent.click(toggle);
 
-    // Currently doesUseOrgDefaults=true (no overrides), clicking to add overrides
-    // Need to create override, so pass enabled=false (inverse of doesUseOrgDefaults)
-    expect(mockUpdatePreventAIFeature).toHaveBeenCalledWith({
+    expect(mockEnableFeature).toHaveBeenCalledWith({
       feature: 'use_org_defaults',
-      enabled: false, // !doesUseOrgDefaults to create override
+      enabled: false,
       orgName: 'org-1',
       repoName: 'repo-1',
     });
@@ -247,13 +277,9 @@ describe('ManageReposPanel', () => {
       organization: mockOrganization,
     });
     expect(
-      await screen.findByText(
-        /These settings apply as defaults to all repositories in this organization/i
-      )
+      await screen.findByText(/These settings apply to all repositories by default/i)
     ).toBeInTheDocument();
-    // Should not show repo link when editing org defaults
     expect(screen.queryByRole('link', {name: /repo-1/i})).not.toBeInTheDocument();
-    // Should not show the toggle when editing org defaults
     expect(
       screen.queryByLabelText('Override Organization Defaults')
     ).not.toBeInTheDocument();
@@ -327,7 +353,7 @@ describe('ManageReposPanel', () => {
           },
         },
       };
-      const result = getRepoConfig(orgConfig, null);
+      const result = getRepoConfig(orgConfig, '');
       expect(result).toEqual({
         doesUseOrgDefaults: true,
         repoConfig: orgConfig.org_defaults,

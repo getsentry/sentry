@@ -266,5 +266,16 @@ describe('useUpdatePreventAIFeature', () => {
         config.github_organizations?.['org-1']?.repo_overrides?.['repo-456']
       ).toBeUndefined();
     });
+
+    it('should error if repo name is not provided when feature is use_org_defaults', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      expect(() =>
+        makePreventAIConfig(config, {
+          feature: 'use_org_defaults',
+          enabled: true,
+          orgName: 'org-1',
+        })
+      ).toThrow('Repo name is required when feature is use_org_defaults');
+    });
   });
 });

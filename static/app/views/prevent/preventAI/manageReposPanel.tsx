@@ -94,6 +94,7 @@ function ManageReposPanel({
       collapsed={collapsed}
       slidePosition="right"
       ariaLabel="Settings Panel"
+      data-test-id="manage-repos-panel"
     >
       <Flex direction="column">
         <Flex
@@ -124,7 +125,7 @@ function ManageReposPanel({
               </Fragment>
             ) : (
               <Fragment>
-                <Heading as="h3">{t('Repository AI Settings')}</Heading>
+                <Heading as="h3">{t('AI Code Review Repository Settings')}</Heading>
                 <Text variant="muted" size="sm">
                   {tct(
                     'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',

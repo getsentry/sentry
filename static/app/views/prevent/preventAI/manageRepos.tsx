@@ -37,7 +37,6 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
 
   // Ditto for repos
   const selectedRepo = useMemo(() => {
-    // If "All Repos" is selected, return null to indicate org defaults
     if (selectedRepoName === ALL_REPOS_VALUE) {
       return null;
     }
@@ -63,7 +62,6 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   );
 
   const isOrgSelected = !!selectedOrg;
-  // "All Repos" is considered a valid selection (for org defaults)
   const isRepoSelected = selectedRepoName === ALL_REPOS_VALUE || !!selectedRepo;
 
   return (

@@ -56,10 +56,10 @@ describe('PreventAIManageRepos', () => {
 
   it('opens the settings panel when the settings button is clicked', async () => {
     render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
-    expect(screen.queryByText(/AI Code Review Settings/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('manage-repos-panel')).not.toBeInTheDocument();
     const settingsButton = await screen.findByTestId('manage-repos-settings-button');
     await userEvent.click(settingsButton);
-    expect(await screen.findByText(/AI Code Review Settings/i)).toBeInTheDocument();
+    expect(await screen.findByTestId('manage-repos-panel')).toBeInTheDocument();
   });
 
   it('renders the illustration image', async () => {
@@ -72,20 +72,8 @@ describe('PreventAIManageRepos', () => {
   it('starts with "All Repos" selected by default', async () => {
     render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
     const repoButton = await screen.findByRole('button', {
-      name: /All Repos \(Organization Defaults\)/i,
+      name: /All Repos/i,
     });
     expect(repoButton).toBeInTheDocument();
-  });
-
-  it('shows organization defaults message in panel when "All Repos" is selected', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
-    const settingsButton = await screen.findByTestId('manage-repos-settings-button');
-    await userEvent.click(settingsButton);
-
-    expect(
-      await screen.findByText(
-        'These settings apply as defaults to all repositories in this organization. Individual repositories can override these settings.'
-      )
-    ).toBeInTheDocument();
   });
 });
