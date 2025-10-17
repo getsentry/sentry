@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call
 
 from sentry import audit_log
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -194,35 +195,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             self.organization.slug,
         )
 
-    def test_team_admin_can_connect_user_detectors(self) -> None:
-        self.login_as(user=self.team_admin_user)
-
-        detector = self.create_detector(
-            project=self.create_project(organization=self.organization),
-            created_by_id=self.user.id,
-        )
-        body_params = {
-            "detectorId": detector.id,
-            "workflowId": self.unconnected_workflow.id,
-        }
-        self.get_success_response(
-            self.organization.slug,
-            **body_params,
-        )
-
-    def test_team_admin_can_connect_sentry_detectors(self) -> None:
-        self.login_as(user=self.team_admin_user)
-
-        sentry_detector = self.create_detector(
-            project=self.create_project(organization=self.organization),
-        )
-        body_params = {
-            "detectorId": sentry_detector.id,
-            "workflowId": self.unconnected_workflow.id,
-        }
-        self.get_success_response(self.organization.slug, **body_params)
-
-    def test_team_admin_can_connect_detectors_for_accessible_projects(self) -> None:
+    def test_team_admin_can_connect_detectors(self) -> None:
         self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
@@ -253,7 +226,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
 
-    def test_member_can_connect_user_detectors(self) -> None:
+    def test_member_can_connect_user_created_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -261,6 +234,25 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         detector = self.create_detector(
             project=self.create_project(organization=self.organization),
             created_by_id=self.user.id,
+        )
+        body_params = {
+            "detectorId": detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_success_response(
+            self.organization.slug,
+            **body_params,
+        )
+
+    def test_member_can_connect_system_created_detectors(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(user=self.member_user)
+
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+            created_by_id=None,
+            type=ErrorGroupType.slug,
         )
         body_params = {
             "detectorId": detector.id,
@@ -282,20 +274,6 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         )
         body_params = {
             "detectorId": other_detector.id,
-            "workflowId": self.unconnected_workflow.id,
-        }
-        self.get_error_response(self.organization.slug, **body_params, status_code=403)
-
-    def test_member_cannot_connect_sentry_detectors(self) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        self.login_as(user=self.member_user)
-
-        sentry_detector = self.create_detector(
-            project=self.create_project(organization=self.organization),
-        )
-        body_params = {
-            "detectorId": sentry_detector.id,
             "workflowId": self.unconnected_workflow.id,
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
@@ -496,22 +474,23 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
-    def test_member_cannot_disconnect_sentry_detectors(self) -> None:
+    def test_member_can_disconnect_system_created_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
 
         sentry_detector = self.create_detector(
             project=self.create_project(organization=self.organization),
+            type=ErrorGroupType.slug,
+            created_by_id=None,
         )
         self.create_detector_workflow(
             detector=sentry_detector,
             workflow=self.workflow_1,
         )
-        self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": sentry_detector.id, "workflow_id": self.workflow_1.id},
-            status_code=403,
         )
 
     def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self) -> None:
