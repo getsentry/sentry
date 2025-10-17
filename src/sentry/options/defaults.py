@@ -339,6 +339,13 @@ register(
 register(
     "deletions.group-hashes-batch-size",
     default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "deletions.group.group_hash_metadata_batch_size",
+    default=10,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

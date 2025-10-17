@@ -30,8 +30,7 @@ logger = logging.getLogger(__name__)
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
-# Batch size for nullifying group_hash_metadata.seer_matched_grouphash_id references to avoid database timeouts
-GROUP_HASH_METADATA_BATCH_SIZE = 10
+
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -223,14 +222,15 @@ def batch_nullify_group_hash_metadata_references(hash_ids: Sequence[int]) -> Non
     """
     Batch nullify group_hash_metadata.seer_matched_grouphash_id references to avoid database timeouts.
     """
+    group_hash_metadata_batch_size = options.get("deletions.group.group_hash_metadata_batch_size")
     # XXX: This may be slow and may need to be optimized.
     with metrics.timer("deletions.groups.group_hash_metadata.nullify_references"):
         # This function call is necessary because the GroupHashMetadata model has a foreign key to the GroupHash model,
         # and we need to nullify the seer_matched_grouphash_id field in the GroupHashMetadata model before deleting the GroupHash model
         # to prevent the implicit ON DELETE SET NULL cascade from timing out.
         # Process in small batches to avoid statement timeouts on high fan-out relationships
-        for i in range(0, len(hash_ids), GROUP_HASH_METADATA_BATCH_SIZE):
-            hash_ids_batch = hash_ids[i : i + GROUP_HASH_METADATA_BATCH_SIZE]
+        for i in range(0, len(hash_ids), group_hash_metadata_batch_size):
+            hash_ids_batch = hash_ids[i : i + group_hash_metadata_batch_size]
             GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids_batch).update(
                 seer_matched_grouphash_id=None
             )
