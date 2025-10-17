@@ -200,6 +200,11 @@ def process_batch(
                 end_timestamp=val["end_timestamp"],
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
             )
+
+            assert span.parent_span_id is None or isinstance(span.parent_span_id, str)
+            assert span.segment_id is None or isinstance(span.segment_id, str)
+            assert isinstance(span.payload, bytes)
+
             spans.append(span)
 
         except Exception:
