@@ -656,7 +656,6 @@ function buildRoutes(): RouteObject[] {
       path: 'performance/',
       name: t('Performance'),
       component: make(() => import('sentry/views/settings/projectPerformance')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'playstation/',
@@ -2432,7 +2431,6 @@ function buildRoutes(): RouteObject[] {
     withOrgPath: true,
     component: make(() => import('sentry/views/prevent/index')),
     children: codecovChildren,
-    deprecatedRouteProps: true,
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2651,12 +2649,10 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/admin/adminOverview')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'buffer/',
       component: make(() => import('sentry/views/admin/adminBuffer')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'relays/',
@@ -2676,12 +2672,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'queue/',
       component: make(() => import('sentry/views/admin/adminQueue')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'settings/',
       component: make(() => import('sentry/views/admin/adminSettings')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'users/',
@@ -2694,29 +2688,24 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':id',
           component: make(() => import('sentry/views/admin/adminUserEdit')),
-          deprecatedRouteProps: true,
         },
       ],
     },
     {
       path: 'status/mail/',
       component: make(() => import('sentry/views/admin/adminMail')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'status/environment/',
       component: make(() => import('sentry/views/admin/adminEnvironment')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'status/packages/',
       component: make(() => import('sentry/views/admin/adminPackages')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'status/warnings/',
       component: make(() => import('sentry/views/admin/adminWarnings')),
-      deprecatedRouteProps: true,
     },
   ];
 
