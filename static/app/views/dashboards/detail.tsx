@@ -135,6 +135,7 @@ type Props = RouteComponentProps<RouteParams> & {
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;
+  useTimeseriesVisualization?: boolean;
 };
 
 type State = {
@@ -1023,6 +1024,7 @@ class DashboardDetail extends Component<Props, State> {
       onSetNewWidget,
       onDashboardUpdate,
       projects,
+      useTimeseriesVisualization,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1264,6 +1266,9 @@ class DashboardDetail extends Component<Props, State> {
                                     newlyAddedWidget={newlyAddedWidget}
                                     onNewWidgetScrollComplete={
                                       this.handleScrollToNewWidgetComplete
+                                    }
+                                    useTimeseriesVisualization={
+                                      useTimeseriesVisualization
                                     }
                                   />
 
