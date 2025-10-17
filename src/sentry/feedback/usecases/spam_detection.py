@@ -5,7 +5,7 @@ from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
 from sentry.models.project import Project
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +14,7 @@ SEER_TIMEOUT_S = 15
 SEER_RETRIES = 0
 
 
+@metrics.wraps("feedback.spam_detection")
 def is_spam_seer(message: str, organization_id: int) -> bool | None:
     """
     Check if a message is spam using Seer.
