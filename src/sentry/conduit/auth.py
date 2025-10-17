@@ -1,11 +1,18 @@
 import time
 import uuid
+from typing import NamedTuple
 
 from django.conf import settings
 
 from sentry.utils import jwt, metrics
 
 TOKEN_TTL_SEC = 600  # 10 minutes
+
+
+class ConduitCredentials(NamedTuple):
+    token: str
+    channel_id: str
+    url: str
 
 
 def generate_channel_id() -> str:
@@ -64,16 +71,12 @@ def generate_conduit_token(
 def get_conduit_credentials(
     org_id: int,
     gateway_url: str | None = None,
-) -> dict[str, str]:
+) -> ConduitCredentials:
     """
     Generate all credentials needed to connect to Conduit.
 
     Returns:
-        {
-            "url": "https://conduit.sentry.io/events/{org_id}",
-            "token": "...",
-            "channel_id": "..."
-        }
+        ConduitCredentials with token, channel_id, algorithm, and url
     """
     if gateway_url is None:
         gateway_url = settings.CONDUIT_GATEWAY_URL
@@ -86,8 +89,8 @@ def get_conduit_credentials(
         sample_rate=1.0,
     )
 
-    return {
-        "url": f"{gateway_url}/events/{org_id}",
-        "token": token,
-        "channel_id": channel_id,
-    }
+    return ConduitCredentials(
+        token=token,
+        channel_id=channel_id,
+        url=f"{gateway_url}/events/{org_id}",
+    )

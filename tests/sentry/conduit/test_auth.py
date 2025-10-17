@@ -130,16 +130,12 @@ def test_get_conduit_credentials_returns_all_credentials():
         org_id = 123
         result = get_conduit_credentials(org_id)
 
-        assert "url" in result
-        assert "token" in result
-        assert "channel_id" in result
+        assert isinstance(result.token, str)
+        assert isinstance(result.channel_id, str)
+        assert isinstance(result.url, str)
 
-        assert isinstance(result["url"], str)
-        assert isinstance(result["token"], str)
-        assert isinstance(result["channel_id"], str)
-
-        assert str(org_id) in result["url"]
-        assert result["url"] == f"{gateway_url}/events/{org_id}"
+        assert str(org_id) in result.url
+        assert result.url == f"{gateway_url}/events/{org_id}"
 
 
 def test_get_conduit_credentials_uses_custom_url():
@@ -153,16 +149,12 @@ def test_get_conduit_credentials_uses_custom_url():
         org_id = 123
         result = get_conduit_credentials(org_id, gateway_url)
 
-        assert "url" in result
-        assert "token" in result
-        assert "channel_id" in result
+        assert isinstance(result.token, str)
+        assert isinstance(result.channel_id, str)
+        assert isinstance(result.url, str)
 
-        assert isinstance(result["url"], str)
-        assert isinstance(result["token"], str)
-        assert isinstance(result["channel_id"], str)
-
-        assert str(org_id) in result["url"]
-        assert result["url"] == f"{gateway_url}/events/{org_id}"
+        assert str(org_id) in result.url
+        assert result.url == f"{gateway_url}/events/{org_id}"
 
 
 def test_get_conduit_credentials_token_is_valid():
@@ -178,7 +170,7 @@ def test_get_conduit_credentials_token_is_valid():
         result = get_conduit_credentials(org_id)
 
         claims = pyjwt.decode(
-            result["token"],
+            result.token,
             RS256_PUB_KEY,
             algorithms=["RS256"],
             audience="conduit",
@@ -186,7 +178,7 @@ def test_get_conduit_credentials_token_is_valid():
         )
 
         assert claims["org_id"] == org_id
-        assert claims["channel_id"] == result["channel_id"]
+        assert claims["channel_id"] == result.channel_id
 
-        assert str(org_id) in result["url"]
-        assert result["url"] == f"{gateway_url}/events/{org_id}"
+        assert str(org_id) in result.url
+        assert result.url == f"{gateway_url}/events/{org_id}"
