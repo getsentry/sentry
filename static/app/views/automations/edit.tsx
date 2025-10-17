@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -12,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
@@ -26,6 +28,7 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
@@ -90,6 +93,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams<{automationId: string}>();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.lg;
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -157,17 +162,19 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
-          <Layout.HeaderContent>
-            <AutomationBreadcrumbs automationId={params.automationId} />
-            <Layout.Title>
-              <EditableAutomationName />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Flex>
-            <EditAutomationActions automation={automation} />
-          </Flex>
+          <HeaderInner maxWidth={maxWidth}>
+            <Layout.HeaderContent>
+              <AutomationBreadcrumbs automationId={params.automationId} />
+              <Layout.Title>
+                <EditableAutomationName />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <div>
+              <AutomationFeedbackButton />
+            </div>
+          </HeaderInner>
         </StyledLayoutHeader>
-        <Layout.Body>
+        <StyledBody maxWidth={maxWidth}>
           <Layout.Main fullWidth>
             <AutomationBuilderErrorContext.Provider
               value={{
@@ -189,12 +196,42 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               </AutomationBuilderContext.Provider>
             </AutomationBuilderErrorContext.Provider>
           </Layout.Main>
-        </Layout.Body>
+        </StyledBody>
       </Layout.Page>
+      <StickyFooter>
+        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <EditAutomationActions automation={automation} />
+        </Flex>
+      </StickyFooter>
     </FullHeightForm>
   );
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
+`;
+
+const HeaderInner = styled('div')<{maxWidth?: string}>`
+  display: contents;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: ${p => p.maxWidth};
+    width: 100%;
+  }
+`;
+
+const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
+  max-width: ${p => p.maxWidth};
+  padding: 0;
+  margin: ${p => p.theme.space.xl};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+    margin: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
+  }
 `;

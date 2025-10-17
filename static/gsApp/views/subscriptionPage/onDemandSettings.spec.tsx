@@ -17,6 +17,7 @@ import {OnDemandSettings} from './onDemandSettings';
 describe('edit on-demand budget', () => {
   const organization = OrganizationFixture({
     features: ['ondemand-budgets'],
+    access: ['org:billing'],
   });
   const onDemandOrg = OrganizationFixture({
     features: ['ondemand-budgets'],

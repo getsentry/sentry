@@ -5,6 +5,8 @@ from typing import Final
 
 import sentry_sdk
 
+from sentry import features, options
+from sentry.models.organization import Organization
 from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
     NotificationInteractionType,
@@ -19,6 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationTemplate,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +33,23 @@ class NotificationServiceError(Exception):
 class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
+
+    @staticmethod
+    def has_access(organization: Organization, source: str) -> bool:
+        if not features.has("organizations:notification-platform", organization):
+            return False
+
+        option_key = f"notifications.platform-rate.{source}"
+        try:
+            options.get(option_key)
+        except options.UnknownOption:
+            logger.warning(
+                "Notification platform key '%s' has not been registered in options/default.py",
+                option_key,
+            )
+            return False
+
+        return sample_modulo(option_key, organization.id)
 
     def notify_target(self, *, target: NotificationTarget) -> None:
         """

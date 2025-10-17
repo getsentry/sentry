@@ -170,19 +170,19 @@ def assemble_preprod_artifact(
 
 
 def create_preprod_artifact(
-    org_id,
-    project_id,
-    checksum,
-    build_configuration=None,
-    release_notes=None,
-    head_sha=None,
-    base_sha=None,
-    provider=None,
-    head_repo_name=None,
-    base_repo_name=None,
-    head_ref=None,
-    base_ref=None,
-    pr_number=None,
+    org_id: int,
+    project_id: int,
+    checksum: str,
+    build_configuration_name: str | None = None,
+    release_notes: str | None = None,
+    head_sha: str | None = None,
+    base_sha: str | None = None,
+    provider: str | None = None,
+    head_repo_name: str | None = None,
+    base_repo_name: str | None = None,
+    head_ref: str | None = None,
+    base_ref: str | None = None,
+    pr_number: int | None = None,
 ) -> PreprodArtifact | None:
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
@@ -222,10 +222,10 @@ def create_preprod_artifact(
                 )
 
             build_config = None
-            if build_configuration:
+            if build_configuration_name:
                 build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
                     project=project,
-                    name=build_configuration,
+                    name=build_configuration_name,
                 )
 
             # Prepare extras data if release_notes is provided
@@ -282,7 +282,7 @@ def _assemble_preprod_artifact_file(
     checksum: str,
     chunks: Any,
     callback: Callable[[AssembleResult, Any], None],
-):
+) -> None:
     logger.info(
         "Starting preprod file assembly",
         extra={
@@ -351,8 +351,15 @@ def _assemble_preprod_artifact_file(
 
 
 def _assemble_preprod_artifact_size_analysis(
-    assemble_result: AssembleResult, project, artifact_id: int, org_id: int
-):
+    assemble_result: AssembleResult, project: Project, artifact_id: int | None, org_id: int
+) -> None:
+    if artifact_id is None:
+        logger.error(
+            "PreprodArtifact artifact_id is None in size analysis assembly",
+            extra={"project_id": project.id, "organization_id": org_id},
+        )
+        return
+
     preprod_artifact = None
     try:
         preprod_artifact = PreprodArtifact.objects.get(
@@ -450,6 +457,15 @@ def _assemble_preprod_artifact_size_analysis(
     finally:
         time_now = timezone.now()
         e2e_size_analysis_duration = time_now - preprod_artifact.date_added
+        artifact_type_name = "unknown"
+        if preprod_artifact.artifact_type is not None:
+            try:
+                artifact_type_name = PreprodArtifact.ArtifactType(
+                    preprod_artifact.artifact_type
+                ).name.lower()
+            except (ValueError, AttributeError):
+                artifact_type_name = "unknown"
+
         metrics.distribution(
             "preprod.size_analysis.results_e2e",
             e2e_size_analysis_duration.total_seconds(),
@@ -457,11 +473,7 @@ def _assemble_preprod_artifact_size_analysis(
             tags={
                 "project_id": project.id,
                 "organization_id": org_id,
-                "artifact_type": (
-                    preprod_artifact.artifact_type.name.lower()
-                    if preprod_artifact.artifact_type
-                    else "unknown"
-                ),
+                "artifact_type": artifact_type_name,
             },
         )
 
@@ -489,12 +501,12 @@ def _assemble_preprod_artifact_size_analysis(
     silo_mode=SiloMode.REGION,
 )
 def assemble_preprod_artifact_size_analysis(
-    org_id,
-    project_id,
-    checksum,
-    chunks,
-    artifact_id=None,
-    **kwargs,
+    org_id: int,
+    project_id: int,
+    checksum: str,
+    chunks: Any,
+    artifact_id: int | None = None,
+    **kwargs: Any,
 ) -> None:
     """
     Creates a size analysis file for a preprod artifact from uploaded chunks.
@@ -512,8 +524,8 @@ def assemble_preprod_artifact_size_analysis(
 
 
 def _assemble_preprod_artifact_installable_app(
-    assemble_result: AssembleResult, project, artifact_id, org_id
-):
+    assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
+) -> None:
     try:
         preprod_artifact = PreprodArtifact.objects.get(
             project=project,
@@ -553,8 +565,8 @@ def _assemble_preprod_artifact_installable_app(
     silo_mode=SiloMode.REGION,
 )
 def assemble_preprod_artifact_installable_app(
-    org_id, project_id, checksum, chunks, artifact_id, **kwargs
-):
+    org_id: int, project_id: int, checksum: str, chunks: Any, artifact_id: int, **kwargs: Any
+) -> None:
     _assemble_preprod_artifact_file(
         AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP,
         project_id,
@@ -573,7 +585,7 @@ def assemble_preprod_artifact_installable_app(
     processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
 )
-def detect_expired_preprod_artifacts():
+def detect_expired_preprod_artifacts() -> None:
     """
     Detects PreprodArtifacts and related entities that have been processing for more than 30 minutes
     and updates their state to errored.
