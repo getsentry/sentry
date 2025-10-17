@@ -91,11 +91,15 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Go SDK using [code:go get]:', {
-        code: <code />,
-      }),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct('Install our Go SDK using [code:go get]:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: 'go get github.com/getsentry/sentry-go',
         },
@@ -105,11 +109,15 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Import and initialize the Sentry SDK early in your application's setup:"
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "Import and initialize the Sentry SDK early in your application's setup:"
+          ),
+        },
+        {
+          type: 'code',
           language: 'go',
           code: getConfigureSnippet(params),
         },
@@ -119,11 +127,15 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'The quickest way to verify Sentry in your Go program is to capture a message:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'The quickest way to verify Sentry in your Go program is to capture a message:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'go',
           code: getVerifySnippet(params),
         },
@@ -154,9 +166,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/go/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/go/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
