@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import eventstore, features
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
@@ -20,6 +20,7 @@ from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
 from sentry.search.events.builder.spans_metrics import SpansMetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
+from sentry.services import eventstore
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
