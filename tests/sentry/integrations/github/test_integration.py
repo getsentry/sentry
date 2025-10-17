@@ -1663,6 +1663,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     @with_feature("organizations:integrations-github-inbound-assignee-sync")
     @with_feature("organizations:integrations-github-outbound-assignee-sync")
+    @with_feature("organizations:integrations-github-inbound-status-sync")
     def test_get_organization_config(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1675,6 +1676,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert [field["name"] for field in fields] == [
             "sync_reverse_assignment",
             "sync_forward_assignment",
+            "sync_status_reverse",
+            "resolution_strategy",
         ]
 
     @responses.activate
