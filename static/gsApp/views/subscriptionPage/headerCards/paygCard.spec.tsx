@@ -13,7 +13,10 @@ import {OnDemandBudgetMode} from 'getsentry/types';
 import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 
 describe('PaygCard', () => {
-  const organization = OrganizationFixture({features: ['subscriptions-v3']});
+  const organization = OrganizationFixture({
+    features: ['subscriptions-v3'],
+    access: ['org:billing'],
+  });
 
   beforeEach(() => {
     setMockDate(new Date('2022-06-09'));
