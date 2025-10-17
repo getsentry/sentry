@@ -34,126 +34,127 @@ def format_status_check_messages(
 
     for artifact in artifacts:
         if artifact.state == PreprodArtifact.ArtifactState.FAILED:
+            # Failure summary shows one row per artifact, not per metric
             errored_count += 1
         elif artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
-            # Check if size analysis is completed using preloaded metrics
+            # Success summaries show one row per metric
             size_metrics_list = size_metrics_map.get(artifact.id, [])
-            if size_metrics_list and all(
-                metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-                for metrics in size_metrics_list
-            ):
-                analyzed_count += 1
-            else:
-                # Artifact is processed but analysis is still pending -> count as processing
-                processing_count += 1
+
+            if size_metrics_list:
+                for metrics in size_metrics_list:
+                    match metrics.state:
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
+                            processing_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
+                            processing_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+                            analyzed_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+                            errored_count += 1
+                        case _:
+                            raise ValueError(f"Unknown size analysis state: {metrics.state}")
+
         else:
-            # UPLOADING or UPLOADED states
+            # UPLOADING or UPLOADED states - artifacts can't have metrics yet
             processing_count += 1
 
-    # Build subtitle with counts
+    if analyzed_count == 0 and processing_count == 0 and errored_count == 0:
+        raise ValueError("No metrics exist for VCS size status check")
+
     parts = []
     if analyzed_count > 0:
         parts.append(
-            ngettext("1 build analyzed", "{} builds analyzed", analyzed_count).format(
-                analyzed_count
-            )
+            ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
+            % {"count": analyzed_count}
         )
     if processing_count > 0:
         parts.append(
-            ngettext("1 build processing", "{} builds processing", processing_count).format(
-                processing_count
-            )
+            ngettext("%(count)d app processing", "%(count)d apps processing", processing_count)
+            % {"count": processing_count}
         )
     if errored_count > 0:
         parts.append(
-            ngettext("1 build errored", "{} builds errored", errored_count).format(errored_count)
+            ngettext("%(count)d app errored", "%(count)d apps errored", errored_count)
+            % {"count": errored_count}
         )
 
     subtitle = ", ".join(parts)
 
     match overall_status:
-        case StatusCheckStatus.IN_PROGRESS:
-            summary = _format_processing_summary(artifacts, size_metrics_map)
+        case StatusCheckStatus.IN_PROGRESS | StatusCheckStatus.SUCCESS:
+            summary = _format_artifact_summary(artifacts, size_metrics_map)
         case StatusCheckStatus.FAILURE:
             summary = _format_failure_summary(artifacts)
-        case StatusCheckStatus.SUCCESS:
-            summary = _format_success_summary(artifacts, size_metrics_map)
 
     return str(title), str(subtitle), str(summary)
 
 
-def _format_processing_summary(
-    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]]
+def _format_artifact_summary(
+    artifacts: list[PreprodArtifact],
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
 ) -> str:
-    """Format summary for artifacts in mixed processing/analyzed state."""
+    """Format summary for artifacts with size data."""
     table_rows = []
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
 
     for artifact, size_metrics in artifact_metric_rows:
-        version_parts = []
-        if artifact.build_version:
-            version_parts.append(artifact.build_version)
-        if artifact.build_number:
-            version_parts.append(f"({artifact.build_number})")
-        version_string = " ".join(version_parts) if version_parts else _("Unknown")
-
-        metric_type_display = _get_metric_type_display_name(
+        # App name
+        metric_type_display = _get_size_metric_type_display_name(
             size_metrics.metrics_artifact_type if size_metrics else None
         )
         if metric_type_display:
-            app_id = f"{artifact.app_id or '--'} {metric_type_display}"
+            app_name = f"{artifact.app_name or '--'} ({metric_type_display})"
         else:
-            app_id = artifact.app_id or "--"
+            app_name = artifact.app_name or "--"
 
-        artifact_url = get_preprod_artifact_url(artifact)
-        app_id_link = f"[`{app_id}`]({artifact_url})"
+        # App ID
+        app_id = artifact.app_id or "--"
 
+        # App version
+        version_string = _format_version_string(artifact, default=str(_("Unknown")))
+
+        base_artifact = None
+        base_metrics = None
         if (
-            artifact.state == PreprodArtifact.ArtifactState.PROCESSED
-            and size_metrics
+            size_metrics
             and size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
         ):
-            download_size = _format_file_size(size_metrics.max_download_size)
-            install_size = _format_file_size(size_metrics.max_install_size)
-
-            # Get base metrics for comparison
             base_artifact = artifact.get_base_artifact_for_commit().first()
-            base_metrics = (
-                base_artifact.get_size_metrics(
+            if base_artifact:
+                base_metrics = base_artifact.get_size_metrics(
                     metrics_artifact_type=size_metrics.metrics_artifact_type,
                     identifier=size_metrics.identifier,
                 ).first()
-                if base_artifact
-                else None
-            )
 
-            if base_metrics:
-                download_change = _calculate_size_change(
-                    size_metrics.max_download_size, base_metrics.max_download_size
-                )
-                install_change = _calculate_size_change(
-                    size_metrics.max_install_size, base_metrics.max_install_size
-                )
-            else:
-                download_change = str(_("N/A"))
-                install_change = str(_("N/A"))
+        # Install + Download sizes
+        download_size_display, download_change, install_size_display, install_change = (
+            _get_size_metric_display_data(artifact, size_metrics, base_artifact, base_metrics)
+        )
 
-            na_text = str(_("N/A"))
-            table_rows.append(
-                f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {na_text} |"
-            )
+        # Comparison URL
+        if base_artifact and base_metrics:
+            artifact_url = get_preprod_artifact_comparison_url(artifact, base_artifact)
         else:
-            # This metric is still processing
-            processing_text = str(_("Processing..."))
-            na_text = str(_("N/A"))
-            table_rows.append(
-                f"| {app_id_link} | {version_string} | {processing_text} | - | {processing_text} | - | {na_text} |"
-            )
+            artifact_url = get_preprod_artifact_url(artifact)
+
+        name_text = f"[`{app_name}`<br>{app_id}]({artifact_url})"
+
+        # Configuration
+        configuration_text = (
+            f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
+        )
+
+        # TODO(preprod): Add approval text once we have it
+        na_text = str(_("N/A"))
+
+        table_rows.append(
+            f"| {name_text} | {configuration_text} | {version_string} | {download_size_display} | {download_change} | {install_size_display} | {install_change} | {na_text} |"
+        )
 
     install_label = str(_("Uncompressed")) if artifact.is_android() else str(_("Install"))
     return _(
-        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
-        "|------|---------|----------|--------|---------|--------|----------|\n"
+        "| Name | Configuration | Version | Download | Change | {install_label} | Change | Approval |\n"
+        "|------|---------------|---------|----------|--------|-----------------|--------|----------|\n"
         "{table_rows}"
     ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
@@ -162,12 +163,7 @@ def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
     """Format summary for multiple artifacts with failures."""
     table_rows = []
     for artifact in artifacts:
-        version_parts = []
-        if artifact.build_version:
-            version_parts.append(artifact.build_version)
-        if artifact.build_number:
-            version_parts.append(f"({artifact.build_number})")
-        version_string = " ".join(version_parts) if version_parts else "-"
+        version_string = _format_version_string(artifact, default="-")
 
         artifact_url = get_preprod_artifact_url(artifact)
         unknown_app_text = str(_("Unknown App"))
@@ -186,81 +182,67 @@ def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
     )
 
 
-def _format_success_summary(
-    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]]
-) -> str:
-    """Format summary for multiple successful artifacts with size data."""
-    table_rows = []
-    artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
+def _get_size_metric_display_data(
+    artifact: PreprodArtifact,
+    size_metrics: PreprodArtifactSizeMetrics | None,
+    base_artifact: PreprodArtifact | None,
+    base_metrics: PreprodArtifactSizeMetrics | None,
+) -> tuple[str, str, str, str]:
+    """Get display data for a metric row.
 
-    for artifact, size_metrics in artifact_metric_rows:
-        version_parts = []
-        if artifact.build_version:
-            version_parts.append(artifact.build_version)
-        if artifact.build_number:
-            version_parts.append(f"({artifact.build_number})")
-        version_string = " ".join(version_parts) if version_parts else _("Unknown")
+    Returns:
+        tuple: (download_size_display, download_change, install_size_display, install_change)
+    """
+    if (
+        size_metrics
+        and size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+    ):
+        download_size = _format_file_size(size_metrics.max_download_size)
+        install_size = _format_file_size(size_metrics.max_install_size)
 
-        metric_type_display = _get_metric_type_display_name(
-            size_metrics.metrics_artifact_type if size_metrics else None
-        )
-        if metric_type_display:
-            app_id = f"{artifact.app_id or '--'} {metric_type_display}"
-        else:
-            app_id = artifact.app_id or "--"
-
-        artifact_url = get_preprod_artifact_url(artifact)
-
-        if (
-            size_metrics
-            and size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-        ):
-            download_size = _format_file_size(size_metrics.max_download_size)
-            install_size = _format_file_size(size_metrics.max_install_size)
-
-            # Get base metrics for comparison
-            base_artifact = artifact.get_base_artifact_for_commit().first()
-            base_metrics = (
-                base_artifact.get_size_metrics(
-                    metrics_artifact_type=size_metrics.metrics_artifact_type,
-                    identifier=size_metrics.identifier,
-                ).first()
-                if base_artifact
-                else None
+        if base_artifact and base_metrics:
+            download_change = _calculate_size_change(
+                size_metrics.max_download_size, base_metrics.max_download_size
             )
-
-            if base_artifact and base_metrics:
-                download_change = _calculate_size_change(
-                    size_metrics.max_download_size, base_metrics.max_download_size
-                )
-                install_change = _calculate_size_change(
-                    size_metrics.max_install_size, base_metrics.max_install_size
-                )
-                artifact_url = get_preprod_artifact_comparison_url(artifact, base_artifact)
-            else:
-                download_change = str(_("N/A"))
-                install_change = str(_("N/A"))
+            install_change = _calculate_size_change(
+                size_metrics.max_install_size, base_metrics.max_install_size
+            )
         else:
-            download_size = str(_("Unknown"))
-            install_size = str(_("Unknown"))
-            download_change = "-"
-            install_change = "-"
+            download_change = str(_("N/A"))
+            install_change = str(_("N/A"))
 
-        app_id_link = f"[`{app_id}`]({artifact_url})"
-        na_text = str(_("N/A"))
-        table_rows.append(
-            f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {na_text} |"
+        return download_size, download_change, install_size, install_change
+
+    elif artifact.state in (
+        PreprodArtifact.ArtifactState.UPLOADING,
+        PreprodArtifact.ArtifactState.UPLOADED,
+    ) or (
+        size_metrics
+        and size_metrics.state
+        in (
+            PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
         )
+    ):
+        processing_text = str(_("Processing..."))
+        return processing_text, "-", processing_text, "-"
 
-    install_label = str(_("Uncompressed")) if artifact.is_android() else str(_("Install"))
-    return _(
-        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
-        "|------|---------|----------|--------|---------|--------|----------|\n"
-        "{table_rows}"
-    ).format(table_rows="\n".join(table_rows), install_label=install_label)
+    else:
+        unknown_text = str(_("Unknown"))
+        return unknown_text, "-", unknown_text, "-"
 
 
-def _get_metric_type_display_name(
+def _format_version_string(artifact: PreprodArtifact, default: str = "-") -> str:
+    """Format version string from build_version and build_number."""
+    version_parts = []
+    if artifact.build_version:
+        version_parts.append(artifact.build_version)
+    if artifact.build_number:
+        version_parts.append(f"({artifact.build_number})")
+    return " ".join(version_parts) if version_parts else default
+
+
+def _get_size_metric_type_display_name(
     metric_type: PreprodArtifactSizeMetrics.MetricsArtifactType | None,
 ) -> str | None:
     """Get display name for a metric type."""
@@ -268,9 +250,9 @@ def _get_metric_type_display_name(
         case PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT:
             return None
         case PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT:
-            return "(Watch)"
+            return "Watch"
         case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
-            return "(Dynamic Feature)"
+            return "Dynamic Feature"
         case _:
             return None
 

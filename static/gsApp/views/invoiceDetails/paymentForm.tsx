@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import CreditCardForm from 'getsentry/components/creditCardEdit/form';
 import type {SubmitData} from 'getsentry/components/creditCardEdit/legacyForm';
 import type {Invoice, PaymentCreateResponse} from 'getsentry/types';
-import {hasNewBillingUI, hasStripeComponentsFeature} from 'getsentry/utils/billing';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -40,7 +40,6 @@ function InvoiceDetailsPaymentForm({
   );
   const location = useLocation();
   const endpoint = `/organizations/${invoice.customer.slug}/payments/${invoice.id}/new/`;
-  const isNewBillingUI = hasNewBillingUI(organization);
   const hasStripeComponents = hasStripeComponentsFeature(organization);
 
   const loadData = useCallback(async () => {
@@ -83,7 +82,6 @@ function InvoiceDetailsPaymentForm({
         trackGetsentryAnalytics('billing_failure.paid_now', {
           organization,
           referrer: decodeScalar(location?.query?.referrer),
-          isNewBillingUI,
           isStripeComponent: hasStripeComponents,
         });
         addSuccessMessage(t('Payment sent successfully.'));
