@@ -10,6 +10,8 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 
 type InitializeOrgProps = {
@@ -34,19 +36,21 @@ const renderComponent = ({
   location,
   organizationProps = {features: ['performance-view', 'session-replay']},
 }: InitializeOrgProps = {}) => {
-  const {organization, projects, router} = initializeOrg({
+  const {organization, projects} = initializeOrg({
     organization: {
       ...organizationProps,
     },
     projects: [ProjectFixture()],
-    router: {
-      routes: [
-        {path: '/'},
-        {path: '/organizations/:orgId/insights/summary/'},
-        {path: 'replays/'},
-      ],
+  });
+
+  ProjectsStore.init();
+  ProjectsStore.loadInitialData(projects);
+
+  return render(<TransactionSummaryLayout />, {
+    organization,
+    initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/replays/',
+        pathname: '/performance/summary/replays/',
         ...location,
         query: {
           project: '1',
@@ -54,16 +58,15 @@ const renderComponent = ({
           ...location?.query,
         },
       },
+      route: '/performance/summary/',
+      children: [
+        {
+          path: 'replays/',
+          handle: {tab: TransactionSummaryTab.REPLAYS, path: 'replays/'},
+          element: <TransactionReplays />,
+        },
+      ],
     },
-  });
-
-  ProjectsStore.init();
-  ProjectsStore.loadInitialData(projects);
-
-  return render(<TransactionReplays />, {
-    router,
-    organization,
-    deprecatedRouterMocks: true,
   });
 };
 
@@ -231,7 +234,7 @@ describe('TransactionReplays', () => {
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
     const expectedQuery =
-      'project=1&query=test&referrer=%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
+      'project=1&query=test&referrer=replays%2F&statsPeriod=14d&yAxis=count%28%29';
     // Expect the first row to have the correct href
     expect(
       screen.getByRole('link', {

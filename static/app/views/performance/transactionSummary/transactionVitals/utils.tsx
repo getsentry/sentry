@@ -1,11 +1,21 @@
+import type {Theme} from '@emotion/react';
 import type {ECharts} from 'echarts';
-import type {Query} from 'history';
+import type {Location, Query} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+import EventView from 'sentry/utils/discover/eventView';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {WebVital} from 'sentry/utils/fields';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  makeVitalGroups,
+  PERCENTILE,
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {Point, Rectangle} from './types';
@@ -172,4 +182,48 @@ export function isMissingVitalsData(
     vitalObj => vitalObj.total === 0
   );
   return measurementsWithoutCounts.length > 0;
+}
+
+export function generateTransactionVitalsEventView({
+  location,
+  transactionName,
+  theme,
+}: {
+  location: Location;
+  theme: Theme;
+  transactionName: string;
+}): EventView {
+  const query = decodeScalar(location.query.query, '');
+  const conditions = new MutableSearch(query);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('transaction', [transactionName]);
+
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
+  });
+
+  const vitals = makeVitalGroups(theme).reduce((allVitals: WebVital[], group) => {
+    return allVitals.concat(group.vitals);
+  }, []);
+
+  return EventView.fromNewQueryWithLocation(
+    {
+      id: undefined,
+      version: 2,
+      name: transactionName,
+      fields: [
+        ...vitals.map(vital => `percentile(${vital}, ${PERCENTILE})`),
+        ...vitals.map(vital => `count_at_least(${vital}, 0)`),
+        ...vitals.map(
+          vital => `count_at_least(${vital}, ${WEB_VITAL_DETAILS[vital].poorThreshold})`
+        ),
+      ],
+      query: conditions.formatString(),
+      projects: [],
+    },
+    location
+  );
 }
