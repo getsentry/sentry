@@ -179,7 +179,7 @@ const onboarding: OnboardingConfig = {
             'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/uwp/tracing/instrumentation/" />
               ),
             }
           ),
