@@ -123,6 +123,8 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             organization = Organization.objects.get(id=sentry_org_id)
         except Organization.DoesNotExist:
             raise ParseError(f"Organization with ID {sentry_org_id} not found")
+        except ValueError:
+            raise ParseError(f"Invalid organization ID: {sentry_org_id}")
 
         prevent_ai_config = organization.get_option(
             "sentry:prevent_ai_config_github", PREVENT_AI_CONFIG_GITHUB_DEFAULT
