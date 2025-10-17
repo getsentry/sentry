@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from sentry.api import client
@@ -181,30 +182,43 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         return None
 
     projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
-    start, end = default_start_end_dates()  # Last 90 days.
-    snuba_params = SnubaParams(
-        start=start,
-        end=end,
-        projects=projects,
-        organization=organization,
-    )
 
     # Get full trace id if a short id is provided. Queries EAP for a single span.
+    # Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
     if len(trace_id) < 32:
-        subquery_result = Spans.run_table_query(
-            params=snuba_params,
-            query_string=f"trace:{trace_id}",
-            selected_columns=["trace", "precise.start_ts"],
-            orderby=["-precise.start_ts"],  # Get most recent trace if there's multiple.
-            offset=0,
-            limit=1,
-            referrer=Referrer.SEER_RPC,
-            config=SearchResolverConfig(),
-            sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,  # Maximize likelihood of finding a span.
-        )
-        full_trace_id = (
-            subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
-        )
+        full_trace_id = None
+        now = datetime.now(timezone.utc)
+        window_days = 14
+        max_days = 90
+
+        # Slide back in time in 14-day windows
+        for days_back in range(0, max_days, window_days):
+            window_end = now - timedelta(days=days_back)
+            window_start = now - timedelta(days=days_back + window_days)
+
+            snuba_params = SnubaParams(
+                start=window_start,
+                end=window_end,
+                projects=projects,
+                organization=organization,
+            )
+
+            subquery_result = Spans.run_table_query(
+                params=snuba_params,
+                query_string=f"trace:{trace_id}",
+                selected_columns=["trace", "precise.start_ts"],
+                orderby=["-precise.start_ts"],  # Get most recent trace if there's multiple.
+                offset=0,
+                limit=1,
+                referrer=Referrer.SEER_RPC,
+                config=SearchResolverConfig(),
+                sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,  # Maximize likelihood of finding a span.
+            )
+
+            if subquery_result.get("data"):
+                full_trace_id = subquery_result["data"][0].get("trace")
+                if full_trace_id:
+                    break
     else:
         full_trace_id = trace_id
 
@@ -219,6 +233,13 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         return None
 
     # Get full trace data.
+    start, end = default_start_end_dates()
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
     events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
 
     return EAPTrace(
