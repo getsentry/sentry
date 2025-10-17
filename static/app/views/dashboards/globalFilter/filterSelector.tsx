@@ -7,8 +7,7 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
@@ -17,10 +16,12 @@ type FilterSelectorProps = {
   globalFilter: GlobalFilter;
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
+  searchBarData: SearchBarData;
 };
 
 function FilterSelector({
   globalFilter,
+  searchBarData,
   onRemoveFilter,
   onUpdateFilter,
 }: FilterSelectorProps) {
@@ -37,10 +38,6 @@ function FilterSelector({
   }, [initialValues]);
 
   const {dataset, tag} = globalFilter;
-  const {selection} = usePageFilters();
-  const dataProvider = getDatasetConfig(dataset).useSearchBarDataProvider!({
-    pageFilters: selection,
-  });
 
   const baseQueryKey = useMemo(() => ['global-dashboard-filters-tag-values', tag], [tag]);
   const queryKey = useDebouncedValue(baseQueryKey);
@@ -50,7 +47,7 @@ function FilterSelector({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey,
     queryFn: async () => {
-      const result = await dataProvider?.getTagValues(tag, '');
+      const result = await searchBarData.getTagValues(tag, '');
       return result ?? [];
     },
     placeholderData: keepPreviousData,
