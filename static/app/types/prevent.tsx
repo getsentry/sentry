@@ -11,7 +11,7 @@ interface PreventAIRepo {
 }
 
 export interface PreventAIOrg {
-  id: string;
+  githubOrganizationId: string;
   name: string;
   provider: PreventAIProvider;
   repos: PreventAIRepo[];

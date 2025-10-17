@@ -24,55 +24,57 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const [selectedOrgName, setSelectedOrgName] = useState(
-    () => installedOrgs[0]?.name ?? ''
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(
+    () => installedOrgs[0]?.githubOrganizationId ?? ''
   );
-  const [selectedRepoName, setSelectedRepoName] = useState(() => ALL_REPOS_VALUE);
+  const [selectedRepoId, setSelectedRepoId] = useState<string>(() => ALL_REPOS_VALUE);
 
   // If the selected org is not present in the list of orgs, use the first org
   const selectedOrg = useMemo(() => {
-    const found = installedOrgs.find(org => org.name === selectedOrgName);
+    const found = installedOrgs.find(org => org.githubOrganizationId === selectedOrgId);
     return found ?? installedOrgs[0];
-  }, [installedOrgs, selectedOrgName]);
+  }, [installedOrgs, selectedOrgId]);
 
   // Ditto for repos
   const selectedRepo = useMemo(() => {
-    if (selectedRepoName === ALL_REPOS_VALUE) {
+    if (selectedRepoId === ALL_REPOS_VALUE) {
       return null;
     }
-    const found = selectedOrg?.repos?.find(repo => repo.name === selectedRepoName);
+    const found = selectedOrg?.repos?.find(repo => repo.id === selectedRepoId);
     return found ?? selectedOrg?.repos?.[0];
-  }, [selectedOrg, selectedRepoName]);
+  }, [selectedOrg, selectedRepoId]);
 
-  // When the org changes, if the selected repo is not present in the new org,
-  // reset to "All Repos"
-  const setSelectedOrgNameWithCascadeRepoName = useCallback(
-    (orgName: string) => {
-      setSelectedOrgName(orgName);
-      const newSelectedOrgData = installedOrgs.find(org => org.name === orgName);
+  // When the org changes, if the selected repo is not present in the new org, reset to "All Repos"
+  const setSelectedOrgIdWithCascadeRepoId = useCallback(
+    (orgId: string) => {
+      setSelectedOrgId(orgId);
+
+      const newSelectedOrgData = installedOrgs.find(
+        org => org.githubOrganizationId === orgId
+      );
       if (
         newSelectedOrgData &&
-        selectedRepoName !== ALL_REPOS_VALUE &&
-        !newSelectedOrgData.repos.some(repo => repo.name === selectedRepoName)
+        selectedRepoId !== ALL_REPOS_VALUE &&
+        !newSelectedOrgData.repos.some(repo => repo.id === selectedRepoId)
       ) {
-        setSelectedRepoName(ALL_REPOS_VALUE);
+        setSelectedRepoId(ALL_REPOS_VALUE);
       }
     },
-    [installedOrgs, selectedRepoName]
+    [installedOrgs, selectedRepoId]
   );
 
   const isOrgSelected = !!selectedOrg;
-  const isRepoSelected = selectedRepoName === ALL_REPOS_VALUE || !!selectedRepo;
+  const isRepoSelected = selectedRepoId === ALL_REPOS_VALUE || !!selectedRepo;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
       <Flex align="center" justify="between">
         <ManageReposToolbar
           installedOrgs={installedOrgs}
-          selectedOrg={selectedOrgName}
-          selectedRepo={selectedRepoName}
-          onOrgChange={setSelectedOrgNameWithCascadeRepoName}
-          onRepoChange={setSelectedRepoName}
+          selectedOrg={selectedOrgId}
+          selectedRepo={selectedRepoId}
+          onOrgChange={setSelectedOrgIdWithCascadeRepoId}
+          onRepoChange={setSelectedRepoId}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
@@ -141,15 +143,15 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
       </Flex>
 
       <ManageReposPanel
-        key={`${selectedOrgName || 'no-org'}-${selectedRepoName || 'no-repo'}`}
+        key={`${selectedOrgId || 'no-org'}-${selectedRepoId || 'no-repo'}`}
         collapsed={!isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
-        orgId={selectedOrg?.id ?? ''}
+        orgId={selectedOrg?.githubOrganizationId ?? ''}
         orgName={selectedOrg?.name ?? ''}
         repoId={selectedRepo?.id ?? ''}
         repoName={selectedRepo?.name ?? ''}
         allRepos={selectedOrg?.repos ?? []}
-        isEditingOrgDefaults={selectedRepoName === ALL_REPOS_VALUE}
+        isEditingOrgDefaults={selectedRepoId === ALL_REPOS_VALUE}
       />
     </Flex>
   );
