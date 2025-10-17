@@ -93,34 +93,32 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
         )
 
         assert len(response.data) == 2
-        assert response.data == [
-            {
-                "type": Condition.AGE_COMPARISON.value,
-                "handlerGroup": DataConditionHandler.Group.ACTION_FILTER.value,
-                "handlerSubgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
-                "comparisonJsonSchema": {
-                    "type": "object",
-                    "properties": {
-                        "value": {"type": "integer", "minimum": 0},
-                    },
-                    "required": ["value"],
-                    "additionalProperties": False,
+        assert response.data[0] == {
+            "type": Condition.AGE_COMPARISON.value,
+            "handlerGroup": DataConditionHandler.Group.ACTION_FILTER.value,
+            "handlerSubgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
+            "comparisonJsonSchema": {
+                "type": "object",
+                "properties": {
+                    "value": {"type": "integer", "minimum": 0},
                 },
+                "required": ["value"],
+                "additionalProperties": False,
             },
-            {
-                "type": Condition.ISSUE_CATEGORY.value,
-                "handlerGroup": DataConditionHandler.Group.ACTION_FILTER.value,
-                "handlerSubgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
-                "comparisonJsonSchema": {
-                    "type": "object",
-                    "properties": {
-                        "value": {"type": "integer", "minimum": 0},
-                    },
-                    "required": ["value"],
-                    "additionalProperties": False,
+        }
+        assert response.data[1] == {
+            "type": Condition.ISSUE_CATEGORY.value,
+            "handlerGroup": DataConditionHandler.Group.ACTION_FILTER.value,
+            "handlerSubgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
+            "comparisonJsonSchema": {
+                "type": "object",
+                "properties": {
+                    "value": {"type": "integer", "minimum": 0},
                 },
+                "required": ["value"],
+                "additionalProperties": False,
             },
-        ]
+        }
 
     def test_invalid_group(self) -> None:
         self.get_error_response(self.organization.slug, group="invalid", status_code=400)
