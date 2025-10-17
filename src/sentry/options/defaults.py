@@ -3175,13 +3175,6 @@ register(
 )
 
 register(
-    "workflow_engine.sentry-app-actions-outbox",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.num_cohorts",
     type=Int,
     default=1,
