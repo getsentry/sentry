@@ -227,26 +227,27 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         overrides: dict[str, Any],
         is_enabled: bool | None,
     ) -> None:
-        for project_id in project_ids:
-            defaults: dict[str, Any] = {
-                "is_enabled": is_enabled if is_enabled is not None else True
-            }
-            if overrides:
-                defaults["overrides"] = overrides
+        with transaction.atomic(router.db_for_write(DataForwarderProject)):
+            for project_id in project_ids:
+                defaults: dict[str, Any] = {
+                    "is_enabled": is_enabled if is_enabled is not None else True
+                }
+                if overrides:
+                    defaults["overrides"] = overrides
 
-            project_config, created = DataForwarderProject.objects.get_or_create(
-                data_forwarder=data_forwarder,
-                project_id=project_id,
-                defaults=defaults,
-            )
+                project_config, created = DataForwarderProject.objects.get_or_create(
+                    data_forwarder=data_forwarder,
+                    project_id=project_id,
+                    defaults=defaults,
+                )
 
-            if created:
-                continue
-            if overrides:
-                project_config.overrides = overrides
-            if is_enabled is not None:
-                project_config.is_enabled = is_enabled
-            project_config.save()
+                if created:
+                    continue
+                if overrides:
+                    project_config.overrides = overrides
+                if is_enabled is not None:
+                    project_config.is_enabled = is_enabled
+                project_config.save()
 
     def _unenroll_removed_projects(
         self,
