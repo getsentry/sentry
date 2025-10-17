@@ -266,24 +266,27 @@ logger.fatal("Database connection pool exhausted", {
             ? `
 const Sentry = require("@sentry/node");
 
-Sentry.startSpan({
-op: "test",
-name: "My First Test Span",
-}, () => {
-try {${
-                params.isLogsSelected
-                  ? `
-  // Send a log before throwing the error
-  Sentry.logger.info('User triggered test error', {
-    action: 'test_error_span',
-  });`
-                  : ''
-              }
-  foo();
-} catch (e) {
-  Sentry.captureException(e);
-}
-});`
+Sentry.startSpan(
+  {
+    op: "test",
+    name: "My First Test Span",
+  },
+  () => {
+    try {${
+      params.isLogsSelected
+        ? `
+      // Send a log before throwing the error
+      Sentry.logger.info('User triggered test error', {
+        action: 'test_error_span',
+      });`
+        : ''
+    }
+      foo();
+    } catch (e) {
+      Sentry.captureException(e);
+    }
+  }
+);`
             : `
 const Sentry = require("@sentry/node");
 ${
@@ -291,14 +294,14 @@ ${
     ? `
 // Send a log before throwing the error
 Sentry.logger.info('User triggered test error', {
-action: 'test_error_basic',
+  action: 'test_error_basic',
 });`
     : ''
 }
 try {
-foo();
+  foo();
 } catch (e) {
-Sentry.captureException(e);
+  Sentry.captureException(e);
 }`,
         },
       ],
