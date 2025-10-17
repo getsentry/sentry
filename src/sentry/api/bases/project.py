@@ -120,6 +120,15 @@ class ProjectOwnershipPermission(ProjectPermission):
     }
 
 
+class ProjectDistributionPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin", "distribution:read", "org:ci"],
+        "POST": ["project:write", "project:admin"],
+        "PUT": ["project:read", "project:write", "project:admin"],
+        "DELETE": ["project:admin"],
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (ProjectPermission,)
 

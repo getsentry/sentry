@@ -23,6 +23,7 @@ describe('PermissionSelection', () => {
             Project: 'write',
             Release: 'admin',
             Organization: 'admin',
+            Distribution: 'no-access',
           }}
           onChange={onChange}
         />
@@ -38,6 +39,7 @@ describe('PermissionSelection', () => {
     expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Organization'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Member'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Distribution'})).toBeInTheDocument();
   });
 
   it('lists human readable permissions', async () => {
@@ -54,6 +56,7 @@ describe('PermissionSelection', () => {
     await expectOptions('Issue & Event', ['No Access', 'Read', 'Read & Write', 'Admin']);
     await expectOptions('Organization', ['No Access', 'Read', 'Read & Write', 'Admin']);
     await expectOptions('Member', ['No Access', 'Read', 'Read & Write', 'Admin']);
+    await expectOptions('Distribution', ['No Access', 'Read']);
   });
 
   it('stores the permissions the User has selected', async () => {
@@ -67,6 +70,7 @@ describe('PermissionSelection', () => {
     await selectByValue('Issue & Event', 'Admin');
     await selectByValue('Organization', 'Read');
     await selectByValue('Member', 'No Access');
+    await selectByValue('Distribution', 'No Access');
 
     expect(model.getValue('Project--permission')).toBe('write');
     expect(model.getValue('Team--permission')).toBe('read');
@@ -74,5 +78,6 @@ describe('PermissionSelection', () => {
     expect(model.getValue('Event--permission')).toBe('admin');
     expect(model.getValue('Organization--permission')).toBe('read');
     expect(model.getValue('Member--permission')).toBe('no-access');
+    expect(model.getValue('Distribution--permission')).toBe('no-access');
   });
 });

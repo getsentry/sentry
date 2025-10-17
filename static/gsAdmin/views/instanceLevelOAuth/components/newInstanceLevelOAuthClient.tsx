@@ -102,6 +102,7 @@ function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
                       Project: 'no-access',
                       Release: 'no-access',
                       Team: 'no-access',
+                      Distribution: 'no-access',
                     }}
                     onChange={() => {}}
                     appPublished={false}

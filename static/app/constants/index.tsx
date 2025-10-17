@@ -32,6 +32,7 @@ export const DEFAULT_APP_ROUTE = USING_CUSTOMER_DOMAIN
 export const API_ACCESS_SCOPES = [
   'alerts:read',
   'alerts:write',
+  'distribution:read',
   'event:admin',
   'event:read',
   'event:write',
@@ -54,6 +55,7 @@ export const API_ACCESS_SCOPES = [
 export const ALLOWED_SCOPES = [
   'alerts:read',
   'alerts:write',
+  'distribution:read',
   'event:admin',
   'event:read',
   'event:write',
@@ -206,6 +208,14 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       'no-access': {label: 'No Access', scopes: []},
       read: {label: 'Read', scopes: ['alerts:read']},
       write: {label: 'Read & Write', scopes: ['alerts:read', 'alerts:write']},
+    },
+  },
+  {
+    resource: 'Distribution',
+    help: 'Download and install uploaded builds',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['distribution:read']},
     },
   },
 ];

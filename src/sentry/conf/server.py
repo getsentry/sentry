@@ -1727,6 +1727,7 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:read",
     "alerts:write",
+    "distribution:read",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1741,6 +1742,7 @@ SENTRY_READONLY_SCOPES = {
     "project:read",
     "event:read",
     "alerts:read",
+    "distribution:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1765,6 +1767,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "event:admin": {"event:read", "event:write", "event:admin"},
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
+    "distribution:read": {"distribution:read"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -1808,6 +1811,7 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (("distribution:read", "Read access to builds."),),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -1843,6 +1847,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "team:read",
             "alerts:read",
             "alerts:write",
+            "distribution:read",
         },
     },
     {
@@ -1875,6 +1880,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "distribution:read",
         },
         "is_retired": True,
     },
@@ -1902,6 +1908,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "distribution:read",
         },
         "is_global": True,
     },
@@ -1936,6 +1943,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "alerts:read",
             "alerts:write",
+            "distribution:read",
         },
         "is_global": True,
     },
@@ -1956,6 +1964,7 @@ SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
             "member:read",
             "team:read",
             "alerts:read",
+            "distribution:read",
             # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
         },
     },
@@ -1985,6 +1994,7 @@ SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "distribution:read",
         },
         "is_minimum_role_for": "admin",
     },
