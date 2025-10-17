@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.rules.actions.services import SentryAppService
 from sentry.sentry_apps.services.app import app_service
 from sentry.workflow_engine.endpoints.serializers.action_handler_serializer import (
     ActionHandlerSerializer,
@@ -82,6 +83,14 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             include_contexts_without_component=True,
         )
 
+        # Split contexts into those with and without components
+        sentry_app_contexts_with_components = [
+            context for context in sentry_app_component_contexts if context.component
+        ]
+        sentry_app_contexts_without_components = [
+            context for context in sentry_app_component_contexts if not context.component
+        ]
+
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
             # skip ticket creation actions if organization doesn't have the feature
@@ -103,8 +112,9 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                     )
 
             # add alertable sentry app actions
+            # sentry app actions are only for sentry apps with components
             elif action_type == Action.Type.SENTRY_APP:
-                for context in sentry_app_component_contexts:
+                for context in sentry_app_contexts_with_components:
                     if context.installation.sentry_app.is_alertable:
                         actions.append(
                             serialize(
@@ -116,9 +126,14 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             )
                         )
 
-            # add plugin service actions
+            # add webhook action
+            # service options include plugins and sentry apps without components
             elif action_type == Action.Type.WEBHOOK:
                 plugins = get_notification_plugins_for_org(organization)
+
+                for context in sentry_app_contexts_without_components:
+                    plugins.append(SentryAppService(context.installation.sentry_app))
+
                 if plugins:
                     actions.append(
                         serialize(
