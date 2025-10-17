@@ -182,13 +182,28 @@ def compare_preprod_artifact_size_analysis(
         for comp in comparisons:
             head_metric = comp["head_metric"]
             base_metric = comp["base_metric"]
-            comparison = PreprodArtifactSizeComparison.objects.create(
+            comparison, created = PreprodArtifactSizeComparison.objects.get_or_create(
                 head_size_analysis=head_metric,
                 base_size_analysis=base_metric,
                 organization_id=org_id,
-                state=PreprodArtifactSizeComparison.State.PENDING,
+                defaults={"state": PreprodArtifactSizeComparison.State.PENDING},
             )
-            comparison.save()
+
+            # Skip if comparison is already complete or currently running
+            if not created and comparison.state in [
+                PreprodArtifactSizeComparison.State.PROCESSING,
+                PreprodArtifactSizeComparison.State.SUCCESS,
+                PreprodArtifactSizeComparison.State.FAILED,
+            ]:
+                logger.info(
+                    "preprod.size_analysis.compare.existing_comparison",
+                    extra={
+                        "head_metric_id": head_metric.id,
+                        "base_metric_id": base_metric.id,
+                        "state": comparison.state,
+                    },
+                )
+                continue
 
             logger.info(
                 "preprod.size_analysis.compare.running_comparison",
