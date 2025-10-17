@@ -15,7 +15,6 @@ from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
-from sentry.replays.usecases.ingest.cache import has_sent_replays_cache
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -67,7 +66,6 @@ class RecordingTestCase(TransactionTestCase):
 
     def submit(self, messages: list[ReplayRecording]) -> None:
         strategy = self.processing_factory().create_with_partitions(lambda x, force=False: None, {})
-
         for message in messages:
             strategy.submit(
                 Message(
@@ -194,7 +192,6 @@ class RecordingTestCase(TransactionTestCase):
         mock_record: MagicMock,
         mock_onboarding_task: MagicMock,
     ) -> None:
-        self.options
         data = [
             {
                 "type": 5,
@@ -212,19 +209,34 @@ class RecordingTestCase(TransactionTestCase):
 
         with self.options({"replay.consumer.enable_new_query_caching_system": True}):
             self.submit(
-                self.nonchunked_messages(
-                    message=json.dumps(data).encode(),
-                    segment_id=segment_id,
-                    compressed=True,
-                    replay_event=json.dumps(
-                        {
-                            "type": "replay_event",
-                            "replay_id": self.replay_id,
-                            "timestamp": int(time.time()),
-                        }
-                    ).encode(),
-                    replay_video=b"hello, world!",
-                )
+                [
+                    *self.nonchunked_messages(
+                        message=json.dumps(data).encode(),
+                        segment_id=segment_id,
+                        compressed=True,
+                        replay_event=json.dumps(
+                            {
+                                "type": "replay_event",
+                                "replay_id": self.replay_id,
+                                "timestamp": int(time.time()),
+                            }
+                        ).encode(),
+                        replay_video=b"hello, world!",
+                    ),
+                    *self.nonchunked_messages(
+                        message=json.dumps(data).encode(),
+                        segment_id=segment_id,
+                        compressed=True,
+                        replay_event=json.dumps(
+                            {
+                                "type": "replay_event",
+                                "replay_id": self.replay_id,
+                                "timestamp": int(time.time()),
+                            }
+                        ).encode(),
+                        replay_video=b"hello, world!",
+                    ),
+                ]
             )
 
             dat = self.get_recording_data(segment_id)
@@ -251,33 +263,11 @@ class RecordingTestCase(TransactionTestCase):
                 ),
             )
 
-            assert track_outcome.called
-            assert track_outcome.call_count == 1
-            assert report_hydration_issue.called
-            assert report_hydration_issue.call_count == 1
-            assert set_project_flag_and_signal.call_count == 1
-            assert has_sent_replays_cache[self.project.id] is True
-
-            # Send a second message to assert caching behavior is working correctly.
-            self.submit(
-                self.nonchunked_messages(
-                    message=json.dumps(data).encode(),
-                    segment_id=segment_id,
-                    compressed=True,
-                    replay_event=json.dumps(
-                        {
-                            "type": "replay_event",
-                            "replay_id": self.replay_id,
-                            "timestamp": int(time.time()),
-                        }
-                    ).encode(),
-                    replay_video=b"hello, world!",
-                )
-            )
-
             # We emit a new outcome because its a segment-0 event. We emit a hydration error because
             # thats our cached configuration but we don't emit an onboarding metric because this is
             # our second event.
+            assert track_outcome.called
             assert track_outcome.call_count == 2
+            assert report_hydration_issue.called
             assert report_hydration_issue.call_count == 2
             assert set_project_flag_and_signal.call_count == 1

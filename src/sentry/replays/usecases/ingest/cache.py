@@ -41,10 +41,9 @@ def _option_lookup(project_id: int) -> tuple[bool, bool]:
     )
 
 
-# TODO: Global cache singletons for our ingest pipeline. This not ideal. I would much prefer if
-# these were dependency injected into the function which needs them. But doing so right away would
-# take a decent amount of time and complicate the diff. Making the change in this way means we
-# have similar semantics to what exists already, we can deploy and validate faster, and then
-# refactor the consumer code as part of a dedicated effort to make it better.
-has_sent_replays_cache = AutoCache(_has_replays_lookup, BoundedLRUCache(maxlen=10_000))
-options_cache = AutoCache(_option_lookup, BoundedLRUCache(maxlen=10_000))
+def make_has_sent_replays_cache():
+    return AutoCache(_has_replays_lookup, BoundedLRUCache(maxlen=10_000))
+
+
+def make_options_cache():
+    return AutoCache(_option_lookup, BoundedLRUCache(maxlen=10_000))

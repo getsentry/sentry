@@ -16,6 +16,7 @@ from sentry_sdk import set_tag
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.replays.lib.cache import AutoCache
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -24,6 +25,8 @@ from sentry.replays.usecases.ingest import (
     process_recording_event,
     track_recording_metadata,
 )
+from sentry.replays.usecases.ingest.cache import make_has_sent_replays_cache, make_options_cache
+from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
 
@@ -64,15 +67,27 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        has_sent_replays_cache: AutoCache[int, bool] | None = None
+        options_cache: AutoCache[int, tuple[bool, bool]] | None = None
+
+        if options.get("replay.consumer.enable_new_query_caching_system"):
+            has_sent_replays_cache = make_has_sent_replays_cache()
+            options_cache = make_options_cache()
+
+        context: ProcessorContext = {
+            "has_sent_replays_cache": has_sent_replays_cache,
+            "options_cache": options_cache,
+        }
+
         return RunTaskInThreads(
-            processing_function=process_and_commit_message,
+            processing_function=lambda msg: process_and_commit_message(msg, context),
             concurrency=self.num_threads,
             max_pending_futures=self.max_pending_futures,
             next_step=CommitOffsets(commit),
         )
 
 
-def process_and_commit_message(message: Message[KafkaPayload]) -> None:
+def process_and_commit_message(message: Message[KafkaPayload], context: ProcessorContext) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_transaction(
@@ -86,7 +101,7 @@ def process_and_commit_message(message: Message[KafkaPayload]) -> None:
         ):
             processed_message = process_message(message.payload.value)
             if processed_message:
-                commit_message(processed_message)
+                commit_message(processed_message, context)
 
 
 # Processing Task
@@ -192,12 +207,9 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 
 @sentry_sdk.trace
-def commit_message(message: ProcessedEvent) -> None:
+def commit_message(message: ProcessedEvent, context: ProcessorContext) -> None:
     try:
-        commit_recording_message(
-            recording=message,
-            use_new_cache_scheme=options.get("replay.consumer.enable_new_query_caching_system"),
-        )
+        commit_recording_message(message, context)
         track_recording_metadata(message)
         return None
     except GCS_RETRYABLE_ERRORS:

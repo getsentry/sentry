@@ -12,9 +12,9 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
+from sentry.replays.lib.cache import AutoCache
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
-from sentry.replays.usecases.ingest.cache import has_sent_replays_cache
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_request_response_metrics,
@@ -29,6 +29,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     report_rage_click,
 )
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta, parse_events
+from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -232,19 +233,20 @@ def pack_replay_video(recording: bytes, video: bytes):
 
 
 @sentry_sdk.trace
-def commit_recording_message(recording: ProcessedEvent, use_new_cache_scheme: bool = False) -> None:
+def commit_recording_message(recording: ProcessedEvent, context: ProcessorContext) -> None:
     # Write to GCS.
     storage_kv.set(recording.filename, recording.filedata)
 
     # Write to billing consumer if its a billable event.
     if recording.context["segment_id"] == 0:
-        if use_new_cache_scheme:
+        if context["has_sent_replays_cache"] is not None:
             _track_initial_segment_event_new(
                 recording.context["org_id"],
                 recording.context["project_id"],
                 recording.context["replay_id"],
                 recording.context["key_id"],
                 recording.context["received"],
+                context["has_sent_replays_cache"],
             )
         else:
             _track_initial_segment_event_old(
@@ -278,7 +280,7 @@ def commit_recording_message(recording: ProcessedEvent, use_new_cache_scheme: bo
             recording.context["replay_id"],
             recording.context["retention_days"],
             recording.replay_event,
-            use_new_cache_scheme,
+            context,
         )
 
     emit_trace_items_to_eap(recording.trace_items)
@@ -292,7 +294,7 @@ def emit_replay_events(
     replay_id: str,
     retention_days: int,
     replay_event: dict[str, Any] | None,
-    use_new_cache_scheme: bool,
+    context: ProcessorContext,
 ) -> None:
     environment = replay_event.get("environment") if replay_event else None
 
@@ -319,8 +321,8 @@ def emit_replay_events(
     log_option_events(event_meta, project_id, replay_id)
     log_multiclick_events(event_meta, project_id, replay_id)
     log_rage_click_events(event_meta, project_id, replay_id)
-    report_hydration_error(event_meta, project_id, replay_id, replay_event, use_new_cache_scheme)
-    report_rage_click(event_meta, project_id, replay_id, replay_event, use_new_cache_scheme)
+    report_hydration_error(event_meta, project_id, replay_id, replay_event, context)
+    report_rage_click(event_meta, project_id, replay_id, replay_event, context)
 
 
 def _track_initial_segment_event_old(
@@ -366,10 +368,11 @@ def _track_initial_segment_event_new(
     replay_id,
     key_id: int | None,
     received: int,
+    cache: AutoCache[int, bool],
 ) -> None:
     # We'll skip querying for projects if we've seen the project before or the project has already
     # recorded its first replay.
-    if not has_sent_replays_cache[project_id]:
+    if not cache[project_id]:
         try:
             # I have to do this because of looker and amplitude statistics. This could be
             # replaced with a simple update statement on the model...
@@ -388,7 +391,7 @@ def _track_initial_segment_event_new(
         set_project_flag_and_signal(project, "has_replays", first_replay_received)
 
         # We've set the has_replays flag and can cache it.
-        has_sent_replays_cache[project_id] = True
+        cache[project_id] = True
 
     track_outcome(
         org_id=org_id,
