@@ -30,12 +30,29 @@ class OAuthAuthorizeView(AuthLoginView):
         return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
+        logger.info(
+            "oauth.redirect_response",
+            extra={
+                "response_type": response_type,
+                "redirect_uri": redirect_uri,
+                "params": params,
+            },
+        )
+
         if response_type == "token":
+            logger.info(
+                "oauth.building_token_response",
+                extra={"redirect_uri": redirect_uri, "params": list(params.keys())},
+            )
             final_uri = "{}#{}".format(
                 redirect_uri,
                 urlencode([(k, v) for k, v in params.items() if v is not None]),
             )
         else:
+            logger.info(
+                "oauth.building_code_response",
+                extra={"redirect_uri": redirect_uri, "params": list(params.keys())},
+            )
             parts = list(urlparse(redirect_uri))
             query = parse_qsl(parts[4])
             for key, value in params.items():
@@ -61,6 +78,10 @@ class OAuthAuthorizeView(AuthLoginView):
             response["Location"] = final_uri
             return response
 
+        logger.info(
+            "oauth.standard_redirect",
+            extra={"redirect_uri": final_uri, "scheme": parsed_uri.scheme},
+        )
         return self.redirect(final_uri)
 
     def error(

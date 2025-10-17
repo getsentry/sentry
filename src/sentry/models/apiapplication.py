@@ -159,14 +159,27 @@ class ApiApplication(Model):
         #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
         #   - Native apps loopback exception (RFC 8252 §8.4):
         #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
+        logger.info(
+            "oauth.redirect_uri_validation",
+            extra={
+                "client_id": self.client_id,
+                "incoming_uri": value,
+                "registered_uris": self.redirect_uris,
+                "version": self.version,
+            },
+        )
         value = self.normalize_url(value)
 
-        # First: exact match only (spec-compliant), no logging.
+        # First: exact match only (spec-compliant).
         normalized_ruris = [
             self.normalize_url(redirect_uri) for redirect_uri in self.redirect_uris.split("\n")
         ]
         for ruri in normalized_ruris:
             if value == ruri:
+                logger.info(
+                    "oauth.exact_match_success",
+                    extra={"client_id": self.client_id, "matched_uri": ruri},
+                )
                 return True
 
         # RFC 8252 §8.4 / §7: For loopback interface redirects in native apps, accept
@@ -195,6 +208,14 @@ class ApiApplication(Model):
                     and v_parts.path == r_parts.path
                     and v_parts.query == r_parts.query
                 ):
+                    logger.info(
+                        "oauth.loopback_exception_match",
+                        extra={
+                            "client_id": self.client_id,
+                            "incoming_uri": value,
+                            "matched_uri": ruri,
+                        },
+                    )
                     return True
 
         # Then: prefix-only match (legacy behavior). Log on success.
@@ -210,6 +231,16 @@ class ApiApplication(Model):
                         },
                     )
                     return True
+
+        logger.info(
+            "oauth.redirect_uri_validation_failed",
+            extra={
+                "client_id": self.client_id,
+                "incoming_uri": value,
+                "registered_uris": normalized_ruris,
+                "version": self.version,
+            },
+        )
         return False
 
     def get_default_redirect_uri(self):
