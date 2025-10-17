@@ -967,10 +967,11 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type Breakpoint = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 type Breakpoints = Record<Breakpoint, string>;
 
 const breakpoints = {
+  '2xs': '0px',
   xs: '500px',
   sm: '800px',
   md: '992px',
