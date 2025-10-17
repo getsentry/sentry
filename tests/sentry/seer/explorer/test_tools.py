@@ -485,7 +485,10 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_issue_details_success(
-        self, mock_get_tags, mock_get_recommended_event, use_short_id: bool
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+        use_short_id: bool,
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
@@ -512,19 +515,29 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert events[1].group_id == group.id
         assert events[2].group_id == group.id
 
-        for et in ["oldest", "latest", "recommended"]:
+        for selected_event in [
+            "oldest",
+            "latest",
+            "recommended",
+            events[1].event_id,
+            events[1].event_id[:8],
+        ]:
             result = get_issue_details(
                 issue_id=group.qualified_short_id if use_short_id else group.id,
                 organization_id=self.organization.id,
-                selected_event_type=et,
+                selected_event=selected_event,
             )
+            if selected_event == events[1].event_id[:8]:
+                assert result is None
+                continue
 
             assert result is not None
             assert result["project_id"] == self.project.id
             assert result["tags_overview"] == mock_get_tags.return_value
 
             # Validate structure and required fields of the main issue payload.
-            issue_dict: dict = result["issue"]
+            issue_dict = result["issue"]
+            assert isinstance(issue_dict, dict)
             IssueDetails.parse_obj(issue_dict)
             assert "id" in issue_dict
             assert "shortId" in issue_dict
@@ -540,6 +553,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
             # Validate for some useful event fields.
             event_dict = issue_dict["events"][0]
+            assert isinstance(event_dict, dict)
             assert "id" in event_dict
             assert "title" in event_dict
             assert "message" in event_dict
@@ -552,12 +566,16 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             assert "contexts" in event_dict
 
             # Check correct event is returned based on selected_event_type.
-            if et == "oldest":
-                assert event_dict["id"] == events[0].event_id, et
-            elif et == "latest":
-                assert event_dict["id"] == events[-1].event_id, et
-            elif et == "recommended":
-                assert event_dict["id"] == mock_get_recommended_event.return_value.event_id, et
+            if selected_event == "oldest":
+                assert event_dict["id"] == events[0].event_id, selected_event
+            elif selected_event == "latest":
+                assert event_dict["id"] == events[-1].event_id, selected_event
+            elif selected_event == "recommended":
+                assert (
+                    event_dict["id"] == mock_get_recommended_event.return_value.event_id
+                ), selected_event
+            else:
+                assert event_dict["id"] == selected_event, selected_event
 
             # Check event_trace_id matches mocked trace context.
             if event_dict["id"] == events[0].event_id:
@@ -584,7 +602,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         result = get_issue_details(
             issue_id=group.id,
             organization_id=99999,
-            selected_event_type="latest",
+            selected_event="latest",
         )
         assert result is None
 
@@ -594,7 +612,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         result = get_issue_details(
             issue_id=99999,
             organization_id=self.organization.id,
-            selected_event_type="latest",
+            selected_event="latest",
         )
         assert result is None
 
@@ -621,7 +639,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             result = get_issue_details(
                 issue_id=group.id,
                 organization_id=self.organization.id,
-                selected_event_type=et,
+                selected_event=et,
             )
             assert result is None, et
 
@@ -639,7 +657,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         result = get_issue_details(
             issue_id=group.id,
             organization_id=self.organization.id,
-            selected_event_type="latest",
+            selected_event="latest",
         )
         assert result is not None
         assert result["tags_overview"] is None

@@ -1,10 +1,11 @@
 import logging
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
+from sentry import eventstore
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -15,6 +16,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.sentry_data_models import EAPTrace
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
@@ -241,21 +243,22 @@ def get_issue_details(
     *,
     issue_id: int | str,
     organization_id: int,
-    selected_event_type: Literal["oldest", "latest", "recommended"],
-) -> dict[str, int | str | dict] | None:
+    selected_event: str,
+) -> dict[str, int | str | dict | None] | None:
     """
     Args:
         issue_id: The issue/group ID (integer) or short ID (string) to look up.
         organization_id: The ID of the issue's organization.
-        selected_event_type: Which event to return - "oldest", "latest", or "recommended".
+        selected_event: The event to return - "oldest", "latest", or "recommended". Can also be the event's UUID, shortened to the first 8-32 characters.
 
     Returns:
         A dict containing:
             `issue`: Serialized issue with exactly one event in `issue.events`, selected
-              according to `selected_event_type`.
+              according to `selected_event`.
+            `event_id`: The event ID of the selected event.
             `event_trace_id`: The trace ID of the selected event.
-            `project_id`: The project ID of the issue.
             `tags_overview`: A summary of all tags in the issue.
+            `project_id`: The project ID of the issue.
         Returns None in case of errors.
     """
     try:
@@ -283,18 +286,23 @@ def get_issue_details(
             extra={"organization_id": organization_id, "issue_id": issue_id},
         )
         return None
-    group = cast(Group, group)
 
-    serialized_group: BaseGroupSerializerResponse = serialize(
-        group, user=None, serializer=GroupSerializer()
-    )
+    serialized_group: dict[str, Any] = serialize(group, user=None, serializer=GroupSerializer())
 
-    if selected_event_type == "oldest":
+    event: Event | GroupEvent | None
+    if selected_event == "oldest":
         event = group.get_oldest_event()
-    elif selected_event_type == "latest":
+    elif selected_event == "latest":
         event = group.get_latest_event()
-    else:
+    elif selected_event == "recommended":
         event = group.get_recommended_event()
+    else:
+        event = eventstore.backend.get_event_by_id(
+            project_id=group.project_id,
+            event_id=selected_event,
+            group_id=group.id,
+            tenant_ids={"organization_id": organization_id},
+        )
 
     if not event:
         logger.warning(
@@ -302,7 +310,7 @@ def get_issue_details(
             extra={
                 "organization_id": organization_id,
                 "issue_id": issue_id,
-                "selected_event_type": selected_event_type,
+                "selected_event_type": selected_event,
             },
         )
         return None
@@ -322,6 +330,7 @@ def get_issue_details(
         tags_overview = None
 
     return {
+        "event_id": event.event_id,
         "event_trace_id": event.trace_id,
         "project_id": group.project_id,
         "issue": serialized_group,
