@@ -4,6 +4,7 @@ import useRouter from 'sentry/utils/useRouter';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DashboardState, DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 
 const RELEASE_HEALTH_WIDGETS: Widget[] = [
   {
@@ -132,21 +133,23 @@ export function PlatformizedSessionsOverview() {
   const router = useRouter();
 
   return (
-    <DashboardDetail
-      dashboard={DASHBOARD}
-      location={location}
-      params={{
-        dashboardId: undefined,
-        templateId: undefined,
-        widgetId: undefined,
-        widgetIndex: undefined,
-      }}
-      route={{}}
-      routeParams={{}}
-      router={router}
-      routes={[]}
-      dashboards={[]}
-      initialState={DashboardState.VIEW}
-    />
+    <ModulePageProviders moduleName="sessions">
+      <DashboardDetail
+        dashboard={DASHBOARD}
+        location={location}
+        params={{
+          dashboardId: undefined,
+          templateId: undefined,
+          widgetId: undefined,
+          widgetIndex: undefined,
+        }}
+        route={{}}
+        routeParams={{}}
+        router={router}
+        routes={[]}
+        dashboards={[]}
+        initialState={DashboardState.VIEW}
+      />
+    </ModulePageProviders>
   );
 }

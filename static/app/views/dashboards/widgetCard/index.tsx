@@ -38,12 +38,14 @@ import {
   OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {useCommonWidgetVisualization} from 'sentry/views/dashboards/utils/useCommonWidgetVisualization';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
+import {CommonDashboardWidget} from './commonDashboardWidget';
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {
   getMenuOptions,
@@ -295,6 +297,28 @@ function WidgetCard(props: Props) {
   const widgetQueryError = isWidgetInvalid
     ? t('Widget query condition is invalid.')
     : undefined;
+
+  const shouldUseCommonWidgetVisualization = useCommonWidgetVisualization(widget);
+  if (shouldUseCommonWidgetVisualization) {
+    return (
+      <ErrorBoundary
+        customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      >
+        <CommonDashboardWidget
+          widget={widget}
+          selection={selection}
+          dashboardFilters={dashboardFilters}
+          onDataFetched={onDataFetched}
+          onWidgetTableSort={onWidgetTableSort}
+          onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+          chartGroup={DASHBOARD_CHART_GROUP}
+          renderErrorMessage={renderErrorMessage}
+          onDataFetchStart={onDataFetchStart}
+          tableItemLimit={tableItemLimit}
+        />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary
