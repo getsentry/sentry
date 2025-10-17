@@ -13,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
@@ -27,6 +28,7 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
@@ -168,9 +170,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               </Layout.Title>
             </Layout.HeaderContent>
             <div>
-              <Flex>
-                <EditAutomationActions automation={automation} />
-              </Flex>
+              <AutomationFeedbackButton />
             </div>
           </HeaderInner>
         </StyledLayoutHeader>
@@ -198,6 +198,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </Layout.Main>
         </StyledBody>
       </Layout.Page>
+      <StickyFooter>
+        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <EditAutomationActions automation={automation} />
+        </Flex>
+      </StickyFooter>
     </FullHeightForm>
   );
 }
