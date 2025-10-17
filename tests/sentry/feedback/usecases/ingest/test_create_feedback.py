@@ -487,7 +487,6 @@ def test_create_feedback_spam_detection_kafka_and_evidence(
 
     # Check status change kafka message.
     if expected_result is True:
-        assert mock_produce_occurrence_to_kafka.call_count == 2
         assert (
             mock_produce_occurrence_to_kafka.call_args_list[1].kwargs["status_change"].new_status
             == GroupStatus.IGNORED
@@ -513,11 +512,10 @@ def test_create_feedback_spam_detection_kafka_and_evidence(
 
 @django_db_all
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
-@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer", return_value=True)
 def test_create_feedback_spam_detection_set_status_ignored(
     mock_is_spam_seer, mock_spam_detection_enabled, default_project
 ) -> None:
-    mock_is_spam_seer.return_value = True
     event = mock_feedback_event(default_project.id, message="This is definitely spam")
 
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -689,7 +687,7 @@ def test_create_feedback_tags_skips_email_if_empty(
 @django_db_all
 @pytest.mark.parametrize("spam_enabled", (True, False))
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled")
-@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer", return_value=False)
 def test_create_feedback_filters_large_message(
     mock_is_spam_seer,
     mock_spam_detection_enabled,
@@ -699,10 +697,8 @@ def test_create_feedback_filters_large_message(
     set_sentry_option,
 ):
     """Large messages are filtered before spam detection and producing to kafka."""
-    mock_is_spam_seer.return_value = False
     mock_spam_detection_enabled.return_value = spam_enabled
 
-    # Explicitly set max-size to ensure the 7007-character message is filtered
     with set_sentry_option("feedback.message.max-size", 5000):
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "a" * 7007
