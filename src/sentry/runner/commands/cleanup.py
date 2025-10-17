@@ -117,7 +117,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                     if not task.chunk(apply_filter=True):
                         break
         except Exception:
-            metrics.incr("cleanup.error", instance=model_name)
+            metrics.incr("cleanup.error", instance=model_name, sample_rate=1.0)
             logger.exception("Error in multiprocess_worker.")
         finally:
             task_queue.task_done()
@@ -156,7 +156,7 @@ def cleanup(
     silent: bool,
     model: tuple[str, ...],
     router: str | None,
-    _: bool,
+    timed: bool,
 ) -> None:
     """Delete a portion of trailing data based on creation date.
 
