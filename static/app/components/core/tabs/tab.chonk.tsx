@@ -27,7 +27,7 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
   overflowing: boolean;
   selected: boolean;
 }>`
-  color: ${p => (p.selected ? p.theme.tokens.component.link.accent.default : p.theme.tokens.component.link.muted.default)};
+  color: ${p => (p.selected ? p.theme.tokens.component.link.accent.default : p.theme.tokens.content.primary)};
   white-space: nowrap;
   cursor: pointer;
 
@@ -119,7 +119,7 @@ export const chonkInnerWrapStyles = ({
       : theme.colors.gray100};
     color: ${selected
       ? theme.tokens.component.link.accent.hover
-      : theme.tokens.component.link.muted.hover};
+      : theme.tokens.content.primary};
   }
 
   li:not([aria-disabled]):active & {
@@ -130,7 +130,7 @@ export const chonkInnerWrapStyles = ({
       : theme.colors.gray200};
     color: ${selected
       ? theme.tokens.component.link.accent.active
-      : theme.tokens.component.link.muted.active};
+      : theme.tokens.content.primary};
   }
 
   ${variant === 'floating' &&

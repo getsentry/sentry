@@ -110,7 +110,7 @@ function getTextColor({
     return priority === 'default' ? theme.colors.blue500 : undefined;
   }
 
-  return theme.subText;
+  return theme.tokens.content.primary;
 }
 
 export const ChonkStyledLabelWrap = chonkStyled('span')<{
