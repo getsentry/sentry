@@ -1,4 +1,3 @@
-import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -16,7 +15,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -111,28 +110,39 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry NestJS SDK as a dependency:'),
-      configurations: getInstallConfig(params, {
-        basePackage: '@sentry/nestjs',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: t('Add the Sentry NestJS SDK as a dependency:'),
+        },
+        getInstallCodeBlock(params, {
+          basePackage: '@sentry/nestjs',
+        }),
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'To initialize the SDK before everything else, create a file called [code:instrument.ts] in your [code:src/] folder.',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'TypeScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'instrument.ts',
               code: getSdkInitSnippet(params, 'nestjs', 'esm'),
@@ -140,19 +150,17 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Make sure to import [code:instrument.ts] at the top of your [code:main.ts] file:',
-            {
-              code: <code />,
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
-              ),
-            }
+            {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'TypeScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'main.ts',
               code: getSdkSetupSnippet(),
@@ -160,19 +168,16 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
-            'Add the [code:SentryModule] as a root module to your main module:',
-            {
-              code: <code />,
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
-              ),
-            }
-          ),
-          code: [
+          type: 'text',
+          text: tct('Add the [code:SentryModule] as a root module to your main module:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'TypeScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'app.module.ts',
               code: getAppModuleSnippet(),
@@ -180,16 +185,19 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'If you are using a global catch-all exception filter add a [code:@SentryExceptionCaptured()] decorator to the [code:catch()] method of this global error filter. This will report all unhandled errors to Sentry',
             {
               code: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'TypeScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'global.filter.ts',
               code: getDecoratedGlobalFilter(),
@@ -197,16 +205,19 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Alternatively, add the [code:SentryGlobalFilter] before any other exception filters to the providers of your main module.',
             {
               code: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'TypeScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'app.module.ts',
               code: getAppModuleSnippetWithSentryGlobalFilter(),
@@ -223,11 +234,15 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: getVerifySnippet(params),
         },
@@ -257,13 +272,16 @@ const feedbackOnboardingNode: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'TypeScript',
-              value: 'javascript',
               language: 'javascript',
               code: `import * as Sentry from "@sentry/node";
 
@@ -295,9 +313,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
