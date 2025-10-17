@@ -37,6 +37,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -50,10 +51,14 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automation'), to: makeAutomationBasePathname(organization.slug)},
+        {
+          label: t('Automation'),
+          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+        },
         {label: title ? title : t('New Automation')},
       ]}
     />
@@ -71,6 +76,7 @@ export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
@@ -112,10 +118,16 @@ export default function AutomationNewSettings() {
         const automation = await createAutomation(
           getNewAutomationData(data as AutomationFormData, state)
         );
-        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+        navigate(
+          makeAutomationDetailsPathname(
+            organization.slug,
+            automation.id,
+            automationsLinkPrefix
+          )
+        );
       }
     },
-    [createAutomation, state, navigate, organization.slug]
+    [createAutomation, state, navigate, organization.slug, automationsLinkPrefix]
   );
 
   return (
@@ -171,7 +183,7 @@ export default function AutomationNewSettings() {
           <Flex gap="md">
             <LinkButton
               priority="default"
-              to={`${makeAutomationBasePathname(organization.slug)}new/`}
+              to={`${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/`}
             >
               {t('Back')}
             </LinkButton>

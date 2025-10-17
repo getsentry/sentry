@@ -1674,6 +1674,36 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
+  const monitorRoutes: SentryRouteObject = {
+    path: '/monitors/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/detectors/monitorViewContainer')),
+    children: [
+      ...detectorRoutes.children!,
+      automationRoutes,
+      {
+        path: 'my-monitors/',
+        component: make(() => import('sentry/views/detectors/list/myMonitors')),
+      },
+      {
+        path: 'errors/',
+        component: make(() => import('sentry/views/detectors/list/error')),
+      },
+      {
+        path: 'metrics/',
+        component: make(() => import('sentry/views/detectors/list/metric')),
+      },
+      {
+        path: 'crons/',
+        component: make(() => import('sentry/views/detectors/list/cron')),
+      },
+      {
+        path: 'uptime/',
+        component: make(() => import('sentry/views/detectors/list/uptime')),
+      },
+    ],
+  };
+
   const replayChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2942,6 +2972,7 @@ function buildRoutes(): RouteObject[] {
       feedbackv2Routes,
       issueRoutes,
       alertRoutes,
+      monitorRoutes,
       preventRoutes,
       preprodRoutes,
       pullRequestRoutes,
