@@ -228,10 +228,9 @@ export function AIInputSection({
         <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
       ) : null}
       {embeddingsInput ? (
-        <TraceDrawerComponents.MultilineJSON
-          value={embeddingsInput}
-          maxDefaultDepth={1}
-        />
+        <TraceDrawerComponents.MultilineText>
+          {embeddingsInput.toString()}
+        </TraceDrawerComponents.MultilineText>
       ) : null}
     </FoldSection>
   );
