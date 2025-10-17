@@ -1,11 +1,11 @@
-import calendar
-import datetime
 import time
 import uuid
 
 from django.conf import settings
 
 from sentry.utils import jwt, metrics
+
+TOKEN_TTL_SEC = 600  # 10 minutes
 
 
 def generate_channel_id() -> str:
@@ -47,12 +47,12 @@ def generate_conduit_token(
         if conduit_private_key is None:
             raise ValueError("CONDUIT_PRIVATE_KEY not configured")
 
-    exp_ = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=10)
-    exp = calendar.timegm(exp_.timetuple())
+    now = int(time.time())
+    exp = now + TOKEN_TTL_SEC
     payload = {
         "org_id": org_id,
         "channel_id": channel_id,
-        "iat": int(time.time()),
+        "iat": now,
         # Conduit only validates tokens on initial connection, not for stream lifetime
         "exp": exp,
         "iss": issuer,
