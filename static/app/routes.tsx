@@ -602,7 +602,6 @@ function buildRoutes(): RouteObject[] {
       path: 'ownership/',
       name: t('Ownership Rules'),
       component: make(() => import('sentry/views/settings/project/projectOwnership')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'data-forwarding/',
