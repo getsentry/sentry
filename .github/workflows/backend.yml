@@ -158,7 +158,7 @@ jobs:
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
 
       - name: Inspect failure
         if: failure()
