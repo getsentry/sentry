@@ -146,7 +146,7 @@ export function PlatformizedSessionsOverview() {
       router={router}
       routes={[]}
       dashboards={[]}
-      initialState={DashboardState.VIEW}
+      initialState={DashboardState.EMBEDDED}
     />
   );
 }
