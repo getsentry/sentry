@@ -1,5 +1,4 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useParams} from 'sentry/utils/useParams';
 import withOrganizations from 'sentry/utils/withOrganizations';
@@ -8,8 +7,7 @@ import {getNotificationTypeFromPathname} from 'sentry/views/settings/account/not
 
 import AccountNotificationFineTuning from './accountNotificationFineTuning';
 
-interface AccountNotificationFineTuningControllerProps
-  extends RouteComponentProps<{fineTuneType: string}> {
+interface AccountNotificationFineTuningControllerProps {
   organizations: Organization[];
   organizationsLoading?: boolean;
 }

@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
-import {css} from '@emotion/react';
+import {Outlet} from 'react-router-dom';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
@@ -33,6 +34,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
@@ -62,25 +64,12 @@ export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
   [Tab.SPANS]: 'performance_views.spans.spans_tab_clicked',
 };
 
-export type ChildProps = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  projectId: string;
-  projects: Project[];
-  setError: React.Dispatch<React.SetStateAction<string | undefined>>;
-  transactionName: string;
-  // These are used to trigger a reload when the threshold/metric changes.
-  transactionThreshold?: number;
-  transactionThresholdMetric?: TransactionThresholdMetric;
-};
-
 type Props = {
-  childComponent: (props: ChildProps) => React.JSX.Element;
   generateEventView: (props: {
     location: Location;
     organization: Organization;
     shouldUseOTelFriendlyUI: boolean;
+    theme: Theme;
     transactionName: string;
   }) => EventView;
   getDocumentTitle: (name: string) => string;
@@ -100,7 +89,6 @@ function PageLayout(props: Props) {
     tab,
     getDocumentTitle,
     generateEventView,
-    childComponent: ChildComponent,
     features = [],
   } = props;
 
@@ -111,6 +99,7 @@ function PageLayout(props: Props) {
     projectId = filterProjects;
   }
 
+  const theme = useTheme();
   const router = useRouter();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
@@ -192,6 +181,7 @@ function PageLayout(props: Props) {
     organization,
     transactionName,
     shouldUseOTelFriendlyUI,
+    theme,
   });
 
   if (!defined(projectId)) {
@@ -308,17 +298,20 @@ function PageLayout(props: Props) {
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
                     {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
-                    <ChildComponent
-                      location={location}
-                      organization={organization}
-                      projects={projects}
-                      eventView={eventView}
-                      projectId={projectId}
-                      transactionName={transactionName}
-                      setError={setError}
-                      transactionThreshold={transactionThreshold}
-                      transactionThresholdMetric={transactionThresholdMetric}
-                    />
+                    <TransactionSummaryContext
+                      value={{
+                        eventView,
+                        organization,
+                        projectId,
+                        projects,
+                        setError,
+                        transactionName,
+                        transactionThreshold,
+                        transactionThresholdMetric,
+                      }}
+                    >
+                      <Outlet />
+                    </TransactionSummaryContext>
                   </StyledBody>
                 </Layout.Page>
               </Tabs>

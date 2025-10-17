@@ -151,6 +151,10 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/uptime                                     @getsentry/crons
 ## End Uptime
 
+## Misc. Middleware
+# Located here so they do not take precedence over rules below.
+/src/sentry/middleware/reporting_endpoint.py             @getsentry/issue-detection-backend
+## End Misc. Middleware
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
@@ -538,7 +542,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
-/src/sentry/middleware/reporting_endpoint.py                @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend

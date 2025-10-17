@@ -194,7 +194,7 @@ describe('useActiveBreakpoint', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current).toBe('xs');
+    expect(result.current).toBe('2xs');
     cleanup();
   });
 
@@ -224,12 +224,15 @@ describe('useActiveBreakpoint', () => {
     });
 
     // Should create media queries for all breakpoints (in reverse order)
-    expect(matchMediaSpy).toHaveBeenCalledTimes(5);
+    expect(matchMediaSpy).toHaveBeenCalledTimes(Object.keys(theme.breakpoints).length);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.xl})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.lg})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.md})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.sm})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.xs})`);
+    expect(matchMediaSpy).toHaveBeenCalledWith(
+      `(min-width: ${theme.breakpoints['2xs']})`
+    );
   });
 
   it('uses correct breakpoint order (largest first)', () => {
@@ -309,7 +312,7 @@ describe('useActiveBreakpoint', () => {
   });
 
   it('calls AbortController.abort() on unmount', () => {
-    const addEventListenerSpy = jest.fn();
+    const addEventListener = jest.fn();
 
     const abortController = {
       abort: jest.fn(),
@@ -325,7 +328,7 @@ describe('useActiveBreakpoint', () => {
     window.matchMedia = jest.fn(() => ({
       matches: false,
       media: '',
-      addEventListener: addEventListenerSpy,
+      addEventListener,
       removeEventListener: jest.fn(),
       addListener: jest.fn(),
       removeListener: jest.fn(),
@@ -341,7 +344,7 @@ describe('useActiveBreakpoint', () => {
     );
 
     // Sets up listeners for all breakpoints
-    expect(addEventListenerSpy).toHaveBeenCalledTimes(5);
+    expect(addEventListener).toHaveBeenCalledTimes(Object.keys(theme.breakpoints).length);
     unmount();
     // Removes listeners for all breakpoints
     expect(abortController.abort).toHaveBeenCalledTimes(1);

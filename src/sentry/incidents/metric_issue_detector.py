@@ -9,6 +9,7 @@ from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -143,6 +144,17 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return attrs
 
+    def _validate_transaction_dataset_deprecation(self, dataset: Dataset) -> None:
+        organization = self.context.get("organization")
+        if organization is None:
+            raise serializers.ValidationError("Missing organization context")
+
+        if features.has("organizations:discover-saved-queries-deprecation", organization):
+            if dataset in [Dataset.PerformanceMetrics, Dataset.Transactions]:
+                raise serializers.ValidationError(
+                    "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+                )
+
     def get_quota(self) -> DetectorQuota:
         organization = self.context.get("organization")
         request = self.context.get("request")
@@ -169,6 +181,19 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
 
+    def is_editing_transaction_dataset(
+        self, snuba_query: SnubaQuery, data_source: SnubaQueryDataSourceType
+    ) -> bool:
+        if data_source.get("dataset") in [Dataset.PerformanceMetrics, Dataset.Transactions] and (
+            data_source.get("dataset", Dataset(snuba_query.dataset)) != Dataset(snuba_query.dataset)
+            or data_source.get("query", snuba_query.query) != snuba_query.query
+            or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
+            or data_source.get("time_window", snuba_query.time_window) != snuba_query.time_window
+            or data_source.get("event_types", snuba_query.event_types) != snuba_query.event_types
+        ):
+            return True
+        return False
+
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
             source_instance = DataSource.objects.get(detector=instance)
@@ -186,6 +211,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError("SnubaQuery not found, can't update")
 
         event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
+
+        if self.is_editing_transaction_dataset(snuba_query, data_source):
+            raise serializers.ValidationError(
+                "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+            )
+
         update_snuba_query(
             snuba_query=snuba_query,
             query_type=data_source.get("query_type", snuba_query.type),
@@ -212,10 +243,15 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
+        data_source: SnubaQueryDataSourceType | None = None
+
         if "data_source" in validated_data:
-            data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
-            if data_source:
-                self.update_data_source(instance, data_source)
+            data_source = validated_data.pop("data_source")
+        elif "data_sources" in validated_data:
+            data_source = validated_data.pop("data_sources")[0]
+
+        if data_source is not None:
+            self.update_data_source(instance, data_source)
 
         instance.save()
 
@@ -223,10 +259,26 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return instance
 
     def create(self, validated_data: dict[str, Any]):
+        if "data_source" in validated_data:
+            self._validate_transaction_dataset_deprecation(
+                validated_data["data_source"].get("dataset")
+            )
+
+        if "data_sources" in validated_data:
+            for validated_data_source in validated_data["data_sources"]:
+                self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
+
         detector = super().create(validated_data)
 
         if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC.value:
-            send_new_detector_data(detector)
+            try:
+                send_new_detector_data(detector)
+            except Exception:
+                # Sending historical data failed; Detector won't be save, but we
+                # need to clean up database state that has already been created.
+                detector.workflow_condition_group.delete()
+
+                raise
 
         schedule_update_project_config(detector)
         return detector

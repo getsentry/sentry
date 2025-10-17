@@ -19,13 +19,6 @@ import {getNodeLogsOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: 'bun add @sentry/bun',
-  },
-];
-
 const getConfigureSnippet = (params: Params) => `
 //...
 import * as Sentry from "@sentry/bun";
@@ -56,20 +49,33 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: t(
-        "Sentry captures data by using an SDK within your application's runtime."
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "Sentry captures data by using an SDK within your application's runtime."
+          ),
+        },
+        {
+          type: 'code',
+          language: 'bash',
+          code: 'bun add @sentry/bun',
+        },
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: getConfigureSnippet(params),
         },
@@ -79,11 +85,15 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: getVerifySnippet(),
         },

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import jsonschema
 import orjson
 import sentry_sdk
@@ -29,7 +33,7 @@ SUPPORTED_VCS_PROVIDERS = [
 ]
 
 
-def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
+def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact assembly requests.
 
@@ -127,7 +131,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if provider is not None and provider not in SUPPORTED_VCS_PROVIDERS:
                 return Response({"error": "Unsupported provider"}, status=400)
 
-            checksum = data.get("checksum")
+            checksum = str(data.get("checksum", ""))
             chunks = data.get("chunks", [])
 
             # Validate VCS parameters - if any are provided, all required ones must be present
@@ -167,7 +171,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 org_id=project.organization_id,
                 project_id=project.id,
                 checksum=checksum,
-                build_configuration=data.get("build_configuration"),
+                build_configuration_name=data.get("build_configuration"),
                 release_notes=data.get("release_notes"),
                 head_sha=data.get("head_sha"),
                 base_sha=data.get("base_sha"),

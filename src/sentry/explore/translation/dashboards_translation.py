@@ -81,7 +81,9 @@ def translate_dashboard_widget_queries(
     new_aliases = []
     new_selected_aggregate = None
     selected_aggregate_field = (
-        original_fields[selected_aggregate] if selected_aggregate is not None else None
+        original_fields[selected_aggregate]
+        if selected_aggregate is not None and selected_aggregate < len(original_fields)
+        else None
     )
 
     field_index = 0

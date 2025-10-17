@@ -1,14 +1,10 @@
-import {Fragment} from 'react';
-
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -137,92 +133,100 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct('Install the [strong:NuGet] package:', {
-        strong: <strong />,
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct('Install the [strong:NuGet] package:', {
+            strong: <strong />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'shell',
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'shell',
               code: getInstallSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallSnippetCoreCli(params),
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [
-              {
-                description: tct(
-                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-                  {
-                    sentryProfilingPackage: <code />,
-                  }
-                ),
-                code: [
-                  {
-                    language: 'shell',
-                    label: 'Package Manager',
-                    value: 'packageManager',
-                    code: getInstallProfilingSnippetPackageManager(params),
-                  },
-                  {
-                    language: 'shell',
-                    label: '.NET Core CLI',
-                    value: 'coreCli',
-                    code: getInstallProfilingSnippetCoreCli(params),
-                  },
-                ],
-              },
-              {
-                description: (
-                  <Alert type="info" showIcon={false}>
-                    {t(
-                      'Profiling for .NET Framework and .NET on Android are not supported.'
-                    )}
-                  </Alert>
-                ),
-              },
-            ]
-          : []),
+        {
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                {
+                  sentryProfilingPackage: <code />,
+                }
+              ),
+            },
+            {
+              type: 'code',
+              tabs: [
+                {
+                  label: 'Package Manager',
+                  language: 'shell',
+                  code: getInstallProfilingSnippetPackageManager(params),
+                },
+                {
+                  label: '.NET Core CLI',
+                  language: 'shell',
+                  code: getInstallProfilingSnippetCoreCli(params),
+                },
+              ],
+            },
+            {
+              type: 'alert',
+              alertType: 'info',
+              showIcon: false,
+              text: t(
+                'Profiling for .NET Framework and .NET on Android are not supported.'
+              ),
+            },
+          ],
+        },
       ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Initialize the SDK as early as possible. For example, call [code:SentrySdk.Init] in your [code:Program.cs] file:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Initialize the SDK as early as possible. For example, call [code:SentrySdk.Init] in your [code:Program.cs] file:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         params.isProfilingSelected
           ? {
-              code: [
+              type: 'code',
+              tabs: [
                 {
-                  language: 'csharp',
                   label: 'Windows/Linux/macOS',
-                  value: 'windows/linux/macos',
+                  language: 'csharp',
                   code: getConfigureSnippet(params, DotNetPlatform.WINDOWS),
                 },
                 {
-                  language: 'csharp',
                   label: 'iOS/Mac Catalyst',
-                  value: 'ios/macCatalyst',
+                  language: 'csharp',
                   code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
                 },
               ],
             }
           : {
+              type: 'code',
               language: 'csharp',
               code: getConfigureSnippet(params),
             },
@@ -232,81 +236,86 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t('Verify Sentry is correctly configured by sending a message:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('Verify Sentry is correctly configured by sending a message:'),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Something went wrong");',
         },
       ],
     },
     ...(params.isPerformanceSelected
-      ? [
+      ? ([
           {
             title: t('Tracing'),
-            description: t(
-              'You can measure the performance of your code by capturing transactions and spans.'
-            ),
-            configurations: [
+            content: [
               {
+                type: 'text',
+                text: t(
+                  'You can measure the performance of your code by capturing transactions and spans.'
+                ),
+              },
+              {
+                type: 'code',
                 language: 'csharp',
                 code: getPerformanceMonitoringSnippet(),
               },
-            ],
-            additionalInfo: tct(
-              'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
               {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+                type: 'text',
+                text: tct(
+                  'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+                    ),
+                  }
                 ),
-              }
-            ),
+              },
+            ],
           },
-        ]
+        ] satisfies OnboardingStep[])
       : []),
     {
       title: t('Samples'),
-      description: (
-        <Fragment>
-          <p>
-            {tct(
+      content: [
+        {
+          type: 'text',
+          text: [
+            tct(
               'You can find an example ASP.NET MVC 5 app with Sentry integrated [link:on this GitHub repository].',
               {
                 link: (
                   <ExternalLink href="https://github.com/getsentry/examples/tree/master/dotnet/AspNetMvc5Ef6" />
                 ),
               }
-            )}
-          </p>
-          {t(
-            'In addition, these examples demonstrate how to integrate Sentry with various frameworks:'
-          )}
-        </Fragment>
-      ),
-      configurations: [
+            ),
+            t(
+              'In addition, these examples demonstrate how to integrate Sentry with various frameworks:'
+            ),
+          ],
+        },
         {
-          description: (
-            <List symbol="bullet">
-              <ListItem>
-                {tct(
-                  '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-                  {
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                    ),
-                    code: <code />,
-                    strong: <strong />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct('[link:Basic F# sample] [strong:(F#)]', {
-                  link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-                  strong: <strong />,
-                })}
-              </ListItem>
-            </List>
-          ),
+          type: 'list',
+          items: [
+            tct(
+              '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
+              {
+                link: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
+                ),
+                code: <code />,
+                strong: <strong />,
+              }
+            ),
+            tct('[link:Basic F# sample] [strong:(F#)]', {
+              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+              strong: <strong />,
+            }),
+          ],
         },
       ],
     },
@@ -318,13 +327,16 @@ export const csharpFeedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'C#',
-              value: 'csharp',
               language: 'csharp',
               code: `using Sentry;
 
@@ -334,7 +346,6 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
             },
             {
               label: 'F#',
-              value: 'fsharp',
               language: 'fsharp',
               code: `open Sentry
 
@@ -344,8 +355,11 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
             },
           ],
         },
+        {
+          type: 'custom',
+          content: altCrashReportCallout(),
+        },
       ],
-      additionalInfo: altCrashReportCallout(),
     },
   ],
   configure: () => [],

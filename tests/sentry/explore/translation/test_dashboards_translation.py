@@ -596,6 +596,51 @@ class DashboardTranslationTestCase(TestCase):
         assert new_query.aggregates == []
         assert new_query.columns == ["transaction"]
 
+    def test_selected_aggregate_out_of_range(self) -> None:
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=["count()", "count_unique(user)"],
+            columns=[],
+            aggregates=["count()", "count_unique(user)"],
+            conditions="transaction:foo",
+            selected_aggregate=14,
+            order=0,
+        )
+
+        translate_dashboard_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        assert transaction_widget.widget_snapshot
+        assert transaction_widget.changed_reason is not None
+
+        snapshot_queries = transaction_widget.widget_snapshot["queries"]
+        assert len(snapshot_queries) == 1
+        original_snapshot_query = snapshot_queries[0]
+        assert original_snapshot_query["fields"] == ["count()", "count_unique(user)"]
+        assert original_snapshot_query["conditions"] == "transaction:foo"
+        assert original_snapshot_query["aggregates"] == ["count()", "count_unique(user)"]
+        assert original_snapshot_query["columns"] == []
+        assert original_snapshot_query["selectedAggregate"] == 14
+
+        new_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
+        assert new_queries.count() == 1
+        new_query = new_queries.first()
+        assert new_query is not None
+        assert new_query.widget_id == transaction_widget.id
+        assert new_query.fields == ["count(span.duration)", "count_unique(user)"]
+        assert new_query.conditions == "(transaction:foo) AND is_transaction:1"
+        assert new_query.aggregates == ["count(span.duration)", "count_unique(user)"]
+        assert new_query.columns == []
+        assert new_query.selected_aggregate is None
+
 
 class DashboardRestoreTransactionWidgetTestCase(TestCase):
     @property

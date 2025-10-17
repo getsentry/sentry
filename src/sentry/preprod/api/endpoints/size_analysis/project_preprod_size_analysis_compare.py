@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.db import router, transaction
@@ -9,6 +11,7 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
 from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
     PreprodArtifactApiSizeAnalysisComparePostEvent,
@@ -25,7 +28,11 @@ from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compa
     SizeAnalysisComparePOSTResponse,
     SizeAnalysisComparison,
 )
-from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 
@@ -44,11 +51,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
     def get(
         self,
         request: Request,
-        project,
-        head_artifact_id,
-        base_artifact_id,
-        head_artifact,
-        base_artifact,
+        project: Project,
+        head_artifact_id: int,
+        base_artifact_id: int,
+        head_artifact: PreprodArtifact,
+        base_artifact: PreprodArtifact,
     ) -> HttpResponseBase:
         """
         Get size analysis comparison results for a preprod artifact
@@ -70,8 +77,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                head_artifact_id=head_artifact_id,
-                base_artifact_id=base_artifact_id,
+                head_artifact_id=str(head_artifact_id),
+                base_artifact_id=str(base_artifact_id),
             )
         )
 
@@ -230,11 +237,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
     def post(
         self,
         request: Request,
-        project,
-        head_artifact_id,
-        base_artifact_id,
-        head_artifact,
-        base_artifact,
+        project: Project,
+        head_artifact_id: int,
+        base_artifact_id: int,
+        head_artifact: PreprodArtifact,
+        base_artifact: PreprodArtifact,
     ) -> HttpResponseBase:
         """
         Trigger size analysis comparison for a preprod artifact
@@ -256,8 +263,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                head_artifact_id=head_artifact_id,
-                base_artifact_id=base_artifact_id,
+                head_artifact_id=str(head_artifact_id),
+                base_artifact_id=str(base_artifact_id),
             )
         )
 

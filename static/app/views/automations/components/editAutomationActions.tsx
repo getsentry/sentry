@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
@@ -59,7 +58,6 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
   return (
     <div>
       <ButtonBar>
-        <AutomationFeedbackButton />
         <Button
           priority="default"
           size="sm"

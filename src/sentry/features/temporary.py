@@ -54,6 +54,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Rollout of the new API rate limits for organization events
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Gate the changes to the ask seer consent flow
+    manager.add("organizations:ask-seer-consent-flow-update", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the endpoint to merge user accounts with the same email address
     manager.add("organizations:auth-v2-merge-users", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the cron job to auto-enable codecov integrations.
@@ -84,6 +86,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:continuous-profiling-vroomrs-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable transaction profiles processing with vroomrs
     manager.add("projects:transaction-profiling-vroomrs-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the ingestion of profile functions metrics into EAP
+    manager.add("projects:profile-functions-metrics-eap-ingestion", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable querying profile candidates with exponentially growing datetime range chunks
     manager.add("organizations:profiling-flamegraph-use-increased-chunks-query-strategy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable daily summary
@@ -161,6 +165,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Project Management Integrations Feature Parity Flags
     # GitHub inbound assignee sync
     manager.add("organizations:integrations-github-inbound-assignee-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:integrations-github-outbound-assignee-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable inviting billing members to organizations at the member limit.
     manager.add("organizations:invite-billing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable inviting members to organizations.

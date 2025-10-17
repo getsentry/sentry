@@ -637,6 +637,12 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
         "click.title",
         "click.component_name",
     ],
+    # Tap actions
+    "tap.message": ["tap.message"],
+    "tap.class": ["tap.view_class"],
+    "tap.id": ["tap.view_id"],
+    "tap.selector": ["tap.message", "tap.view_class", "tap.view_id"],
+    "taps": ["tap.message", "tap.view_class", "tap.view_id"],
     "warning_id": ["warning_ids"],
     "info_id": ["info_ids"],
     "warning_ids": ["warning_ids"],

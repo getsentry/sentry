@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -6,14 +5,11 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
+import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 const TEST_RELEASE_NAME = 'test-project@1.0.0';
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
 
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
@@ -37,23 +33,35 @@ function initializeData({query} = {query: {}}) {
     },
   });
 
-  mockUseLocation.mockReturnValue({
-    pathname: '/organizations/org-slug/insights/summary/tags/',
-    query: newQuery,
-  } as any); // TODO - type this correctly
-
   act(() => ProjectsStore.loadInitialData(initialData.projects));
 
   return initialData;
 }
 
+const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
+  return render(<TransactionSummaryLayout />, {
+    organization: data.organization,
+    initialRouterConfig: {
+      location: {
+        pathname: '/performance/summary/tags/',
+        query: data.routerProps.location.query,
+      },
+      route: '/performance/summary/',
+      children: [
+        {
+          path: 'tags',
+          handle: {tab: TransactionSummaryTab.TAGS},
+          element: <TransactionTags />,
+        },
+      ],
+    },
+  });
+};
+
 describe('Performance > Transaction Tags', () => {
   let histogramMock: Record<string, any>;
 
   beforeEach(() => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/insights/summary/tags/'})
-    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -163,13 +171,9 @@ describe('Performance > Transaction Tags', () => {
   });
 
   it('renders basic UI elements', async () => {
-    const {organization, router} = initializeData();
+    const data = initializeData();
 
-    render(<TransactionTags location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = renderWithLayout(data);
 
     // It shows the sidebar
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
@@ -184,13 +188,11 @@ describe('Performance > Transaction Tags', () => {
     expect(screen.getByText('Heat Map')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith({
-        query: {
-          project: '1',
-          statsPeriod: '14d',
-          tagKey: 'hardwareConcurrency',
-          transaction: 'Test Transaction',
-        },
+      expect(router.location.query).toMatchObject({
+        project: '1',
+        statsPeriod: '14d',
+        tagKey: 'hardwareConcurrency',
+        transaction: 'Test Transaction',
       });
     });
 
@@ -198,28 +200,13 @@ describe('Performance > Transaction Tags', () => {
   });
 
   it('Default tagKey is set when loading the page without one', async () => {
-    const {organization, router} = initializeData();
+    const data = initializeData();
 
-    render(<TransactionTags location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(data);
 
     await waitFor(() => {
       // Table is loaded.
       expect(screen.getByRole('table')).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith({
-        query: {
-          project: '1',
-          statsPeriod: '14d',
-          tagKey: 'hardwareConcurrency',
-          transaction: 'Test Transaction',
-        },
-      });
     });
 
     await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
@@ -236,30 +223,15 @@ describe('Performance > Transaction Tags', () => {
   });
 
   it('Passed tagKey gets used when calling queries', async () => {
-    const {organization, router} = initializeData({
+    const data = initializeData({
       query: {tagKey: 'effectiveConnectionType'},
     });
 
-    render(<TransactionTags location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(data);
 
     await waitFor(() => {
       // Table is loaded.
       expect(screen.getByRole('table')).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith({
-        query: {
-          project: '1',
-          statsPeriod: '14d',
-          tagKey: 'effectiveConnectionType',
-          transaction: 'Test Transaction',
-        },
-      });
     });
 
     await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
@@ -278,11 +250,7 @@ describe('Performance > Transaction Tags', () => {
   it('creates links to releases if the release tag is selected', async () => {
     const initialData = initializeData({query: {tagKey: 'release'}});
 
-    render(<TransactionTags location={initialData.router.location} />, {
-      router: initialData.router,
-      organization: initialData.organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(initialData);
 
     await waitFor(() => {
       // Table is loaded.
@@ -300,29 +268,23 @@ describe('Performance > Transaction Tags', () => {
   });
 
   it('clears tableCursor when selecting a new tag', async () => {
-    const {organization, router} = initializeData({
+    const data = initializeData({
       query: {
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
       },
     });
 
-    render(<TransactionTags location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = renderWithLayout(data);
 
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith({
-        query: {
-          project: '1',
-          statsPeriod: '14d',
-          tagKey: 'hardwareConcurrency',
-          transaction: 'Test Transaction',
-        },
+      expect(router.location.query).toMatchObject({
+        project: '1',
+        statsPeriod: '14d',
+        tagKey: 'hardwareConcurrency',
+        transaction: 'Test Transaction',
       });
     });
 
@@ -335,44 +297,35 @@ describe('Performance > Transaction Tags', () => {
     // Paginate the table
     await userEvent.click(screen.getByLabelText('Next'));
 
-    await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/insights/summary/tags/',
-        query: {
-          project: '1',
-          statsPeriod: '14d',
-          tagKey: 'hardwareConcurrency',
-          transaction: 'Test Transaction',
-          tableCursor: '0:20:0',
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(router.location.query).toMatchObject({
+        project: '1',
+        statsPeriod: '14d',
+        tagKey: 'hardwareConcurrency',
+        transaction: 'Test Transaction',
+        tableCursor: '0:20:0',
+      });
+    });
 
     // Choose a different tag
     await userEvent.click(screen.getByRole('radio', {name: 'effectiveConnectionType'}));
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith({
-        query: {
-          project: '1',
-          statsPeriod: '14d',
-          tagKey: 'effectiveConnectionType',
-          transaction: 'Test Transaction',
-        },
+      expect(router.location.query).toMatchObject({
+        project: '1',
+        statsPeriod: '14d',
+        tagKey: 'effectiveConnectionType',
+        transaction: 'Test Transaction',
       });
     });
   });
 
   it('changes the aggregate column when a new x-axis is selected', async () => {
-    const {organization, router} = initializeData({
+    const data = initializeData({
       query: {tagKey: 'os'},
     });
 
-    render(<TransactionTags location={router.location} />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    renderWithLayout(data);
 
     await waitFor(() => {
       // Table is loaded.

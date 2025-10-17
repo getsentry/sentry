@@ -493,35 +493,35 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <div>{t('Define your metric')}</div>
           </StyledListTitle>
         </StyledListItem>
-        <Tooltip
-          title={this.transactionAlertDisabledMessage}
-          disabled={!this.disableTransactionAlertType}
-          isHoverable
-        >
-          <FormRow>
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              project={project}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-              isEditing={isEditing}
-              eventTypes={eventTypes}
-              disabledReason={
-                this.disableTransactionAlertType
-                  ? this.transactionAlertDisabledMessage
-                  : undefined
-              }
-            />
+        <FormRow>
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            project={project}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+            isEditing={isEditing}
+            eventTypes={eventTypes}
+            disabledReason={
+              this.disableTransactionAlertType
+                ? this.transactionAlertDisabledMessage
+                : undefined
+            }
+          />
+          <Tooltip
+            title={this.transactionAlertDisabledMessage}
+            disabled={!this.disableTransactionAlertType}
+            isHoverable
+          >
             <Select
               name="timeWindow"
               styles={this.selectControlStyles}
@@ -532,8 +532,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               inline={false}
               flexibleControlStateSize
             />
-          </FormRow>
-        </Tooltip>
+          </Tooltip>
+        </FormRow>
       </Fragment>
     );
   }

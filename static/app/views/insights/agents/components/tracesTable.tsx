@@ -18,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
@@ -109,6 +110,7 @@ export function TracesTable() {
       ],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
     },
     Referrer.TRACES_TABLE
   );

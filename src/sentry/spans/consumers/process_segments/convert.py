@@ -75,6 +75,15 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     except Exception:
         sentry_sdk.capture_exception()
 
+    if span_meta := span.get("_meta"):
+        for attr, meta in (span_meta.get("attributes") or {}).items():
+            try:
+                if attr in RENAME_ATTRIBUTES:
+                    attr = RENAME_ATTRIBUTES[attr]
+                attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue({"meta": meta})
+            except Exception:
+                sentry_sdk.capture_exception()
+
     if links := span.get("links"):
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]

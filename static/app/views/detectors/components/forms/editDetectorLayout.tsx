@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from 'sentry/components/core/button';
 import type {Data} from 'sentry/components/forms/types';
@@ -38,6 +39,9 @@ export function EditDetectorLayout<
   savedDetectorToFormData,
   mapFormErrors,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
+
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
     formDataToEndpointPayload,
@@ -55,19 +59,16 @@ export function EditDetectorLayout<
 
   return (
     <EditLayout formProps={formProps}>
-      <EditLayout.Header>
+      <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <EditDetectorBreadcrumbs detector={detector} />
         </EditLayout.HeaderContent>
 
-        <EditLayout.Actions>
-          <MonitorFeedbackButton />
-          <DisableDetectorAction detector={detector} />
-          <DeleteDetectorAction detector={detector} />
-          <Button type="submit" priority="primary" size="sm">
-            {t('Save')}
-          </Button>
-        </EditLayout.Actions>
+        <div>
+          <EditLayout.Actions>
+            <MonitorFeedbackButton />
+          </EditLayout.Actions>
+        </div>
 
         <EditLayout.HeaderFields>
           <DetectorBaseFields />
@@ -75,7 +76,15 @@ export function EditDetectorLayout<
         </EditLayout.HeaderFields>
       </EditLayout.Header>
 
-      <EditLayout.Body>{children}</EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+
+      <EditLayout.Footer maxWidth={maxWidth}>
+        <DisableDetectorAction detector={detector} />
+        <DeleteDetectorAction detector={detector} />
+        <Button type="submit" priority="primary" size="sm">
+          {t('Save')}
+        </Button>
+      </EditLayout.Footer>
     </EditLayout>
   );
 }

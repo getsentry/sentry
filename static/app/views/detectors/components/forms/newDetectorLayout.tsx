@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {FormProps} from 'sentry/components/forms/form';
 import type {Data} from 'sentry/components/forms/types';
@@ -37,6 +38,8 @@ export function NewDetectorLayout<
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
   const location = useLocation();
   const {projects} = useProjects();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     formDataToEndpointPayload,
@@ -70,12 +73,14 @@ export function NewDetectorLayout<
 
   return (
     <EditLayout formProps={formProps}>
-      <EditLayout.Header>
+      <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs detectorType={detectorType} />
         </EditLayout.HeaderContent>
 
-        <MonitorFeedbackButton />
+        <div>
+          <MonitorFeedbackButton />
+        </div>
 
         <EditLayout.HeaderFields>
           <DetectorBaseFields />
@@ -83,9 +88,9 @@ export function NewDetectorLayout<
         </EditLayout.HeaderFields>
       </EditLayout.Header>
 
-      <EditLayout.Body>{children}</EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-      <NewDetectorFooter />
+      <NewDetectorFooter maxWidth={maxWidth} />
     </EditLayout>
   );
 }
