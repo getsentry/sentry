@@ -111,4 +111,23 @@ describe('ManageReposToolbar', () => {
     expect(repoOptionTexts).not.toContain('repo-1');
     expect(repoOptionTexts).not.toContain('repo-2');
   });
+
+  it('shows "All Repos" option at the top of repository dropdown', async () => {
+    render(<ManageReposToolbar {...defaultProps} />);
+    const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
+    await userEvent.click(repoTrigger);
+
+    expect(await screen.findByText('All Repos')).toBeInTheDocument();
+  });
+
+  it('calls onRepoChange with "__$ALL_REPOS__" when "All Repos" is selected', async () => {
+    render(<ManageReposToolbar {...defaultProps} />);
+    const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
+    await userEvent.click(repoTrigger);
+
+    const allReposOption = await screen.findByText('All Repos');
+    await userEvent.click(allReposOption);
+
+    expect(defaultProps.onRepoChange).toHaveBeenCalledWith('__$ALL_REPOS__');
+  });
 });
