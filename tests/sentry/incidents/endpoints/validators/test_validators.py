@@ -611,6 +611,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         ):
             update_validator.save()
 
+
 class TestMetricAlertDetectorDataSourcesValidator(TestMetricAlertsDetectorValidator):
     def setUp(self) -> None:
         """
