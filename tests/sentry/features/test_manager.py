@@ -387,6 +387,26 @@ class FeatureManagerTest(TestCase):
             def has(self, feature, actor, skip_entity: bool | None = False):
                 return feature.name in self.features
 
+            def batch_has(
+                self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any
+            ):
+                feature_results = {
+                    feature_name: True
+                    for feature_name in feature_names
+                    if feature_name in self.features
+                }
+
+                if projects:
+                    return {f"project:{project.id}": feature_results for project in projects}
+
+                if organization:
+                    return {f"organization:{organization.id}": feature_results}
+
+                return {"unscoped": feature_results}
+
+            def _check_for_batch(self, feature_name, organization, actor):
+                raise NotImplementedError
+
         manager = features.FeatureManager()
         manager.add("organizations:feature", OrganizationFeature)
         manager.add_handler(NoBatchOrgHandler())

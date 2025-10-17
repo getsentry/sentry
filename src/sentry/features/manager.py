@@ -379,7 +379,7 @@ class FeatureManager(RegisteredFeatureManager):
         feature_name: str,
         organizations: Sequence[Organization],
         actor: User | RpcUser | AnonymousUser | None = None,
-    ) -> dict[str, dict[str, bool | None]] | None:
+    ) -> dict[str, bool | None]:
         """
         Check the same set of feature flags for multiple organizations at once.
 
