@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
@@ -45,10 +46,11 @@ export function CommandPaletteContent() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const groupedMenuItems = useMemo<CommandPaletteActionMenuItem[]>(() => {
-    // Group by section label
     const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
     for (const action of actions) {
-      const sectionLabel = action.groupingKey ?? '';
+      const sectionLabel = action.groupingKey
+        ? (COMMAND_PALETTE_GROUP_KEY_CONFIG[action.groupingKey]?.label ?? '')
+        : '';
       const list = itemsBySection.get(sectionLabel) ?? [];
       list.push(actionToMenuItem(action));
       itemsBySection.set(sectionLabel, list);
