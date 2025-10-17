@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -26,9 +24,13 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: t('Install our SDK using the cordova command:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('Install our SDK using the cordova command:'),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: 'cordova plugin add sentry-cordova',
         },
@@ -38,17 +40,21 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'You should [code:init] the SDK in the [code:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
+      content: [
         {
-          code: <code />,
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/cordova/" />
+          type: 'text',
+          text: tct(
+            'You should [code:init] the SDK in the [code:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/cordova/" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
+          type: 'code',
           language: 'javascript',
           code: getConfigureSnippet(params),
         },
@@ -58,16 +64,15 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: (
-        <Fragment>
-          {t(
-            'One way to verify your setup is by intentionally causing an error that breaks your application.'
-          )}
-          <p>{t('Calling an undefined function will throw an exception:')}</p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'Test your Sentry configuration by intentionally triggering an error, such as calling an undefined function:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: 'myUndefinedFunction();',
         },
