@@ -78,6 +78,8 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     if span_meta := span.get("_meta"):
         for attr, meta in (span_meta.get("attributes") or {}).items():
             try:
+                if attr in RENAME_ATTRIBUTES:
+                    attr = RENAME_ATTRIBUTES[attr]
                 attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue({"meta": meta})
             except Exception:
                 sentry_sdk.capture_exception()
