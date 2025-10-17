@@ -1,11 +1,11 @@
 {% load sentry_assets sentry_helpers %}
 
-<div class="loading {% if prefers_chonk_ui %}splash{% else %}triangle{% endif %}">
+{% if prefers_chonk_ui %}
+<div class="loading splash">
   <div class="loading-mask"></div>
 
   <div class="loading-indicator" data-test-id="loading-indicator">
-    {% if prefers_chonk_ui %}
-      <svg class="splash-loader" width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
         <style>
             :root {
                 --delay: 0ms;
@@ -76,9 +76,59 @@
             </g>
         </g>
     </svg>
-    {% else %}
+  </div>
+
+  <div class="loading-message">
+    <p>Loading a <scraps-grawlix>&#%!</scraps-grawlix>-ton of JavaScript&hellip;</p>
+    <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
+    <script>
+      function randomFrom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+      function randomBetween(min, max) {
+        return Math.floor(Math.random() * (max - min - 1) + min);
+      }
+      customElements.define('scraps-grawlix', class extends HTMLElement {
+        constructor() {
+          super();
+          this.shapes = '◆●▴▪×'.split('');
+          this.chars = '@#$%&*!+'.split('');
+          this.length = this.textContent.trim().length;
+        }
+        random() {
+          const set = new Set();
+          let hasShape = false;
+          while (set.size < this.length) {
+            if (!hasShape && Math.random() > 0.75) {
+              set.add(randomFrom(this.shapes));
+              hasShape = true;
+            } else {
+              set.add(randomFrom(this.chars));
+            }
+          }
+          return Array.from(set.values()).join('');
+        }
+        shuffle() {
+          requestAnimationFrame(() => {
+            this.textContent = this.random();
+            setTimeout(() => this.shuffle(), randomBetween(100, 500));
+          })
+        }
+        connectedCallback() {
+          this.shuffle();
+        }
+      })
+    </script>
+  </div>
+</div>
+
+{% else %}
+
+<div class="loading triangle">
+  <div class="loading-mask"></div>
+
+  <div class="loading-indicator" data-test-id="loading-indicator">
       <img src="{% asset_url 'sentry' 'images/sentry-loader.svg' %}">
-    {% endif %}
   </div>
 
   <div class="loading-message">
@@ -86,3 +136,5 @@
     <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
   </div>
 </div>
+
+{% endif %}
