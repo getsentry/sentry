@@ -153,15 +153,17 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             "type": MetricIssue.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
-            "dataSource": {
-                "queryType": self.snuba_query.type,
-                "dataset": self.snuba_query.dataset,
-                "query": "updated query",
-                "aggregate": self.snuba_query.aggregate,
-                "timeWindow": 300,
-                "environment": self.environment.name,
-                "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
-            },
+            "dataSources": [
+                {
+                    "queryType": self.snuba_query.type,
+                    "dataset": self.snuba_query.dataset,
+                    "query": "updated query",
+                    "aggregate": self.snuba_query.aggregate,
+                    "timeWindow": 300,
+                    "environment": self.environment.name,
+                    "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
