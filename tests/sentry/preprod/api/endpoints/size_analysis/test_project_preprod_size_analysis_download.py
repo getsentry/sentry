@@ -76,8 +76,8 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         assert response.data["error_code"] == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
         assert response.data["error_message"] == "Test error message"
 
-    def test_completed_without_file_raises_error(self):
-        """When size metrics is COMPLETED but analysis_file_id is None, should raise error"""
+    def test_completed_without_file_returns_500(self):
+        """When size metrics is COMPLETED but analysis_file_id is None, should return 500"""
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -86,7 +86,8 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         )
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
-        assert response.status_code >= 400
+        assert response.status_code == 500
+        assert response.data["error"] == "Size analysis completed but results are unavailable"
 
     def test_completed_with_file_returns_200(self):
         """When size metrics is COMPLETED with a file, should return 200 with file content"""

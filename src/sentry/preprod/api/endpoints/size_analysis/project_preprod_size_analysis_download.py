@@ -121,11 +121,30 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                     )
                 case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
                     if size_metrics.analysis_file_id is None:
-                        raise ValueError(
-                            f"Size analysis in COMPLETED state but analysis_file_id is None for artifact {head_artifact_id}"
+                        logger.error(
+                            "preprod.size_analysis.download.completed_without_file",
+                            extra={
+                                "artifact_id": head_artifact_id,
+                                "size_metrics_id": size_metrics.id,
+                            },
+                        )
+                        return Response(
+                            {"error": "Size analysis completed but results are unavailable"},
+                            status=500,
                         )
                     return get_size_analysis_file_response(size_metrics)
                 case _:
-                    raise ValueError(f"Unknown size analysis state: {size_metrics.state}")
+                    logger.error(
+                        "preprod.size_analysis.download.unknown_state",
+                        extra={
+                            "artifact_id": head_artifact_id,
+                            "size_metrics_id": size_metrics.id,
+                            "state": size_metrics.state,
+                        },
+                    )
+                    return Response(
+                        {"error": "Size analysis in unexpected state"},
+                        status=500,
+                    )
         except SizeAnalysisError as e:
             return get_size_analysis_error_response(e)
