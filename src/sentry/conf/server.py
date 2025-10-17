@@ -895,6 +895,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.email",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
