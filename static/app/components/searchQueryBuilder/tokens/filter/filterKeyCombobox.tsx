@@ -47,6 +47,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     setDisplayAskSeer,
     currentInputValueRef,
     setAutoSubmitSeer,
+    gaveSeerConsent,
   } = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
@@ -57,6 +58,9 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const hasWildcardOperators =
     organization.features.includes('search-query-builder-wildcard-operators') &&
     organization.features.includes('search-query-builder-default-to-contains');
+  const hasAskSeerConsentFlowChanges = organization.features.includes(
+    'ask-seer-consent-flow-update'
+  );
 
   const handleSelectKey = useCallback(
     (keyName: string) => {
@@ -64,6 +68,15 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === ASK_SEER_ITEM_KEY) {
+        if (hasAskSeerConsentFlowChanges && !gaveSeerConsent) {
+          trackAnalytics('trace.explorer.ai_query_interface', {
+            organization,
+            action: 'consent_accepted',
+          });
+          seerAcknowledgeMutate();
+          return;
+        }
+
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
           action: 'opened',
@@ -125,7 +138,9 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       currentFilterValueType,
       currentInputValueRef,
       dispatch,
+      gaveSeerConsent,
       getFieldDefinition,
+      hasAskSeerConsentFlowChanges,
       hasWildcardOperators,
       item.key,
       onCommit,
