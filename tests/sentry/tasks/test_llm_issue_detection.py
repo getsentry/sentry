@@ -5,9 +5,9 @@ from sentry.testutils.cases import TestCase
 
 
 class LLMIssueDetectionTest(TestCase):
-    @patch("sentry.tasks.llm_issue_detection.process_project")
-    def test_run_detection_processes_enabled_projects(self, mock_process):
-        """Test run_detection processes enabled projects."""
+    @patch("sentry.tasks.llm_issue_detection.detect_llm_issues_for_project.delay")
+    def test_run_detection_dispatches_sub_tasks(self, mock_delay):
+        """Test run_detection spawns sub-tasks for each project."""
         project = self.create_project()
 
         with self.options(
@@ -18,6 +18,5 @@ class LLMIssueDetectionTest(TestCase):
         ):
             run_llm_issue_detection()
 
-        assert mock_process.called
-        call_args = mock_process.call_args[0]
-        assert call_args[0].id == project.id
+        assert mock_delay.called
+        assert mock_delay.call_args[0][0] == project.id

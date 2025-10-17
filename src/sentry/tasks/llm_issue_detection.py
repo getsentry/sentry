@@ -35,25 +35,23 @@ def run_llm_issue_detection() -> None:
     if not enabled_project_ids:
         return
 
-    projects = Project.objects.filter(
-        id__in=enabled_project_ids,
-    )
-
-    for project in projects:
-        try:
-            process_project(project)
-        except Exception:
-            logger.exception(
-                "Failed to process project for LLM detection",
-                extra={"project_id": project.id, "org_id": project.organization_id},
-            )
+    # Spawn a sub-task for each project
+    for project_id in enabled_project_ids:
+        detect_llm_issues_for_project.delay(project_id)
 
 
-def process_project(project: Project) -> None:
+@instrumented_task(
+    name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_project",
+    namespace=issues_tasks,
+    processing_deadline_duration=120,
+)
+def detect_llm_issues_for_project(project_id: int) -> None:
     """
     Process a single project for LLM issue detection.
     """
+    project = Project.objects.get(id=project_id)
+
     logger.info(
         "Processing project for LLM detection",
-        extra={"project_id": project.id},
+        extra={"project_id": project.id, "org_id": project.organization_id},
     )
