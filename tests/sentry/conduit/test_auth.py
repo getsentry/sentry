@@ -187,3 +187,6 @@ def test_get_conduit_credentials_token_is_valid():
 
         assert claims["org_id"] == org_id
         assert claims["channel_id"] == result["channel_id"]
+
+        assert str(org_id) in result["url"]
+        assert result["url"] == f"{gateway_url}/events/{org_id}"
