@@ -75,11 +75,11 @@ describe('BlockComponent', () => {
 
     it('calls onClick when response block is clicked', async () => {
       const block = createResponseBlock();
-      render(<BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />);
-
-      await userEvent.click(
-        screen.getByText('This error indicates a null pointer exception.')
+      const {container} = render(
+        <BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />
       );
+      const blockElement = container.firstChild;
+      await userEvent.click(blockElement as HTMLElement);
       expect(mockOnClick).toHaveBeenCalledTimes(1);
     });
   });
