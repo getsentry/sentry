@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from dateutil.parser import parse as parse_datetime
 
@@ -29,7 +29,7 @@ class PullRequestDataAdapter:
 
     @staticmethod
     def from_github_pr_data(
-        pr_data: dict, files_data: list[dict], organization_id: int
+        pr_data: dict[str, Any], files_data: list[dict[str, Any]], organization_id: int
     ) -> PullRequestWithFiles:
         """Convert GitHub API response to our normalized format."""
 
@@ -165,7 +165,9 @@ class PullRequestDataAdapter:
         )
 
     @staticmethod
-    def _map_github_pr_state(pr_data: dict) -> Literal["open", "closed", "merged", "draft"]:
+    def _map_github_pr_state(
+        pr_data: dict[str, Any],
+    ) -> Literal["open", "closed", "merged", "draft"]:
         if pr_data.get("draft", False):
             return "draft"
         elif pr_data.get("merged", False):
@@ -186,7 +188,7 @@ class PullRequestDataAdapter:
             return "open"
 
     @staticmethod
-    def _safe_parse_datetime(date_str: str | None):
+    def _safe_parse_datetime(date_str: str | None) -> Any:
         if not date_str:
             return None
 

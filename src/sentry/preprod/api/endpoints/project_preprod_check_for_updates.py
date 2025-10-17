@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from packaging.version import parse as parse_version
 from pydantic import BaseModel
@@ -9,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
     get_download_url_for_artifact,
     is_installable_artifact,
@@ -54,7 +58,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         }
     )
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Check for updates for a preprod artifact
         """
@@ -90,8 +94,8 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         update = None
 
         # Common filter logic
-        def get_base_filters():
-            filter_kwargs = {
+        def get_base_filters() -> dict[str, Any]:
+            filter_kwargs: dict[str, Any] = {
                 "project": project,
                 "app_id": provided_app_id,
             }
