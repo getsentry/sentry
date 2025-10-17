@@ -8,7 +8,7 @@ from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstream, nodestore, options
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
-from sentry.eventstream.eap_delete import delete_groups_from_eap_rpc
+from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
