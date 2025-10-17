@@ -1,15 +1,25 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-export const makeAutomationBasePathname = (orgSlug: string) => {
-  return normalizeUrl(`/organizations/${orgSlug}/issues/automations/`);
+export const makeAutomationBasePathname = (orgSlug: string, linkPrefix: string) => {
+  return normalizeUrl(`/organizations/${orgSlug}/${linkPrefix}/`);
 };
 
-export const makeAutomationDetailsPathname = (orgSlug: string, automationId: string) => {
-  return normalizeUrl(`/organizations/${orgSlug}/issues/automations/${automationId}/`);
-};
-
-export const makeAutomationEditPathname = (orgSlug: string, automationId: string) => {
+export const makeAutomationDetailsPathname = (
+  orgSlug: string,
+  automationId: string,
+  linkPrefix: string
+) => {
   return normalizeUrl(
-    `/organizations/${orgSlug}/issues/automations/${automationId}/edit/`
+    `${makeAutomationBasePathname(orgSlug, linkPrefix)}${automationId}/`
+  );
+};
+
+export const makeAutomationEditPathname = (
+  orgSlug: string,
+  automationId: string,
+  linkPrefix: string
+) => {
+  return normalizeUrl(
+    `${makeAutomationBasePathname(orgSlug, linkPrefix)}${automationId}/edit/`
   );
 };
