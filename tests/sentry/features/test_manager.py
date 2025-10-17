@@ -380,9 +380,16 @@ class FeatureManagerTest(TestCase):
             assert result[f"organization:{org.id}"]["organizations:feature"]
 
     def test_batch_has_for_organizations_no_entity_handler(self) -> None:
+        # Deliberately do NOT define has_batch_for_organizations
+        class NoBatchOrgHandler(features.BatchFeatureHandler):
+            features = {"organizations:feature"}
+
+            def has(self, feature, actor, skip_entity: bool | None = False):
+                return feature.name in self.features
+
         manager = features.FeatureManager()
         manager.add("organizations:feature", OrganizationFeature)
-        manager.add_handler(MockBatchHandler())
+        manager.add_handler(NoBatchOrgHandler())
 
         organizations = [self.organization, self.create_organization()]
 
