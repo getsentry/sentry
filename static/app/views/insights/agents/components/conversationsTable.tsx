@@ -91,7 +91,7 @@ function ConversationsTableInner() {
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'agents' && <CellExpander />}
+        {column.key === 'flow' && <CellExpander />}
       </HeadCell>
     );
   }, []);
@@ -137,9 +137,8 @@ const BodyCell = memo(function BodyCell({
   const {selection} = usePageFilters();
 
   switch (column.key) {
-    case 'traceId':
+    case 'conversationId':
       return <span>{dataRow.conversationId}</span>;
-
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
