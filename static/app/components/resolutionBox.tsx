@@ -94,12 +94,22 @@ export function renderResolutionReason({
         <VersionComponent version={statusDetails.inRelease} projectId={project.id} />
       </VersionHoverCard>
     );
+
+    const operatorString =
+      relevantActivity && 'current_release_version' in relevantActivity.data
+        ? 'versions greater than'
+        : 'version';
+
     return actor
-      ? tct('[actor] marked this issue as resolved in version [version].', {
+      ? tct('[actor] marked this issue as resolved in [operatorString] [version].', {
           actor,
+          operatorString,
           version,
         })
-      : tct('This issue has been marked as resolved in version [version].', {version});
+      : tct('This issue has been marked as resolved in [operatorString] [version].', {
+          operatorString,
+          version,
+        });
   }
   if (statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
