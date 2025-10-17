@@ -116,25 +116,26 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
         for github_org_name, integration in integration_map.items():
             installed_repos = repos_by_integration.get(github_org_name, [])
 
-            sentry_repo_names = {repo.name.split("/")[-1] for repo in installed_repos}
+            sentry_repos = {repo.name.split("/")[-1]: repo for repo in installed_repos}
+            sentry_repo_names = set(sentry_repos.keys())
             seer_repo_names = set(seer_integrated_repos.get(github_org_name, []))
 
             repos = []
-            for repo_name in sentry_repo_names | seer_repo_names:
+            for repo_name in sentry_repo_names & seer_repo_names:
                 repos.append(
                     {
+                        "id": sentry_repos[repo_name].external_id,
                         "name": repo_name,
                         "fullName": f"{github_org_name}/{repo_name}",
-                        "hasGhAppSentryIo": repo_name in sentry_repo_names,
-                        "hasGhAppSeerBySentry": repo_name in seer_repo_names,
                     }
                 )
 
-            github_org_data = {
-                "githubOrganizationId": integration.metadata.get("account_id"),
-                "name": integration.name,
-                "repos": repos,
-            }
-            org_repos.append(github_org_data)
+            if repos:
+                github_org_data = {
+                    "githubOrganizationId": integration.metadata.get("account_id"),
+                    "name": integration.name,
+                    "repos": repos,
+                }
+                org_repos.append(github_org_data)
 
         return Response(data={"orgRepos": org_repos})
