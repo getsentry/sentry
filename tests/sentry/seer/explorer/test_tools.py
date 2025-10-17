@@ -561,6 +561,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
 
+
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.models.group.get_recommended_event")
