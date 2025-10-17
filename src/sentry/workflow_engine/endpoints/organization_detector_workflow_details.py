@@ -26,7 +26,9 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_workflow_serializer import (
     DetectorWorkflowSerializer,
 )
-from sentry.workflow_engine.endpoints.validators.detector_workflow import can_edit_detector
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    can_edit_detector_workflow_connections,
+)
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
 
@@ -96,7 +98,7 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
         """
         Delete a DetectorWorkflow
         """
-        if not can_edit_detector(detector_workflow.detector, request):
+        if not can_edit_detector_workflow_connections(detector_workflow.detector, request):
             raise PermissionDenied
 
         RegionScheduledDeletion.schedule(detector_workflow, days=0, actor=request.user)
