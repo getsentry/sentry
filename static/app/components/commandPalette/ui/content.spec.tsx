@@ -28,7 +28,6 @@ function GlobalActionsComponent({
 }
 
 const onChild = jest.fn();
-const onKeepOpen = jest.fn();
 
 const globalActions: CommandPaletteAction[] = [
   {
@@ -43,13 +42,6 @@ const globalActions: CommandPaletteAction[] = [
     label: 'Parent action',
     groupingKey: 'add',
     children: [{key: 'child-action', label: 'Child action', onAction: onChild}],
-  },
-  {
-    key: 'keep-open',
-    label: 'Keep open',
-    groupingKey: 'help',
-    onAction: onKeepOpen,
-    keepOpen: true,
   },
 ];
 
@@ -118,12 +110,5 @@ describe('CommandPaletteContent', () => {
 
     expect(onChild).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps modal open after action with keepOpen flag', async () => {
-    const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    render(<GlobalActionsComponent actions={globalActions} />);
-    await userEvent.click(await screen.findByRole('option', {name: 'Keep open'}));
-    expect(closeSpy).not.toHaveBeenCalled();
   });
 });

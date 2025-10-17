@@ -18,8 +18,6 @@ export type CommandPaletteAction = {
   hidden?: boolean;
   /** Icon to render for this action */
   icon?: ReactNode;
-  /** Whether this action should keep the modal open after execution */
-  keepOpen?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
   /**

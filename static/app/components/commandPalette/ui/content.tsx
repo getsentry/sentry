@@ -79,10 +79,7 @@ export function CommandPaletteContent() {
       if (action.to) {
         navigate(normalizeUrl(action.to));
       }
-
-      if (!action.keepOpen) {
-        closeModal();
-      }
+      closeModal();
     },
     [navigate, selectAction]
   );
