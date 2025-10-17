@@ -167,7 +167,7 @@ const onboarding: OnboardingConfig = {
               {
                 type: 'text',
                 text: tct(
-                  'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well:',
+                  'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well.',
                   {
                     automaticInstrumentationLink: (
                       <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/automatic-instrumentation/" />
