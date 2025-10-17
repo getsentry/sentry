@@ -610,3 +610,19 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             with_feature("organizations:discover-saved-queries-deprecation"),
         ):
             update_validator.save()
+
+
+class TestMetricAlertDetectorDataSourcesValidator(TestMetricAlertsDetectorValidator):
+    def setUp(self) -> None:
+        """
+        These are a temporary suite of tests that run the same ones as `TestMetricAlertsDetectorValidator`
+        but changes the dataSource attribute to dataSources.
+        """
+        super().setUp()
+
+        data_source = self.valid_data["dataSource"]
+
+        # This is a temporary line of code; works fine when inlining the [] which
+        # is the longer term solution.
+        self.valid_data["dataSources"] = [data_source]  # type: ignore[list-item]
+        del self.valid_data["dataSource"]
