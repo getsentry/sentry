@@ -13,12 +13,10 @@ import {
   useStackedNavigationTour,
 } from 'sentry/views/nav/tour/tour';
 import {NavLayout} from 'sentry/views/nav/types';
-import {useCommandPalette} from 'sentry/views/nav/useCommandPalette';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 import {useResetActiveNavGroup} from 'sentry/views/nav/useResetActiveNavGroup';
 
 function NavContent() {
-  useCommandPalette();
   const {layout, navParentRef} = useNavContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;

@@ -17,11 +17,6 @@ describe('PreventSecondaryNav', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/group-search-views/starred/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
       body: [],
     });
