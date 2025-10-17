@@ -194,7 +194,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         # Slide back in time in 14-day windows
         for days_back in range(0, max_days, window_days):
             window_end = now - timedelta(days=days_back)
-            window_start = now - timedelta(days=min(days_back + window_days, max_day))
+            window_start = now - timedelta(days=min(days_back + window_days, max_days))
 
             snuba_params = SnubaParams(
                 start=window_start,
