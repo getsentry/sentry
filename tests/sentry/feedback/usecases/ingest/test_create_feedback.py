@@ -696,17 +696,20 @@ def test_create_feedback_filters_large_message(
     default_project,
     mock_produce_occurrence_to_kafka,
     spam_enabled,
+    set_sentry_option,
 ):
     """Large messages are filtered before spam detection and producing to kafka."""
     mock_is_spam_seer.return_value = False
     mock_spam_detection_enabled.return_value = spam_enabled
 
-    event = mock_feedback_event(default_project.id)
-    event["contexts"]["feedback"]["message"] = "a" * 7007
-    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    # Explicitly set max-size to ensure the 7007-character message is filtered
+    with set_sentry_option("feedback.message.max-size", 5000):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "a" * 7007
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    assert mock_is_spam_seer.call_count == 0
-    assert mock_produce_occurrence_to_kafka.call_count == 0
+        assert mock_is_spam_seer.call_count == 0
+        assert mock_produce_occurrence_to_kafka.call_count == 0
 
 
 @django_db_all
