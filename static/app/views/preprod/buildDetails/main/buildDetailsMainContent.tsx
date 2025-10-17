@@ -208,7 +208,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  if (!appSizeData || !appSizeData.treemap || !appSizeData.treemap.root) {
+  if (!appSizeData?.treemap?.root) {
     return (
       <LoadingContent>
         <BuildProcessing
