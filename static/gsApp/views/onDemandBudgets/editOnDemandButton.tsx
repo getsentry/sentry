@@ -1,14 +1,20 @@
 import {css} from '@emotion/react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Theme} from 'sentry/utils/theme';
 
 import type {Subscription} from 'getsentry/types';
-import {hasBillingAccess, hasNewBillingUI, supportsPayg} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  hasBillingAccess,
+  hasNewBillingUI,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import OnDemandBudgetEditModal from 'getsentry/views/onDemandBudgets/onDemandBudgetEditModal';
 
 interface EditOnDemandButtonProps {
@@ -40,7 +46,14 @@ export function openOnDemandBudgetEditModal({
         modalCss: theme && isNewBillingUI ? modalCss(theme) : undefined,
       }
     );
+    return;
   }
+
+  addErrorMessage(
+    tct("You don't have permission to edit [budgetTerm] budgets.", {
+      budgetTerm: displayBudgetName(subscription.planDetails),
+    })
+  );
 }
 
 export function EditOnDemandButton(props: EditOnDemandButtonProps) {
