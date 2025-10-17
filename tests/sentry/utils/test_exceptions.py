@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 from unittest.mock import Mock, patch
 
-from rediscluster.exceptions import RedisClusterException
+from rediscluster.exceptions import RedisClusterException  # type: ignore[attr-defined]
 
 from sentry.taskworker.state import CurrentTaskState
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
