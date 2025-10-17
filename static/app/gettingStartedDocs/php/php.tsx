@@ -303,7 +303,7 @@ const profilingOnboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+            "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink:Sentry documentation].",
             {
               sentryPhpDocumentationLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
