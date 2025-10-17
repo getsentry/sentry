@@ -106,6 +106,7 @@ export function buildToolLinkUrl(
       // Transform backend params to frontend format
       const queryParams: Record<string, any> = {
         query: query || '',
+        project: null,
       };
 
       const aggregateFields: any[] = [];
