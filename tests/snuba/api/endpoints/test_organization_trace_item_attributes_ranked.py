@@ -156,3 +156,90 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Should still return ranked attributes based on the queries
         assert "rankedAttributes" in response.data
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
+    def test_baseline_distribution_includes_baseline_only_buckets(
+        self, mock_keyed_rrf_score, mock_compare_distributions
+    ) -> None:
+        """Test that buckets existing only in baseline (not in suspect) are included in scoring.
+
+        This specifically tests the fix for the bug where attribute values that exist
+        in all spans but NOT in the suspect cohort were missing from the baseline
+        distribution passed to scoring algorithms.
+        """
+        # Capture what's passed to the scoring functions
+        captured_baseline = None
+
+        def capture_baseline(*args, **kwargs):
+            nonlocal captured_baseline
+            captured_baseline = kwargs.get("baseline")
+            # Return results matching the actual internal attribute names
+            return [("sentry.browser", 1.0), ("sentry.device", 0.8)]
+
+        def capture_compare(*args, **kwargs):
+            return {"results": [("sentry.browser", 0.9), ("sentry.device", 0.7)]}
+
+        mock_keyed_rrf_score.side_effect = capture_baseline
+        mock_compare_distributions.side_effect = capture_compare
+
+        tags = [
+            # Suspect spans (duration <= 100): only chrome and safari
+            ({"browser": "chrome", "device": "mobile"}, 100),
+            ({"browser": "safari", "device": "mobile"}, 100),
+            ({"browser": "chrome", "device": "desktop"}, 100),
+            # Baseline spans (duration > 100): chrome, safari, AND edge
+            ({"browser": "chrome", "device": "desktop"}, 500),
+            ({"browser": "safari", "device": "desktop"}, 500),
+            ({"browser": "edge", "device": "desktop"}, 500),  # Only in baseline!
+            ({"browser": "edge", "device": "tablet"}, 600),  # Only in baseline!
+        ]
+
+        for tag, duration in tags:
+            self._store_span(tags=tag, duration=duration)
+
+        response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
+
+        assert response.status_code == 200, response.data
+
+        # Convert baseline list to dict for easier verification
+        baseline_dict: dict[str, dict[str, float]] = {}
+        assert captured_baseline is not None
+        for attr_name, label, value in captured_baseline:
+            if attr_name not in baseline_dict:
+                baseline_dict[attr_name] = {}
+            baseline_dict[attr_name][label] = value
+
+        # Verify that "edge" browser exists in the baseline distribution sent to scoring
+        # This is the key test: edge exists in all spans but NOT in suspect spans
+        # Note: Internal attribute name is "sentry.browser"
+        assert (
+            "sentry.browser" in baseline_dict
+        ), "sentry.browser attribute should be in baseline distribution"
+        assert (
+            "edge" in baseline_dict["sentry.browser"]
+        ), "edge browser should be in baseline (it exists in all spans but not in suspect)"
+        assert (
+            baseline_dict["sentry.browser"]["edge"] > 0
+        ), "edge count should be positive in baseline"
+
+        # Also verify edge appears in the response (public name is "browser")
+        browser_attr = next(
+            (a for a in response.data["rankedAttributes"] if a["attributeName"] == "browser"),
+            None,
+        )
+        assert browser_attr is not None, "browser attribute should be in response"
+        edge_bucket = next((b for b in browser_attr["cohort2"] if b["label"] == "edge"), None)
+        assert edge_bucket is not None, "edge browser should be in response cohort2 (baseline)"
+        assert edge_bucket["value"] > 0, "edge count should be positive in response"
+
+        # Verify tablet device exists (also only in baseline)
+        assert (
+            "sentry.device" in baseline_dict
+        ), "sentry.device attribute should be in baseline distribution"
+        assert (
+            "tablet" in baseline_dict["sentry.device"]
+        ), "tablet device should be in baseline (exists in all spans but not in suspect)"
+        assert (
+            baseline_dict["sentry.device"]["tablet"] > 0
+        ), "tablet count should be positive in baseline"
