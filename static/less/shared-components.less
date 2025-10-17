@@ -537,6 +537,7 @@ table.table.key-value {
   }
 }
 
+// UI2 loader
 .loading.splash {
   position: absolute;
   top: 50%;
@@ -556,6 +557,16 @@ table.table.key-value {
     overflow: hidden;
     border-radius: 0;
   }
+
+  .loading-message {
+    font-family: @font-family-code;
+  }
+}
+.loading.splash small {
+  color: #6A6772;
+}
+.theme-dark .loading.splash small {
+  color: #B5B0BD;
 }
 
 .theme-dark .loading.triangle .loading-indicator {
