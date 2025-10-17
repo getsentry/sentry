@@ -104,20 +104,29 @@ function ManageReposPanel({
           background="secondary"
         >
           <Flex direction="column" gap="xs">
-            <Heading as="h3">{t('AI Code Review Settings')}</Heading>
-            <Text variant="muted" size="sm">
-              {isEditingOrgDefaults
-                ? tct(
-                    'These settings apply as defaults to all repositories in this organization. Individual repositories can override these settings. These repos currently have overrides applied: [reposWithOverrides]',
+            {isEditingOrgDefaults ? (
+              <Fragment>
+                <Heading as="h3">{t('AI Code Review Default Settings')}</Heading>
+                <Text variant="muted" size="sm">
+                  {tct(
+                    'These settings apply to all repositories by default. Individual repositories can override these defaults. The following repositories have custom settings applied: [reposWithOverrides]',
                     {
                       reposWithOverrides: (
                         <Text as="span" monospace>
-                          {repoNamesWithOverrides.join(',')}
+                          {repoNamesWithOverrides.length > 0
+                            ? repoNamesWithOverrides.join(',')
+                            : '[none]'}
                         </Text>
                       ),
                     }
-                  )
-                : tct(
+                  )}
+                </Text>
+              </Fragment>
+            ) : (
+              <Fragment>
+                <Heading as="h3">{t('Repository AI Settings')}</Heading>
+                <Text variant="muted" size="sm">
+                  {tct(
                     'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',
                     {
                       repoLink: (
@@ -127,7 +136,9 @@ function ManageReposPanel({
                       ),
                     }
                   )}
-            </Text>
+                </Text>
+              </Fragment>
+            )}
           </Flex>
           <Button
             priority="transparent"
