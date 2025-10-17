@@ -99,14 +99,18 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Sentry captures data by using an SDK within your application’s runtime. Add the following to your [pubspec: pubspec.yaml]',
+      content: [
         {
-          pubspec: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Sentry captures data by using an SDK within your application’s runtime. Add the following to your [pubspec:pubspec.yaml]',
+            {
+              pubspec: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'yml',
           code: getInstallSnippet(params),
         },
@@ -116,18 +120,21 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Import [sentry: sentry] and initialize it', {
-        sentry: <code />,
-      }),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct('Import [sentry:sentry] and initialize it', {sentry: <code />}),
+        },
+        {
+          type: 'code',
           language: 'dart',
           code: getConfigureSnippet(params),
-          additionalInfo: tct(
-            'You can configure the [code: SENTRY_DSN], [code: SENTRY_RELEASE], [code: SENTRY_DIST], and [code: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code: --dart-define] flag to the compiler, as noted in the code sample.',
-            {
-              code: <code />,
-            }
+        },
+        {
+          type: 'text',
+          text: tct(
+            'You can configure the [code:SENTRY_DSN], [code:SENTRY_RELEASE], [code:SENTRY_DIST], and [code:SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code:--dart-define] flag to the compiler, as noted in the code sample.',
+            {code: <code />}
           ),
         },
       ],
@@ -137,19 +144,28 @@ const onboarding: OnboardingConfig = {
     const steps: OnboardingStep[] = [
       {
         type: StepType.VERIFY,
-        description: t(
-          'Create an intentional error, so you can test that everything is working:'
-        ),
-        configurations: [
+        content: [
           {
+            type: 'text',
+            text: t(
+              'Create an intentional error, so you can test that everything is working:'
+            ),
+          },
+          {
+            type: 'code',
             language: 'dart',
             code: getVerifySnippet(params),
-            additionalInfo: tct(
-              "If you're new to Sentry, use the email alert to access your account and complete a product tour.[break] If you're an existing user and have disabled alerts, you won't receive this email.",
-              {
-                break: <br />,
-              }
-            ),
+          },
+          {
+            type: 'text',
+            text: [
+              t(
+                "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+              ),
+              t(
+                "If you're an existing user and have disabled alerts, you won't receive this email."
+              ),
+            ],
           },
         ],
       },
@@ -158,15 +174,22 @@ const onboarding: OnboardingConfig = {
     if (params.isPerformanceSelected) {
       steps.push({
         title: t('Tracing'),
-        description: t(
-          "You'll be able to monitor the performance of your app using the SDK. For example:"
-        ),
-        configurations: [
+        content: [
           {
+            type: 'text',
+            text: t(
+              "You'll be able to monitor the performance of your app using the SDK. For example:"
+            ),
+          },
+          {
+            type: 'code',
             language: 'dart',
             code: getPerfomanceSnippet(),
-            additionalInfo: tct(
-              'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
+          },
+          {
+            type: 'text',
+            text: tct(
+              'To learn more about the API and automatic instrumentations, check out the [perfDocs:performance documentation].',
               {
                 perfDocs: (
                   <ExternalLink href="https://docs.sentry.io/platforms/dart/tracing/instrumentation/" />
@@ -217,13 +240,16 @@ export const feedbackOnboardingCrashApiDart: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Dart',
-              value: 'dart',
               language: 'dart',
               code: `import 'package:sentry/sentry.dart';
 
