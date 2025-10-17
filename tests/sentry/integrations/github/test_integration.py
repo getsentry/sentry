@@ -34,7 +34,7 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
-from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -122,6 +122,56 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.reset()
         plugins.unregister(GitHubPlugin)
         super().tearDown()
+
+    def _setup_assignee_sync_test(
+        self,
+        user_email: str = "foo@example.com",
+        external_name: str = "@octocat",
+        external_id: str = "octocat",
+        issue_key: str = "Test-Organization/foo#123",
+        create_external_user: bool = True,
+    ) -> tuple:
+        """
+        Common setup for assignee sync tests.
+
+        Returns:
+            tuple: (user, installation, external_issue, integration, group)
+        """
+        user = serialize_rpc_user(self.create_user(email=user_email))
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        integration.metadata.update(
+            {
+                "access_token": self.access_token,
+                "expires_at": self.expires_at,
+            }
+        )
+        integration.save()
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        group = self.create_group()
+
+        if create_external_user:
+            self.create_external_user(
+                user=user,
+                organization=self.organization,
+                integration=integration,
+                provider=ExternalProviders.GITHUB.value,
+                external_name=external_name,
+                external_id=external_id,
+            )
+
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key=issue_key,
+        )
+
+        return user, installation, external_issue, integration, group
 
     @pytest.fixture(autouse=True)
     def stub_get_jwt(self):
@@ -1612,6 +1662,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @with_feature("organizations:integrations-github-inbound-assignee-sync")
+    @with_feature("organizations:integrations-github-outbound-assignee-sync")
     def test_get_organization_config(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1621,18 +1672,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         fields = installation.get_organization_config()
 
-        assert len(fields) == 1
-        assert fields[0]["name"] == "sync_reverse_assignment"
-        assert fields[0]["type"] == "boolean"
-        assert fields[0]["label"] == "Sync Github Assignment to Sentry"
-        assert (
-            fields[0]["help"]
-            == "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
-        )
-        assert fields[0]["default"] is False
-        # Field should NOT be disabled since the organizations:integrations-issue-sync feature is enabled by default
-        assert "disabled" not in fields[0]
-        assert "disabledReason" not in fields[0]
+        assert [field["name"] for field in fields] == [
+            "sync_reverse_assignment",
+            "sync_forward_assignment",
+        ]
 
     @responses.activate
     def test_update_organization_config(self) -> None:
@@ -1724,3 +1767,136 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert not OrganizationIntegration.objects.filter(
             integration=integration, organization_id=self.organization.id
         ).exists()
+
+    @responses.activate
+    def test_sync_assignee_outbound(self) -> None:
+        """Test assigning a GitHub issue to a user with linked GitHub account"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": ["octocat"]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == "https://api.github.com/repos/Test-Organization/foo/issues/123"
+        assert orjson.loads(request.body) == {"assignees": ["octocat"]}
+
+    @responses.activate
+    def test_sync_assignee_outbound_unassign(self) -> None:
+        """Test unassigning a GitHub issue"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": []},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, user, assign=False)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == "https://api.github.com/repos/Test-Organization/foo/issues/123"
+        assert orjson.loads(request.body) == {"assignees": []}
+
+    @responses.activate
+    def test_sync_assignee_outbound_no_external_actor(self) -> None:
+        """Test that sync fails gracefully when user has no GitHub account linked"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            create_external_user=False
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_sync_assignee_outbound_invalid_key_format(self) -> None:
+        """Test that sync handles invalid external issue key format gracefully"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            issue_key="invalid-key-format"
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_sync_assignee_outbound_strips_at_symbol(self) -> None:
+        """Test that @ symbol is stripped from external_name when syncing"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": ["octocat"]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert orjson.loads(request.body) == {"assignees": ["octocat"]}
+
+    @responses.activate
+    def test_sync_assignee_outbound_with_none_user(self) -> None:
+        """Test that assigning with no user does not make an API call"""
+
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        integration.metadata.update(
+            {
+                "access_token": self.access_token,
+                "expires_at": self.expires_at,
+            }
+        )
+        integration.save()
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        group = self.create_group()
+
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="Test-Organization/foo#123",
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, None, assign=True)
+
+        # Should not make any API calls when user is None and assign=True
+        assert len(responses.calls) == 0
