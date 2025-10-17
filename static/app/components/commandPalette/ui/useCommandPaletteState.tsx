@@ -43,7 +43,10 @@ function flattenActions(
     if (parentLabel) {
       flattened.push({
         ...action,
-        label: `${parentLabel} → ${action.label}`,
+        display: {
+          ...action.display,
+          label: `${parentLabel} → ${action.display.label}`,
+        },
         priority: 1,
       });
     } else {
@@ -55,8 +58,8 @@ function flattenActions(
 
     if (action.actions && action.actions.length > 0) {
       const childParentLabel = parentLabel
-        ? `${parentLabel} → ${action.label}`
-        : action.label;
+        ? `${parentLabel} → ${action.display.label}`
+        : action.display.label;
       flattened.push(...flattenActions(action.actions, childParentLabel));
     }
   }

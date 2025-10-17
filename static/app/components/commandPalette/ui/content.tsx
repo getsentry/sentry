@@ -25,11 +25,11 @@ const MAX_ACTIONS_PER_SECTION = 10;
 function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMenuItem {
   return {
     key: action.key,
-    label: action.label,
-    details: action.details,
-    leadingItems: action.icon ? (
+    label: action.display.label,
+    details: action.display.details,
+    leadingItems: action.display.icon ? (
       <IconWrap align="center" justify="center">
-        {action.icon}
+        {action.display.icon}
       </IconWrap>
     ) : undefined,
     children:

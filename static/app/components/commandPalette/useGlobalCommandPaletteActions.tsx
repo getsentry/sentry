@@ -33,139 +33,186 @@ function useNavigationActions(): CommandPaletteAction[] {
   const exploreDefault = getDefaultExploreRoute(organization);
   const {starredViews} = useStarredIssueViews();
 
-  const issuesChildren = [
+  const issuesChildren: CommandPaletteAction[] = [
     {
       key: 'nav-issues-feed',
-      label: t('Feed'),
+      display: {
+        label: t('Feed'),
+      },
       to: `${prefix}/issues/`,
     },
     ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config => ({
       key: `nav-issues-${config.key}`,
-      label: config.label,
+      display: {
+        label: config.label,
+      },
       to: `${prefix}/issues/${config.key}/`,
     })),
     {
       key: 'nav-issues-feedback',
-      label: t('User Feedback'),
+      display: {
+        label: t('User Feedback'),
+      },
       to: `${prefix}/issues/feedback/`,
     },
     {
       key: 'nav-issues-all-views',
-      label: t('All Views'),
+      display: {
+        label: t('All Views'),
+      },
       to: `${prefix}/issues/views/`,
     },
     ...starredViews.map(view => ({
       key: `nav-issues-starred-${view.id}`,
-      label: view.label,
+      display: {
+        label: view.label,
+        icon: <IconStar />,
+      },
       actionIcon: <IconStar />,
       to: `${prefix}/issues/views/${view.id}/`,
     })),
   ];
 
-  const exploreChildren = [
+  const exploreChildren: CommandPaletteAction[] = [
     {
       key: 'nav-explore-traces',
-      label: t('Traces'),
+      display: {
+        label: t('Traces'),
+      },
       to: `${prefix}/explore/traces/`,
     },
     {
       key: 'nav-explore-logs',
-      label: t('Logs'),
+      display: {
+        label: t('Logs'),
+      },
       to: `${prefix}/explore/logs/`,
       hidden: !organization.features.includes('ourlogs-enabled'),
     },
     {
       key: 'nav-explore-discover',
-      label: t('Discover'),
+      display: {
+        label: t('Discover'),
+      },
       to: `${prefix}/explore/discover/homepage/`,
     },
     {
       key: 'nav-explore-profiles',
-      label: t('Profiles'),
+      display: {
+        label: t('Profiles'),
+      },
       to: `${prefix}/explore/profiling/`,
       hidden: !organization.features.includes('profiling'),
     },
     {
       key: 'nav-explore-replays',
-      label: t('Replays'),
+      display: {
+        label: t('Replays'),
+      },
       to: `${prefix}/explore/replays/`,
       hidden: !organization.features.includes('session-replay-ui'),
     },
     {
       key: 'nav-explore-releases',
-      label: t('Releases'),
+      display: {
+        label: t('Releases'),
+      },
       to: `${prefix}/explore/releases/`,
     },
     {
       key: 'nav-explore-all-queries',
-      label: t('All Queries'),
+      display: {
+        label: t('All Queries'),
+      },
       to: `${prefix}/explore/saved-queries/`,
     },
   ];
 
-  const dashboardsChildren = [
+  const dashboardsChildren: CommandPaletteAction[] = [
     {
       key: 'nav-dashboards-all',
-      label: t('All Dashboards'),
+      display: {
+        label: t('All Dashboards'),
+      },
       to: `${prefix}/dashboards/`,
     },
   ];
 
-  const insightsChildren = [
+  const insightsChildren: CommandPaletteAction[] = [
     {
       key: 'nav-insights-frontend',
-      label: t('Frontend'),
+      display: {
+        label: t('Frontend'),
+      },
       to: `${prefix}/insights/frontend/`,
     },
     {
       key: 'nav-insights-backend',
-      label: t('Backend'),
+      display: {
+        label: t('Backend'),
+      },
       to: `${prefix}/insights/backend/`,
     },
     {
       key: 'nav-insights-mobile',
-      label: t('Mobile'),
+      display: {
+        label: t('Mobile'),
+      },
       to: `${prefix}/insights/mobile/`,
     },
     {
       key: 'nav-insights-crons',
-      label: t('Crons'),
+      display: {
+        label: t('Crons'),
+      },
       to: `${prefix}/insights/crons/`,
     },
     {
       key: 'nav-insights-uptime',
-      label: t('Uptime'),
+      display: {
+        label: t('Uptime'),
+      },
       to: `${prefix}/insights/uptime/`,
       hidden: !organization.features.includes('uptime'),
     },
     {
       key: 'nav-insights-projects',
-      label: t('All Projects'),
+      display: {
+        label: t('All Projects'),
+      },
       to: `${prefix}/insights/projects/`,
     },
   ];
 
-  const preventChildren = [
+  const preventChildren: CommandPaletteAction[] = [
     {
       key: 'nav-prevent-coverage',
-      label: t('Coverage'),
+      display: {
+        label: t('Coverage'),
+      },
       to: `${prefix}/prevent/coverage/commits/`,
       hidden: !organization.features.includes('codecov-ui'),
     },
     {
       key: 'nav-prevent-tests',
-      label: t('Tests'),
+      display: {
+        label: t('Tests'),
+      },
       to: `${prefix}/prevent/tests/`,
       hidden: !organization.features.includes('prevent-test-analytics'),
     },
     {
       key: 'nav-prevent-ai-code-review',
-      label: t('AI Code Review'),
+      display: {
+        label: t('AI Code Review'),
+      },
       to: `${prefix}/prevent/ai-code-review/new/`,
     },
     {
       key: 'nav-prevent-tokens',
-      label: t('Tokens'),
+      display: {
+        label: t('Tokens'),
+      },
       to: `${prefix}/prevent/tokens/`,
       hidden: !organization.features.includes('prevent-test-analytics'),
     },
@@ -175,32 +222,40 @@ function useNavigationActions(): CommandPaletteAction[] {
     {
       key: 'nav-issues',
       groupingKey: 'navigate',
-      label: t('Issues'),
-      icon: <IconIssues />,
+      display: {
+        label: t('Issues'),
+        icon: <IconIssues />,
+      },
       to: `${prefix}/issues/`,
       actions: issuesChildren,
     },
     {
       key: 'nav-explore',
       groupingKey: 'navigate',
-      label: t('Explore'),
-      icon: <IconCompass />,
+      display: {
+        label: t('Explore'),
+        icon: <IconCompass />,
+      },
       to: `${prefix}/explore/${exploreDefault}/`,
       actions: exploreChildren,
     },
     {
       key: 'nav-dashboards',
       groupingKey: 'navigate',
-      label: t('Dashboards'),
-      icon: <IconDashboard />,
+      display: {
+        label: t('Dashboards'),
+        icon: <IconDashboard />,
+      },
       to: `${prefix}/dashboards/`,
       actions: dashboardsChildren,
     },
     {
       key: 'nav-insights',
       groupingKey: 'navigate',
-      label: t('Insights'),
-      icon: <IconGraph type="area" />,
+      display: {
+        label: t('Insights'),
+        icon: <IconGraph type="area" />,
+      },
       to: `${prefix}/insights/`,
       actions: insightsChildren,
       hidden: !organization.features.includes('performance-view'),
@@ -208,8 +263,10 @@ function useNavigationActions(): CommandPaletteAction[] {
     {
       key: 'nav-prevent',
       groupingKey: 'navigate',
-      label: t('Prevent'),
-      icon: <IconPrevent />,
+      display: {
+        label: t('Prevent'),
+        icon: <IconPrevent />,
+      },
       to: `${prefix}/prevent/prevent-ai/new/`,
       actions: preventChildren,
       hidden: !organization.features.includes('prevent-ai'),
@@ -217,8 +274,10 @@ function useNavigationActions(): CommandPaletteAction[] {
     {
       key: 'nav-settings',
       groupingKey: 'navigate',
-      label: t('Settings'),
-      icon: <IconSettings />,
+      display: {
+        label: t('Settings'),
+        icon: <IconSettings />,
+      },
       to: `/settings/${slug}/`,
     },
   ];
@@ -229,10 +288,12 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
 
   return {
     key: 'toggle-navigation-collapsed',
-    label: isCollapsed
-      ? t('Expand Navigation Sidebar')
-      : t('Collapse Navigation Sidebar'),
-    icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
+    display: {
+      label: isCollapsed
+        ? t('Expand Navigation Sidebar')
+        : t('Collapse Navigation Sidebar'),
+      icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
+    },
     onAction: () => {
       setIsCollapsed(!isCollapsed);
     },
@@ -254,70 +315,90 @@ export function useGlobalCommandPaletteActions() {
     ...navigateActions,
     {
       key: 'add-dashboard',
+      display: {
+        label: t('Create Dashboard'),
+        icon: <IconAdd />,
+      },
       groupingKey: 'add',
-      label: t('Create Dashboard'),
-      icon: <IconAdd />,
       to: `${navPrefix}/dashboards/new/`,
     },
     {
       key: 'add-alert',
+      display: {
+        label: t('Create Alert'),
+        icon: <IconAdd />,
+      },
       groupingKey: 'add',
-      label: t('Create Alert'),
-      icon: <IconAdd />,
       to: `${navPrefix}/issues/alerts/wizard/`,
     },
     {
       key: 'add-project',
       groupingKey: 'add',
-      label: t('Create Project'),
-      icon: <IconAdd />,
+      display: {
+        label: t('Create Project'),
+        icon: <IconAdd />,
+      },
       to: `${navPrefix}/projects/new/`,
     },
     {
       key: 'add-invite-members',
+      display: {
+        label: t('Invite Members'),
+        icon: <IconUser />,
+      },
       groupingKey: 'add',
-      label: t('Invite Members'),
-      icon: <IconUser />,
       onAction: () => openInviteMembersModal(),
     },
     {
       key: 'help-docs',
+      display: {
+        label: t('Open Documentation'),
+        icon: <IconDocs />,
+      },
       groupingKey: 'help',
-      label: t('Open Documentation'),
-      icon: <IconDocs />,
       onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
     },
     {
       key: 'help-discord',
+      display: {
+        label: t('Join Discord'),
+        icon: <IconDiscord />,
+      },
       groupingKey: 'help',
-      label: t('Join Discord'),
-      icon: <IconDiscord />,
       onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
     },
     {
       key: 'help-github',
+      display: {
+        label: t('Open GitHub Repository'),
+        icon: <IconGithub />,
+      },
       groupingKey: 'help',
-      label: t('Open GitHub Repository'),
-      icon: <IconGithub />,
       onAction: () =>
         window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
     },
     {
       key: 'help-changelog',
+      display: {
+        label: t('View Changelog'),
+        icon: <IconOpen />,
+      },
       groupingKey: 'help',
-      label: t('View Changelog'),
-      icon: <IconOpen />,
       onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
     },
     navigationToggleAction,
     {
       key: 'account-theme-preference',
-      label: t('Change Color Theme'),
-      icon: <IconSettings />,
+      display: {
+        label: t('Change Color Theme'),
+        icon: <IconSettings />,
+      },
       actions: [
         {
           key: 'account-theme-preference-system',
-          label: t('System'),
+          display: {
+            label: t('System'),
+          },
           onAction: async () => {
             addLoadingMessage(t('Saving…'));
             await mutateUserOptions({theme: 'system'});
@@ -326,7 +407,9 @@ export function useGlobalCommandPaletteActions() {
         },
         {
           key: 'account-theme-preference-light',
-          label: t('Light'),
+          display: {
+            label: t('Light'),
+          },
           onAction: async () => {
             addLoadingMessage(t('Saving…'));
             await mutateUserOptions({theme: 'light'});
@@ -335,7 +418,9 @@ export function useGlobalCommandPaletteActions() {
         },
         {
           key: 'account-theme-preference-dark',
-          label: t('Dark'),
+          display: {
+            label: t('Dark'),
+          },
           onAction: async () => {
             addLoadingMessage(t('Saving…'));
             await mutateUserOptions({theme: 'dark'});

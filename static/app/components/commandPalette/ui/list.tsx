@@ -93,7 +93,7 @@ export function CommandPaletteList({
 
   const placeholder = useMemo(() => {
     if (selectedAction) {
-      return selectedAction.label;
+      return selectedAction.display.label;
     }
     return t('Type for actions…');
   }, [selectedAction]);
