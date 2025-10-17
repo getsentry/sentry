@@ -414,7 +414,7 @@ class FeatureManagerTest(TestCase):
             override_options({"features.error.capture_rate": 1.0}),
         ):
             result = manager.batch_has_for_organizations(
-                ["organizations:feature"], organizations, actor=self.user
+                "organizations:feature", organizations, actor=self.user
             )
             assert result is None
             assert mock_capture.call_count == 1

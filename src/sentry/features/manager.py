@@ -406,11 +406,12 @@ class FeatureManager(RegisteredFeatureManager):
                         feature_name, actor, organizations
                     )
             else:
-                results: dict[str, dict[str, bool | None]] = {}
+                results: dict[str, bool | None] = {}
                 for organization in organizations:
                     org_key = f"organization:{organization.id}"
                     results[org_key] = self.has(feature_name, organization, actor=actor)
                 return results
+
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
