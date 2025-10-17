@@ -368,11 +368,11 @@ def _track_initial_segment_event_new(
     replay_id,
     key_id: int | None,
     received: int,
-    cache: AutoCache[int, bool],
+    has_seen_replays: AutoCache[int, bool],
 ) -> None:
     # We'll skip querying for projects if we've seen the project before or the project has already
     # recorded its first replay.
-    if not cache[project_id]:
+    if has_seen_replays[project_id] is False:
         try:
             # I have to do this because of looker and amplitude statistics. This could be
             # replaced with a simple update statement on the model...
@@ -391,7 +391,7 @@ def _track_initial_segment_event_new(
         set_project_flag_and_signal(project, "has_replays", first_replay_received)
 
         # We've set the has_replays flag and can cache it.
-        cache[project_id] = True
+        has_seen_replays[project_id] = True
 
     track_outcome(
         org_id=org_id,
