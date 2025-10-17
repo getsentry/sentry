@@ -92,6 +92,7 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
             self.organization.slug, group=DataConditionHandler.Group.ACTION_FILTER, status_code=200
         )
 
+        assert len(response.data) == 2
         assert response.data == [
             {
                 "type": Condition.AGE_COMPARISON.value,
