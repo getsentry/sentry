@@ -248,11 +248,11 @@ class GroupResolutionTest(TestCase):
         """Test that non-semver releases fall back to the older date-based comparison model."""
         # Newer semver but older date
         release_v2_older_date = self.create_release(
-            version="bar_package@2.0", date_added=timezone.now() - timedelta(minutes=60)
+            version="bar_package@3.0", date_added=timezone.now() - timedelta(minutes=60)
         )
         # Older semver but newer date
         release_v1_newer_date = self.create_release(
-            version="bar_package@1.5", date_added=timezone.now() - timedelta(minutes=30)
+            version="bar_package@2.5", date_added=timezone.now() - timedelta(minutes=30)
         )
 
         GroupResolution.objects.create(
@@ -262,8 +262,7 @@ class GroupResolutionTest(TestCase):
             future_release_version="non-semver-version",
         )
 
-        # Should fall back to date-based model (because future_release_version is non-semver)
-        # v2.0 was released BEFORE v1.5 (the resolution release), so it HAS resolution
+        # By date-based logic, 3.0 released before 2.5 -> resolution
         assert GroupResolution.has_resolution(self.group, release_v2_older_date)
 
         # The resolution release itself should have resolution
@@ -284,11 +283,11 @@ class GroupResolutionTest(TestCase):
             release=release_v2_newer_date,
             group=self.group,
             type=GroupResolution.Type.in_future_release,
-            future_release_version="baz_package@2.8",  # 3.0 should have regression via semver logic, but not date-based
+            future_release_version="baz_package@2.8",
         )
 
-        # By semver logic, 3.0 > 2.8, so no resolution
-        # By date-based logic, 3.0 released before 2.5, so resolution
+        # By semver logic, 3.0 > 2.8 -> regression
+        # By date-based logic, 3.0 released before 2.5 -> resolution
         assert GroupResolution.has_resolution(self.group, release_v3_older_date)
 
         # The resolution release itself should have resolution
