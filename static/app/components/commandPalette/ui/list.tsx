@@ -7,6 +7,10 @@ import {useTreeState} from '@react-stately/tree';
 
 import error from 'sentry-images/spot/command-palette-error.svg';
 
+import {Image} from '@sentry/scraps/image';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
@@ -97,8 +101,15 @@ export function CommandPaletteList({
 
   return (
     <Fragment>
-      <InputHeader>
-        <SearchInputContainer>
+      <Flex direction="column" align="start" gap="md" borderBottom="muted">
+        <Flex
+          position="relative"
+          direction="row"
+          align="center"
+          gap="xs"
+          padding="0 md"
+          width="100%"
+        >
           {selectedAction && (
             <Button
               borderless
@@ -119,16 +130,34 @@ export function CommandPaletteList({
             autoFocus
             {...inputProps}
           />
-        </SearchInputContainer>
-      </InputHeader>
+        </Flex>
+      </Flex>
       {treeState.collection.size === 0 ? (
-        <EmptyWrap>
-          <img src={error} alt="No results" />
-          <p>Whoops… we couldn't find any results matching your search.</p>
-          <p>Try rephrasing your query maybe?</p>
-        </EmptyWrap>
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          gap="lg"
+          padding="xl lg"
+          height="400px"
+        >
+          <Image src={error} alt="No results" width="400px" />
+          <Stack align="center" gap="md">
+            <Text size="md" align="center">
+              Whoops… we couldn't find any results matching your search.
+            </Text>
+            <Text size="md" align="center">
+              Try rephrasing your query maybe?
+            </Text>
+          </Stack>
+        </Flex>
       ) : null}
-      <ResultsList>
+      <ResultsList
+        direction="column"
+        width="100%"
+        maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
+        overflow="auto"
+      >
         <ListBox
           listState={treeState}
           keyDownHandler={() => true}
@@ -144,22 +173,6 @@ export function CommandPaletteList({
   );
 }
 
-const InputHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};
-  z-index: 2;
-`;
-
-const SearchInputContainer = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 0 ${p => p.theme.space.md};
-  width: 100%;
-`;
-
 const CommandInput = styled('input')`
   width: 100%;
   background: transparent;
@@ -174,40 +187,9 @@ const CommandInput = styled('input')`
   }
 `;
 
-const ResultsList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-height: min(calc(100vh - 128px - 4rem), 400px);
-  overflow: auto;
-  padding: 0;
-  margin: 0;
-
+const ResultsList = styled(Flex)`
   ul,
   li {
     scroll-margin: ${p => p.theme.space['3xl']} 0;
-  }
-`;
-
-const EmptyWrap = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  padding: 24px 12px;
-  height: 400px;
-
-  img {
-    width: 100%;
-    max-width: 400px;
-    margin-bottom: 12px;
-  }
-
-  p {
-    margin: 0;
   }
 `;
