@@ -80,21 +80,25 @@ const COLUMN_ORDER: Column[] = [
     key: 'epm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
     key: `p50(span.duration)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p50,
   },
   {
     key: 'p95(span.duration)',
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p95,
   },
   {
     key: 'failure_rate()',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.failureRate,
   },
   {
     key: 'count_unique(user)',
