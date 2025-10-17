@@ -182,7 +182,7 @@ def main() -> int:
                     " * This file is the sibling to knownGetsentryApiUrls.ts.\n",
                     " */\n",
                     " * DEPLOYMENT: This is safe to deploy alongside backend changes.\n",
-                    " */\n",
+                    " \n",
                     "export type KnownSentryApiUrls =\n",
                     "\n".join([f"  | '{r}'" for r in route_patterns]) + ";\n",
                 ]
