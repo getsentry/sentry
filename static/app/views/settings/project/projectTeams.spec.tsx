@@ -10,6 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -45,6 +46,7 @@ describe('ProjectTeams', () => {
       access: ['project:admin', 'project:write', 'project:admin'],
     };
 
+    ProjectsStore.loadInitialData([project]);
     TeamStore.loadInitialData([team1WithAdmin, team2WithAdmin]);
 
     MockApiClient.addMockResponse({
@@ -89,7 +91,13 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: `/settings/projects/${project.slug}/teams/`},
+        route: '/settings/projects/:projectId/teams/',
+      },
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -145,7 +153,13 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: `/settings/projects/${project.slug}/teams/`},
+        route: '/settings/projects/:projectId/teams/',
+      },
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -193,7 +207,13 @@ describe('ProjectTeams', () => {
       body: [team3NoAdmin],
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: `/settings/projects/${project.slug}/teams/`},
+        route: '/settings/projects/:projectId/teams/',
+      },
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -240,7 +260,13 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: `/settings/projects/${project.slug}/teams/`},
+        route: '/settings/projects/:projectId/teams/',
+      },
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -279,7 +305,13 @@ describe('ProjectTeams', () => {
       body: TeamFixture({slug: 'new-team'}),
     });
 
-    render(<ProjectTeams project={project} organization={org} />);
+    render(<ProjectTeams />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: `/settings/projects/${project.slug}/teams/`},
+        route: '/settings/projects/:projectId/teams/',
+      },
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 

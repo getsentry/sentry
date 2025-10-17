@@ -528,7 +528,6 @@ function buildRoutes(): RouteObject[] {
       path: 'teams/',
       name: t('Teams'),
       component: make(() => import('sentry/views/settings/project/projectTeams')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'alerts/',
