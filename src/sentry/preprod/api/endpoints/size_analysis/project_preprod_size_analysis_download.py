@@ -92,11 +92,11 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                     status=404,
                 )
 
-            # If analysis file is not available yet, check if it's still processing
-            if size_metrics.analysis_file_id is None:
-                if size_metrics.state in (
-                    PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-                    PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+            # Handle different analysis states
+            match size_metrics.state:
+                case (
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+                    | PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
                 ):
                     return Response(
                         {
@@ -110,7 +110,22 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                         },
                         status=200,
                     )
-
-            return get_size_analysis_file_response(size_metrics)
+                case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+                    return Response(
+                        {
+                            "state": "failed",
+                            "error_code": size_metrics.error_code,
+                            "error_message": size_metrics.error_message or "Size analysis failed",
+                        },
+                        status=422,
+                    )
+                case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+                    if size_metrics.analysis_file_id is None:
+                        raise ValueError(
+                            f"Size analysis in COMPLETED state but analysis_file_id is None for artifact {head_artifact_id}"
+                        )
+                    return get_size_analysis_file_response(size_metrics)
+                case _:
+                    raise ValueError(f"Unknown size analysis state: {size_metrics.state}")
         except SizeAnalysisError as e:
             return get_size_analysis_error_response(e)

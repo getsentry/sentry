@@ -33,8 +33,8 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         assert response.status_code == 404
         assert response.data["error"] == "Size analysis results not available for this artifact"
 
-    def test_pending_state_returns_204(self):
-        """When size metrics exist but are in PENDING state, should return 204"""
+    def test_pending_state_returns_200(self):
+        """When size metrics exist but are in PENDING state, should return 200 with state info"""
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -42,11 +42,12 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         )
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
-        assert response.status_code == 204
-        assert not response.content
+        assert response.status_code == 200
+        assert response.data["state"] == "pending"
+        assert response.data["message"] == "Size analysis is still processing"
 
-    def test_processing_state_returns_204(self):
-        """When size metrics exist but are in PROCESSING state, should return 204"""
+    def test_processing_state_returns_200(self):
+        """When size metrics exist but are in PROCESSING state, should return 200 with state info"""
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -54,8 +55,9 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         )
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
-        assert response.status_code == 204
-        assert not response.content
+        assert response.status_code == 200
+        assert response.data["state"] == "processing"
+        assert response.data["message"] == "Size analysis is still processing"
 
     def test_failed_state_returns_422(self):
         """When size metrics failed, should return 422 with error details"""
