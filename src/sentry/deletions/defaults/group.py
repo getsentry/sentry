@@ -11,11 +11,13 @@ from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodes
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -256,9 +258,37 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
+            if options.get("deletions.group.delete_group_hashes_metadata_first"):
+                # If we delete the grouphash metadata rows first we will not need to update the references to the other grouphashes.
+                # If we try to delete the group hashes first, then it will require the updating of the columns first.
+                #
+                # To understand this, let's say we have the following relationships:
+                # gh A -> ghm A -> no reference to another grouphash
+                # gh B -> ghm B -> gh C
+                # gh C -> ghm C -> gh A
+                #
+                # Deleting group hashes A, B & C (since they all point to the same group) will require:
+                # * Updating columns ghmB & ghmC to point to None
+                # * Deleting the group hash metadata rows
+                # * Deleting the group hashes
+                #
+                # If we delete the metadata first, we will not need to update the columns before deleting them.
+                try:
+                    GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
+                except Exception:
+                    # XXX: Let's make sure that no issues are caused by this and then remove it
+                    logger.exception("Error deleting group hash metadata")
+
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1
+
+    if iterations == GROUP_HASH_ITERATIONS:
+        metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
+        logger.warning(
+            "Group hashes batch deletion reached the maximum number of iterations. "
+            "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
+        )
 
 
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
