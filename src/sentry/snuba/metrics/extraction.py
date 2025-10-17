@@ -607,7 +607,7 @@ def _query_supported_by(
     query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
-) -> bool:
+) -> SupportedBy:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
     groupbys = groupbys or []
     supported_datasets = [Dataset.PerformanceMetrics]
@@ -617,18 +617,18 @@ def _query_supported_by(
         supported_datasets.append(Dataset.Transactions)
 
     if not dataset or Dataset(dataset) not in supported_datasets:
-        return False
+        return SupportedBy(standard_metrics=False, on_demand_metrics=False)
 
     components = _extract_aggregate_components(aggregate)
     if components is None:
-        return False
+        return SupportedBy(standard_metrics=False, on_demand_metrics=False)
 
     function, args = components
 
     mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:
         # For now, we do not support MRIs in on demand metrics.
-        return False
+        return SupportedBy(standard_metrics=True, on_demand_metrics=False)
 
     aggregate_supported_by = _get_aggregate_supported_by(function, args)
     query_supported_by = _get_query_supported_by(query)
