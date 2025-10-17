@@ -39,7 +39,7 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
-const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text'];
+const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text', 'gen_ai.embeddings.input'];
 
 function tryParseJson(value: unknown) {
   if (typeof value !== 'string') {
