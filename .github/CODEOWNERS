@@ -536,7 +536,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
 /src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
-/src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
 /src/sentry/middleware/reporting_endpoint.py                @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
