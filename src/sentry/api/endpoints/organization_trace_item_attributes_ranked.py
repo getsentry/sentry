@@ -228,7 +228,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         # Add remaining cohort_2 buckets that weren't in cohort_1 (exist only in baseline)
         cohort_2_distribution.extend(
             [
-                (attribute_name, bucket["label"], bucket["value"])
+                (attribute_name, cast(str, bucket["label"]), cast(float, bucket["value"]))
                 for attribute_name, buckets in cohort_2_distribution_map.items()
                 for bucket in buckets
                 if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets
