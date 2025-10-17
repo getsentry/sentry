@@ -79,11 +79,9 @@ class IntegrationNotificationTarget(GenericNotificationTarget):
     organization_id: int
 
     def to_dict(self) -> dict[str, Any]:
+        base_data = super().to_dict()
         return {
-            "provider_key": self.provider_key,
-            "resource_type": self.resource_type,
-            "resource_id": self.resource_id,
-            "specific_data": self.specific_data,
+            **base_data,
             "integration_id": self.integration_id,
             "organization_id": self.organization_id,
         }
@@ -127,7 +125,7 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
 
 
 @dataclass
-class SerializedNotificationTarget:
+class NotificationTargetDto:
     """
     A wrapper class that handles serialization/deserialization of NotificationTargets.
     """
@@ -150,7 +148,7 @@ class SerializedNotificationTarget:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SerializedNotificationTarget":
+    def from_dict(cls, data: dict[str, Any]) -> "NotificationTargetDto":
         target_type = data["type"]
         target_data = data["target"]
 
