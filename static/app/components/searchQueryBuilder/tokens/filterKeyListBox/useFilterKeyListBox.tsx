@@ -182,6 +182,9 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   });
 
   const organization = useOrganization();
+  const hasAskSeerConsentFlowChanges = organization.features.includes(
+    'ask-seer-consent-flow-update'
+  );
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
@@ -189,7 +192,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     const askSeerItem = [];
     if (enableAISearch) {
       askSeerItem.push(
-        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+        hasAskSeerConsentFlowChanges
+          ? createAskSeerItem()
+          : gaveSeerConsent
+            ? createAskSeerItem()
+            : createAskSeerConsentItem()
       );
     }
 
@@ -222,6 +229,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     filterKeys,
     gaveSeerConsent,
     getFieldDefinition,
+    hasAskSeerConsentFlowChanges,
     recentFilters,
     recentSearches,
     sectionedItems,
@@ -389,6 +397,15 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
+        if (hasAskSeerConsentFlowChanges && !gaveSeerConsent) {
+          trackAnalytics('trace.explorer.ai_query_interface', {
+            organization,
+            action: 'consent_accepted',
+          });
+          seerAcknowledgeMutate();
+          return;
+        }
+
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
           action: 'opened',
@@ -415,6 +432,8 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     },
     [
       currentInputValueRef,
+      gaveSeerConsent,
+      hasAskSeerConsentFlowChanges,
       organization,
       seerAcknowledgeMutate,
       setAutoSubmitSeer,
