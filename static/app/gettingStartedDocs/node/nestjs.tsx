@@ -175,9 +175,6 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct('Add the [code:SentryModule] as a root module to your main module:', {
             code: <code />,
-            docs: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
-            ),
           }),
         },
         {
