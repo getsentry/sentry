@@ -6,12 +6,12 @@ export type CommandPaletteAction = {
   key: string;
   /** Primary text shown to the user */
   label: string;
-  /** Icon to render for this action */
-  actionIcon?: ReactNode;
   /** Nested actions to show when this action is selected */
   children?: CommandPaletteAction[];
   /** Additional context or description */
   details?: string;
+  /** Icon to render for this action */
+  icon?: ReactNode;
   /** Whether this action should keep the modal open after execution */
   keepOpen?: boolean;
   /** Optional keywords to improve searchability */

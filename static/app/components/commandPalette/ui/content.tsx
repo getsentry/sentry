@@ -27,9 +27,9 @@ function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMen
     key: action.key,
     label: action.label,
     details: action.details,
-    leadingItems: action.actionIcon ? (
+    leadingItems: action.icon ? (
       <IconWrap align="center" justify="center">
-        {action.actionIcon}
+        {action.icon}
       </IconWrap>
     ) : undefined,
     children:
