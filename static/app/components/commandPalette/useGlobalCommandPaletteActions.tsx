@@ -1,5 +1,6 @@
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
   IconAdd,
@@ -25,14 +26,7 @@ import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
-const GlobalActionSection = {
-  HELP: t('Help'),
-  ADD: t('Add'),
-  NAVIGATE: t('Go to…'),
-  OTHER: t('Actions'),
-};
-
-function useNavigationActions() {
+function useNavigationActions(): CommandPaletteAction[] {
   const organization = useOrganization();
   const slug = organization.slug;
   const prefix = `/organizations/${slug}`;
@@ -74,38 +68,29 @@ function useNavigationActions() {
       label: t('Traces'),
       to: `${prefix}/explore/traces/`,
     },
-    ...(organization.features.includes('ourlogs-enabled')
-      ? [
-          {
-            key: 'nav-explore-logs',
-            label: t('Logs'),
-            to: `${prefix}/explore/logs/`,
-          },
-        ]
-      : []),
+    {
+      key: 'nav-explore-logs',
+      label: t('Logs'),
+      to: `${prefix}/explore/logs/`,
+      hidden: !organization.features.includes('ourlogs-enabled'),
+    },
     {
       key: 'nav-explore-discover',
       label: t('Discover'),
       to: `${prefix}/explore/discover/homepage/`,
     },
-    ...(organization.features.includes('profiling')
-      ? [
-          {
-            key: 'nav-explore-profiles',
-            label: t('Profiles'),
-            to: `${prefix}/explore/profiling/`,
-          },
-        ]
-      : []),
-    ...(organization.features.includes('session-replay-ui')
-      ? [
-          {
-            key: 'nav-explore-replays',
-            label: t('Replays'),
-            to: `${prefix}/explore/replays/`,
-          },
-        ]
-      : []),
+    {
+      key: 'nav-explore-profiles',
+      label: t('Profiles'),
+      to: `${prefix}/explore/profiling/`,
+      hidden: !organization.features.includes('profiling'),
+    },
+    {
+      key: 'nav-explore-replays',
+      label: t('Replays'),
+      to: `${prefix}/explore/replays/`,
+      hidden: !organization.features.includes('session-replay-ui'),
+    },
     {
       key: 'nav-explore-releases',
       label: t('Releases'),
@@ -147,15 +132,12 @@ function useNavigationActions() {
       label: t('Crons'),
       to: `${prefix}/insights/crons/`,
     },
-    ...(organization.features.includes('uptime')
-      ? [
-          {
-            key: 'nav-insights-uptime',
-            label: t('Uptime'),
-            to: `${prefix}/insights/uptime/`,
-          },
-        ]
-      : []),
+    {
+      key: 'nav-insights-uptime',
+      label: t('Uptime'),
+      to: `${prefix}/insights/uptime/`,
+      hidden: !organization.features.includes('uptime'),
+    },
     {
       key: 'nav-insights-projects',
       label: t('All Projects'),
@@ -164,109 +146,93 @@ function useNavigationActions() {
   ];
 
   const preventChildren = [
-    ...(organization.features.includes('codecov-ui')
-      ? [
-          {
-            key: 'nav-prevent-coverage',
-            label: t('Coverage'),
-            to: `${prefix}/prevent/coverage/commits/`,
-          },
-        ]
-      : []),
-    ...(organization.features.includes('prevent-test-analytics')
-      ? [
-          {
-            key: 'nav-prevent-tests',
-            label: t('Tests'),
-            to: `${prefix}/prevent/tests/`,
-          },
-        ]
-      : []),
+    {
+      key: 'nav-prevent-coverage',
+      label: t('Coverage'),
+      to: `${prefix}/prevent/coverage/commits/`,
+      hidden: !organization.features.includes('codecov-ui'),
+    },
+    {
+      key: 'nav-prevent-tests',
+      label: t('Tests'),
+      to: `${prefix}/prevent/tests/`,
+      hidden: !organization.features.includes('prevent-test-analytics'),
+    },
     {
       key: 'nav-prevent-ai-code-review',
       label: t('AI Code Review'),
       to: `${prefix}/prevent/ai-code-review/new/`,
     },
-    ...(organization.features.includes('prevent-test-analytics')
-      ? [
-          {
-            key: 'nav-prevent-tokens',
-            label: t('Tokens'),
-            to: `${prefix}/prevent/tokens/`,
-          },
-        ]
-      : []),
+    {
+      key: 'nav-prevent-tokens',
+      label: t('Tokens'),
+      to: `${prefix}/prevent/tokens/`,
+      hidden: !organization.features.includes('prevent-test-analytics'),
+    },
   ];
 
   return [
     {
       key: 'nav-issues',
-      section: GlobalActionSection.NAVIGATE,
+      groupingKey: 'navigate',
       label: t('Issues'),
-      actionIcon: <IconIssues />,
+      icon: <IconIssues />,
       to: `${prefix}/issues/`,
       children: issuesChildren,
     },
     {
       key: 'nav-explore',
-      section: GlobalActionSection.NAVIGATE,
+      groupingKey: 'navigate',
       label: t('Explore'),
-      actionIcon: <IconCompass />,
+      icon: <IconCompass />,
       to: `${prefix}/explore/${exploreDefault}/`,
       children: exploreChildren,
     },
     {
       key: 'nav-dashboards',
-      section: GlobalActionSection.NAVIGATE,
+      groupingKey: 'navigate',
       label: t('Dashboards'),
-      actionIcon: <IconDashboard />,
+      icon: <IconDashboard />,
       to: `${prefix}/dashboards/`,
       children: dashboardsChildren,
     },
-    ...(organization.features.includes('performance-view')
-      ? [
-          {
-            key: 'nav-insights',
-            section: GlobalActionSection.NAVIGATE,
-            label: t('Insights'),
-            actionIcon: <IconGraph type="area" />,
-            to: `${prefix}/insights/`,
-            children: insightsChildren,
-          },
-        ]
-      : []),
-    ...(organization.features.includes('prevent-ai')
-      ? [
-          {
-            key: 'nav-prevent',
-            section: GlobalActionSection.NAVIGATE,
-            label: t('Prevent'),
-            actionIcon: <IconPrevent />,
-            to: `${prefix}/prevent/prevent-ai/new/`,
-            children: preventChildren,
-          },
-        ]
-      : []),
+    {
+      key: 'nav-insights',
+      groupingKey: 'navigate',
+      label: t('Insights'),
+      icon: <IconGraph type="area" />,
+      to: `${prefix}/insights/`,
+      children: insightsChildren,
+      hidden: !organization.features.includes('performance-view'),
+    },
+    {
+      key: 'nav-prevent',
+      groupingKey: 'navigate',
+      label: t('Prevent'),
+      icon: <IconPrevent />,
+      to: `${prefix}/prevent/prevent-ai/new/`,
+      children: preventChildren,
+      hidden: !organization.features.includes('prevent-ai'),
+    },
     {
       key: 'nav-settings',
-      section: GlobalActionSection.NAVIGATE,
+      groupingKey: 'navigate',
       label: t('Settings'),
-      actionIcon: <IconSettings />,
+      icon: <IconSettings />,
       to: `/settings/${slug}/`,
     },
   ];
 }
 
-function useNavigationToggleCollapsed() {
+function useNavigationToggleCollapsed(): CommandPaletteAction {
   const {isCollapsed, setIsCollapsed} = useNavContext();
 
   return {
     key: 'toggle-navigation-collapsed',
-    section: GlobalActionSection.OTHER,
     label: isCollapsed
       ? t('Expand Navigation Sidebar')
       : t('Collapse Navigation Sidebar'),
-    actionIcon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
+    icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
     onAction: () => {
       setIsCollapsed(!isCollapsed);
     },
@@ -286,52 +252,51 @@ export function useGlobalCommandPaletteActions() {
 
   useCommandPaletteActions([
     ...navigateActions,
-    // Add (create new entitty)
     {
       key: 'add-dashboard',
-      section: GlobalActionSection.ADD,
+      groupingKey: 'add',
       label: t('Create Dashboard'),
       icon: <IconAdd />,
       to: `${navPrefix}/dashboards/new/`,
     },
     {
       key: 'add-alert',
-      section: GlobalActionSection.ADD,
+      groupingKey: 'add',
       label: t('Create Alert'),
       icon: <IconAdd />,
       to: `${navPrefix}/issues/alerts/wizard/`,
     },
     {
       key: 'add-project',
-      section: GlobalActionSection.ADD,
+      groupingKey: 'add',
       label: t('Create Project'),
       icon: <IconAdd />,
       to: `${navPrefix}/projects/new/`,
     },
     {
       key: 'add-invite-members',
-      section: GlobalActionSection.ADD,
+      groupingKey: 'add',
       label: t('Invite Members'),
       icon: <IconUser />,
       onAction: () => openInviteMembersModal(),
     },
     {
       key: 'help-docs',
-      section: GlobalActionSection.HELP,
+      groupingKey: 'help',
       label: t('Open Documentation'),
       icon: <IconDocs />,
       onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
     },
     {
       key: 'help-discord',
-      section: GlobalActionSection.HELP,
+      groupingKey: 'help',
       label: t('Join Discord'),
       icon: <IconDiscord />,
       onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
     },
     {
       key: 'help-github',
-      section: GlobalActionSection.HELP,
+      groupingKey: 'help',
       label: t('Open GitHub Repository'),
       icon: <IconGithub />,
       onAction: () =>
@@ -339,7 +304,7 @@ export function useGlobalCommandPaletteActions() {
     },
     {
       key: 'help-changelog',
-      section: GlobalActionSection.HELP,
+      groupingKey: 'help',
       label: t('View Changelog'),
       icon: <IconOpen />,
       onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
@@ -347,7 +312,6 @@ export function useGlobalCommandPaletteActions() {
     navigationToggleAction,
     {
       key: 'account-theme-preference',
-      section: GlobalActionSection.OTHER,
       label: t('Change Color Theme'),
       icon: <IconSettings />,
       children: [

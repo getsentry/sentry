@@ -1,6 +1,8 @@
 import type {ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
+export type CommandPaletteGroupKey = 'navigate' | 'add' | 'help';
+
 export type CommandPaletteAction = {
   /** Unique identifier for this action */
   key: string;
@@ -10,6 +12,10 @@ export type CommandPaletteAction = {
   children?: CommandPaletteAction[];
   /** Additional context or description */
   details?: string;
+  /** Section to group the action in the palette */
+  groupingKey?: CommandPaletteGroupKey;
+  /** Whether this action should be hidden from the palette */
+  hidden?: boolean;
   /** Icon to render for this action */
   icon?: ReactNode;
   /** Whether this action should keep the modal open after execution */
@@ -21,8 +27,6 @@ export type CommandPaletteAction = {
    * Use the `to` prop if you want to navigate to a route.
    */
   onAction?: () => void;
-  /** Section to group the action in the palette */
-  section?: string;
   /** Navigate to a route when selected */
   to?: LocationDescriptor;
 };

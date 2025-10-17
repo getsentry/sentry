@@ -48,7 +48,7 @@ export function CommandPaletteContent() {
     // Group by section label
     const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
     for (const action of actions) {
-      const sectionLabel = action.section ?? '';
+      const sectionLabel = action.groupingKey ?? '';
       const list = itemsBySection.get(sectionLabel) ?? [];
       list.push(actionToMenuItem(action));
       itemsBySection.set(sectionLabel, list);

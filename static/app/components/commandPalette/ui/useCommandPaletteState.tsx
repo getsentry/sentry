@@ -35,6 +35,10 @@ function flattenActions(
   const flattened: CommandPaletteActionWithPriority[] = [];
 
   for (const action of actions) {
+    if (action.hidden) {
+      continue;
+    }
+
     // For child actions, prefix with parent label
     if (parentLabel) {
       flattened.push({
