@@ -61,22 +61,25 @@ exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {${
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+    tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
     }),
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry Serverless SDK as a dependency to your [code:package.json]:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
-          language: 'json',
-          configurations: getInstallConfig(params, {
+          type: 'text',
+          text: tct(
+            'Add the Sentry Serverless SDK as a dependency to your [code:package.json]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: getInstallConfig(params, {
             basePackage: '@sentry/google-cloud-serverless',
-          }),
+          })[0]!.code,
         },
       ],
     },
@@ -84,14 +87,16 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements. Then, use the Sentry SDK to wrap your functions:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements. Then, use the Sentry SDK to wrap your functions:',
+            {code: <code />}
+          ),
+        },
         {
+          type: 'code',
           language: 'javascript',
           code: getSdkSetupSnippet(params),
         },
@@ -106,11 +111,15 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: getVerifySnippet(params),
         },
@@ -141,9 +150,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

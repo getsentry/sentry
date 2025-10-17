@@ -20,11 +20,13 @@ import {
   OnDemandBudgetMode,
   type OnDemandBudgets,
   type Plan,
+  type Subscription,
 } from 'getsentry/types';
 import {
   displayBudgetName,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
+  isAm1Plan,
   isAm2Plan,
 } from 'getsentry/utils/billing';
 import {
@@ -46,7 +48,7 @@ type PartialSpendLimitUpdate = Partial<Record<DataCategory, number>> & {
   sharedMaxBudget?: number;
 };
 
-interface SpendLimitSettingsProps {
+export interface SpendLimitSettingsProps {
   activePlan: Plan;
   addOns: Partial<Record<AddOnCategory, {enabled: boolean}>>;
   currentReserved: Partial<Record<DataCategory, number>>;
@@ -54,6 +56,7 @@ interface SpendLimitSettingsProps {
   onDemandBudgets: OnDemandBudgets;
   onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
   organization: Organization;
+  subscription: Subscription;
   footer?: React.ReactNode;
   isOpen?: boolean;
 }
@@ -61,10 +64,11 @@ interface SpendLimitSettingsProps {
 interface BudgetModeSettingsProps
   extends Omit<
     SpendLimitSettingsProps,
-    'header' | 'currentReserved' | 'organization' | 'addOns'
+    'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
   > {}
 
-interface InnerSpendLimitSettingsProps extends Omit<SpendLimitSettingsProps, 'header'> {}
+interface InnerSpendLimitSettingsProps
+  extends Omit<SpendLimitSettingsProps, 'header' | 'subscription'> {}
 
 interface SharedSpendLimitPriceTableProps
   extends Pick<
@@ -169,7 +173,7 @@ function SharedSpendLimitPriceTableRow({children}: {children: React.ReactNode}) 
   );
 }
 
-function SharedSpendLimitPriceTable({
+export function SharedSpendLimitPriceTable({
   activePlan,
   currentReserved,
   organization,
@@ -181,6 +185,7 @@ function SharedSpendLimitPriceTable({
   const baseCategories = activePlan.onDemandCategories.filter(
     category => !addOnDataCategories.includes(category)
   );
+  const isLegacy = isAm2Plan(activePlan.id) || isAm1Plan(activePlan.id);
 
   return (
     <Flex
@@ -191,7 +196,13 @@ function SharedSpendLimitPriceTable({
       radius="md"
       padding="lg xl"
     >
-      <Grid gap="lg" columns={{xs: '1fr', md: 'repeat(2, 1fr)'}}>
+      <Grid
+        gap="lg"
+        columns={
+          // legacy plans need more space because of the longer product names (transactions, performance units)
+          isLegacy ? {xs: '1fr', xl: 'repeat(2, 1fr)'} : {xs: '1fr', md: 'repeat(2, 1fr)'}
+        }
+      >
         {baseCategories.map(category => {
           // pre-AM3 specific behavior
           const showPerformanceUnits =
@@ -369,7 +380,8 @@ function InnerSpendLimitSettings({
 
   const getPerCategoryWarning = (productName: string) => {
     return (
-      <Flex gap="xs" align="center">
+      // hardcoded height to match the input height so that all rows have the same height
+      <Flex gap="xs" height="36px" align="center">
         <IconWarning size="sm" />
         <Text variant="muted" size="sm">
           {tct(
@@ -433,7 +445,7 @@ function InnerSpendLimitSettings({
                 padding="lg 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
-                <Flex gap="xs" align="center">
+                <Flex gap="xs" align="center" flexGrow={1}>
                   <Text bold>{upperFirst(pluralName)}</Text>
                   {showPerformanceUnits
                     ? renderPerformanceHovercard()
@@ -444,7 +456,7 @@ function InnerSpendLimitSettings({
                           size="xs"
                         />
                       )}
-                  <Text variant="muted">
+                  <Text variant="muted" wrap="nowrap">
                     {reserved === 0
                       ? t('None included')
                       : tct('[reserved] included', {
@@ -508,7 +520,7 @@ function InnerSpendLimitSettings({
                 padding="xl 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
-                <Flex gap="xs" align="center">
+                <Flex gap="xs" align="center" flexGrow={1}>
                   <Text bold>{upperFirst(addOnInfo.productName)}</Text>
                   {tooltipText && (
                     <QuestionTooltip title={tooltipText} position="top" size="xs" />
@@ -593,7 +605,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns="repeat(2, 1fr)" gap="xl">
+    <Grid columns={{xs: '1fr', md: 'repeat(2, 1fr)'}} gap="xl">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -645,6 +657,7 @@ function SpendLimitSettings({
   addOns,
   footer,
   organization,
+  subscription,
 }: SpendLimitSettingsProps) {
   return (
     <Flex direction="column" gap="sm">
@@ -653,12 +666,17 @@ function SpendLimitSettings({
         <Grid gap="2xl">
           <Text variant="muted">
             {tct(
-              "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.",
+              "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.[partnerMessage]",
               {
                 budgetTerm:
                   activePlan.budgetTerm === 'pay-as-you-go'
                     ? `${displayBudgetName(activePlan, {title: true})} (PAYG)`
                     : displayBudgetName(activePlan, {title: true}),
+                partnerMessage: subscription.isSelfServePartner
+                  ? tct(' This will be part of your [partnerName] bill.', {
+                      partnerName: subscription.partner?.partnership.displayName,
+                    })
+                  : '',
               }
             )}
           </Text>
@@ -703,7 +721,11 @@ const InnerContainer = styled(Flex)`
 
 const StyledInput = styled(Input)`
   padding-left: ${p => p.theme.space['3xl']};
-  width: 344px;
+  width: 100px;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    width: 344px;
+  }
 `;
 
 const Currency = styled('div')`

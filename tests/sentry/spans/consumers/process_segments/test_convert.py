@@ -1,11 +1,12 @@
 from typing import cast
 
+import orjson
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
 
-from sentry.spans.consumers.process_segments.convert import convert_span_to_item
+from sentry.spans.consumers.process_segments.convert import RENAME_ATTRIBUTES, convert_span_to_item
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
 
 ###############################################
@@ -25,6 +26,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
         "my.neg.float.field": {"value": -101.2, "type": "double"},
         "my.true.bool.field": {"value": True, "type": "boolean"},
         "my.u64.field": {"value": 9447000002305251000, "type": "integer"},
+        "my.invalid.field": None,
         "num_of_spans": {"value": 50.0, "type": "string"},
         "relay_endpoint_version": {"value": "3", "type": "string"},
         "relay_id": {"value": "88888888-4444-4444-8444-cccccccccccc", "type": "string"},
@@ -75,6 +77,13 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
     "end_timestamp": 1721319572.768806,
     "name": "endpoint",
     "status": "ok",
+    "_meta": {
+        "attributes": {
+            "my.invalid.field": {
+                "": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}
+            }
+        }
+    },
 }
 
 
@@ -150,12 +159,15 @@ def test_convert_span_to_item() -> None:
         "spans_over_limit": AnyValue(string_value="False"),
         "thread.id": AnyValue(string_value="8522009600"),
         "thread.name": AnyValue(string_value="uWSGIWorker1Core0"),
+        "sentry._meta.fields.attributes.my.invalid.field": AnyValue(
+            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"string","value":true}}}}"""
+        ),
     }
 
 
 def test_convert_falsy_fields() -> None:
     message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
-    message["attributes"]["sentry.is_segment"] = {"type": "boolean", "value": False}
+    message["attributes"]["sentry.is_segment"] = {"type": "boolean", "value": False}  # type: ignore[index]
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
@@ -190,4 +202,20 @@ def test_convert_span_links_to_json() -> None:
 
     assert item.attributes.get("sentry.links") == AnyValue(
         string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":{"type":"string","value":"parent"},"sentry.dropped_attributes_count":{"type":"integer","value":4}}},{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"873a988879faf06d"}]'
+    )
+
+
+def test_convert_renamed_attribute_meta() -> None:
+    # precondition: make sure we're testing a renamed field
+    assert "sentry.description" in RENAME_ATTRIBUTES
+
+    message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
+    description_meta = {"": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}}
+    message["_meta"]["attributes"]["sentry.description"] = description_meta
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert "sentry._meta.fields.attributes.sentry.description" not in item.attributes
+    assert item.attributes.get("sentry._meta.fields.attributes.sentry.raw_description") == AnyValue(
+        string_value=orjson.dumps({"meta": description_meta}).decode()
     )

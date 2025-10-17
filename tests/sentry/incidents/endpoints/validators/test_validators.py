@@ -1,8 +1,13 @@
 from unittest import mock
 
+import orjson
+import pytest
 from rest_framework.exceptions import ErrorDetail, ValidationError
+from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
+from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import (
@@ -12,10 +17,12 @@ from sentry.incidents.metric_issue_detector import (
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
+from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
+    StoreDataResponse,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -31,6 +38,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidatorTest
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
@@ -157,6 +166,30 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
+        self.valid_anomaly_detection_data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.ANOMALY_DETECTION,
+                        "comparison": {
+                            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                            "seasonality": AnomalyDetectionSeasonality.AUTO,
+                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+                        },
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+            },
+        }
 
     def assert_validated(self, detector):
         detector = Detector.objects.get(id=detector.id)
@@ -225,34 +258,18 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
         mock_schedule_update_project_config.assert_called_once_with(detector)
 
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_anomaly_detection(self, mock_audit: mock.MagicMock) -> None:
-        data = {
-            **self.valid_data,
-            "conditionGroup": {
-                "id": self.data_condition_group.id,
-                "organizationId": self.organization.id,
-                "logicType": self.data_condition_group.logic_type,
-                "conditions": [
-                    {
-                        "type": Condition.ANOMALY_DETECTION,
-                        "comparison": {
-                            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-                            "seasonality": AnomalyDetectionSeasonality.AUTO,
-                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-                        },
-                        "conditionResult": DetectorPriorityLevel.HIGH,
-                        "conditionGroupId": self.data_condition_group.id,
-                    },
-                ],
-            },
-            "config": {
-                "threshold_period": 1,
-                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-            },
-        }
+    def test_anomaly_detection(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
         validator = MetricIssueDetectorValidator(
-            data=data,
+            data=self.valid_anomaly_detection_data,
             context=self.context,
         )
         assert validator.is_valid(), validator.errors
@@ -262,6 +279,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         # Verify detector in DB
         self.assert_validated(detector)
+
+        assert mock_seer_request.call_count == 1
 
         # Verify condition group in DB
         condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
@@ -320,6 +339,52 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             context=self.context,
         )
         assert not validator.is_valid()
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection__send_historical_data_fails(
+        self, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that if the call to Seer fails that we do not create the detector, dcg, and data condition
+        """
+        from django.core.exceptions import ValidationError
+
+        mock_seer_request.side_effect = TimeoutError
+
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        DataConditionGroup.objects.all().delete()
+
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        detector = None
+        with self.tasks(), pytest.raises(ValidationError):
+            detector = validator.save()
+
+        assert not detector
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        assert DataConditionGroup.objects.all().count() == 0
+
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks(), pytest.raises(ValidationError):
+            detector = validator.save()
+
+        assert not detector
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        assert DataConditionGroup.objects.all().count() == 0
 
     def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
@@ -411,3 +476,137 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             expected_message="Used 1/1 of allowed metric_issue monitors.",
         ):
             validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    def test_transaction_dataset_deprecation_transactions(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSource": {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.Transactions.value,
+                "query": "test query",
+                "aggregate": "count()",
+                "timeWindow": 3600,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+        ):
+            validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    @with_feature("organizations:mep-rollout-flag")
+    def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSource": {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+                "query": "test query",
+                "aggregate": "count()",
+                "timeWindow": 3600,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+        ):
+            validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    def test_transaction_dataset_deprecation_multiple_data_sources(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                },
+            ],
+        }
+        data.pop("dataSource", None)
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+        ):
+            validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    def test_update_allowed_even_with_deprecated_dataset(self) -> None:
+        # Updates should be allowed even when the feature flag is enabled
+        # The deprecation only applies to creation, not updates
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        # Update other fields (like name) should work fine
+        update_data = {
+            "name": "Updated Detector Name",
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        updated_detector = update_validator.save()
+        assert updated_detector.name == "Updated Detector Name"
+
+    @with_feature("organizations:mep-rollout-flag")
+    def test_transaction_dataset_deprecation_generic_metrics_update(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                },
+            ],
+        }
+        data.pop("dataSource", None)
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        update_data = {
+            "dataSource": {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+                "query": "updated query",
+                "aggregate": "count()",
+                "timeWindow": 3600,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            },
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with (
+            self.assertRaisesMessage(
+                ValidationError,
+                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+            ),
+            with_feature("organizations:discover-saved-queries-deprecation"),
+        ):
+            update_validator.save()

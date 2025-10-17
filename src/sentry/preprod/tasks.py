@@ -35,6 +35,7 @@ from sentry.tasks.assemble import (
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -446,13 +447,35 @@ def _assemble_preprod_artifact_size_analysis(
 
         # Re-raise to trigger further error handling if needed
         raise
+    finally:
+        time_now = timezone.now()
+        e2e_size_analysis_duration = time_now - preprod_artifact.date_added
+        artifact_type_name = "unknown"
+        if preprod_artifact.artifact_type is not None:
+            try:
+                artifact_type_name = PreprodArtifact.ArtifactType(
+                    preprod_artifact.artifact_type
+                ).name.lower()
+            except (ValueError, AttributeError):
+                artifact_type_name = "unknown"
 
-    # Always trigger status check update (success or failure)
-    create_preprod_status_check_task.apply_async(
-        kwargs={
-            "preprod_artifact_id": artifact_id,
-        }
-    )
+        metrics.distribution(
+            "preprod.size_analysis.results_e2e",
+            e2e_size_analysis_duration.total_seconds(),
+            sample_rate=1.0,
+            tags={
+                "project_id": project.id,
+                "organization_id": org_id,
+                "artifact_type": artifact_type_name,
+            },
+        )
+
+        # Always trigger status check update (success or failure)
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+            }
+        )
 
     # Trigger size analysis comparison if eligible
     compare_preprod_artifact_size_analysis.apply_async(

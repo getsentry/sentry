@@ -24,10 +24,9 @@ import {
   hasAccessToSubscriptionOverview,
   hasNewBillingUI,
   hasPartnerMigrationFeature,
-  hasPerformance,
-  isBizPlanFamily,
 } from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
+import PaymentFailureAlert from 'getsentry/views/subscriptionPage/components/paymentFailureAlert';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
 
 import HeaderCards from './headerCards/headerCards';
@@ -264,6 +263,7 @@ function BodyWithBillingPerms({
       {subscription.pendingChanges ? (
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
+      <PaymentFailureAlert subscription={subscription} organization={organization} />
       <TrialAlert subscription={subscription} organization={organization} />
       {hasPartnerMigrationFeature(organization) && (
         <PartnerPlanEndingBanner
@@ -285,15 +285,6 @@ function BodyWithoutBillingPerms({
   subscription: Subscription;
 }) {
   const isNewBillingUI = hasNewBillingUI(organization);
-
-  // if a current tier self serve business plan, we have nothing to render in this section
-  if (
-    isBizPlanFamily(subscription?.planDetails) &&
-    hasPerformance(subscription.planDetails) &&
-    subscription.canSelfServe
-  ) {
-    return null;
-  }
   return (
     <Fragment>
       <TrialAlert subscription={subscription} organization={organization} />

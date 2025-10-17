@@ -17,7 +17,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
-from sentry.uptime.detectors.url_extraction import extract_domain_parts
+from sentry.uptime.autodetect.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -92,6 +92,7 @@ def check_uptime_subscription_limit(organization_id: int) -> None:
     """
     manual_subscription_count = Detector.objects.filter(
         status=ObjectStatus.ACTIVE,
+        enabled=True,
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization_id=organization_id,
         config__mode=UptimeMonitorMode.MANUAL,

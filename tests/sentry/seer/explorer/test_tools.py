@@ -1,12 +1,20 @@
+import uuid
+from datetime import timedelta
+
 import pytest
 
-from sentry.seer.explorer.tools import execute_trace_query_chart, execute_trace_query_table
+from sentry.seer.explorer.tools import (
+    execute_trace_query_chart,
+    execute_trace_query_table,
+    get_trace_waterfall,
+)
+from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
 @pytest.mark.django_db(databases=["default", "control"])
-class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     databases = {"default", "control"}
 
     def setUp(self):
@@ -258,10 +266,20 @@ class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Should have different span.op values like "db", "http.client", etc.
         assert len(result) > 0
 
-        # Each group should have the metric
+        # Each group should have the metric wrapped in normalized format
+        # Format: {"group_value": {"count()": {"data": [...]}}}
         for group_value, metrics in result.items():
-            if isinstance(metrics, dict) and "count()" in metrics:
-                assert "data" in metrics["count()"]
+            assert isinstance(
+                metrics, dict
+            ), f"Expected dict for {group_value}, got {type(metrics)}"
+            assert (
+                "count()" in metrics
+            ), f"Missing count() in metrics for {group_value}: {metrics.keys()}"
+            assert "data" in metrics["count()"], f"Missing data in count() for {group_value}"
+
+            # Verify we can get actual count data
+            data_points = metrics["count()"]["data"]
+            assert isinstance(data_points, list)
 
     def test_execute_trace_query_table_with_groupby(self):
         """Test table query with group_by for aggregates mode"""
@@ -273,6 +291,7 @@ class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             group_by=["span.op"],
             y_axes=["count()"],
             per_page=10,
+            mode="aggregates",
         )
 
         assert result is not None
@@ -288,6 +307,57 @@ class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             assert "span.op" in row
             assert "count()" in row
 
+    def test_execute_trace_query_table_aggregates_mode_basic(self):
+        """Test table query in aggregates mode without group_by"""
+        result = execute_trace_query_table(
+            org_id=self.organization.id,
+            query="",
+            stats_period="1h",
+            sort="-count()",
+            y_axes=["count()", "avg(span.duration)"],
+            per_page=10,
+            mode="aggregates",
+        )
+
+        assert result is not None
+        assert "data" in result
+        assert "meta" in result
+
+        rows = result["data"]
+        # Should have aggregate results
+        assert len(rows) > 0
+
+        # Each row should have the aggregate functions
+        for row in rows:
+            assert "count()" in row
+            assert "avg(span.duration)" in row
+
+    def test_execute_trace_query_table_aggregates_mode_multiple_functions(self):
+        """Test table query in aggregates mode with multiple aggregate functions"""
+        result = execute_trace_query_table(
+            org_id=self.organization.id,
+            query="span.op:db",  # Filter to only database operations
+            stats_period="1h",
+            sort="-sum(span.duration)",
+            y_axes=["count()", "sum(span.duration)", "avg(span.duration)"],
+            per_page=10,
+            mode="aggregates",
+        )
+
+        assert result is not None
+        assert "data" in result
+        assert "meta" in result
+
+        rows = result["data"]
+        # Should have aggregate results for database spans
+        assert len(rows) > 0
+
+        # Each row should have all the aggregate functions
+        for row in rows:
+            assert "count()" in row
+            assert "sum(span.duration)" in row
+            assert "avg(span.duration)" in row
+
     def test_get_organization_project_ids(self):
         """Test the get_organization_project_ids RPC method"""
         from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
@@ -301,3 +371,105 @@ class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
         assert result == {"project_ids": []}
+
+
+class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.ten_mins_ago = before_now(minutes=10)
+
+    def _test_get_trace_waterfall(self, use_short_id: bool) -> None:
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        spans: list[dict] = []
+        for i in range(5):
+            # Create a span tree for this trace
+            span = self.create_span(
+                {
+                    **({"description": f"span-{i}"} if i != 4 else {}),
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": (None if i == 0 else spans[i // 2]["span_id"]),
+                    "is_segment": i == 0,  # First span is the root
+                },
+                start_ts=self.ten_mins_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+        result = get_trace_waterfall(
+            trace_id[:8] if use_short_id else trace_id, self.organization.id
+        )
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+        seen_span_ids = []
+        root_span_ids = []
+
+        def check_span(s):
+            if "parent_span_id" not in s:
+                # Not a span.
+                return
+
+            # Basic assertions and ID collection for returned spans.
+            assert "op" in s
+            assert "description" in s
+            assert "children" in s
+            assert s["transaction"] == transaction_name
+            assert s["project_id"] == self.project.id
+
+            desc = s["description"]
+            assert isinstance(desc, str)
+            if desc:
+                assert desc.startswith("span-")
+
+            seen_span_ids.append(s["event_id"])
+
+            # Is root
+            if s["parent_span_id"] is None:
+                assert s["is_transaction"]
+                root_span_ids.append(s["event_id"])
+
+            # Recurse
+            for child in s["children"]:
+                check_span(child)
+
+        for event in result.trace:
+            check_span(event)
+
+        assert set(seen_span_ids) == {s["span_id"] for s in spans}
+        assert len(root_span_ids) == 1
+
+    def test_get_trace_waterfall_short_id(self) -> None:
+        self._test_get_trace_waterfall(use_short_id=True)
+
+    def test_get_trace_waterfall_full_id(self) -> None:
+        self._test_get_trace_waterfall(use_short_id=False)
+
+    def test_get_trace_waterfall_wrong_project(self) -> None:
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        spans: list[dict] = []
+        for i in range(2):
+            span = self.create_span(
+                {
+                    "project_id": other_project.id,
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=self.ten_mins_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Call with short ID and wrong org
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert result is None
