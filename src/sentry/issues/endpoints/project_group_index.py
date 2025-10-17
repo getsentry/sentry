@@ -1,6 +1,6 @@
 import functools
 import logging
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from drf_spectacular.types import OpenApiTypes
@@ -56,7 +56,7 @@ ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hashes' with 'query'"
 logger = logging.getLogger(__name__)
 
 
-class ProjectGroupIndexMutateRequestSerializer(serializers.Serializer):
+class ProjectGroupIndexMutateRequestSerializer(serializers.Serializer[dict[str, Any]]):
     status = serializers.CharField(
         help_text='The new status for the issues. Valid values are `"resolved"`, `"resolvedInNextRelease"`, `"unresolved"`, and `"ignored"`.',
         required=False,
@@ -94,7 +94,7 @@ class ProjectGroupIndexMutateRequestSerializer(serializers.Serializer):
 class ProjectGroupIndexMutateResponse(TypedDict):
     isPublic: bool
     status: Literal["resolved", "unresolved", "ignored"]
-    statusDetails: dict
+    statusDetails: dict[str, Any]
 
 
 @extend_schema(tags=["Events"])

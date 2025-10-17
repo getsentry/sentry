@@ -3,7 +3,10 @@ from datetime import datetime
 from drf_spectacular.utils import OpenApiExample
 
 from sentry.api.helpers.group_index.types import MutateIssueResponse
-from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
+from sentry.api.serializers.models.group_stream import (
+    StreamGroupSerializerResponse,
+    StreamGroupSerializerSnubaResponse,
+)
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
@@ -145,6 +148,89 @@ MUTATE_ISSUE_RESULT: MutateIssueResponse = {
     "substatus": "archived_until_condition_met",
 }
 
+PROJECT_GROUP_INDEX_ISSUE: StreamGroupSerializerResponse = {
+    "annotations": [],
+    "assignedTo": {
+        "id": "1",
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "username": "john.doe",
+        "avatarUrl": "https://example.com/avatar.png",
+        "isActive": True,
+        "hasPasswordAuth": True,
+        "isManaged": False,
+        "dateJoined": datetime.fromisoformat("2018-11-06T21:19:55+00:00"),
+        "lastLogin": datetime.fromisoformat("2018-11-06T21:19:55+00:00"),
+        "has2fa": False,
+        "lastActive": datetime.fromisoformat("2018-11-06T21:19:55+00:00"),
+        "isSuperuser": False,
+        "isStaff": False,
+        "experiments": {},
+        "emails": [],
+    },
+    "count": "1",
+    "culprit": "raven.scripts.runner in main",
+    "firstSeen": datetime.fromisoformat("2018-11-06T21:19:55+00:00"),
+    "hasSeen": False,
+    "id": "1",
+    "isBookmarked": False,
+    "isPublic": False,
+    "isSubscribed": True,
+    "lastSeen": datetime.fromisoformat("2018-11-06T21:19:55+00:00"),
+    "level": "error",
+    "logger": None,
+    "metadata": {"title": "This is an example Python exception"},
+    "numComments": 0,
+    "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
+    "project": {"id": "2", "name": "Pump Station", "slug": "pump-station", "platform": "python"},
+    "shareId": "",
+    "shortId": "PUMP-STATION-1",
+    "stats": {
+        "24h": {
+            "24h": [
+                (1541455200, 473),
+                (1541458800, 914),
+                (1541462400, 991),
+                (1541466000, 925),
+                (1541469600, 881),
+                (1541473200, 182),
+                (1541476800, 490),
+                (1541480400, 820),
+                (1541484000, 322),
+                (1541487600, 836),
+                (1541491200, 565),
+                (1541494800, 758),
+                (1541498400, 880),
+                (1541502000, 677),
+                (1541505600, 381),
+                (1541509200, 814),
+                (1541512800, 329),
+                (1541516400, 446),
+                (1541520000, 731),
+                (1541523600, 111),
+                (1541527200, 926),
+                (1541530800, 772),
+                (1541534400, 400),
+                (1541538000, 943),
+            ]
+        }
+    },
+    "status": "unresolved",
+    "statusDetails": {},
+    "subscriptionDetails": None,
+    "title": "This is an example Python exception",
+    "type": "default",
+    "userCount": 0,
+    "issueType": "error",
+    "issueCategory": "error",
+    "platform": "python",
+    "priority": None,
+    "priorityLockedAt": None,
+    "seerAutofixLastTriggered": None,
+    "seerFixabilityScore": None,
+    "substatus": None,
+}
+
 
 class IssueExamples:
     ORGANIZATION_GROUP_INDEX_GET = [
@@ -166,7 +252,7 @@ class IssueExamples:
     PROJECT_GROUP_INDEX_GET = [
         OpenApiExample(
             "Return a list of issues for a project",
-            value=[SIMPLE_ISSUE],
+            value=[PROJECT_GROUP_INDEX_ISSUE],
             response_only=True,
             status_codes=["200"],
         )
