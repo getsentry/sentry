@@ -9,6 +9,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {
   ProfilingContextMenu,
@@ -17,8 +18,13 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {
+  isMDXStory,
+  useStoriesLoader,
+  useStoryBookFiles,
+} from 'sentry/stories/view/useStoriesLoader';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -298,6 +304,19 @@ export function SentryComponentInspector() {
     [contextMenuRef]
   );
 
+  const storybookFiles = useStoryBookFiles();
+  const storybookFilesLookup = useMemo(
+    () =>
+      storybookFiles.reduce(
+        (acc, file) => {
+          acc[file] = file;
+          return acc;
+        },
+        {} as Record<string, string>
+      ),
+    [storybookFiles]
+  );
+
   if (NODE_ENV !== 'development' || !user?.isSuperuser) {
     return null;
   }
@@ -332,10 +351,15 @@ export function SentryComponentInspector() {
                         <Text size="sm" bold monospace>
                           {getComponentName(el)}
                         </Text>
-                        <ComponentTag el={el} />
+                        <Flex direction="row" gap="xs" align="center">
+                          {getComponentStorybookFile(el, storybookFilesLookup) ? (
+                            <IconDocs size="xs" />
+                          ) : null}
+                          <ComponentTag el={el} />
+                        </Flex>
                       </Flex>
                       <Text size="xs" variant="muted" ellipsis monospace>
-                        ...
+                        .../
                         {getSourcePath(el)}
                       </Text>
                     </Fragment>
@@ -387,6 +411,7 @@ export function SentryComponentInspector() {
                           componentName={componentName}
                           sourcePath={sourcePath}
                           el={el}
+                          storybook={getComponentStorybookFile(el, storybookFilesLookup)}
                           onAction={() => {
                             contextMenu.setOpen(false);
                             setState(prev => ({
@@ -453,8 +478,19 @@ function MenuItem(props: {
   el: TraceElement;
   onAction: () => void;
   sourcePath: string;
+  storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
+  // Load story to check for Figma link if it's an MDX file
+  const storyQuery = useStoriesLoader({
+    files: props.storybook?.endsWith('.mdx') ? [props.storybook] : [],
+  });
+
+  const story = storyQuery.data?.[0];
+
+  const figmaLink =
+    story && isMDXStory(story) ? story.exports.frontmatter?.resources?.figma : null;
+
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -529,10 +565,13 @@ function MenuItem(props: {
               <Text size="sm" monospace bold>
                 {props.componentName}
               </Text>
-              <ComponentTag el={props.el} />
+              <Flex direction="row" gap="xs" align="center">
+                {props.storybook ? <IconDocs size="xs" /> : null}
+                <ComponentTag el={props.el} />
+              </Flex>
             </Flex>
             <Text size="xs" variant="muted" ellipsis align="left" monospace>
-              ...{props.sourcePath}
+              .../{props.sourcePath}
             </Text>
           </Stack>
           <Flex align="center" justify="center" paddingLeft="md">
@@ -552,6 +591,39 @@ function MenuItem(props: {
           >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
+              {props.storybook ? (
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: () => {
+                      window.open(`/stories/?name=${props.storybook}`, '_blank');
+                      props.onAction();
+                    },
+                  })}
+                  icon={<IconLink size="xs" />}
+                >
+                  {t('View Storybook')}
+                </ProfilingContextMenuItemButton>
+              ) : null}
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    if (figmaLink) {
+                      window.open(figmaLink, '_blank');
+                      props.onAction();
+                    }
+                  },
+                })}
+                disabled={storyQuery.isLoading || !figmaLink}
+                icon={
+                  storyQuery.isLoading ? (
+                    <LoadingIndicator mini size={12} />
+                  ) : (
+                    <IconOpen size="xs" />
+                  )
+                }
+              >
+                {t('Open in Figma')}
+              </ProfilingContextMenuItemButton>
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
@@ -646,7 +718,35 @@ function getComponentName(el: unknown): string {
 
 function getSourcePath(el: unknown): string {
   if (!isTraceElement(el)) return 'unknown path';
-  return el.dataset.sentrySourcePath?.split(/static/)[1] || 'unknown path';
+  return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
+}
+
+const getFileName = (path: string) => {
+  return (path.split('/').pop()?.toLowerCase() || '')
+    .replace(/\.stories\.tsx$/, '')
+    .replace(/\.tsx$/, '')
+    .replace(/\.mdx$/, '');
+};
+
+function getComponentStorybookFile(
+  el: unknown,
+  stories: Record<string, string>
+): string | null {
+  const sourcePath = getSourcePath(el);
+  if (!sourcePath) return null;
+
+  const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
+
+  if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
+    return mdxSourcePath;
+  }
+
+  const tsxSourcePath = sourcePath.replace(/\.tsx$/, '.stories.tsx');
+  if (stories[tsxSourcePath] && getFileName(tsxSourcePath) === getFileName(sourcePath)) {
+    return tsxSourcePath;
+  }
+
+  return stories[sourcePath] || null;
 }
 
 function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
