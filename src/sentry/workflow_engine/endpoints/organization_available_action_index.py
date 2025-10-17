@@ -19,7 +19,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.rules.actions.services import SentryAppService
+from sentry.rules.actions.services import PluginService, SentryAppService
 from sentry.sentry_apps.services.app import app_service
 from sentry.workflow_engine.endpoints.serializers.action_handler_serializer import (
     ActionHandlerSerializer,
@@ -130,18 +130,20 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             # service options include plugins and sentry apps without components
             elif action_type == Action.Type.WEBHOOK:
                 plugins = get_notification_plugins_for_org(organization)
+                sentry_apps: list[PluginService] = [
+                    SentryAppService(context.installation.sentry_app)
+                    for context in sentry_app_contexts_without_components
+                ]
+                available_services: list[PluginService] = plugins + sentry_apps
 
-                for context in sentry_app_contexts_without_components:
-                    plugins.append(SentryAppService(context.installation.sentry_app))
-
-                if plugins:
+                if available_services:
                     actions.append(
                         serialize(
                             handler,
                             request.user,
                             ActionHandlerSerializer(),
                             action_type=action_type,
-                            services=plugins,
+                            services=available_services,
                         )
                     )
 
