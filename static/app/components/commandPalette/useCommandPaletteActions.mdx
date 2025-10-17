@@ -1,0 +1,115 @@
+---
+title: useCommandPaletteActions
+description: Registers actions with the command palette
+source: 'sentry/components/commandPalette/useCommandPaletteActions'
+---
+
+import {Fragment} from 'react';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
+import {Flex, Stack} from 'sentry/components/core/layout';
+
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
+
+import * as Storybook from 'sentry/stories';
+
+export function RegisterActions({actions}) {
+  useCommandPaletteActions(actions);
+  return null;
+}
+
+export function CommandPaletteDemo() {
+  const demoActions = [
+    {
+      key: 'go-to-flex-story',
+      display: {label: 'Go to Flex story'},
+      to: '/stories/layout/flex/',
+      groupingKey: 'navigate',
+    },
+    {
+      key: 'action-1',
+      display: {label: 'Execute an action'},
+      groupingKey: 'help',
+      onAction: () => {
+        addSuccessMessage('Action executed');
+      },
+    },
+    {
+      key: 'parent-action',
+      groupingKey: 'add',
+      display: {label: 'Parent action'},
+      actions: [
+        {
+          key: 'child-action',
+          display: {label: 'Child action'},
+          onAction: () => {
+            addSuccessMessage('Child action executed');
+          },
+        },
+      ],
+    },
+  ];
+
+return (
+
+<Fragment>
+  <RegisterActions actions={demoActions} />
+  <Button onClick={() => openCommandPalette()}>Open Command Palette</Button>
+</Fragment>
+); }
+
+## Basic Usage
+
+Use `useCommandPaletteActions(actions)` inside your page or feature component to register contextual actions with the global command palette. Actions are registered on mount and automatically unregistered on unmount, so they only appear in the palette while your component is rendered. This is ideal for page‑specific shortcuts.
+
+There are a few different types of actions you can register:
+
+- **Navigation actions**: Provide a `to` destination to navigate when selected. Optionally set a `groupingKey` (e.g. `'navigate'`) to organize sections in the palette.
+- **Callback actions**: Provide an `onAction` handler to run logic when selected.
+- **Nested actions**: Provide an `actions: CommandPaletteAction[]` array on a parent item to show a second level. Selecting the parent reveals its children.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <CommandPaletteDemo />
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
+
+function YourComponent() {
+  useCommandPaletteActions([
+    {
+      key: 'go-to-input-story',
+      display: {label: 'Go to Input story'},
+      to: '/stories/core/input/',
+      groupingKey: 'navigate',
+    },
+    {
+      key: 'action-1',
+      display: {label: 'Execute an action'},
+      groupingKey: 'help',
+      onAction: () => {
+        addSuccessMessage('Action executed');
+      },
+    },
+    {
+      key: 'parent-action',
+      groupingKey: 'add',
+      display: {label: 'Parent action'},
+      actions: [
+        {
+          key: 'child-action',
+          display: {label: 'Child action'},
+          onAction: () => {
+            addSuccessMessage('Child action executed');
+          },
+        },
+      ],
+    },
+  ]);
+}
+```
