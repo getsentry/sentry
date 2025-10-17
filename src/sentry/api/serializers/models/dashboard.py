@@ -113,19 +113,31 @@ class DashboardWidgetSerializer(Serializer):
         urls = []
 
         for q_index, transaction_query in enumerate(transaction_queries):
-            spans_query, _ = translate_dashboard_widget_queries(
-                obj,
-                q_index,
-                transaction_query["name"],
-                transaction_query["fields"],
-                transaction_query["columns"],
-                transaction_query["aggregates"],
-                transaction_query["orderby"],
-                transaction_query["conditions"],
-                transaction_query["fieldAliases"],
-                transaction_query["isHidden"],
-                transaction_query["selectedAggregate"],
-            )
+            try:
+                spans_query, _ = translate_dashboard_widget_queries(
+                    obj,
+                    q_index,
+                    transaction_query["name"],
+                    transaction_query["fields"],
+                    transaction_query["columns"],
+                    transaction_query["aggregates"],
+                    transaction_query["orderby"],
+                    transaction_query["conditions"],
+                    transaction_query["fieldAliases"],
+                    transaction_query["isHidden"],
+                    transaction_query["selectedAggregate"],
+                )
+            except Exception:
+                query_params = {"referrer": "dashboards.widget-transaction-deprecation-warning"}
+                url = organization_absolute_url(
+                    has_customer_domain=has_customer_domain(),
+                    slug=obj.dashboard.organization.slug,
+                    path="/explore/traces/",
+                    query=urlencode(query_params, doseq=True),
+                )
+                urls.append(url)
+                continue
+
             aggregate_equation_fields = [
                 field for field in spans_query.fields if is_function(field) or is_equation(field)
             ]
@@ -293,7 +305,10 @@ class DashboardWidgetSerializer(Serializer):
             organization=obj.dashboard.organization,
             actor=user,
         ):
-            explore_urls = self.get_explore_urls(obj, attrs)
+            try:
+                explore_urls = self.get_explore_urls(obj, attrs)
+            except Exception:
+                explore_urls = None
 
         serialized_widget: DashboardWidgetResponse = {
             "id": str(obj.id),
