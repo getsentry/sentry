@@ -31,6 +31,7 @@ from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RAT
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -53,7 +54,7 @@ from sentry.integrations.source_code_management.language_parsers import (
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -235,7 +236,7 @@ class GitHubIntegration(
     comment_key = None
     outbound_status_key = None
     inbound_status_key = None
-    outbound_assignee_key = None
+    outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
@@ -410,8 +411,53 @@ class GitHubIntegration(
         Propagate a sentry issue's assignee to a linked GitHub issue's assignee.
         If assign=True, we're assigning the issue. Otherwise, deassign.
         """
-        # Not implemented yet
-        pass
+        client = self.get_client()
+
+        # Parse the external issue key to get repo and issue number
+        # Format is "{repo_full_name}#{issue_number}"
+        try:
+            repo, issue_num = external_issue.key.split("#")
+        except ValueError:
+            logger.exception(
+                "github.assignee-outbound.invalid-key",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "external_issue_key": external_issue.key,
+                    "external_issue_id": external_issue.id,
+                },
+            )
+            return
+
+        github_username = None
+
+        # If we're assigning and have a user, find their GitHub username
+        if user and assign:
+            # Check if user has a GitHub identity linked
+            external_actor = ExternalActor.objects.filter(
+                provider=ExternalProviders.GITHUB.value,
+                user_id=user.id,
+                integration_id=external_issue.integration_id,
+                organization=external_issue.organization,
+            ).first()
+            if not external_actor:
+                logger.info(
+                    "github.assignee-outbound.external-actor-not-found",
+                    extra={
+                        "integration_id": external_issue.integration_id,
+                        "user_id": user.id,
+                    },
+                )
+                return
+
+            # Strip the @ from the username
+            github_username = external_actor.external_name.lstrip("@")
+
+        # Only update GitHub if we have a username to assign or if we're explicitly deassigning
+        if github_username or not assign:
+            try:
+                client.update_issue(repo, issue_num, [github_username] if github_username else [])
+            except Exception as e:
+                self.raise_error(e)
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
@@ -439,7 +485,7 @@ class GitHubIntegration(
         if features.has(
             "organizations:integrations-github-inbound-assignee-sync", self.organization
         ):
-            config = [
+            config.append(
                 {
                     "name": self.inbound_assignee_key,
                     "type": "boolean",
@@ -449,7 +495,21 @@ class GitHubIntegration(
                     ),
                     "default": False,
                 }
-            ]
+            )
+        if features.has(
+            "organizations:integrations-github-outbound-assignee-sync", self.organization
+        ):
+            config.append(
+                {
+                    "name": self.outbound_assignee_key,
+                    "type": "boolean",
+                    "label": _("Sync Sentry Assignment to GitHub"),
+                    "help": _(
+                        "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                    ),
+                    "default": False,
+                }
+            )
 
         context = organization_service.get_organization_by_id(
             id=self.organization_id, include_projects=False, include_teams=False
