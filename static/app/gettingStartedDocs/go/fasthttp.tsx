@@ -175,14 +175,13 @@ const onboarding: OnboardingConfig = {
         },
         {
           type: 'text',
-          text: tct(
-            '[code:sentryfasthttp] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'text',
-          text: t('Currently it respects 3 options:'),
+          text: [
+            tct(
+              '[code:sentryfasthttp] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+              {code: <code />}
+            ),
+            t('Currently it respects 3 options:'),
+          ],
         },
         {
           type: 'code',
