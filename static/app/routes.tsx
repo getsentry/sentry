@@ -32,7 +32,6 @@ import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
-import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
@@ -2839,104 +2838,6 @@ function buildRoutes(): RouteObject[] {
     children: gettingStartedChildren,
   };
 
-  // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
-  // canonical URLs.
-  //
-  // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
-  // or do these need to be nested into the OrganizationLayout tree?
-  const legacyOrgRedirectChildren: SentryRouteObject[] = [
-    {
-      index: true,
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'issues/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'dashboard/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) =>
-            `/organizations/${orgId}/dashboards/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'user-feedback/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) => `/organizations/${orgId}/feedback/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) => `/organizations/${orgId}/releases/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/new-events/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/all-events/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/commits/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-  ];
-  const legacyOrgRedirects: SentryRouteObject = {
-    path: '/:orgId/:projectId/',
-    children: legacyOrgRedirectChildren,
-  };
-
   const organizationRoutes: SentryRouteObject = {
     component: errorHandler(OrganizationLayout),
     children: [
@@ -2962,7 +2863,6 @@ function buildRoutes(): RouteObject[] {
       gettingStartedRoutes,
       adminManageRoutes,
       legacyOrganizationRootRoutes,
-      legacyOrgRedirects,
     ],
   };
 
