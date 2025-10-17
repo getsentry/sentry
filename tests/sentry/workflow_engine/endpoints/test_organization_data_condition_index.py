@@ -54,7 +54,6 @@ class OrganizationDataConditionAPITestCase(APITestCase):
             group = DataConditionHandler.Group.WORKFLOW_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
-        # ISSUE_CATEGORY should now be included in the response (no longer legacy)
         @self.registry.register(Condition.ISSUE_CATEGORY)
         @dataclass(frozen=True)
         class TestIssueCategoryCondition(DataConditionHandler):
