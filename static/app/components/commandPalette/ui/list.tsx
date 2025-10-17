@@ -5,7 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {TreeProps} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 
-import error from 'sentry-images/spot/command-palette-error.svg';
+import error from 'sentry-images/spot/computer-missing.svg';
 
 import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -143,10 +143,10 @@ export function CommandPaletteList({
           <Image src={error} alt="No results" width="400px" />
           <Stack align="center" gap="md">
             <Text size="md" align="center">
-              Whoops… we couldn't find any results matching your search.
+              {t("Whoops… we couldn't find any results matching your search.")}
             </Text>
             <Text size="md" align="center">
-              Try rephrasing your query maybe?
+              {t('Try rephrasing your query maybe?')}
             </Text>
           </Stack>
         </Flex>
