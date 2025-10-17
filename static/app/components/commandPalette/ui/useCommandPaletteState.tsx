@@ -11,7 +11,7 @@ interface CommandPaletteActionWithPriority extends CommandPaletteAction {
 }
 
 const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> = {
-  keys: ['label', 'details'],
+  keys: ['display.label', 'display.details'],
   getFn: strGetFn,
   shouldSort: true,
   minMatchCharLength: 1,
