@@ -1,4 +1,3 @@
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -52,74 +51,93 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To install the PHP SDK, you need to be using Composer in your project. For more details about Composer, see the [composerDocumentationLink:Composer documentation].',
+      content: [
         {
-          composerDocumentationLink: <ExternalLink href="https://getcomposer.org/doc/" />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To install the PHP SDK, you need to be using Composer in your project. For more details about Composer, see the [composerDocumentationLink:Composer documentation].',
+            {
+              composerDocumentationLink: (
+                <ExternalLink href="https://getcomposer.org/doc/" />
+              ),
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'bash',
           code: 'composer require sentry/sentry',
         },
-        ...(params.isProfilingSelected
-          ? [
-              {
-                description: t('Install the Excimer extension via PECL:'),
-                language: 'bash',
-                code: 'pecl install excimer',
-              },
-              {
-                description: tct(
-                  "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
-                  {
-                    sentryPhpDocumentationLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
-                    ),
-                  }
-                ),
-              },
-            ]
-          : []),
+        {
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: [
+            {
+              type: 'text',
+              text: t('Install the Excimer extension via PECL:'),
+            },
+            {
+              type: 'code',
+              language: 'bash',
+              code: 'pecl install excimer',
+            },
+            {
+              type: 'text',
+              text: tct(
+                "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+                {
+                  sentryPhpDocumentationLink: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+                  ),
+                }
+              ),
+            },
+          ],
+        },
       ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To capture all errors, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To capture all errors, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'php',
           code: getConfigureSnippet(params),
-          additionalInfo: params.isPerformanceSelected && (
-            <p>
-              {tct(
+        },
+        {
+          type: 'conditional',
+          condition: params.isPerformanceSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
                 'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
                 {
                   instrumentationLink: (
                     <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
                   ),
                 }
-              )}
-            </p>
-          ),
+              ),
+            },
+          ],
         },
         {
-          description: (
-            <Alert.Container>
-              <Alert type="warning" showIcon={false}>
-                {tct(
-                  'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </Alert>
-            </Alert.Container>
+          type: 'alert',
+          alertType: 'warning',
+          showIcon: false,
+          text: tct(
+            'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+            {
+              code: <code />,
+            }
           ),
         },
       ],
@@ -128,11 +146,15 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'In PHP you can either capture a caught exception or capture the last error with captureLastError.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'In PHP you can either capture a caught exception or capture the last error with captureLastError.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'php',
           code: getVerifySnippet(),
         },
@@ -148,9 +170,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/php/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/php/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -244,63 +271,73 @@ const getProfilingConfigureSnippet = (params: DocsParams) => `\\Sentry\\init([
 ]);`;
 
 const profilingOnboarding: OnboardingConfig = {
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To install the PHP SDK, you need to be using Composer in your project. For more details about Composer, see the [composerDocumentationLink:Composer documentation].',
+      content: [
         {
-          composerDocumentationLink: <ExternalLink href="https://getcomposer.org/doc/" />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To install the PHP SDK, you need to be using Composer in your project. For more details about Composer, see the [composerDocumentationLink:Composer documentation].',
+            {
+              composerDocumentationLink: (
+                <ExternalLink href="https://getcomposer.org/doc/" />
+              ),
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'bash',
           code: 'composer require sentry/sentry',
         },
-        ...(params.isProfilingSelected
-          ? [
-              {
-                description: t('Install the Excimer extension via PECL:'),
-                language: 'bash',
-                code: 'pecl install excimer',
-              },
-              {
-                description: tct(
-                  "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
-                  {
-                    sentryPhpDocumentationLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
-                    ),
-                  }
-                ),
-              },
-            ]
-          : []),
+        {
+          type: 'text',
+          text: t('Install the Excimer extension via PECL:'),
+        },
+        {
+          type: 'code',
+          language: 'bash',
+          code: 'pecl install excimer',
+        },
+        {
+          type: 'text',
+          text: tct(
+            "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+            {
+              sentryPhpDocumentationLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+              ),
+            }
+          ),
+        },
       ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To capture profiling data, you should initialize the Sentry PHP SDK as soon as possible.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To capture profiling data, you should initialize the Sentry PHP SDK as soon as possible.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'php',
           code: getProfilingConfigureSnippet(params),
-          additionalInfo: (
-            <p>
-              {tct(
-                'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
-                {
-                  instrumentationLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
-                  ),
-                }
-              )}
-            </p>
+        },
+        {
+          type: 'text',
+          text: tct(
+            'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
+            {
+              instrumentationLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
+              ),
+            }
           ),
         },
       ],
@@ -309,9 +346,14 @@ const profilingOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],
