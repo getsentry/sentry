@@ -123,8 +123,18 @@ const TextBlockWrapper = styled('div')`
 function SubHeaderBlock(block: Extract<ContentBlock, {type: 'subheader'}>) {
   // TODO(aknaus): Use <Heading/> throughout the onboarding docs codebase
   // <Heading as="h5"> has a different styling and does not match the other headings we currently use
-  return <h5 css={baseBlockStyles}>{block.text}</h5>;
+  return (
+    <SubHeaderBlockWrapper css={baseBlockStyles}>{block.text}</SubHeaderBlockWrapper>
+  );
 }
+
+// TODO(aknaus): use <Heading/> instead
+const SubHeaderBlockWrapper = styled('h5')`
+  ${baseBlockStyles}
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  ${p => coloredCodeStyles(p.theme)}
+`;
 
 function ListBlock(block: Extract<ContentBlock, {type: 'list'}>) {
   return (
