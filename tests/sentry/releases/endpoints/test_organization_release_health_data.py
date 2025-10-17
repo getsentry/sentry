@@ -2494,9 +2494,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 200
 
     def test_abnormal_rate_sessions_and_users(self) -> None:
-        # Users abnormal rate
-        # foobar@1.0 -> 0.5
-        # foobar@2.0 -> 1
         for tags, values in (
             ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
             ({"session.status": "abnormal", "release": "foobar@1.0"}, [1, 2]),
@@ -2508,10 +2505,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     tags=tags,
                     value=value,
                 )
-
-        # Abnormal rate
-        # foobar@1.0 -> 0.75
-        # foobar@2.0 -> 0.25
 
         for tag_value, release_tag_value, value, second in (
             ("init", "foobar@1.0", 4, 4),
@@ -2547,9 +2540,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.abnormal_user_rate"] == 0.0
 
     def test_errored_rate_sessions_and_users(self) -> None:
-        # Users errored rate
-        # foobar@1.0 -> 0.5
-        # foobar@2.0 -> 1
         for tags, values in (
             ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
             ({"session.status": "errored", "release": "foobar@1.0"}, [1, 2]),
@@ -2561,10 +2551,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     tags=tags,
                     value=value,
                 )
-
-        # Errored rate
-        # foobar@1.0 -> 0.75
-        # foobar@2.0 -> 0.25
 
         for tag_value, release_tag_value, value in (
             ("init", "foobar@1.0", 4),
@@ -2601,9 +2587,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.errored_user_rate"] == 0.0
 
     def test_unhandled_rate_sessions_and_users(self) -> None:
-        # Users unhandled rate
-        # foobar@1.0 -> 0.5
-        # foobar@2.0 -> 1
         for tags, values in (
             ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
             ({"session.status": "unhandled", "release": "foobar@1.0"}, [1, 2]),
@@ -2615,10 +2598,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     tags=tags,
                     value=value,
                 )
-
-        # Unhandled rate
-        # foobar@1.0 -> 0.75
-        # foobar@2.0 -> 0.25
 
         for tag_value, release_tag_value, value in (
             ("init", "foobar@1.0", 4),
@@ -2655,9 +2634,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.unhandled_user_rate"] == 0.0
 
     def test_unhealthy_rate_sessions(self) -> None:
-        # Unhealthy rate
-        # foobar@1.0 -> 0.75
-        # foobar@2.0 -> 0.25
         for tag_value, release_tag_value, value in (
             ("init", "foobar@1.0", 4),
             ("errored_preaggr", "foobar@1.0", 1),
