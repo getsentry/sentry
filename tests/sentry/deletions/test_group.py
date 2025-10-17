@@ -272,7 +272,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
-        # assert grouphash_a.metadata is not None
+        assert grouphash_a.metadata is not None
         assert grouphash_a.metadata.seer_matched_grouphash is None
         metadata_a_id = grouphash_a.metadata.id
 
