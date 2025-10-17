@@ -1,8 +1,9 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -32,54 +33,58 @@ Sentry.init({
   dsn: "${params.dsn.public}",
 });`;
 
-const getInstallConfig = () => [
-  {
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/electron',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/electron',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/electron',
-      },
-    ],
-  },
-];
+const installCodeBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/electron',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/electron',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/electron',
+    },
+  ],
+};
 
 const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Electron SDK package as a dependency:'),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: t('Add the Sentry Electron SDK package as a dependency:'),
+        },
+        installCodeBlock,
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        `You need to call [code:Sentry.init] in the [code:main] process and in every [code:renderer] process you spawn.
-           For more details about configuring the Electron SDK [docsLink:click here].`,
+      content: [
         {
-          code: <code />,
-          docsLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/electron/" />
+          type: 'text',
+          text: tct(
+            'You need to call [code:Sentry.init] in the [code:main] process and in every [code:renderer] process you spawn. For more details about configuring the Electron SDK [docsLink:click here].',
+            {
+              code: <code />,
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/electron/" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
+          type: 'code',
           language: 'javascript',
           code: getConfigureSnippet(params),
         },
@@ -94,28 +99,40 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        `One way to verify your setup is by intentionally causing an error that breaks your application.`
-      ),
-      configurations: [
+      content: [
         {
-          description: t(
-            `Calling an undefined function will throw a JavaScript exception:`
+          type: 'text',
+          text: t(
+            `One way to verify your setup is by intentionally causing an error that breaks your application.`
           ),
+        },
+        {
+          type: 'text',
+          text: t(`Calling an undefined function will throw a JavaScript exception:`),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: 'myUndefinedFunction();',
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             `With Electron you can test native crash reporting by triggering a crash:`
           ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: 'process.crash();',
         },
+        {
+          type: 'text',
+          text: t(
+            'You may want to try inserting these code snippets into both your main and any renderer processes to verify Sentry is operational in both.'
+          ),
+        },
       ],
-      additionalInfo: t(
-        'You may want to try inserting these code snippets into both your main and any renderer processes to verify Sentry is operational in both.'
-      ),
     },
   ],
 };
@@ -124,28 +141,36 @@ const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the Session Replay to work, you must have the framework SDK (e.g. [code:@sentry/electron]) installed, minimum version 4.2.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the Session Replay to work, you must have the framework SDK (e.g. [code:@sentry/electron]) installed, minimum version 4.2.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installCodeBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/electron/session-replay/',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/electron/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
+              label: 'JavaScript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/electron/renderer";`,
                 dsn: params.dsn.public,
@@ -154,7 +179,10 @@ const replayOnboarding: OnboardingConfig = {
               }),
             },
           ],
-          additionalInfo: <TracePropagationMessage />,
+        },
+        {
+          type: 'custom',
+          content: <TracePropagationMessage />,
         },
       ],
     },
@@ -167,31 +195,39 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/electron]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/electron]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installCodeBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
+              label: 'JavaScript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/electron/renderer";`,
                 dsn: params.dsn.public,
@@ -200,10 +236,13 @@ const feedbackOnboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          type: 'custom',
+          content: crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/#crash-report-modal',
+          }),
+        },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/#crash-report-modal',
-      }),
     },
   ],
   verify: () => [],
@@ -215,15 +254,15 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportModalInstallDescriptionJavaScript(),
-      configurations: [
+      content: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `const { init, showReportDialog } = require("@sentry/electron");
+          type: 'text',
+          text: getCrashReportModalInstallDescriptionJavaScript(),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: `const { init, showReportDialog } = require("@sentry/electron");
 
 init({
   dsn: "${params.dsn.public}",
@@ -236,8 +275,6 @@ init({
     return event;
   },
 });`,
-            },
-          ],
         },
       ],
     },
@@ -245,12 +282,17 @@ init({
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        widgetCalloutBlock({
+          link: 'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/#user-feedback-widget',
+        }),
+      ],
     },
   ],
   verify: () => [],
