@@ -376,7 +376,7 @@ class FeatureManager(RegisteredFeatureManager):
 
     def batch_has_for_organizations(
         self,
-        feature_names: Sequence[str],
+        feature_name: str,
         organizations: Sequence[Organization],
         actor: User | RpcUser | AnonymousUser | None = None,
     ) -> dict[str, dict[str, bool | None]] | None:
@@ -403,20 +403,13 @@ class FeatureManager(RegisteredFeatureManager):
             ):
                 with metrics.timer("features.batch_has_for_organizations", sample_rate=0.01):
                     return self._entity_handler.has_batch_for_organizations(
-                        feature_names, actor, organizations
+                        feature_name, actor, organizations
                     )
             else:
-                org_features = [name for name in feature_names if name.startswith("organizations:")]
-                if not org_features:
-                    return None
-
                 results: dict[str, dict[str, bool | None]] = {}
                 for organization in organizations:
-                    org_results = results[f"organization:{organization.id}"] = {}
-                    for feature_name in org_features:
-                        org_results[feature_name] = self.has(
-                            feature_name, organization, actor=actor
-                        )
+                    org_key = f"organization:{organization.id}"
+                    results[org_key] = self.has(feature_name, organization, actor=actor)
                 return results
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
