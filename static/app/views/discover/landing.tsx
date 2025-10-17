@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
@@ -11,7 +13,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
@@ -216,6 +218,14 @@ function DiscoverLanding() {
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
+              {organization.features.includes('expose-migrated-discover-queries') && (
+                <StyledAlert type="info">
+                  {tct(
+                    'All existing discover saved queries have been migrated over to explore saved queries. Check them out in [exploreLink:Explore]!',
+                    {exploreLink: <Link to="/explore/saved-queries/" />}
+                  )}
+                </StyledAlert>
+              )}
               <StyledActions>
                 <StyledSearchBar
                   defaultQuery=""
@@ -285,6 +295,10 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default DiscoverLanding;
