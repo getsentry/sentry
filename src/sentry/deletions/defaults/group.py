@@ -6,8 +6,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-import sentry_sdk
-
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
@@ -217,25 +215,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
-@sentry_sdk.tracing.trace
-def batch_nullify_group_hash_metadata_references(hash_ids: Sequence[int]) -> None:
-    """
-    Batch nullify group_hash_metadata.seer_matched_grouphash_id references to avoid database timeouts.
-    """
-    group_hash_metadata_batch_size = options.get("deletions.group.group_hash_metadata_batch_size")
-    # XXX: This may be slow and may need to be optimized.
-    with metrics.timer("deletions.groups.group_hash_metadata.nullify_references"):
-        # This function call is necessary because the GroupHashMetadata model has a foreign key to the GroupHash model,
-        # and we need to nullify the seer_matched_grouphash_id field in the GroupHashMetadata model before deleting the GroupHash model
-        # to prevent the implicit ON DELETE SET NULL cascade from timing out.
-        # Process in small batches to avoid statement timeouts on high fan-out relationships
-        for i in range(0, len(hash_ids), group_hash_metadata_batch_size):
-            hash_ids_batch = hash_ids[i : i + group_hash_metadata_batch_size]
-            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids_batch).update(
-                seer_matched_grouphash_id=None
-            )
-
-
 def delete_project_group_hashes(project_id: int) -> None:
     groups = []
     for group in RangeQuerySetWrapper(
@@ -280,9 +259,27 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
-            # Nullify seer_matched_grouphash_id references in batches before deleting the GroupHash model
-            # to prevent the implicit ON DELETE SET NULL cascade from timing out
-            batch_nullify_group_hash_metadata_references(hash_ids)
+            if options.get("deletions.group.delete_group_hashes_metadata_first"):
+                # If we delete the grouphash metadata rows first we will not need to update the references to the other grouphashes.
+                # If we try to delete the group hashes first, then it will require the updating of the columns first.
+                #
+                # To understand this, let's say we have the following relationships:
+                # gh A -> ghm A -> no reference to another grouphash
+                # gh B -> ghm B -> gh C
+                # gh C -> ghm C -> gh A
+                #
+                # Deleting group hashes A, B & C (since they all point to the same group) will require:
+                # * Updating columns ghmB & ghmC to point to None
+                # * Deleting the group hash metadata rows
+                # * Deleting the group hashes
+                #
+                # If we delete the metadata first, we will not need to update the columns before deleting them.
+                try:
+                    GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
+                except Exception:
+                    # XXX: Let's make sure that no issues are caused by this and then remove it
+                    logger.exception("Error deleting group hash metadata")
+
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1

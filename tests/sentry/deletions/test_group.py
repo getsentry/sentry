@@ -255,15 +255,14 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 "args": [self.project.id, error_group_hashes, 0]
             }
 
-    def test_batch_nullify_seer_matched_grouphash_references(self) -> None:
+    def test_delete_grouphash_metadata_first(self) -> None:
         """
-        Test that seer_matched_grouphash_id references are properly nullified
-        when a GroupHash is deleted.
+        Test that the group hash metadata is deleted first when the group hash is deleted.
         """
-        # Enable seer similarity for this project
+        # This enables checking Seer for similarity and to mock the call to return a specific grouphash
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
-        # Create two events/grouphashes with different exceptions to ensure different groups
+        # Create two events/grouphashes and one of them
         # Event A will be deleted
         event_a = self.store_event(
             data={
@@ -272,20 +271,18 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        grouphash_a = GroupHash.objects.filter(group_id=event_a.group_id).first()
-        assert grouphash_a is not None
-        assert grouphash_a.metadata is not None
+        grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
+        # assert grouphash_a.metadata is not None
         assert grouphash_a.metadata.seer_matched_grouphash is None
         metadata_a_id = grouphash_a.metadata.id
 
         with mock.patch(
             "sentry.grouping.ingest.seer.get_seer_similar_issues"
         ) as mock_get_seer_similar_issues:
-            # Let seer similarity return that grouphash_b is similar to grouphash_a
+            # This will allow grouphash_b to be matched to grouphash_a by Seer
             mock_get_seer_similar_issues.return_value = (0.01, grouphash_a)
 
-            # Event B will be kept - different exception to ensure different group initially,
-            # but seer will match it to event_a
+            # Event B will be kept - different exception to ensure different group hash to grouphash_a
             event_b = self.store_event(
                 data={
                     "platform": "python",
@@ -293,31 +290,33 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 },
                 project_id=self.project.id,
             )
-            grouphash_b = GroupHash.objects.filter(group_id=event_b.group_id).first()
-            assert grouphash_b is not None
+            grouphash_b = GroupHash.objects.get(hash=event_b.get_primary_hash())
+            # assert grouphash_b.metadata is not None
             assert grouphash_b.metadata is not None
             metadata_b_id = grouphash_b.metadata.id
 
             # Verify that seer matched event_b to event_a's hash
             assert event_a.group_id == event_b.group_id
+            # Make sure it has not changed
+            assert grouphash_a.metadata is not None
+            assert grouphash_a.metadata.seer_matched_grouphash is None
+            assert grouphash_b.metadata is not None
             assert grouphash_b.metadata.seer_matched_grouphash == grouphash_a
-            assert GroupHashMetadata.objects.filter(
-                seer_matched_grouphash_id=grouphash_a.id
-            ).exists()
 
-            # Delete grouphash A
-            with self.tasks():
+            with (
+                self.tasks(),
+                self.options({"deletions.group.delete_group_hashes_metadata_first": True}),
+            ):
+                # It will delete all groups, group hashes and group hash metadata
                 task = deletions.get(model=Group, query={"id__in": [event_a.group_id]})
                 more = task.chunk()
                 assert not more
 
-            # Grouphash A and its metadata should be deleted
+            assert not Group.objects.filter(id=event_a.group_id).exists()
             assert not GroupHash.objects.filter(id=grouphash_a.id).exists()
             assert not GroupHashMetadata.objects.filter(id=metadata_a_id).exists()
-
-            # Grouphash B's metadata should still exist, but the reference to A should be nullified
-            assert GroupHashMetadata.objects.get(id=metadata_b_id).seer_matched_grouphash is None
-            assert GroupHash.objects.filter(id=grouphash_b.id).exists()
+            assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
+            assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
