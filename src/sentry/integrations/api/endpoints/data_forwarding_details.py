@@ -128,6 +128,11 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def _validate_projects_exist(
         self, projects: list[Project], project_ids: list[int]
     ) -> Response | None:
+        """
+        Returns:
+            None if all project IDs are valid,
+            Response with 400 Bad Request if any project IDs are invalid
+        """
         if len(projects) != len(project_ids):
             found_ids = {project.id for project in projects}
             invalid_ids = set(project_ids) - found_ids
@@ -309,13 +314,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         if not project_ids:
             return self._handle_unenroll_all_projects(request, organization, data_forwarder)
 
-        projects = Project.objects.filter(organization_id=organization.id, id__in=project_ids)
+        projects = list(Project.objects.filter(organization_id=organization.id, id__in=project_ids))
 
-        error_response = self._validate_project_permissions(request, list(projects))
+        error_response = self._validate_projects_exist(projects, project_ids)
         if error_response:
             return error_response
 
-        error_response = self._validate_projects_exist(projects, project_ids)
+        error_response = self._validate_project_permissions(request, projects)
         if error_response:
             return error_response
 
