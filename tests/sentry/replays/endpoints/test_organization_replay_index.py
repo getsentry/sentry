@@ -1351,6 +1351,18 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
+            negation_queries = [
+                "!tap.message:TappedSignIn",
+                "!tap.view_class:UIButton",
+                "!tap.view_id:btn_signin",
+            ]
+
+            for query in negation_queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
+
     def test_get_replays_click_fields(self) -> None:
         project = self.create_project(teams=[self.team])
 
