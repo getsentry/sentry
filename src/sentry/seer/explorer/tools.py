@@ -3,22 +3,23 @@ from typing import Any, Literal
 
 from sentry import eventstore
 from sentry.api import client
-from sentry.api.endpoints.organization_traces import TracesExecutor
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.api.utils import default_start_end_dates, handle_query_errors
+from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap import constants
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 
 logger = logging.getLogger(__name__)
@@ -197,20 +198,20 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 
     # Get full trace id if a short id is provided. Queries EAP for a single span.
     if len(trace_id) < 32:
-        with handle_query_errors():
-            executor = TracesExecutor(
-                dataset=Dataset.SpansIndexed,
-                snuba_params=snuba_params,
-                user_queries=[f"trace:{trace_id}"],
-                sort=None,
-                limit=1,
-                breakdown_slices=1,
-                get_all_projects=lambda: projects,
-            )
-            subquery_result = executor.execute(0, 1)
-            full_trace_id = (
-                subquery_result["data"][0]["trace"] if subquery_result.get("data") else None
-            )
+        subquery_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"trace:{trace_id}",
+            selected_columns=["trace", "precise.start_ts"],
+            orderby=["-precise.start_ts"],  # Get most recent trace if there's multiple.
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=SearchResolverConfig(),
+            sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,  # Maximize likelihood of finding a span.
+        )
+        full_trace_id = (
+            subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
+        )
     else:
         full_trace_id = trace_id
 
