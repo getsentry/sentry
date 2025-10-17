@@ -185,10 +185,10 @@ def process_batch(
             # These will be caught by the wrapping except block. Not doing
             # those assertions here but later will crash the consumer and is
             # also violating mypy types.
-            assert val["end_timestamp"] is not None
-            assert val["start_timestamp"] is not None
-            assert val["trace_id"] is not None
-            assert val["span_id"] is not None
+            assert isinstance(val["end_timestamp"], (int, float))
+            assert isinstance(val["start_timestamp"], (int, float))
+            assert isinstance(val["trace_id"], str)
+            assert isinstance(val["span_id"], str)
 
             span = Span(
                 trace_id=val["trace_id"],
