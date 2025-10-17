@@ -178,7 +178,7 @@ function useNavigationActions(): CommandPaletteAction[] {
       label: t('Issues'),
       icon: <IconIssues />,
       to: `${prefix}/issues/`,
-      children: issuesChildren,
+      actions: issuesChildren,
     },
     {
       key: 'nav-explore',
@@ -186,7 +186,7 @@ function useNavigationActions(): CommandPaletteAction[] {
       label: t('Explore'),
       icon: <IconCompass />,
       to: `${prefix}/explore/${exploreDefault}/`,
-      children: exploreChildren,
+      actions: exploreChildren,
     },
     {
       key: 'nav-dashboards',
@@ -194,7 +194,7 @@ function useNavigationActions(): CommandPaletteAction[] {
       label: t('Dashboards'),
       icon: <IconDashboard />,
       to: `${prefix}/dashboards/`,
-      children: dashboardsChildren,
+      actions: dashboardsChildren,
     },
     {
       key: 'nav-insights',
@@ -202,7 +202,7 @@ function useNavigationActions(): CommandPaletteAction[] {
       label: t('Insights'),
       icon: <IconGraph type="area" />,
       to: `${prefix}/insights/`,
-      children: insightsChildren,
+      actions: insightsChildren,
       hidden: !organization.features.includes('performance-view'),
     },
     {
@@ -211,7 +211,7 @@ function useNavigationActions(): CommandPaletteAction[] {
       label: t('Prevent'),
       icon: <IconPrevent />,
       to: `${prefix}/prevent/prevent-ai/new/`,
-      children: preventChildren,
+      actions: preventChildren,
       hidden: !organization.features.includes('prevent-ai'),
     },
     {
@@ -314,7 +314,7 @@ export function useGlobalCommandPaletteActions() {
       key: 'account-theme-preference',
       label: t('Change Color Theme'),
       icon: <IconSettings />,
-      children: [
+      actions: [
         {
           key: 'account-theme-preference-system',
           label: t('System'),

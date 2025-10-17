@@ -9,7 +9,7 @@ export type CommandPaletteAction = {
   /** Primary text shown to the user */
   label: string;
   /** Nested actions to show when this action is selected */
-  children?: CommandPaletteAction[];
+  actions?: CommandPaletteAction[];
   /** Additional context or description */
   details?: string;
   /** Section to group the action in the palette */

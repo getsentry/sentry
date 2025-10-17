@@ -41,7 +41,7 @@ const globalActions: CommandPaletteAction[] = [
     key: 'parent-action',
     label: 'Parent action',
     groupingKey: 'add',
-    children: [{key: 'child-action', label: 'Child action', onAction: onChild}],
+    actions: [{key: 'child-action', label: 'Child action', onAction: onChild}],
   },
 ];
 

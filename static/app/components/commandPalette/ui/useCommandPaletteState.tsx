@@ -53,11 +53,11 @@ function flattenActions(
       });
     }
 
-    if (action.children && action.children.length > 0) {
+    if (action.actions && action.actions.length > 0) {
       const childParentLabel = parentLabel
         ? `${parentLabel} → ${action.label}`
         : action.label;
-      flattened.push(...flattenActions(action.children, childParentLabel));
+      flattened.push(...flattenActions(action.actions, childParentLabel));
     }
   }
 
@@ -70,8 +70,8 @@ export function useCommandPaletteState() {
   const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
-    if (selectedAction?.children?.length) {
-      return flattenActions(selectedAction.children);
+    if (selectedAction?.actions?.length) {
+      return flattenActions(selectedAction.actions);
     }
 
     return flattenActions(actions);
