@@ -216,7 +216,9 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
             )
 
             if subquery_result.get("data"):
-                full_trace_id = subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
+                full_trace_id = (
+                    subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
+                )
                 if full_trace_id:
                     break
     else:
