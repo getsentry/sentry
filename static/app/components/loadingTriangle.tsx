@@ -12,7 +12,7 @@ type Props = {
 
 function LoadingTriangle({children}: Props) {
   const user = useUser();
-  if (user.options.prefersChonkUI) {
+  if (user?.options.prefersChonkUI) {
     return (
       <LoadingTriangleWrapper data-test-id="loading-indicator">
         <LoadingTriangleBackground>
