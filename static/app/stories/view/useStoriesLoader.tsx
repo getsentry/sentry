@@ -18,9 +18,9 @@ export interface MDXStoryDescriptor {
     frontmatter?: {
       description: string;
       title: string;
+      import?: {from: string; name: string};
       layout?: 'document';
       resources?: StoryResources;
-      source?: string;
       status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };

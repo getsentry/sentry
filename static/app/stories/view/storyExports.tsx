@@ -3,6 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
+import {InlineCode} from '@sentry/scraps/code';
+
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Grid} from 'sentry/components/core/layout';
@@ -138,14 +141,25 @@ function StoryTabPanels() {
     return <StoryUsage />;
   }
 
+  const source = story.exports.frontmatter?.import;
   // A document is just a single page
   if (story.exports.frontmatter?.layout === 'document') {
     return <StoryUsage />;
   }
-
+  const importStatement = source
+    ? `import {${source.name}} from '${source.from}';`
+    : undefined;
   return (
     <TabPanels>
       <TabPanels.Item key="usage">
+        {importStatement && (
+          <StoryStickyContainer>
+            <Flex background="primary" padding="lg 0" align="center" justify="between">
+              <InlineCode>{importStatement}</InlineCode>
+              <CopyToClipboardButton size="zero" text={importStatement} />
+            </Flex>
+          </StoryStickyContainer>
+        )}
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
@@ -265,4 +279,10 @@ const StoryContainer = styled('div')`
 
 const StoryContent = styled('main')`
   flex-grow: 1;
+`;
+
+const StoryStickyContainer = styled('div')`
+  position: sticky;
+  top: 53px;
+  z-index: ${p => p.theme.zIndex.header - 1};
 `;
