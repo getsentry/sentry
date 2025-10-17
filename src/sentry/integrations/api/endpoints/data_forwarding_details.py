@@ -125,6 +125,22 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             )
         return raw_project_ids, None
 
+    def _validate_projects_exist(
+        self, projects: list[Project], project_ids: list[int]
+    ) -> Response | None:
+        if len(projects) != len(project_ids):
+            found_ids = {project.id for project in projects}
+            invalid_ids = set(project_ids) - found_ids
+            return self.respond(
+                {
+                    "project_ids": [
+                        f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return None
+
     def _get_accessible_projects_to_unenroll(
         self, request: Request, organization: Organization, enrolled_project_ids: list[int]
     ) -> tuple[list[int] | None, Response | None]:
@@ -296,6 +312,10 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         projects = Project.objects.filter(organization_id=organization.id, id__in=project_ids)
 
         error_response = self._validate_project_permissions(request, list(projects))
+        if error_response:
+            return error_response
+
+        error_response = self._validate_projects_exist(projects, project_ids)
         if error_response:
             return error_response
 
