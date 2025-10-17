@@ -149,6 +149,7 @@ export function PlatformizedSessionsOverview() {
         routes={[]}
         dashboards={[]}
         initialState={DashboardState.VIEW}
+        useTimeseriesVisualization
       />
     </ModulePageProviders>
   );

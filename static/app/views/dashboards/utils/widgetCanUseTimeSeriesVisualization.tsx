@@ -8,7 +8,7 @@ const SUPPORTED_DISPLAY_TYPES = new Set<DisplayType>([
   DisplayType.BAR,
 ]);
 
-export function useCommonWidgetVisualization(widget: Widget): boolean {
+export function widgetCanUseTimeSeriesVisualization(widget: Widget): boolean {
   if (!widget.widgetType || !SUPPORTED_WIDGET_TYPES.has(widget.widgetType)) {
     return false;
   }

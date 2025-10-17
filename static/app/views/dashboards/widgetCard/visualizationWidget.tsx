@@ -8,13 +8,12 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget as CommonWidget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
-import {transformToPlottables} from './transformToPlottables';
+import {transformLegacySeriesToPlottables} from './transformLegacySeriesToPlottables';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
-interface CommonDashboardWidgetProps {
+interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: Widget;
-  chartGroup?: string;
   dashboardFilters?: DashboardFilters;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -31,28 +30,7 @@ interface CommonDashboardWidgetProps {
   tableItemLimit?: number;
 }
 
-/**
- * Renders a widget using the new TimeSeriesWidgetVisualization system.
- *
- * This component:
- * 1. Loads data using WidgetCardDataLoader
- * 2. Transforms the data into Plottables (if not provided)
- * 3. Renders using CommonWidget + TimeSeriesWidgetVisualization
- *
- * Usage:
- * ```tsx
- * {useNewVisualization({widget}) ? (
- *   <RenderNewWidgetVisualization
- *     widget={widget}
- *     selection={selection}
- *     // ... other props
- *   />
- * ) : (
- *   // Legacy rendering
- * )}
- * ```
- */
-export function CommonDashboardWidget({
+export function VisualizationWidget({
   widget,
   selection,
   dashboardFilters,
@@ -60,9 +38,8 @@ export function CommonDashboardWidget({
   onDataFetchStart,
   tableItemLimit,
   renderErrorMessage,
-  chartGroup,
   showReleaseAs = 'bubble',
-}: CommonDashboardWidgetProps) {
+}: VisualizationWidgetProps) {
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
   });
@@ -83,14 +60,12 @@ export function CommonDashboardWidget({
       tableItemLimit={tableItemLimit}
     >
       {({timeseriesResults, timeseriesResultsTypes, errorMessage, loading}) => {
-        // Use custom plottables if provided, otherwise transform the data
-        const plottables = transformToPlottables(
+        const plottables = transformLegacySeriesToPlottables(
           timeseriesResults,
           timeseriesResultsTypes,
           widget
         );
 
-        // Show error message if there's an error and rendering function is provided
         const errorDisplay =
           renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
 
