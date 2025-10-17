@@ -109,13 +109,17 @@
           return Array.from(set.values()).join('');
         }
         shuffle() {
-          requestAnimationFrame(() => {
+          this.raf = requestAnimationFrame(() => {
             this.textContent = this.random();
-            setTimeout(() => this.shuffle(), randomBetween(100, 500));
+            this.timeout = setTimeout(() => this.shuffle(), randomBetween(100, 500));
           })
         }
         connectedCallback() {
           this.shuffle();
+        }
+        disconnectedCallback() {
+          cancelAnimationFrame(this.raf);
+          clearTimeout(this.timeout);
         }
       })
     </script>
