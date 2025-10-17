@@ -266,7 +266,14 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         detector = super().create(validated_data)
 
         if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC.value:
-            send_new_detector_data(detector)
+            try:
+                send_new_detector_data(detector)
+            except Exception:
+                # Sending historical data failed; Detector won't be save, but we
+                # need to clean up database state that has already been created.
+                detector.workflow_condition_group.delete()
+
+                raise
 
         schedule_update_project_config(detector)
         return detector
