@@ -1,4 +1,5 @@
 import {useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -10,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LoadingMask from 'sentry/components/loadingMask';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
+import {IconFire, IconSpan, IconTerminal} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -26,6 +28,10 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
+import {getLogColors} from 'sentry/views/explore/logs/styles';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
@@ -39,6 +45,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const TABLE_HEIGHT = 230;
 const RESULT_LIMIT = 50;
+const TWO_MINUTE_DELAY = 120;
 
 interface SamplesTabProps {
   metricName: string;
@@ -53,7 +60,8 @@ export function SamplesTab({metricName}: SamplesTabProps) {
     enabled: Boolean(metricName),
     limit: RESULT_LIMIT,
     metricName,
-    fields: ['timestamp', 'trace', 'value'],
+    fields: ['timestamp', 'value', 'trace'],
+    ingestionDelaySeconds: TWO_MINUTE_DELAY,
   });
 
   // Extract trace IDs from the result
@@ -74,13 +82,8 @@ export function SamplesTab({metricName}: SamplesTabProps) {
   const sorts = useQueryParamsSortBys();
   const setSorts = useSetQueryParamsSortBys();
 
-  // Add telemetry columns to the fields list
-  const displayFields = useMemo(() => {
-    return [...fields, 'logs', 'spans'];
-  }, [fields]);
-
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(displayFields, tableRef, {
+  const {initialTableStyles} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
   });
 
@@ -90,8 +93,103 @@ export function SamplesTab({metricName}: SamplesTabProps) {
     trace: t('Trace'),
     value: t('Value'),
     timestamp: t('Timestamp'),
-    logs: t('Logs'),
-    spans: t('Spans'),
+  };
+
+  const theme = useTheme();
+
+  const renderTraceCell = (row: any, traceId: string, telemetry: any) => {
+    const timestamp = row.timestamp as number;
+    const target = getTraceDetailsUrl({
+      organization,
+      traceSlug: traceId,
+      dateSelection: {
+        start: selection.datetime.start,
+        end: selection.datetime.end,
+        statsPeriod: selection.datetime.period,
+      },
+      timestamp: timestamp / 1000,
+      location,
+      source: TraceViewSources.TRACES,
+    });
+
+    return (
+      <Flex gap="xs" display="inline-flex">
+        <Link to={target} style={{minWidth: '66px'}}>
+          {getShortEventId(traceId)}
+        </Link>
+        <Flex gap="xs" style={{color: theme.red300}}>
+          <IconFire />
+          {telemetry?.errorsCount ?? 0}
+        </Flex>
+        <Flex gap="xs" style={{color: theme.purple400}}>
+          <IconTerminal />
+          {telemetry?.logsCount ?? 0}
+        </Flex>
+        <Flex gap="xs" style={{color: theme.gray300}}>
+          <IconSpan color="gray300" />
+          {telemetry?.spansCount ?? 0}
+        </Flex>
+      </Flex>
+    );
+  };
+
+  const renderTimestampCell = (field: string, row: any, originalFieldIndex: number) => {
+    const customRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP];
+
+    if (!customRenderer) {
+      return (
+        <FieldRenderer
+          column={columns[originalFieldIndex]}
+          data={row}
+          unit={meta?.units?.[field]}
+          meta={meta}
+        />
+      );
+    }
+
+    return customRenderer({
+      item: {
+        fieldKey: field,
+        value: row[field],
+      },
+      extra: {
+        attributes: row,
+        attributeTypes: meta.fields ?? {},
+        highlightTerms: [],
+        logColors: getLogColors(SeverityLevel.INFO, theme),
+        location,
+        organization,
+        theme,
+      },
+    });
+  };
+
+  const renderDefaultCell = (field: string, row: any, originalFieldIndex: number) => {
+    return (
+      <FieldRenderer
+        column={columns[originalFieldIndex]}
+        data={row}
+        unit={meta?.units?.[field]}
+        meta={meta}
+      />
+    );
+  };
+
+  const renderFieldCell = (field: string, row: any, traceId: string, telemetry: any) => {
+    const originalFieldIndex = fields.indexOf(field);
+
+    if (originalFieldIndex === -1) {
+      return null;
+    }
+
+    switch (field) {
+      case 'trace':
+        return renderTraceCell(row, traceId, telemetry);
+      case 'timestamp':
+        return renderTimestampCell(field, row, originalFieldIndex);
+      default:
+        return renderDefaultCell(field, row, originalFieldIndex);
+    }
   };
 
   return (
@@ -100,33 +198,21 @@ export function SamplesTab({metricName}: SamplesTabProps) {
       <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
-            {displayFields.map((field, i) => {
+            {fields.map((field, i) => {
               const label = fieldLabels[field] ?? field;
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
 
-              // Don't allow sorting on telemetry fields
-              const isTelemetryField = field === 'logs' || field === 'spans';
-              const direction = isTelemetryField
-                ? undefined
-                : sorts.find(s => s.field === field)?.kind;
+              const direction = sorts.find(s => s.field === field)?.kind;
 
               function updateSort() {
-                if (isTelemetryField) {
-                  return;
-                }
                 const kind = direction === 'desc' ? 'asc' : 'desc';
                 setSorts([{field, kind}]);
               }
 
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent
-                    align="center"
-                    gap="sm"
-                    onClick={updateSort}
-                    style={isTelemetryField ? {cursor: 'default'} : undefined}
-                  >
+                  <TableHeadCellContent align="center" gap="sm" onClick={updateSort}>
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
@@ -160,64 +246,11 @@ export function SamplesTab({metricName}: SamplesTabProps) {
 
               return (
                 <TableRow key={i}>
-                  {displayFields.map((field, j) => {
-                    if (field === 'trace') {
-                      const timestamp = row.timestamp as number;
-                      const target = getTraceDetailsUrl({
-                        organization,
-                        traceSlug: traceId,
-                        dateSelection: {
-                          start: selection.datetime.start,
-                          end: selection.datetime.end,
-                          statsPeriod: selection.datetime.period,
-                        },
-                        timestamp: timestamp / 1000,
-                        location,
-                        source: TraceViewSources.TRACES,
-                      });
-
-                      return (
-                        <StyledTableBodyCell key={j}>
-                          <Link to={target} style={{minWidth: '66px'}}>
-                            {getShortEventId(traceId)}
-                          </Link>
-                        </StyledTableBodyCell>
-                      );
-                    }
-
-                    if (field === 'logs') {
-                      return (
-                        <StyledTableBodyCell key={j} align="right">
-                          {telemetry?.logsCount ?? 0}
-                        </StyledTableBodyCell>
-                      );
-                    }
-
-                    if (field === 'spans') {
-                      return (
-                        <StyledTableBodyCell key={j} align="right">
-                          {telemetry?.spansCount ?? 0}
-                        </StyledTableBodyCell>
-                      );
-                    }
-
-                    // Find the index in original fields array
-                    const originalFieldIndex = fields.indexOf(field);
-                    if (originalFieldIndex === -1) {
-                      return null;
-                    }
-
-                    return (
-                      <StyledTableBodyCell key={j}>
-                        <FieldRenderer
-                          column={columns[originalFieldIndex]}
-                          data={row}
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </StyledTableBodyCell>
-                    );
-                  })}
+                  {fields.map((field, j) => (
+                    <StyledTableBodyCell key={j}>
+                      {renderFieldCell(field, row, traceId, telemetry)}
+                    </StyledTableBodyCell>
+                  ))}
                 </TableRow>
               );
             })

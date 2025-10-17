@@ -12,7 +12,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
-from sentry.api.endpoints.timeseries import Row, SeriesMeta, StatsMeta, StatsResponse, TimeSeries
+from sentry.api.endpoints.timeseries import (
+    EMPTY_STATS_RESPONSE,
+    Row,
+    SeriesMeta,
+    StatsMeta,
+    StatsResponse,
+    TimeSeries,
+)
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
@@ -139,7 +146,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     organization,
                 )
             except NoProjects:
-                return Response([], status=200)
+                return Response(EMPTY_STATS_RESPONSE, status=200)
 
         with handle_query_errors():
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)

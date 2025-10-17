@@ -6,7 +6,9 @@ from rest_framework import serializers
 from sentry import features, quotas
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -179,6 +181,19 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
 
+    def is_editing_transaction_dataset(
+        self, snuba_query: SnubaQuery, data_source: SnubaQueryDataSourceType
+    ) -> bool:
+        if data_source.get("dataset") in [Dataset.PerformanceMetrics, Dataset.Transactions] and (
+            data_source.get("dataset", Dataset(snuba_query.dataset)) != Dataset(snuba_query.dataset)
+            or data_source.get("query", snuba_query.query) != snuba_query.query
+            or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
+            or data_source.get("time_window", snuba_query.time_window) != snuba_query.time_window
+            or data_source.get("event_types", snuba_query.event_types) != snuba_query.event_types
+        ):
+            return True
+        return False
+
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
             source_instance = DataSource.objects.get(detector=instance)
@@ -197,13 +212,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
 
-        if data_source.get("dataset") in [Dataset.PerformanceMetrics, Dataset.Transactions] and (
-            data_source.get("dataset", Dataset(snuba_query.dataset)) != Dataset(snuba_query.dataset)
-            or data_source.get("query", snuba_query.query) != snuba_query.query
-            or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
-            or data_source.get("time_window", snuba_query.time_window) != snuba_query.time_window
-            or data_source.get("event_types", snuba_query.event_types) != snuba_query.event_types
-        ):
+        if self.is_editing_transaction_dataset(snuba_query, data_source):
             raise serializers.ValidationError(
                 "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
             )
@@ -255,6 +264,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
 
         detector = super().create(validated_data)
+
+        if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC.value:
+            send_new_detector_data(detector)
 
         schedule_update_project_config(detector)
         return detector

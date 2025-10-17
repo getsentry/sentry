@@ -3,6 +3,12 @@ export interface Block {
   message: Message;
   timestamp: string;
   loading?: boolean;
+  tool_links?: Array<ToolLink | null>;
+}
+
+export interface ToolLink {
+  kind: string;
+  params: Record<string, any>;
 }
 
 interface Message {
@@ -16,7 +22,7 @@ interface ToolCall {
   function: string;
 }
 
-export type PanelSize = 'max' | 'med' | 'min';
+export type PanelSize = 'max' | 'med';
 
 export interface ExplorerPanelProps {
   isVisible?: boolean;

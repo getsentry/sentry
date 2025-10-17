@@ -1,4 +1,5 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/core/button';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
@@ -31,6 +32,10 @@ function FilterSelector({
 
   const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
 
+  useEffect(() => {
+    setActiveFilterValues(initialValues);
+  }, [initialValues]);
+
   const {dataset, tag} = globalFilter;
   const {selection} = usePageFilters();
   const dataProvider = getDatasetConfig(dataset).useSearchBarDataProvider!({
@@ -62,6 +67,9 @@ function FilterSelector({
   }, [data]);
 
   const handleChange = (opts: string[]) => {
+    if (isEqual(opts, activeFilterValues)) {
+      return;
+    }
     setActiveFilterValues(opts);
 
     // Build filter condition string

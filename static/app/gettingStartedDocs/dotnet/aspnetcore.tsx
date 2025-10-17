@@ -1,12 +1,9 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -92,22 +89,24 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct('Install the [strong:NuGet] package:', {
-        strong: <strong />,
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct('Install the [strong:NuGet] package:', {
+            strong: <strong />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               language: 'shell',
               label: 'Package Manager',
-              value: 'packageManager',
               code: getInstallSnippetPackageManager(params),
             },
             {
               language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
               code: getInstallSnippetCoreCli(params),
             },
           ],
@@ -118,14 +117,16 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Add Sentry to [code:Program.cs] through the [code:WebHostBuilder]:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Add Sentry to [code:Program.cs] through the [code:WebHostBuilder]:',
+            {code: <code />}
+          ),
+        },
         {
+          type: 'code',
           language: 'csharp',
           code: getConfigureSnippet(params),
         },
@@ -135,80 +136,92 @@ const onboarding: OnboardingConfig = {
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: t('To verify your set up, you can capture a message with the SDK:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify your set up, you can capture a message with the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Hello Sentry");',
         },
-      ],
-      additionalInfo: tct(
-        "If you don't want to depend on the static class, the SDK registers a client in the DI container. In this case, you can [link:take [code:IHub] as a dependency].",
         {
-          code: <code />,
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/unit-testing/" />
+          type: 'text',
+          text: tct(
+            "If you don't want to depend on the static class, the SDK registers a client in the DI container. In this case, you can [link:take [code:IHub] as a dependency].",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/unit-testing/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
     ...(params.isPerformanceSelected
-      ? [
+      ? ([
           {
             title: t('Tracing'),
-            description: tct(
-              'You can measure the performance of your endpoints by adding a middleware to [code:Startup.cs]:',
+            content: [
               {
-                code: <code />,
-              }
-            ),
-            configurations: [
+                type: 'text',
+                text: tct(
+                  'You can measure the performance of your endpoints by adding a middleware to [code:Startup.cs]:',
+                  {
+                    code: <code />,
+                  }
+                ),
+              },
               {
-                description: t(
+                type: 'text',
+                text: t(
                   "You'll be able to monitor the performance of your actions automatically. To add additional spans to it, you can use the API:"
                 ),
+              },
+              {
+                type: 'code',
                 language: 'csharp',
                 code: getPerformanceSpansSnippet(),
               },
             ],
           },
-        ]
+        ] satisfies OnboardingStep[])
       : []),
     {
       title: t('Samples'),
-      description: (
-        <Fragment>
-          {t(
+      content: [
+        {
+          type: 'text',
+          text: t(
             'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              {tct(
-                '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-                {
-                  link: (
-                    <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                  ),
-                  code: <code />,
-                  strong: <strong />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {tct('[link:Basic F# sample] [strong:(F#)]', {
-                link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
+              '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
+              {
+                link: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
+                ),
+                code: <code />,
                 strong: <strong />,
-              })}
-            </ListItem>
-            <ListItem>
-              {tct('[link:Giraffe F# sample] [strong:(F#)]', {
-                link: <ExternalLink href="https://github.com/sentry-demos/giraffe" />,
-                strong: <strong />,
-              })}
-            </ListItem>
-          </List>
-        </Fragment>
-      ),
+              }
+            ),
+            tct('[link:Basic F# sample] [strong:(F#)]', {
+              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+              strong: <strong />,
+            }),
+            tct('[link:Giraffe F# sample] [strong:(F#)]', {
+              link: <ExternalLink href="https://github.com/sentry-demos/giraffe" />,
+              strong: <strong />,
+            }),
+          ],
+        },
+      ],
     },
   ],
 };

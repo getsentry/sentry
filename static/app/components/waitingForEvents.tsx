@@ -3,13 +3,13 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {apiOptions} from 'sentry/api/apiOptions';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -27,17 +27,20 @@ type Props = {
 
 function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
   const {data, error, isPending} = useQuery(
-    apiOptions.as<Array<{id: string}>>()('/projects/$orgSlug/$projectSlug/issues/', {
-      staleTime: Infinity,
-      data: {limit: 1},
-      path:
-        project && sampleIssueIdProp === undefined
-          ? {
-              orgSlug: org.slug,
-              projectSlug: project.slug,
-            }
-          : skipToken,
-    })
+    apiOptions.as<Array<{id: string}>>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
+      {
+        staleTime: Infinity,
+        data: {limit: 1},
+        path:
+          project && sampleIssueIdProp === undefined
+            ? {
+                organizationIdOrSlug: org.slug,
+                projectIdOrSlug: project.slug,
+              }
+            : skipToken,
+      }
+    )
   );
 
   const sampleIssueId = sampleIssueIdProp ?? data?.[0]?.id ?? '';
