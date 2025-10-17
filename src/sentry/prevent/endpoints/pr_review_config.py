@@ -24,9 +24,7 @@ class PreventAIConfigPermission(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
     """
-    Update the PR review config for a Sentry organization
-
-    PUT /organizations/{organization_id_or_slug}/prevent/github/config/
+    Get and set the GitHub PR review config for a Sentry organization
     """
 
     owner = ApiOwner.CODECOV
