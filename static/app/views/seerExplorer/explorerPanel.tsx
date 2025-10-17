@@ -178,6 +178,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       isOpen={isVisible}
       isMinimized={isMinimized}
       panelSize={panelSize}
+      onUnminimize={() => setIsMinimized(false)}
     >
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {blocks.length === 0 ? (
