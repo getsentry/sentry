@@ -125,6 +125,17 @@ class EventAttachment(Model):
                 with measure_storage_operation("delete", "attachments"):
                     storage.delete(self.blob_path)
 
+                # delete double-written attachments
+                blob_path = self.blob_path.removeprefix(V1_PREFIX)
+                if blob_path.startswith(V2_PREFIX):
+                    try:
+                        organization_id = _get_organization(self.project_id)
+                        attachments.for_project(organization_id, self.project_id).delete(
+                            blob_path.removeprefix(V2_PREFIX)
+                        )
+                    except Exception:
+                        sentry_sdk.capture_exception()
+
             elif self.blob_path.startswith(V2_PREFIX):
                 organization_id = _get_organization(self.project_id)
                 attachments.for_project(organization_id, self.project_id).delete(
