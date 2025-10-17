@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pydantic import BaseModel
 
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsApiResponse

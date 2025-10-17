@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import IntEnum
 
 from django.db import models
@@ -133,7 +135,7 @@ class PreprodArtifact(DefaultFieldsModel):
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
-    def get_sibling_artifacts_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
+    def get_sibling_artifacts_for_commit(self) -> models.QuerySet[PreprodArtifact]:
         """
         Get all artifacts for the same commit comparison (monorepo scenario).
 
@@ -153,7 +155,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_base_artifact_for_commit(
         self, artifact_type: ArtifactType | None = None
-    ) -> models.QuerySet["PreprodArtifact"]:
+    ) -> models.QuerySet[PreprodArtifact]:
         """
         Get the base artifact for the same commit comparison (monorepo scenario).
         Multiple artifacts can share the same commit comparison, but only one should
@@ -180,7 +182,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_head_artifacts_for_commit(
         self, artifact_type: ArtifactType | None = None
-    ) -> models.QuerySet["PreprodArtifact"]:
+    ) -> models.QuerySet[PreprodArtifact]:
         """
         Get all head artifacts for the same commit comparison (monorepo scenario).
         There can be multiple head artifacts for a commit comparison, as multiple
@@ -203,9 +205,9 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_size_metrics(
         self,
-        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType | None = None,
         identifier: str | None = None,
-    ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
+    ) -> models.QuerySet[PreprodArtifactSizeMetrics]:
         """Get size metrics for this artifact with optional filtering."""
         queryset = self.preprodartifactsizemetrics_set.all()
 
@@ -220,10 +222,10 @@ class PreprodArtifact(DefaultFieldsModel):
     @classmethod
     def get_size_metrics_for_artifacts(
         cls,
-        artifacts: models.QuerySet["PreprodArtifact"] | list["PreprodArtifact"],
-        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        artifacts: models.QuerySet[PreprodArtifact] | list[PreprodArtifact],
+        metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType | None = None,
         identifier: str | None = None,
-    ) -> dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]]:
+    ) -> dict[int, models.QuerySet[PreprodArtifactSizeMetrics]]:
         """
         Get size metrics for multiple artifacts using a single query.
 
@@ -249,7 +251,7 @@ class PreprodArtifact(DefaultFieldsModel):
             queryset = queryset.filter(identifier=identifier)
 
         # Group results by artifact_id
-        results: dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]] = {}
+        results: dict[int, models.QuerySet[PreprodArtifactSizeMetrics]] = {}
         for artifact_id in artifact_ids:
             results[artifact_id] = queryset.filter(preprod_artifact_id=artifact_id)
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Iterator
 
 from django.http.response import HttpResponse, HttpResponseBase, StreamingHttpResponse
