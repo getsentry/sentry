@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -31,20 +31,30 @@ class OAuthAuthorizeView(AuthLoginView):
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == "token":
-            return self.redirect(
-                "{}#{}".format(
-                    redirect_uri,
-                    urlencode([(k, v) for k, v in params.items() if v is not None]),
-                )
+            final_uri = "{}#{}".format(
+                redirect_uri,
+                urlencode([(k, v) for k, v in params.items() if v is not None]),
             )
+        else:
+            parts = list(urlparse(redirect_uri))
+            query = parse_qsl(parts[4])
+            for key, value in params.items():
+                if value is not None:
+                    query.append((key, value))
+            parts[4] = urlencode(query)
+            final_uri = urlunparse(parts)
 
-        parts = list(urlparse(redirect_uri))
-        query = parse_qsl(parts[4])
-        for key, value in params.items():
-            if value is not None:
-                query.append((key, value))
-        parts[4] = urlencode(query)
-        return self.redirect(urlunparse(parts))
+        # Django's HttpResponseRedirect blocks custom URL schemes for security.
+        # For OAuth redirects to the Sentry mobile agent, we need to support the
+        # sentry-mobile-agent:// scheme, so we use HttpResponse with a Location
+        # header directly.
+        parsed_uri = urlparse(final_uri)
+        if parsed_uri.scheme == "sentry-mobile-agent":
+            response = HttpResponse(status=302)
+            response["Location"] = final_uri
+            return response
+
+        return self.redirect(final_uri)
 
     def error(
         self,
