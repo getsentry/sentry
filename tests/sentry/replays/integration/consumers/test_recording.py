@@ -16,7 +16,9 @@ from sentry.utils import json
 
 
 @pytest.fixture
-def consumer() -> ProcessingStrategy[KafkaPayload]:
+@mock.patch("sentry.options.get")
+def consumer(options_get) -> ProcessingStrategy[KafkaPayload]:
+    options_get.return_value = True
     return ProcessReplayRecordingStrategyFactory(
         input_block_size=1,
         max_batch_size=1,
