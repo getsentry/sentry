@@ -1,8 +1,4 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import type {
   Docs,
   DocsParams,
@@ -89,32 +85,38 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Install the [strong:NuGet] package with Package Manager or .NET Core CLI:',
             {
               strong: <strong />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'shell',
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'shell',
               code: getInstallSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallSnippetCoreCli(params),
             },
           ],
         },
         {
+          type: 'text',
+          text: t('Or, manually add the Sentry dependency into your csproj file:'),
+        },
+        {
+          type: 'code',
           language: 'xml',
-          description: t('Or, manually add the Sentry dependency into your csproj file:'),
           code: getInstallSnippetManual(params),
         },
       ],
@@ -123,27 +125,31 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Then, add Sentry to the [code:Function] class through [code:FunctionsStartup]:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Then, add Sentry to the [code:Function] class through [code:FunctionsStartup]:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'csharp',
           code: getConfigureCSharpSnippet(),
         },
         {
-          language: 'json',
-          description: (
-            <p>
-              {tct(
-                "Additionally, you'll need to set up your [code:Sentry] settings on [code:appsettings.json]:",
-                {code: <code />}
-              )}
-            </p>
+          type: 'text',
+          text: tct(
+            "Additionally, you'll need to set up your [code:Sentry] settings on [code:appsettings.json]:",
+            {code: <code />}
           ),
+        },
+        {
+          type: 'code',
+          language: 'json',
           code: getConfigureJsonSnippet(params),
         },
       ],
@@ -152,9 +158,13 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t('To verify your setup, you can capture a message with the SDK:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify your setup, you can capture a message with the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: getVerifySnippet(),
         },
@@ -162,40 +172,38 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Samples'),
-      description: (
-        <Fragment>
-          {t(
+      content: [
+        {
+          type: 'text',
+          text: t(
             'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              {tct('[link:Google Cloud Functions sample]', {
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct('[link:Google Cloud Functions sample]', {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Google.Cloud.Functions" />
+              ),
+            }),
+            tct(
+              '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
+              {
                 link: (
-                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Google.Cloud.Functions" />
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
                 ),
-              })}
-            </ListItem>
-            <ListItem>
-              {tct(
-                '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-                {
-                  link: (
-                    <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                  ),
-                  strong: <strong />,
-                  code: <code />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {tct('[link:Basic F# sample] [strong:(F#)]', {
-                link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
                 strong: <strong />,
-              })}
-            </ListItem>
-          </List>
-        </Fragment>
-      ),
+                code: <code />,
+              }
+            ),
+            tct('[link:Basic F# sample] [strong:(F#)]', {
+              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+              strong: <strong />,
+            }),
+          ],
+        },
+      ],
     },
   ],
 };
