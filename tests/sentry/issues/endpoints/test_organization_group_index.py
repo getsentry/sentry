@@ -3166,21 +3166,21 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # a group
         grp_resolution = GroupResolution.objects.get(group=group)
 
-        assert grp_resolution.current_release_version == release_21_1_2.version
+        assert grp_resolution.current_release_version == release_21_1_1.version
 
         # "resolvedInNextRelease" with semver releases is considered as "resolvedInRelease"
         assert grp_resolution.type == GroupResolution.Type.in_release
         assert grp_resolution.status == GroupResolution.Status.resolved
 
-        # Add release that is between 2 and 3 to ensure that any release after release 2 should
+        # Add release that is between 1.1 and 1.2 to ensure that any release after release 1.1 should
         # not have a resolution
         release_21_1_1_plus_1 = self.create_release(version="fake_package@21.1.1+1")
         release_21_1_3 = self.create_release(version="fake_package@21.1.3")
 
-        for release in [release_21_1_0, release_21_1_1, release_21_1_1_plus_1, release_21_1_2]:
+        for release in [release_21_1_0, release_21_1_1]:
             assert GroupResolution.has_resolution(group=group, release=release)
 
-        for release in [release_21_1_3]:
+        for release in [release_21_1_1_plus_1, release_21_1_2, release_21_1_3]:
             assert not GroupResolution.has_resolution(group=group, release=release)
 
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
@@ -3190,7 +3190,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ident=grp_resolution.id,
         )
 
-        assert activity.data["current_release_version"] == release_21_1_2.version
+        assert activity.data["current_release_version"] == release_21_1_1.version
 
     def test_in_non_semver_projects_group_resolution_stores_current_release_version(self) -> None:
         """
