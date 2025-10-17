@@ -3,7 +3,13 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI, isDeveloperPlan, isTrialPlan} from 'getsentry/utils/billing';
+import {
+  hasBillingAccess,
+  hasNewBillingUI,
+  isDeveloperPlan,
+  isTrialPlan,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
@@ -19,10 +25,11 @@ interface HeaderCardsProps {
 }
 
 function getCards(organization: Organization, subscription: Subscription) {
-  const hasBillingPerms = organization.access?.includes('org:billing');
+  const hasBillingPerms = hasBillingAccess(organization);
   const cards: React.ReactNode[] = [];
   const isTrialOrFreePlan =
     isTrialPlan(subscription.plan) || isDeveloperPlan(subscription.planDetails);
+  const canUsePayg = supportsPayg(subscription);
 
   if (subscription.canSelfServe && !isTrialOrFreePlan && hasBillingPerms) {
     cards.push(
@@ -34,10 +41,7 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
-  const canUpdatePayg =
-    subscription.planDetails.allowOnDemand &&
-    subscription.supportsOnDemand &&
-    hasBillingPerms;
+  const canUpdatePayg = canUsePayg && hasBillingPerms;
 
   if (canUpdatePayg) {
     cards.push(

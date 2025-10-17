@@ -601,11 +601,25 @@ export function getProductIcon(product: AddOnCategory, size?: IconSize) {
   }
 }
 
+/**
+ * Returns true if the subscription can use pay-as-you-go.
+ */
+export function supportsPayg(subscription: Subscription) {
+  return subscription.planDetails.allowOnDemand && subscription.supportsOnDemand;
+}
+
+/**
+ * Returns true if the current user has billing perms.
+ */
+export function hasBillingAccess(organization: Organization) {
+  return organization.access.includes('org:billing');
+}
+
 export function hasAccessToSubscriptionOverview(
   subscription: Subscription,
   organization: Organization
 ) {
-  return organization.access.includes('org:billing') || subscription.canSelfServe;
+  return hasBillingAccess(organization) || subscription.canSelfServe;
 }
 
 /**
