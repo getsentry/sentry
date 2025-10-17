@@ -21,7 +21,7 @@ from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.workflows.compare import keyed_rrf_score
@@ -199,12 +199,17 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         processed_cohort_2_buckets = set()
 
         for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
+            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+                continue
+
             for bucket in attribute.buckets:
                 cohort_2_distribution_map[attribute.attribute_name].append(
                     {"label": bucket.label, "value": bucket.value}
                 )
 
         for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
+            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+                continue
             for bucket in attribute.buckets:
                 cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))
                 cohort_1_distribution_map[attribute.attribute_name].append(
