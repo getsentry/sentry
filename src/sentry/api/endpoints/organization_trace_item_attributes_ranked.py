@@ -226,10 +226,14 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                         break
 
         # Add remaining cohort_2 buckets that weren't in cohort_1 (exist only in baseline)
-        for attribute_name, buckets in cohort_2_distribution_map.items():
-            for bucket in buckets:
-                if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets:
-                    cohort_2_distribution.append((attribute_name, bucket["label"], bucket["value"]))
+        cohort_2_distribution.extend(
+            [
+                (attribute_name, bucket["label"], bucket["value"])
+                for attribute_name, buckets in cohort_2_distribution_map.items()
+                for bucket in buckets
+                if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets
+            ]
+        )
 
         total_outliers = (
             int(totals_1_result["data"][0]["count(span.duration)"])
