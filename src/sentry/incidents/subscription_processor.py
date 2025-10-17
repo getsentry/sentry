@@ -766,6 +766,7 @@ class SubscriptionProcessor:
                                 "project_id": self.subscription.project.id,
                             },
                         )
+                        metrics.incr(f"{metric_prefix}.no_detector")
                         if self._has_workflow_engine_processing_only:
                             # Nothing more we can do.
                             return
