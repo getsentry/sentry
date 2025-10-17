@@ -111,7 +111,7 @@
         shuffle() {
           this.raf = requestAnimationFrame(() => {
             this.textContent = this.random();
-            this.timeout = setTimeout(() => this.shuffle(), randomBetween(100, 500));
+            this.timeout = setTimeout(() => this.shuffle(), randomBetween(50, 250));
           })
         }
         connectedCallback() {
