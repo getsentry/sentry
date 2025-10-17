@@ -260,6 +260,110 @@ describe('SubscriptionHeader', () => {
     });
   });
 
+  it('renders new header cards for self-serve customers on subscription trial', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_t',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: true,
+      hasPaygCard: false,
+    });
+  });
+
+  it('renders new header cards for self-serve paid customers on plan trial', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isTrial: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: true,
+      hasBillingInfoCard: true,
+      hasPaygCard: true,
+    });
+  });
+
+  it('renders new header cards for customers on subscription enterprise trial', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_t_ent',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: false,
+      hasPaygCard: false,
+    });
+  });
+
+  it('renders new payment failure alert for past due subscriptions with flag', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isPastDue: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await screen.findByText(
+      'Automatic payment failed. Update your payment method to ensure uninterrupted access to Sentry.'
+    );
+  });
+
+  it('does not render new payment failure alert for past due subscriptions without flag', async () => {
+    const organization = OrganizationFixture({
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isPastDue: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await screen.findByText('Subscription');
+    expect(
+      screen.queryByText(
+        'Automatic payment failed. Update your payment method to ensure uninterrupted access to Sentry.'
+      )
+    ).not.toBeInTheDocument();
+  });
+
   it('does not render editable sections for YY partnership', async () => {
     const organization = OrganizationFixture({
       features: ['usage-log'],

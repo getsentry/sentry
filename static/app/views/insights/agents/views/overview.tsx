@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Stack} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -25,6 +25,11 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {ConversationsTable} from 'sentry/views/insights/agents/components/conversationsTable';
+import {
+  ConversationsTableSwitch,
+  useConversationsTableSwitch,
+} from 'sentry/views/insights/agents/components/conversationsTableSwitch';
 import {IssuesWidget} from 'sentry/views/insights/agents/components/issuesWidget';
 import LLMGenerationsWidget from 'sentry/views/insights/agents/components/llmCallsWidget';
 import TokenCostWidget from 'sentry/views/insights/agents/components/modelCostWidget';
@@ -40,6 +45,7 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
@@ -78,6 +84,7 @@ function AgentsOverviewPage() {
   const location = useLocation();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
+  useRemoveUrlCursorsOnSearch();
 
   useEffect(() => {
     trackAnalytics('agent-monitoring.page-view', {
@@ -245,6 +252,8 @@ function AgentsOverviewPage() {
 }
 
 function TracesView() {
+  const {value: conversationTable} = useConversationsTableSwitch();
+
   return (
     <Fragment>
       <WidgetGrid rowHeight={260}>
@@ -258,7 +267,10 @@ function TracesView() {
           <ToolUsageWidget />
         </WidgetGrid.Position3>
       </WidgetGrid>
-      <TracesTable />
+      <Flex justify="end" paddingBottom="xl">
+        <ConversationsTableSwitch />
+      </Flex>
+      {conversationTable ? <ConversationsTable /> : <TracesTable />}
     </Fragment>
   );
 }

@@ -2153,10 +2153,6 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/insights/frontend/',
     },
     transactionSummaryRoute,
-    {
-      path: 'vitaldetail/',
-      component: make(() => import('sentry/views/performance/vitalDetail')),
-    },
     traceView,
     ...insightsRedirectObjects,
     {

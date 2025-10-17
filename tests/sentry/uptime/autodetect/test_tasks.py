@@ -15,24 +15,24 @@ from sentry.models.project import Project
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.uptime.detectors.ranking import (
+from sentry.uptime.autodetect.ranking import (
     NUMBER_OF_BUCKETS,
     _get_cluster,
     add_base_url_to_rank,
     get_organization_bucket,
     get_project_base_url_rank_key,
 )
-from sentry.uptime.detectors.tasks import (
+from sentry.uptime.autodetect.tasks import (
     LAST_PROCESSED_KEY,
     ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
     SCHEDULER_LOCK_KEY,
     is_failed_url,
     monitor_url_for_project,
+    process_autodetection_bucket,
     process_candidate_url,
-    process_detection_bucket,
     process_organization_url_ranking,
     process_project_url_ranking,
-    schedule_detections,
+    schedule_autodetections,
     set_failed_url,
 )
 from sentry.uptime.models import get_uptime_subscription
@@ -58,10 +58,10 @@ class ScheduleDetectionsTest(UptimeTestCase):
         cluster = _get_cluster()
         assert not cluster.get(LAST_PROCESSED_KEY)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_detection_bucket"
-        ) as mock_process_detection_bucket:
-            schedule_detections()
-            mock_process_detection_bucket.delay.assert_not_called()
+            "sentry.uptime.autodetect.tasks.process_autodetection_bucket"
+        ) as mock_process_autodetection_bucket:
+            schedule_autodetections()
+            mock_process_autodetection_bucket.delay.assert_not_called()
         last_processed = cluster.get(LAST_PROCESSED_KEY)
         assert last_processed is not None
         assert int(last_processed) == int(
@@ -74,10 +74,10 @@ class ScheduleDetectionsTest(UptimeTestCase):
         last_processed_bucket = current_bucket - timedelta(minutes=10)
         cluster.set(LAST_PROCESSED_KEY, int(last_processed_bucket.timestamp()))
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_detection_bucket"
-        ) as mock_process_detection_bucket:
-            schedule_detections()
-            mock_process_detection_bucket.delay.assert_has_calls(
+            "sentry.uptime.autodetect.tasks.process_autodetection_bucket"
+        ) as mock_process_autodetection_bucket:
+            schedule_autodetections()
+            mock_process_autodetection_bucket.delay.assert_has_calls(
                 [
                     call((last_processed_bucket + timedelta(minutes=i)).isoformat())
                     for i in range(1, 11)
@@ -95,8 +95,8 @@ class ScheduleDetectionsTest(UptimeTestCase):
             duration=60,
             name="uptime.detection.schedule_detections",
         )
-        with lock.acquire(), mock.patch("sentry.uptime.detectors.tasks.metrics") as metrics:
-            schedule_detections()
+        with lock.acquire(), mock.patch("sentry.uptime.autodetect.tasks.metrics") as metrics:
+            schedule_autodetections()
             metrics.incr.assert_called_once_with(
                 "uptime.detectors.scheduler.unable_to_acquire_lock"
             )
@@ -106,10 +106,10 @@ class ScheduleDetectionsTest(UptimeTestCase):
 class ProcessDetectionBucketTest(UptimeTestCase):
     def test_empty_bucket(self) -> None:
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_organization_url_ranking"
+            "sentry.uptime.autodetect.tasks.process_organization_url_ranking"
         ) as mock_process_project_url_ranking:
             now = timezone.now().replace(second=0, microsecond=0)
-            process_detection_bucket(now.isoformat())
+            process_autodetection_bucket(now.isoformat())
             mock_process_project_url_ranking.delay.assert_not_called()
 
     def test_bucket(self) -> None:
@@ -126,9 +126,9 @@ class ProcessDetectionBucketTest(UptimeTestCase):
         add_base_url_to_rank(other_project, shared_url)
 
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_organization_url_ranking"
+            "sentry.uptime.autodetect.tasks.process_organization_url_ranking"
         ) as mock_process_organization_url_ranking:
-            process_detection_bucket(bucket.isoformat())
+            process_autodetection_bucket(bucket.isoformat())
             mock_process_organization_url_ranking.delay.assert_has_calls(
                 [call(self.project.organization.id), call(other_project.organization.id)],
                 any_order=True,
@@ -149,7 +149,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
         add_base_url_to_rank(self.project, url_1)
         add_base_url_to_rank(project_2, url_1)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_project_url_ranking",
+            "sentry.uptime.autodetect.tasks.process_project_url_ranking",
             return_value=False,
         ) as mock_process_project_url_ranking:
             process_organization_url_ranking(self.organization.id)
@@ -162,7 +162,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
 
     def test_should_not_detect_project(self) -> None:
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
+            "sentry.uptime.autodetect.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
             self.project.update_option("sentry:uptime_autodetection", False)
             assert not process_project_url_ranking(self.project, 5)
@@ -185,7 +185,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
         assert all(redis.exists(key) for key in keys)
 
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
+            "sentry.uptime.autodetect.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
             self.organization.update_option("sentry:uptime_autodetection", False)
             assert not process_organization_url_ranking(self.organization.id)
@@ -203,7 +203,7 @@ class ProcessProjectUrlRankingTest(UptimeTestCase):
         add_base_url_to_rank(self.project, url_1)
         add_base_url_to_rank(self.project, url_1)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_candidate_url",
+            "sentry.uptime.autodetect.tasks.process_candidate_url",
             return_value=False,
         ) as mock_process_candidate_url:
             assert not process_project_url_ranking(self.project, 5)
@@ -217,7 +217,7 @@ class ProcessProjectUrlRankingTest(UptimeTestCase):
     def test_should_not_detect(self) -> None:
         self.project.update_option("sentry:uptime_autodetection", False)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
+            "sentry.uptime.autodetect.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
             assert not process_project_url_ranking(self.project, 5)
             mock_get_candidate_urls_for_project.assert_not_called()
@@ -239,7 +239,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         with (
             self.options({"uptime.automatic-subscription-creation": False}),
             mock.patch(
-                "sentry.uptime.detectors.tasks.monitor_url_for_project"
+                "sentry.uptime.autodetect.tasks.monitor_url_for_project"
             ) as mock_monitor_url_for_project,
         ):
             assert process_candidate_url(self.project, 100, url, 50)
@@ -295,7 +295,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         robots_txt = ["User-agent: *", "Disallow: /"]
         test_robot_parser.parse(robots_txt)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            "sentry.uptime.autodetect.tasks.get_robots_txt_parser",
             return_value=test_robot_parser,
         ):
             assert not process_candidate_url(self.project, 100, url, 50)
@@ -307,7 +307,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         robots_txt = ["User-agent: SentryUptimeBot", "Disallow: /"]
         test_robot_parser.parse(robots_txt)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            "sentry.uptime.autodetect.tasks.get_robots_txt_parser",
             return_value=test_robot_parser,
         ):
             assert not process_candidate_url(self.project, 100, url, 50)
@@ -319,7 +319,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         robots_txt = ["User-agent: *", "Allow: /", "Disallow: /no-robos"]
         test_robot_parser.parse(robots_txt)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            "sentry.uptime.autodetect.tasks.get_robots_txt_parser",
             return_value=test_robot_parser,
         ):
             assert process_candidate_url(self.project, 100, url, 50)
@@ -331,7 +331,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         robots_txt: list[str] = []
         test_robot_parser.parse(robots_txt)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            "sentry.uptime.autodetect.tasks.get_robots_txt_parser",
             return_value=test_robot_parser,
         ):
             assert process_candidate_url(self.project, 100, url, 50)
@@ -340,7 +340,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         # Supplying no robots txt should allow all urls
         url = make_unique_test_url()
         with mock.patch(
-            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            "sentry.uptime.autodetect.tasks.get_robots_txt_parser",
             side_effect=Exception("Robots.txt fetch failed"),
         ):
             assert process_candidate_url(self.project, 100, url, 50)
