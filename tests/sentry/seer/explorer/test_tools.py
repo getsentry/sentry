@@ -527,6 +527,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
                 organization_id=self.organization.id,
                 selected_event=selected_event,
             )
+
+            # Short event IDs not supported.
             if selected_event == events[1].event_id[:8]:
                 assert result is None
                 continue

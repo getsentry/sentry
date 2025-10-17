@@ -249,7 +249,7 @@ def get_issue_details(
     Args:
         issue_id: The issue/group ID (integer) or short ID (string) to look up.
         organization_id: The ID of the issue's organization.
-        selected_event: The event to return - "oldest", "latest", or "recommended". Can also be the event's UUID, shortened to the first 8-32 characters.
+        selected_event: The event to return - "oldest", "latest", "recommended", or the event's UUID.
 
     Returns:
         A dict containing:
@@ -259,7 +259,7 @@ def get_issue_details(
             `event_trace_id`: The trace ID of the selected event.
             `tags_overview`: A summary of all tags in the issue.
             `project_id`: The project ID of the issue.
-        Returns None in case of errors.
+        Returns None when the event is not found or an error occurred.
     """
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -306,11 +306,11 @@ def get_issue_details(
 
     if not event:
         logger.warning(
-            "Could not find an event for the issue",
+            "Could not find the selected event for the issue",
             extra={
                 "organization_id": organization_id,
                 "issue_id": issue_id,
-                "selected_event_type": selected_event,
+                "selected_event": selected_event,
             },
         )
         return None
