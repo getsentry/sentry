@@ -54,6 +54,8 @@ function BlockComponent({
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
 
+  const [isHovered, setIsHovered] = useState(false);
+
   // State to track selected tool link (for navigation)
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
   const selectedLinkIndexRef = useRef(selectedLinkIndex);
@@ -174,8 +176,16 @@ function BlockComponent({
     }
   };
 
+  const showActions = (isFocused || isHovered) && !block.loading;
+
   return (
-    <Block ref={ref} isLast={isLast} onClick={onClick}>
+    <Block
+      ref={ref}
+      isLast={isLast}
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <AnimatePresence>
         <motion.div
           initial={{opacity: 0, y: 10}}
@@ -216,32 +226,41 @@ function BlockComponent({
             </BlockRow>
           )}
           {isFocused && <FocusIndicator />}
-          {isFocused && !block.loading && (
-            <ActionButtonBar gap="sm">
-              <Button size="xs" priority="default" onClick={handleDeleteClick}>
-                Rethink from here ⌫
-              </Button>
-              {hasValidLinks && (
-                <ButtonBar merged gap="0">
-                  {validToolLinks.map((_, idx) => (
-                    <Button
-                      key={idx}
-                      size="xs"
-                      priority={idx === selectedLinkIndex ? 'primary' : 'default'}
-                      onClick={e => handleNavigateClick(e, idx)}
-                    >
-                      {idx === 0
-                        ? validToolLinks.length === 1
-                          ? 'Navigate'
-                          : 'Navigate #1'
-                        : `#${idx + 1}`}
-                      {idx === selectedLinkIndex && ' ⏎'}
-                    </Button>
-                  ))}
-                </ButtonBar>
-              )}
-            </ActionButtonBar>
-          )}
+          <AnimatePresence>
+            {showActions && (
+              <motion.div
+                initial={{opacity: 0, y: 5}}
+                animate={{opacity: 1, y: 0}}
+                exit={{opacity: 0, y: 5}}
+                transition={{duration: 0.1}}
+              >
+                <ActionButtonBar gap="sm">
+                  <Button size="xs" priority="default" onClick={handleDeleteClick}>
+                    Rethink from here ⌫
+                  </Button>
+                  {hasValidLinks && (
+                    <ButtonBar merged gap="0">
+                      {validToolLinks.map((_, idx) => (
+                        <Button
+                          key={idx}
+                          size="xs"
+                          priority={idx === selectedLinkIndex ? 'primary' : 'default'}
+                          onClick={e => handleNavigateClick(e, idx)}
+                        >
+                          {idx === 0
+                            ? validToolLinks.length === 1
+                              ? 'Navigate'
+                              : 'Navigate #1'
+                            : `#${idx + 1}`}
+                          {idx === selectedLinkIndex && ' ⏎'}
+                        </Button>
+                      ))}
+                    </ButtonBar>
+                  )}
+                </ActionButtonBar>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </AnimatePresence>
     </Block>
