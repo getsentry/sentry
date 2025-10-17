@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useReducer} from 'react';
 
 import type {CommandPaletteAction} from './types';
 
@@ -12,6 +12,16 @@ type CommandPaletteConfig = {
   registerActions: (actions: CommandPaletteAction[]) => void;
   unregisterActions: (keys: string[]) => void;
 };
+
+type CommandPaletteActionReducerAction =
+  | {
+      actions: CommandPaletteAction[];
+      type: 'REGISTER_ACTIONS';
+    }
+  | {
+      keys: string[];
+      type: 'UNREGISTER_ACTIONS';
+    };
 
 const CommandPaletteConfigContext = createContext<CommandPaletteConfig | null>(null);
 const CommandPaletteStoreContext = createContext<CommandPaletteStore | null>(null);
@@ -32,14 +42,15 @@ export function useCommandPaletteStore(): CommandPaletteStore {
   return ctx;
 }
 
-export function CommandPaletteProvider({children}: CommandPaletteProviderProps) {
-  const [actions, setActions] = useState<CommandPaletteAction[]>([]);
+function actionsReducer(
+  state: CommandPaletteAction[],
+  reducerAction: CommandPaletteActionReducerAction
+): CommandPaletteAction[] {
+  switch (reducerAction.type) {
+    case 'REGISTER_ACTIONS': {
+      const result = [...state];
 
-  const registerActions = useCallback((newActions: CommandPaletteAction[]) => {
-    setActions(prev => {
-      const result = [...prev];
-
-      for (const newAction of newActions) {
+      for (const newAction of reducerAction.actions) {
         const existingIndex = result.findIndex(action => action.key === newAction.key);
 
         if (existingIndex >= 0) {
@@ -50,13 +61,22 @@ export function CommandPaletteProvider({children}: CommandPaletteProviderProps) 
       }
 
       return result;
-    });
-  }, []);
+    }
+    case 'UNREGISTER_ACTIONS':
+      return state.filter(action => !reducerAction.keys.includes(action.key));
+    default:
+      return state;
+  }
+}
 
+export function CommandPaletteProvider({children}: CommandPaletteProviderProps) {
+  const [actions, dispatch] = useReducer(actionsReducer, []);
+
+  const registerActions = useCallback((newActions: CommandPaletteAction[]) => {
+    dispatch({type: 'REGISTER_ACTIONS', actions: newActions});
+  }, []);
   const unregisterActions = useCallback((keys: string[]) => {
-    setActions(prev => {
-      return prev.filter(action => !keys.includes(action.key));
-    });
+    dispatch({type: 'UNREGISTER_ACTIONS', keys});
   }, []);
 
   const config = useMemo<CommandPaletteConfig>(

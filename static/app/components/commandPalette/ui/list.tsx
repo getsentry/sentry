@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 
 type CommandPaletteSection = {
   actions: CommandPaletteAction[];
-  key: string;
   label: string;
   'aria-label'?: string;
 };

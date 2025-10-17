@@ -2,6 +2,8 @@ import {Fragment, useCallback, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {closeModal} from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
@@ -26,7 +28,9 @@ function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMen
     label: action.label,
     details: action.details,
     leadingItems: action.actionIcon ? (
-      <IconWrap>{action.actionIcon}</IconWrap>
+      <IconWrap align="center" justify="center">
+        {action.actionIcon}
+      </IconWrap>
     ) : undefined,
     children:
       action.children?.slice(0, MAX_ACTIONS_PER_SECTION).map(actionToMenuItem) ?? [],
@@ -64,6 +68,7 @@ export function CommandPaletteContent() {
 
   const handleSelect = useCallback(
     (action: CommandPaletteAction) => {
+      // If there are child actions, we want to select the parent action and show the children
       if (action.children && action.children.length > 0) {
         selectAction(action);
         return;
@@ -82,14 +87,6 @@ export function CommandPaletteContent() {
     [navigate, selectAction]
   );
 
-  // When an action has been selected, clear the query and focus the input
-  useLayoutEffect(() => {
-    if (selectedAction) {
-      setQuery('');
-      inputRef.current?.focus();
-    }
-  }, [selectedAction, setQuery]);
-
   const handleActionByKey = useCallback(
     (selectionKey: React.Key | null | undefined) => {
       if (selectionKey === null || selectionKey === undefined) {
@@ -102,6 +99,14 @@ export function CommandPaletteContent() {
     },
     [actions, handleSelect]
   );
+
+  // When an action has been selected, clear the query and focus the input
+  useLayoutEffect(() => {
+    if (selectedAction) {
+      setQuery('');
+      inputRef.current?.focus();
+    }
+  }, [selectedAction, setQuery]);
 
   return (
     <Fragment>
@@ -127,10 +132,7 @@ export function CommandPaletteContent() {
   );
 }
 
-const IconWrap = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
+const IconWrap = styled(Flex)`
   width: ${p => p.theme.iconSizes.md};
   height: ${p => p.theme.iconSizes.md};
 `;
