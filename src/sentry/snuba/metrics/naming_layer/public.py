@@ -63,7 +63,6 @@ class SessionMetricKey(Enum):
     UNHANDLED_RATE = "session.unhandled_rate"
     UNHANDLED_USER_RATE = "session.unhandled_user_rate"
     UNHEALTHY_RATE = "session.unhealthy_rate"
-    UNHEALTHY_USER_RATE = "session.unhealthy_user_rate"
 
 
 class TransactionMetricKey(Enum):

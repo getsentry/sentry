@@ -2654,22 +2654,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.unhandled_rate"] == 0.75
         assert group["totals"]["session.unhandled_user_rate"] == 0.0
 
-    def test_unhealthy_rate_sessions_and_users(self) -> None:
-        # Users unhealthy rate
-        # foobar@1.0 -> 0.5
-        # foobar@2.0 -> 1
-        for tags, values in (
-            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
-            ({"session.status": "unhealthy", "release": "foobar@1.0"}, [1, 2]),
-            ({"release": "foobar@2.0"}, [3, 5]),
-        ):
-            for value in values:
-                self.store_release_health_metric(
-                    name=SessionMRI.RAW_USER.value,
-                    tags=tags,
-                    value=value,
-                )
-
+    def test_unhealthy_rate_sessions(self) -> None:
         # Unhealthy rate
         # foobar@1.0 -> 0.75
         # foobar@2.0 -> 0.25
