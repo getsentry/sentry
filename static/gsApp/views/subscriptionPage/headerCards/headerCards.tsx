@@ -3,7 +3,13 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
+import {
+  hasBillingAccess,
+  hasNewBillingUI,
+  isDeveloperPlan,
+  isTrialPlan,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
@@ -19,10 +25,13 @@ interface HeaderCardsProps {
 }
 
 function getCards(organization: Organization, subscription: Subscription) {
-  const hasBillingPerms = organization.access?.includes('org:billing');
+  const hasBillingPerms = hasBillingAccess(organization);
   const cards: React.ReactNode[] = [];
+  const isTrialOrFreePlan =
+    isTrialPlan(subscription.plan) || isDeveloperPlan(subscription.planDetails);
+  const canUsePayg = supportsPayg(subscription);
 
-  if (subscription.canSelfServe && hasBillingPerms) {
+  if (subscription.canSelfServe && !isTrialOrFreePlan && hasBillingPerms) {
     cards.push(
       <NextBillCard
         key="next-bill"
@@ -32,7 +41,9 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
-  if (subscription.supportsOnDemand && hasBillingPerms) {
+  const canUpdatePayg = canUsePayg && hasBillingPerms;
+
+  if (canUpdatePayg) {
     cards.push(
       <PaygCard key="payg" subscription={subscription} organization={organization} />
     );
@@ -40,7 +51,10 @@ function getCards(organization: Organization, subscription: Subscription) {
 
   if (
     hasBillingPerms &&
-    (subscription.canSelfServe || subscription.onDemandInvoiced) &&
+    (canUpdatePayg ||
+      (subscription.canSelfServe &&
+        isTrialOrFreePlan &&
+        !subscription.isEnterpriseTrial)) &&
     !subscription.isSelfServePartner
   ) {
     cards.push(

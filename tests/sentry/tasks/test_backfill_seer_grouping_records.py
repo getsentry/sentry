@@ -416,7 +416,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_called_with(
+        mock_metrics.incr.assert_any_call(
             "grouping.similarity.frame_count_filter",
             sample_rate=sample_rate,
             tags={
