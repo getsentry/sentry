@@ -7,6 +7,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap import constants
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.sentry_data_models import EAPTrace
@@ -173,7 +174,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
-        logger.exception(
+        logger.warning(
             "get_trace_waterfall: Organization does not exist",
             extra={"organization_id": organization_id, "trace_id": trace_id},
         )
@@ -199,7 +200,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
             limit=1,
             referrer=Referrer.SEER_RPC,
             config=SearchResolverConfig(),
-            sampling_mode="BEST_EFFORT",  # Prioritize performance to avoid timeouts - we only need 1 span.
+            sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,  # Maximize likelihood of finding a span.
         )
         full_trace_id = (
             subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
@@ -208,7 +209,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         full_trace_id = trace_id
 
     if not isinstance(full_trace_id, str):
-        logger.info(
+        logger.warning(
             "get_trace_waterfall: Trace not found from short id",
             extra={
                 "organization_id": organization_id,
