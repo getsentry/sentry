@@ -394,11 +394,11 @@ class FeatureManagerTest(TestCase):
         organizations = [self.organization, self.create_organization()]
 
         result = manager.batch_has_for_organizations(
-            ["organizations:feature"], organizations, actor=self.user
+            "organizations:feature", organizations, actor=self.user
         )
         assert result is not None
         for org in organizations:
-            assert result[f"organization:{org.id}"]["organizations:feature"]
+            assert result[f"organization:{org.id}"] is True
 
     def test_batch_has_for_organizations_error(self) -> None:
         manager = features.FeatureManager()
