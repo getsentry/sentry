@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
-from sentry import nodestore
+from sentry import deletions, nodestore
 from sentry.deletions.defaults.group import ErrorEventsDeletionTask
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
@@ -16,6 +16,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
@@ -253,6 +254,73 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
                 "args": [self.project.id, error_group_hashes, 0]
             }
+
+    def test_delete_grouphashes_and_metadata(self) -> None:
+        """
+        Test that when deleting group hashes, the group hash metadata is deleted first and the references to the other group hashes are updated.
+        """
+        # This enables checking Seer for similarity and to mock the call to return a specific grouphash
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        # Create two events/grouphashes and one of them
+        # Event A will be deleted
+        event_a = self.store_event(
+            data={
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "error_a.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
+        assert grouphash_a.metadata is not None
+        assert grouphash_a.metadata.seer_matched_grouphash is None
+        metadata_a_id = grouphash_a.metadata.id
+
+        with mock.patch(
+            "sentry.grouping.ingest.seer.get_seer_similar_issues"
+        ) as mock_get_seer_similar_issues:
+            # This will allow grouphash_b to be matched to grouphash_a by Seer
+            mock_get_seer_similar_issues.return_value = (0.01, grouphash_a)
+
+            # Event B will be kept - different exception to ensure different group hash to grouphash_a
+            event_b = self.store_event(
+                data={
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "error_b.py"}]},
+                },
+                project_id=self.project.id,
+            )
+            grouphash_b = GroupHash.objects.get(hash=event_b.get_primary_hash())
+            # assert grouphash_b.metadata is not None
+            assert grouphash_b.metadata is not None
+            metadata_b_id = grouphash_b.metadata.id
+
+            # Verify that seer matched event_b to event_a's hash
+            assert event_a.group_id == event_b.group_id
+            # Make sure it has not changed
+            assert grouphash_a.metadata is not None
+            assert grouphash_a.metadata.seer_matched_grouphash is None
+            assert grouphash_b.metadata is not None
+            assert grouphash_b.metadata.seer_matched_grouphash == grouphash_a
+
+            with self.tasks():
+                # It will delete all groups, group hashes and group hash metadata
+                task = deletions.get(model=Group, query={"id__in": [event_a.group_id]})
+                more = task.chunk()
+                assert not more
+
+            assert not Group.objects.filter(id=event_a.group_id).exists()
+            assert not GroupHash.objects.filter(id=grouphash_a.id).exists()
+            assert not GroupHashMetadata.objects.filter(id=metadata_a_id).exists()
+            assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
+            assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
+
+    def test_delete_grouphashes_and_metadata_and_metadata_but_delete_metadata_first(self) -> None:
+        """
+        Test that when deleting group hashes, the group hash metadata is deleted first (which will not update the references to the other group hashes)
+        """
+        with self.options({"deletions.group.delete_group_hashes_metadata_first": True}):
+            self.test_delete_grouphashes_and_metadata()
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
