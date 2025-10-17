@@ -389,7 +389,6 @@ module = [
     "sentry.digests.*",
     "sentry.discover.migrations.*",
     "sentry.dynamic_sampling.*",
-    "sentry.eventstore.*",
     "sentry.eventstream.*",
     "sentry.eventtypes.error",
     "sentry.explore.migrations.*",

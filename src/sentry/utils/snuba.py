@@ -1670,8 +1670,9 @@ def aliased_query(**kwargs):
 
     This function will also resolve column aliases to match the selected dataset
 
-    This method should be used sparingly. Instead prefer to use sentry.eventstore
-    sentry.tagstore, or sentry.snuba.discover instead when reading data.
+    This method should be used sparingly. Instead prefer to use
+    sentry.services.eventstore, sentry.tagstore, or sentry.snuba.discover
+    instead when reading data.
     """
     with sentry_sdk.start_span(op="sentry.snuba.aliased_query"):
         return _aliased_query_impl(**kwargs)
