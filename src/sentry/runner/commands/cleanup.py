@@ -78,8 +78,9 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     configure()
 
     from sentry import deletions, models, similarity
+    from sentry.utils import metrics
 
-    skip_models = [
+    skip_child_relations_models = [
         # Handled by other parts of cleanup
         models.EventAttachment,
         models.UserReport,
@@ -98,19 +99,25 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         model_name, chunk = j
-        model = import_string(model_name)
-        try:
-            task = deletions.get(
-                model=model,
-                query={"id__in": chunk},
-                skip_models=skip_models,
-                transaction_id=uuid4().hex,
-            )
 
-            while True:
-                if not task.chunk(apply_filter=True):
-                    break
+        try:
+            with sentry_sdk.start_transaction(
+                op="cleanup", name="multiprocess_worker"
+            ) as transaction:
+                transaction.set_tag("model", model_name)
+                model = import_string(model_name)
+                task = deletions.get(
+                    model=model,
+                    query={"id__in": chunk},
+                    skip_models=skip_child_relations_models,
+                    transaction_id=uuid4().hex,
+                )
+
+                while True:
+                    if not task.chunk(apply_filter=True):
+                        break
         except Exception:
+            metrics.incr("cleanup.error", instance=model_name, sample_rate=1.0)
             logger.exception("Error in multiprocess_worker.")
         finally:
             task_queue.task_done()
@@ -137,7 +144,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     "-t",
     default=False,
     is_flag=True,
-    help="Send the duration of this command to internal metrics.",
+    hidden=True,
+    help="(deprecated) Send the duration of this command to internal metrics.",
 )
 @log_options()
 def cleanup(
@@ -166,7 +174,6 @@ def cleanup(
         concurrency=concurrency,
         silent=silent,
         router=router,
-        timed=timed,
     )
 
 
@@ -178,7 +185,6 @@ def _cleanup(
     concurrency: int,
     silent: bool,
     router: str | None,
-    timed: bool,
 ) -> None:
     _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
@@ -189,8 +195,6 @@ def _cleanup(
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
     with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
-        transaction.set_tag("router", router)
-        transaction.set_tag("model", model)
         try:
             from sentry.runner import configure
 
@@ -198,9 +202,7 @@ def _cleanup(
 
             from sentry.utils import metrics
 
-            start_time = None
-            if timed:
-                start_time = time.time()
+            start_time = time.time()
 
             # list of models which this query is restricted to
             model_list = {m.lower() for m in model}
@@ -286,7 +288,7 @@ def _cleanup(
             # Shut down our pool
             _stop_pool(pool, task_queue)
 
-            if timed and start_time:
+            if start_time:
                 duration = int(time.time() - start_time)
                 metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
                 click.echo("Clean up took %s second(s)." % duration)
