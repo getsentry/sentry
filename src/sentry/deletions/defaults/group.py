@@ -29,7 +29,6 @@ GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
 
-
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
 # actions (delete/reprocess/merge/unmerge)

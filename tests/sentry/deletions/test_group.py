@@ -255,9 +255,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 "args": [self.project.id, error_group_hashes, 0]
             }
 
-    def test_delete_grouphash_metadata_first(self) -> None:
+    def test_delete_grouphashes_and_metadata(self) -> None:
         """
-        Test that the group hash metadata is deleted first when the group hash is deleted.
+        Test that when deleting group hashes, the group hash metadata is deleted first and the references to the other group hashes are updated.
         """
         # This enables checking Seer for similarity and to mock the call to return a specific grouphash
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -303,10 +303,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert grouphash_b.metadata is not None
             assert grouphash_b.metadata.seer_matched_grouphash == grouphash_a
 
-            with (
-                self.tasks(),
-                self.options({"deletions.group.delete_group_hashes_metadata_first": True}),
-            ):
+            with self.tasks():
                 # It will delete all groups, group hashes and group hash metadata
                 task = deletions.get(model=Group, query={"id__in": [event_a.group_id]})
                 more = task.chunk()
@@ -317,6 +314,13 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert not GroupHashMetadata.objects.filter(id=metadata_a_id).exists()
             assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
             assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
+
+    def test_delete_grouphashes_and_metadata_and_metadata_but_delete_metadata_first(self) -> None:
+        """
+        Test that when deleting group hashes, the group hash metadata is deleted first (which will not update the references to the other group hashes)
+        """
+        with self.options({"deletions.group.delete_group_hashes_metadata_first": True}):
+            self.test_delete_grouphashes_and_metadata()
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
