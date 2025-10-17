@@ -128,14 +128,6 @@ class DashboardWidgetSerializer(Serializer):
                     transaction_query["selectedAggregate"],
                 )
             except Exception:
-                query_params = {"referrer": "dashboards.widget-transaction-deprecation-warning"}
-                url = organization_absolute_url(
-                    has_customer_domain=has_customer_domain(),
-                    slug=obj.dashboard.organization.slug,
-                    path="/explore/traces/",
-                    query=urlencode(query_params, doseq=True),
-                )
-                urls.append(url)
                 continue
 
             aggregate_equation_fields = [
