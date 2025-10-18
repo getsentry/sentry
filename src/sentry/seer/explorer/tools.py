@@ -6,7 +6,7 @@ from sentry import eventstore
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
-from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -289,12 +289,13 @@ def get_issue_details(
 
     Returns:
         A dict containing:
-            `issue`: Serialized issue with exactly one event in `issue.events`, selected
-              according to `selected_event`.
+            `issue`: Serialized issue details.
+            `tags_overview`: A summary of all tags in the issue.
+            `event`: Serialized event details, selected according to `selected_event`.
             `event_id`: The event ID of the selected event.
             `event_trace_id`: The trace ID of the selected event.
-            `tags_overview`: A summary of all tags in the issue.
-            `project_id`: The project ID of the issue.
+            `project_id`: The ID of the issue's project.
+            `project_slug`: The slug of the issue's project.
         Returns None when the event is not found or an error occurred.
     """
     try:
@@ -323,7 +324,9 @@ def get_issue_details(
         )
         return None
 
-    serialized_group: dict[str, Any] = serialize(group, user=None, serializer=GroupSerializer())
+    serialized_group: BaseGroupSerializerResponse = serialize(
+        group, user=None, serializer=GroupSerializer()
+    )
 
     event: Event | GroupEvent | None
     if selected_event == "oldest":
@@ -351,10 +354,9 @@ def get_issue_details(
         )
         return None
 
-    serialized_event: IssueEventSerializerResponse | None = serialize(
+    serialized_event: IssueEventSerializerResponse = serialize(
         event, user=None, serializer=EventSerializer()
     )
-    serialized_group["events"] = [serialized_event]
 
     try:
         tags_overview = get_all_tags_overview(group)
@@ -366,9 +368,11 @@ def get_issue_details(
         tags_overview = None
 
     return {
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": group.project_id,
         "issue": serialized_group,
         "tags_overview": tags_overview,
+        "event": serialized_event,
+        "event_id": event.event_id,
+        "event_trace_id": event.trace_id,
+        "project_id": int(serialized_group["project"]["id"]),
+        "project_slug": serialized_group["project"]["slug"],
     }
