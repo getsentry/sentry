@@ -650,7 +650,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             events[1].event_id[:8],
         ]:
             result = get_issue_details(
-                issue_id=group.qualified_short_id if use_short_id else group.id,
+                issue_id=group.qualified_short_id if use_short_id else str(group.id),
                 organization_id=self.organization.id,
                 selected_event=selected_event,
             )
@@ -711,7 +711,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
         # Call with nonexistent organization ID.
         result = get_issue_details(
-            issue_id=group.id,
+            issue_id=str(group.id),
             organization_id=99999,
             selected_event="latest",
         )
@@ -721,7 +721,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         """Test returns None when group doesn't exist."""
         # Call with nonexistent group ID.
         result = get_issue_details(
-            issue_id=99999,
+            issue_id="99999",
             organization_id=self.organization.id,
             selected_event="latest",
         )
@@ -748,7 +748,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
         for et in ["oldest", "latest", "recommended"]:
             result = get_issue_details(
-                issue_id=group.id,
+                issue_id=str(group.id),
                 organization_id=self.organization.id,
                 selected_event=et,
             )
@@ -766,7 +766,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert isinstance(group, Group)
 
         result = get_issue_details(
-            issue_id=group.id,
+            issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="latest",
         )

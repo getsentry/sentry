@@ -277,13 +277,13 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
 
 def get_issue_details(
     *,
-    issue_id: int | str,
+    issue_id: str,
     organization_id: int,
     selected_event: str,
 ) -> dict[str, Any] | None:
     """
     Args:
-        issue_id: The issue/group ID (integer) or short ID (string) to look up.
+        issue_id: The issue/group ID (numeric) or short ID (string) to look up.
         organization_id: The ID of the issue's organization.
         selected_event: The event to return - "oldest", "latest", "recommended", or the event's UUID.
 
@@ -308,12 +308,12 @@ def get_issue_details(
         return None
 
     try:
-        if isinstance(issue_id, int):
+        if issue_id.isdigit():
             org_project_ids = Project.objects.filter(
                 organization=organization, status=ObjectStatus.ACTIVE
             ).values_list("id", flat=True)
 
-            group = Group.objects.get(project_id__in=org_project_ids, id=issue_id)
+            group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
