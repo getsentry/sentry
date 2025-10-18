@@ -307,15 +307,11 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "message_group_id" in str(response.data).lower()
 
-    def test_create_auto_enrolls_all_organization_projects(self) -> None:
-        # should be enrolled
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-        project3 = self.create_project(organization=self.organization)
-
-        # should not be enrolled
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
+    def test_create_with_empty_project_ids_enrolls_no_projects(self) -> None:
+        # Create projects in the organization
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
 
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
@@ -327,9 +323,32 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
 
         data_forwarder = DataForwarder.objects.get(id=response.data["id"])
 
-        enrolled_projects = DataForwarderProject.objects.filter(
-            data_forwarder=data_forwarder
-        ).values_list("project_id", flat=True)
+        # Empty project_ids list means no projects are enrolled
+        enrolled_count = DataForwarderProject.objects.filter(data_forwarder=data_forwarder).count()
 
-        assert set(enrolled_projects) == {project1.id, project2.id, project3.id}
-        assert other_project.id not in enrolled_projects
+        assert enrolled_count == 0
+
+    def test_create_with_specific_project_ids_enrolls_only_those_projects(self) -> None:
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        project3 = self.create_project(organization=self.organization)
+
+        payload = {
+            "provider": DataForwarderProviderSlug.SEGMENT,
+            "config": {"write_key": "test_key"},
+            "project_ids": [project1.id, project3.id],
+        }
+
+        response = self.get_success_response(self.organization.slug, status_code=201, **payload)
+
+        data_forwarder = DataForwarder.objects.get(id=response.data["id"])
+
+        enrolled_projects = set(
+            DataForwarderProject.objects.filter(data_forwarder=data_forwarder).values_list(
+                "project_id", flat=True
+            )
+        )
+
+        # Only the specified projects should be enrolled
+        assert enrolled_projects == {project1.id, project3.id}
+        assert project2.id not in enrolled_projects
