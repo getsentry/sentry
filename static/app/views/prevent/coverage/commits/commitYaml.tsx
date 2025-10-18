@@ -1,11 +1,16 @@
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {Text} from 'sentry/components/core/text';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export default function CommitYamlPage() {
   return (
     <LayoutGap>
-      <p>Commit YAML Page</p>
+      <EmptyStateWarning>
+        <Text as="p">{t('Commit YAML configuration')}</Text>
+      </EmptyStateWarning>
     </LayoutGap>
   );
 }
