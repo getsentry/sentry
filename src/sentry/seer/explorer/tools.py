@@ -208,6 +208,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
                 end=window_end,
                 projects=projects,
                 organization=organization,
+                debug=True,
             )
 
             subquery_result = Spans.run_table_query(
