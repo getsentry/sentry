@@ -13,7 +13,6 @@ from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.eap import constants
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
@@ -220,7 +219,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
                 limit=1,
                 referrer=Referrer.SEER_RPC,
                 config=SearchResolverConfig(),
-                sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,  # Maximize likelihood of finding a span.
+                sampling_mode=None,
             )
 
             data = subquery_result.get("data")
