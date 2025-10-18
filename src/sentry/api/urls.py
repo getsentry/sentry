@@ -437,6 +437,7 @@ from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.prevent.endpoints.organization_github_repos import (
     OrganizationPreventGitHubReposEndpoint,
 )
+from sentry.prevent.endpoints.pr_review_config import OrganizationPreventGitHubConfigEndpoint
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
 )
@@ -2144,6 +2145,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-repository-commits",
     ),
     # Prevent AI endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/prevent/github/config/$",
+        OrganizationPreventGitHubConfigEndpoint.as_view(),
+        name="sentry-api-0-organization-prevent-github-config",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/prevent/github/repos/$",
         OrganizationPreventGitHubReposEndpoint.as_view(),
