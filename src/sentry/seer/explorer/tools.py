@@ -231,8 +231,8 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
                         "organization_id": organization_id,
                         "trace_id": trace_id,
                         "subquery_result": subquery_result,
-                        "start": window_start,
-                        "end": window_end,
+                        "start": window_start.isoformat(),
+                        "end": window_end.isoformat(),
                     },
                 )
 
