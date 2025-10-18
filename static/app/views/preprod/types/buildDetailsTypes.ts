@@ -64,6 +64,15 @@ export function isSizeInfoCompleted(
   return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
 }
 
+export function isSizeInfoProcessing(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): boolean {
+  return (
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING ||
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING
+  );
+}
+
 export enum BuildDetailsState {
   UPLOADING = 0,
   UPLOADED = 1,
