@@ -8,7 +8,10 @@ import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-function CommandPalette({Body, closeModal}: ModalRenderProps) {
+/**
+ * @deprecated to be replaced by `components/commandPalette`.
+ */
+function DeprecatedCommandPalette({Body, closeModal}: ModalRenderProps) {
   const theme = useTheme();
 
   useEffect(
@@ -52,7 +55,7 @@ function CommandPalette({Body, closeModal}: ModalRenderProps) {
   );
 }
 
-export default CommandPalette;
+export default DeprecatedCommandPalette;
 
 const InputWithoutFocusStyles = styled(InputGroup.Input)`
   &:focus,
