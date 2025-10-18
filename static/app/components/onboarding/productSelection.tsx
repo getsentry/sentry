@@ -6,6 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -381,10 +382,10 @@ function Product({
       title={
         disabled?.reason ??
         (description && (
-          <TooltipDescription>
+          <Stack gap="xs" justify="start">
             {description}
             {docLink && <ExternalLink href={docLink}>{t('Read the Docs')}</ExternalLink>}
-          </TooltipDescription>
+          </Stack>
         ))
       }
       delay={500}
@@ -514,7 +515,7 @@ export function ProductSelection({
   }
 
   return (
-    <Products>
+    <Flex wrap="wrap" gap="md">
       <Product
         label={t('Error Monitoring')}
         disabled={{reason: t("Let's admit it, we all have errors.")}}
@@ -571,7 +572,7 @@ export function ProductSelection({
           checked={urlProducts.includes(ProductSolution.PROFILING)}
         />
       )}
-    </Products>
+    </Flex>
   );
 }
 
@@ -594,22 +595,9 @@ const ProductButton = withChonk(
   Button
 );
 
-const Products = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
 const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-`;
-
-const TooltipDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  justify-content: flex-start;
 `;

@@ -172,7 +172,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 query_string=query,
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and "debug" in request.GET,
-                case_insensitive=request.GET.get("caseInsensitive", "false").lower() == "true",
+                case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
             )
             return params
 
@@ -354,8 +354,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     ) -> dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", name="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
-            meta = results.get("meta", {})
-            fields_meta = meta.get("fields", {})
+            # these may get re-used by other timeseries
+            meta = results.get("meta", {}).copy()
+            fields_meta = meta.get("fields", {}).copy()
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)

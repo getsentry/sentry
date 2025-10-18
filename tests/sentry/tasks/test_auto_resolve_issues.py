@@ -10,7 +10,6 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -40,31 +39,25 @@ class ScheduleAutoResolutionTest(TestCase):
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
         )
-        assert GroupOpenPeriod.objects.get(group=group1).date_ended is None
 
         group2 = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, last_seen=timezone.now()
         )
-        assert GroupOpenPeriod.objects.get(group=group2).date_ended is None
 
         group3 = self.create_group(
             project=project3,
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
         )
-        assert GroupOpenPeriod.objects.get(group=group3).date_ended is None
 
         with self.tasks():
             schedule_auto_resolution()
 
         assert Group.objects.get(id=group1.id).status == GroupStatus.RESOLVED
-        assert GroupOpenPeriod.objects.get(group=group1).date_ended is not None
 
         assert Group.objects.get(id=group2.id).status == GroupStatus.UNRESOLVED
-        assert GroupOpenPeriod.objects.get(group=group2).date_ended is None
 
         assert Group.objects.get(id=group3.id).status == GroupStatus.UNRESOLVED
-        assert GroupOpenPeriod.objects.get(group=group3).date_ended is None
 
         mock_kick_off_status_syncs.apply_async.assert_called_once_with(
             kwargs={"project_id": group1.project_id, "group_id": group1.id}

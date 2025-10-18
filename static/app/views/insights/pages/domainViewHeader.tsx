@@ -28,7 +28,6 @@ import {
   isModuleInBeta,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
-import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -67,6 +66,7 @@ export function DomainViewHeader({
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
   const isAgentMonitoring = view === 'ai';
+  const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
   const crumbs: Crumb[] = [
     {
@@ -108,14 +108,16 @@ export function DomainViewHeader({
   ];
 
   const feedbackOptions =
-    isAgentMonitoring || isLaravelInsights || isNextJsInsights
+    isAgentMonitoring || isLaravelInsights || isNextJsInsights || isSessionsInsights
       ? {
           tags: {
             ['feedback.source']: isAgentMonitoring
               ? 'agent-monitoring'
               : isLaravelInsights
                 ? 'laravel-insights'
-                : 'nextjs-insights',
+                : isSessionsInsights
+                  ? 'sessions-insights'
+                  : 'nextjs-insights',
             ['feedback.owner']: 'telemetry-experience',
           },
         }
@@ -129,11 +131,7 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            {selectedModule === ModuleName.SESSIONS ? (
-              <FeedbackButtonTour />
-            ) : (
-              <FeedbackWidgetButton optionOverrides={feedbackOptions} />
-            )}
+            <FeedbackWidgetButton optionOverrides={feedbackOptions} />
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>

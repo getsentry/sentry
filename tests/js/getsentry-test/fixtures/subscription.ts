@@ -12,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
 import {AddOnCategory, BillingType} from 'getsentry/types';
-import {isTrialPlan} from 'getsentry/utils/billing';
+import {isEnterprise, isTrialPlan} from 'getsentry/utils/billing';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -44,6 +44,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const safeCategories = planDetails?.planCategories || {};
 
   const isTrial = isTrialPlan(planDetails.id);
+  const isEnterpriseTrial = isTrial && isEnterprise(planDetails.id);
   const reservedBudgets = [];
   if (hasSeer) {
     if (isTrial) {
@@ -71,7 +72,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     hadCustomDynamicSampling: false,
     id: '',
     isBundleEligible: false,
-    isEnterpriseTrial: false,
+    isEnterpriseTrial,
     isExemptFromForcedTrial: false,
     isForcedTrial: false,
     isOverMemberLimit: false,

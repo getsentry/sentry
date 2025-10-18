@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
-import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -119,7 +119,7 @@ function getSubmitTooltipText({
     return t('Please fill out all the required fields');
   }
   if (isMissingProjectName) {
-    return t('Please provide a project name');
+    return t('Please provide a project slug');
   }
   if (isMissingAlertThreshold) {
     return t('Please provide an alert threshold');
@@ -133,14 +133,8 @@ function getSubmitTooltipText({
   return t('Please select a team');
 }
 
-const keyToErrorText: Record<string, string> = {
-  actions: t('Notify via integration'),
-  conditions: t('Alert conditions'),
-  name: t('Alert name'),
-  detail: t('Project details'),
-};
-
 export function CreateProject() {
+  const globalModal = useGlobalModal();
   const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -523,7 +517,7 @@ export function CreateProject() {
           </StyledListItem>
           <FormFieldGroup>
             <div>
-              <FormLabel>{t('Project name')}</FormLabel>
+              <FormLabel>{t('Project slug')}</FormLabel>
               <ProjectNameInputWrap>
                 <StyledPlatformIcon
                   platform={formData.platform?.key ?? 'other'}
@@ -532,7 +526,7 @@ export function CreateProject() {
                 <ProjectNameInput
                   type="text"
                   name="name"
-                  placeholder={t('project-name')}
+                  placeholder={t('project-slug')}
                   autoComplete="off"
                   value={formData.projectName}
                   onChange={e => updateFormData('projectName', slugify(e.target.value))}
@@ -580,17 +574,8 @@ export function CreateProject() {
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
-            <Alert.Container>
-              <Alert type="error" showIcon={false}>
-                {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
-                  <div key={key}>
-                    <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                    {(createProjectAndRules.error.responseJSON as any)[key]}
-                  </div>
-                ))}
-              </Alert>
-            </Alert.Container>
+          {!globalModal.visible && (
+            <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
         </List>
       </div>

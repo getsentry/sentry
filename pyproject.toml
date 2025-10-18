@@ -35,6 +35,7 @@ dependencies = [
     "google-cloud-storage-transfer>=1.17.0",
     "google-crc32c>=1.6.0",
     "googleapis-common-protos>=1.63.2",
+    "granian~=2.5",
     "grpc-google-iam-v1>=0.13.1",
     # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
     # See https://github.com/grpc/grpc/issues/23796 and
@@ -47,6 +48,7 @@ dependencies = [
     "maxminddb>=2.3.0",
     "mistune>=2.0.4",
     "mmh3>=4.0.0",
+    "msgspec>=0.19.0",
     "msgpack>=1.1.0",
     "openai>=1.3.5",
     "orjson>=3.10.10",
@@ -78,12 +80,12 @@ dependencies = [
     # [end] jsonschema format validators
     "sentry-arroyo>=2.29.6",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
-    "sentry-kafka-schemas>=2.1.6",
+    "sentry-kafka-schemas>=2.1.9",
     "sentry-ophio>=1.1.3",
-    "sentry-protos>=0.4.1",
+    "sentry-protos>=0.4.2",
     "sentry-redis-tools>=0.5.0",
-    "sentry-relay>=0.9.16",
-    "sentry-sdk[http2]>=2.35.1",
+    "sentry-relay>=0.9.17",
+    "sentry-sdk[http2]>=2.42.0",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
     "setuptools>=70.0.0",
@@ -95,6 +97,7 @@ dependencies = [
     "structlog>=22.1.0",
     "symbolic>=12.14.1",
     "tiktoken>=0.8.0",
+    "tokenizers>=0.22.0",
     "tldextract>=5.1.2",
     "toronado>=0.1.0",
     "typing-extensions>=4.12.0",
@@ -103,7 +106,7 @@ dependencies = [
     # note: we cannot resolve urllib3[brotli] but brotli is installed
     #       and will be used
     "urllib3>=2.2.2",
-    "vroomrs>=0.1.18",
+    "vroomrs>=0.1.19",
     "xmlsec>=1.3.14",
     "zstandard>=0.18.0",
     # [begin] getsentry
@@ -293,6 +296,7 @@ module = [
     "onelogin.saml2.idp_metadata_parser.*",
     "rb.*",
     "statsd.*",
+    "tokenizers.*",
     "u2flib_server.model.*",
 ]
 ignore_missing_imports = true
@@ -555,8 +559,7 @@ module = [
     "sentry.plugins.base.view",
     "sentry.plugins.validators.*",
     "sentry.post_process_forwarder.*",
-    "sentry.preprod.api.models.*",
-    "sentry.preprod.migrations.*",
+    "sentry.preprod.*",
     "sentry.profiles.*",
     "sentry.projects.*",
     "sentry.ratelimits.leaky_bucket",
@@ -836,7 +839,7 @@ module = [
     "tests.sentry.templatetags.*",
     "tests.sentry.testutils.*",
     "tests.sentry.types.*",
-    "tests.sentry.uptime.detectors.*",
+    "tests.sentry.uptime.autodetect.*",
     "tests.sentry.usage_accountant.*",
     "tests.sentry.users.api.bases.*",
     "tests.sentry.users.api.serializers.*",

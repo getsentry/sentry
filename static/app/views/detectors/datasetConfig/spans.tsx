@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -27,6 +28,7 @@ type SpansSeriesResponse = EventsStats;
 const DEFAULT_EVENT_TYPES = [EventTypes.TRACE_ITEM_SPAN];
 
 export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
+  name: t('Spans'),
   SearchBar: TraceSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: SpansConfig.defaultField,

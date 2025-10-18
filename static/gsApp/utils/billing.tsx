@@ -348,6 +348,10 @@ export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
+export function isAm1Plan(planId?: string) {
+  return typeof planId === 'string' && planId.startsWith('am1');
+}
+
 export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
@@ -375,6 +379,7 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
 export const displayBudgetName = (
   plan?: Plan | null,
   options: {
+    abbreviated?: boolean;
     pluralOndemand?: boolean;
     title?: boolean;
     withBudget?: boolean;
@@ -382,6 +387,12 @@ export const displayBudgetName = (
 ) => {
   const budgetTerm = plan?.budgetTerm ?? 'pay-as-you-go';
   const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.abbreviated) {
+    if (budgetTerm === 'pay-as-you-go') {
+      return 'PAYG';
+    }
+    return 'OD';
+  }
   if (options.title) {
     if (budgetTerm === 'on-demand') {
       if (options.withBudget) {
@@ -590,11 +601,25 @@ export function getProductIcon(product: AddOnCategory, size?: IconSize) {
   }
 }
 
+/**
+ * Returns true if the subscription can use pay-as-you-go.
+ */
+export function supportsPayg(subscription: Subscription) {
+  return subscription.planDetails.allowOnDemand && subscription.supportsOnDemand;
+}
+
+/**
+ * Returns true if the current user has billing perms.
+ */
+export function hasBillingAccess(organization: Organization) {
+  return organization.access.includes('org:billing');
+}
+
 export function hasAccessToSubscriptionOverview(
   subscription: Subscription,
   organization: Organization
 ) {
-  return organization.access.includes('org:billing') || subscription.canSelfServe;
+  return hasBillingAccess(organization) || subscription.canSelfServe;
 }
 
 /**
@@ -825,4 +850,26 @@ export function getFees({
       [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
       (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
   );
+}
+
+/**
+ * Returns ondemand invoice items from the invoice or preview data.
+ */
+export function getOnDemandItems({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(item => item.type.startsWith('ondemand'));
+}
+
+/**
+ * Removes the budget term (pay-as-you-go/on-demand) from an ondemand item description.
+ */
+export function formatOnDemandDescription(
+  description: string,
+  plan?: Plan | null
+): string {
+  const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
+  return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
 }
