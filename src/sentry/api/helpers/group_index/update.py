@@ -49,6 +49,7 @@ from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombs
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
+from sentry.search.utils import LatestReleaseOrders, get_first_last_release_for_group
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
@@ -154,9 +155,11 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        release = greatest_semver_release(group.project)
-        if release is not None:
+        try:
+            release = get_first_last_release_for_group(group, LatestReleaseOrders.SEMVER, last=True)
             current_release_version = release.version
+        except Release.DoesNotExist:
+            pass
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
