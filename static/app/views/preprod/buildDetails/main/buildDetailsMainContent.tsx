@@ -204,7 +204,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       <BuildError
         title={t('Size analysis failed')}
         message={appSizeError?.message ?? t('The treemap data could not be loaded')}
-      />
+      >
+        <Button onClick={onRerunAnalysis} disabled={isRerunning}>
+          {isRerunning ? t('Rerunning...') : t('Retry analysis')}
+        </Button>
+      </BuildError>
     );
   }
 
