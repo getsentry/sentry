@@ -280,7 +280,7 @@ def get_issue_details(
     issue_id: int | str,
     organization_id: int,
     selected_event: str,
-) -> dict[str, int | str | dict | None] | None:
+) -> dict[str, Any] | None:
     """
     Args:
         issue_id: The issue/group ID (integer) or short ID (string) to look up.
