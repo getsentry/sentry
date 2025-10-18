@@ -299,11 +299,11 @@ def _fix_issue_paths(result: Any) -> Any:
     modified_paths = []
 
     for path, endpoint in items:
-        if "{var}/{issue_id}" in path:
+        if "/{var}/" in path:
             modified_paths.append(path)
 
     for path in modified_paths:
-        updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
+        updated_path = path.replace("/{var}/", "/issues/")
         if updated_path.startswith("/api/0/issues/"):
             updated_path = updated_path.replace(
                 "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
