@@ -87,7 +87,6 @@ const topDotNetFrameworks: PlatformKey[] = [
   'dotnet-wpf',
   'dotnet-winforms',
   'dotnet-xamarin',
-  'dotnet-uwp',
   'dotnet-gcpfunctions',
   'dotnet-awslambda',
 ];
