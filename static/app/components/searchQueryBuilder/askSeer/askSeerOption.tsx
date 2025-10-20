@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {
   AskSeerLabel,
   AskSeerListItem,
@@ -22,8 +21,7 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
-  const {setDisplayAskSeer, gaveSeerConsent} = useSearchQueryBuilder();
-  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
+  const {setDisplayAskSeer} = useSearchQueryBuilder();
 
   const organization = useOrganization();
   const hasAskSeerConsentFlowChanges = organization.features.includes(
@@ -46,15 +44,6 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
   const handleClick = () => {
     if (optionDisableOverride) return;
-
-    if (hasAskSeerConsentFlowChanges && !gaveSeerConsent) {
-      trackAnalytics('trace.explorer.ai_query_interface', {
-        organization,
-        action: 'consent_accepted',
-      });
-      seerAcknowledgeMutate();
-      return;
-    }
 
     trackAnalytics('trace.explorer.ai_query_interface', {
       organization,

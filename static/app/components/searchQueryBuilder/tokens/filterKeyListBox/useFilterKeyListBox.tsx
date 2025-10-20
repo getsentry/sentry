@@ -397,15 +397,6 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
-        if (hasAskSeerConsentFlowChanges && !gaveSeerConsent) {
-          trackAnalytics('trace.explorer.ai_query_interface', {
-            organization,
-            action: 'consent_accepted',
-          });
-          seerAcknowledgeMutate();
-          return;
-        }
-
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
           action: 'opened',
@@ -432,8 +423,6 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     },
     [
       currentInputValueRef,
-      gaveSeerConsent,
-      hasAskSeerConsentFlowChanges,
       organization,
       seerAcknowledgeMutate,
       setAutoSubmitSeer,
