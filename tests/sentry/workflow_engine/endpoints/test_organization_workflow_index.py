@@ -636,6 +636,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         workflow_data = {**self.valid_workflow, "detectorIds": [error_detector.id]}
 
+        self.login_as(user=self.member_user)
+
         response = self.get_success_response(
             self.organization.slug,
             raw_data=workflow_data,
