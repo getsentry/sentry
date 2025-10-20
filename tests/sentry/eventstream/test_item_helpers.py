@@ -1,5 +1,4 @@
 from typing import Any
-from unittest.mock import Mock
 
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
@@ -10,7 +9,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
 
 
-class EncodeAttributesTest(TestCase):
+class ItemHelpersTest(TestCase):
     def create_group_event(self, event_data: dict[str, Any]) -> GroupEvent:
         group = self.create_group(project=self.project)
         node_id = Event.generate_node_id(self.project.id, "a" * 32)
@@ -192,12 +191,7 @@ class EncodeAttributesTest(TestCase):
             string_value="encode not supported for non-scalar values"
         )
 
-
-class SerializeEventDataAsItemTest(TestCase):
     def test_serialize_event_data_as_item_basic(self):
-        event = Mock()
-        event.group_id = 123
-
         project = self.create_project()
 
         event_data = {
@@ -209,6 +203,7 @@ class SerializeEventDataAsItemTest(TestCase):
             "tags": [("environment", "production")],
         }
 
+        event = self.create_group_event(event_data)
         result = serialize_event_data_as_item(event, event_data, project)
 
         assert result.item_id == ("a" * 32).encode("utf-8")
@@ -222,9 +217,6 @@ class SerializeEventDataAsItemTest(TestCase):
         assert not result.HasField("received")
 
     def test_serialize_event_data_as_item_with_received(self):
-        event = Mock()
-        event.group_id = None
-
         project = self.create_project()
 
         event_data = {
@@ -235,15 +227,17 @@ class SerializeEventDataAsItemTest(TestCase):
             "tags": [],
         }
 
+        event = Event(
+            event_id="c" * 32,
+            data=event_data,
+            project_id=project.id,
+        )
         result = serialize_event_data_as_item(event, event_data, project)
 
         assert result.HasField("received")
         assert result.received.seconds == 1234567900
 
     def test_serialize_event_data_as_item_with_custom_retention_days(self):
-        event = Mock()
-        event.group_id = None
-
         project = self.create_project()
 
         event_data = {
@@ -254,14 +248,17 @@ class SerializeEventDataAsItemTest(TestCase):
             "tags": [],
         }
 
+        event = Event(
+            event_id="e" * 32,
+            data=event_data,
+            project_id=project.id,
+        )
+
         result = serialize_event_data_as_item(event, event_data, project)
 
         assert result.retention_days == 30
 
     def test_serialize_event_data_as_item_ignores_specified_fields(self):
-        event = Mock()
-        event.group_id = 456
-
         project = self.create_project()
 
         event_data = {
@@ -272,6 +269,7 @@ class SerializeEventDataAsItemTest(TestCase):
             "tags": [("level", "info")],
         }
 
+        event = self.create_group_event(event_data)
         result = serialize_event_data_as_item(event, event_data, project)
 
         # event_id, timestamp, and tags should be ignored in attributes
@@ -281,14 +279,11 @@ class SerializeEventDataAsItemTest(TestCase):
         # other_field should be present
         assert result.attributes["other_field"] == AnyValue(string_value="should_be_included")
         # group_id should be added
-        assert result.attributes["group_id"] == AnyValue(int_value=456)
+        assert result.attributes["group_id"] == AnyValue(int_value=event.group.id)
         # tags should be encoded with tags[] prefix
         assert result.attributes["tags[level]"] == AnyValue(string_value="info")
 
     def test_serialize_event_data_as_item_with_multiple_attributes(self):
-        event = Mock()
-        event.group_id = None
-
         project = self.create_project()
 
         event_data = {
@@ -303,6 +298,11 @@ class SerializeEventDataAsItemTest(TestCase):
             "tags": [],
         }
 
+        event = Event(
+            event_id="i" * 32,
+            data=event_data,
+            project_id=project.id,
+        )
         result = serialize_event_data_as_item(event, event_data, project)
 
         assert result.attributes["level"] == AnyValue(string_value="error")
