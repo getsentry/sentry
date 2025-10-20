@@ -1,4 +1,3 @@
-import {useEffect, useEffectEvent} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 
 import Feature from 'sentry/components/acl/feature';
@@ -17,15 +16,13 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {t} from 'sentry/locale';
 import {useIsFetching, useIsMutating} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
 
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
   const hasAskSeerConsentFlowChanges = organization.features.includes(
     'ask-seer-consent-flow-update'
   );
-  const {gaveSeerConsent, displayAskSeerFeedback, displayAskSeer, setDisplayAskSeer} =
-    useSearchQueryBuilder();
+  const {gaveSeerConsent, displayAskSeerFeedback} = useSearchQueryBuilder();
 
   const isMutating = useIsMutating({
     mutationKey: [setupCheckQueryKey(organization.slug)],
@@ -37,24 +34,6 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
     }) > 0;
 
   const loadingState = Boolean(isPendingSetupCheck || isMutating);
-
-  const previousGaveSeerConsent = usePrevious(gaveSeerConsent);
-  const displayAskSeerEvent = useEffectEvent(() => {
-    if (
-      !displayAskSeer &&
-      hasAskSeerConsentFlowChanges &&
-      previousGaveSeerConsent === false &&
-      gaveSeerConsent === true
-    ) {
-      setDisplayAskSeer(true);
-    }
-  });
-
-  useEffect(() => {
-    if (!loadingState) {
-      displayAskSeerEvent();
-    }
-  }, [loadingState]);
 
   if (loadingState) {
     return (
