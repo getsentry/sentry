@@ -2809,6 +2809,13 @@ export enum ReplayClickFieldKey {
   CLICK_TEXT_CONTENT = 'click.textContent',
   CLICK_TITLE = 'click.title',
   CLICK_COMPONENT_NAME = 'click.component_name',
+  CLICK_TEST = 'click.test',
+}
+
+export enum ReplayTapFieldKey {
+  TAP_MESSAGE = 'tap.message',
+  TAP_VIEW_ID = 'tap.view_id',
+  TAP_VIEW_CLASS = 'tap.view_class',
 }
 
 /**
@@ -3041,6 +3048,13 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_TITLE,
   ReplayClickFieldKey.CLICK_TESTID,
   ReplayClickFieldKey.CLICK_COMPONENT_NAME,
+  ReplayClickFieldKey.CLICK_TEST,
+];
+
+export const REPLAY_TAP_FIELDS = [
+  ReplayTapFieldKey.TAP_MESSAGE,
+  ReplayTapFieldKey.TAP_VIEW_ID,
+  ReplayTapFieldKey.TAP_VIEW_CLASS,
 ];
 
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
@@ -3113,6 +3127,29 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
   [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
     desc: t('the name of the frontend component that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TEST]: {
+    desc: t('im testing'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
+const REPLAY_TAP_FIELD_DEFINITIONS: Record<ReplayTapFieldKey, FieldDefinition> = {
+  [ReplayTapFieldKey.TAP_MESSAGE]: {
+    desc: t('`Message` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_CLASS]: {
+    desc: t('`View Class` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_ID]: {
+    desc: t('`View ID` of an element that was tapped'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3231,6 +3268,11 @@ export const getFieldDefinition = (
       if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
+        ];
+      }
+      if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        return REPLAY_TAP_FIELD_DEFINITIONS[
+          key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
         ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
