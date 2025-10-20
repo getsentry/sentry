@@ -103,12 +103,10 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
                   )}
                 />
               </Flex>
-              {summary.avgDurationUs !== null && (
-                <Flex gap="xs" align="center">
-                  <IconClock />
-                  <UptimeDuration size="xs" summary={summary} />
-                </Flex>
-              )}
+              <Flex gap="xs" align="center">
+                <IconClock />
+                <UptimeDuration size="xs" summary={summary} />
+              </Flex>
             </Fragment>
           )}
         </DetailsLine>
