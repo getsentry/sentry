@@ -439,6 +439,13 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "triggers": {"logicType": "any", "conditions": []},
             "actionFilters": [],
         }
+        self.member_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=self.member_user,
+            role="member",
+            organization=self.organization,
+        )
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -640,7 +647,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             workflow_id=response.data["id"]
         )
         assert created_detector_workflows.count() == 1
-        assert created_detector_workflows.first().detector_id == error_detector.id
+        assert created_detector_workflows.get().detector_id == error_detector.id
 
         detector_workflow_audit_calls = [
             call
@@ -668,22 +675,17 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
-        member_user = self.create_user()
-        member_team = self.create_team(organization=self.organization)
-        self.create_member(
-            team_roles=[(member_team, "contributor")],
-            user=member_user,
-            role="member",
-            organization=self.organization,
-        )
-        self.login_as(user=member_user)
+        self.login_as(user=self.member_user)
 
-        # Detector is a part of a project which the member does not have access to
-        detector = self.create_detector()
+        # other_detector is a part of a project which the member does not have access to
+        other_detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[]),
+            created_by_id=self.user.id,
+        )
 
         workflow_data = {
             **self.valid_workflow,
-            "detectorIds": [detector.id],
+            "detectorIds": [other_detector.id],
         }
 
         self.get_error_response(
