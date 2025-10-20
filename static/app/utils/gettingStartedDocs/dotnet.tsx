@@ -87,47 +87,51 @@ export const getDotnetProfilingOnboarding = ({
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Make sure the SDK is up to date. The minimum version of the SDK required for profiling is [code:4.3.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
+          type: 'text',
+          text: tct(
+            'Make sure the SDK is up to date. The minimum version of the SDK required for profiling is [code:4.3.0].',
             {
-              language: 'shell',
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'shell',
               code: getInstallSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallSnippetCoreCli(params),
             },
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
             {
               sentryProfilingPackage: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'shell',
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'shell',
               code: getInstallProfilingSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallProfilingSnippetCoreCli(params),
             },
           ],
@@ -138,43 +142,50 @@ export const getDotnetProfilingOnboarding = ({
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Enable profiling by updating your [code:SentrySdk.Init] call:', {
-        code: <code />,
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct('Enable profiling by updating your [code:SentrySdk.Init] call:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'csharp',
               label: 'Windows/Linux/macOS',
-              value: 'windows/linux/macos',
+              language: 'csharp',
               code: getProfilingConfigureSnippet(params, 'windows'),
             },
             {
-              language: 'csharp',
               label: 'iOS/Mac Catalyst',
-              value: 'ios/macCatalyst',
+              language: 'csharp',
               code: getProfilingConfigureSnippet(params, 'apple'),
             },
           ],
         },
-      ],
-      additionalInfo: tct(
-        'For more information, read the [link:profiling documentation].',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/profiling/" />
-          ),
-        }
-      ),
+          type: 'text',
+          text: tct('For more information, read the [link:profiling documentation].', {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/dotnet/profiling/" />
+            ),
+          }),
+        },
+      ],
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 });
