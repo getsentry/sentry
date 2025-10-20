@@ -122,7 +122,11 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       searchable={isSelectingFilterKey}
       sizeLimit={50}
       closeOnSelect={false}
-      clearable={false}
+      onClose={() => {
+        setSelectedFilterKey(null);
+        setSelectedDataset(null);
+        setIsSelectingFilterKey(false);
+      }}
       value={selectedFilterKey?.key ?? ''}
       onChange={(option: SelectOption<string>) => {
         if (isSelectingFilterKey) {
