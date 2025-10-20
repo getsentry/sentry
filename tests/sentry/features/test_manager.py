@@ -47,7 +47,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
     def _check_for_batch(self, feature_name, organization, actor):
         raise NotImplementedError
 
-    def batch_has_for_organizations(self, feature_name, actor, organizations) -> dict[str, bool]:
+    def batch_has_for_organizations(self, feature_name, organizations, actor) -> dict[str, bool]:
         results: dict[str, bool] = {}
         for org in organizations:
             entity_key = f"organization:{org.id}"
@@ -368,7 +368,7 @@ class FeatureManagerTest(TestCase):
         organizations = [self.organization, self.create_organization()]
 
         result = manager.batch_has_for_organizations(
-            "organizations:feature", organizations, actor=self.user
+            "organizations:feature", organizations, self.user
         )
         assert result is not None
         for org in organizations:

@@ -67,8 +67,8 @@ class FeatureHandler:
     def batch_has_for_organizations(
         self,
         feature_name: str,
-        actor: User | RpcUser | AnonymousUser | None,
         organizations: Sequence[Organization],
+        actor: User | RpcUser | AnonymousUser | None = None,
     ) -> dict[str, bool] | None:
         raise NotImplementedError
 

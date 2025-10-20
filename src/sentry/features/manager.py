@@ -402,7 +402,7 @@ class FeatureManager(RegisteredFeatureManager):
             ):
                 with metrics.timer("features.batch_has_for_organizations", sample_rate=0.01):
                     return self._entity_handler.batch_has_for_organizations(
-                        feature_name, actor, organizations
+                        feature_name, organizations, actor
                     )
             else:
                 results: dict[str, bool] = {}
