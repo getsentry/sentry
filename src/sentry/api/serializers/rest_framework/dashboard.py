@@ -1043,7 +1043,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             if "linked_dashboards" in query_data["query_data"]:
                 self._update_or_create_field_links(
                     query_data["query_obj"],
-                    query_data["query_data"].get("linked_dashboards"),
+                    query_data["query_data"].get("linked_dashboards", []),
                     widget,
                 )
 
@@ -1072,7 +1072,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
 
 
-class DashboardSerializer(DashboardDetailsSerializer):
+class DashboardSerializer:
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
     )
