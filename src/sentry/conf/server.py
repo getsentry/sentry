@@ -895,6 +895,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.email",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
@@ -1100,6 +1101,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
+    "llm-issue-detection": {
+        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
