@@ -32,7 +32,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.uptime.eap_utils import get_columns_for_uptime_trace_item_type
+from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
 from sentry.utils.snuba_rpc import table_rpc
 
@@ -354,7 +354,7 @@ def _uptime_results_query(
                 mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
             ),
         ),
-        columns=get_columns_for_uptime_trace_item_type(TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT),
+        columns=get_columns_for_uptime_result(),
         filter=TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(
