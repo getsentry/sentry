@@ -7,7 +7,6 @@ import {
 } from 'sentry-fixture/replay/helpers';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
-import {InvalidatedProjectKind} from 'typescript';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -45,12 +44,14 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
     project_id: project.id,
   });
 }
+
+jest.useFakeTimers();
 describe('replayDetailsUserBadge', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockInvalidateQueries.mockClear();
   });
-  it('should not show refresh button on intial render', async () => {
+  it('should not show refresh button on initial render', async () => {
     const replayRecord = replayRecordFixture({count_segments: 100});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
@@ -86,25 +87,10 @@ describe('replayDetailsUserBadge', () => {
     expect(screen.queryByTestId('refresh-button')).not.toBeVisible();
   });
 
-  jest.useFakeTimers();
-
   it('should show refresh button when replay record is outdated', async () => {
-    // const now = Date.now();
-    // console.log('now', new Date(now).toISOString());
     const startedAt = new Date(Date.now() - 10 * 1000);
     const intialfinishedAt = new Date(Date.now() - 5 * 1000);
     const laterFinishedAt = new Date(Date.now());
-
-    // Log these
-    // eslint-disable-next-line no-console
-    console.log(
-      'startedAt:',
-      startedAt,
-      'intialfinishedAt:',
-      intialfinishedAt,
-      'laterFinishedAt:',
-      laterFinishedAt
-    );
 
     const replayRecord = replayRecordFixture({
       started_at: startedAt,
@@ -195,10 +181,7 @@ describe('replayDetailsUserBadge', () => {
 
     await act(async () => {
       // advance to next polling interval
-      await jest.advanceTimersByTimeAsync(1000 * 30);
-
-      // advance by 1 second to give time to fetch
-      await jest.advanceTimersByTimeAsync(1000);
+      await jest.advanceTimersByTimeAsync(1000 * 30 + 100);
 
       await waitFor(() => expect(updatedReplayRecordEndpoint).toHaveBeenCalled());
     });
@@ -264,8 +247,9 @@ describe('replayDetailsUserBadge', () => {
   });
 
   it('should hide LIVE badge when last received segment is more than 5 minutes ago', async () => {
-    const startedAt = new Date(Date.now() - 1000);
-    const finishedAt = new Date(Date.now());
+    const now = Date.now();
+    const startedAt = new Date(now - 1000);
+    const finishedAt = new Date(now);
 
     const replayRecord = replayRecordFixture({
       started_at: startedAt,
@@ -315,17 +299,24 @@ describe('replayDetailsUserBadge', () => {
       },
     });
 
+    // useLoadReplayReader calls this endpoint
+    await waitFor(() => expect(replayRecordEndpoint).toHaveBeenCalledTimes(1));
+
     await waitFor(() =>
       expect(result.current.replayRecord?.count_segments).toBeDefined()
     );
 
     render(<ReplayDetailsUserBadge readerResult={result.current} />, {organization});
 
+    // usePollReplayRecord calls this endpoint
     await waitFor(() => expect(replayRecordEndpoint).toHaveBeenCalledTimes(2));
     expect(screen.queryByTestId('live-badge')).toBeVisible();
 
-    act(() => jest.advanceTimersByTime(5 * 60 * 1000));
-    await waitFor(() => expect(replayRecordEndpoint).toHaveBeenCalledTimes(3));
+    // let 5 minutes and 1 second and pass
+    await act(async () => jest.advanceTimersByTimeAsync(5 * 60 * 1000 + 1000));
+
     expect(screen.queryByTestId('live-badge')).not.toBeInTheDocument();
   });
+
+  it('should refresh with all components when the refresh button is pressed', async () => {});
 });

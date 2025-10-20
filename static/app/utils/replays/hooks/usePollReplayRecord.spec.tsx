@@ -13,8 +13,11 @@ import usePollReplayRecord from './usePollReplayRecord';
 
 const {organization, project} = initializeOrg();
 
+const invalidateQueries = jest.fn();
+
 function wrapper({children}: {children?: ReactNode}) {
   const queryClient = makeTestQueryClient();
+  queryClient.invalidateQueries = invalidateQueries;
   return (
     <QueryClientProvider client={queryClient}>
       <OrganizationContext value={organization}>{children}</OrganizationContext>
@@ -28,11 +31,18 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
     project_id: project.id,
   });
 }
+
+jest.useFakeTimers();
+
 describe('usePollReplayRecord', () => {
+  beforeEach(() => {
+    invalidateQueries();
+    MockApiClient.clearMockResponses();
+  });
   it('should fetch count_segments', async () => {
-    const count_segments = 10;
+    const countSegments = 10;
     const replayRecord = replayRecordFixture({
-      count_segments,
+      count_segments: countSegments,
     });
 
     MockApiClient.addMockResponse({
@@ -49,13 +59,14 @@ describe('usePollReplayRecord', () => {
       },
     });
 
-    await waitFor(() => expect(renderedPollHook.result.current).toBe(count_segments));
+    await waitFor(() =>
+      expect(renderedPollHook.result.current?.count_segments).toBe(countSegments)
+    );
   });
 
-  jest.useFakeTimers();
   it('should fetch new count_segments', async () => {
-    let count_segments = 20;
-    let replayRecord = replayRecordFixture({count_segments});
+    const oldCountSegments = 10;
+    const replayRecord = replayRecordFixture({count_segments: oldCountSegments});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
       body: {data: replayRecord},
@@ -70,25 +81,29 @@ describe('usePollReplayRecord', () => {
       },
     });
 
-    await waitFor(() => expect(renderedHook.result.current).toBe(count_segments));
+    await waitFor(() =>
+      expect(renderedHook.result.current?.count_segments).toBe(oldCountSegments)
+    );
 
     MockApiClient.clearMockResponses();
 
-    count_segments = 30;
-    replayRecord = replayRecordFixture({count_segments});
+    const newCountSegments = 11;
+    const newReplayRecord = replayRecordFixture({count_segments: newCountSegments});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
-      body: {data: replayRecord},
+      url: `/organizations/${organization.slug}/replays/${newReplayRecord.id}/`,
+      body: {data: newReplayRecord},
     });
 
     jest.advanceTimersToNextTimer();
-    await waitFor(() => expect(renderedHook.result.current).toBe(count_segments));
+    await waitFor(() =>
+      expect(renderedHook.result.current?.count_segments).toBe(newCountSegments)
+    );
   });
 
   it('should disable the hook when enabled is false', async () => {
-    const old_count_segments = 40;
-    let replayRecord = replayRecordFixture({count_segments: old_count_segments});
+    const oldCountSegments = 10;
+    const replayRecord = replayRecordFixture({count_segments: oldCountSegments});
     const endpoint = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
       body: {data: replayRecord},
@@ -104,17 +119,19 @@ describe('usePollReplayRecord', () => {
       },
     });
 
-    await waitFor(() => expect(renderedHook.result.current).toBe(old_count_segments));
+    await waitFor(() =>
+      expect(renderedHook.result.current?.count_segments).toBe(oldCountSegments)
+    );
     expect(endpoint).toHaveBeenCalledTimes(1);
 
     MockApiClient.clearMockResponses();
 
-    const new_count_segments = 50;
-    replayRecord = replayRecordFixture({count_segments: new_count_segments});
+    const newCountSegments = 11;
+    const newReplayRecord = replayRecordFixture({count_segments: newCountSegments});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
-      body: {data: replayRecord},
+      url: `/organizations/${organization.slug}/replays/${newReplayRecord.id}/`,
+      body: {data: newReplayRecord},
     });
 
     renderedHook.rerender({
@@ -124,6 +141,8 @@ describe('usePollReplayRecord', () => {
       pollInterval: 0,
     });
 
-    await waitFor(() => expect(renderedHook.result.current).toBe(old_count_segments));
+    await waitFor(() =>
+      expect(renderedHook.result.current?.count_segments).toBe(oldCountSegments)
+    );
   });
 });

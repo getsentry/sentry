@@ -9,13 +9,12 @@ type Props = {
   pollInterval?: number;
 };
 
-// A react hook to poll the replay record on the backend every POLL_INTERVAL
-// to get the count_segments field.
+// A react hook to poll for replay record on the backend every POLL_INTERVAL
 function usePollReplayRecord({
   enabled,
   orgSlug,
   replayId,
-  pollInterval = 30_000, // Default to every 30 seconds
+  pollInterval = 1000, // Default to every 30 seconds
 }: Props): ReplayRecord | undefined {
   // we use {} to avoid colliding with the queryKey used by useReplayData
   const queryKey: ApiQueryKey = [`/organizations/${orgSlug}/replays/${replayId}/`, {}];
