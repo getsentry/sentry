@@ -1,18 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/profiling/renderers/testUtils';
-import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
-
-jest.mock('sentry/utils/useParams', () => ({
-  useParams: jest.fn(),
-}));
 
 window.ResizeObserver =
   window.ResizeObserver ||
@@ -105,12 +99,6 @@ describe('Flamegraph', () => {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
-      orgId: 'org-slug',
-      projectId: 'foo-project',
-      eventId: 'profile-id',
-    });
-
     render(<ProfilesAndTransactionProvider />, {
       initialRouterConfig: {
         location: {
@@ -142,12 +130,6 @@ describe('Flamegraph', () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/foo-project/events/${flamechart.transaction.id}/`,
       statusCode: 404,
-    });
-
-    jest.mocked(useParams).mockReturnValue({
-      orgId: 'org-slug',
-      projectId: 'foo-project',
-      eventId: 'profile-id',
     });
 
     render(<ProfilesAndTransactionProvider />, {
@@ -182,12 +164,6 @@ describe('Flamegraph', () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/foo-project/events/${flamechart.transaction.id}/`,
       statusCode: 404,
-    });
-
-    jest.mocked(useParams).mockReturnValue({
-      orgId: 'org-slug',
-      projectId: 'foo-project',
-      eventId: 'profile-id',
     });
 
     setWindowLocation(
@@ -228,11 +204,6 @@ describe('Flamegraph', () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/foo-project/events/${flamechart.transaction.id}/`,
       statusCode: 404,
-    });
-
-    jest.mocked(useParams).mockReturnValue({
-      projectId: 'foo-project',
-      eventId: 'profile-id',
     });
 
     setWindowLocation('http://localhost/?query=profiling+transaction');
