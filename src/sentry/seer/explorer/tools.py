@@ -6,7 +6,7 @@ from sentry import eventstore
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
-from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -276,24 +276,25 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
 
 def get_issue_details(
     *,
-    issue_id: int | str,
+    issue_id: str,
     organization_id: int,
     selected_event: str,
-) -> dict[str, int | str | dict | None] | None:
+) -> dict[str, Any] | None:
     """
     Args:
-        issue_id: The issue/group ID (integer) or short ID (string) to look up.
+        issue_id: The issue/group ID (numeric) or short ID (string) to look up.
         organization_id: The ID of the issue's organization.
         selected_event: The event to return - "oldest", "latest", "recommended", or the event's UUID.
 
     Returns:
         A dict containing:
-            `issue`: Serialized issue with exactly one event in `issue.events`, selected
-              according to `selected_event`.
+            `issue`: Serialized issue details.
+            `tags_overview`: A summary of all tags in the issue.
+            `event`: Serialized event details, selected according to `selected_event`.
             `event_id`: The event ID of the selected event.
             `event_trace_id`: The trace ID of the selected event.
-            `tags_overview`: A summary of all tags in the issue.
-            `project_id`: The project ID of the issue.
+            `project_id`: The ID of the issue's project.
+            `project_slug`: The slug of the issue's project.
         Returns None when the event is not found or an error occurred.
     """
     try:
@@ -306,12 +307,12 @@ def get_issue_details(
         return None
 
     try:
-        if isinstance(issue_id, int):
+        if issue_id.isdigit():
             org_project_ids = Project.objects.filter(
                 organization=organization, status=ObjectStatus.ACTIVE
             ).values_list("id", flat=True)
 
-            group = Group.objects.get(project_id__in=org_project_ids, id=issue_id)
+            group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
@@ -322,7 +323,9 @@ def get_issue_details(
         )
         return None
 
-    serialized_group: dict[str, Any] = serialize(group, user=None, serializer=GroupSerializer())
+    serialized_group: BaseGroupSerializerResponse = serialize(
+        group, user=None, serializer=GroupSerializer()
+    )
 
     event: Event | GroupEvent | None
     if selected_event == "oldest":
@@ -350,10 +353,9 @@ def get_issue_details(
         )
         return None
 
-    serialized_event: IssueEventSerializerResponse | None = serialize(
+    serialized_event: IssueEventSerializerResponse = serialize(
         event, user=None, serializer=EventSerializer()
     )
-    serialized_group["events"] = [serialized_event]
 
     try:
         tags_overview = get_all_tags_overview(group)
@@ -365,9 +367,11 @@ def get_issue_details(
         tags_overview = None
 
     return {
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": group.project_id,
         "issue": serialized_group,
         "tags_overview": tags_overview,
+        "event": serialized_event,
+        "event_id": event.event_id,
+        "event_trace_id": event.trace_id,
+        "project_id": int(serialized_group["project"]["id"]),
+        "project_slug": serialized_group["project"]["slug"],
     }
