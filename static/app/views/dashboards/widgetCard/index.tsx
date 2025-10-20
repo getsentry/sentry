@@ -203,6 +203,10 @@ function WidgetCard(props: Props) {
   const droppedColumnsWarning = useDroppedColumnsWarning(widget);
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
+  const conflictingFilterWarning = useConflictingFilterWarning({
+    widget,
+    dashboardFilters,
+  });
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -273,6 +277,7 @@ function WidgetCard(props: Props) {
     spanTimeRangeWarning,
     transactionsDeprecationWarning,
     droppedColumnsWarning,
+    conflictingFilterWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
@@ -299,34 +304,6 @@ function WidgetCard(props: Props) {
   const widgetQueryError = isWidgetInvalid
     ? t('Widget query condition is invalid.')
     : undefined;
-
-  // Check if widget filters conflict with global filters
-  // This is used to display a warning in the widget frame if there is a conflict
-  const conflictingFilterKeys = useMemo(() => {
-    const widgetFilterKeys = widget.queries.flatMap(query => {
-      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
-      if (!parseResult) {
-        return [];
-      }
-      return parseResult
-        .filter(token => token.type === Token.FILTER)
-        .map(token => token.key.text);
-    });
-    const globalFilterKeys =
-      dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
-        ?.filter(filter => filter.dataset === widget.widgetType)
-        .map(filter => filter.tag.key) ?? [];
-
-    const widgetFilterKeySet = new Set(widgetFilterKeys);
-    return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
-  }, [widget.queries, widget.widgetType, dashboardFilters]);
-
-  if (conflictingFilterKeys.length > 0) {
-    warnings.push(
-      t('You have conflicting global and widget filters: ') +
-        conflictingFilterKeys.join(', ')
-    );
-  }
 
   return (
     <ErrorBoundary
@@ -463,6 +440,45 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
         numDays: retentionLimitDays,
       }
     );
+  }
+
+  return null;
+}
+
+// Displays a warning message if there is a conflict between widget and global filters
+function useConflictingFilterWarning({
+  widget,
+  dashboardFilters,
+}: {
+  dashboardFilters: DashboardFilters | undefined;
+  widget: Widget;
+}) {
+  const conflictingFilterKeys = useMemo(() => {
+    if (!dashboardFilters) return [];
+
+    const widgetFilterKeys = widget.queries.flatMap(query => {
+      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      if (!parseResult) {
+        return [];
+      }
+      return parseResult
+        .filter(token => token.type === Token.FILTER)
+        .map(token => token.key.text);
+    });
+    const globalFilterKeys =
+      dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
+        ?.filter(filter => filter.dataset === widget.widgetType)
+        .map(filter => filter.tag.key) ?? [];
+
+    const widgetFilterKeySet = new Set(widgetFilterKeys);
+    return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
+  }, [widget.queries, widget.widgetType, dashboardFilters]);
+
+  if (conflictingFilterKeys.length > 0) {
+    return tct('[strong:Filter conflicts:] [filters]', {
+      strong: <strong />,
+      filters: conflictingFilterKeys.join(', '),
+    });
   }
 
   return null;
