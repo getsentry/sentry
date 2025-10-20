@@ -375,10 +375,7 @@ class FeatureManager(RegisteredFeatureManager):
             return None
 
     def batch_has_for_organizations(
-        self,
-        feature_name: str,
-        organizations: Sequence[Organization],
-        actor: User | RpcUser | AnonymousUser | None = None,
+        self, feature_name: str, organizations: Sequence[Organization]
     ) -> dict[str, bool] | None:
         """
         Check the same set of feature flags for multiple organizations at once.
@@ -390,7 +387,6 @@ class FeatureManager(RegisteredFeatureManager):
         Args:
             feature_names: List of feature names to check
             organizations: List of organizations to check the features for
-            actor: Optional actor for feature checks
 
         Returns:
             Mapping from organization keys (format: "organization:{id}") to
@@ -402,13 +398,13 @@ class FeatureManager(RegisteredFeatureManager):
             ):
                 with metrics.timer("features.batch_has_for_organizations", sample_rate=0.01):
                     return self._entity_handler.batch_has_for_organizations(
-                        feature_name, organizations, actor
+                        feature_name, organizations
                     )
             else:
                 results: dict[str, bool] = {}
                 for organization in organizations:
                     org_key = f"organization:{organization.id}"
-                    results[org_key] = self.has(feature_name, organization, actor=actor)
+                    results[org_key] = self.has(feature_name, organization)
                 return results
 
         except Exception as e:
