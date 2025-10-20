@@ -1072,7 +1072,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
 
 
-class DashboardSerializer:
+class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
     )
