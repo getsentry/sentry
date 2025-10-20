@@ -34,7 +34,7 @@ class AmazonSQSDataForwarder(DataForwardingPlugin):
         return (0, 0)
 
     def get_event_payload(self, event: Event) -> dict[str, Any]:
-        return event.data
+        return dict(event.data)
 
     def send_payload(
         self,
