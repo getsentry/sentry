@@ -13,8 +13,6 @@ from sentry.models.organization import Organization
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import ORG_CONFIG_SCHEMA, PREVENT_AI_CONFIG_GITHUB_DEFAULT
 
-PREVENT_AI_CONFIG_GITHUB_OPTION = "sentry:prevent_ai_config_github"
-
 
 class PreventAIConfigPermission(OrganizationPermission):
     scope_map = {
