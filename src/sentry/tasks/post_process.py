@@ -14,9 +14,12 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
+from data_forwarding.amazon_sqs.forwarder import AmazonSQSDataForwarder
+from data_forwarding.segment.forwarder import SegmentDataForwarder
+from data_forwarding.splunk.forwarder import SplunkDataForwarder
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import DataForwarderProviderSlug, IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -1302,6 +1305,99 @@ def process_plugins(job: PostProcessJob) -> None:
         )
 
 
+def process_data_forwarding(job: PostProcessJob) -> None:
+    """
+    Process data forwarding for events using the new integration system.
+    Forwards events to configured external services (Segment, SQS, Splunk).
+    """
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+    project = event.project
+
+    # Check if the data forwarding feature is enabled for the organization
+    if not features.has("organizations:data-forwarding", project.organization):
+        return
+
+    from sentry import ratelimits
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+    # Get all enabled data forwarders for this project
+    with sentry_sdk.start_span(op="tasks.post_process_group.data_forwarding.query"):
+        data_forwarder_projects = DataForwarderProject.objects.filter(
+            project=project,
+            is_enabled=True,
+            data_forwarder__is_enabled=True,
+        ).select_related("data_forwarder")
+
+    for data_forwarder_project in data_forwarder_projects:
+        provider = data_forwarder_project.data_forwarder.provider
+
+        # Get provider implementation
+        if provider == DataForwarderProviderSlug.SEGMENT:
+            forwarder = SegmentDataForwarder()
+        elif provider == DataForwarderProviderSlug.SQS:
+            forwarder = AmazonSQSDataForwarder()
+        elif provider == DataForwarderProviderSlug.SPLUNK:
+            forwarder = SplunkDataForwarder()
+        else:
+            logger.warning(
+                "data_forwarding.unknown_provider",
+                extra={"provider": provider, "project_id": project.id},
+            )
+            continue
+
+        rl_key = f"data_forwarding:{provider}:{project.organization_id}"
+        limit, window = forwarder.get_rate_limit()
+
+        if limit and window and ratelimits.backend.is_limited(rl_key, limit=limit, window=window):
+            logger.info(
+                "data_forwarding.rate_limited",
+                extra={
+                    "provider": provider,
+                    "event_id": event.event_id,
+                    "project_id": project.id,
+                    "organization_id": project.organization_id,
+                },
+            )
+            continue
+
+        with sentry_sdk.start_span(
+            op=f"tasks.post_process_group.data_forwarding.{provider}"
+        ) as span:
+            span.set_data("provider", provider)
+            span.set_data("event_id", event.event_id)
+
+            try:
+                success = forwarder.forward_event(event, data_forwarder_project)
+
+                if success:
+                    metrics.incr(
+                        "data_forwarding.forward_event.success",
+                        tags={"provider": provider},
+                    )
+                else:
+                    metrics.incr(
+                        "data_forwarding.forward_event.skipped",
+                        tags={"provider": provider},
+                    )
+            except Exception as e:
+                logger.exception(
+                    "data_forwarding.forward_event.error",
+                    extra={
+                        "provider": provider,
+                        "event_id": event.event_id,
+                        "project_id": project.id,
+                        "error": str(e),
+                    },
+                )
+                metrics.incr(
+                    "data_forwarding.forward_event.error",
+                    tags={"provider": provider},
+                )
+
+
 def process_similarity(job: PostProcessJob) -> None:
     if not options.get("sentry.similarity.indexing.enabled"):
         return
@@ -1648,6 +1744,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
+        process_data_forwarding,
         process_code_mappings,
         process_similarity,
         update_existing_attachments,
