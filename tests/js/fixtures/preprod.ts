@@ -9,7 +9,7 @@ import {
   BuildDetailsState,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 
-export function PreprodAppInfoFixture(
+function PreprodAppInfoFixture(
   params: Partial<BuildDetailsAppInfo> = {}
 ): BuildDetailsAppInfo {
   return {
@@ -27,7 +27,7 @@ export function PreprodAppInfoFixture(
   };
 }
 
-export function PreprodVcsInfoFixture(
+function PreprodVcsInfoFixture(
   params: Partial<BuildDetailsVcsInfo> = {}
 ): BuildDetailsVcsInfo {
   return {
@@ -59,7 +59,7 @@ export function PreprodVcsInfoFullFixture(
   };
 }
 
-export function PreprodBuildDetailsFixture(
+function PreprodBuildDetailsFixture(
   params: Partial<BuildDetailsApiResponse> = {}
 ): BuildDetailsApiResponse {
   return {
