@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -74,12 +75,9 @@ const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params, {
-            basePackage: '@sentry/google-cloud-serverless',
-          })[0]!.code,
-        },
+        getInstallCodeBlock(params, {
+          basePackage: '@sentry/google-cloud-serverless',
+        }),
       ],
     },
   ],
