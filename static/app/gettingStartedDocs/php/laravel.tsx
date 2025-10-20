@@ -386,21 +386,30 @@ const profilingOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      content: [
         {
-          description: tct('Install the [code:sentry/sentry-laravel] package:', {
+          type: 'text',
+          text: tct('Install the [code:sentry/sentry-laravel] package:', {
             code: <code />,
           }),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `composer require sentry/sentry-laravel`,
         },
         {
-          description: t('Install the Excimer extension via PECL:'),
+          type: 'text',
+          text: t('Install the Excimer extension via PECL:'),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: 'pecl install excimer',
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
             {
               sentryPhpDocumentationLink: (
@@ -415,17 +424,25 @@ const profilingOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          description: t('Configure the Sentry DSN with this command:'),
+          type: 'text',
+          text: t('Configure the Sentry DSN with this command:'),
+        },
+        {
+          type: 'code',
           language: 'shell',
           code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your [code:.env] file where you can add further configuration options:',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'shell',
           code: getConfigureSnippet(params),
         },
@@ -435,9 +452,14 @@ const profilingOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],
