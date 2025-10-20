@@ -1,7 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -10,6 +10,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
+from sentry.services import eventstore
 
 
 @region_silo_endpoint
