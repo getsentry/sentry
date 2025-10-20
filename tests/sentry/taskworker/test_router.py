@@ -21,7 +21,7 @@ def test_default_router_topic_region_silo() -> None:
         assert topic == Topic.TASKWORKER
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=["default", "control"])
 def test_default_router_topic_control_silo() -> None:
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         router = DefaultRouter()
