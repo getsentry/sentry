@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import merge from 'lodash/merge';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
@@ -1524,7 +1523,7 @@ export function parseSearch(
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
   const config = additionalConfig
-    ? merge({...defaultConfig}, additionalConfig)
+    ? {...defaultConfig, ...additionalConfig}
     : defaultConfig;
 
   return tryParseSearch(query, {
