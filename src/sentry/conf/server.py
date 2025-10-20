@@ -775,6 +775,7 @@ TIMEDELTA_ALLOW_LIST = {
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
+    "flush-delayed-workflows",
     "sync-options",
     "sync-options-control",
     "schedule-digests",
@@ -949,7 +950,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": timedelta(seconds=20),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
