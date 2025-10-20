@@ -102,7 +102,7 @@ retry_decorator = retry(
         RestrictedIPAddress,
         NoRetriesRemainingError,
     ),
-    ignore_and_capture=(ProcessingDeadlineExceeded),
+    ignore_and_capture=(ProcessingDeadlineExceeded,),
     raise_on_no_retries=False,
 )
 
