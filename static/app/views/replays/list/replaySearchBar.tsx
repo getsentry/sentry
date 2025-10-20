@@ -99,14 +99,14 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       children: Object.keys(REPLAY_CLICK_FIELDS_AS_TAGS),
     },
     {
-      value: FieldKind.TAG,
-      label: t('Tags'),
-      children: orderedTagKeys,
-    },
-    {
       value: 'replay_tap_field',
       label: t('Tap Fields'),
       children: Object.keys(REPLAY_TAP_FIELDS_AS_TAGS),
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Tags'),
+      children: orderedTagKeys,
     },
   ];
 };
