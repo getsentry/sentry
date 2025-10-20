@@ -263,6 +263,12 @@ class TestActionService(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        webhook_action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={
+                "target_identifier": sentry_app_installation.uuid,
+            },
+        )
 
         action_service.update_action_status_for_sentry_app_via_uuid(
             organization_id=self.organization.id,
@@ -273,6 +279,9 @@ class TestActionService(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED
+
+            webhook_action.refresh_from_db()
+            assert webhook_action.status == ObjectStatus.DISABLED
 
     def test_update_action_status_for_sentry_app__installation_uuid__region(self) -> None:
         sentry_app_installation = self.create_sentry_app_installation(
@@ -287,6 +296,12 @@ class TestActionService(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        webhook_action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={
+                "target_identifier": sentry_app_installation.uuid,
+            },
+        )
         action_service.update_action_status_for_sentry_app_via_uuid__region(
             region_name="us",
             sentry_app_install_uuid=sentry_app_installation.uuid,
@@ -295,6 +310,9 @@ class TestActionService(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED
+
+            webhook_action.refresh_from_db()
+            assert webhook_action.status == ObjectStatus.DISABLED
 
     def test_update_action_status_for_sentry_app__via_sentry_app_id(self) -> None:
         action = self.create_action(

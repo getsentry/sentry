@@ -40,6 +40,10 @@ class DatabaseBackedActionService(ActionService):
             config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
             config__target_identifier=sentry_app_install_uuid,
         ).update(status=status)
+        Action.objects.filter(
+            type=Action.Type.WEBHOOK,
+            config__target_identifier=sentry_app_install_uuid,
+        ).update(status=status)
 
     def update_action_status_for_sentry_app_via_uuid__region(
         self,
@@ -51,6 +55,10 @@ class DatabaseBackedActionService(ActionService):
         Action.objects.filter(
             type=Action.Type.SENTRY_APP,
             config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+            config__target_identifier=sentry_app_install_uuid,
+        ).update(status=status)
+        Action.objects.filter(
+            type=Action.Type.WEBHOOK,
             config__target_identifier=sentry_app_install_uuid,
         ).update(status=status)
 
