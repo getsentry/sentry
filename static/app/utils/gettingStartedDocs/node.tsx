@@ -84,60 +84,6 @@ export function getInstallCodeBlock(
   };
 }
 
-/**
- * @deprecated Use getInstallCodeBlock instead.
- */
-export function getInstallConfig(
-  params: DocsParams,
-  {
-    basePackage = '@sentry/node',
-    additionalPackages,
-  }: {
-    additionalPackages?: string[];
-    basePackage?: string;
-  } = {}
-) {
-  return [
-    {
-      code: [
-        {
-          label: 'npm',
-          value: 'npm',
-          language: 'bash',
-          code: getInstallSnippet({
-            params,
-            additionalPackages,
-            packageManager: 'npm',
-            basePackage,
-          }),
-        },
-        {
-          label: 'yarn',
-          value: 'yarn',
-          language: 'bash',
-          code: getInstallSnippet({
-            params,
-            additionalPackages,
-            packageManager: 'yarn',
-            basePackage,
-          }),
-        },
-        {
-          label: 'pnpm',
-          value: 'pnpm',
-          language: 'bash',
-          code: getInstallSnippet({
-            params,
-            additionalPackages,
-            packageManager: 'pnpm',
-            basePackage,
-          }),
-        },
-      ],
-    },
-  ];
-}
-
 function getImport(
   sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless' | 'nestjs',
   defaultMode?: 'esm' | 'cjs'
@@ -285,15 +231,20 @@ export const getNodeProfilingOnboarding = ({
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable profiling, add [code:@sentry/profiling-node] to your imports.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage,
-      }),
+          type: 'text',
+          text: tct(
+            'To enable profiling, add [code:@sentry/profiling-node] to your imports.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          basePackage,
+        }),
+      ],
     },
   ],
   configure: params => [
@@ -417,15 +368,20 @@ export const getNodeAgentMonitoringOnboarding = ({
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.14.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: `@sentry/${basePackage}`,
-      }),
+          type: 'text',
+          text: tct(
+            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.14.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          basePackage: `@sentry/${basePackage}`,
+        }),
+      ],
     },
   ],
   configure: params => {
@@ -761,15 +717,20 @@ export const getNodeMcpOnboarding = ({
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: `@sentry/${basePackage}`,
-      }),
+          type: 'text',
+          text: tct(
+            'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          basePackage: `@sentry/${basePackage}`,
+        }),
+      ],
     },
   ],
   configure: params => [
@@ -873,12 +834,9 @@ export const getNodeLogsOnboarding = <
             }
           ),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params, {
-            basePackage: sdkPackage,
-          })[0]!.code,
-        },
+        getInstallCodeBlock(params, {
+          basePackage: sdkPackage,
+        }),
         {
           type: 'text',
           text: tct(
