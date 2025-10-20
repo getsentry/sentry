@@ -1,6 +1,3 @@
-import {Fragment} from 'react';
-
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -151,11 +148,15 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Go Negroni SDK using [code:go get]:', {
-        code: <code />,
-      }),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct('Install our Go Negroni SDK using [code:go get]:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: 'go get github.com/getsentry/sentry-go/negroni',
         },
@@ -165,27 +166,34 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Import and initialize the Sentry SDK early in your application's setup:"
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "Import and initialize the Sentry SDK early in your application's setup:"
+          ),
+        },
+        {
+          type: 'code',
           language: 'go',
           code: getConfigureSnippet(params),
         },
         {
-          description: (
-            <Fragment>
-              <strong>{t('Options')}</strong>
-              <p>
-                {tct(
-                  '[code:sentrynegroni] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
-                  {code: <code />}
-                )}
-              </p>
-              {t('Currently it respects 3 options:')}
-            </Fragment>
-          ),
+          type: 'subheader',
+          text: t('Options'),
+        },
+        {
+          type: 'text',
+          text: [
+            tct(
+              '[code:sentrynegroni] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+              {code: <code />}
+            ),
+            t('Currently it respects 3 options:'),
+          ],
+        },
+        {
+          type: 'code',
           language: 'go',
           code: getOptionsSnippet(),
         },
@@ -193,40 +201,41 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Usage'),
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              "[code:sentrynegroni] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
-              {
-                code: <code />,
-                sentryHubLink: (
-                  <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
-                ),
-              }
-            )}
-          </p>
-          <Alert type="info" showIcon={false}>
-            {tct(
-              "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentrynegroni]!",
-              {code: <code />}
-            )}
-          </Alert>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            "[code:sentrynegroni] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+            {
+              code: <code />,
+              sentryHubLink: (
+                <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          showIcon: false,
+          text: tct(
+            "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentrynegroni]!",
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'go',
           code: getUsageSnippet(),
         },
         {
-          description: (
-            <strong>
-              {tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
-                beforeSendCode: <code />,
-              })}
-            </strong>
-          ),
+          type: 'subheader',
+          text: tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
+            beforeSendCode: <code />,
+          }),
+        },
+        {
+          type: 'code',
           language: 'go',
           code: getBeforeSendSnippet(params),
         },
@@ -234,36 +243,36 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t("Using Negroni's 'panicHandlerFuncCode' Option"),
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              "Negroni provides an option called [code:PanicHandlerFunc], which lets you 'plug-in' to its default [code:Recovery] middleware.",
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              "[sentrynegroniCode:sentrynegroni] exports a very barebones implementation, which utilizes it, so if you don't need anything else than just reporting panics to Sentry, you can use it instead, as it's just one line of code!",
-              {
-                sentrynegroniCode: <code />,
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              'You can still use [beforeSendCode:BeforeSend] and event processors to modify data before delivering it to Sentry, using this method as well.',
-              {
-                beforeSendCode: <code />,
-              }
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            "Negroni provides an option called [code:PanicHandlerFunc], which lets you 'plug-in' to its default [code:Recovery] middleware.",
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            "[sentrynegroniCode:sentrynegroni] exports a very barebones implementation, which utilizes it, so if you don't need anything else than just reporting panics to Sentry, you can use it instead, as it's just one line of code!",
+            {
+              sentrynegroniCode: <code />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'You can still use [beforeSendCode:BeforeSend] and event processors to modify data before delivering it to Sentry, using this method as well.',
+            {
+              beforeSendCode: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
           language: 'go',
           code: getPanicHandlerSnippet(),
         },
@@ -295,9 +304,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/go/guides/negroni/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/go/guides/negroni/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
