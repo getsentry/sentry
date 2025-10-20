@@ -79,14 +79,23 @@ function AddFilter({getSearchBarData, onAddFilter}: AddFilterProps) {
     : [];
 
   // Footer for filter key selection for adding filters and returning to dataset selection
-  const filterOptionsMenuFooter = ({closeOverlay}: {closeOverlay: () => void}) => (
+  const filterOptionsMenuFooter = ({
+    closeOverlay,
+    resetSearch,
+  }: {
+    closeOverlay: () => void;
+    resetSearch: () => void;
+  }) => (
     <FooterWrap>
       <Flex gap="md" justify="end">
         <Button
           size="xs"
           borderless
           icon={<IconArrow direction="left" />}
-          onClick={() => setIsSelectingFilterKey(false)}
+          onClick={() => {
+            resetSearch();
+            setIsSelectingFilterKey(false);
+          }}
         >
           {t('Back')}
         </Button>
