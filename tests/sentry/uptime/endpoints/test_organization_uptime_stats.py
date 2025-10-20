@@ -1,10 +1,9 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
+from sentry.testutils.cases import APITestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
-from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 
@@ -239,74 +238,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
 
 
 @freeze_time(MOCK_DATETIME)
-class OrganizationUptimeCheckIndexEndpointTest(
-    OrganizationUptimeStatsBaseTest, UptimeCheckSnubaTestCase
-):
-    __test__ = True
-
-    def store_uptime_data(
-        self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-    ):
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status=check_status,
-            incident_status=incident_status,
-            scheduled_check_time=scheduled_check_time,
-        )
-
-
-# TODO(jferg): remove after 90 days
-def test_add_extra_buckets_for_epoch_cutoff() -> None:
-    """Test adding extra buckets when there's an epoch cutoff"""
-    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    end = datetime(2025, 1, 2, tzinfo=timezone.utc)
-    epoch_cutoff = datetime(2025, 1, 1, 12, tzinfo=timezone.utc)
-    rollup = 3600  # 1 hour
-
-    # Generate 12 hours of data points starting at epoch cutoff
-    data_points = []
-    for i in range(12):
-        timestamp = int(epoch_cutoff.timestamp()) + (i * 3600)
-        data_points.append(
-            (timestamp, {"failure": i % 3, "success": (3 - i % 3), "missed_window": 0})
-        )
-
-    subscription_id = 1234
-    formatted_response = {subscription_id: data_points}
-
-    result = add_extra_buckets_for_epoch_cutoff(
-        formatted_response, epoch_cutoff, rollup, start, end
-    )
-
-    # Should have 24 buckets total (24 hours worth)
-    assert len(result[subscription_id]) == 24
-
-    # First bucket should be at start time
-    assert result[subscription_id][0][0] == int(start.timestamp())
-
-    # Last bucket should be the original last bucket
-    assert result[subscription_id][-1] == formatted_response[subscription_id][-1]
-
-    # Added buckets should have zero counts
-    for bucket in result[subscription_id][:12]:
-        assert bucket[1] == {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0}
-
-    # Test when epoch cutoff is before start - should return original
-    result = add_extra_buckets_for_epoch_cutoff(
-        formatted_response, datetime(2024, 1, 1, tzinfo=timezone.utc), rollup, start, end
-    )
-    assert result == formatted_response
-
-    # Test with no epoch cutoff - should return original
-    result = add_extra_buckets_for_epoch_cutoff(formatted_response, None, rollup, start, end)
-    assert result == formatted_response
-
-
-@freeze_time(MOCK_DATETIME)
 class OrganizationUptimeStatsEndpointWithEAPTests(
     OrganizationUptimeStatsBaseTest, UptimeResultEAPTestCase
 ):
@@ -314,10 +245,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
 
     def setUp(self) -> None:
         super().setUp()
-        self.features = {
-            "organizations:uptime-eap-enabled": True,
-            "organizations:uptime-eap-uptime-results-query": True,
-        }
+        self.features = {"organizations:uptime-eap-enabled": True}
 
     def store_uptime_data(
         self,
