@@ -398,6 +398,19 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
+            case EventType.TAP:
+                message = event["data"]["payload"]["message"]
+                return f"User tapped on {message} at {timestamp}"
+            case EventType.DEVICE_BATTERY:
+                charging = event["data"]["payload"]["data"]["charging"]
+                level = event["data"]["payload"]["data"]["level"]
+                return f"Device battery was {level}% and {'charging' if charging else 'not charging'} at {timestamp}"
+            case EventType.DEVICE_ORIENTATION:
+                position = event["data"]["payload"]["data"]["position"]
+                return f"Device orientation was changed to {position} at {timestamp}"
+            case EventType.DEVICE_CONNECTIVITY:
+                state = event["data"]["payload"]["data"]["state"]
+                return f"Device connectivity was changed to {state} at {timestamp}"
             case EventType.MUTATIONS:
                 return None
             case EventType.UNKNOWN:
@@ -425,8 +438,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.NAVIGATION:
                 return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
             case EventType.MULTI_CLICK:
-                return None
-            case EventType.TAP:
                 return None
     except (KeyError, ValueError, TypeError):
         logger.exception(
