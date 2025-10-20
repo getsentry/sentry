@@ -1,5 +1,5 @@
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
@@ -239,7 +239,7 @@ class TestProjectChooser:
 
     @pytest.fixture
     def project_chooser(self, mock_buffer):
-        return ProjectChooser(mock_buffer, num_cohorts=6)
+        return ProjectChooser(mock_buffer, num_cohorts=6, min_scheduling_age=timedelta(seconds=50))
 
     def _find_projects_for_cohorts(self, chooser: ProjectChooser, num_cohorts: int) -> list[int]:
         """Helper method to find project IDs that map to each cohort to ensure even distribution."""
@@ -300,8 +300,8 @@ class TestProjectChooser:
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
-                0: 995.0,  # 5 seconds ago - may process (older)
-                1: 998.0,  # 2 seconds ago - may process (newer)
+                0: 945.0,  # 55 seconds ago - may process (older)
+                1: 948.0,  # 52 seconds ago - may process (newer)
                 2: 999.0,  # 1 second ago - no process
             }
         )
@@ -411,7 +411,9 @@ class TestProjectChooser:
         This demonstrates that all projects are processed together every minute.
         """
         # Create ProjectChooser with cohort count = 1 (production default)
-        chooser = ProjectChooser(mock_buffer, num_cohorts=1)
+        chooser = ProjectChooser(
+            mock_buffer, num_cohorts=1, min_scheduling_age=timedelta(seconds=50)
+        )
         all_project_ids = self._find_projects_for_cohorts(chooser, 1)
 
         # Add more projects to demonstrate they all map to cohort 0
@@ -444,6 +446,32 @@ class TestProjectChooser:
                 f"Run {minute}: Expected all {len(all_project_ids)} projects to be processed, "
                 f"but got {len(processed_projects)}: {sorted(processed_projects)}"
             )
+
+    def test_cohort_count_change_uses_eldest_freshness(self, mock_buffer) -> None:
+        """
+        Test that when num_cohorts changes, all new cohorts use the eldest stored cohort freshness,
+        then cohorts that need processing are scheduled and updated to current time.
+        """
+        # Start with 3 cohorts at different ages
+        cohort_updates = CohortUpdates(
+            values={
+                0: 100.0,  # eldest
+                1: 200.0,
+                2: 300.0,  # newest
+            }
+        )
+
+        # Change to 6 cohorts - since all cohorts will be reset to 100.0 (900 seconds old),
+        # they will all exceed the target_max_age of 60 seconds and be scheduled to run
+        new_chooser = ProjectChooser(
+            mock_buffer, num_cohorts=6, min_scheduling_age=timedelta(seconds=50)
+        )
+        new_chooser.project_ids_to_process(1000.0, cohort_updates, [])
+
+        # All 6 cohorts should exist and be set to current time since they were all very old
+        assert len(cohort_updates.values) == 6
+        for cohort_id in range(6):
+            assert cohort_updates.values[cohort_id] == 1000.0
 
 
 class TestChosenProjects:
