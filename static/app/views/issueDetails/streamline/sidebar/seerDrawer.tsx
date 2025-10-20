@@ -20,6 +20,7 @@ import {
   getCodeChangesDescription,
   getRootCauseDescription,
   getSolutionDescription,
+  hasPullRequest,
 } from 'sentry/components/events/autofix/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -70,11 +71,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     has_root_cause: Boolean(autofixData && getRootCauseDescription(autofixData)),
     has_solution: Boolean(autofixData && getSolutionDescription(autofixData)),
     has_coded_solution: Boolean(autofixData && getCodeChangesDescription(autofixData)),
-    has_pr: Boolean(
-      autofixData?.steps
-        ?.find(step => step.type === AutofixStepType.CHANGES)
-        ?.changes?.some(change => change.pull_request)
-    ),
+    has_pr: hasPullRequest(autofixData),
   });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
