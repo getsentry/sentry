@@ -54,7 +54,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         )
         mock_client.return_value.send_message.assert_called_once_with(
             QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
-            MessageBody=orjson.dumps(event.data, option=orjson.OPT_UTC_Z).decode(),
+            MessageBody=orjson.dumps(dict(event.data), option=orjson.OPT_UTC_Z).decode(),
         )
 
     @patch("boto3.client")
