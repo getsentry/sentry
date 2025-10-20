@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import orjson
 import requests
 from django.conf import settings
@@ -12,11 +14,71 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+logger = logging.getLogger(__name__)
+
+
+def _collect_user_org_context(request: Request, organization: Organization) -> dict | None:
+    """Collect user and organization context for a new Explorer run."""
+    try:
+        # Get organization member for the user
+        member = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+
+        # Get user's teams
+        user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+
+        # Get user's projects ("My Projects" - projects where user is a team member)
+        my_projects = (
+            Project.objects.filter(
+                organization=organization,
+                teams__organizationmember__user_id=request.user.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            .distinct()
+            .values("id", "slug")
+        )
+        user_projects = [{"id": p["id"], "slug": p["slug"]} for p in my_projects]
+
+        # Get all org projects
+        all_projects = Project.objects.filter(
+            organization=organization, status=ObjectStatus.ACTIVE
+        ).values("id", "slug")
+        all_org_projects = [{"id": p["id"], "slug": p["slug"]} for p in all_projects]
+
+        return {
+            "org_slug": organization.slug,
+            "user_name": request.user.name,
+            "user_email": request.user.email,
+            "user_teams": user_teams,
+            "user_projects": user_projects,
+            "all_org_projects": all_org_projects,
+        }
+    except OrganizationMember.DoesNotExist:
+        # User is not a member of the organization, return minimal context
+        all_projects = Project.objects.filter(
+            organization=organization, status=ObjectStatus.ACTIVE
+        ).values("id", "slug")
+        all_org_projects = [{"id": p["id"], "slug": p["slug"]} for p in all_projects]
+
+        return {
+            "org_slug": organization.slug,
+            "user_name": None,
+            "user_email": None,
+            "user_teams": [],
+            "user_projects": [],
+            "all_org_projects": all_org_projects,
+        }
+    except Exception:
+        logger.exception("Failed to collect user/org context when starting Seer Explorer chat")
+        return None
 
 
 class SeerExplorerChatSerializer(serializers.Serializer):
@@ -50,20 +112,23 @@ def _call_seer_explorer_chat(
     insert_index: int | None = None,
     message_timestamp: float | None = None,
     on_page_context: str | None = None,
+    user_org_context: dict | None = None,
 ):
     """Call Seer explorer chat endpoint."""
     path = "/v1/automation/explorer/chat"
-    body = orjson.dumps(
-        {
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "query": query,
-            "insert_index": insert_index,
-            "message_timestamp": message_timestamp,
-            "on_page_context": on_page_context,
-        },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
+    payload = {
+        "organization_id": organization.id,
+        "run_id": run_id,
+        "query": query,
+        "insert_index": insert_index,
+        "message_timestamp": message_timestamp,
+        "on_page_context": on_page_context,
+        "user_org_context": user_org_context,
+    }
+    if user_org_context:
+        payload["user_org_context"] = user_org_context
+
+    body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}{path}",
@@ -211,6 +276,11 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         message_timestamp = validated_data.get("message_timestamp")
         on_page_context = validated_data.get("on_page_context")
 
+        # Collect user/org context only for new runs
+        user_org_context = None
+        if run_id is None:
+            user_org_context = _collect_user_org_context(request, organization)
+
         response_data = _call_seer_explorer_chat(
             organization=organization,
             run_id=run_id,
@@ -218,5 +288,6 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             insert_index=insert_index,
             message_timestamp=message_timestamp,
             on_page_context=on_page_context,
+            user_org_context=user_org_context,
         )
         return Response(response_data)

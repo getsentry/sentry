@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.seer.endpoints.organization_seer_explorer_chat import _collect_user_org_context
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -81,9 +83,19 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         return_value=True,
     )
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._collect_user_org_context")
     def test_post_with_query_calls_seer(
-        self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
+        self, mock_collect_context, mock_call_seer_chat, mock_get_seer_org_acknowledgement
     ):
+        mock_context = {
+            "org_slug": self.organization.slug,
+            "user_name": self.user.name,
+            "user_email": self.user.email,
+            "user_teams": [],
+            "user_projects": [],
+            "all_org_projects": [],
+        }
+        mock_collect_context.return_value = mock_context
         mock_response = {
             "run_id": 456,
             "message": {
@@ -101,6 +113,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == mock_response
+        mock_collect_context.assert_called_once()
         mock_call_seer_chat.assert_called_once_with(
             organization=self.organization,
             run_id=None,
@@ -108,6 +121,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             insert_index=None,
             message_timestamp=None,
             on_page_context=None,
+            user_org_context=mock_context,
         )
 
     @patch(
@@ -115,8 +129,12 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         return_value=True,
     )
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._collect_user_org_context")
     def test_post_with_all_parameters(
-        self, mock_call_seer_chat: MagicMock, mock_get_seer_org_acknowledgement: MagicMock
+        self,
+        mock_collect_context: MagicMock,
+        mock_call_seer_chat: MagicMock,
+        mock_get_seer_org_acknowledgement: MagicMock,
     ) -> None:
         mock_response = {"run_id": 789, "message": {}}
         mock_call_seer_chat.return_value = mock_response
@@ -130,6 +148,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == mock_response
+        # Context should not be collected for existing runs (run_id is present)
+        mock_collect_context.assert_not_called()
         mock_call_seer_chat.assert_called_once_with(
             organization=self.organization,
             run_id="789",
@@ -137,6 +157,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             insert_index=2,
             message_timestamp=1704067200.0,
             on_page_context=None,
+            user_org_context=None,
         )
 
     def test_post_with_ai_features_disabled_returns_403(self) -> None:
@@ -253,13 +274,23 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
         return_value=True,
     )
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._collect_user_org_context")
     def test_post_with_both_feature_flags_succeeds(
-        self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
+        self, mock_collect_context, mock_call_seer_chat, mock_get_seer_org_acknowledgement
     ):
         # Enable both required feature flags
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
         ):
+            mock_context = {
+                "org_slug": self.organization.slug,
+                "user_name": self.user.name,
+                "user_email": self.user.email,
+                "user_teams": [],
+                "user_projects": [],
+                "all_org_projects": [],
+            }
+            mock_collect_context.return_value = mock_context
             mock_response = {"run_id": 1, "message": {}}
             mock_call_seer_chat.return_value = mock_response
 
@@ -275,4 +306,93 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
                 insert_index=None,
                 message_timestamp=None,
                 on_page_context=None,
+                user_org_context=mock_context,
             )
+
+
+class CollectUserOrgContextTest(APITestCase):
+    """Test the _collect_user_org_context helper function"""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(name="Test Org")
+        self.user = self.create_user(name="Test User", email="test@example.com")
+        self.team = self.create_team(organization=self.organization, slug="test-team")
+        self.member = self.create_member(
+            organization=self.organization, user=self.user, teams=[self.team]
+        )
+        self.project1 = self.create_project(
+            organization=self.organization, teams=[self.team], slug="project-1"
+        )
+        self.project2 = self.create_project(
+            organization=self.organization, teams=[self.team], slug="project-2"
+        )
+        self.other_team = self.create_team(organization=self.organization, slug="other-team")
+        self.other_project = self.create_project(
+            organization=self.organization, teams=[self.other_team], slug="other-project"
+        )
+
+    def test_collect_context_with_member(self):
+        """Test context collection for a user who is an organization member"""
+        request = self.make_request(user=self.user)
+        context = _collect_user_org_context(request, self.organization)
+
+        assert context is not None
+        assert context["org_slug"] == self.organization.slug
+        assert context["user_name"] == self.user.name
+        assert context["user_email"] == self.user.email
+
+        # Check user teams
+        assert len(context["user_teams"]) == 1
+        assert context["user_teams"][0]["slug"] == "test-team"
+
+        # Check user projects (My Projects)
+        user_project_slugs = {p["slug"] for p in context["user_projects"]}
+        assert user_project_slugs == {"project-1", "project-2"}
+
+        # Check all org projects
+        all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
+        assert all_project_slugs == {"project-1", "project-2", "other-project"}
+
+    def test_collect_context_with_multiple_teams(self):
+        """Test context collection for a user in multiple teams"""
+        team2 = self.create_team(organization=self.organization, slug="team-2")
+        with unguarded_write(using="default"):
+            self.member.teams.add(team2)
+
+        request = self.make_request(user=self.user)
+        context = _collect_user_org_context(request, self.organization)
+
+        assert context is not None
+        team_slugs = {t["slug"] for t in context["user_teams"]}
+        assert team_slugs == {"test-team", "team-2"}
+
+    def test_collect_context_with_no_teams(self):
+        """Test context collection for a member with no team membership"""
+        # Remove user from all teams
+        with unguarded_write(using="default"):
+            self.member.teams.clear()
+
+        request = self.make_request(user=self.user)
+        context = _collect_user_org_context(request, self.organization)
+
+        assert context is not None
+        assert context["user_teams"] == []
+        assert context["user_projects"] == []
+        # Should still have all org projects
+        assert len(context["all_org_projects"]) == 3
+
+    def test_collect_context_non_member(self):
+        """Test context collection for a user who is not an org member"""
+        non_member_user = self.create_user(name="Non Member", email="nonmember@example.com")
+        request = self.make_request(user=non_member_user)
+        context = _collect_user_org_context(request, self.organization)
+
+        assert context is not None
+        assert context["org_slug"] == self.organization.slug
+        assert context["user_name"] is None
+        assert context["user_email"] is None
+        assert context["user_teams"] == []
+        assert context["user_projects"] == []
+        # Should still have all org projects
+        assert len(context["all_org_projects"]) == 3
