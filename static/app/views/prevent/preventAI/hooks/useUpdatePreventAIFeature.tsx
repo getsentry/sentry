@@ -10,10 +10,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface UpdatePreventAIFeatureParams {
   enabled: boolean;
-  feature: 'vanilla' | 'test_generation' | 'bug_prediction';
+  // 'use_org_defaults' is a special case that will remove the entire repo override
+  feature: 'vanilla' | 'test_generation' | 'bug_prediction' | 'use_org_defaults';
   orgName: string;
   // if repoName is provided, edit repo_overrides for that repo, otherwise edit org_defaults
-  repoName?: string;
+  repoName?: string | null;
   sensitivity?: Sensitivity;
   trigger?: Partial<PreventAIFeatureTriggers>;
 }
@@ -49,6 +50,7 @@ export function useUpdatePreventAIFeature() {
  * 2. Get the org config for the specified orgName or create it from default_org_config template if not exists
  * 3. If editing repo, get the repo override for the specified repoName or create it from org_defaults template if not exists
  * 4. Modifies the specified feature's settings, preserves any unspecified settings.
+ * 5. Special case: 'use_org_defaults' feature type will remove the entire repo override
  *
  * @param originalConfig Original PreventAIConfig object (will not be mutated)
  * @param params Parameters to update
@@ -64,6 +66,18 @@ export function makePreventAIConfig(
     updatedConfig.github_organizations[params.orgName] ??
     structuredClone(updatedConfig.default_org_config);
   updatedConfig.github_organizations[params.orgName] = orgConfig;
+
+  if (params.feature === 'use_org_defaults') {
+    if (!params.repoName) {
+      throw new Error('Repo name is required when feature is use_org_defaults');
+    }
+    if (params.enabled) {
+      delete orgConfig.repo_overrides[params.repoName];
+    } else {
+      orgConfig.repo_overrides[params.repoName] = structuredClone(orgConfig.org_defaults);
+    }
+    return updatedConfig;
+  }
 
   let featureConfig = orgConfig.org_defaults;
   if (params.repoName) {

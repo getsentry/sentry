@@ -56,10 +56,10 @@ describe('PreventAIManageRepos', () => {
 
   it('opens the settings panel when the settings button is clicked', async () => {
     render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
-    expect(screen.queryByText(/AI Code Review Settings/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('manage-repos-panel')).not.toBeInTheDocument();
     const settingsButton = await screen.findByTestId('manage-repos-settings-button');
     await userEvent.click(settingsButton);
-    expect(await screen.findByText(/AI Code Review Settings/i)).toBeInTheDocument();
+    expect(await screen.findByTestId('manage-repos-panel')).toBeInTheDocument();
   });
 
   it('renders the illustration image', async () => {
@@ -67,5 +67,13 @@ describe('PreventAIManageRepos', () => {
     const img = await screen.findByTestId('manage-repos-illustration-image');
     expect(img).toBeInTheDocument();
     expect(img.tagName).toBe('IMG');
+  });
+
+  it('starts with "All Repos" selected by default', async () => {
+    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
+    const repoButton = await screen.findByRole('button', {
+      name: /All Repos/i,
+    });
+    expect(repoButton).toBeInTheDocument();
   });
 });
