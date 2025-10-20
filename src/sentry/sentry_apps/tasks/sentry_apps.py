@@ -69,6 +69,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -101,7 +102,7 @@ retry_decorator = retry(
         RestrictedIPAddress,
         NoRetriesRemainingError,
     ),
-    ignore_and_capture=(),
+    ignore_and_capture=(ProcessingDeadlineExceeded),
     raise_on_no_retries=False,
 )
 
@@ -447,6 +448,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     ).exists()
 
 
+@sentry_sdk.trace(name="process_resource_change_bound")
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound",
     namespace=sentryapp_tasks,
