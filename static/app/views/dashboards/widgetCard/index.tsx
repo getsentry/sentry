@@ -321,6 +321,13 @@ function WidgetCard(props: Props) {
     return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
   }, [widget.queries, widget.widgetType, dashboardFilters]);
 
+  if (conflictingFilterKeys.length > 0) {
+    warnings.push(
+      t('You have conflicting global and widget filters: ') +
+        conflictingFilterKeys.join(', ')
+    );
+  }
+
   return (
     <ErrorBoundary
       customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -339,7 +346,6 @@ function WidgetCard(props: Props) {
           warnings={warnings}
           actionsDisabled={actionsDisabled}
           error={widgetQueryError}
-          conflictingFilterKeys={conflictingFilterKeys}
           actionsMessage={actionsMessage}
           actions={actions}
           onFullScreenViewClick={
