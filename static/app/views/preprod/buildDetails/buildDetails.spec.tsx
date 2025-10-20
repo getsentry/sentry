@@ -105,8 +105,8 @@ describe('BuildDetails', () => {
       url: BUILD_DETAILS_URL,
       method: 'GET',
       body: PreprodBuildDetailsWithSizeInfoFixture(
-        BuildDetailsSizeAnalysisState.COMPLETED,
         {
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
           install_size_bytes: 1024000,
           download_size_bytes: 512000,
         },
@@ -140,9 +140,9 @@ describe('BuildDetails', () => {
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
-      body: PreprodBuildDetailsWithSizeInfoFixture(
-        BuildDetailsSizeAnalysisState.PROCESSING
-      ),
+      body: PreprodBuildDetailsWithSizeInfoFixture({
+        state: BuildDetailsSizeAnalysisState.PROCESSING,
+      }),
     });
 
     MockApiClient.addMockResponse({
@@ -171,17 +171,15 @@ describe('BuildDetails', () => {
       body: () => {
         callCount++;
         if (callCount === 1) {
-          return PreprodBuildDetailsWithSizeInfoFixture(
-            BuildDetailsSizeAnalysisState.PROCESSING
-          );
+          return PreprodBuildDetailsWithSizeInfoFixture({
+            state: BuildDetailsSizeAnalysisState.PROCESSING,
+          });
         }
-        return PreprodBuildDetailsWithSizeInfoFixture(
-          BuildDetailsSizeAnalysisState.COMPLETED,
-          {
-            install_size_bytes: 1024000,
-            download_size_bytes: 512000,
-          }
-        );
+        return PreprodBuildDetailsWithSizeInfoFixture({
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          install_size_bytes: 1024000,
+          download_size_bytes: 512000,
+        });
       },
     });
 
@@ -224,13 +222,11 @@ describe('BuildDetails', () => {
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
-      body: PreprodBuildDetailsWithSizeInfoFixture(
-        BuildDetailsSizeAnalysisState.COMPLETED,
-        {
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
-        }
-      ),
+      body: PreprodBuildDetailsWithSizeInfoFixture({
+        state: BuildDetailsSizeAnalysisState.COMPLETED,
+        install_size_bytes: 1024000,
+        download_size_bytes: 512000,
+      }),
     });
 
     const appSizeMock = MockApiClient.addMockResponse({
@@ -263,13 +259,13 @@ describe('BuildDetails', () => {
       body: () => {
         callCount++;
         if (callCount === 1) {
-          return PreprodBuildDetailsWithSizeInfoFixture(
-            BuildDetailsSizeAnalysisState.PENDING
-          );
+          return PreprodBuildDetailsWithSizeInfoFixture({
+            state: BuildDetailsSizeAnalysisState.PENDING,
+          });
         }
-        return PreprodBuildDetailsWithSizeInfoFixture(
-          BuildDetailsSizeAnalysisState.PROCESSING
-        );
+        return PreprodBuildDetailsWithSizeInfoFixture({
+          state: BuildDetailsSizeAnalysisState.PROCESSING,
+        });
       },
     });
 

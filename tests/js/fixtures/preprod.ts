@@ -1,10 +1,10 @@
 import type {
   BuildDetailsApiResponse,
   BuildDetailsAppInfo,
+  BuildDetailsSizeInfo,
   BuildDetailsVcsInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  BuildDetailsArtifactType,
   BuildDetailsSizeAnalysisState,
   BuildDetailsState,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -73,15 +73,11 @@ function PreprodBuildDetailsFixture(
 }
 
 export function PreprodBuildDetailsWithSizeInfoFixture(
-  sizeState: BuildDetailsSizeAnalysisState,
-  sizeData: Record<string, any> = {},
+  sizeInfo: BuildDetailsSizeInfo,
   params: Partial<BuildDetailsApiResponse> = {}
 ): BuildDetailsApiResponse {
   return {
     ...PreprodBuildDetailsFixture(params),
-    size_info: {
-      state: sizeState,
-      ...sizeData,
-    },
+    size_info: sizeInfo,
   };
 }
