@@ -560,6 +560,16 @@ function useTrackView({
     suspect_commit_calculation: 'no suspect commit',
     // Will be updated in Autofix if enabled
     autofix_status: 'none',
+    // Will be updated in GroupSummary if AI summary is available
+    has_summary: false,
+    // Will be updated in SeerDrawer if autofix root cause is available
+    has_root_cause: false,
+    // Will be updated in SeerDrawer if autofix solution is available
+    has_solution: false,
+    // Will be updated in SeerDrawer if autofix code changes are available
+    has_coded_solution: false,
+    // Will be updated in SeerDrawer if autofix PR is available
+    has_pr: false,
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }

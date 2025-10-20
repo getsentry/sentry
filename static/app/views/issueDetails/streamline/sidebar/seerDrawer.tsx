@@ -16,6 +16,11 @@ import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox'
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {
+  getCodeChangesDescription,
+  getRootCauseDescription,
+  getSolutionDescription,
+} from 'sentry/components/events/autofix/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
@@ -60,7 +65,17 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
+  useRouteAnalyticsParams({
+    autofix_status: autofixData?.status ?? 'none',
+    has_root_cause: Boolean(autofixData && getRootCauseDescription(autofixData)),
+    has_solution: Boolean(autofixData && getSolutionDescription(autofixData)),
+    has_coded_solution: Boolean(autofixData && getCodeChangesDescription(autofixData)),
+    has_pr: Boolean(
+      autofixData?.steps
+        ?.find(step => step.type === AutofixStepType.CHANGES)
+        ?.changes?.some(change => change.pull_request)
+    ),
+  });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(true);
