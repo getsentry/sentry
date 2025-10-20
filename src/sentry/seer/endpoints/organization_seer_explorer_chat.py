@@ -111,7 +111,6 @@ def _call_seer_explorer_chat(
         "insert_index": insert_index,
         "message_timestamp": message_timestamp,
         "on_page_context": on_page_context,
-        "user_org_context": user_org_context,
     }
     if user_org_context:
         payload["user_org_context"] = user_org_context
