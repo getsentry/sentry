@@ -148,9 +148,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
-            assert "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is 1" in response.serialize().decode(  # type: ignore[attr-defined]
-                "utf-8"
-            )
+            assert response.json() == {
+                "detail": "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is 1"
+            }
             assert response["Access-Control-Allow-Methods"] == "GET"
             assert response["Access-Control-Allow-Origin"] == "*"
             assert response["Access-Control-Allow-Headers"]
