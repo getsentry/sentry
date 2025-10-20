@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.endpoints.organization_seer_explorer_chat import _collect_user_org_context
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
@@ -316,11 +317,8 @@ class CollectUserOrgContextTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.organization = self.create_organization(name="Test Org")
-        self.user = self.create_user(name="Test User", email="test@example.com")
-        self.team = self.create_team(organization=self.organization, slug="test-team")
-        self.member = self.create_member(
-            organization=self.organization, user=self.user, teams=[self.team]
+        self.member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
         )
         self.project1 = self.create_project(
             organization=self.organization, teams=[self.team], slug="project-1"
@@ -346,15 +344,20 @@ class CollectUserOrgContextTest(APITestCase):
 
         # Check user teams
         assert len(context["user_teams"]) == 1
-        assert context["user_teams"][0]["slug"] == "test-team"
+        assert context["user_teams"][0]["slug"] == self.team.slug
+        assert context["user_teams"][0]["id"] == self.team.id
 
         # Check user projects (My Projects)
         user_project_slugs = {p["slug"] for p in context["user_projects"]}
         assert user_project_slugs == {"project-1", "project-2"}
+        user_project_ids = {p["id"] for p in context["user_projects"]}
+        assert user_project_ids == {self.project1.id, self.project2.id}
 
         # Check all org projects
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
+        all_project_ids = {p["id"] for p in context["all_org_projects"]}
+        assert all_project_ids == {self.project1.id, self.project2.id, self.other_project.id}
 
     def test_collect_context_with_multiple_teams(self):
         """Test context collection for a user in multiple teams"""
@@ -368,7 +371,7 @@ class CollectUserOrgContextTest(APITestCase):
 
         assert context is not None
         team_slugs = {t["slug"] for t in context["user_teams"]}
-        assert team_slugs == {"test-team", "team-2"}
+        assert team_slugs == {self.team.slug, "team-2"}
 
     def test_collect_context_with_no_teams(self):
         """Test context collection for a member with no team membership"""
