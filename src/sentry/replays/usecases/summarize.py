@@ -412,11 +412,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 state = event["data"]["payload"]["data"]["state"]
                 return f"Device connectivity was changed to {state} at {timestamp}"
             case EventType.SCROLL:
-                view_id = event["data"]["payload"]["data"].get("view.id")
+                view_id = event["data"]["payload"]["data"].get("view.id", "")
                 direction = event["data"]["payload"]["data"].get("direction", "")
                 return f"User scrolled {view_id} {direction} at {timestamp}"
             case EventType.SWIPE:
-                view_id = event["data"]["payload"]["data"].get("view.id")
+                view_id = event["data"]["payload"]["data"].get("view.id", "")
                 direction = event["data"]["payload"]["data"].get("direction", "")
                 return f"User swiped {view_id} {direction} at {timestamp}"
             case EventType.BACKGROUND:
