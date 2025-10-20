@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.integrations.models.data_forwarder_project import DataForwarderProject
-from sentry.services.eventstore.models import Event
+if TYPE_CHECKING:
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+    from sentry.services.eventstore.models import Event
 
 
 class DataForwardingPlugin:
