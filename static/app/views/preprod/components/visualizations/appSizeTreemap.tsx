@@ -81,16 +81,14 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const isFullscreen = renderingContext?.isFullscreen ?? false;
   const contextHeight = renderingContext?.height;
   const chartRef = useRef<ECharts | null>(null);
-  const recenterButtonRef = useRef<HTMLButtonElement>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   const handleChartReady = (chart: ECharts) => {
     chartRef.current = chart;
   };
 
   const handleContainerMouseDown = () => {
-    if (recenterButtonRef.current) {
-      recenterButtonRef.current.style.display = 'flex';
-    }
+    setIsZoomed(true);
   };
 
   const handleRecenter = () => {
@@ -99,9 +97,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         type: 'treemapRootToNode',
         seriesIndex: 0,
       });
-      if (recenterButtonRef.current) {
-        recenterButtonRef.current.style.display = 'none';
-      }
+      setIsZoomed(false);
     }
   };
 
@@ -328,24 +324,25 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         tooltip={tooltip}
         onChartReady={handleChartReady}
       />
-      {!isFullscreen && (
-        <ButtonContainer
-          direction="row"
-          position="absolute"
-          onMouseDown={e => e.stopPropagation()}
-        >
-          <Button
-            ref={recenterButtonRef}
-            size="xs"
-            aria-label={t('Recenter View')}
-            borderless
-            icon={<IconContract />}
-            onClick={handleRecenter}
-            style={{display: 'none'}}
-          />
+      <ButtonContainer
+        direction="row"
+        position="absolute"
+        onMouseDown={e => e.stopPropagation()}
+      >
+        <Button
+          size="xs"
+          aria-label={t('Recenter View')}
+          title={t('Recenter')}
+          borderless
+          icon={<IconContract />}
+          onClick={handleRecenter}
+          disabled={!isZoomed}
+        />
+        {!isFullscreen && (
           <Button
             size="xs"
             aria-label={t('Open Full-Screen View')}
+            title={t('Fullscreen')}
             borderless
             icon={<IconExpand />}
             onClick={() => {
@@ -366,8 +363,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               });
             }}
           />
-        </ButtonContainer>
-      )}
+        )}
+      </ButtonContainer>
     </Container>
   );
 }
