@@ -21,7 +21,7 @@ export interface BuildDetailsAppInfo {
   version?: string | null;
 }
 
-interface BuildDetailsVcsInfo {
+export interface BuildDetailsVcsInfo {
   base_ref?: string | null;
   base_repo_name?: string | null;
   base_sha?: string | null;
@@ -62,6 +62,15 @@ export function isSizeInfoCompleted(
   sizeInfo: BuildDetailsSizeInfo | undefined
 ): sizeInfo is BuildDetailsSizeInfoCompleted {
   return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
+}
+
+export function isSizeInfoProcessing(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): boolean {
+  return (
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING ||
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING
+  );
 }
 
 export enum BuildDetailsState {
