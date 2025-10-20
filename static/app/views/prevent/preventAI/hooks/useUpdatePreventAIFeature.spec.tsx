@@ -77,8 +77,8 @@ describe('useUpdatePreventAIFeature', () => {
     result.current.enableFeature({
       feature: 'vanilla',
       enabled: true,
-      orgName: 'org-1',
-      repoName: 'repo-1',
+      orgId: 'org-1',
+      repoId: 'repo-1',
       trigger: {on_command_phrase: true},
     });
 
@@ -105,8 +105,8 @@ describe('useUpdatePreventAIFeature', () => {
       result.current.enableFeature({
         feature: 'vanilla',
         enabled: true,
-        orgName: 'org-1',
-        repoName: 'repo-1',
+        orgId: 'org-1',
+        repoId: 'repo-1',
         trigger: {on_command_phrase: true},
       })
     ).rejects.toBeDefined();
@@ -131,8 +131,8 @@ describe('useUpdatePreventAIFeature', () => {
       result.current.enableFeature({
         feature: 'vanilla',
         enabled: true,
-        orgName: 'org-1',
-        repoName: 'repo-1',
+        orgId: 'org-1',
+        repoId: 'repo-1',
       })
     ).rejects.toThrow('Organization has no AI Code Review config');
   });
@@ -143,7 +143,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'vanilla',
         enabled: true,
-        orgName: 'org-1',
+        orgId: 'org-1',
       });
       expect(
         updatedConfig.github_organizations?.['org-1']?.org_defaults?.vanilla?.enabled
@@ -159,8 +159,8 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'test_generation',
         enabled: true,
-        orgName: 'org-1',
-        repoName: 'repo-123',
+        orgId: 'org-1',
+        repoId: 'repo-123',
         trigger: {on_command_phrase: true},
       });
       expect(
@@ -180,8 +180,8 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'bug_prediction',
         enabled: false,
-        orgName: 'org-1',
-        repoName: 'repo-xyz',
+        orgId: 'org-1',
+        repoId: 'repo-xyz',
         trigger: {on_ready_for_review: true},
       });
       const feature =
@@ -196,8 +196,8 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'bug_prediction',
         enabled: true,
-        orgName: 'org-1',
-        repoName: 'repo-xyz',
+        orgId: 'org-1',
+        repoId: 'repo-xyz',
         sensitivity: 'low',
       });
       const feature =

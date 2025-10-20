@@ -5,6 +5,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {
   usePreventAIOrgRepos,
+  type PreventAIOrgReposApiResponse,
   type PreventAIOrgReposResponse,
 } from './usePreventAIOrgRepos';
 
@@ -13,23 +14,36 @@ describe('usePreventAIOrgRepos', () => {
     preventAiConfigGithub: PreventAIConfigFixture(),
   });
 
-  const mockResponse: PreventAIOrgReposResponse = {
+  const mockResponse: PreventAIOrgReposApiResponse = {
     orgRepos: [
       {
-        id: '1',
+        githubOrganizationId: 1,
         name: 'repo1',
         provider: 'github',
-        repos: [
-          {id: '1', name: 'repo1', fullName: 'repo1', url: 'https://github.com/repo1'},
-        ],
+        repos: [{id: '1', name: 'repo1', fullName: 'org-1/repo1'}],
       },
       {
-        id: '2',
+        githubOrganizationId: 2,
         name: 'repo2',
         provider: 'github',
-        repos: [
-          {id: '2', name: 'repo2', fullName: 'repo2', url: 'https://github.com/repo2'},
-        ],
+        repos: [{id: '2', name: 'repo2', fullName: 'org-2/repo2'}],
+      },
+    ],
+  };
+
+  const transformedMockResponse: PreventAIOrgReposResponse = {
+    orgRepos: [
+      {
+        githubOrganizationId: '1',
+        name: 'repo1',
+        provider: 'github',
+        repos: [{id: '1', name: 'repo1', fullName: 'org-1/repo1'}],
+      },
+      {
+        githubOrganizationId: '2',
+        name: 'repo2',
+        provider: 'github',
+        repos: [{id: '2', name: 'repo2', fullName: 'org-2/repo2'}],
       },
     ],
   };
@@ -48,7 +62,7 @@ describe('usePreventAIOrgRepos', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() => expect(result.current.data).toEqual(mockResponse));
+    await waitFor(() => expect(result.current.data).toEqual(transformedMockResponse));
     expect(result.current.isError).toBe(false);
     expect(result.current.isPending).toBe(false);
   });
@@ -77,9 +91,28 @@ describe('usePreventAIOrgRepos', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() => expect(result.current.data).toEqual(mockResponse));
+    await waitFor(() => expect(result.current.data).toEqual(transformedMockResponse));
 
-    const newResponse = {orgRepos: [{id: '3', name: 'repo3'}]};
+    const newResponse = {
+      orgRepos: [
+        {
+          githubOrganizationId: 3,
+          name: 'repo3',
+          provider: 'github',
+          repos: [{id: '3', name: 'repo3', fullName: 'org-3/repo3'}],
+        },
+      ],
+    };
+    const transformedNewResponse: PreventAIOrgReposResponse = {
+      orgRepos: [
+        {
+          githubOrganizationId: '3',
+          name: 'repo3',
+          provider: 'github',
+          repos: [{id: '3', name: 'repo3', fullName: 'org-3/repo3'}],
+        },
+      ],
+    };
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrg.slug}/prevent/github/repos/`,
       body: newResponse,
@@ -87,6 +120,6 @@ describe('usePreventAIOrgRepos', () => {
 
     result.current.refetch();
     await waitFor(() => expect(result.current.data?.orgRepos?.[0]?.name).toBe('repo3'));
-    expect(result.current.data).toEqual(newResponse);
+    expect(result.current.data).toEqual(transformedNewResponse);
   });
 });

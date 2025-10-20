@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {PreventAIOrgConfig} from 'sentry/types/prevent';
+import type {PreventAIOrg, PreventAIOrgConfig, PreventAIRepo} from 'sentry/types/prevent';
 import ManageReposPanel, {
   getRepoConfig,
 } from 'sentry/views/prevent/preventAI/manageReposPanel';
@@ -13,12 +13,24 @@ jest.mock('sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature', () =
 }));
 
 describe('ManageReposPanel', () => {
+  const mockOrg: PreventAIOrg = {
+    githubOrganizationId: 'org-1',
+    name: 'org-1',
+    provider: 'github',
+    repos: [],
+  };
+
+  const mockRepo: PreventAIRepo = {
+    id: 'repo-1',
+    name: 'repo-1',
+    fullName: 'org-1/repo-1',
+  };
+
   const defaultProps = {
     collapsed: false,
     onClose: jest.fn(),
-    repoName: 'repo-1',
-    orgName: 'org-1',
-    repoFullName: 'org-1/repo-1',
+    org: mockOrg,
+    repo: mockRepo,
   };
 
   beforeEach(() => {
