@@ -6,7 +6,7 @@ from django.test import override_settings
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.constants import CompressionType
-from sentry.taskworker.namespaces import test_tasks
+from sentry.taskworker.namespaces import exampletasks, test_tasks
 from sentry.taskworker.registry import TaskRegistry
 from sentry.taskworker.retry import Retry, RetryError
 from sentry.taskworker.state import CurrentTaskState
@@ -69,6 +69,45 @@ def ignore_on_exception_task(param):
 )
 def exclude_on_exception_task(param):
     raise Exception(param)
+
+
+@instrumented_task(
+    name="tests.tasks.test_base.primary_task",
+    namespace=test_tasks,
+    alias="tests.tasks.test_base.alias_task",
+)
+def task_with_alias(param) -> str:
+    return f"Task with alias {param}"
+
+
+@instrumented_task(
+    name="tests.tasks.test_base.region_primary_task",
+    namespace=test_tasks,
+    alias="tests.tasks.test_base.region_alias_task",
+    silo_mode=SiloMode.REGION,
+)
+def region_task_with_alias(param) -> str:
+    return f"Region task with alias {param}"
+
+
+@instrumented_task(
+    name="tests.tasks.test_base.control_primary_task",
+    namespace=test_tasks,
+    alias="tests.tasks.test_base.control_alias_task",
+    silo_mode=SiloMode.CONTROL,
+)
+def control_task_with_alias(param) -> str:
+    return f"Control task with alias {param}"
+
+
+@instrumented_task(
+    name="tests.tasks.test_base.primary_task_primary_namespace",
+    namespace=test_tasks,
+    alias="tests.tasks.test_base.alias_task_alias_namespace",
+    alias_namespace=exampletasks,
+)
+def task_with_alias_and_alias_namespace(param) -> str:
+    return f"Task with alias and alias namespace {param}"
 
 
 @override_settings(SILO_MODE=SiloMode.REGION)
@@ -233,3 +272,55 @@ def test_retry_raise_if_no_retries_false(mock_current_task):
     mock_task_state.retries_remaining = True
     with pytest.raises(RetryError):
         task_that_raises_retry_error()
+
+
+def test_instrumented_task_with_alias_same_namespace() -> None:
+    assert test_tasks.contains("tests.tasks.test_base.primary_task")
+    task_result = task_with_alias("test")
+    assert task_result == "Task with alias test"
+
+    assert test_tasks.contains("tests.tasks.test_base.alias_task")
+    alias_task_result = test_tasks.get("tests.tasks.test_base.alias_task")("test")
+    assert alias_task_result == "Task with alias test"
+
+    assert task_result == alias_task_result
+
+
+def test_instrumented_task_with_alias_different_namespaces() -> None:
+    assert test_tasks.contains("tests.tasks.test_base.primary_task_primary_namespace")
+    task_result = task_with_alias_and_alias_namespace("test")
+    assert task_result == "Task with alias and alias namespace test"
+
+    assert exampletasks.contains("tests.tasks.test_base.alias_task_alias_namespace")
+    alias_task_result = exampletasks.get("tests.tasks.test_base.alias_task_alias_namespace")("test")
+    assert alias_task_result == "Task with alias and alias namespace test"
+
+    assert task_result == alias_task_result
+
+
+@override_settings(SILO_MODE=SiloMode.REGION)
+def test_instrumented_task_with_alias_silo_limit_call_region() -> None:
+    assert test_tasks.contains("tests.tasks.test_base.region_primary_task")
+    assert region_task_with_alias("test") == "Region task with alias test"
+
+    assert test_tasks.contains("tests.tasks.test_base.region_alias_task")
+    assert region_task_with_alias("test") == "Region task with alias test"
+
+    assert test_tasks.contains("tests.tasks.test_base.control_primary_task")
+    with pytest.raises(SiloLimit.AvailabilityError):
+        control_task_with_alias("test")
+
+    assert test_tasks.contains("tests.tasks.test_base.control_alias_task")
+    with pytest.raises(SiloLimit.AvailabilityError):
+        test_tasks.get("tests.tasks.test_base.control_alias_task")("test")
+
+
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+def test_instrumented_task_with_alias_silo_limit_call_control() -> None:
+    assert test_tasks.contains("tests.tasks.test_base.region_primary_task")
+    with pytest.raises(SiloLimit.AvailabilityError):
+        region_task_with_alias("test")
+
+    assert test_tasks.contains("tests.tasks.test_base.region_alias_task")
+    with pytest.raises(SiloLimit.AvailabilityError):
+        test_tasks.get("tests.tasks.test_base.region_alias_task")("test")

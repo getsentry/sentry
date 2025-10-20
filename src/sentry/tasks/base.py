@@ -76,6 +76,8 @@ def load_model_from_db(
 def instrumented_task(
     name: str,
     namespace: TaskNamespace,
+    alias: str | None = None,
+    alias_namespace: TaskNamespace | None = None,
     retry: Retry | None = None,
     expires: int | datetime.timedelta | None = None,
     processing_deadline_duration: int | datetime.timedelta | None = None,
@@ -105,10 +107,28 @@ def instrumented_task(
             wait_for_delivery=wait_for_delivery,
             compression_type=compression_type,
         )(func)
+        if alias or alias_namespace:
+            target_alias = alias if alias else name
+            target_alias_namespace = alias_namespace if alias_namespace else namespace
+            alias_task = target_alias_namespace.register(
+                name=target_alias,
+                retry=retry,
+                expires=expires,
+                processing_deadline_duration=processing_deadline_duration,
+                at_most_once=at_most_once,
+                wait_for_delivery=wait_for_delivery,
+                compression_type=compression_type,
+            )(func)
+            if silo_mode:
+                silo_limiter = TaskSiloLimit(silo_mode)
+                alias_task = silo_limiter(alias_task)
+            target_alias_namespace.set(target_alias, alias_task)
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
-            return silo_limiter(task)
+            task = silo_limiter(task)
+        namespace.set(name, task)
+
         return task
 
     return wrapped

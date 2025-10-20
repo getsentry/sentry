@@ -63,6 +63,12 @@ class TaskNamespace:
             raise KeyError(f"No task registered with the name {name}. Check your imports")
         return self._registered_tasks[name]
 
+    def set(self, name: str, task: Task[Any, Any]) -> None:
+        """
+        Set a registered task by name
+        """
+        self._registered_tasks[name] = task
+
     def contains(self, name: str) -> bool:
         """
         Check if a task name has been registered
