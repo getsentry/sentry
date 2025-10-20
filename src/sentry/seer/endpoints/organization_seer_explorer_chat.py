@@ -5,6 +5,7 @@ import logging
 import orjson
 import requests
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,46 +29,14 @@ logger = logging.getLogger(__name__)
 
 def _collect_user_org_context(request: Request, organization: Organization) -> dict | None:
     """Collect user and organization context for a new Explorer run."""
-    try:
-        # Get organization member for the user
-        member = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+    user = request.user
 
-        # Get user's teams
-        user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+    all_projects = Project.objects.filter(
+        organization=organization, status=ObjectStatus.ACTIVE
+    ).values("id", "slug")
+    all_org_projects = [{"id": p["id"], "slug": p["slug"]} for p in all_projects]
 
-        # Get user's projects ("My Projects" - projects where user is a team member)
-        my_projects = (
-            Project.objects.filter(
-                organization=organization,
-                teams__organizationmember__user_id=request.user.id,
-                status=ObjectStatus.ACTIVE,
-            )
-            .distinct()
-            .values("id", "slug")
-        )
-        user_projects = [{"id": p["id"], "slug": p["slug"]} for p in my_projects]
-
-        # Get all org projects
-        all_projects = Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE
-        ).values("id", "slug")
-        all_org_projects = [{"id": p["id"], "slug": p["slug"]} for p in all_projects]
-
-        return {
-            "org_slug": organization.slug,
-            "user_name": request.user.name,
-            "user_email": request.user.email,
-            "user_teams": user_teams,
-            "user_projects": user_projects,
-            "all_org_projects": all_org_projects,
-        }
-    except OrganizationMember.DoesNotExist:
-        # User is not a member of the organization, return minimal context
-        all_projects = Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE
-        ).values("id", "slug")
-        all_org_projects = [{"id": p["id"], "slug": p["slug"]} for p in all_projects]
-
+    if isinstance(user, AnonymousUser):
         return {
             "org_slug": organization.slug,
             "user_name": None,
@@ -76,9 +45,28 @@ def _collect_user_org_context(request: Request, organization: Organization) -> d
             "user_projects": [],
             "all_org_projects": all_org_projects,
         }
-    except Exception:
-        logger.exception("Failed to collect user/org context when starting Seer Explorer chat")
-        return None
+
+    member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+    my_projects = (
+        Project.objects.filter(
+            organization=organization,
+            teams__organizationmember__user_id=user.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        .distinct()
+        .values("id", "slug")
+    )
+    user_projects = [{"id": p["id"], "slug": p["slug"]} for p in my_projects]
+
+    return {
+        "org_slug": organization.slug,
+        "user_name": user.name,
+        "user_email": user.email,
+        "user_teams": user_teams,
+        "user_projects": user_projects,
+        "all_org_projects": all_org_projects,
+    }
 
 
 class SeerExplorerChatSerializer(serializers.Serializer):
