@@ -1,5 +1,5 @@
 import re
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
@@ -879,11 +879,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
         # Handle field links for each query
-        for i, query_obj in enumerate(new_queries):
-            query_data = query_data_list[i]
+        for query_obj, query_data in zip(new_queries, query_data_list):
             if "linked_dashboards" in query_data and query_data["linked_dashboards"]:
                 self._update_or_create_field_links(
-                    query_obj, query_data["linked_dashboards"], widget
+                    query_obj, query_data.get("linked_dashboards", []), widget
                 )
 
         if widget.widget_type in [
@@ -919,7 +918,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     def _update_or_create_field_links(
         self,
         query: DashboardWidgetQuery,
-        linked_dashboards: list[LinkedDashboard],
+        linked_dashboards: Iterable[LinkedDashboard],
         widget: DashboardWidget,
     ):
         """
@@ -942,19 +941,18 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         if widget_display_type is not DashboardWidgetDisplayTypes.TABLE:
             raise serializers.ValidationError("Field links are only supported for table widgets")
 
-        if linked_dashboards:
-            for link_data in linked_dashboards:
-                field = link_data.get("field")
-                dashboard_id = link_data.get("dashboard_id")
-                if field and dashboard_id:
-                    new_fields.add(field)
-                    field_links_to_create.append(
-                        DashboardFieldLink(
-                            dashboard_widget_query=query,
-                            field=field,
-                            dashboard_id=int(dashboard_id),
-                        )
+        for link_data in linked_dashboards:
+            field = link_data.get("field")
+            dashboard_id = link_data.get("dashboard_id")
+            if field and dashboard_id:
+                new_fields.add(field)
+                field_links_to_create.append(
+                    DashboardFieldLink(
+                        dashboard_widget_query=query,
+                        field=field,
+                        dashboard_id=int(dashboard_id),
                     )
+                )
 
         # Delete field links that are no longer in the request
         DashboardFieldLink.objects.filter(dashboard_widget_query=query).exclude(
