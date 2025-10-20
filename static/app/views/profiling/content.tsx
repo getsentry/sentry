@@ -33,6 +33,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -48,10 +49,6 @@ const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';
 const CURSOR_PARAMS = [LEFT_WIDGET_CURSOR, RIGHT_WIDGET_CURSOR];
 
-interface ProfilingContentProps {
-  location: Location;
-}
-
 function validateTab(tab: unknown): tab is 'flamegraph' | 'transactions' {
   return tab === 'flamegraph' || tab === 'transactions';
 }
@@ -62,10 +59,11 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   return validateTab(tab) ? tab : 'transactions';
 }
 
-export default function ProfilingContent({location}: ProfilingContentProps) {
+export default function ProfilingContent() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const location = useLocation();
 
   const dispatchDataState = useLandingAnalytics();
   const updateWidget1DataState = useCallback(

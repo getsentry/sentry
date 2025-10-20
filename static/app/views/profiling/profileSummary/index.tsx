@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -31,8 +30,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
@@ -96,9 +93,7 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 };
 
 interface ProfileSummaryHeaderProps {
-  location: Location;
   onViewChange: (newView: 'flamegraph' | 'profiles') => void;
-  organization: Organization;
   project: Project | null;
   query: string;
   transaction: string;
@@ -106,30 +101,33 @@ interface ProfileSummaryHeaderProps {
 }
 
 function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
     return [
       {
         type: 'landing',
         payload: {
-          query: props.location.query,
+          query: location.query,
         },
       },
       {
         type: 'profile summary',
         payload: {
           projectSlug: props.project?.slug ?? '',
-          query: props.location.query,
+          query: location.query,
           transaction: props.transaction,
         },
       },
     ];
-  }, [props.location.query, props.project?.slug, props.transaction]);
+  }, [location.query, props.project?.slug, props.transaction]);
 
   const transactionSummaryTarget =
     props.project &&
     props.transaction &&
     transactionSummaryRouteWithQuery({
-      organization: props.organization,
+      organization,
       transaction: props.transaction,
       projectID: props.project.id,
       query: {query: props.query},
@@ -138,10 +136,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
   return (
     <ProfilingHeader>
       <ProfilingHeaderContent>
-        <ProfilingBreadcrumbs
-          organization={props.organization}
-          trails={breadcrumbTrails}
-        />
+        <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
         <Layout.Title>
           <ProfilingTitleContainer>
             {props.project ? (
@@ -200,27 +195,25 @@ const ProfilingTitleContainer = styled('div')`
 `;
 
 interface ProfileFiltersProps {
-  location: Location;
-  organization: Organization;
   projectIds: EventView['project'];
   query: string;
-  selection: PageFilters;
-  transaction: string | undefined;
 }
 
 function ProfileFilters(props: ProfileFiltersProps) {
+  const location = useLocation();
+
   const handleSearch = useCallback(
     (searchQuery: string) => {
       browserHistory.push({
-        ...props.location,
+        ...location,
         query: {
-          ...props.location.query,
+          ...location.query,
           query: searchQuery || undefined,
           cursor: undefined,
         },
       });
     },
-    [props.location]
+    [location]
   );
 
   const projectIds = useMemo(() => props.projectIds.slice(), [props.projectIds]);
@@ -249,20 +242,13 @@ const ActionBar = styled('div')`
   background-color: ${p => p.theme.background};
 `;
 
-interface ProfileSummaryPageProps {
-  location: Location;
-  params: {
-    projectId?: Project['slug'];
-  };
-  selection: PageFilters;
-  view: 'flamegraph' | 'profile list';
-}
-
-function ProfileSummaryPage(props: ProfileSummaryPageProps) {
+function ProfileSummaryPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
 
-  const transaction = decodeScalar(props.location.query.transaction);
+  const transaction = decodeScalar(location.query.transaction);
 
   if (!transaction) {
     throw new TypeError(
@@ -272,7 +258,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     );
   }
 
-  const rawQuery = decodeScalar(props.location?.query?.query, '');
+  const rawQuery = decodeScalar(location?.query?.query, '');
 
   const projectIds: number[] = useMemo(() => {
     if (!defined(project)) {
@@ -353,9 +339,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const view = useMemo(() => {
     return decodeViewOrDefault(location.query.view, 'flamegraph');
   }, [location.query.view]);
@@ -392,20 +375,11 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           <ProfileSummaryHeader
             view={view}
             onViewChange={setView}
-            organization={organization}
-            location={props.location}
             project={project}
             query={rawQuery}
             transaction={transaction}
           />
-          <ProfileFilters
-            projectIds={projectIds}
-            organization={organization}
-            location={props.location}
-            query={rawQuery}
-            selection={props.selection}
-            transaction={transaction}
-          />
+          <ProfileFilters projectIds={projectIds} query={rawQuery} />
           <ProfilesSummaryChart
             referrer="api.profiling.profile-summary-chart"
             query={query}
@@ -792,11 +766,11 @@ const ProfileDigestLabel = styled('span')`
   text-transform: uppercase;
 `;
 
-export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps) {
+export default function ProfileSummaryPageToggle() {
   return (
     <ProfileSummaryContainer data-test-id="profile-summary-redesign">
       <ErrorBoundary>
-        <ProfileSummaryPage {...props} />
+        <ProfileSummaryPage />
       </ErrorBoundary>
     </ProfileSummaryContainer>
   );
