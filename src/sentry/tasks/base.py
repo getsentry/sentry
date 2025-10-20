@@ -55,6 +55,25 @@ def instrumented_task(
     - statsd metrics for duration and memory usage.
     - sentry sdk tagging.
     - hybrid cloud silo restrictions
+    - alias and alias namespace for renaming a task or moving it to a different namespace
+
+    Basic task definition:
+        @instrumented_task(
+            name="sentry.tasks.some_task",
+            namespace=some_namespace,
+        )
+        def func():
+            ...
+
+    Renaming a task and/or moving task to a different namespace:
+        @instrumented_task(
+            name="sentry.tasks.new_task_name",
+            namespace=new_namespace,
+            alias="sentry.tasks.previous_task_name",
+            alias_namespace=previous_namespace,
+        )
+        def func():
+            ...
     """
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
