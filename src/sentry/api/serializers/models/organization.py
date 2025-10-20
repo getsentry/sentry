@@ -554,7 +554,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    preventAiConfigGithub: dict[str, Any]
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
