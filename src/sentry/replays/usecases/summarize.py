@@ -7,19 +7,26 @@ from urllib.parse import urlparse
 import sentry_sdk
 
 from sentry import nodestore
+from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
-from sentry.replays.query import query_trace_connected_events
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import (
+    get_replay_range,
+    query_replay_instance,
+    query_trace_connected_events,
+)
 from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
 )
 from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
+from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
 from sentry.snuba.referrer import Referrer
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -76,30 +83,30 @@ def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
-    start: datetime | None,
-    end: datetime | None,
     limit: int,
+    start: datetime,
+    end: datetime,
 ) -> list[EventDict]:
-    """Fetch error details given trace IDs and return a list of EventDict objects."""
+    """Fetch same-trace events from both errors and issuePlatform datasets."""
+    if not trace_ids:
+        return []
+
+    # Get projects in the organization that the user has access to
+    org_projects = list(
+        Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
+    )
+
+    snuba_params = SnubaParams(
+        projects=org_projects,
+        start=start,
+        end=end,
+        organization=project.organization,
+    )
+
+    trace_ids_query = f"trace:[{','.join(trace_ids)}]"
+
+    # Query for errors dataset
     try:
-        if not trace_ids:
-            return []
-
-        # Get projects in the organization that the user has access to
-        org_projects = list(
-            Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
-        )
-
-        snuba_params = SnubaParams(
-            projects=org_projects,
-            start=start,
-            end=end,
-            organization=project.organization,
-        )
-
-        trace_ids_query = f"trace:[{','.join(trace_ids)}]"
-
-        # Query for errors dataset
         error_query_results = query_trace_connected_events(
             dataset_label="errors",
             selected_columns=[
@@ -115,8 +122,12 @@ def fetch_trace_connected_errors(
             limit=limit,
             referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
         )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        error_query_results = {"data": []}
 
-        # Query for issuePlatform dataset
+    # Query for issuePlatform dataset
+    try:
         issue_query_results = query_trace_connected_events(
             dataset_label="issuePlatform",
             selected_columns=[
@@ -124,6 +135,7 @@ def fetch_trace_connected_errors(
                 "title",
                 "subtitle",
                 "timestamp",
+                "timestamp_ms",
                 "occurrence_type_id",
             ],
             query=trace_ids_query,
@@ -132,59 +144,60 @@ def fetch_trace_connected_errors(
             limit=limit,
             referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
         )
-
-        # Process results and convert to EventDict objects
-        error_events = []
-
-        # Process error query results
-        for event in error_query_results["data"]:
-            timestamp = _parse_iso_timestamp_to_ms(
-                event.get("timestamp_ms")
-            ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
-            message = event.get("message", "")
-
-            if timestamp:
-                error_events.append(
-                    EventDict(
-                        category="error",
-                        id=event.get("id"),
-                        title=event.get("title", ""),
-                        timestamp=timestamp,
-                        message=message,
-                    )
-                )
-
-        # Process issuePlatform query results
-        for event in issue_query_results["data"]:
-            timestamp = _parse_iso_timestamp_to_ms(event.get("timestamp"))
-            message = event.get("subtitle", "") or event.get("message", "")
-
-            if event.get("occurrence_type_id") == FeedbackGroup.type_id:
-                category = "feedback"
-            else:
-                category = "error"
-
-            # NOTE: The issuePlatform dataset query can return feedback.
-            # We also fetch feedback from nodestore in fetch_feedback_details
-            # for feedback breadcrumbs.
-            # We avoid creating duplicate feedback logs
-            # by filtering for unique feedback IDs during log generation.
-            if timestamp:
-                error_events.append(
-                    EventDict(
-                        category=category,
-                        id=event.get("event_id"),
-                        title=event.get("title", ""),
-                        timestamp=timestamp,
-                        message=message,
-                    )
-                )
-
-        return error_events
-
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        return []
+        issue_query_results = {"data": []}
+
+    # Process results and convert to EventDict objects
+    events = []
+
+    # Process error query results
+    for event in error_query_results["data"]:
+        timestamp = _parse_iso_timestamp_to_ms(
+            event.get("timestamp_ms")
+        ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
+        message = event.get("message", "")
+
+        if timestamp:
+            events.append(
+                EventDict(
+                    category="error",
+                    id=event.get("id"),
+                    title=event.get("title", ""),
+                    timestamp=timestamp,
+                    message=message,
+                )
+            )
+
+    # Process issuePlatform query results
+    for event in issue_query_results["data"]:
+        timestamp = _parse_iso_timestamp_to_ms(
+            event.get("timestamp_ms")
+        ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
+        message = event.get("subtitle", "") or event.get("message", "")
+
+        if event.get("occurrence_type_id") == FeedbackGroup.type_id:
+            category = "feedback"
+        else:
+            category = "error"
+
+        # NOTE: The issuePlatform dataset query can return feedback.
+        # We also fetch feedback from nodestore in fetch_feedback_details
+        # for feedback breadcrumbs.
+        # We avoid creating duplicate feedback logs
+        # by filtering for unique feedback IDs during log generation.
+        if timestamp:
+            events.append(
+                EventDict(
+                    category=category,
+                    id=event.get("event_id"),
+                    title=event.get("title", ""),
+                    timestamp=timestamp,
+                    message=message,
+                )
+            )
+
+    return events
 
 
 @sentry_sdk.trace
@@ -411,6 +424,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.NAVIGATION:
                 return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
+            case EventType.MULTI_CLICK:
+                return None
+            case EventType.TAP:
+                return None
     except (KeyError, ValueError, TypeError):
         logger.exception(
             "Error parsing event in replay AI summary",
@@ -441,3 +458,86 @@ def _parse_url(s: str, trunc_length: int) -> str:
     if len(s) > trunc_length:
         return s[:trunc_length] + " [truncated]"
     return s
+
+
+@sentry_sdk.trace
+def rpc_get_replay_summary_logs(
+    project_id: int, replay_id: str, num_segments: int
+) -> dict[str, Any]:
+    """
+    RPC call for Seer. Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
+    """
+
+    project = Project.objects.get(id=project_id)
+
+    # Last 90 days. We don't support date filters in /summarize/.
+    start, end = default_start_end_dates()
+
+    # Fetch the replay's error and trace IDs from the replay_id.
+    snuba_response = query_replay_instance(
+        project_id=project.id,
+        replay_id=replay_id,
+        start=start,
+        end=end,
+        organization=project.organization,
+        request_user_id=None,  # This is for the viewed_by_me field which is unused for summaries.
+    )
+    processed_response = process_raw_response(
+        snuba_response,
+        fields=[],  # Defaults to all fields.
+    )
+
+    # 404s should be handled in the originating Sentry endpoint.
+    # If the replay is missing here just return an empty response.
+    if not processed_response:
+        return {"logs": []}
+
+    error_ids = processed_response[0].get("error_ids", [])
+    trace_ids = processed_response[0].get("trace_ids", [])
+
+    result = get_replay_range(
+        organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
+    )
+    if result:
+        start, end = result
+
+    # Fetch same-trace errors.
+    trace_connected_errors = fetch_trace_connected_errors(
+        project=project,
+        trace_ids=trace_ids,
+        start=start,
+        end=end,
+        limit=100,
+    )
+    trace_connected_error_ids = {x["id"] for x in trace_connected_errors}
+
+    # Fetch directly linked errors, if they weren't returned by the trace query.
+    direct_errors = fetch_error_details(
+        project_id=project.id,
+        error_ids=[x for x in error_ids if x not in trace_connected_error_ids],
+    )
+
+    error_events = direct_errors + trace_connected_errors
+
+    # Metric names kept for backwards compatibility.
+    metrics.distribution(
+        "replays.endpoints.project_replay_summary.direct_errors",
+        value=len(direct_errors),
+    )
+    metrics.distribution(
+        "replays.endpoints.project_replay_summary.trace_connected_errors",
+        value=len(trace_connected_errors),
+    )
+    metrics.distribution(
+        "replays.endpoints.project_replay_summary.num_trace_ids",
+        value=len(trace_ids),
+    )
+
+    # Download segment data.
+    segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
+    segment_data = iter_segment_data(segment_md)
+
+    # Combine replay and error data and parse into logs.
+    logs = get_summary_logs(segment_data, error_events, project.id)
+
+    return {"logs": logs}

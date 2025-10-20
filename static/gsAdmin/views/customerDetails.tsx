@@ -55,6 +55,7 @@ import {CustomerStats} from 'admin/components/customers/customerStats';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
+import openUpdateRetentionSettingsModal from 'admin/components/customers/updateRetentionSettingsModal';
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import DetailsPage from 'admin/components/detailsPage';
@@ -70,7 +71,7 @@ import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePla
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {BillingConfig, Subscription} from 'getsentry/types';
+import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
@@ -206,7 +207,18 @@ export default function CustomerDetails() {
 
   const isPolicyAdmin = !!userPermissions?.has?.('policies.admin');
 
-  const giftCategories = () => {
+  const giftCategories = (): Partial<
+    Record<
+      DataCategory,
+      {
+        categoryInfo: BilledDataCategoryInfo;
+        disabled: boolean;
+        displayName: string;
+        isReservedBudgetQuota: boolean;
+        isUnlimited: boolean;
+      }
+    >
+  > => {
     if (!subscription?.planDetails) {
       return {};
     }
@@ -220,6 +232,10 @@ export default function CustomerDetails() {
             subscription.planDetails.checkoutCategories.includes(category) ||
             subscription.planDetails.onDemandCategories.includes(category)
         )
+        .filter(category => {
+          const categoryInfo = getCategoryInfoFromPlural(category);
+          return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
+        })
         .map(category => {
           const reserved = subscription.categories?.[category]?.reserved;
           const isUnlimited = isUnlimitedReserved(reserved);
@@ -229,14 +245,10 @@ export default function CustomerDetails() {
           const categoryNotExists = !subscription.categories?.[category];
           const categoryInfo = getCategoryInfoFromPlural(category);
 
-          const isGiftable =
-            categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
-
           return [
             category,
             {
-              disabled:
-                categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
+              disabled: categoryNotExists || isUnlimited || isReservedBudgetQuota,
               displayName: getPlanCategoryName({
                 plan: subscription.planDetails,
                 category,
@@ -833,6 +845,19 @@ export default function CustomerDetails() {
             skipConfirmModal: true,
             onAction: () => {
               openToggleConsolePlatformsModal({organization, onSuccess: reloadData});
+            },
+          },
+          {
+            key: 'updateRetentions',
+            name: 'Update Retentions',
+            help: 'Change the retention policy settings for a specific data category.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openUpdateRetentionSettingsModal({
+                organization,
+                subscription,
+                onSuccess: reloadData,
+              });
             },
           },
         ]}

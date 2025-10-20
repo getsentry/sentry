@@ -17,16 +17,15 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         # Needed for may_schedule_task_to_delete_hashes_from_seer to allow the task to be scheduled
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
-    def _setup_groups_and_hashes(self, number_of_groups: int = 5) -> tuple[list[int], list[str]]:
-        group_ids, expected_hashes = [], []
+    def _setup_groups_and_hashes(self, number_of_groups: int = 5) -> list[str]:
+        expected_hashes = []
         for i in range(number_of_groups):
             group = self.create_group(project=self.project)
-            group_ids.append(group.id)
             group_hash = GroupHash.objects.create(
                 project=self.project, hash=f"{i:032d}", group=group
             )
             expected_hashes.append(group_hash.hash)
-        return group_ids, expected_hashes
+        return expected_hashes
 
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
@@ -35,9 +34,9 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         """
         Test that it correctly collects hashes and schedules a task.
         """
-        group_ids, expected_hashes = self._setup_groups_and_hashes(number_of_groups=5)
+        expected_hashes = self._setup_groups_and_hashes(number_of_groups=5)
 
-        may_schedule_task_to_delete_hashes_from_seer(group_ids)
+        may_schedule_task_to_delete_hashes_from_seer(self.project.id, expected_hashes)
 
         # Verify that the task was called with the correct parameters
         mock_apply_async.assert_called_once_with(args=[self.project.id, expected_hashes, 0])
@@ -55,9 +54,9 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             self.options({"embeddings-grouping.seer.delete-record-batch-size": batch_size}),
         ):
             # Create 15 group hashes to test chunking (10 + 5 with batch size of 10)
-            group_ids, expected_hashes = self._setup_groups_and_hashes(batch_size + 5)
+            expected_hashes = self._setup_groups_and_hashes(batch_size + 5)
 
-            may_schedule_task_to_delete_hashes_from_seer(group_ids)
+            may_schedule_task_to_delete_hashes_from_seer(self.project.id, expected_hashes)
 
             # Verify that the task was called 2 times (15 hashes / 10 per chunk = 2 chunks)
             assert mock_apply_async.call_count == 2
@@ -81,7 +80,8 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     )
     def test_group_without_hashes(self, mock_apply_async: MagicMock) -> None:
         group = self.create_group(project=self.project)
-        may_schedule_task_to_delete_hashes_from_seer([group.id])
+        hashes = GroupHash.objects.filter(group=group).values_list("hash", flat=True).all()
+        may_schedule_task_to_delete_hashes_from_seer(self.project.id, list(hashes))
         mock_apply_async.assert_not_called()
 
     @patch(
@@ -91,7 +91,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         """
         Test that when no group ids are provided, the task is not scheduled.
         """
-        may_schedule_task_to_delete_hashes_from_seer([])
+        may_schedule_task_to_delete_hashes_from_seer(self.project.id, [])
         mock_apply_async.assert_not_called()
 
     @patch(
@@ -102,7 +102,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         batch_size = 5
         with self.options({"embeddings-grouping.seer.delete-record-batch-size": batch_size}):
             # Create 11 group hashes to test chunking (5 + 5 + 1 with batch size of 5)
-            _, expected_hashes = self._setup_groups_and_hashes(batch_size + batch_size + 1)
+            expected_hashes = self._setup_groups_and_hashes(batch_size + batch_size + 1)
             # Call function directly rather than scheduling a task
             delete_seer_grouping_records_by_hash(self.project.id, expected_hashes, 0)
 
@@ -141,6 +141,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         Test that when the project option is not set, the task is not scheduled.
         """
         self.project.delete_option("sentry:similarity_backfill_completed")
-        group_ids, _ = self._setup_groups_and_hashes(number_of_groups=5)
-        may_schedule_task_to_delete_hashes_from_seer(group_ids)
+        expected_hashes = self._setup_groups_and_hashes(number_of_groups=5)
+        may_schedule_task_to_delete_hashes_from_seer(self.project.id, expected_hashes)
         assert mock_apply_async.call_count == 0

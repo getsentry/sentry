@@ -1,13 +1,22 @@
-import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
+import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UptimeAlertDetails from './details';
 
 describe('UptimeAlertDetails', () => {
-  const {organization, project, routerProps} = initializeOrg();
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+
+  const getInitialRouterConfig = (detectorId: string) => ({
+    location: {
+      pathname: `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${detectorId}/details/`,
+    },
+    route: '/organizations/:orgId/alerts/rules/uptime/:projectId/:detectorId/details/',
+  });
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -19,53 +28,44 @@ describe('UptimeAlertDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?limit=1&project=2&query=issue.type%3Auptime_domain_failure%20title%3A%22Downtime%20detected%20for%20https%3A%2F%2Fsentry.io%2F%22`,
+      url: `/organizations/org-slug/issues/?limit=1&project=2&query=detector%3A3`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/1/checks/`,
-      query: {useDetectorId: '1'},
+      url: `/projects/${organization.slug}/${project.slug}/uptime/3/checks/`,
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/uptime-summary/',
       body: {
-        '1': UptimeSummaryFixture(),
+        '3': UptimeSummaryFixture(),
       },
     });
   });
 
   it('renders', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
-      body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
+      url: `/organizations/${organization.slug}/detectors/3/`,
+      body: UptimeDetectorFixture({name: 'Uptime Test Rule'}),
     });
 
-    render(
-      <UptimeAlertDetails
-        {...routerProps}
-        params={{...routerProps.params, detectorId: '1'}}
-      />,
-      {organization}
-    );
+    render(<UptimeAlertDetails />, {
+      organization,
+      initialRouterConfig: getInitialRouterConfig('3'),
+    });
     expect(await screen.findByText('Uptime Test Rule')).toBeInTheDocument();
   });
 
   it('shows a message for invalid uptime alert', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
-      query: {useDetectorId: '1'},
+      url: `/organizations/${organization.slug}/detectors/2/`,
       statusCode: 404,
     });
 
-    render(
-      <UptimeAlertDetails
-        {...routerProps}
-        params={{...routerProps.params, detectorId: '2'}}
-      />,
-      {organization}
-    );
+    render(<UptimeAlertDetails />, {
+      organization,
+      initialRouterConfig: getInitialRouterConfig('2'),
+    });
     expect(
       await screen.findByText('The uptime alert rule you were looking for was not found.')
     ).toBeInTheDocument();
@@ -73,30 +73,24 @@ describe('UptimeAlertDetails', () => {
 
   it('disables and enables the rule', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
-      query: {useDetectorId: '1'},
+      url: `/organizations/${organization.slug}/detectors/2/`,
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
-      body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
+      url: `/organizations/${organization.slug}/detectors/3/`,
+      body: UptimeDetectorFixture({name: 'Uptime Test Rule'}),
     });
 
-    render(
-      <UptimeAlertDetails
-        {...routerProps}
-        params={{...routerProps.params, detectorId: '1'}}
-      />,
-      {organization}
-    );
+    render(<UptimeAlertDetails />, {
+      organization,
+      initialRouterConfig: getInitialRouterConfig('3'),
+    });
     await screen.findByText('Uptime Test Rule');
 
     const disableMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
+      url: `/projects/${organization.slug}/${project.slug}/uptime/3/`,
       method: 'PUT',
-      body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'disabled'}),
+      body: UptimeDetectorFixture({name: 'Uptime Test Rule', enabled: false}),
     });
 
     const disableButtons = await screen.findAllByRole('button', {
@@ -110,10 +104,9 @@ describe('UptimeAlertDetails', () => {
     );
 
     const enableMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
+      url: `/projects/${organization.slug}/${project.slug}/uptime/3/`,
       method: 'PUT',
-      body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'active'}),
+      body: UptimeDetectorFixture({name: 'Uptime Test Rule', enabled: true}),
     });
 
     // Button now re-enables the monitor

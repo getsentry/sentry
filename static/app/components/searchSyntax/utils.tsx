@@ -1,7 +1,11 @@
 import type {LocationRange} from 'peggy';
 
-import type {TermOperator, TokenResult} from './parser';
-import {allOperators, Token} from './parser';
+import {
+  Token,
+  wildcardOperators,
+  type TokenResult,
+  type WildcardOperator,
+} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -149,82 +153,6 @@ export function treeResultLocator<T>({
   return noResultValue;
 }
 
-type TreeTransformerOpts = {
-  /**
-   * The function used to transform each node
-   */
-  transform: (token: TokenResult<Token>) => any;
-  /**
-   * The tree to transform
-   */
-  tree: Array<TokenResult<Token>>;
-};
-
-/**
- * Utility function to visit every Token node within an AST tree and apply
- * a transform to those nodes.
- */
-export function treeTransformer({tree, transform}: TreeTransformerOpts) {
-  const nodeVisitor = (token: TokenResult<Token> | null): any => {
-    if (token === null) {
-      return null;
-    }
-
-    switch (token.type) {
-      case Token.FILTER:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-          value: nodeVisitor(token.value),
-        });
-      case Token.KEY_EXPLICIT_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
-      case Token.KEY_AGGREGATE:
-        return transform({
-          ...token,
-          name: nodeVisitor(token.name),
-          args: token.args ? nodeVisitor(token.args) : token.args,
-          argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
-          argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
-        });
-      case Token.KEY_EXPLICIT_NUMBER_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
-      case Token.KEY_EXPLICIT_STRING_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
-      case Token.LOGIC_GROUP:
-        return transform({
-          ...token,
-          inner: token.inner.map(nodeVisitor),
-        });
-      case Token.KEY_AGGREGATE_ARGS:
-        return transform({
-          ...token,
-          args: token.args.map(v => ({...v, value: nodeVisitor(v.value)})),
-        });
-      case Token.VALUE_NUMBER_LIST:
-      case Token.VALUE_TEXT_LIST:
-        return transform({
-          ...token,
-          items: token.items.map(v => ({...v, value: nodeVisitor(v.value)})),
-        });
-
-      default:
-        return transform(token);
-    }
-  };
-
-  return tree.map(nodeVisitor);
-}
-
 type GetKeyNameOpts = {
   /**
    * Include arguments in aggregate key names
@@ -326,10 +254,6 @@ export function isWithinToken(
   return position >= node.location.start.offset && position <= node.location.end.offset;
 }
 
-export function isOperator(value: string): value is TermOperator {
-  return allOperators.includes(value as TermOperator);
-}
-
 function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   let stringifiedToken = '';
 
@@ -339,10 +263,15 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
 
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
+
   stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);
 
   return stringifiedToken;
+}
+
+export function isWildcardOperator(value: unknown): value is WildcardOperator {
+  return wildcardOperators.includes(value as never);
 }
 
 export function stringifyToken(token: TokenResult<Token>): string {

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {IconThumb} from 'sentry/icons';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,10 +16,12 @@ export default function FeedbackSummaryCategories() {
 
   const openForm = useFeedbackForm();
 
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+
   const showSummaryCategories =
-    organization.features.includes('gen-ai-features') &&
     (organization.features.includes('user-feedback-ai-summaries') ||
-      organization.features.includes('user-feedback-ai-categorization-features'));
+      organization.features.includes('user-feedback-ai-categorization-features')) &&
+    areAiFeaturesAllowed;
 
   if (!showSummaryCategories) {
     return null;
@@ -31,7 +33,7 @@ export default function FeedbackSummaryCategories() {
         aria-label={t('Give feedback on the AI-powered summary')}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-        size={'xs'}
+        size="xs"
         onClick={() =>
           openForm({
             messagePlaceholder:
@@ -51,11 +53,10 @@ export default function FeedbackSummaryCategories() {
 
   return (
     <SummaryIconContainer>
-      <IconSeer size="xs" />
       <SummaryContainer>
         <Flex justify="between" align="center">
           <SummaryHeader>
-            {t('Summary')} <Badge type="experimental">{t('Experimental')}</Badge>
+            {t('Summary')} <FeatureBadge type="beta" />
           </SummaryHeader>
           <Flex gap="xs">
             {feedbackButton({type: 'positive'})}

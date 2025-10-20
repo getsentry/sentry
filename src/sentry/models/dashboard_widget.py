@@ -17,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields import JSONField
 
 ON_DEMAND_ENABLED_KEY = "enabled"
@@ -110,6 +111,14 @@ class DatasetSourcesTypes(Enum):
      Dataset inferred by split script, version 2
     """
     SPLIT_VERSION_2 = 5
+    """
+     Dataset modified by transaction -> span migration
+    """
+    SPAN_MIGRATION_VERSION_1 = 6
+    """
+     Dataset modified by using the widget snapshot to restore the original transaction query
+    """
+    RESTORED_SPAN_MIGRATION_VERSION_1 = 7
 
     @classmethod
     def as_choices(cls):
@@ -188,6 +197,23 @@ class DashboardWidgetQuery(Model):
         unique_together = (("widget", "order"),)
 
     __repr__ = sane_repr("widget", "type", "name")
+
+
+@region_silo_model
+class DashboardFieldLink(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard_widget_query = FlexibleForeignKey(
+        "sentry.DashboardWidgetQuery", on_delete=models.CASCADE
+    )
+    field = models.TextField()
+    # The dashboard that the field is linked to
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardfieldlink"
+        unique_together = (("dashboard_widget_query", "field"),)
 
 
 @region_silo_model
@@ -287,6 +313,12 @@ class DashboardWidget(Model):
         default=DatasetSourcesTypes.UNKNOWN.value,
         db_default=DatasetSourcesTypes.UNKNOWN.value,
     )
+
+    # These fields are used for the dashboards transactions -> spans widget migration.
+    # This field is used to store a snapshot of the widget before the migration.
+    widget_snapshot = models.JSONField(null=True)
+    # This field is used to store the reason for dropping fields or substantial changes to the widget query.
+    changed_reason = models.JSONField(null=True)
 
     class Meta:
         app_label = "sentry"

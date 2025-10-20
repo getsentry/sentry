@@ -1,0 +1,38 @@
+---
+created: '2025-10-07T20:42:03.612765+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "9509e122c6175606d52862fa4f64853c"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          stacktrace*
+            frame* (marked in-app by the client)
+              filename*
+                "baz.py"
+          type*
+            "ValueError"

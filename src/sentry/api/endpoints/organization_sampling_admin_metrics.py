@@ -10,6 +10,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
     MQLQuery,
@@ -41,13 +42,15 @@ class OrganizationDynamicSamplingAdminMetricsEndpoint(OrganizationEndpoint):
     # 60 req/s to allow for metric dashboard loading
     default_rate_limit = RateLimit(limit=60, window=1)
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: default_rate_limit,
-            RateLimitCategory.USER: default_rate_limit,
-            RateLimitCategory.ORGANIZATION: default_rate_limit,
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: default_rate_limit,
+                RateLimitCategory.USER: default_rate_limit,
+                RateLimitCategory.ORGANIZATION: default_rate_limit,
+            },
+        }
+    )
 
     default_per_page = 50
 

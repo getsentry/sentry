@@ -21,7 +21,6 @@ class TestResultNodeSerializer(serializers.Serializer):
     name = serializers.CharField()
     failureRate = serializers.FloatField()
     flakeRate = serializers.FloatField()
-    commitsFailed = serializers.IntegerField()
     totalFailCount = serializers.IntegerField()
     totalFlakyFailCount = serializers.IntegerField()
     totalSkipCount = serializers.IntegerField()

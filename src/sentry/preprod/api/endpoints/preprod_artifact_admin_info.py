@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from rest_framework.request import Request
@@ -26,7 +28,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, preprod_artifact_id: str) -> Response:
+    def get(self, request: Request, head_artifact_id: str) -> Response:
         """
         Get comprehensive info for a preprod artifact
         ````````````````````````````````````````````
@@ -46,10 +48,10 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
         #"""
 
         try:
-            preprod_artifact_id_int = int(preprod_artifact_id)
+            head_artifact_id_int = int(head_artifact_id)
         except ValueError:
             return Response(
-                {"error": f"Invalid preprod artifact ID: {preprod_artifact_id}"}, status=400
+                {"error": f"Invalid preprod artifact ID: {head_artifact_id}"}, status=400
             )
 
         try:
@@ -58,10 +60,10 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                 "project__organization",
                 "commit_comparison",
                 "build_configuration",
-            ).get(id=preprod_artifact_id_int)
+            ).get(id=head_artifact_id_int)
         except PreprodArtifact.DoesNotExist:
             return Response(
-                {"error": f"Preprod artifact {preprod_artifact_id_int} not found"}, status=404
+                {"error": f"Preprod artifact {head_artifact_id_int} not found"}, status=404
             )
 
         analytics.record(
@@ -69,16 +71,16 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                 organization_id=preprod_artifact.project.organization_id,
                 project_id=preprod_artifact.project.id,
                 user_id=request.user.id,
-                artifact_id=preprod_artifact_id,
+                artifact_id=head_artifact_id,
             )
         )
 
         size_metrics = list(
-            PreprodArtifactSizeMetrics.objects.filter(preprod_artifact_id=preprod_artifact_id_int)
+            PreprodArtifactSizeMetrics.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
 
         installable_artifacts = list(
-            InstallablePreprodArtifact.objects.filter(preprod_artifact_id=preprod_artifact_id_int)
+            InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
 
         artifact_info = {
@@ -235,7 +237,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
         logger.info(
             "preprod_artifact.admin_get_info",
             extra={
-                "artifact_id": preprod_artifact_id,
+                "artifact_id": head_artifact_id,
                 "user_id": request.user.id,
                 "organization_id": preprod_artifact.project.organization_id,
                 "project_id": preprod_artifact.project.id,

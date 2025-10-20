@@ -55,6 +55,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         self,
         snuba_params: SnubaParams,
         trace_ids: list[str],
+        replay_id: str | None,
         orderby: list[str],
         additional_query: str | None,
         offset: int,
@@ -80,12 +81,26 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
                     f"{stripped_orderby} must be one of {','.join(sorted(required_keys))}"
                 )
 
-        # Create the query based on the trace ids
-        base_query = (
-            f"{constants.TRACE_ALIAS}:{trace_ids[0]}"
-            if len(trace_ids) == 1
-            else f"{constants.TRACE_ALIAS}:[{','.join(trace_ids)}]"
-        )
+        base_query_parts = []
+
+        # Create the query based on trace id and/or replay id
+        if trace_ids:
+            trace_query = (
+                f"{constants.TRACE_ALIAS}:{trace_ids[0]}"
+                if len(trace_ids) == 1
+                else f"{constants.TRACE_ALIAS}:[{','.join(trace_ids)}]"
+            )
+            base_query_parts.append(trace_query)
+
+        if replay_id:
+            replay_query = f"replay_id:{replay_id}"
+            base_query_parts.append(replay_query)
+
+        if len(base_query_parts) > 1:
+            base_query = f"({' OR '.join(base_query_parts)})"
+        else:
+            base_query = base_query_parts[0]
+
         if additional_query is not None:
             query = f"{base_query} and {additional_query}"
         else:
@@ -112,13 +127,19 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         trace_ids = request.GET.getlist("traceId", [])
+        replay_id = request.GET.get("replayId")
+
         for trace_id in trace_ids:
             if not is_event_id(trace_id):
                 raise ParseError(INVALID_ID_DETAILS.format(trace_id))
-        if len(trace_ids) == 0:
-            raise ParseError("Need to pass at least one traceId")
 
-        orderby = request.GET.getlist("orderby", ["-timestamp", "-timestamp_precise"])
+        if replay_id and not is_event_id(replay_id):
+            raise ParseError(INVALID_ID_DETAILS.format(replay_id))
+
+        if len(trace_ids) == 0 and not replay_id:
+            raise ParseError("Need to pass at least one traceId or replayId")
+
+        orderby = request.GET.getlist("sort", ["-timestamp", "-timestamp_precise"])
         additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)
@@ -126,7 +147,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         def data_fn(offset: int, limit: int) -> EventsResponse:
             with handle_query_errors():
                 return self.query_logs_data(
-                    snuba_params, trace_ids, orderby, additional_query, offset, limit
+                    snuba_params, trace_ids, replay_id, orderby, additional_query, offset, limit
                 )
 
         return self.paginate(

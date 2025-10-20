@@ -1,10 +1,14 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {QRCodeCanvas} from 'qrcode.react';
+
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -90,10 +94,39 @@ function InstallContent({
   }
 
   return (
-    <Flex direction="column" align="center" gap="lg" style={{padding: space(4)}}>
-      <Heading as="h3">{t('Install App')}</Heading>
-      {details}
-    </Flex>
+    <Fragment>
+      <Flex direction="column" align="center" gap="lg" style={{padding: space(4)}}>
+        <Flex direction="column" align="center" gap="sm">
+          <Heading as="h3">{t('Install App')}</Heading>
+          {installDetails.download_count !== undefined &&
+            installDetails.download_count > 0 && (
+              <Text size="sm" variant="muted">
+                {tn('%s download', '%s downloads', installDetails.download_count)}
+              </Text>
+            )}
+        </Flex>
+
+        {installDetails.install_url && (
+          <Fragment>
+            <Container background="primary" padding="md" radius="sm" border="primary">
+              <StyledQRCode
+                aria-label={t('Install QR Code')}
+                value={
+                  installDetails.platform === 'ios'
+                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                    : installDetails.install_url
+                }
+                size={200}
+              />
+            </Container>
+
+            {details}
+
+            <a href={installDetails.install_url}>{t('Download')}</a>
+          </Fragment>
+        )}
+      </Flex>
+    </Fragment>
   );
 }
 
@@ -140,3 +173,7 @@ export default function InstallPage() {
     </SentryDocumentTitle>
   );
 }
+
+const StyledQRCode = styled(QRCodeCanvas)`
+  display: block;
+`;

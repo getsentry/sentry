@@ -252,6 +252,23 @@ const generateTokens = (colors: Colors) => ({
   },
 });
 
+const generateMotion = () => {
+  return {
+    smooth: withDuration('cubic-bezier(0.72, 0, 0.16, 1)'),
+    snap: withDuration('cubic-bezier(0.8, -0.4, 0.5, 1)'),
+    enter: withDuration('cubic-bezier(0.24, 1, 0.32, 1)'),
+    exit: withDuration('cubic-bezier(0.64, 0, 0.8, 0)'),
+  };
+};
+
+const withDuration = (easing: string) => {
+  return {
+    fast: `120ms ${easing}`,
+    moderate: `160ms ${easing}`,
+    slow: `240ms ${easing}`,
+  };
+};
+
 const generateThemeAliases = (colors: Colors) => ({
   /**
    * Heading text color
@@ -950,10 +967,11 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type Breakpoint = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 type Breakpoints = Record<Breakpoint, string>;
 
 const breakpoints = {
+  '2xs': '0px',
   xs: '500px',
   sm: '800px',
   md: '992px',
@@ -1133,6 +1151,7 @@ const commonTheme = {
   ...lightShadows,
 
   space,
+  motion: generateMotion(),
 
   // Icons
   iconSizes,

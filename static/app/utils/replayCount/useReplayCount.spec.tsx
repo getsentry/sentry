@@ -1,17 +1,8 @@
-import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
-
-function wrapper({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
-  );
-}
 
 describe('useReplayCount', () => {
   const organization = OrganizationFixture();
@@ -36,8 +27,7 @@ describe('useReplayCount', () => {
         '3333': 0,
       });
 
-      const {result} = renderHook(useReplayCount, {
-        wrapper,
+      const {result} = renderHookWithProviders(useReplayCount, {
         initialProps,
       });
 
@@ -59,7 +49,7 @@ describe('useReplayCount', () => {
         );
       });
 
-      expect(result.current.getOne('1111')).toBe(5);
+      await waitFor(() => expect(result.current.getOne('1111')).toBe(5));
       expect(result.current.getOne('2222')).toBe(7);
       expect(result.current.getOne('3333')).toBe(0);
       expect(result.current.hasOne('1111')).toBeTruthy();
@@ -72,8 +62,7 @@ describe('useReplayCount', () => {
         '2222': 7,
       });
 
-      const {result} = renderHook(useReplayCount, {
-        wrapper,
+      const {result} = renderHookWithProviders(useReplayCount, {
         initialProps,
       });
 
@@ -93,7 +82,7 @@ describe('useReplayCount', () => {
         );
       });
 
-      expect(result.current.getOne('1111')).toBe(0);
+      await waitFor(() => expect(result.current.getOne('1111')).toBe(0));
       expect(result.current.getOne('2222')).toBe(7);
       expect(result.current.hasOne('1111')).toBeFalsy();
       expect(result.current.hasOne('2222')).toBeTruthy();
@@ -108,8 +97,7 @@ describe('useReplayCount', () => {
         '3333': 0,
       });
 
-      const {result} = renderHook(useReplayCount, {
-        wrapper,
+      const {result} = renderHookWithProviders(useReplayCount, {
         initialProps,
       });
 
@@ -127,11 +115,13 @@ describe('useReplayCount', () => {
         );
       });
 
-      expect(result.current.getMany(['1111', '2222', '3333'])).toStrictEqual({
-        '1111': 5,
-        '2222': 7,
-        '3333': 0,
-      });
+      await waitFor(() =>
+        expect(result.current.getMany(['1111', '2222', '3333'])).toStrictEqual({
+          '1111': 5,
+          '2222': 7,
+          '3333': 0,
+        })
+      );
       expect(result.current.hasMany(['1111', '2222', '3333'])).toStrictEqual({
         '1111': true,
         '2222': true,
@@ -144,8 +134,7 @@ describe('useReplayCount', () => {
         '2222': 7,
       });
 
-      const {result} = renderHook(useReplayCount, {
-        wrapper,
+      const {result} = renderHookWithProviders(useReplayCount, {
         initialProps,
       });
 
@@ -163,10 +152,12 @@ describe('useReplayCount', () => {
         );
       });
 
-      expect(result.current.getMany(['1111', '2222'])).toStrictEqual({
-        '1111': 0,
-        '2222': 7,
-      });
+      await waitFor(() =>
+        expect(result.current.getMany(['1111', '2222'])).toStrictEqual({
+          '1111': 0,
+          '2222': 7,
+        })
+      );
       expect(result.current.hasMany(['1111', '2222'])).toStrictEqual({
         '1111': false,
         '2222': true,

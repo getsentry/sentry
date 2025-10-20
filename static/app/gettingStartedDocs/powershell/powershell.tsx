@@ -1,6 +1,4 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import type {
   Docs,
@@ -68,18 +66,15 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Install the module:'),
-      configurations: [
+      content: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
-          code: [
-            {
-              language: 'powershell',
-              label: 'Install Module',
-              value: 'powershellget',
-              code: `Install-Module -Name Sentry -Repository PSGallery -RequiredVersion ${getPackageVersion(params, 'sentry.dotnet.powershell', '0.0.2')} -Force`,
-            },
-          ],
+          type: 'text',
+          text: t('Install the module:'),
+        },
+        {
+          type: 'code',
+          language: 'powershell',
+          code: `Install-Module -Name Sentry -Repository PSGallery -RequiredVersion ${getPackageVersion(params, 'sentry.dotnet.powershell', '0.0.2')} -Force`,
         },
       ],
     },
@@ -87,9 +82,13 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t('Initialize the SDK as early as possible.'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('Initialize the SDK as early as possible.'),
+        },
+        {
+          type: 'code',
           language: 'powershell',
           code: getConfigureSnippet(params),
         },
@@ -99,9 +98,13 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t('Verify Sentry is correctly configured by sending a message:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('Verify Sentry is correctly configured by sending a message:'),
+        },
+        {
+          type: 'code',
           language: 'powershell',
           code: '"Something went wrong" | Out-Sentry',
         },
@@ -109,53 +112,58 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Tracing'),
-      description: t(
-        'You can measure the performance of your code by capturing transactions and spans.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can measure the performance of your code by capturing transactions and spans.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'powershell',
           code: getPerformanceMonitoringSnippet(),
         },
-      ],
-      additionalInfo: tct(
-        'Check out [link:the documentation] to learn more about the API and instrumentations.',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/powershell/tracing/instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Check out [link:the documentation] to learn more about the API and instrumentations.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/powershell/tracing/instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
     {
       title: t('Samples'),
-      description: t('You can find sample usage of the SDK:'),
-      configurations: [
+      content: [
         {
-          description: (
-            <List symbol="bullet">
-              <ListItem>
-                {tct('[link:Samples in the [code:powershell] SDK repository]', {
-                  link: (
-                    <ExternalLink href="https://github.com/getsentry/sentry-powershell/tree/main/samples" />
-                  ),
-                  code: <code />,
-                })}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  '[link:Many more samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-                  {
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                    ),
-                    code: <code />,
-                    strong: <strong />,
-                  }
-                )}
-              </ListItem>
-            </List>
-          ),
+          type: 'text',
+          text: t('You can find sample usage of the SDK:'),
+        },
+        {
+          type: 'list',
+          items: [
+            tct('[link:Samples in the [code:powershell] SDK repository]', {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry-powershell/tree/main/samples" />
+              ),
+              code: <code />,
+            }),
+            tct(
+              '[link:Many more samples in the [code:dotnet] SDK repository] [strong:(C#)]',
+              {
+                link: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
+                ),
+                code: <code />,
+                strong: <strong />,
+              }
+            ),
+          ],
         },
       ],
     },
@@ -167,21 +175,22 @@ export const powershellFeedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
-            {
-              label: 'PowerShell',
-              value: 'powershell',
-              language: 'powershell',
-              code: `$eventId = "An event that will receive user feedback." | Out-Sentry
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          language: 'powershell',
+          code: `$eventId = "An event that will receive user feedback." | Out-Sentry
 [Sentry.SentrySdk]::CaptureUserFeedback($eventId, "user@example.com", "It broke.", "The User")`,
-            },
-          ],
+        },
+        {
+          type: 'custom',
+          content: altCrashReportCallout(),
         },
       ],
-      additionalInfo: altCrashReportCallout(),
     },
   ],
   configure: () => [],

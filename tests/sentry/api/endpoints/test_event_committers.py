@@ -64,6 +64,12 @@ class EventCommittersTest(APITestCase):
         assert commits[0]["message"] == commit.message
         assert commits[0]["suspectCommitType"] == "via commit in release"
 
+        group_owner = GroupOwner.objects.get(
+            group=event.group, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert "group_owner_id" in response.data["committers"][0]
+        assert response.data["committers"][0]["group_owner_id"] == group_owner.id
+
     def test_no_group(self) -> None:
         self.login_as(user=self.user)
 
@@ -162,6 +168,12 @@ class EventCommittersTest(APITestCase):
         assert len(commits) == 1
         assert commits[0]["message"] == "placeholder commit message"
         assert commits[0]["suspectCommitType"] == "via SCM integration"
+
+        group_owner = GroupOwner.objects.get(
+            group=event.group, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert "group_owner_id" in response.data["committers"][0]
+        assert response.data["committers"][0]["group_owner_id"] == group_owner.id
 
     def test_with_commit_context_pull_request(self) -> None:
         self.login_as(user=self.user)
@@ -273,3 +285,9 @@ class EventCommittersTest(APITestCase):
         assert author["name"] == "External Dev"
         assert "username" not in author  # No Sentry user fields
         assert "id" not in author  # No Sentry user fields
+
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert "group_owner_id" in response.data["committers"][0]
+        assert response.data["committers"][0]["group_owner_id"] == group_owner.id

@@ -7,7 +7,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -18,7 +18,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -69,26 +69,37 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Node SDK as a dependency:'),
-      configurations: getInstallConfig(params),
+      content: [
+        {
+          type: 'text',
+          text: t('Add the Sentry Node SDK as a dependency:'),
+        },
+        getInstallCodeBlock(params),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'instrument.(js|mjs)',
               code: getSdkInitSnippet(params, 'node'),
@@ -96,7 +107,8 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
               code: <code />,
@@ -105,10 +117,12 @@ const onboarding: OnboardingConfig = {
               ),
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'index.(js|mjs)',
               code: getSdkSetupSnippet(),
@@ -125,24 +139,28 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: `
-          app.get("/debug-sentry", function mainHandler(req, res) {${
+app.get("/debug-sentry", function mainHandler(req, res) {${
             params.isLogsSelected
               ? `
-            // Send a log before throwing the error
-            Sentry.logger.info('User triggered test error', {
-              action: 'test_error_endpoint',
-            });`
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_endpoint',
+  });`
               : ''
           }
-            throw new Error("My first Sentry error!");
-          });
+  throw new Error("My first Sentry error!");
+});
           `,
         },
       ],
@@ -168,13 +186,18 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/express/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/express/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

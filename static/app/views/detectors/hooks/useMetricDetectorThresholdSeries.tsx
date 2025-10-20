@@ -7,12 +7,14 @@ import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricCondition,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -77,27 +79,43 @@ function createPercentThresholdSeries(
   };
 }
 
-function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, 'id'>>): {
+function extractThresholdsFromConditions(
+  conditions: Array<Omit<MetricCondition, 'id'>>
+): {
   thresholds: Array<{
     priority: DetectorPriorityLevel;
     type: DataConditionType;
     value: number;
   }>;
+  resolution?: {type: DataConditionType; value: number};
 } {
   const thresholds = conditions
-    .filter(condition => condition.conditionResult !== DetectorPriorityLevel.OK)
+    .filter(
+      condition =>
+        condition.conditionResult !== DetectorPriorityLevel.OK &&
+        typeof condition.comparison === 'number'
+    )
     .map(condition => ({
-      value: condition.comparison,
+      value: Number(condition.comparison),
       priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
       type: condition.type,
     }))
     .sort((a, b) => a.value - b.value);
 
-  return {thresholds};
+  const resolutionCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.OK
+  );
+
+  const resolution =
+    resolutionCondition && typeof resolutionCondition.comparison === 'number'
+      ? {type: resolutionCondition.type, value: Number(resolutionCondition.comparison)}
+      : undefined;
+
+  return {thresholds, resolution};
 }
 
 interface UseMetricDetectorThresholdSeriesProps {
-  conditions: Array<Omit<DataCondition, 'id'>> | undefined;
+  conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
   detectionType: MetricDetectorConfig['detectionType'];
   comparisonSeries?: Series[];
 }
@@ -125,7 +143,7 @@ export function useMetricDetectorThresholdSeries({
       return {maxValue: undefined, additionalSeries: []};
     }
 
-    const {thresholds} = extractThresholdsFromConditions(conditions);
+    const {thresholds, resolution} = extractThresholdsFromConditions(conditions);
     const additional: LineSeriesOption[] = [];
 
     if (detectionType === 'percent') {
@@ -206,9 +224,31 @@ export function useMetricDetectorThresholdSeries({
           data: [],
         };
       });
-
       additional.push(...thresholdSeries);
-      const maxValue = Math.max(...thresholds.map(threshold => threshold.value));
+
+      // Resolution is considered "automatic" when it equals any alert threshold value
+      const isResolutionManual = Boolean(
+        resolution && !thresholds.some(threshold => threshold.value === resolution.value)
+      );
+      if (resolution && isResolutionManual) {
+        const resolutionSeries: LineSeriesOption = {
+          type: 'line',
+          markLine: createThresholdMarkLine(theme.green300, resolution.value),
+          markArea: createThresholdMarkArea(
+            theme.green300,
+            resolution.value,
+            resolution.type === DataConditionType.GREATER
+          ),
+          data: [],
+        };
+        additional.push(resolutionSeries);
+      }
+
+      const valuesForMax = [
+        ...thresholds.map(threshold => threshold.value),
+        ...(resolution && isResolutionManual ? [resolution.value] : []),
+      ];
+      const maxValue = valuesForMax.length > 0 ? Math.max(...valuesForMax) : undefined;
       return {maxValue, additionalSeries: additional};
     }
 

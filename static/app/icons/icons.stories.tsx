@@ -1,14 +1,20 @@
-import {Fragment, useState} from 'react';
+import React, {Fragment, isValidElement, useState} from 'react';
 import styled from '@emotion/styled';
+import lowerFirst from 'lodash/lowerFirst';
 import {PlatformIcon, platforms} from 'platformicons';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
+import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
-import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useKeyPress from 'sentry/utils/useKeyPress';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 import {
   IdentityIcon,
   type IdentityIconProps,
@@ -36,7 +42,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'compass',
         groups: ['product'],
-        keywords: ['explore'],
+        keywords: ['explore', 'navigation', 'direction', 'discover'],
         name: 'Compass',
         defaultProps: {},
       },
@@ -50,42 +56,42 @@ const SECTIONS: TSection[] = [
       {
         id: 'stats',
         groups: ['product'],
-        keywords: ['bar', 'graph'],
+        keywords: ['bar', 'graph', 'chart', 'metrics', 'analytics'],
         name: 'Stats',
         defaultProps: {},
       },
       {
         id: 'project',
         groups: ['product'],
-        keywords: [],
+        keywords: ['folder', 'repository', 'workspace'],
         name: 'Project',
         defaultProps: {},
       },
       {
         id: 'prevent',
         groups: ['product'],
-        keywords: ['shield'],
+        keywords: ['shield', 'protect', 'security', 'block', 'defense'],
         name: 'Prevent',
         defaultProps: {},
       },
       {
         id: 'issues',
         groups: ['product'],
-        keywords: ['stack'],
+        keywords: ['stack', 'bugs', 'errors', 'problems'],
         name: 'Issues',
         defaultProps: {},
       },
       {
         id: 'releases',
         groups: ['product'],
-        keywords: ['stack', 'versions'],
+        keywords: ['stack', 'versions', 'deploy', 'deployment'],
         name: 'Releases',
         defaultProps: {},
       },
       {
         id: 'archive',
         groups: ['product'],
-        keywords: [],
+        keywords: ['box', 'storage', 'old', 'save'],
         name: 'Archive',
         defaultProps: {},
       },
@@ -99,7 +105,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'settings',
         groups: ['product'],
-        keywords: ['preference'],
+        keywords: ['preference', 'config', 'gear', 'cog', 'configure'],
         name: 'Settings',
         defaultProps: {},
       },
@@ -126,35 +132,35 @@ const SECTIONS: TSection[] = [
       {
         id: 'broadcast',
         groups: ['product'],
-        keywords: ['stream'],
+        keywords: ['stream', 'radio', 'signal', 'transmit'],
         name: 'Broadcast',
         defaultProps: {},
       },
       {
         id: 'wifi',
         groups: ['product'],
-        keywords: ['internet'],
+        keywords: ['internet', 'wireless', 'connection', 'network'],
         name: 'Wifi',
         defaultProps: {},
       },
       {
         id: 'telescope',
         groups: ['product'],
-        keywords: [],
+        keywords: ['observe', 'watch', 'look', 'spy', 'scope'],
         name: 'Telescope',
         defaultProps: {},
       },
       {
         id: 'lightning',
         groups: ['product'],
-        keywords: ['feature', 'new', 'fresh'],
+        keywords: ['feature', 'new', 'fresh', 'fast', 'speed', 'bolt'],
         name: 'Lightning',
         defaultProps: {},
       },
       {
         id: 'business',
         groups: ['product'],
-        keywords: ['feature', 'promotion', 'fresh', 'new'],
+        keywords: ['feature', 'promotion', 'fresh', 'new', 'briefcase', 'work'],
         name: 'Business',
         defaultProps: {},
       },
@@ -182,35 +188,43 @@ const SECTIONS: TSection[] = [
       {
         id: 'seer',
         groups: ['product', 'seer'],
-        keywords: ['seer', 'ai', 'eye'],
+        keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
         defaultProps: {},
       },
       {
         id: 'seer-waiting',
         groups: ['product', 'seer'],
-        keywords: ['seer', 'ai', 'eye'],
+        keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
         defaultProps: {variant: 'waiting'},
       },
       {
         id: 'seer-loading',
         groups: ['product', 'seer'],
-        keywords: ['seer', 'ai', 'eye'],
+        keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
         defaultProps: {variant: 'loading'},
       },
       {
         id: 'my-projects',
         groups: ['product'],
-        keywords: ['starred', 'sidebar'],
+        keywords: ['starred', 'sidebar', 'project', 'locked', 'private'],
         name: 'MyProjects',
         defaultProps: {},
       },
       {
         id: 'all-projects',
         groups: ['product'],
-        keywords: ['starred', 'sidebar'],
+        keywords: [
+          'starred',
+          'sidebar',
+          'project',
+          'open',
+          'public',
+          'organization',
+          'all',
+        ],
         name: 'AllProjects',
         defaultProps: {},
       },
@@ -218,8 +232,32 @@ const SECTIONS: TSection[] = [
       {
         id: 'building',
         groups: ['product'],
-        keywords: ['business'],
+        keywords: [
+          'business',
+          'office',
+          'company',
+          'corporate',
+          'organization',
+          'integration',
+          'github',
+          'external',
+          'integratedOrganization',
+        ],
         name: 'Building',
+        defaultProps: {},
+      },
+      {
+        id: 'branch',
+        groups: ['product'],
+        keywords: ['git', 'version control', 'branch', 'development', 'code'],
+        name: 'Branch',
+        defaultProps: {},
+      },
+      {
+        id: 'repository',
+        groups: ['product'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'Repository',
         defaultProps: {},
       },
     ],
@@ -231,98 +269,105 @@ const SECTIONS: TSection[] = [
       {
         id: 'sentry',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['logo', 'brand', 'monitoring', 'error'],
         name: 'Sentry',
+        defaultProps: {},
+      },
+      {
+        id: 'sentry-pride',
+        groups: ['logo'],
+        keywords: ['logo', 'brand', 'rainbow', 'pride', 'lgbtq'],
+        name: 'SentryPrideLogo',
         defaultProps: {},
       },
       {
         id: 'codecov',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['coverage', 'testing', 'code'],
         name: 'Codecov',
         defaultProps: {},
       },
       {
         id: 'bitbucket',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['git', 'repository', 'code', 'atlassian'],
         name: 'Bitbucket',
         defaultProps: {},
       },
       {
         id: 'discord',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['chat', 'messaging', 'communication'],
         name: 'Discord',
         defaultProps: {},
       },
       {
         id: 'github',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['git', 'repository', 'code', 'microsoft'],
         name: 'Github',
         defaultProps: {},
       },
       {
         id: 'gitlab',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['git', 'repository', 'code', 'devops'],
         name: 'Gitlab',
         defaultProps: {},
       },
       {
         id: 'google',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['search', 'cloud', 'auth'],
         name: 'Google',
         defaultProps: {},
       },
       {
         id: 'jira',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['tickets', 'issues', 'project', 'atlassian'],
         name: 'Jira',
         defaultProps: {},
       },
       {
         id: 'trello',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['boards', 'cards', 'project', 'atlassian'],
         name: 'Trello',
         defaultProps: {},
       },
       {
         id: 'vsts',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['azure', 'devops', 'microsoft', 'visual studio'],
         name: 'Vsts',
         defaultProps: {},
       },
       {
         id: 'generic',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['placeholder', 'default', 'unknown'],
         name: 'Generic',
         defaultProps: {},
       },
       {
         id: 'asana',
         groups: ['logo'],
-        keywords: [''],
+        keywords: ['project', 'task', 'management'],
         name: 'Asana',
         defaultProps: {},
       },
       {
         id: 'vercel',
         groups: ['logo'],
-        keywords: [''],
+        keywords: ['deploy', 'hosting', 'frontend'],
         name: 'Vercel',
         defaultProps: {},
       },
       {
         id: 'teamwork',
         groups: ['logo'],
-        keywords: [],
+        keywords: ['project', 'collaboration', 'management'],
         name: 'Teamwork',
         defaultProps: {},
       },
@@ -336,17 +381,14 @@ const SECTIONS: TSection[] = [
         id: 'chevron-direction-left',
         groups: ['navigation'],
         keywords: [
-          'up',
-          'down',
           'left',
-          'right',
           'point',
           'direct',
           'move',
-          'expand',
-          'collapse',
           'arrow',
-          'double',
+          'back',
+          'previous',
+          'west',
         ],
         additionalProps: ['isCircled', 'direction', 'isDouble'],
         name: 'Chevron',
@@ -358,6 +400,17 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'chevron-direction-right',
+        groups: ['navigation'],
+        keywords: [
+          'right',
+          'point',
+          'direct',
+          'move',
+          'arrow',
+          'forward',
+          'next',
+          'east',
+        ],
         name: 'Chevron',
         defaultProps: {
           isCircled: false,
@@ -366,6 +419,8 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'chevron-direction-up',
+        groups: ['navigation'],
+        keywords: ['up', 'point', 'direct', 'move', 'arrow', 'top', 'north', 'collapse'],
         name: 'Chevron',
         defaultProps: {
           isCircled: false,
@@ -374,6 +429,17 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'chevron-direction-down',
+        groups: ['navigation'],
+        keywords: [
+          'down',
+          'point',
+          'direct',
+          'move',
+          'arrow',
+          'bottom',
+          'south',
+          'expand',
+        ],
         name: 'Chevron',
         defaultProps: {
           isCircled: false,
@@ -381,39 +447,22 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'chevron-isCircled-direction-left',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'left',
-        },
-      },
-      {
-        id: 'chevron-isCircled-direction-right',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'right',
-        },
-      },
-      {
-        id: 'chevron-isCircled-direction-up',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'up',
-        },
-      },
-      {
-        id: 'chevron-isCircled-direction-down',
-        name: 'Chevron',
-        defaultProps: {
-          isCircled: true,
-          direction: 'down',
-        },
-      },
-      {
         id: 'chevron-isDouble-direction-left',
+        groups: ['navigation'],
+        keywords: [
+          'left',
+          'point',
+          'direct',
+          'move',
+          'arrow',
+          'double',
+          'back',
+          'previous',
+          'west',
+          'fast',
+          'skip',
+          'jump',
+        ],
         name: 'Chevron',
         defaultProps: {
           isDouble: true,
@@ -422,6 +471,21 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'chevron-isDouble-direction-right',
+        groups: ['navigation'],
+        keywords: [
+          'right',
+          'point',
+          'direct',
+          'move',
+          'arrow',
+          'double',
+          'forward',
+          'next',
+          'east',
+          'fast',
+          'skip',
+          'jump',
+        ],
         name: 'Chevron',
         defaultProps: {
           isDouble: true,
@@ -430,6 +494,21 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'chevron-isDouble-direction-up',
+        groups: ['navigation'],
+        keywords: [
+          'up',
+          'point',
+          'direct',
+          'move',
+          'arrow',
+          'double',
+          'top',
+          'north',
+          'collapse',
+          'fast',
+          'skip',
+          'jump',
+        ],
         name: 'Chevron',
         defaultProps: {
           isDouble: true,
@@ -438,6 +517,21 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'chevron-isDouble-direction-down',
+        groups: ['navigation'],
+        keywords: [
+          'down',
+          'point',
+          'direct',
+          'move',
+          'arrow',
+          'double',
+          'bottom',
+          'south',
+          'expand',
+          'fast',
+          'skip',
+          'jump',
+        ],
         name: 'Chevron',
         defaultProps: {
           isDouble: true,
@@ -447,7 +541,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'arrow-direction-left',
         groups: ['navigation'],
-        keywords: ['up', 'down', 'left', 'right', 'point', 'direct', 'move'],
+        keywords: ['left', 'point', 'direct', 'move', 'back', 'previous', 'west'],
         additionalProps: ['direction'],
         name: 'Arrow',
         defaultProps: {
@@ -456,6 +550,8 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'arrow-direction-right',
+        groups: ['navigation'],
+        keywords: ['right', 'point', 'direct', 'move', 'forward', 'next', 'east'],
         name: 'Arrow',
         defaultProps: {
           direction: 'right',
@@ -463,6 +559,8 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'arrow-direction-up',
+        groups: ['navigation'],
+        keywords: ['up', 'point', 'direct', 'move', 'top', 'north', 'ascend'],
         name: 'Arrow',
         defaultProps: {
           direction: 'up',
@@ -470,6 +568,8 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'arrow-direction-down',
+        groups: ['navigation'],
+        keywords: ['down', 'point', 'direct', 'move', 'bottom', 'south', 'descend'],
         name: 'Arrow',
         defaultProps: {
           direction: 'down',
@@ -478,7 +578,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'panel-direction-left',
         groups: ['navigation'],
-        keywords: ['sidebar', 'footer', 'header'],
+        keywords: ['sidebar', 'footer', 'header', 'drawer', 'window', 'pane'],
         additionalProps: ['direction'],
         name: 'Panel',
         defaultProps: {
@@ -487,6 +587,17 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'panel-direction-right',
+        groups: ['navigation'],
+        keywords: [
+          'sidebar',
+          'footer',
+          'header',
+          'drawer',
+          'window',
+          'pane',
+          'right',
+          'east',
+        ],
         name: 'Panel',
         defaultProps: {
           direction: 'right',
@@ -494,6 +605,18 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'panel-direction-up',
+        groups: ['navigation'],
+        keywords: [
+          'sidebar',
+          'footer',
+          'header',
+          'drawer',
+          'window',
+          'pane',
+          'up',
+          'top',
+          'north',
+        ],
         name: 'Panel',
         defaultProps: {
           direction: 'up',
@@ -501,6 +624,18 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'panel-direction-down',
+        groups: ['navigation'],
+        keywords: [
+          'sidebar',
+          'footer',
+          'header',
+          'drawer',
+          'window',
+          'pane',
+          'down',
+          'bottom',
+          'south',
+        ],
         name: 'Panel',
         defaultProps: {
           direction: 'down',
@@ -515,14 +650,14 @@ const SECTIONS: TSection[] = [
       {
         id: 'angry',
         groups: ['status'],
-        keywords: ['angry', 'rage', 'face'],
+        keywords: ['angry', 'rage', 'face', 'mad', 'upset', 'emotion'],
         name: 'Angry',
         defaultProps: {},
       },
       {
         id: 'lock',
         groups: ['action', 'status'],
-        keywords: ['secure'],
+        keywords: ['secure', 'private', 'protected', 'key'],
         additionalProps: ['locked'],
         name: 'Lock',
         defaultProps: {
@@ -539,98 +674,98 @@ const SECTIONS: TSection[] = [
       {
         id: 'fire',
         groups: ['status'],
-        keywords: ['danger', 'severe', 'critical'],
+        keywords: ['danger', 'severe', 'critical', 'emergency', 'hot'],
         name: 'Fire',
         defaultProps: {},
       },
       {
         id: 'fatal',
         groups: ['status'],
-        keywords: ['skull'],
+        keywords: ['skull', 'death', 'dead', 'error', 'critical'],
         name: 'Fatal',
         defaultProps: {},
       },
       {
         id: 'warning',
         groups: ['status'],
-        keywords: ['alert', 'notification'],
+        keywords: ['alert', 'notification', 'caution', 'triangle'],
         name: 'Warning',
         defaultProps: {},
       },
       {
         id: 'exclamation',
         groups: ['status'],
-        keywords: ['alert', 'warning'],
+        keywords: ['alert', 'warning', 'important', 'notice'],
         name: 'Exclamation',
         defaultProps: {},
       },
       {
         id: 'not',
         groups: ['status'],
-        keywords: ['invalid', 'no', 'forbidden'],
+        keywords: ['invalid', 'no', 'forbidden', 'block', 'stop', 'denied'],
         name: 'Not',
         defaultProps: {},
       },
       {
         id: 'circle',
         groups: ['status'],
-        keywords: ['shape', 'round'],
+        keywords: ['shape', 'round', 'dot', 'indicator'],
         name: 'Circle',
         defaultProps: {},
       },
       {
         id: 'circleFill',
         groups: ['status'],
-        keywords: ['shape', 'round'],
+        keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],
         name: 'CircleFill',
         defaultProps: {},
       },
       {
         id: 'dead',
         groups: ['status'],
-        keywords: ['dead', 'face'],
+        keywords: ['dead', 'face', 'x', 'eyes', 'emotion'],
         name: 'Dead',
         defaultProps: {},
       },
       {
         id: 'diamond',
         groups: ['status'],
-        keywords: ['shape', 'alert', 'diamond'],
+        keywords: ['shape', 'alert', 'diamond', 'gem', 'precious'],
         name: 'Diamond',
         defaultProps: {},
       },
       {
         id: 'flag',
         groups: ['status'],
-        keywords: ['bookmark', 'mark', 'save', 'warning', 'message'],
+        keywords: ['bookmark', 'mark', 'save', 'warning', 'message', 'report'],
         name: 'Flag',
         defaultProps: {},
       },
       {
         id: 'happy',
         groups: ['status'],
-        keywords: ['good'],
+        keywords: ['good', 'smile', 'positive', 'joy', 'emotion', 'face'],
         name: 'Happy',
         defaultProps: {},
       },
       {
         id: 'meh',
         groups: ['status'],
-        keywords: ['meh'],
+        keywords: ['meh', 'neutral', 'okay', 'average', 'emotion', 'face'],
         name: 'Meh',
         defaultProps: {},
       },
       {
         id: 'sad',
         groups: ['status'],
-        keywords: ['poor'],
+        keywords: ['poor', 'frown', 'negative', 'down', 'emotion', 'face'],
         name: 'Sad',
         defaultProps: {},
       },
       {
         id: 'slow',
         groups: ['status'],
-        keywords: ['frame', 'mobile'],
+        keywords: ['frame', 'mobile', 'snail', 'performance', 'lag'],
         name: 'Slow',
         defaultProps: {},
       },
@@ -643,35 +778,21 @@ const SECTIONS: TSection[] = [
       {
         id: 'add',
         groups: ['action'],
-        keywords: ['plus'],
+        keywords: ['plus', 'create', 'new', 'insert', 'math'],
         additionalProps: ['isCircled'],
         name: 'Add',
         defaultProps: {
           isCircled: false,
-        },
-      },
-      {
-        id: 'add-isCircled',
-        name: 'Add',
-        defaultProps: {
-          isCircled: true,
         },
       },
       {
         id: 'subtract',
         groups: ['action'],
-        keywords: ['minus'],
+        keywords: ['minus', 'remove', 'decrease', 'delete', 'math'],
         additionalProps: ['isCircled'],
         name: 'Subtract',
         defaultProps: {
           isCircled: false,
-        },
-      },
-      {
-        id: 'subtract-isCircled',
-        name: 'Subtract',
-        defaultProps: {
-          isCircled: true,
         },
       },
       {
@@ -685,16 +806,9 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'checkmark-isCircled',
-        name: 'Checkmark',
-        defaultProps: {
-          isCircled: true,
-        },
-      },
-      {
         id: 'close',
         groups: ['action'],
-        keywords: ['cross', 'deny', 'terminate'],
+        keywords: ['cross', 'deny', 'terminate', 'x', 'cancel', 'exit'],
         additionalProps: ['isCircled'],
         name: 'Close',
         defaultProps: {
@@ -702,23 +816,16 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'close-isCircled',
-        name: 'Close',
-        defaultProps: {
-          isCircled: true,
-        },
-      },
-      {
         id: 'divide',
         groups: ['action'],
-        keywords: ['divided', 'math'],
+        keywords: ['divided', 'math', 'split', 'separate'],
         name: 'Divide',
         defaultProps: {},
       },
       {
         id: 'upload',
         groups: ['action'],
-        keywords: ['file', 'image', 'up'],
+        keywords: ['file', 'image', 'up', 'send', 'attach'],
         name: 'Upload',
         defaultProps: {},
       },
@@ -732,7 +839,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'download',
         groups: ['action'],
-        keywords: ['file', 'image', 'down'],
+        keywords: ['file', 'image', 'down', 'save', 'get'],
         name: 'Download',
         defaultProps: {},
       },
@@ -753,42 +860,42 @@ const SECTIONS: TSection[] = [
       {
         id: 'sync',
         groups: ['action'],
-        keywords: ['swap'],
+        keywords: ['swap', 'refresh', 'update', 'synchronize'],
         name: 'Sync',
         defaultProps: {},
       },
       {
         id: 'menu',
         groups: ['action'],
-        keywords: ['navigate'],
+        keywords: ['navigate', 'hamburger', 'bars', 'options'],
         name: 'Menu',
         defaultProps: {},
       },
       {
         id: 'list',
         groups: ['action'],
-        keywords: ['item'],
+        keywords: ['item', 'lines', 'bullet', 'organize'],
         name: 'List',
         defaultProps: {},
       },
       {
         id: 'upgrade',
         groups: ['action'],
-        keywords: ['up'],
+        keywords: ['up', 'improve', 'enhance', 'promote'],
         name: 'Upgrade',
         defaultProps: {},
       },
       {
         id: 'open',
         groups: ['action'],
-        keywords: ['link', 'hyperlink', 'external'],
+        keywords: ['link', 'hyperlink', 'external', 'launch', 'visit'],
         name: 'Open',
         defaultProps: {},
       },
       {
         id: 'refresh',
         groups: ['action'],
-        keywords: ['reload', 'restart', 'repeat'],
+        keywords: ['reload', 'restart', 'repeat', 'update', 'sync'],
         name: 'Refresh',
         defaultProps: {},
       },
@@ -812,7 +919,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'pin',
         groups: ['action'],
-        keywords: ['stick'],
+        keywords: ['stick', 'attach', 'fix', 'pushpin'],
         additionalProps: ['isSolid'],
         name: 'Pin',
         defaultProps: {
@@ -888,7 +995,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'copy',
         groups: ['action'],
-        keywords: ['duplicate'],
+        keywords: ['duplicate', 'clone', 'clipboard'],
         name: 'Copy',
         defaultProps: {},
       },
@@ -902,91 +1009,105 @@ const SECTIONS: TSection[] = [
       {
         id: 'docs',
         groups: ['action'],
-        keywords: ['document'],
+        keywords: ['document', 'file', 'paper', 'documentation'],
         name: 'Docs',
         defaultProps: {},
       },
       {
         id: 'link',
         groups: ['action'],
-        keywords: ['hyperlink'],
+        keywords: ['hyperlink', 'chain', 'connect', 'url'],
         name: 'Link',
         defaultProps: {},
       },
       {
         id: 'attachment',
         groups: ['action'],
-        keywords: ['include', 'clip'],
+        keywords: ['include', 'clip', 'paperclip', 'file'],
         name: 'Attachment',
         defaultProps: {},
       },
       {
         id: 'location',
         groups: ['action'],
-        keywords: ['pin', 'position', 'map'],
+        keywords: ['pin', 'position', 'map', 'gps', 'place'],
         name: 'Location',
         defaultProps: {},
       },
       {
         id: 'edit',
         groups: ['action'],
-        keywords: ['pencil'],
+        keywords: ['pencil', 'modify', 'change', 'write'],
         name: 'Edit',
         defaultProps: {},
       },
       {
         id: 'filter',
         groups: ['action'],
-        keywords: [],
+        keywords: ['funnel', 'search', 'refine', 'sort'],
         name: 'Filter',
         defaultProps: {},
       },
       {
         id: 'sort',
         groups: ['action'],
-        keywords: [],
+        keywords: ['order', 'arrange', 'organize', 'rank'],
         name: 'Sort',
+        defaultProps: {},
+      },
+      {
+        id: 'case',
+        groups: ['action'],
+        keywords: ['case', 'toggle', 'search', 'case sensitive', 'A', 'Aa'],
+        name: 'Case',
         defaultProps: {},
       },
       {
         id: 'show',
         groups: ['action'],
-        keywords: ['visible'],
+        keywords: ['visible', 'eye', 'view', 'display'],
         name: 'Show',
+        defaultProps: {},
+      },
+      {
+        id: 'hide',
+        groups: ['action'],
+        keywords: ['invisible', 'hidden'],
+        name: 'Hide',
         defaultProps: {},
       },
       {
         id: 'lock',
         name: 'Lock',
         defaultProps: {
-          isSolid: false,
+          locked: false,
         },
       },
       {
         id: 'lock-isSolid',
         name: 'Lock',
         defaultProps: {
-          isSolid: true,
+          locked: true,
         },
       },
       {
         id: 'grabbable',
         groups: ['action'],
-        keywords: ['move', 'arrange', 'organize', 'rank', 'switch'],
+        keywords: ['move', 'arrange', 'organize', 'rank', 'switch', 'drag', 'handle'],
         name: 'Grabbable',
         defaultProps: {},
       },
       {
         id: 'ellipsis',
         groups: ['action'],
-        keywords: ['expand', 'open', 'more', 'hidden'],
+        keywords: ['expand', 'open', 'more', 'hidden', 'dots', 'menu'],
         name: 'Ellipsis',
         defaultProps: {},
       },
       {
         id: 'megaphone',
         groups: ['action'],
-        keywords: ['speaker', 'announce'],
+        keywords: ['speaker', 'announce', 'bullhorn', 'broadcast'],
         name: 'Megaphone',
         defaultProps: {},
       },
@@ -1007,28 +1128,28 @@ const SECTIONS: TSection[] = [
       {
         id: 'user',
         groups: ['action'],
-        keywords: ['person', 'portrait'],
+        keywords: ['person', 'portrait', 'profile', 'account'],
         name: 'User',
         defaultProps: {},
       },
       {
         id: 'chat',
         groups: ['action', 'action'],
-        keywords: ['message', 'bubble'],
+        keywords: ['message', 'bubble', 'talk', 'conversation'],
         name: 'Chat',
         defaultProps: {},
       },
       {
         id: 'clock',
         groups: ['action'],
-        keywords: ['time', 'watch'],
+        keywords: ['time', 'watch', 'schedule', 'hour'],
         name: 'Clock',
         defaultProps: {},
       },
       {
         id: 'sliders-direction-left',
         groups: ['action'],
-        keywords: ['settings', 'slide', 'adjust'],
+        keywords: ['settings', 'slide', 'adjust', 'controls', 'config'],
         additionalProps: ['direction'],
         name: 'Sliders',
         defaultProps: {
@@ -1045,84 +1166,84 @@ const SECTIONS: TSection[] = [
       {
         id: 'fix',
         groups: ['action'],
-        keywords: ['wrench', 'resolve'],
+        keywords: ['wrench', 'resolve', 'repair', 'tool'],
         name: 'Fix',
         defaultProps: {},
       },
       {
         id: 'tag',
         groups: ['action'],
-        keywords: ['price', 'category', 'group'],
+        keywords: ['price', 'category', 'group', 'label', 'organize'],
         name: 'Tag',
         defaultProps: {},
       },
       {
         id: 'moon',
         groups: ['action'],
-        keywords: ['dark', 'night'],
+        keywords: ['dark', 'night', 'theme', 'mode'],
         name: 'Moon',
         defaultProps: {},
       },
       {
         id: 'subscribed',
         groups: ['action'],
-        keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring'],
+        keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring', 'enabled'],
         name: 'Subscribed',
         defaultProps: {},
       },
       {
         id: 'unsubscribed',
         groups: ['action'],
-        keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring'],
+        keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring', 'disabled'],
         name: 'Unsubscribed',
         defaultProps: {},
       },
       {
         id: 'sound',
         groups: ['action'],
-        keywords: ['audio'],
+        keywords: ['audio', 'volume', 'speaker', 'noise'],
         name: 'Sound',
         defaultProps: {},
       },
       {
         id: 'mute',
         groups: ['action'],
-        keywords: ['audio'],
+        keywords: ['audio', 'volume', 'silence', 'quiet'],
         name: 'Mute',
         defaultProps: {},
       },
       {
         id: 'resize',
         groups: ['action'],
-        keywords: ['scale', 'stretch'],
+        keywords: ['scale', 'stretch', 'expand', 'shrink'],
         name: 'Resize',
         defaultProps: {},
       },
       {
         id: 'expand',
         groups: ['action'],
-        keywords: ['open'],
+        keywords: ['open', 'grow', 'enlarge', 'maximize'],
         name: 'Expand',
         defaultProps: {},
       },
       {
         id: 'contract',
         groups: ['action'],
-        keywords: ['close'],
+        keywords: ['close', 'shrink', 'minimize', 'collapse'],
         name: 'Contract',
         defaultProps: {},
       },
       {
         id: 'group',
         groups: ['action'],
-        keywords: ['users', 'person', 'people'],
+        keywords: ['users', 'person', 'people', 'team', 'collective'],
         name: 'Group',
         defaultProps: {},
       },
       {
         id: 'rewind10',
         groups: ['action'],
-        keywords: ['rewind'],
+        keywords: ['rewind', 'back', 'replay', '10'],
         name: 'Rewind10',
         defaultProps: {},
       },
@@ -1145,13 +1266,13 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'zoom-out',
-        keywords: [],
+        keywords: ['magnify', 'reduce', 'decrease', 'shrink'],
         name: 'Zoom',
         defaultProps: {isZoomIn: false},
       },
       {
         id: 'zoom-in',
-        keywords: [],
+        keywords: ['magnify', 'enlarge', 'increase', 'expand'],
         name: 'Zoom',
         defaultProps: {isZoomIn: true},
       },
@@ -1186,7 +1307,7 @@ const SECTIONS: TSection[] = [
         additionalProps: ['direction'],
         name: 'Thumb',
         defaultProps: {
-          direction: ['down'],
+          direction: 'down',
         },
       },
     ],
@@ -1198,7 +1319,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'graph-type-line',
         groups: ['chart'],
-        keywords: ['line', 'plot'],
+        keywords: ['line', 'plot', 'chart', 'data', 'visualization'],
         additionalProps: ['type'],
         name: 'Graph',
         defaultProps: {
@@ -1236,21 +1357,21 @@ const SECTIONS: TSection[] = [
       {
         id: 'stack',
         groups: ['chart'],
-        keywords: ['group', 'combine', 'view'],
+        keywords: ['group', 'combine', 'view', 'layers', 'pile'],
         name: 'Stack',
         defaultProps: {},
       },
       {
         id: 'span',
         groups: ['chart'],
-        keywords: ['performance', 'transaction'],
+        keywords: ['performance', 'transaction', 'timeline', 'trace'],
         name: 'Span',
         defaultProps: {},
       },
       {
         id: 'number',
         groups: ['chart'],
-        keywords: ['value'],
+        keywords: ['value', 'digit', 'metric', 'count'],
         name: 'Number',
         defaultProps: {},
       },
@@ -1261,19 +1382,20 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'table',
+        keywords: ['grid', 'rows', 'columns', 'data'],
         name: 'Table',
         defaultProps: {},
       },
       {
         id: 'grid',
         name: 'Grid',
-        keywords: ['squares', 'layout'],
+        keywords: ['squares', 'layout', 'table', 'matrix'],
         defaultProps: {},
       },
       {
         id: 'globe',
         name: 'Globe',
-        keywords: ['map', 'international'],
+        keywords: ['map', 'international', 'world', 'earth'],
         defaultProps: {},
       },
     ],
@@ -1285,105 +1407,105 @@ const SECTIONS: TSection[] = [
       {
         id: 'file',
         groups: ['device'],
-        keywords: ['document'],
+        keywords: ['document', 'paper', 'attachment', 'data'],
         name: 'File',
         defaultProps: {},
       },
       {
         id: 'print',
         groups: ['device'],
-        keywords: [],
+        keywords: ['printer', 'paper', 'output', 'hardcopy'],
         name: 'Print',
         defaultProps: {},
       },
       {
         id: 'code',
         groups: ['device'],
-        keywords: ['snippet', 'javascript', 'json', 'curly', 'source'],
+        keywords: ['snippet', 'javascript', 'json', 'curly', 'source', 'programming'],
         name: 'Code',
         defaultProps: {},
       },
       {
         id: 'json',
         groups: ['device'],
-        keywords: ['snippet', 'code', 'javascript', 'source'],
+        keywords: ['snippet', 'code', 'javascript', 'source', 'data', 'format'],
         name: 'Json',
         defaultProps: {},
       },
       {
         id: 'markdown',
         groups: ['device'],
-        keywords: ['code'],
+        keywords: ['code', 'text', 'format', 'documentation'],
         name: 'Markdown',
         defaultProps: {},
       },
       {
         id: 'terminal',
         groups: ['device', 'device'],
-        keywords: ['code', 'bash', 'command'],
+        keywords: ['code', 'bash', 'command', 'shell', 'console'],
         name: 'Terminal',
         defaultProps: {},
       },
       {
         id: 'commit',
         groups: ['device'],
-        keywords: ['git', 'github'],
+        keywords: ['git', 'github', 'version', 'save', 'repository'],
         name: 'Commit',
         defaultProps: {},
       },
       {
         id: 'laptop',
         groups: ['device'],
-        keywords: ['computer', 'macbook'],
+        keywords: ['computer', 'macbook', 'notebook', 'portable'],
         name: 'Laptop',
         defaultProps: {},
       },
       {
         id: 'mobile',
         groups: ['device'],
-        keywords: ['phone', 'iphone'],
+        keywords: ['phone', 'iphone', 'smartphone', 'cell'],
         name: 'Mobile',
         defaultProps: {},
       },
       {
         id: 'window',
         groups: ['device'],
-        keywords: ['application'],
+        keywords: ['application', 'app', 'dialog', 'browser'],
         name: 'Window',
         defaultProps: {},
       },
       {
         id: 'calendar',
         groups: ['device'],
-        keywords: ['time', 'date'],
+        keywords: ['time', 'date', 'schedule', 'month'],
         name: 'Calendar',
         defaultProps: {},
       },
       {
         id: 'mail',
         groups: ['device'],
-        keywords: ['email'],
+        keywords: ['email', 'message', 'envelope', 'letter'],
         name: 'Mail',
         defaultProps: {},
       },
       {
         id: 'input',
         groups: ['device'],
-        keywords: ['text'],
+        keywords: ['text', 'field', 'form', 'textbox'],
         name: 'Input',
         defaultProps: {},
       },
       {
         id: 'fileBroken',
         groups: ['device'],
-        keywords: ['file', 'missing', 'error'],
+        keywords: ['file', 'missing', 'error', 'corrupt', 'broken'],
         name: 'FileBroken',
         defaultProps: {},
       },
       {
         id: 'image',
         groups: ['device'],
-        keywords: ['image', 'photo', 'screenshot'],
+        keywords: ['image', 'photo', 'screenshot', 'picture', 'media'],
         name: 'Image',
         defaultProps: {},
       },
@@ -1408,37 +1530,37 @@ export default function IconsStories() {
       .map((name): TIcon => ({id: name, name})),
   };
 
-  const filteredSections = searchTerm
-    ? SECTIONS.map(section => ({
-        ...section,
-        icons: section.icons.filter(
-          icon =>
-            icon.name.toLowerCase().includes(searchTerm) ||
-            icon.keywords?.some(keyword => keyword.toLowerCase().includes(searchTerm))
-        ),
-      }))
-    : SECTIONS;
-
   return (
     <Fragment>
+      <Text as="p" density="comfortable" size="md" variant="primary">
+        In addition to icon name, you can also search by keyword. For example, both{' '}
+        <Text monospace as="span">
+          checkmark
+        </Text>{' '}
+        and{' '}
+        <Text monospace as="span">
+          success
+        </Text>{' '}
+        match{' '}
+        <Text monospace as="span">
+          IconCheckmark
+        </Text>
+        .
+      </Text>
       <StyledSticky>
-        <p>
-          In addition to icon name, you can also search by keyword. For example, typing
-          either <kbd>checkmark</kbd> or <kbd>success</kbd> will return{' '}
-          <samp>IconCheckmark</samp>.
-        </p>
-        <Input
-          placeholder="Search icons by name or keyword"
-          onChange={e => setSearchTerm(e.target.value.toLowerCase())}
-        />
+        <Flex padding="xl 0" direction="column" gap="lg">
+          <Input
+            placeholder="Search icons by name or keyword"
+            onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+          />
+        </Flex>
       </StyledSticky>
 
-      <Section section={unclassifiedSection} />
-
-      {filteredSections.map(section => (
-        <Section key={section.id} section={section} />
+      {SECTIONS.map(section => (
+        <CoreSection searchTerm={searchTerm} key={section.id} section={section} />
       ))}
 
+      <CoreSection searchTerm={searchTerm} section={unclassifiedSection} />
       <PluginIconsSection searchTerm={searchTerm} />
       <IdentityIconsSection searchTerm={searchTerm} />
       <PlatformIconsSection searchTerm={searchTerm} />
@@ -1446,83 +1568,21 @@ export default function IconsStories() {
   );
 }
 
-function Section({section}: {section: TSection}) {
-  if (section.icons.length === 0) {
-    return null;
-  }
-
-  return (
-    <section>
-      <SectionHeader>{section.label}</SectionHeader>
-      <p>
-        <code>{"import { ... } from 'sentry/icons';"}</code>
-      </p>
-      <Grid style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
-        {section.icons.map(icon => {
-          const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          const Component = Icons[name];
-
-          if (!Component) {
-            // The definition is not type safe, so lets log the icon instead of throwing an error
-            // eslint-disable-next-line no-console
-            console.log('Missing icon', name);
-            return null;
-          }
-
-          const props = {color: 'gray500', size: 'sm', ...icon.defaultProps};
-          return (
-            <Tooltip
-              key={icon.id}
-              isHoverable
-              overlayStyle={{maxWidth: 440}}
-              title={<Storybook.JSXNode name={name} props={props} />}
-            >
-              <Cell>
-                <Component {...props} />
-                {name}
-              </Cell>
-            </Tooltip>
-          );
-        })}
-      </Grid>
-    </section>
-  );
-}
-
 function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
-  const filteredPlatforms = platforms.filter(platform => platform.includes(searchTerm));
-
   return (
-    <section>
-      <SectionHeader>PlatformIcons</SectionHeader>
-      <p>
-        <code>{"import {PlatformIcon} from 'platformicons';"}</code>
-      </p>
-      <Grid
-        style={{
-          gridAutoFlow: 'column',
-          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
-        }}
-      >
-        {filteredPlatforms.map(platform => (
-          <Tooltip
-            key={platform}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
-            title={
-              <Fragment>
-                <Storybook.JSXNode name="PlatformIcon" props={{platform}} />
-              </Fragment>
-            }
-          >
-            <Cell>
-              <PlatformIcon platform={platform} /> {platform}
-            </Cell>
-          </Tooltip>
-        ))}
-      </Grid>
-    </section>
+    <Section
+      icons={platforms.map(platform => ({name: platform, id: platform}))}
+      searchTerm={searchTerm}
+      title="PlatformIcons"
+      renderIcon={(icon: TIcon) => (
+        <IconCard
+          icon={{id: icon.id, name: 'PlatformIcon', defaultProps: {platform: icon.id}}}
+          importSource="platformicons"
+        >
+          <PlatformIcon platform={icon.id} /> {icon.name}
+        </IconCard>
+      )}
+    />
   );
 }
 
@@ -1573,38 +1633,20 @@ const PLUGIN_ICONS = PLUGIN_ICON_KEYS.map(key => ({
 }));
 
 function PluginIconsSection({searchTerm}: {searchTerm: string}) {
-  const filteredPlatforms = PLUGIN_ICONS.filter(icon => icon.name.includes(searchTerm));
-
   return (
-    <section>
-      <SectionHeader>PluginIcons</SectionHeader>
-      <p>
-        <code>{"import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"}</code>
-      </p>
-      <Grid
-        style={{
-          gridAutoFlow: 'column',
-          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
-        }}
-      >
-        {filteredPlatforms.map(platform => (
-          <Tooltip
-            key={platform.id}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
-            title={
-              <Fragment>
-                <Storybook.JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
-              </Fragment>
-            }
-          >
-            <Cell>
-              <PluginIcon pluginId={platform.id} /> {platform.name}
-            </Cell>
-          </Tooltip>
-        ))}
-      </Grid>
-    </section>
+    <Section
+      icons={PLUGIN_ICONS}
+      searchTerm={searchTerm}
+      title="PluginIcons"
+      renderIcon={(icon: TIcon) => (
+        <IconCard
+          icon={{id: icon.id, name: 'PluginIcon', defaultProps: {pluginId: icon.id}}}
+          importSource="sentry/plugins/components/pluginIcon"
+        >
+          <PluginIcon pluginId={icon.id} /> {icon.name}
+        </IconCard>
+      )}
+    />
   );
 }
 
@@ -1639,76 +1681,277 @@ const IDENTITY_ICONS = IDENTITY_ICON_KEYS.map(key => ({
 }));
 
 function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
-  const filteredPlatforms = IDENTITY_ICONS.filter(icon => icon.name.includes(searchTerm));
+  return (
+    <Section
+      icons={IDENTITY_ICONS}
+      searchTerm={searchTerm}
+      title="IdentityIcons"
+      renderIcon={(identity: TIcon) => (
+        <IconCard
+          icon={{
+            id: identity.id,
+            name: 'IdentityIcon',
+            defaultProps: {providerId: identity.id},
+          }}
+          importSource="sentry/views/settings/components/identityIcon"
+        >
+          <IdentityIcon providerId={identity.id} /> {identity.name}
+        </IconCard>
+      )}
+    />
+  );
+}
+
+function CoreSection({section, searchTerm}: {searchTerm: string; section: TSection}) {
+  const renderIcon = (icon: TIcon) => {
+    const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const Component = Icons[name];
+
+    if (!Component) {
+      // The definition is not type safe, so lets log the icon instead of throwing an error
+      // eslint-disable-next-line no-console
+      console.log('Missing icon', name);
+      return null;
+    }
+
+    const variant = icon.defaultProps ? propsToVariant(icon.defaultProps) : null;
+
+    const props = {...icon.defaultProps};
+    return (
+      <IconCard icon={icon} importSource="sentry/icons">
+        <Component {...props} />
+        {name}
+        {variant && (
+          <Text as="span" size="sm" variant="muted">
+            {variant}
+          </Text>
+        )}
+      </IconCard>
+    );
+  };
+  return (
+    <Section
+      icons={section.icons}
+      title={section.label}
+      renderIcon={renderIcon}
+      searchTerm={searchTerm}
+    />
+  );
+}
+
+const createIconFilter =
+  (searchTerm: string) =>
+  (icon: TIcon): boolean => {
+    const name = fzf(icon.name, searchTerm.toLowerCase(), false);
+    if (name.score > 10) {
+      return true;
+    }
+    // Also search against the full icon name with "Icon" prefix (e.g., "IconSettings")
+    const iconName = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
+    const fullIconName = fzf(iconName, searchTerm.toLowerCase(), false);
+    if (fullIconName.score > 10) {
+      return true;
+    }
+    for (const keyword of icon.keywords ?? []) {
+      const match = fzf(keyword, searchTerm.toLowerCase(), false);
+      if (match.score > 20) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+interface CategorySectionProps {
+  renderIcon(icon: TIcon): React.ReactNode;
+  title: string;
+  icons?: TIcon[];
+  searchTerm?: string;
+}
+
+function Section(props: CategorySectionProps) {
+  let filteredIcons = props.icons ?? [];
+  if (props.searchTerm) {
+    const iconFilter = createIconFilter(props.searchTerm);
+    filteredIcons = filteredIcons.filter(iconFilter);
+  }
+  if (filteredIcons.length === 0) return null;
 
   return (
-    <section>
-      <SectionHeader>IdentityIcons</SectionHeader>
-      <p>
-        <code>
-          {"import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';"}
-        </code>
-      </p>
+    <Flex as="section" direction="column" gap="xl">
+      <Container padding="xl 0 0 0">
+        <Heading as="h5" size="xl" style={{scrollMarginTop: '128px'}}>
+          {props.title}
+        </Heading>
+      </Container>
       <Grid
-        style={{
-          gridAutoFlow: 'column',
-          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
-        }}
+        columns={{xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)'}}
+        align="center"
+        gap="md"
       >
-        {filteredPlatforms.map(platform => (
-          <Tooltip
-            key={platform.id}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
-            title={
-              <Fragment>
-                <Storybook.JSXNode
-                  name="IdentityIcon"
-                  props={{providerId: platform.id}}
-                />
-              </Fragment>
-            }
-          >
-            <Cell>
-              <IdentityIcon providerId={platform.id} /> {platform.name}
-            </Cell>
-          </Tooltip>
-        ))}
+        {filteredIcons.map(icon => props.renderIcon(icon))}
       </Grid>
-    </section>
+    </Flex>
   );
+}
+
+interface IconCardProps {
+  children: React.ReactNode;
+  icon: TIcon;
+  importSource: string;
+}
+function IconCard(props: IconCardProps) {
+  const name = props.icon.name.includes('Icon')
+    ? props.icon.name
+    : `Icon${props.icon.name}`;
+  const shift = useKeyPress('Shift');
+  const snippets = {
+    all: '',
+    import: `import { ${name} } from "${props.importSource}";`,
+    element: `<${name}${props.icon.defaultProps ? ` ${serializeProps(props.icon.defaultProps)}` : ''} />`,
+  };
+  snippets.all = `${snippets.import}\n\n${snippets.element}`;
+  const labels = {
+    import: `import statement`,
+    element: props.icon.id,
+  };
+  const action: keyof typeof snippets = shift ? 'import' : 'element';
+
+  const {onClick, label} = useCopyToClipboard({
+    successMessage: `Copied ${labels[action]} to clipboard`,
+    text: snippets[action],
+  });
+
+  return (
+    <Tooltip
+      maxWidth={640}
+      isHoverable
+      title={
+        <Stack gap="md">
+          <CodeBlock language="jsx" code={snippets.all} />
+          <Flex gap="lg">
+            <Flex align="center" gap="sm">
+              <Tag
+                type={action === 'element' ? 'info' : 'default'}
+                style={{width: 'max-content'}}
+              >
+                click
+              </Tag>
+              <Text
+                monospace
+                size="sm"
+                variant={action === 'element' ? 'primary' : 'muted'}
+              >
+                Copy element
+              </Text>
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Tag type={action === 'import' ? 'info' : 'default'}>shift+click</Tag>
+              <Text
+                monospace
+                size="sm"
+                variant={action === 'import' ? 'primary' : 'muted'}
+              >
+                Copy import
+              </Text>
+            </Flex>
+          </Flex>
+        </Stack>
+      }
+    >
+      <Cell onClick={onClick} aria-label={label}>
+        {props.children}
+      </Cell>
+    </Tooltip>
+  );
+}
+
+function CodeBlock({code, language}: {code: string; language: string}) {
+  const lines = usePrismTokens({code, language});
+  return (
+    <Pre className={`language-${language}`}>
+      <code>
+        {lines.map((line, lineIndex) => (
+          <Line key={lineIndex}>
+            {line.map((tokenProps, tokenIndex) => (
+              <span key={`${lineIndex}:${tokenIndex}`} {...tokenProps} />
+            ))}
+          </Line>
+        ))}
+      </code>
+    </Pre>
+  );
+}
+
+function propsToVariant(props: Record<string, unknown>): string | null {
+  for (const [key, value] of Object.entries(props)) {
+    // direct enum types
+    if (['type', 'direction', 'variant'].includes(key)) {
+      return typeof value === 'string' ? value : null;
+    }
+    // isSolid, isCircled, isZoomIn
+    if (key.startsWith('is') && value) {
+      return lowerFirst(key.replace('is', ''));
+    }
+    // locked
+    if (value === true) {
+      return key;
+    }
+  }
+  return null;
+}
+
+function serializeProps(props: Record<string, unknown>) {
+  const output: string[] = [];
+  for (const [name, value] of Object.entries(props)) {
+    if (value === null || value === undefined) {
+      output.push(`${name}={null}`);
+    } else if (value === true) {
+      output.push(name);
+    } else if (value === false) {
+      continue;
+    } else if (typeof value === 'string') {
+      output.push(`${name}=${JSON.stringify(value)}`);
+    } else if (typeof value === 'number') {
+      output.push(`${name}={${value}}`);
+    } else if (typeof value === 'function') {
+      output.push(`${name}={${value.name || 'Function'}}`);
+    } else if (!isValidElement(value)) {
+      output.push(`${name}={${JSON.stringify(value)}}`);
+    }
+  }
+  return output.join(' ');
 }
 
 const StyledSticky = styled(Sticky)`
   background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.initial};
-  &[data-stuck='true'] {
-    box-shadow: 0px 10px 20px -8px rgba(128, 128, 128, 0.89);
-  }
+  top: 52px;
 `;
 
-// Large scroll margin top due to sticky header
-const SectionHeader = styled('h5')`
-  margin-block: ${space(2)};
-  scroll-margin-top: 96px;
+const Pre = styled('pre')`
+  margin: calc(${p => p.theme.space.md} * -1) calc(${p => p.theme.space.lg} * -1);
+  margin-bottom: 0;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+`;
+const Line = styled('div')`
+  min-height: 1lh;
 `;
 
-const Grid = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const Cell = styled('div')`
+const Cell = styled('button')`
+  background: none;
   display: flex;
-  gap: ${space(1)};
+  width: 100%;
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   cursor: pointer;
+  text-align: left;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 `;

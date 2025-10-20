@@ -10,7 +10,6 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_produ
 from arroyo.types import BrokerValue, Partition
 from arroyo.types import Topic as ArroyoTopic
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -22,7 +21,7 @@ class SingletonProducer:
     A Kafka producer that can be instantiated as a global
     variable/singleton/service.
 
-    It is supposed to be used in Celery tasks, where we want to flush the
+    It is supposed to be used in tasks, where we want to flush the
     producer on process shutdown.
     """
 
@@ -75,7 +74,7 @@ def get_arroyo_producer(
     additional_config: dict | None = None,
     exclude_config_keys: list[str] | None = None,
     **kafka_producer_kwargs,
-) -> KafkaProducer | None:
+) -> KafkaProducer:
     """
     Get an arroyo producer for a given topic.
 
@@ -87,13 +86,8 @@ def get_arroyo_producer(
         **kafka_producer_kwargs: Additional keyword arguments passed to KafkaProducer
 
     Returns:
-        KafkaProducer if the producer is rolled out, None otherwise
+        KafkaProducer
     """
-    # Check if this producer is rolled out via feature flag
-    rollout_config = options.get("arroyo.producer.factory-rollout", {})
-    if not rollout_config.get(name, False):
-        return None
-
     topic_definition = get_topic_definition(topic)
 
     producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])

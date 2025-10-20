@@ -43,6 +43,9 @@ describe('WidgetBuilder', () => {
     );
 
     await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
+
+    // trigger blur
+    await userEvent.tab();
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,
@@ -57,6 +60,9 @@ describe('WidgetBuilder', () => {
       await screen.findByPlaceholderText('Description'),
       'some description'
     );
+
+    // trigger blur
+    await userEvent.tab();
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,

@@ -5,20 +5,15 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 
 
 @instrumented_task(
     name="sentry.tasks.clear_expired_resolutions",
-    time_limit=15,
-    soft_time_limit=10,
+    namespace=issues_tasks,
+    processing_deadline_duration=15,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=15,
-    ),
 )
 def clear_expired_resolutions(release_id):
     """
@@ -26,7 +21,7 @@ def clear_expired_resolutions(release_id):
     the system that any pending resolutions older than the given release can now
     be safely transitioned to resolved.
 
-    This is currently only used for ``in_next_release`` and ``in_upcoming_release`` resolutions.
+    This is currently only used for ``in_next_release`` resolution.
     """
     try:
         release = Release.objects.get(id=release_id)
@@ -35,9 +30,7 @@ def clear_expired_resolutions(release_id):
 
     resolution_list = list(
         GroupResolution.objects.filter(
-            Q(type=GroupResolution.Type.in_next_release)
-            | Q(type__isnull=True)
-            | Q(type=GroupResolution.Type.in_upcoming_release),
+            Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
             release__projects__in=[p.id for p in release.projects.all()],
             release__date_added__lt=release.date_added,
             status=GroupResolution.Status.pending,

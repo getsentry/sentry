@@ -1,12 +1,10 @@
 import {useCallback, useMemo} from 'react';
 
 import type {DateString} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   isGroupBy as isLegacyGroupBy,
@@ -24,11 +22,24 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
+export type ExploreQueryChangedReason = {
+  columns: string[];
+  equations: Array<{
+    equation: string;
+    reason: string | string[];
+  }> | null;
+  orderby: Array<{
+    orderby: string;
+    reason: string | string[];
+  }> | null;
+};
+
 // Request payload type that matches the backend ExploreSavedQuerySerializer
 type ExploreSavedQueryRequest = {
   dataset: 'logs' | 'spans' | 'segment_spans';
   name: string;
   projects: number[];
+  changedReason?: ExploreQueryChangedReason;
   end?: DateString;
   environment?: string[];
   interval?: string;
@@ -113,7 +124,10 @@ function useCreateOrUpdateSavedQuery(id?: string) {
         `/organizations/${organization.slug}/explore/saved/${id}/`,
         {
           method: 'PUT',
-          data,
+          data: {
+            ...data,
+            dataset: data.dataset === 'segment_spans' ? 'spans' : data.dataset,
+          },
         }
       );
       invalidateSavedQueries();
@@ -142,6 +156,9 @@ export function useFromSavedQuery() {
           method: 'POST',
           data: {
             ...savedQuery,
+            // we want to make sure no new queries are saved with the segment_spans dataset
+            dataset:
+              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
           },
         }
       );
@@ -159,6 +176,9 @@ export function useFromSavedQuery() {
           method: 'PUT',
           data: {
             ...savedQuery,
+            // we want to make sure queries are locked in as spans once they're updated
+            dataset:
+              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
           },
         }
       );
@@ -174,21 +194,19 @@ export function useFromSavedQuery() {
 export function useLogsSaveQuery() {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
-  const logsParams = useLogsPageParams();
   const queryParams = useQueryParams();
-  const {id, title} = logsParams;
+  const {id, title} = queryParams;
 
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
     return convertLogsPageParamsToRequest({
-      logsParams,
       queryParams,
       pageFilters,
       interval,
       title: title ?? '',
     });
-  }, [logsParams, queryParams, pageFilters, interval, title]);
+  }, [queryParams, pageFilters, interval, title]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -226,16 +244,14 @@ function convertExplorePageParamsToRequest(
       return true;
     })
     .map(aggregateField => {
-      return isLegacyVisualize(aggregateField)
-        ? defined(aggregateField.selectedChartType)
-          ? {
-              yAxes: [aggregateField.yAxis],
-              chartType: aggregateField.selectedChartType,
-            }
-          : {
-              yAxes: [aggregateField.yAxis],
-            }
-        : {groupBy: aggregateField.groupBy};
+      if (isLegacyVisualize(aggregateField)) {
+        const json = aggregateField.toJSON();
+        return {
+          ...json,
+          yAxes: [...json.yAxes],
+        };
+      }
+      return {groupBy: aggregateField.groupBy};
     });
 
   return {
@@ -260,14 +276,12 @@ function convertExplorePageParamsToRequest(
 }
 
 function convertLogsPageParamsToRequest({
-  logsParams,
   queryParams,
   pageFilters,
   interval,
   title,
 }: {
   interval: string;
-  logsParams: ReturnType<typeof useLogsPageParams>;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
   title: string;
@@ -276,7 +290,7 @@ function convertLogsPageParamsToRequest({
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
 
-  const {sortBys, fields, search, mode} = logsParams;
+  const {sortBys, fields, search, mode} = queryParams;
   const query = search?.formatString() ?? '';
 
   const aggregateFields = queryParams.aggregateFields
@@ -292,14 +306,10 @@ function convertLogsPageParamsToRequest({
       }
 
       if (isVisualize(aggregateField)) {
-        if (defined(aggregateField.selectedChartType)) {
-          return {
-            yAxes: [aggregateField.yAxis],
-            chartType: aggregateField.selectedChartType,
-          };
-        }
+        const serialized = aggregateField.serialize();
         return {
-          yAxes: [aggregateField.yAxis],
+          ...serialized,
+          yAxes: [...serialized.yAxes],
         };
       }
 

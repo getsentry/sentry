@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -15,29 +14,24 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
 import type {WebVital} from 'sentry/utils/fields';
 import Histogram from 'sentry/utils/performance/histogram';
 import {FILTER_OPTIONS} from 'sentry/utils/performance/histogram/constants';
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 import {makeVitalGroups, makeZoomKeys} from './constants';
 import {isMissingVitalsData} from './utils';
 import VitalsPanel from './vitalsPanel';
 
-type Props = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-};
-
-function VitalsContent(props: Props) {
-  const {location, organization, eventView} = props;
+function VitalsContent() {
+  const {organization, eventView} = useTransactionSummaryContext();
   const theme = useTheme();
+  const location = useLocation();
   const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
   const handleSearch = (newQuery: string) => {
@@ -116,8 +110,7 @@ function VitalsContent(props: Props) {
                         });
                         handleFilterChange(opt.value);
                       }}
-                      triggerProps={{prefix: t('Outliers')}}
-                      triggerLabel={activeFilter.label}
+                      triggerProps={{prefix: t('Outliers'), children: activeFilter.label}}
                     />
                     <Button
                       onClick={() => {
@@ -134,7 +127,6 @@ function VitalsContent(props: Props) {
                     </Button>
                   </FilterActions>
                   <VitalsPanel
-                    theme={theme}
                     organization={organization}
                     location={location}
                     eventView={eventView}

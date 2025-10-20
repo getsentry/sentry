@@ -47,7 +47,7 @@ class Buffer(Service):
         filters: dict[str, Any],
     ) -> dict[str, int]:
         """
-        We can't fetch values from Celery, so just assume buffer values are all 0 here.
+        We can't fetch values from tasks, so just assume buffer values are all 0 here.
         """
         return {col: 0 for col in columns}
 

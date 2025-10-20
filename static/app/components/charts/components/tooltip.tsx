@@ -2,10 +2,11 @@ import 'echarts/lib/component/tooltip';
 
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
+import type {TooltipComponentFormatterCallback} from 'echarts';
 import moment from 'moment-timezone';
 
 import type BaseChart from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
@@ -348,7 +349,7 @@ export function computeChartTooltip(
     ...props
   }: Props,
   theme: Theme
-): TooltipComponentOption {
+): BaseChartProps['tooltip'] {
   formatter =
     formatter ||
     getFormatter({
@@ -394,7 +395,7 @@ export function computeChartTooltip(
       const [tipWidth, tipHeight] = size.contentSize;
 
       let parentNode: Element = document.body;
-      if (dom.parentNode instanceof Element) {
+      if (dom?.parentNode instanceof Element) {
         parentNode = dom.parentNode;
       }
 
@@ -427,7 +428,7 @@ export function computeChartTooltip(
         arrowPosition = '50%';
       }
 
-      const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
+      const arrow = dom?.querySelector<HTMLDivElement>('.tooltip-arrow');
       if (arrow) {
         arrow.style.left = arrowPosition;
       }
@@ -446,7 +447,7 @@ export function computeChartTooltip(
   };
 }
 
-export function ChartTooltip(props: Props = {}): TooltipComponentOption {
+export function ChartTooltip(props: Props = {}): BaseChartProps['tooltip'] {
   const theme = useTheme();
   return computeChartTooltip(props, theme);
 }

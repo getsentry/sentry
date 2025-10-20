@@ -212,6 +212,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
+    const hasPreventBilling = organizations.some(organization =>
+      organization.features?.includes('prevent-billing')
+    );
+
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
     const includeSpans = hasOrgWithAm3;
     const includeProfileDuration =
@@ -236,6 +240,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
         return false;
       }
       if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
+        return false;
+      }
+      if (field.name.startsWith('quotaPrevent') && !hasPreventBilling) {
         return false;
       }
       return true;

@@ -9,7 +9,12 @@ import type {
 } from 'sentry/views/preprod/types/appSizeTypes';
 
 type FileTypeData =
-  | {fileType: 'optimizable_image'; originalFile: OptimizableImageFile}
+  | {
+      conversionPercentage: number;
+      fileType: 'optimizable_image';
+      minifyPercentage: number;
+      originalFile: OptimizableImageFile;
+    }
   | {fileType: 'strip_binary'; originalFile: StripBinaryFileInfo}
   | {fileType: 'regular'; originalFile: FileSavingsResult};
 
@@ -39,7 +44,7 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     key: 'image_optimization',
     name: 'Optimize images',
     description:
-      'We determine how much size could be saved if images were compressed. In some cases you can convert to WebP for better compression.',
+      'We determine how much size could be saved if images were optimized. In some cases you can convert to HEIC for better compression.',
   },
   {
     key: 'duplicate_files',
@@ -113,6 +118,12 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     name: 'Compress video files',
     description: 'Video files can be compressed to reduce size.',
   },
+  {
+    key: 'alternate_icons_optimization',
+    name: 'Optimize alternate app icons',
+    description:
+      'Alternate icons don’t need full size quality because they are only shown downscaled in the homescreen.',
+  },
 ];
 
 /**
@@ -148,6 +159,42 @@ export function processInsights(
             percentage: (maxSavings / totalSize) * 100,
             data: {
               fileType: 'optimizable_image' as const,
+              minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
+              conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
+              originalFile: file,
+            },
+          };
+        }),
+      });
+    }
+  }
+
+  if (insights.alternate_icons_optimization?.total_savings) {
+    const insight = insights.alternate_icons_optimization;
+    const config = INSIGHT_CONFIGS.find(c => c.key === 'alternate_icons_optimization');
+    if (config) {
+      const optimizableFiles = Array.isArray(insight.optimizable_files)
+        ? insight.optimizable_files
+        : [];
+
+      processedInsights.push({
+        name: config.name,
+        description: config.description,
+        totalSavings: insight.total_savings,
+        percentage: (insight.total_savings / totalSize) * 100,
+        files: optimizableFiles.map((file: OptimizableImageFile) => {
+          const maxSavings = Math.max(
+            file.minify_savings || 0,
+            file.conversion_savings || 0
+          );
+          return {
+            path: file.file_path,
+            savings: maxSavings,
+            percentage: (maxSavings / totalSize) * 100,
+            data: {
+              fileType: 'optimizable_image' as const,
+              minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
+              conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
               originalFile: file,
             },
           };

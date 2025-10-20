@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout from '@r4ai/remark-callout';
+import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -213,6 +213,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
+              experimental_rewrite_emotion_styled: process.env.NODE_ENV === 'development',
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -318,7 +319,22 @@ const appConfig: Configuration = {
                 remarkFrontmatter,
                 remarkMdxFrontmatter,
                 remarkGfm,
-                remarkCallout,
+                [
+                  remarkCallout,
+                  {
+                    root: (callout: Callout) => {
+                      return {
+                        tagName: 'Callout',
+                        properties: {
+                          title: callout.title,
+                          type: callout.type.toLowerCase(),
+                          isFoldable: callout.isFoldable ?? false,
+                          defaultFolded: callout.defaultFolded ?? false,
+                        },
+                      };
+                    },
+                  },
+                ],
               ],
               rehypePlugins: [
                 [
@@ -491,7 +507,7 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      ui: path.join(staticPrefix, 'app', 'components', 'core'),
+      '@sentry/scraps': path.join(staticPrefix, 'app', 'components', 'core'),
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
@@ -602,6 +618,9 @@ if (
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
+      // since ngrok urls are public and can be accessed by anyone.
+      // '.ngrok.io',
     ],
     static: {
       directory: './src/sentry/static/sentry',
@@ -697,7 +716,7 @@ if (IS_UI_DEV_ONLY) {
   // - static/index.ejs
   // - static/app/utils/extractSlug.tsx
   const KNOWN_DOMAINS =
-    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
+    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
     const match = hostname.match(KNOWN_DOMAINS);
@@ -775,7 +794,7 @@ if (IS_UI_DEV_ONLY) {
           '^/region/[^/]*': '',
         },
         router: (req: any) => {
-          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionPathPattern = /^\/region\/([^/]+)/;
           const regionname = req.path.match(regionPathPattern);
           if (regionname) {
             return `https://${regionname[1]}.sentry.io`;

@@ -75,6 +75,7 @@ function getSentryIntegrations() {
       behaviour: 'apply-tag-if-contains-third-party-frames',
     }),
     Sentry.featureFlagsIntegration(),
+    Sentry.consoleLoggingIntegration(),
   ];
 
   return integrations;
@@ -192,6 +193,9 @@ export function initializeSdk(config: Config) {
     },
     enableLogs: true,
     sendDefaultPii: true,
+    _experiments: {
+      enableMetrics: true,
+    },
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations

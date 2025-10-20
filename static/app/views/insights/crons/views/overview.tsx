@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/core/button';
@@ -94,9 +96,14 @@ function CronsOverview() {
     });
   };
 
-  function handleDismissError(errortype: ProcessingErrorType, projectId: string) {
-    deleteProjectProcessingErrorByType(api, organization.slug, projectId, errortype);
-    refetchErrors();
+  async function handleDismissError(errorType: ProcessingErrorType, projectId: string) {
+    await deleteProjectProcessingErrorByType(
+      api,
+      organization.slug,
+      projectId,
+      errorType
+    );
+    await refetchErrors();
   }
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
@@ -132,7 +139,7 @@ function CronsOverview() {
             </Button>
             {showAddMonitor && (
               <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
-                {t('Add Monitor')}
+                {t('Add Cron Monitor')}
               </NewMonitorButton>
             )}
           </ButtonBar>
@@ -165,14 +172,16 @@ function CronsOverview() {
             />
           </Filters>
           {!!processingErrors?.length && (
-            <MonitorProcessingErrors
-              checkinErrors={processingErrors}
-              onDismiss={handleDismissError}
-            >
-              {t(
-                'Errors were encountered while ingesting check-ins for the selected projects'
-              )}
-            </MonitorProcessingErrors>
+            <Alert.Container>
+              <MonitorProcessingErrors
+                checkinErrors={processingErrors}
+                onDismiss={handleDismissError}
+              >
+                {t(
+                  'Errors were encountered while ingesting check-ins for the selected projects'
+                )}
+              </MonitorProcessingErrors>
+            </Alert.Container>
           )}
           {isPending ? (
             <LoadingIndicator />

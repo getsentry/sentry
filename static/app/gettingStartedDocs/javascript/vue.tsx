@@ -1,7 +1,7 @@
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   ContentBlock,
   Docs,
@@ -12,7 +12,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
@@ -148,6 +148,26 @@ const installSnippetBlock: ContentBlock = {
   ],
 };
 
+const getSetupCodeBlock = (params: Params): ContentBlock => {
+  const siblingOption = params.platformOptions.siblingOption;
+  const sentryInitLayout = getSentryInitLayout(params, siblingOption);
+  return {
+    type: 'code',
+    tabs: [
+      {
+        label: 'JavaScript',
+        language: 'javascript',
+        code: `${getSiblingImportsSetupConfiguration(siblingOption)}
+  import * as Sentry from "@sentry/vue";
+  ${getVueConstSetup(siblingOption)}
+  ${sentryInitLayout}
+
+  ${getSiblingSuffix(siblingOption)}`,
+      },
+    ],
+  };
+};
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
@@ -182,16 +202,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getSetupConfiguration(params)[0]?.code || '',
-            },
-          ],
-        },
+        getSetupCodeBlock(params),
       ],
     },
     getUploadSourceMapsStep({
@@ -296,24 +307,6 @@ function getVueConstSetup(siblingOption: string): string {
   }
 }
 
-function getSetupConfiguration(params: Params) {
-  const siblingOption = params.platformOptions.siblingOption;
-  const sentryInitLayout = getSentryInitLayout(params, siblingOption);
-  const configuration = [
-    {
-      language: 'javascript',
-      code: `${getSiblingImportsSetupConfiguration(siblingOption)}
-          import * as Sentry from "@sentry/vue";
-          ${getVueConstSetup(siblingOption)}
-          ${sentryInitLayout}
-
-          ${getSiblingSuffix(siblingOption)}`,
-    },
-  ];
-
-  return configuration;
-}
-
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
@@ -335,11 +328,16 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
-      }),
-      configurations: getSetupConfiguration(params),
-      additionalInfo: <TracePropagationMessage />,
+      content: [
+        {
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
+          }),
+        },
+        getSetupCodeBlock(params),
+        tracePropagationBlock,
+      ],
     },
   ],
   verify: getReplayVerifyStep(),
@@ -367,18 +365,21 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/vue";`,
@@ -388,10 +389,13 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
+        {
+          type: 'custom',
+          content: crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/#crash-report-modal',
+          }),
+        },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/#crash-report-modal',
-      }),
     },
   ],
   verify: () => [],
@@ -400,16 +404,21 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        widgetCalloutBlock({
+          link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/#user-feedback-widget',
+        }),
+      ],
     },
   ],
   verify: () => [],

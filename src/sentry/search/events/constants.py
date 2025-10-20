@@ -301,6 +301,20 @@ OPERATOR_NEGATION_MAP = {
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
+# This is a unicode character from the reserved space of unicode characters, see:
+# https://en.wikipedia.org/wiki/Private_Use_Areas for more details.
+#
+# We use this character as a prefix and suffix with our wildcard operators to avoid
+# introducing breaking changes, and leave the possibility open down to the road to add in
+# new operators.
+WILDCARD_UNICODE = "\uf00d"
+
+WILDCARD_OPERATOR_MAP = {
+    "contains": f"{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}",
+    "starts_with": f"{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}",
+    "ends_with": f"{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}",
+}
+
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])

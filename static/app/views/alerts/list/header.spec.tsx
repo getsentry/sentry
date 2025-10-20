@@ -12,19 +12,16 @@ describe('AlertHeader', () => {
   const {organization} = initializeOrg();
   beforeEach(() => {
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
   });
@@ -35,7 +32,7 @@ describe('AlertHeader', () => {
     });
     expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/alerts/wizard/?referrer=alert_stream&project=project-slug'
+      '/organizations/org-slug/issues/alerts/wizard/?referrer=alert_stream&project=project-slug'
     );
   });
 });

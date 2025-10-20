@@ -15,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -34,7 +35,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
-from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
@@ -69,7 +70,18 @@ workflow_search_config = SearchConfig.create_from(
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
 
 
+class OrganizationWorkflowPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
+        "POST": ["org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:write", "org:admin", "alerts:write"],
+    }
+
+
 class OrganizationWorkflowEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationWorkflowPermission,)
+
     def convert_args(self, request: Request, workflow_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
@@ -91,6 +103,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    permission_classes = (OrganizationWorkflowPermission,)
 
     def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:
         """

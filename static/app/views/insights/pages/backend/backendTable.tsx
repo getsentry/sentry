@@ -6,6 +6,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -79,21 +80,25 @@ const COLUMN_ORDER: Column[] = [
     key: 'epm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
     key: `p50(span.duration)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p50,
   },
   {
     key: 'p95(span.duration)',
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p95,
   },
   {
     key: 'failure_rate()',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.failureRate,
   },
   {
     key: 'count_unique(user)',
@@ -153,6 +158,9 @@ export function BackendOverviewTable({response, sort}: Props) {
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+  });
 
   return (
     <VisuallyCompleteWithData
@@ -165,7 +173,7 @@ export function BackendOverviewTable({response, sort}: Props) {
         isLoading={isLoading}
         error={response.error}
         data={data}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field,
@@ -183,6 +191,7 @@ export function BackendOverviewTable({response, sort}: Props) {
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization, theme),
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

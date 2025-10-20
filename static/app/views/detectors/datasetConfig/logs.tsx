@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
@@ -14,15 +15,19 @@ import {
   getEapTimePeriodsForInterval,
   MetricDetectorInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+import {
+  translateAggregateTag,
+  translateAggregateTagBack,
+} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 
 import type {DetectorDatasetConfig} from './base';
-import {parseEventTypesFromQuery} from './eventTypes';
 
 type LogsSeriesRepsonse = EventsStats;
 
 const DEFAULT_EVENT_TYPES = [EventTypes.TRACE_ITEM_LOG];
 
 export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
+  name: t('Logs'),
   SearchBar: TraceSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: LogsConfig.defaultField,
@@ -40,8 +45,9 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
     return intervals.filter(interval => interval > MetricDetectorInterval.ONE_MINUTE);
   },
   getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
-  separateEventTypesFromQuery: query =>
-    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  separateEventTypesFromQuery: query => {
+    return {eventTypes: [EventTypes.TRACE_ITEM_LOG], query};
+  },
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
@@ -49,8 +55,12 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
-  fromApiAggregate: aggregate => aggregate,
-  toApiAggregate: aggregate => aggregate,
+  fromApiAggregate: aggregate => {
+    return translateAggregateTag(aggregate);
+  },
+  toApiAggregate: aggregate => {
+    return translateAggregateTagBack(aggregate);
+  },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   getDiscoverDataset: () => DiscoverDatasets.OURLOGS,
 };

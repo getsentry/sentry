@@ -2,14 +2,15 @@ import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMon
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {UptimeChecksGrid} from 'sentry/views/alerts/rules/uptime/uptimeChecksGrid';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
-import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useUptimeIssueDetectorId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -31,13 +32,9 @@ export default function GroupUptimeChecks() {
   const canFetchUptimeChecks =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(detectorId);
 
-  const {data: uptimeRule} = useUptimeRule(
-    {
-      projectSlug: group?.project.slug ?? '',
-      detectorId: detectorId ?? '',
-    },
-    {enabled: canFetchUptimeChecks}
-  );
+  const {data: uptimeDetector} = useDetectorQuery<UptimeDetector>(detectorId ?? '', {
+    enabled: canFetchUptimeChecks,
+  });
 
   const {data: uptimeChecks, getResponseHeader} = useUptimeChecks(
     {
@@ -56,7 +53,7 @@ export default function GroupUptimeChecks() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  if (isGroupPending || uptimeChecks === undefined || uptimeRule === undefined) {
+  if (isGroupPending || uptimeChecks === undefined || uptimeDetector === undefined) {
     return <LoadingIndicator />;
   }
 
@@ -76,7 +73,10 @@ export default function GroupUptimeChecks() {
         previousDisabled,
       }}
     >
-      <UptimeChecksGrid uptimeRule={uptimeRule} uptimeChecks={uptimeChecks} />
+      <UptimeChecksGrid
+        traceSampling={uptimeDetector.dataSources[0].queryObj.traceSampling}
+        uptimeChecks={uptimeChecks}
+      />
     </EventListTable>
   );
 }

@@ -83,7 +83,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
-    "sentry.integrations.github.tasks.github_comment_reactions": 1.0,
 }
 
 SAMPLED_ROUTES = {
@@ -193,12 +192,6 @@ def traces_sampler(sampling_context):
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
 
-    if "celery_job" in sampling_context:
-        task_name = sampling_context["celery_job"].get("task")
-
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
-
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
 
@@ -305,6 +298,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
     sdk_options["add_full_stack"] = True
+    sdk_options["enable_http_request_source"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
@@ -315,6 +309,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         transport_http2=True,
         before_send_log=before_send_log,
         enable_logs=True,
+        enable_metrics=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -475,21 +470,10 @@ def configure_sdk():
             if sentry_saas_transport:
                 getattr(sentry_saas_transport, "flush")(timeout, callback)
 
-    from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
-
-    # exclude monitors with sub-minute schedules from using crons
-    exclude_beat_tasks = [
-        "deliver-from-outbox-control",
-        "deliver-webhooks-control",
-        "flush-buffers",
-        "sync-options",
-        "sync-options-control",
-        "schedule-digests",
-    ]
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
@@ -499,7 +483,6 @@ def configure_sdk():
         integrations=[
             DjangoAtomicIntegration(),
             DjangoIntegration(signals_spans=False, cache_spans=True),
-            CeleryIntegration(monitor_beat_tasks=True, exclude_beat_tasks=exclude_beat_tasks),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set

@@ -169,7 +169,6 @@ export default function StructuredEventData({
       {showCopyButton && (
         <StyledCopyButton
           borderless
-          iconSize="xs"
           onCopy={onCopy}
           size="xs"
           text={JSON.stringify(data, null, '\t')}

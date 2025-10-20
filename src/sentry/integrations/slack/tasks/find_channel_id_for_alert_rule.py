@@ -20,7 +20,6 @@ from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -30,11 +29,8 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 
 @instrumented_task(
     name="sentry.integrations.slack.tasks.search_channel_id_for_alert_rule",
-    queue="integrations",
+    namespace=integrations_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-    ),
 )
 def find_channel_id_for_alert_rule(
     organization_id: int,

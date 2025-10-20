@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
@@ -6,15 +7,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreFields,
-  useSetExploreGroupBys,
-  useSetExploreId,
-  useSetExploreMode,
   useSetExplorePageParams,
-  useSetExploreQuery,
-  useSetExploreSortBys,
-  useSetExploreTitle,
-  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
@@ -23,7 +16,25 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  useSetQueryParamsAggregateSortBys,
+  useSetQueryParamsFields,
+  useSetQueryParamsGroupBys,
+  useSetQueryParamsMode,
+  useSetQueryParamsQuery,
+  useSetQueryParamsSortBys,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 describe('defaults', () => {
   it('default', () => {
@@ -42,34 +53,32 @@ describe('defaults', () => {
 describe('PageParamsProvider', () => {
   let pageParams: ReturnType<typeof useExplorePageParams>;
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
-  let setFields: ReturnType<typeof useSetExploreFields>;
-  let setGroupBys: ReturnType<typeof useSetExploreGroupBys>;
-  let setMode: ReturnType<typeof useSetExploreMode>;
-  let setQuery: ReturnType<typeof useSetExploreQuery>;
-  let setSortBys: ReturnType<typeof useSetExploreSortBys>;
-  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
-  let setId: ReturnType<typeof useSetExploreId>;
-  let setTitle: ReturnType<typeof useSetExploreTitle>;
+  let setFields: ReturnType<typeof useSetQueryParamsFields>;
+  let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
+  let setMode: ReturnType<typeof useSetQueryParamsMode>;
+  let setQuery: ReturnType<typeof useSetQueryParamsQuery>;
+  let setSortBys: ReturnType<typeof useSetQueryParamsSortBys>;
+  let setAggregateSortBys: ReturnType<typeof useSetQueryParamsAggregateSortBys>;
+  let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function Component() {
     pageParams = useExplorePageParams();
     setPageParams = useSetExplorePageParams();
-    setFields = useSetExploreFields();
-    setGroupBys = useSetExploreGroupBys();
-    setMode = useSetExploreMode();
-    setQuery = useSetExploreQuery();
-    setSortBys = useSetExploreSortBys();
-    setVisualizes = useSetExploreVisualizes();
-    setId = useSetExploreId();
-    setTitle = useSetExploreTitle();
+    setFields = useSetQueryParamsFields();
+    setGroupBys = useSetQueryParamsGroupBys();
+    setMode = useSetQueryParamsMode();
+    setQuery = useSetQueryParamsQuery();
+    setSortBys = useSetQueryParamsSortBys();
+    setAggregateSortBys = useSetQueryParamsAggregateSortBys();
+    setVisualizes = useSetQueryParamsVisualizes();
     return <br />;
   }
 
   function renderTestComponent(defaultPageParams?: any) {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     act(() =>
@@ -94,9 +103,9 @@ describe('PageParamsProvider', () => {
 
   it('has expected default', () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     expect(pageParams).toEqual(
@@ -150,7 +159,7 @@ describe('PageParamsProvider', () => {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.self_time', 'browser.name', 'sdk.name'],
         mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -269,16 +278,14 @@ describe('PageParamsProvider', () => {
     );
   });
 
-  it('correctly updates mode from aggregates to sample with group bys', () => {
+  it('updates fields with managed group bys', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       sampleSortBys: null,
       aggregateSortBys: null,
-      fields: ['id', 'sdk.name', 'sdk.version', 'timestamp'],
+      fields: ['id', 'timestamp'],
       aggregateFields: [
-        {groupBy: 'sdk.name'},
-        {groupBy: 'sdk.version'},
-        {groupBy: 'span.op'},
+        {groupBy: 'span.description'},
         {groupBy: ''},
         {
           chartType: ChartType.AREA,
@@ -287,28 +294,19 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setMode(Mode.SAMPLES));
+    act(() => setGroupBys(['sdk.name', 'sdk.version']));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: [
-          'id',
-          'sdk.name',
-          'sdk.version',
-          'timestamp',
-          'span.self_time',
-          'span.op',
-        ],
-        mode: Mode.SAMPLES,
+        fields: ['id', 'timestamp', 'span.self_time', 'sdk.name', 'sdk.version'],
+        mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
           {groupBy: 'sdk.version'},
-          {groupBy: 'span.op'},
-          {groupBy: ''},
           new Visualize('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
@@ -398,7 +396,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -433,7 +431,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -468,7 +466,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'sdk.name', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'sdk.name', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -500,7 +498,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'sdk.version', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'sdk.version', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -528,7 +526,7 @@ describe('PageParamsProvider', () => {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -576,18 +574,6 @@ describe('PageParamsProvider', () => {
         ],
       })
     );
-  });
-
-  it('correctly updates id', () => {
-    renderTestComponent();
-    act(() => setId('123'));
-    expect(pageParams).toEqual(expect.objectContaining({id: '123'}));
-  });
-
-  it('correctly updates title', () => {
-    renderTestComponent();
-    act(() => setTitle('My Query'));
-    expect(pageParams).toEqual(expect.objectContaining({title: 'My Query'}));
   });
 
   it('manages inserting and deleting a column when added/removed', () => {
@@ -739,9 +725,9 @@ describe('PageParamsProvider', () => {
     });
 
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>,
+      </Wrapper>,
       {organization}
     );
 

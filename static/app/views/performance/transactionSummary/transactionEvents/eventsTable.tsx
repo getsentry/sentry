@@ -10,9 +10,9 @@ import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import type {GridColumn} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -43,7 +43,6 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -113,7 +112,7 @@ type Props = {
   }) => ReactNode;
 };
 
-function EventsTable({
+export default function EventsTable({
   eventView,
   location,
   organization,
@@ -135,7 +134,6 @@ function EventsTable({
   renderTableHeader,
 }: Props) {
   const api = useApi({persistInFlight: true});
-  const [widths, setWidths] = useState<number[]>([]);
   const [lastFetchedCursor, setLastFetchedCursor] = useState('');
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
   const [hasMinidumps, setHasMinidumps] = useState(false);
@@ -233,10 +231,6 @@ function EventsTable({
       if (field === 'id' || field === 'trace') {
         const isIssue = !!issueId;
         let target: LocationDescriptor = {};
-        const locationWithTab = {
-          ...location,
-          query: {...location.query, tab: Tab.EVENTS},
-        };
         if (isIssue && !isRegressionIssue && field === 'id') {
           target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
         } else {
@@ -245,7 +239,7 @@ function EventsTable({
               traceSlug: dataRow.trace?.toString()!,
               eventId: dataRow.id,
               timestamp: dataRow.timestamp!,
-              location: locationWithTab,
+              location,
               organization,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
               view: domainViewFilters?.view,
@@ -254,7 +248,7 @@ function EventsTable({
             target = generateTraceLink(transactionName, domainViewFilters?.view)(
               organization,
               dataRow,
-              locationWithTab
+              location
             );
           }
         }
@@ -468,19 +462,6 @@ function EventsTable({
     [renderHeadCell, initialColumnTitles]
   );
 
-  const handleResizeColumn = useCallback(
-    (columnIndex: number, nextColumn: GridColumn) => {
-      setWidths(prevWidths => {
-        const newWidths = [...prevWidths];
-        newWidths[columnIndex] = nextColumn.width
-          ? Number(nextColumn.width)
-          : COL_WIDTH_UNDEFINED;
-        return newWidths;
-      });
-    },
-    []
-  );
-
   const joinCustomData = useCallback(
     (tableData: TableData | null) => {
       if (!tableData?.data) {
@@ -534,17 +515,13 @@ function EventsTable({
       (col: TableColumn<string | number>) => col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
     );
 
-  const columnOrder = eventView
-    .getColumns()
-    .filter((col: TableColumn<string | number>) =>
-      shouldRenderColumn(containsSpanOpsBreakdown, col.name)
-    )
-    .map((col: TableColumn<string | number>, i: number) => {
-      if (typeof widths[i] === 'number') {
-        return {...col, width: widths[i]};
-      }
-      return col;
-    });
+  const {columns, handleResizeColumn} = useStateBasedColumnResize({
+    columns: eventView.getColumns(),
+  });
+
+  const columnOrder = columns.filter((col: TableColumn<string | number>) =>
+    shouldRenderColumn(containsSpanOpsBreakdown, col.name)
+  );
 
   if (customColumns?.includes('attachments') && attachments.length) {
     columnOrder.push({
@@ -663,5 +640,3 @@ const StyledIconQuestion = styled(QuestionTooltip)`
   top: 1px;
   left: 4px;
 `;
-
-export default EventsTable;

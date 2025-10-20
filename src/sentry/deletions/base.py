@@ -254,7 +254,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             model_name = type(instance).__name__
             if not _leaf_re.search(model_name):
                 self.logger.info(
-                    "object.delete.executed",
+                    f"object.delete.executed ({model_name})",
                     extra={
                         "object_id": instance_id,
                         "transaction_id": self.transaction_id,
@@ -302,7 +302,7 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
             model_name = self.model.__name__
             if not _leaf_re.search(model_name):
                 self.logger.info(
-                    "object.delete.bulk_executed",
+                    f"object.delete.bulk_executed ({model_name})",
                     extra=dict(
                         {
                             "transaction_id": self.transaction_id,

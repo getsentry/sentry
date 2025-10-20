@@ -1,11 +1,7 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -15,7 +11,6 @@ import {
   useProgressiveQuery,
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/usePageFilters');
 
@@ -40,17 +35,6 @@ function useMockHookImpl({
 
   return {
     result,
-  };
-}
-
-function createWrapper(org: Organization) {
-  return function TestWrapper({children}: {children: React.ReactNode}) {
-    const queryClient = makeTestQueryClient();
-    return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
   };
 }
 
@@ -98,23 +82,17 @@ describe('useProgressiveQuery', () => {
           },
         ],
       });
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-            queryOptions: {
-              canTriggerHighAccuracy: results => {
-                // Simulate checking if there is data and more data is available
-                return (
-                  defined(results.data) && results.data.meta.dataScanned === 'partial'
-                );
-              },
+      renderHookWithProviders(() =>
+        useProgressiveQuery({
+          queryHookImplementation: useMockHookImpl,
+          queryHookArgs: {enabled: true, query: 'test value'},
+          queryOptions: {
+            canTriggerHighAccuracy: results => {
+              // Simulate checking if there is data and more data is available
+              return defined(results.data) && results.data.meta.dataScanned === 'partial';
             },
-          }),
-        {
-          wrapper: createWrapper(OrganizationFixture()),
-        }
+          },
+        })
       );
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -155,21 +133,17 @@ describe('useProgressiveQuery', () => {
           },
         ],
       });
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-            queryOptions: {
-              canTriggerHighAccuracy: () => {
-                // Simulate that this callback returned false for whatever reason
-                return false;
-              },
+      renderHookWithProviders(() =>
+        useProgressiveQuery({
+          queryHookImplementation: useMockHookImpl,
+          queryHookArgs: {enabled: true, query: 'test value'},
+          queryOptions: {
+            canTriggerHighAccuracy: () => {
+              // Simulate that this callback returned false for whatever reason
+              return false;
             },
-          }),
-        {
-          wrapper: createWrapper(OrganizationFixture()),
-        }
+          },
+        })
       );
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);

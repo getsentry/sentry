@@ -6,13 +6,13 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -45,32 +45,41 @@ module.exports = async function (context, req) {
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+    tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
     }),
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Node SDK as a dependency:'),
-      configurations: getInstallConfig(params),
+      content: [
+        {
+          type: 'text',
+          text: t('Add the Sentry Node SDK as a dependency:'),
+        },
+        getInstallCodeBlock(params),
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements.',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          description: tct(
+          type: 'text',
+          text: tct(
+            'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'Note: You need to call both [code:captureException] and [code:flush] for captured events to be successfully delivered to Sentry.',
             {code: <code />}
           ),
         },
         {
+          type: 'code',
           language: 'javascript',
           code: getSdkSetupSnippet(params),
         },
@@ -103,13 +112,18 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/azure-functions/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/azure-functions/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

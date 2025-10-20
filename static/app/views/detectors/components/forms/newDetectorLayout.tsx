@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
+import type {FormProps} from 'sentry/components/forms/form';
 import type {Data} from 'sentry/components/forms/types';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import type {
@@ -11,6 +13,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
@@ -18,6 +21,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   detectorType: DetectorType;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
+  mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
 
@@ -28,11 +32,14 @@ export function NewDetectorLayout<
   children,
   formDataToEndpointPayload,
   initialFormData,
+  mapFormErrors,
   previewChart,
   detectorType,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
   const location = useLocation();
   const {projects} = useProjects();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     formDataToEndpointPayload,
@@ -58,17 +65,22 @@ export function NewDetectorLayout<
     projects,
   ]);
 
-  const formProps = {
+  const formProps: FormProps = {
     initialData,
     onSubmit: formSubmitHandler,
+    mapFormErrors,
   };
 
   return (
     <EditLayout formProps={formProps}>
-      <EditLayout.Header noActionWrap>
+      <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs detectorType={detectorType} />
         </EditLayout.HeaderContent>
+
+        <div>
+          <MonitorFeedbackButton />
+        </div>
 
         <EditLayout.HeaderFields>
           <DetectorBaseFields />
@@ -76,9 +88,9 @@ export function NewDetectorLayout<
         </EditLayout.HeaderFields>
       </EditLayout.Header>
 
-      <EditLayout.Body>{children}</EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-      <NewDetectorFooter />
+      <NewDetectorFooter maxWidth={maxWidth} />
     </EditLayout>
   );
 }

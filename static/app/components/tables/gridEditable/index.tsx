@@ -64,9 +64,13 @@ type ColResizeMetadata = {
   cursorX: number; // X-coordinate of cursor on window
 };
 
-type GridEditableProps<DataRow, ColumnKey> = {
-  columnOrder: Array<GridColumnOrder<ColumnKey>>;
-  columnSortBy: Array<GridColumnSortBy<ColumnKey>>;
+type GridEditableProps<
+  DataRow,
+  Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
+  SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
+> = {
+  columnOrder: Order[];
+  columnSortBy: SortBy[];
   data: DataRow[];
 
   /**
@@ -74,21 +78,15 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * data within it. Note that this is optional.
    */
   grid: {
-    onResizeColumn?: (
-      columnIndex: number,
-      nextColumn: GridColumnOrder<ColumnKey>
-    ) => void;
+    onResizeColumn?: (columnIndex: number, nextColumn: Order) => void;
     prependColumnWidths?: string[];
     renderBodyCell?: (
-      column: GridColumnOrder<ColumnKey>,
+      column: Order,
       dataRow: DataRow,
       rowIndex: number,
       columnIndex: number
     ) => React.ReactNode;
-    renderHeadCell?: (
-      column: GridColumnOrder<ColumnKey>,
-      columnIndex: number
-    ) => React.ReactNode;
+    renderHeadCell?: (column: Order, columnIndex: number) => React.ReactNode;
     renderPrependColumns?: (
       isHeader: boolean,
       dataRow?: DataRow,
@@ -101,6 +99,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
   error?: unknown | null;
 
   fit?: 'max-content';
+  getRowAriaLabel?: (row: DataRow) => string | undefined;
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
@@ -113,7 +112,9 @@ type GridEditableProps<DataRow, ColumnKey> = {
 
   isLoading?: boolean;
 
+  isRowClickable?: (row: DataRow) => boolean;
   minimumColWidth?: number;
+  onRowClick?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   /**
@@ -141,14 +142,15 @@ type GridEditableState = {
   numColumn: number;
 };
 
-class GridEditable<
+export default class GridEditable<
   DataRow extends Record<string, any>,
-  ColumnKey extends ObjectKey,
-> extends Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
+  Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
+  SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
+> extends Component<GridEditableProps<DataRow, Order, SortBy>, GridEditableState> {
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
-  static getDerivedStateFromProps(
-    props: Readonly<GridEditableProps<Record<string, any>, ObjectKey>>,
+  static getDerivedStateFromProps<DataRow = Record<string, any>>(
+    props: Readonly<GridEditableProps<DataRow>>,
     prevState: GridEditableState
   ): GridEditableState {
     return {
@@ -157,7 +159,7 @@ class GridEditable<
     };
   }
 
-  constructor(props: GridEditableProps<DataRow, ColumnKey>) {
+  constructor(props: GridEditableProps<DataRow, Order, SortBy>) {
     super(props);
     this.onResetColumnSize = this.onResetColumnSize.bind(this);
     this.onResizeMouseDown = this.onResizeMouseDown.bind(this);
@@ -303,7 +305,7 @@ class GridEditable<
   /**
    * Set the CSS for Grid Column
    */
-  setGridTemplateColumns(columnOrder: GridColumnOrder[]) {
+  setGridTemplateColumns(columnOrder: Order[]) {
     const grid = this.refGrid.current;
     if (!grid) {
       return;
@@ -359,7 +361,7 @@ class GridEditable<
           columnOrder.map((column, i) => (
             <GridHeadCell
               data-test-id="grid-head-cell"
-              key={`${i}.${column.key}`}
+              key={`${i}.${String(column.key)}`}
               isFirst={i === 0}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
@@ -397,8 +399,16 @@ class GridEditable<
   }
 
   renderGridBodyRow(dataRow: DataRow, row: number) {
-    const {columnOrder, grid, onRowMouseOver, onRowMouseOut, highlightedRowKey} =
-      this.props;
+    const {
+      columnOrder,
+      grid,
+      onRowMouseOver,
+      onRowMouseOut,
+      highlightedRowKey,
+      onRowClick,
+      isRowClickable,
+      getRowAriaLabel,
+    } = this.props;
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(false, dataRow, row)
       : [];
@@ -408,9 +418,16 @@ class GridEditable<
         key={row}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
+        onClick={event => onRowClick?.(dataRow, row, event)}
         data-test-id="grid-body-row"
+        isClickable={isRowClickable?.(dataRow)}
+        aria-label={getRowAriaLabel?.(dataRow)}
       >
-        <InteractionStateLayer isHovered={row === highlightedRowKey} as="td" />
+        <InteractionStateLayer
+          isHovered={row === highlightedRowKey}
+          isPressed={false}
+          as="td"
+        />
 
         {prependColumns?.map((item, i) => (
           <GridBodyCellStatic data-test-id="grid-body-cell" key={`prepend-${i}`}>
@@ -418,7 +435,7 @@ class GridEditable<
           </GridBodyCellStatic>
         ))}
         {columnOrder.map((col, i) => (
-          <GridBodyCell data-test-id="grid-body-cell" key={`${col.key}${i}`}>
+          <GridBodyCell data-test-id="grid-body-cell" key={`${String(col.key)}${i}`}>
             {grid.renderBodyCell
               ? grid.renderBodyCell(col, dataRow, row, i)
               : dataRow[col.key as string]}
@@ -504,5 +521,3 @@ class GridEditable<
     );
   }
 }
-
-export default GridEditable;

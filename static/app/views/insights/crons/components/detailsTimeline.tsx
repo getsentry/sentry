@@ -20,6 +20,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
@@ -32,7 +33,7 @@ interface Props {
   /**
    * Called when monitor stats have been loaded for this timeline.
    */
-  onStatsLoaded: (stats: MonitorBucket[]) => void;
+  onStatsLoaded?: (stats: MonitorBucket[]) => void;
 }
 
 export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
@@ -45,7 +46,17 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  // Use the nextCheckIn timestamp from the earliest scheduled environment as a
+  // queryKey for computing the timeWindowConfig. This means when the
+  // nextCheckIn date changes we will recompute the timeWindowConfig
+  // timestamps. This is important when a period is used (like last hour)
+  const nextCheckIn = getNextCheckInEnv(monitor.environments)?.nextCheckIn;
+
+  const timeWindowConfig = useTimeWindowConfig({
+    timelineWidth,
+    recomputeQueryKey: [nextCheckIn],
+    recomputeOnWindowFocus: true,
+  });
 
   const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
     organization,

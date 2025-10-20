@@ -4,16 +4,16 @@ import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Badge} from 'sentry/components/core/badge';
+import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
+import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -21,10 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import {
-  NO_REPLAY_SUMMARY_MESSAGES,
-  ReplaySummaryStatus,
-} from 'sentry/views/replays/detail/ai/utils';
+import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 export default function Ai() {
@@ -44,8 +41,8 @@ export default function Ai() {
   const {
     summaryData,
     isPending: isSummaryPending,
-    isPolling,
     isError,
+    isTimedOut,
     startSummaryRequest,
   } = useReplaySummaryContext();
 
@@ -119,40 +116,28 @@ export default function Ai() {
 
   if (isError) {
     return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>{t('Failed to load replay summary.')}</div>
-          <div>
-            <Button
-              priority="default"
-              type="button"
-              size="xs"
-              onClick={() => {
-                startSummaryRequest();
-                trackAnalytics('replay.ai-summary.regenerate-requested', {
-                  organization,
-                  area: analyticsArea + '.error',
-                });
-              }}
-              icon={<IconSync size="xs" />}
-            >
-              {t('Retry')}
-            </Button>
-          </div>
-        </EndStateContainer>
-      </Wrapper>
+      <AnalyticsArea name="error">
+        <ErrorState
+          organization={organization}
+          startSummaryRequest={startSummaryRequest}
+        />
+      </AnalyticsArea>
     );
   }
 
-  // checking this prevents initial flicker
-  const summaryNotComplete =
-    summaryData?.status &&
-    [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
-      summaryData?.status
+  if (isTimedOut) {
+    return (
+      <AnalyticsArea name="timeout">
+        <ErrorState
+          organization={organization}
+          startSummaryRequest={startSummaryRequest}
+          extraMessage={t('timed out.')}
+        />
+      </AnalyticsArea>
     );
+  }
 
-  if (isSummaryPending || isPolling || summaryNotComplete) {
+  if (isSummaryPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -205,9 +190,7 @@ export default function Ai() {
           <SummaryLeftTitle>
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
-              <IconSeer />
             </Flex>
-            <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
@@ -239,12 +222,54 @@ export default function Ai() {
           {segmentCount > 100 && (
             <Subtext>
               {t(
-                'Note: this replay is too long, so we currently only summarize part of it.'
+                `Note: this replay is very long, so we might not be summarizing all of it.`
               )}
             </Subtext>
           )}
         </OverflowBody>
       </StyledTabItemContainer>
+    </Wrapper>
+  );
+}
+
+function ErrorState({
+  organization,
+  startSummaryRequest,
+  extraMessage,
+}: {
+  organization: Organization;
+  startSummaryRequest: () => void;
+  extraMessage?: string;
+}) {
+  const analyticsArea = useAnalyticsArea();
+
+  return (
+    <Wrapper data-test-id="replay-details-ai-summary-tab">
+      <EndStateContainer>
+        <img src={aiBanner} alt="" />
+        <div>
+          {extraMessage
+            ? t('Failed to load replay summary - %s', extraMessage)
+            : t('Failed to load replay summary.')}
+        </div>
+        <div>
+          <Button
+            priority="default"
+            type="button"
+            size="xs"
+            onClick={() => {
+              startSummaryRequest();
+              trackAnalytics('replay.ai-summary.regenerate-requested', {
+                organization,
+                area: analyticsArea,
+              });
+            }}
+            icon={<IconSync size="xs" />}
+          >
+            {t('Retry')}
+          </Button>
+        </div>
+      </EndStateContainer>
     </Wrapper>
   );
 }
@@ -260,7 +285,7 @@ function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-      size={'xs'}
+      size="xs"
       onClick={() =>
         openForm({
           messagePlaceholder:

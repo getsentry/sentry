@@ -21,6 +21,7 @@ export interface MDXStoryDescriptor {
       layout?: 'document';
       resources?: StoryResources;
       source?: string;
+      status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };
     types?:
@@ -79,6 +80,6 @@ export function useStoriesLoader(
     queryFn: (): Promise<StoryDescriptor[]> => {
       return Promise.all(options.files.map(importStory));
     },
-    enabled: !!options.files,
+    enabled: options.files.length > 0,
   });
 }

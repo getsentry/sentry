@@ -24,12 +24,25 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 
+function assertCheckoutV3Steps(tier: PlanTier) {
+  expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
+  [
+    'Build your plan',
+    [PlanTier.AM1, PlanTier.AM2].includes(tier)
+      ? /Set your on-demand limit/
+      : /Set your pay-as-you-go limit/,
+    'Pay monthly or yearly, your choice',
+    'Edit billing information',
+  ].forEach(step => {
+    expect(screen.getByText(step)).toBeInTheDocument();
+  });
+}
+
 describe('AM1 Checkout', () => {
   let mockResponse: any;
   const api = new MockApiClient();
   const organization = OrganizationFixture({features: []});
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
@@ -62,7 +75,7 @@ describe('AM1 Checkout', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         checkoutTier={PlanTier.AM1}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
       />,
@@ -87,12 +100,47 @@ describe('AM1 Checkout', () => {
     });
   });
 
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM1}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am1'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM1);
+  });
+
   it('can skip to step and continue', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         checkoutTier={PlanTier.AM1}
       />,
@@ -123,7 +171,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -149,7 +197,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -168,7 +216,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -198,7 +246,7 @@ describe('AM1 Checkout', () => {
     const {container} = render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -222,7 +270,7 @@ describe('AM1 Checkout', () => {
     const {container} = render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -243,7 +291,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -302,7 +350,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -363,7 +411,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -418,7 +466,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -469,7 +517,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -517,7 +565,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -568,7 +616,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={sub.planTier as PlanTier}
@@ -612,7 +660,7 @@ describe('AM1 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -637,7 +685,6 @@ describe('AM2 Checkout', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
@@ -668,6 +715,41 @@ describe('AM2 Checkout', () => {
     });
   });
 
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM2}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am2'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM2);
+  });
+
   it('renders for am1 team plan', async () => {
     const sub = SubscriptionFixture({organization, plan: 'am1_team'});
     SubscriptionStore.set(organization.slug, sub);
@@ -675,7 +757,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -709,7 +791,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -756,7 +838,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -815,7 +897,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -874,7 +956,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -948,7 +1030,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -989,7 +1071,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1023,7 +1105,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1048,7 +1130,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1073,7 +1155,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1105,7 +1187,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1151,7 +1233,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1203,9 +1285,9 @@ describe('AM2 Checkout', () => {
      */
     const trialSub = SubscriptionFixture({
       organization,
-      plan: 'am2_business',
+      plan: 'am2_t',
       planTier: 'am2',
-      isTrial: true,
+      isTrial: true, // This is true for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 500_000}), // High trial volume
@@ -1223,7 +1305,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1298,7 +1380,7 @@ describe('AM2 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1352,7 +1434,6 @@ describe('AM3 Checkout', () => {
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
   });
-  const params = {};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -1375,6 +1456,46 @@ describe('AM3 Checkout', () => {
     });
   });
 
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM3}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM3);
+  });
+
   it('renders for new customers (AM3 free plan)', async () => {
     const sub = SubscriptionFixture({
       organization,
@@ -1391,7 +1512,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1440,7 +1561,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1497,7 +1618,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1554,7 +1675,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1598,7 +1719,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1638,7 +1759,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -1675,7 +1796,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM1}
@@ -1730,7 +1851,84 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
+    // TODO: Can better write this once we have
+    // https://github.com/testing-library/jest-dom/issues/478
+    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
+      'aria-valuetext',
+      '100000'
+    );
+    expect(screen.getByRole('slider', {name: 'Replays'})).toHaveAttribute(
+      'aria-valuetext',
+      '50'
+    );
+    expect(screen.getByRole('slider', {name: 'Spans'})).toHaveAttribute(
+      'aria-valuetext',
+      '20000000'
+    );
+    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
+      'aria-valuetext',
+      '25'
+    );
+
+    expect(
+      screen.queryByRole('slider', {name: 'Accepted Spans'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', {name: 'Stored Spans'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
+  });
+
+  it('prefills with existing subscription data with plan trial', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      planTier: PlanTier.AM3,
+      categories: {
+        errors: MetricHistoryFixture({reserved: 100_000}),
+        attachments: MetricHistoryFixture({reserved: 25}),
+        replays: MetricHistoryFixture({reserved: 50}),
+        monitorSeats: MetricHistoryFixture({reserved: 1}),
+        spans: MetricHistoryFixture({reserved: 20_000_000}),
+        profileDuration: MetricHistoryFixture({reserved: 1}),
+      },
+      onDemandBudgets: {
+        onDemandSpendUsed: 0,
+        sharedMaxBudget: 2000,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        enabled: true,
+      },
+      onDemandMaxSpend: 2000,
+      supportsOnDemand: true,
+      isFree: false,
+      isTrial: true, // isTrial is true for both subscription trials and plan trials
+    });
+
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1789,7 +1987,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1859,7 +2057,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1941,9 +2139,9 @@ describe('AM3 Checkout', () => {
 
     const trialSub = SubscriptionFixture({
       organization,
-      plan: 'am3_business',
+      plan: 'am3_t',
       planTier: PlanTier.AM3,
-      isTrial: true, // This is the key - subscription is in trial mode
+      isTrial: true, // This is true for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume
@@ -1969,7 +2167,7 @@ describe('AM3 Checkout', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -1981,10 +2179,8 @@ describe('AM3 Checkout', () => {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
-    // For AM3, first step is pay-as-you-go budget
-    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
-
-    // Continue to Reserved Volumes step
+    // Continue to Reserved Volumes step (step 3 in AM3 checkout)
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
 

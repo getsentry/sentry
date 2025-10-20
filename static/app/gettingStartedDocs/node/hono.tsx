@@ -9,14 +9,14 @@ import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStart
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -105,10 +105,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Add the Sentry Node SDK as a dependency:'),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params)[0]!.code,
-        },
+        getInstallCodeBlock(params),
       ],
     },
   ],
@@ -256,7 +253,7 @@ Sentry.captureUserFeedback(userFeedback);
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,

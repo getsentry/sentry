@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -11,7 +9,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
-from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -20,11 +19,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.group import Group
-from sentry.models.groupopenperiod import OpenPeriod, get_open_periods_for_group
+from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.models.organization import Organization
+from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
+    GroupOpenPeriodSerializer,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
@@ -92,7 +93,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
             ),
         ],
         responses={
-            200: inline_sentry_response_serializer("ListOpenPeriods", list[OpenPeriod]),
+            200: GroupOpenPeriodSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -125,20 +126,25 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 else None
             )
         )
+        if not target_group:
+            return self.paginate(request=request, queryset=[])
 
-        def data_fn(offset: int, limit: int) -> list[OpenPeriod] | list[Any]:
-            if target_group is None:
-                return []
-            return get_open_periods_for_group(
-                group=target_group,
-                query_start=start,
-                query_end=end,
-                offset=offset,
-                limit=limit,
-            )
+        limit = None
+        per_page = request.GET.get("per_page")
+        if per_page:
+            limit = int(per_page)
+            assert limit > 0
 
+        open_periods = get_open_periods_for_group(
+            group=target_group,
+            query_start=start,
+            query_end=end,
+            limit=limit,
+        )
         return self.paginate(
             request=request,
-            on_results=lambda results: [result.to_dict() for result in results],
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            queryset=open_periods,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+            count_hits=True,
         )

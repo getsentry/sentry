@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from sentry.api.validators.project_codeowners import validate_codeowners_associations
+from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -65,9 +65,7 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
         for code_owner in [code_owner_1, code_owner_2]:
             assert code_owner.project.slug in response.data.keys()
-            associations, errors = validate_codeowners_associations(
-                code_owner.raw, code_owner.project
-            )
+            associations, errors = build_codeowners_associations(code_owner.raw, code_owner.project)
             assert "associations" in response.data[code_owner.project.slug].keys()
             assert response.data[code_owner.project.slug]["associations"] == associations
             assert "errors" in response.data[code_owner.project.slug].keys()

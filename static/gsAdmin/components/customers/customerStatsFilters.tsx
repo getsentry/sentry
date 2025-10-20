@@ -116,14 +116,15 @@ export function CustomerStatsFilters({
         onChange={opt => onChange(opt.value)}
       />
       <DateTimeRange
-        triggerProps={{prefix: 'Date Range'}}
-        triggerLabel={
-          !period && !start && !end
-            ? onDemand
-              ? onDemandLabel
-              : DEFAULT_RELATIVE_PERIODS['90d']
-            : undefined
-        }
+        triggerProps={{
+          prefix: 'Date Range',
+          children:
+            !period && !start && !end
+              ? onDemand
+                ? onDemandLabel
+                : DEFAULT_RELATIVE_PERIODS['90d']
+              : undefined,
+        }}
         relative={period ?? ''}
         start={start ?? null}
         end={end ?? null}

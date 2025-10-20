@@ -22,6 +22,9 @@ export interface PlainRoute<Props = any> extends RouteProps<Props> {
   indexRoute?: PlainRoute | undefined;
 }
 
+/**
+ * @deprecated Do not use in new components. use `use{Layout,Props}` instead.
+ */
 export interface RouteComponentProps<
   P = Record<string, string | undefined>,
   R = Record<string, string | undefined>,
@@ -41,6 +44,9 @@ type GoFunction = (n: number) => void;
 type NavigateFunction = () => void;
 type ActiveFunction = (location: LocationDescriptor, indexOnly?: boolean) => boolean;
 
+/**
+ * @deprecated Do not use in new components. use `use{Layout,Props}` instead.
+ */
 export interface InjectedRouter<P = Record<string, string | undefined>, Q = any> {
   go: GoFunction;
   goBack: NavigateFunction;
@@ -53,6 +59,9 @@ export interface InjectedRouter<P = Record<string, string | undefined>, Q = any>
   routes: PlainRoute[];
 }
 
+/**
+ * @deprecated Do not use in new components. use `use{Layout,Props}` instead.
+ */
 export interface WithRouterProps<P = Record<string, string | undefined>, Q = any> {
   location: Location<Q>;
   params: P;

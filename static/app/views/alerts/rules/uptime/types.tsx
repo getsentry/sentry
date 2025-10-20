@@ -13,17 +13,17 @@ export enum UptimeMonitorMode {
 
 export interface UptimeRule {
   body: string | null;
-  // TODO(epurkhiser): In the future this will change to id once the current id
-  // field is no longer representing the ProjectUptimeSubscription ID
-  detectorId: number;
+  downtimeThreshold: number;
   environment: string | null;
   headers: Array<[key: string, value: string]>;
+  id: string;
   intervalSeconds: number;
   method: string;
   mode: UptimeMonitorMode;
   name: string;
   owner: Actor;
   projectSlug: string;
+  recoveryThreshold: number;
   status: ObjectStatus;
   timeoutMs: number;
   traceSampling: boolean;
@@ -47,6 +47,10 @@ export interface UptimeCheck {
 }
 
 export interface UptimeSummary {
+  // TODO(epurkhiser): In the future this will always be set once all customers
+  // are querying the EAP uptime results trace item set, and we can get rid of
+  // various conditionals when the null type is removed.
+  avgDurationUs: number | null;
   downtimeChecks: number;
   failedChecks: number;
   missedWindowChecks: number;

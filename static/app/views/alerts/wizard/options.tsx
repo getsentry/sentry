@@ -71,6 +71,7 @@ export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
   'lcp',
   'fid',
   'cls',
+  'custom_transactions',
 ];
 
 export const DatasetMEPAlertQueryTypes: Record<
@@ -182,10 +183,12 @@ export const getAlertWizardCategories = (org: Organization) => {
       options: ['crons_monitor'],
     });
 
-    result.push({
-      categoryHeading: t('Custom'),
-      options: ['custom_transactions'],
-    });
+    if (!deprecateTransactionAlerts(org)) {
+      result.push({
+        categoryHeading: t('Custom'),
+        options: ['custom_transactions'],
+      });
+    }
   }
   return result;
 };
@@ -222,7 +225,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.TRANSACTION,
   },
   apdex: {
-    aggregate: 'apdex(300)',
+    aggregate: 'apdex()',
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
@@ -264,7 +267,7 @@ export const AlertWizardRuleTemplates: Record<
   eap_metrics: {
     aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes: EventTypes.TRANSACTION,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
   },
   trace_item_throughput: {
     aggregate: 'count(span.duration)',
@@ -356,7 +359,7 @@ const ERROR_SUPPORTED_TAGS = [
 
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
-export function datasetSupportedTags(
+function datasetSupportedTags(
   dataset: Dataset,
   org: Organization
 ): TagCollection | undefined {

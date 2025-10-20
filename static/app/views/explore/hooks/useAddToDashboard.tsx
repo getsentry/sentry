@@ -6,7 +6,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
@@ -14,17 +13,16 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
-import {
-  useExploreDataset,
-  useExploreQuery,
-  useExploreSortBys,
-  useExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
+  useQueryParamsSortBys,
+  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -36,16 +34,18 @@ export const CHART_TYPE_TO_DISPLAY_TYPE = {
 
 export function useAddToDashboard() {
   const location = useLocation();
-  const router = useRouter();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
   const mode = useQueryParamsMode();
   const dataset = useExploreDataset();
   const groupBys = useQueryParamsGroupBys();
-  const sortBys = useExploreSortBys();
-  const visualizes = useExploreVisualizes();
-  const query = useExploreQuery();
+  const sampleSortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const visualizes = useQueryParamsVisualizes();
+  const query = useQueryParamsQuery();
+
+  const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {
@@ -92,13 +92,12 @@ export function useAddToDashboard() {
         organization,
         location,
         eventView,
-        router,
         yAxis: eventView.yAxis,
         widgetType: WidgetType.SPANS,
         source: DashboardWidgetSource.TRACE_EXPLORER,
       });
     },
-    [organization, location, getEventView, router]
+    [organization, location, getEventView]
   );
 
   return {

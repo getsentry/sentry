@@ -1,7 +1,7 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Configuration,
+  type ContentBlock,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -31,49 +31,41 @@ function getPythonInstallSnippet({
   return packageManagerCommands;
 }
 
-export function getPythonInstallConfig({
+export function getPythonInstallCodeBlock({
   packageName = 'sentry-sdk',
-  description,
   minimumVersion,
 }: {
-  description?: React.ReactNode;
   minimumVersion?: string;
   packageName?: string;
-} = {}): Configuration[] {
+} = {}): ContentBlock {
   const packageManagerCommands = getPythonInstallSnippet({packageName, minimumVersion});
-  return [
-    {
-      description,
-      language: 'bash',
-      code: [
-        {
-          label: 'pip',
-          value: 'pip',
-          language: 'bash',
-          code: packageManagerCommands.pip,
-        },
-        {
-          label: 'uv',
-          value: 'uv',
-          language: 'bash',
-          code: packageManagerCommands.uv,
-        },
-        {
-          label: 'poetry',
-          value: 'poetry',
-          language: 'bash',
-          code: packageManagerCommands.poetry,
-        },
-      ],
-    },
-  ];
+  return {
+    type: 'code',
+    tabs: [
+      {
+        label: 'pip',
+        language: 'bash',
+        code: packageManagerCommands.pip,
+      },
+      {
+        label: 'uv',
+        language: 'bash',
+        code: packageManagerCommands.uv,
+      },
+      {
+        label: 'poetry',
+        language: 'bash',
+        code: packageManagerCommands.poetry,
+      },
+    ],
+  };
 }
 
-export function getPythonAiocontextvarsConfig({
+export function getPythonAiocontextvarsCodeBlocks({
   description,
 }: {
   description?: React.ReactNode;
-} = {}): Configuration[] {
+} = {}): ContentBlock[] {
   const defaultDescription = tct(
     "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
     {
@@ -81,10 +73,15 @@ export function getPythonAiocontextvarsConfig({
     }
   );
 
-  return getPythonInstallConfig({
-    packageName: 'aiocontextvars',
-    description: description ?? defaultDescription,
-  });
+  return [
+    {
+      type: 'text',
+      text: description ?? defaultDescription,
+    },
+    getPythonInstallCodeBlock({
+      packageName: 'aiocontextvars',
+    }),
+  ];
 }
 
 export const getPythonLogsOnboarding = ({
@@ -95,29 +92,38 @@ export const getPythonLogsOnboarding = ({
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install our Python SDK with a minimum version that supports logs ([code:2.35.0] or higher).',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({
-        packageName,
-        minimumVersion: '2.35.0',
-      }),
+          type: 'text',
+          text: tct(
+            'Install our Python SDK with a minimum version that supports logs ([code:2.35.0] or higher).',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getPythonInstallCodeBlock({
+          packageName,
+          minimumVersion: '2.35.0',
+        }),
+      ],
     },
   ],
   configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Configure the Sentry SDK to capture logs by setting [code:enable_logs=True] in your [code:sentry_sdk.init()] call:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Configure the Sentry SDK to capture logs by setting [code:enable_logs=True] in your [code:sentry_sdk.init()] call:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: `import sentry_sdk
 
@@ -128,7 +134,8 @@ sentry_sdk.init(
 )`,
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For more detailed information on logging configuration, see the [link:logs documentation].',
             {
               link: <ExternalLink href="https://docs.sentry.io/platforms/python/logs/" />,
@@ -138,36 +145,11 @@ sentry_sdk.init(
       ],
     },
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       description: t('Test that logs are working by sending some test logs:'),
-      configurations: [
-        {
-          language: 'python',
-          code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-        },
-        {
-          description: t(
-            "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-          ),
-          language: 'python',
-          code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This is an info log message')
-logger.warning('This is a warning message')
-logger.error('This is an error message')`,
-        },
-      ],
+      content: [getVerifyLogsContent(params)],
     },
   ],
 });
@@ -182,55 +164,64 @@ export const getPythonProfilingOnboarding = ({
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable profiling, update the Sentry SDK to a compatible version ([code:2.24.1] or higher).',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({
-        packageName: basePackage,
-        minimumVersion: '2.24.1',
-      }),
+          type: 'text',
+          text: tct(
+            'To enable profiling, update the Sentry SDK to a compatible version ([code:2.24.1] or higher).',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getPythonInstallCodeBlock({
+          packageName: basePackage,
+          minimumVersion: '2.24.1',
+        }),
+      ],
     },
   ],
   configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Import and initialize the Sentry SDK early in your application's setup:"
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "Import and initialize the Sentry SDK early in your application's setup:"
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getProfilingSdkSetupSnippet(params, traceLifecycle),
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
               ),
             }
           ),
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
-
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 });
@@ -299,17 +290,62 @@ sentry_sdk.profiler.stop_profiler()`
     : ''
 }`;
 
-export function AlternativeConfiguration() {
-  return (
-    <div>
-      {tct(
+export const alternativeProfilingConfiguration = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition:
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode === 'continuous',
+  content: [
+    {
+      type: 'text',
+      text: tct(
         'Alternatively, you can also explicitly control continuous profiling or use transaction profiling. See our [link:documentation] for more information.',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
           ),
         }
-      )}
-    </div>
-  );
-}
+      ),
+    },
+  ],
+});
+
+export const getVerifyLogsContent = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isLogsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t('You can send logs to Sentry using the Sentry logging APIs:'),
+    },
+    {
+      type: 'code',
+      language: 'python',
+      code: `import sentry_sdk
+
+# Send logs directly to Sentry
+sentry_sdk.logger.info('This is an info log message')
+sentry_sdk.logger.warning('This is a warning message')
+sentry_sdk.logger.error('This is an error message')`,
+    },
+    {
+      type: 'text',
+      text: t(
+        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+      ),
+    },
+    {
+      type: 'code',
+      language: 'python',
+      code: `import logging
+
+# Your existing logging setup
+logger = logging.getLogger(__name__)
+
+# These logs will be automatically sent to Sentry
+logger.info('This will be sent to Sentry')
+logger.warning('User login failed')
+logger.error('Something went wrong')`,
+    },
+  ],
+});

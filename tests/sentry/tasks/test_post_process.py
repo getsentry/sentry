@@ -75,7 +75,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.uptime.detectors.ranking import _get_cluster, get_organization_bucket_key
+from sentry.uptime.autodetect.ranking import _get_cluster, get_organization_bucket_key
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -976,6 +976,86 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(None, extra_team.id), (self.user.id, None)} == {
             (o.user_id, o.team_id) for o in owners
         }
+
+    def test_owner_assignment_existing_assignee_preserved(self):
+        """
+        Tests that if a group already has an assignee, post-processing won't reassign it
+        even if ownership rules change in the interim.
+        """
+        other_team = self.create_team()
+        ProjectTeam.objects.create(team=other_team, project=self.project)
+
+        rules = [
+            Rule(Matcher("path", "src/*"), [Owner("team", self.team.slug)]),
+            Rule(Matcher("path", "src/app/*"), [Owner("team", other_team.slug)]),
+        ]
+        self.prj_ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema(rules),
+            fallthrough=True,
+            auto_assignment=True,
+        )
+
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        # No assignee should exist prior to post processing
+        assert not event.group.assignee_set.exists()
+
+        # First post-processing - should assign to other_team (last matching rule)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee.team == other_team
+
+        new_rules = [
+            Rule(Matcher("path", "src/app/*"), [Owner("team", other_team.slug)]),
+            Rule(Matcher("path", "src/*"), [Owner("team", self.team.slug)]),
+        ]
+        self.prj_ownership.schema = dump_schema(new_rules)
+        self.prj_ownership.save()
+
+        # Run post-processing again - assignee should NOT change
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee.team == other_team
+
+        # If we had a completely new group, it would get assigned to self.team (new last matching rule)
+        fresh_event = self.create_event(
+            data={
+                "message": "fresh event",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/fresh.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=fresh_event,
+        )
+
+        fresh_assignee = fresh_event.group.assignee_set.first()
+        assert fresh_assignee.team == self.team
 
     def test_owner_assignment_assign_user(self) -> None:
         self.make_ownership()
@@ -2237,7 +2317,6 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         cluster = _get_cluster()
         assert exists == cluster.sismember(key, str(organization.id))
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_url(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
@@ -2251,7 +2330,6 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, True)
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_no_url(self) -> None:
         event = self.create_event(
             data={},
@@ -2265,7 +2343,8 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, False)
 
-    def test_uptime_detection_no_feature(self) -> None:
+    @override_options({"uptime.automatic-hostname-detection": False})
+    def test_uptime_detection_no_option(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
             project_id=self.project.id,

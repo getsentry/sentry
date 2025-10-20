@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {
   EQUATION_PREFIX,
   parseFunction,
@@ -94,11 +93,7 @@ export function AggregateColumnEditorModal({
       if (isGroupBy(col)) {
         newColumns.push(col);
       } else if (isVisualize(col)) {
-        if (defined(col.selectedChartType)) {
-          newColumns.push({yAxes: [col.yAxis], chartType: col.selectedChartType});
-        } else {
-          newColumns.push({yAxes: [col.yAxis]});
-        }
+        newColumns.push(col.serialize());
       }
     }
 
@@ -302,11 +297,11 @@ function GroupBySelector({
     <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
-      triggerLabel={label}
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
       triggerProps={{
+        children: label,
         prefix: t('Group By'),
         style: {
           width: '100%',

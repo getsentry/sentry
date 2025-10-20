@@ -27,22 +27,23 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
-import {
-  useExploreFields,
-  useExploreId,
-  useExploreQuery,
-  useExploreSortBys,
-  useExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useExploreId} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
+  useQueryParamsSortBys,
+  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -55,20 +56,20 @@ export function ToolbarSaveAs() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
-  const visualizes = useExploreVisualizes();
-  const fields = useExploreFields();
-  const sortBys = useExploreSortBys();
+  const visualizes = useQueryParamsVisualizes();
+  const fields = useQueryParamsFields();
+  const sampleSortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const mode = useQueryParamsMode();
   const id = useExploreId();
   const visualizeYAxes = useMemo(
-    () =>
-      dedupeArray(
-        visualizes.filter(visualize => !visualize.isEquation).map(v => v.yAxis)
-      ),
+    () => dedupeArray(visualizes.filter(isVisualizeFunction).map(v => v.yAxis)),
     [visualizes]
   );
+
+  const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
   const [interval] = useChartInterval();
 
@@ -234,7 +235,7 @@ export function ToolbarSaveAs() {
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(
-        visualizes.map(visualize => visualize.toJSON()),
+        visualizes.map(visualize => visualize.serialize()),
         singleQuery?.visualize,
         true
       ),

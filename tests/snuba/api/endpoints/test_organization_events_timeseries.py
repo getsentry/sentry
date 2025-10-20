@@ -5,8 +5,9 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
+from sentry.api.endpoints.organization_events_timeseries import INGESTION_DELAY_MESSAGE
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -75,14 +76,25 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "sentry-api-0-organization-events-timeseries",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {"organizations:global-views": True}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
-        features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    def test_no_projects(self) -> None:
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": org.slug})
+        response = self.do_request({}, url)
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert "timeSeries" in data
+        assert len(data["timeSeries"]) == 0
+        assert "meta" not in data
 
     @pytest.mark.querybuilder
     def test_simple(self) -> None:
@@ -106,20 +118,24 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == [
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
                 "value": 1,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 2,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -146,20 +162,24 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == [
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
                 "value": 1,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 2,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -168,20 +188,24 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["yAxis"] == "count_unique(user)"
         assert timeseries["values"] == [
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
                 "value": 1,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 1,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -214,18 +238,22 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "order": 0,
             "isOther": False,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
         assert timeseries["values"] == [
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
                 "value": 1,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 1,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -244,14 +272,17 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         }
         assert timeseries["values"] == [
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
                 "value": 120000.0,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 120000.0,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -265,18 +296,22 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "order": 1,
             "isOther": False,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
         assert timeseries["values"] == [
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
                 "value": 0,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 1,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -295,15 +330,63 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         }
         assert timeseries["values"] == [
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
                 "value": 0,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 120000.0,
             },
             {
+                "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
         ]
+
+    def test_incomplete_bucket(self):
+        with freeze_time(self.end):
+            response = self.do_request(
+                {
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1h",
+                    "project": [self.project.id, self.project2.id],
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "discover",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == [
+            {
+                "incomplete": False,
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 1,
+            },
+            {
+                "incomplete": True,
+                "incompleteReason": INGESTION_DELAY_MESSAGE,
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 2,
+            },
+            {
+                "incomplete": True,
+                "incompleteReason": INGESTION_DELAY_MESSAGE,
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]
+        assert timeseries["meta"] == {
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 3_600_000,
+        }

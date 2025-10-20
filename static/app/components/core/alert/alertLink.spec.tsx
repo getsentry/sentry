@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {AlertLink} from 'sentry/components/core/alert';
 
 describe('AlertLink', () => {
   it('renders internal link pointing to the correct path', () => {
@@ -65,7 +65,7 @@ describe('AlertLink', () => {
       <AlertLink
         type="info"
         to="/settings/accounts/notifications"
-        trailingItems={'custom trailing item'}
+        trailingItems="custom trailing item"
       >
         This is an external link button
       </AlertLink>

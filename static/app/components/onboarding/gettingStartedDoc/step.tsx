@@ -2,7 +2,9 @@ import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Flex} from '@sentry/scraps/layout/flex';
+
+import {Button, ButtonBar} from 'sentry/components/core/button';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   OnboardingCodeSnippet,
@@ -30,7 +32,6 @@ function getConfiguration({
   additionalInfo,
   onCopy,
   onSelectAndCopy,
-  partialLoading,
 }: Configuration) {
   return (
     <Configuration>
@@ -40,7 +41,6 @@ function getConfiguration({
           tabs={code}
           onCopy={onCopy}
           onSelectAndCopy={onSelectAndCopy}
-          partialLoading={partialLoading}
         />
       ) : (
         language &&
@@ -49,8 +49,6 @@ function getConfiguration({
             language={language}
             onCopy={onCopy}
             onSelectAndCopy={onSelectAndCopy}
-            hideCopyButton={partialLoading}
-            disableUserSelection={partialLoading}
           >
             {code}
           </OnboardingCodeSnippet>
@@ -115,6 +113,11 @@ export function Step({
     </ContentWrapper>
   );
 
+  const stepTitle = <StepTitle>{title ?? StepTitles[type]}</StepTitle>;
+  const trailingItemsContent = trailingItems ? (
+    <ButtonBar onClick={e => e.stopPropagation()}>{trailingItems}</ButtonBar>
+  ) : null;
+
   return collapsible ? (
     <div {...props}>
       <OptionalConfigWrapper
@@ -124,7 +127,7 @@ export function Step({
           setShowOptionalConfig(!showOptionalConfig);
         }}
       >
-        <StepTitle>{title ?? StepTitles[type]}</StepTitle>
+        {stepTitle}
         <ToggleButton
           priority="link"
           borderless
@@ -132,13 +135,20 @@ export function Step({
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
         />
-        {trailingItems && <div onClick={e => e.stopPropagation()}>{trailingItems}</div>}
+        {trailingItemsContent}
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
     </div>
   ) : (
     <div {...props}>
-      <StepTitle>{title ?? StepTitles[type]}</StepTitle>
+      {trailingItems ? (
+        <Flex justify="between" align="center" gap="sm">
+          {stepTitle}
+          {trailingItemsContent}
+        </Flex>
+      ) : (
+        stepTitle
+      )}
       {config}
     </div>
   );

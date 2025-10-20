@@ -25,7 +25,6 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
@@ -126,7 +125,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     events = ArrayField(models.TextField(), default=list)
 
     overview = models.TextField(null=True)
-    schema = JSONField(default=dict)
+    schema = models.JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
@@ -138,7 +137,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     creator_label = models.TextField(null=True)
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
-    metadata = JSONField(default=dict)
+    metadata = models.JSONField(default=dict)
 
     objects: ClassVar[SentryAppManager] = SentryAppManager()
 
@@ -216,6 +215,18 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             for region_name in find_all_region_names()
         ]
 
+    def outboxes_for_delete(self) -> list[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.id,
+                object_identifier=self.id,
+                category=OutboxCategory.SENTRY_APP_DELETE,
+                region_name=region_name,
+            )
+            for region_name in find_all_region_names()
+        ]
+
     def regions_with_installations(self) -> set[str]:
         return find_regions_for_sentry_app(self)
 
@@ -224,6 +235,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
             for outbox in self.outboxes_for_update():
+                outbox.save()
+
+            for outbox in self.outboxes_for_delete():
                 outbox.save()
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()

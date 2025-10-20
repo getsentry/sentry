@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
@@ -38,6 +39,7 @@ class GroupHash(Model):
     state = BoundedPositiveIntegerField(
         choices=[(State.LOCKED_IN_MIGRATION, _("Locked (Migration in Progress)"))], null=True
     )
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -51,7 +53,8 @@ class GroupHash(Model):
         except AttributeError:
             return None
 
-    __repr__ = sane_repr("group_id", "hash")
+    __repr__ = sane_repr("group_id", "hash", "metadata")
+    __str__ = __repr__
 
     def get_associated_fingerprint(self) -> list[str] | None:
         """

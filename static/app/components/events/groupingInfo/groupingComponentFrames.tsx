@@ -6,8 +6,6 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {GroupingComponentListItem} from './groupingComponent';
-
 interface GroupingComponentFramesProps {
   initialCollapsed: boolean;
   items: React.ReactNode[];
@@ -23,6 +21,7 @@ function GroupingComponentFrames({
   const isCollapsible = items.length > maxVisibleItems;
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setCollapsed(initialCollapsed);
   }, [initialCollapsed]);
 
@@ -78,6 +77,11 @@ function GroupingComponentFrames({
 const ToggleCollapse = styled(Button)`
   margin: ${space(0.5)} 0;
   color: ${p => p.theme.linkColor};
+`;
+
+export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`
+  padding: 0;
+  margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
 `;
 
 export default GroupingComponentFrames;

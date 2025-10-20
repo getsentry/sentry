@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -33,7 +34,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import type {ProjectData} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {useSampleWebVitalTraceParallel} from 'sentry/views/insights/browser/webVitals/queries/useSampleWebVitalTrace';
 import {
   POLL_INTERVAL,
   useWebVitalsIssuesQuery,
@@ -51,6 +54,7 @@ const CHART_HEIGHTS = 100;
 type Props = {
   transaction: string;
   browserTypes?: BrowserType[];
+  projectData?: ProjectData[];
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
@@ -63,6 +67,7 @@ export function PageOverviewSidebar({
   projectScoreIsLoading,
   browserTypes,
   subregions,
+  projectData,
 }: Props) {
   const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const theme = useTheme();
@@ -82,8 +87,13 @@ export function PageOverviewSidebar({
 
   const shouldDoublePeriod = false;
 
+  const countTimeSeries = data?.timeSeries?.find(ts => ts.yAxis === 'count()');
+  const countData = countTimeSeries
+    ? countTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data['count()'].data,
+    countData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -96,13 +106,20 @@ export function PageOverviewSidebar({
     },
   ];
 
+  const inpTimeSeries = data?.timeSeries?.find(
+    ts => ts.yAxis === 'count_scores(measurements.score.inp)'
+  );
+  const inpData = inpTimeSeries
+    ? inpTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {
     countDiff: inpCountDiff,
     currentSeries: currentInpSeries,
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data['count_scores(measurements.score.inp)'].data,
+    inpData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -146,7 +163,19 @@ export function PageOverviewSidebar({
     eventIds: newlyCreatedIssueEventIds,
   });
 
-  const runSeerAnalysis = useRunSeerAnalysis({projectScore, transaction});
+  const {isLoading: isLoadingWebVitalTraceSamples, ...webVitalTraceSamples} =
+    useSampleWebVitalTraceParallel({
+      transaction,
+      projectData,
+      enabled: hasSeerWebVitalsSuggestions,
+    });
+
+  const runSeerAnalysis = useRunSeerAnalysis({
+    projectScore,
+    projectData: projectData?.[0],
+    transaction,
+    webVitalTraceSamples,
+  });
 
   const runSeerAnalysisOnClickHandler = async () => {
     setIsCreatingIssues(true);
@@ -196,6 +225,7 @@ export function PageOverviewSidebar({
           issues={issues}
           newlyCreatedIssueEventIds={newlyCreatedIssueEventIds}
           runSeerAnalysis={runSeerAnalysisOnClickHandler}
+          isLoadingWebVitalTraceSamples={isLoadingWebVitalTraceSamples}
         />
       )}
       <SidebarSpacer />
@@ -289,12 +319,14 @@ export function PageOverviewSidebar({
 function SeerSuggestionsSection({
   isCreatingIssues,
   hasProjectScore,
+  isLoadingWebVitalTraceSamples,
   issues,
   newlyCreatedIssueEventIds,
   runSeerAnalysis,
 }: {
   hasProjectScore: boolean;
   isCreatingIssues: boolean;
+  isLoadingWebVitalTraceSamples: boolean;
   issues: Group[] | undefined;
   newlyCreatedIssueEventIds: string[] | undefined;
   runSeerAnalysis: () => void;
@@ -307,11 +339,19 @@ function SeerSuggestionsSection({
     (newlyCreatedIssueEventIds
       ? issues.length === newlyCreatedIssueEventIds.length
       : true);
-  const loading = !(areIssuesFullyLoaded && hasProjectScore && !isCreatingIssues);
+  const loading = !(
+    areIssuesFullyLoaded &&
+    hasProjectScore &&
+    !isCreatingIssues &&
+    !isLoadingWebVitalTraceSamples
+  );
 
   return (
     <div>
-      <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+      <SectionHeading>
+        {t('Seer Suggestions')}
+        <FeatureBadge type="beta" />
+      </SectionHeading>
       <Content>
         <SeerSuggestionGrid>
           {/* Issues are still loading, or projectScore is still loading, or seer analysis is still running */}

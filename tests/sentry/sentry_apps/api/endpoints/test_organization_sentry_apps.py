@@ -1,12 +1,15 @@
+from typing import Any
+
 import orjson
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-def assert_response_json(response, data):
+def assert_response_json(response: Response, data: list[dict[str, Any]]) -> None:
     """
     Normalizes unicode strings by encoding/decoding expected output
     """

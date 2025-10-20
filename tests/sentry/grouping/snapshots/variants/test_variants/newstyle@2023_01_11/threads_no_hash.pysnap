@@ -1,0 +1,15 @@
+---
+created: '2025-10-07T20:41:49.776732+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  hint: None
+  root_component:
+    app
+      threads (ignored because it contains neither a single thread nor multiple threads with exactly one crashing or current thread; instead contains 0 crashing, 2 current, and 2 total threads)
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"

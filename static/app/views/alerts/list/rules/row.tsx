@@ -92,11 +92,8 @@ function RuleListRow({
     [CombinedAlertType.CRONS]: 'crons-rules',
   } satisfies Record<CombinedAlertType, string>;
 
-  // TODO(epurkhiser): To be removed when uptime rules use detector ID as the `id`
-  const ruleId = rule.type === CombinedAlertType.UPTIME ? rule.detectorId : rule.id;
-
   const editLink = makeAlertsPathname({
-    path: `/${editKey[rule.type]}/${slug}/${ruleId}/`,
+    path: `/${editKey[rule.type]}/${slug}/${rule.id}/`,
     organization,
   });
 
@@ -114,7 +111,7 @@ function RuleListRow({
     }),
     query: {
       project: slug,
-      duplicateRuleId: ruleId,
+      duplicateRuleId: rule.id,
       createFromDuplicate: 'true',
       referrer: 'alert_stream',
     },
@@ -263,7 +260,7 @@ function RuleListRow({
         });
       case CombinedAlertType.UPTIME:
         return makeAlertsPathname({
-          path: `/rules/uptime/${rule.projectSlug}/${rule.detectorId}/details/`,
+          path: `/rules/uptime/${rule.projectSlug}/${rule.id}/details/`,
           organization,
         });
       default:
@@ -320,13 +317,13 @@ function RuleListRow({
                 options={dropdownTeams}
                 value={assignee}
                 searchable
-                triggerLabel={avatarElement}
                 triggerProps={{
                   'aria-label': assignee
                     ? `Assigned to #${teamName?.name}`
                     : t('Unassigned'),
                   size: 'zero',
                   borderless: true,
+                  children: avatarElement,
                 }}
                 searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}

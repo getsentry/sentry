@@ -1,0 +1,237 @@
+---
+created: '2025-10-07T20:41:46.618597+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        stacktrace*
+          frame* (marked in-app by the client)
+            module*
+              "sentry.utils.safe"
+            filename (ignored because module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context_line*
+              "result = func(*args, **kwargs)"
+          frame* (marked in-app by the client)
+            module*
+              "sentry.utils.services"
+            filename (ignored because module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+            context_line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+          frame* (marked in-app by the client)
+            module*
+              "getsentry.quotas"
+            filename (ignored because module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context_line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame* (marked in-app by the client)
+            module*
+              "sentry.quotas.redis"
+            filename (ignored because module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context_line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame* (marked in-app by the client)
+            module*
+              "sentry.utils.redis"
+            filename (ignored because module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context_line*
+              "return script(keys, args, client)"
+          frame (marked out of app by the client)
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+            context_line*
+              "return client.evalsha(self.sha, len(keys), *args)"
+          frame (marked out of app by the client)
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+            context_line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+          frame (marked out of app by the client)
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "execute_command"
+            context_line*
+              "return self.parse_response(connection, command_name, **options)"
+          frame (marked out of app by the client)
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "parse_response"
+            context_line*
+              "response = connection.read_response()"
+          frame (marked out of app by the client)
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+            context_line*
+              "response = self._parser.read_response()"
+          frame (marked out of app by the client)
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+            context_line*
+              "(e.args,))"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  contributing component: null
+  hint: ignored because app/system exception takes precedence
+  root_component:
+    default (ignored because app/system exception takes precedence)
+      message (ignored because app/system exception takes precedence)
+        "%s.process_error"
+--------------------------------------------------------------------------
+system:
+  hash: "013d3477a774fe20c468dc8accd516f1"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (ignored because module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context_line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (ignored because module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+            context_line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (ignored because module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context_line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (ignored because module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context_line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (ignored because module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context_line*
+              "return script(keys, args, client)"
+          frame*
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+            context_line*
+              "return client.evalsha(self.sha, len(keys), *args)"
+          frame*
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+            context_line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+          frame*
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "execute_command"
+            context_line*
+              "return self.parse_response(connection, command_name, **options)"
+          frame*
+            module*
+              "redis.client"
+            filename (ignored because module takes precedence)
+              "client.py"
+            function*
+              "parse_response"
+            context_line*
+              "response = connection.read_response()"
+          frame*
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+            context_line*
+              "response = self._parser.read_response()"
+          frame*
+            module*
+              "redis.connection"
+            filename (ignored because module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+            context_line*
+              "(e.args,))"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"

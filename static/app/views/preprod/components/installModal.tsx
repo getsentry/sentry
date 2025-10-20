@@ -5,10 +5,11 @@ import {QRCodeCanvas} from 'qrcode.react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,10 +58,13 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     );
   }
 
-  if (!installDetails) {
+  if (!installDetails?.install_url) {
+    const message = installDetails
+      ? t('No install download link available')
+      : t('No install details available');
     return (
       <Flex direction="column" align="center" gap="md" padding="3xl">
-        <Text>{t('No install details available')}</Text>
+        <Text>{message}</Text>
         <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
     );
@@ -84,12 +88,32 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
   return (
     <Fragment>
-      <Flex direction="column" align="center" gap="lg" padding="3xl">
-        <Heading as="h3">{t('Install App')}</Heading>
+      <Flex direction="column" align="center" gap="xl">
+        <Flex justify="center" align="center" width="100%" position="relative">
+          <Heading as="h2">{t('Install App')}</Heading>
+          <Container
+            position="absolute"
+            style={{top: '50%', right: 0, transform: 'translateY(-50%)'}}
+          >
+            <Button
+              onClick={closeModal}
+              priority="transparent"
+              icon={<IconClose />}
+              size="sm"
+              aria-label={t('Close')}
+            />
+          </Container>
+        </Flex>
 
-        {installDetails.install_url && (
-          <Fragment>
-            <QRCodeContainer>
+        <Fragment>
+          <Stack align="center" gap="md">
+            {installDetails.download_count !== undefined &&
+              installDetails.download_count > 0 && (
+                <Text size="sm" variant="muted">
+                  {tn('%s download', '%s downloads', installDetails.download_count)}
+                </Text>
+              )}
+            <Container background="secondary" padding="lg" radius="md" border="primary">
               <StyledQRCode
                 aria-label={t('Install QR Code')}
                 value={
@@ -97,45 +121,42 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
                     ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
                     : installDetails.install_url
                 }
-                size={200}
+                size={120}
               />
-            </QRCodeContainer>
-
+            </Container>
             {details}
-
-            <Flex
-              direction="column"
-              maxWidth="300px"
-              gap="md"
-              style={{textAlign: 'left'}}
-            >
-              <Text bold>{t('Instructions:')}</Text>
-              <InstructionList>
-                <li>{t('Scan the QR code with your device')}</li>
-                <li>{t('Follow the installation prompts')}</li>
-                <li>{t('The install link will expire in 12 hours')}</li>
-                <li>
-                  <a href={installDetails.install_url}>{t('Download')}</a>
-                </li>
-              </InstructionList>
+            <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
+              <Text align="center" size="lg">
+                {t(
+                  'Scan the QR code with your device and follow the installation prompts'
+                )}
+              </Text>
             </Flex>
-          </Fragment>
-        )}
-
-        <Button onClick={closeModal} priority="primary">
-          {t('Close')}
-        </Button>
+          </Stack>
+          <Divider width="100%" justify="center">
+            <Container>
+              <Text size="sm" variant="muted">
+                {t('OR')}
+              </Text>
+            </Container>
+          </Divider>
+          <Stack align="center" gap="lg">
+            <Button
+              onClick={() => window.open(installDetails.install_url, '_blank')}
+              priority="primary"
+              size="md"
+            >
+              {t('Download')}
+            </Button>
+            <Text align="center" size="md" variant="muted">
+              {t('The install link will expire in 12 hours')}
+            </Text>
+          </Stack>
+        </Fragment>
       </Flex>
     </Fragment>
   );
 }
-
-const QRCodeContainer = styled('div')`
-  background: white;
-  padding: ${space(2)};
-  border-radius: ${space(1)};
-  border: 1px solid ${p => p.theme.border};
-`;
 
 const StyledQRCode = styled(QRCodeCanvas)`
   display: block;
@@ -149,13 +170,28 @@ export const CodeSignatureInfo = styled('div')`
   border: 1px solid ${p => p.theme.border};
 `;
 
-const InstructionList = styled('ul')`
-  margin: 0;
-  padding-left: ${space(2)};
-  color: ${p => p.theme.subText};
+const Divider = styled(Flex)`
+  position: relative;
 
-  li {
-    margin-bottom: ${space(0.5)};
+  &:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: block;
+    flex: 1;
+    width: 100%;
+    height: 1px;
+    background: ${p => p.theme.border};
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+    background: ${p => p.theme.background};
+    padding: 0 ${p => p.theme.space.xl};
   }
 `;
 

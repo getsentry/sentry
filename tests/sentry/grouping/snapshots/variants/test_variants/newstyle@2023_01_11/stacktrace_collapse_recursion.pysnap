@@ -1,0 +1,118 @@
+---
+created: '2025-10-07T20:41:49.500254+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system stacktrace takes precedence
+  root_component:
+    app (ignored because system stacktrace takes precedence)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (marked out of app by the client)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame (marked out of app by the client)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame (marked out of app by the client)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (marked out of app by the client)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (marked out of app by the client)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (marked out of app by the client)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (marked out of app by the client)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system:
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
+  contributing component: stacktrace
+  hint: None
+  root_component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (ignored because module takes precedence)
+            "application.java"
+          function*
+            "throwError"

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -8,7 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportGenericInstallStep,
+  getCrashReportGenericInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -103,23 +101,24 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct('Install the [strong:NuGet] package:', {
-        strong: <strong />,
-      }),
-      configurations: [
+      content: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
-          code: [
+          type: 'text',
+          text: tct('Install the [strong:NuGet] package:', {
+            strong: <strong />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'shell',
               label: 'Xamarin.Forms',
-              value: 'xamarinForms',
+              language: 'shell',
               code: getInstallSnippetXamarinForms(params),
             },
             {
-              language: 'shell',
               label: 'Xamarin',
-              value: 'xamarin',
+              language: 'shell',
               code: getInstallSnippetXamarin(params),
             },
           ],
@@ -130,55 +129,63 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Initialize the SDK as early as possible, like in the constructor of the [code:App], and Add [code:SentryXamarinFormsIntegration] as a new Integration to [code:SentryXamarinOptions] if you are going to run your app with Xamarin Forms:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: <h5>{t('Android')}</h5>,
-          configurations: [
+          type: 'text',
+          text: tct(
+            'Initialize the SDK as early as possible, like in the constructor of the [code:App], and Add [code:SentryXamarinFormsIntegration] as a new Integration to [code:SentryXamarinOptions] if you are going to run your app with Xamarin Forms:',
             {
-              description: tct('Initialize the SDK on your [code:MainActivity].', {
-                code: <code />,
-              }),
-              language: `csharp`,
-              code: getConfigureSnippetAndroid(params),
-            },
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'subheader',
+          text: t('Android'),
+        },
+        {
+          type: 'text',
+          text: tct('Initialize the SDK on your [code:MainActivity].', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          language: 'csharp',
+          code: getConfigureSnippetAndroid(params),
+        },
+        {
+          type: 'subheader',
+          text: t('iOS'),
+        },
+        {
+          type: 'text',
+          text: tct('Initialize the SDK on your [code:AppDelegate.cs].', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          language: 'csharp',
+          code: getConfigureSnippetIOS(params),
+        },
+        {
+          type: 'subheader',
+          text: t('UWP'),
+        },
+        {
+          type: 'text',
+          text: [
+            tct('Initialize the SDK on [code:App.xaml.cs].', {
+              code: <code />,
+            }),
+            t("NOTE: It's recommended to not setup the CacheDirectory for UWP."),
           ],
         },
         {
-          description: <h5>{t('iOS')}</h5>,
-          configurations: [
-            {
-              description: tct('Initialize the SDK on your [code:AppDelegate.cs].', {
-                code: <code />,
-              }),
-              language: `csharp`,
-              code: getConfigureSnippetIOS(params),
-            },
-          ],
-        },
-        {
-          description: <h5>{t('UWP')}</h5>,
-          configurations: [
-            {
-              description: (
-                <Fragment>
-                  <p>
-                    {tct('Initialize the SDK on [code:App.xaml.cs].', {
-                      code: <code />,
-                    })}
-                  </p>
-                  {t("NOTE: It's recommended to not setup the CacheDirectory for UWP.")}
-                </Fragment>
-              ),
-              language: `csharp`,
-              code: getConfigureSnippetUWP(params),
-            },
-          ],
+          type: 'code',
+          language: 'csharp',
+          code: getConfigureSnippetUWP(params),
         },
       ],
     },
@@ -186,77 +193,111 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t('To verify your set up, you can capture a message with the SDK:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify your set up, you can capture a message with the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Hello Sentry");',
         },
+        {
+          type: 'text',
+          text: t(
+            'You might need to open the app again for the crash report to be sent to the server.'
+          ),
+        },
       ],
-      additionalInfo: t(
-        'You might need to open the app again for the crash report to be sent to the server.'
-      ),
     },
     {
       title: t('Tracing'),
-      description: t(
-        'You can measure the performance of your code by capturing transactions and spans.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can measure the performance of your code by capturing transactions and spans.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: getPerformanceInstrumentationSnippet(),
         },
-      ],
-      additionalInfo: tct(
-        'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
     {
       title: t('Documentation'),
-      description: tct(
-        "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete Xamarin Forms docs].",
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/xamarin/" />
+          type: 'text',
+          text: tct(
+            "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete Xamarin Forms docs].",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/xamarin/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
     {
       title: t('Limitations'),
-      description: t(
-        'There are no line numbers on stack traces for UWP and in release builds for Android and iOS.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'There are no line numbers on stack traces for UWP and in release builds for Android and iOS.'
+          ),
+        },
+      ],
     },
     {
       title: t('Samples'),
-      description: tct(
-        'You can find an example of a Xamarin Forms app with Sentry integrated [link:on this GitHub repository].',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://github.com/getsentry/sentry-xamarin/tree/main/Samples" />
+          type: 'text',
+          text: tct(
+            'You can find an example of a Xamarin Forms app with Sentry integrated [link:on this GitHub repository].',
+            {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry-xamarin/tree/main/Samples" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
 };
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  install: (params: Params) => getCrashReportGenericInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/dotnet/guides/xamarin/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/dotnet/guides/xamarin/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

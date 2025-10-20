@@ -1,4 +1,3 @@
-import type {ComponentProps} from 'react';
 import {Fragment} from 'react';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -42,23 +41,4 @@ export default Storybook.story('CopyToClipboardButton', story => {
       </Fragment>
     );
   });
-
-  const propMatrix: Storybook.PropMatrix<ComponentProps<typeof CopyToClipboardButton>> = {
-    size: [undefined, 'md', 'sm', 'xs', 'zero'],
-    iconSize: [undefined, 'xs', 'sm', 'md', 'lg', 'xl', '2xl'],
-  };
-  story('Size Props', () => (
-    <Fragment>
-      <p>
-        Try to keep the <Storybook.JSXProperty name="size" value="" /> and{' '}
-        <Storybook.JSXProperty name="iconSize" value="" /> props set to the same value.
-        Here's a grid of all the possible combinations.
-      </p>
-      <Storybook.PropMatrix
-        render={CopyToClipboardButton}
-        propMatrix={propMatrix}
-        selectedProps={['size', 'iconSize']}
-      />
-    </Fragment>
-  ));
 });

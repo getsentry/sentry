@@ -299,7 +299,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         ):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.no_alert_rule_for_subscription"
+            "incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0
         )
         assert not QuerySubscription.objects.filter(id=subscription_id).exists()
         assert SnubaQuery.objects.filter(id=snuba_query.id).exists()
@@ -324,7 +324,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         ):
             SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.no_alert_rule_for_subscription"
+            "incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0
         )
         assert not QuerySubscription.objects.filter(id=subscription_id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
@@ -357,6 +357,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.ignore_update_missing_incidents_performance"
+        )
+
+    def test_no_feature_on_demand(self) -> None:
+        self.sub.snuba_query.dataset = "generic_metrics"
+        message = self.build_subscription_update(self.sub)
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:performance-view"),
+        ):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_on_demand"
         )
 
     def test_skip_already_processed_update(self) -> None:
@@ -503,11 +515,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [
                 call(
                     "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": original_incident.id,
-                        "project_id": self.sub.project.id,
-                        "trigger_id": trigger.id,
-                    },
                 ),
             ],
             any_order=True,
@@ -3474,7 +3481,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         processor = SubscriptionProcessor(self.sub)
-        processor.alert_rule = self.dynamic_rule
+        processor._alert_rule = self.dynamic_rule
         result = get_anomaly_data_from_seer_legacy(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,

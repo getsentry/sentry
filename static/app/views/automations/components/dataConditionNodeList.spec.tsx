@@ -6,12 +6,14 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {DataConditionHandler} from 'sentry/types/workflowEngine/dataConditions';
 import {
+  DataConditionGroupLogicType,
   DataConditionHandlerGroupType,
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {MatchType} from 'sentry/views/automations/components/actionFilters/constants';
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
+import {AutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 
@@ -47,6 +49,33 @@ describe('DataConditionNodeList', () => {
     onDeleteRow: mockOnDeleteRow,
     placeholder: 'Any event',
     updateCondition: mockUpdateCondition,
+    label: 'Add condition',
+  };
+  const defaultContextProps = {
+    state: {
+      triggers: {
+        id: 'triggers',
+        conditions: [],
+        logicType: DataConditionGroupLogicType.ANY,
+      },
+      actionFilters: [],
+    },
+    actions: {
+      addWhenCondition: jest.fn(),
+      removeWhenCondition: jest.fn(),
+      updateWhenCondition: jest.fn(),
+      updateWhenLogicType: jest.fn(),
+      addIf: jest.fn(),
+      removeIf: jest.fn(),
+      addIfCondition: jest.fn(),
+      removeIfCondition: jest.fn(),
+      updateIfCondition: jest.fn(),
+      updateIfLogicType: jest.fn(),
+      addIfAction: jest.fn(),
+      removeIfAction: jest.fn(),
+      updateIfAction: jest.fn(),
+    },
+    showTriggerLogicTypeSelector: false,
   };
   const defaultConflictContextProps = {
     conflictingConditionGroups: {},
@@ -54,6 +83,7 @@ describe('DataConditionNodeList', () => {
   };
   const defaultErrorContextProps = {
     errors: {},
+    mutationErrors: undefined,
     setErrors: jest.fn(),
     removeError: jest.fn(),
   };
@@ -68,12 +98,13 @@ describe('DataConditionNodeList', () => {
 
   it('renders correct condition options', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList {...defaultProps} />
-        </AutomationBuilderConflictContext.Provider>
-        ,
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList {...defaultProps} />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {
         organization,
       }
@@ -92,11 +123,13 @@ describe('DataConditionNodeList', () => {
 
   it('adds conditions', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList {...defaultProps} />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList {...defaultProps} />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {
         organization,
       }
@@ -110,14 +143,16 @@ describe('DataConditionNodeList', () => {
 
   it('updates existing conditions', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList
-            {...defaultProps}
-            conditions={[DataConditionFixture()]}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList
+              {...defaultProps}
+              conditions={[DataConditionFixture()]}
+            />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {organization}
     );
 
@@ -129,14 +164,16 @@ describe('DataConditionNodeList', () => {
 
   it('deletes existing condition', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList
-            {...defaultProps}
-            conditions={[DataConditionFixture()]}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList
+              {...defaultProps}
+              conditions={[DataConditionFixture()]}
+            />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {organization}
     );
 
@@ -147,16 +184,18 @@ describe('DataConditionNodeList', () => {
   it('shows conflicting condition warning for action filters', () => {
     const conflictReason = 'The conditions highlighted in red are in conflict.';
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider
-          value={{
-            conflictingConditionGroups: {[groupId]: new Set(['1'])},
-            conflictReason,
-          }}
-        >
-          <DataConditionNodeList {...defaultProps} />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider
+            value={{
+              conflictingConditionGroups: {[groupId]: new Set(['1'])},
+              conflictReason,
+            }}
+          >
+            <DataConditionNodeList {...defaultProps} />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {
         organization,
       }
@@ -169,19 +208,21 @@ describe('DataConditionNodeList', () => {
     const conflictReason = 'The conditions highlighted in red are in conflict.';
     // Only one conflicting condition should not show the warning
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider
-          value={{
-            conflictingConditionGroups: {[groupId]: new Set(['1'])},
-            conflictReason,
-          }}
-        >
-          <DataConditionNodeList
-            {...defaultProps}
-            handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider
+            value={{
+              conflictingConditionGroups: {[groupId]: new Set(['1'])},
+              conflictReason,
+            }}
+          >
+            <DataConditionNodeList
+              {...defaultProps}
+              handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+            />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {organization}
     );
 
@@ -189,19 +230,21 @@ describe('DataConditionNodeList', () => {
 
     // Two or more conflicting conditions should show the warning
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider
-          value={{
-            conflictingConditionGroups: {[groupId]: new Set(['1', '2'])},
-            conflictReason,
-          }}
-        >
-          <DataConditionNodeList
-            {...defaultProps}
-            handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider
+            value={{
+              conflictingConditionGroups: {[groupId]: new Set(['1', '2'])},
+              conflictReason,
+            }}
+          >
+            <DataConditionNodeList
+              {...defaultProps}
+              handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+            />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {organization}
     );
 
@@ -215,16 +258,18 @@ describe('DataConditionNodeList', () => {
     const errorMessage = 'This condition has an error';
 
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{
-          ...defaultErrorContextProps,
-          errors: {'condition-with-error': errorMessage},
-        }}
-      >
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList {...defaultProps} conditions={[conditionWithError]} />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider
+          value={{
+            ...defaultErrorContextProps,
+            errors: {'condition-with-error': errorMessage},
+          }}
+        >
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList {...defaultProps} conditions={[conditionWithError]} />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {organization}
     );
 
@@ -233,13 +278,13 @@ describe('DataConditionNodeList', () => {
 
   it('shows warning message for occurrence-based monitors', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList {...defaultProps} />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList {...defaultProps} />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
       {organization}
     );
 

@@ -6,7 +6,6 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/cta/featureFlagInlineCTA';
 import {
   CardContainer,
   EventFeatureFlagDrawer,
@@ -28,7 +27,6 @@ import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGro
 import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -71,7 +69,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       <Button
         aria-label={t('Give feedback on the feature flag section')}
         icon={<IconMegaphone />}
-        size={'xs'}
+        size="xs"
         onClick={() =>
           openForm({
             messagePlaceholder: t('How can we make feature flags work better for you?'),
@@ -252,17 +250,9 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     return null;
   }
 
-  // If the project has never ingested flags, either show a CTA or hide the section entirely.
+  // If the project has never ingested flags, hide the section entirely.
   if (!hasFlags && !project.hasFlags) {
-    const showCTA =
-      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-      organization.features.includes('feature-flag-cta');
-    return showCTA ? (
-      <FeatureFlagInlineCTA
-        projectId={event.projectID}
-        projectPlatform={project.platform}
-      />
-    ) : null;
+    return null;
   }
 
   const actions = (

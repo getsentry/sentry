@@ -5,7 +5,7 @@ after we fully migrate away from metric alerts.
 
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import orjson
 from django.utils import timezone
@@ -38,6 +38,7 @@ from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.subscription_processor.test_subscription_processor import (
@@ -58,19 +59,37 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         """
         rule = self.rule
         trigger = self.trigger
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
         # create a warning trigger
-        create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
-        self.send_update(rule, trigger.alert_threshold + 1)
-        logger_extra = {
-            "results": [],
-            "num_results": 0,
-            "value": trigger.alert_threshold + 1,
-            "rule_id": rule.id,
-        }
-        assert mock_logger.info.call_count == 2
-        mock_logger.info.assert_called_with(
+        warning_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1
+        )
+        value = trigger.alert_threshold + 1
+        self.send_update(rule, value)
+
+        mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
-            extra=logger_extra,
+            extra={
+                "results": [],
+                "num_results": 0,
+                "value": value,
+                "rule_id": rule.id,
+            },
+        )
+
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "organization_id": rule.organization_id,
+                "project_id": self.project.id,
+                "aggregation_value": value,
+                "trigger_id": warning_trigger.id,
+            },
         )
         # assert that we only create a metric for `dual_processing.alert_rules.fire` once despite having 2 triggers
         mock_metrics.incr.assert_has_calls(
@@ -92,22 +111,69 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
-    def test_resolve_metrics(self, mock_metrics: MagicMock) -> None:
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_snoozed_alert_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """
+        Test that we are logging when we enter workflow engine at the same rate as we store a metric for firing a snoozed alert
+        """
         rule = self.rule
         trigger = self.trigger
-        self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
-        self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
+        # create a warning trigger
+        create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
+        self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
+        self.send_update(rule, trigger.alert_threshold + 1)
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra={
+                "results": [],
+                "num_results": 0,
+                "value": trigger.alert_threshold + 1,
+                "rule_id": rule.id,
+            },
+        )
         mock_metrics.incr.assert_has_calls(
             [
                 call(
                     "incidents.alert_rules.threshold.alert",
                     tags={"detection_type": "static"},
                 ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
                 call(
-                    "dual_processing.alert_rules.fire",
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_resolve_metrics_logging(self, mock_logger: MagicMock, mock_metrics: MagicMock) -> None:
+        rule = self.rule
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
+        trigger = self.trigger
+        self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+
+        # resolve the rule
+        mock_logger.reset_mock()
+        mock_metrics.reset_mock()
+        resolve_value = rule.resolve_threshold - 1
+        self.send_update(rule, resolve_value, timedelta(minutes=-1))
+        mock_metrics.incr.assert_has_calls(
+            [
                 call(
                     "incidents.alert_rules.threshold.resolve",
                     tags={"detection_type": "static"},
@@ -117,6 +183,67 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
+        )
+
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra={
+                "results": [],
+                "num_results": 0,
+                "value": resolve_value,
+                "rule_id": rule.id,
+            },
+        )
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "organization_id": rule.organization_id,
+                "project_id": self.project.id,
+                "aggregation_value": resolve_value,
+                "trigger_id": trigger.id,
+            },
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_snoozed_resolve_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        rule = self.rule
+        self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_alert_rule_detector(alert_rule_id=rule.id, detector=detector)
+        trigger = self.trigger
+        self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+
+        # resolve the rule
+        mock_logger.reset_mock()
+        mock_metrics.reset_mock()
+        resolve_value = rule.resolve_threshold - 1
+        self.send_update(rule, resolve_value, timedelta(minutes=-1))
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "static"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ]
+        )
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra={
+                "results": [],
+                "num_results": 0,
+                "value": resolve_value,
+                "rule_id": rule.id,
+            },
         )
 
     @patch("sentry.incidents.subscription_processor.metrics")
@@ -276,6 +403,78 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         data_packet = mock_process_data_packet.call_args_list[0][0][0]
         assert data_packet.source_id == str(self.sub.id)
         assert data_packet.packet.values == {"value": trigger.alert_threshold + 1}
+
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_process_update__single_processing__sends_metrics(self, mock_metric):
+        # Replicate the rule to a detector
+        self.detector = self.create_detector(type=MetricIssue.slug)
+        self.detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.condition = self.create_data_condition(
+            condition_group=self.detector.workflow_condition_group,
+            type="gt",
+            comparison=100.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        self.data_source = self.create_data_source(source_id=str(self.sub.id))
+        self.data_source.detectors.set([self.detector])
+        self.data_source.save()
+        self.detector.save()
+
+        # Process the rule with single workflow engine processing flag
+        self.send_update(self.rule, self.trigger.alert_threshold + 1)
+
+        # Ensure that single processing metric is sent
+        mock_metric.incr.assert_any_call("incidents.workflow_engine.processing.single")
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_process_update__dual_processing__result_log(self, mock_logger):
+        self.detector = self.create_detector(type=MetricIssue.slug)
+        self.detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.condition = self.create_data_condition(
+            condition_group=self.detector.workflow_condition_group,
+            type="gt",
+            comparison=100.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        self.data_source = self.create_data_source(source_id=str(self.sub.id))
+        self.data_source.detectors.set([self.detector])
+        self.data_source.save()
+        self.detector.save()
+
+        self.send_update(self.rule, self.trigger.alert_threshold + 1)
+
+        # Log should indicate both systems triggered
+        mock_logger.info.assert_any_call(
+            "incidents.workflow_engine.processing",
+            extra={
+                "detector": self.detector,
+                "workflow_engine_triggered": True,
+                "metric_alert_triggered": True,
+            },
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_process_update__dual_processing__missing_detector(self, mock_logger: MagicMock):
+        """
+        Test case where dual processing is enabled but the Detector doesn't exist.
+
+        This represents malformed data observed in production where an AlertRule exists
+        with the workflow engine dual processing feature flag enabled, but the
+        corresponding Detector model does not exist.
+
+        We want to log an error but not raise any exceptions.
+        """
+        rule = self.rule
+        trigger = self.trigger
+
+        self.send_update(rule, trigger.alert_threshold + 1)
+
+        assert mock_logger.error.called, "Expected an error to be logged when Detector is missing"
 
 
 @freeze_time()
@@ -475,4 +674,293 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                     "notification_uuid": mock.ANY,
                 },
             ],
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_anomaly_detection_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
+        rule = self.dynamic_rule
+        trigger = self.trigger
+        create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        self.create_workflow_engine_models(rule)
+        detector = Detector.objects.get(name="hojicha")
+        value = 10
+
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=value, anomaly_type=AnomalyType.HIGH_CONFIDENCE
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        self.send_update(rule, value, timedelta(minutes=-2))
+
+        # assert that we only create a metric for `dual_processing.alert_rules.fire` once despite having 2 triggers
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call(
+                    "dual_processing.alert_rules.fire",
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "organization_id": rule.organization_id,
+                "project_id": self.project.id,
+                "aggregation_value": value,
+                "trigger_id": trigger.id,
+            },
+        )
+        # this one gets called twice, once per trigger
+        mock_logger.info.assert_any_call(
+            "dual processing anomaly detection alert",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "anomaly_evaluation": True,
+            },
+        )
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra={
+                "results": ANY,
+                "num_results": 1,
+                "value": value,
+                "rule_id": rule.id,
+            },
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_snoozed_anomaly_detection_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
+        rule = self.dynamic_rule
+        self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
+        create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        self.create_workflow_engine_models(rule)
+        detector = Detector.objects.get(name="hojicha")
+        value = 10
+
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=value, anomaly_type=AnomalyType.HIGH_CONFIDENCE
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        self.send_update(rule, value, timedelta(minutes=-2))
+
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
+
+        # this one gets called twice, once per trigger
+        mock_logger.info.assert_any_call(
+            "dual processing anomaly detection alert",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "anomaly_evaluation": True,
+            },
+        )
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra={
+                "results": ANY,
+                "num_results": 1,
+                "value": value,
+                "rule_id": rule.id,
+            },
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_resolve_anomaly_detection_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
+        rule = self.dynamic_rule
+        trigger = self.trigger
+        create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        self.create_workflow_engine_models(rule)
+        detector = Detector.objects.get(name="hojicha")
+        value = 10
+
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=value, anomaly_type=AnomalyType.HIGH_CONFIDENCE
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        self.send_update(rule, value, timedelta(minutes=-2))
+
+        # trigger a resolution
+        resolve_value = 1
+        seer_return_value_resolve = self.get_seer_return_value(
+            anomaly_score=0.5, value=resolve_value, anomaly_type=AnomalyType.NONE
+        )
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value_resolve), status=200
+        )
+        mock_logger.reset_mock()
+        mock_metrics.reset_mock()
+        self.send_update(rule, resolve_value, timedelta(minutes=-1))
+
+        # assert that we only create a metric for `dual_processing.alert_rules.resolve` once despite having 2 triggers
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call(
+                    "dual_processing.alert_rules.resolve",
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ],
+        )
+
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra={
+                "results": ANY,
+                "num_results": 1,
+                "value": resolve_value,
+                "rule_id": rule.id,
+            },
+        )
+        # this one gets called twice, once per trigger
+        mock_logger.info.assert_any_call(
+            "dual processing anomaly detection alert",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "anomaly_evaluation": False,
+            },
+        )
+        mock_logger.info.assert_any_call(
+            "subscription_processor.alert_triggered",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "organization_id": rule.organization_id,
+                "project_id": self.project.id,
+                "aggregation_value": resolve_value,
+                "trigger_id": trigger.id,
+            },
+        )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @patch("sentry.incidents.subscription_processor.metrics")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_snoozed_resolve_anomaly_detection_metrics_logging(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
+        rule = self.dynamic_rule
+        self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
+        create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        self.create_workflow_engine_models(rule)
+        detector = Detector.objects.get(name="hojicha")
+        value = 10
+
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=value, anomaly_type=AnomalyType.HIGH_CONFIDENCE
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        self.send_update(rule, value, timedelta(minutes=-2))
+
+        # trigger a resolution
+        resolve_value = 1
+        seer_return_value_resolve = self.get_seer_return_value(
+            anomaly_score=0.5, value=resolve_value, anomaly_type=AnomalyType.NONE
+        )
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value_resolve), status=200
+        )
+        mock_logger.reset_mock()
+        mock_metrics.reset_mock()
+        self.send_update(rule, resolve_value, timedelta(minutes=-1))
+
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "dynamic"},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ],
+        )
+
+        # this one gets called twice, once per trigger
+        mock_logger.info.assert_any_call(
+            "dual processing anomaly detection alert",
+            extra={
+                "rule_id": rule.id,
+                "detector_id": detector.id,
+                "anomaly_evaluation": False,
+            },
+        )
+        mock_logger.info.assert_any_call(
+            "dual processing results for alert rule",
+            extra={
+                "results": ANY,
+                "num_results": 1,
+                "value": resolve_value,
+                "rule_id": rule.id,
+            },
         )

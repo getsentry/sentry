@@ -21,8 +21,6 @@ from snuba_sdk import (
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
-from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume
-from sentry.dynamic_sampling.tasks.utils import sample_function
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -53,7 +51,6 @@ class GetActiveOrgs:
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
     ) -> None:
-
         self.metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
@@ -87,7 +84,9 @@ class GetActiveOrgs:
                     ],
                     where=[
                         Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
+                            Column("timestamp"),
+                            Op.GTE,
+                            datetime.utcnow() - self.time_interval,
                         ),
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
@@ -104,7 +103,10 @@ class GetActiveOrgs:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={
+                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "cross_org_query": 1,
+                },
             )
             data = raw_snql_query(
                 request,
@@ -274,7 +276,10 @@ class GetActiveOrgsVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={
+                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "cross_org_query": 1,
+                },
             )
 
             data = raw_snql_query(
@@ -291,7 +296,9 @@ class GetActiveOrgsVolumes:
                 keep_count = row["keep_count"] if self.include_keep else None
                 self.last_result.append(
                     OrganizationDataVolume(
-                        org_id=row["org_id"], total=row["total_count"], indexed=keep_count
+                        org_id=row["org_id"],
+                        total=row["total_count"],
+                        indexed=keep_count,
                     )
                 )
 
@@ -381,7 +388,15 @@ def compute_guarded_sliding_window_sample_rate(
         # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
         return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
     except Exception as e:
-        sentry_sdk.capture_exception(e)
+        sentry_sdk.capture_exception(
+            e,
+            extras={
+                "org_id": org_id,
+                "project_id": project_id,
+                "total_root_count": total_root_count,
+                "window_size": window_size,
+            },
+        )
         return None
 
 
@@ -407,26 +422,11 @@ def compute_sliding_window_sample_rate(
 
         return None
 
-    # We want to log the monthly volume for observability purposes.
-    sample_function(
-        function=log_extrapolated_monthly_volume,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=project_id,
-        volume=total_root_count,
-        extrapolated_volume=extrapolated_volume,
-        window_size=window_size,
-    )
-
     sampling_tier = quotas.backend.get_transaction_sampling_tier_for_volume(
         org_id, extrapolated_volume
     )
     if sampling_tier is None:
         return None
 
-    # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
-    # under the assumption that the sampling_tier tuple contains both non-null values.
     _, sample_rate = sampling_tier
-
-    # We assume that the sample_rate is a float.
     return float(sample_rate)

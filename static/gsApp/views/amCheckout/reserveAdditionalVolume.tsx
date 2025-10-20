@@ -1,19 +1,21 @@
-import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useMemo, useState} from 'react';
+import debounce from 'lodash/debounce';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';
-import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {Separator} from 'sentry/components/core/separator';
+import {Text} from 'sentry/components/core/text';
+import {IconAdd, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PlanTier} from 'getsentry/types';
-import {isAmPlan} from 'getsentry/utils/billing';
+import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {formatPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
+import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 function ReserveAdditionalVolume({
   organization,
@@ -31,7 +33,24 @@ function ReserveAdditionalVolume({
   | 'formData'
   | 'onUpdate'
 >) {
-  const [showSliders, setShowSliders] = useState(false);
+  // if the customer has any reserved volume above platform already, auto-show the sliders
+  const [showSliders, setShowSliders] = useState<boolean>(
+    isDeveloperPlan(subscription.planDetails)
+      ? false
+      : Object.values(subscription.categories ?? {})
+          .filter(
+            ({category}) =>
+              activePlan.checkoutCategories.includes(category) &&
+              category in activePlan.planCategories
+          )
+          .some(
+            ({category, reserved}) =>
+              getBucket({
+                buckets: activePlan.planCategories[category],
+                events: reserved ?? 0,
+              }).price > 0
+          )
+  );
   const reservedVolumeTotal = useMemo(() => {
     return Object.entries(formData.reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
@@ -41,142 +60,97 @@ function ReserveAdditionalVolume({
     }, 0);
   }, [formData.reserved, activePlan]);
 
-  // TODO(checkout v3): correct math
-  const savings = useMemo(() => {
-    return reservedVolumeTotal * 1.2 - reservedVolumeTotal;
-  }, [reservedVolumeTotal]);
-
   const isLegacy =
     !checkoutTier ||
     !isAmPlan(checkoutTier) ||
     [PlanTier.AM2, PlanTier.AM1].includes(checkoutTier ?? PlanTier.AM3);
 
+  const handleReservedChange = useCallback(
+    (value: number, category: DataCategory) => {
+      onUpdate({reserved: {...formData.reserved, [category]: value}});
+
+      if (organization) {
+        trackGetsentryAnalytics('checkout.data_slider_changed', {
+          organization,
+          data_type: category,
+          quantity: value,
+        });
+      }
+    },
+    [onUpdate, formData.reserved, organization]
+  );
+
+  const debouncedReservedChange = useMemo(
+    () =>
+      debounce(
+        (value: number, category: DataCategory) => handleReservedChange(value, category),
+        300
+      ),
+    [handleReservedChange]
+  );
+
   return (
-    <ReserveAdditionalVolumeContainer>
-      <Flex justify="between">
-        <Flex direction="column" gap="md" align="start">
-          <RowWithTag>
-            <Title>{t('Reserve additional volume')}</Title>
-            <Tag type="promotion">{t('save 20%')}</Tag>
-          </RowWithTag>
-          <Description>
-            {t('Plan ahead of time by reserving extra volume, and get more for less')}
-          </Description>
-        </Flex>
-        <Flex gap="md" align="center">
-          {reservedVolumeTotal > 0 && !showSliders && (
-            <div>
-              <Price>${formatPrice({cents: reservedVolumeTotal})}</Price>
-              <BillingInterval>
-                /{getShortInterval(activePlan.billingInterval)}
-              </BillingInterval>
-            </div>
-          )}
+    <Flex direction="column" gap="md">
+      <Flex gap="md" align="center" justify="between" width="100%" height="28px">
+        <Flex align="center" gap="md">
           <Button
+            size="sm"
+            priority="link"
             borderless
-            icon={<IconChevron direction={showSliders ? 'up' : 'down'} />}
+            icon={showSliders ? <IconSubtract /> : <IconAdd />}
             aria-label={
               showSliders
                 ? t('Hide reserved volume sliders')
                 : t('Show reserved volume sliders')
             }
-            onClick={() => setShowSliders(!showSliders)}
-          />
+            onClick={() => {
+              setShowSliders(!showSliders);
+              if (showSliders) {
+                trackGetsentryAnalytics('checkout.data_sliders_viewed', {
+                  organization,
+                  isNewCheckout: true,
+                });
+              }
+            }}
+          >
+            {t('Reserve additional volume')}
+          </Button>
+          <Tag type="promotion">{t('save 20%')}</Tag>
         </Flex>
+        {reservedVolumeTotal > 0 && (
+          <Container>
+            <Text size="2xl" bold density="compressed">
+              +${formatPrice({cents: reservedVolumeTotal})}
+            </Text>
+            <Text size="lg" variant="muted">
+              /{getShortInterval(activePlan.billingInterval)}
+            </Text>
+          </Container>
+        )}
       </Flex>
       {showSliders && (
-        <Fragment>
-          <Separator />
-          <VolumeSliders
-            checkoutTier={checkoutTier}
-            activePlan={activePlan}
-            organization={organization}
-            onUpdate={onUpdate}
-            formData={formData}
-            subscription={subscription}
-            isLegacy={isLegacy}
-            isNewCheckout
-          />
-          {reservedVolumeTotal > 0 && (
-            <TotalContainer justify="between" align="center">
-              <Total>{t('Total')}</Total>
-              <Flex direction="column" align="end">
-                <div>
-                  <Price>${formatPrice({cents: reservedVolumeTotal})}</Price>
-                  <BillingInterval>
-                    /{getShortInterval(activePlan.billingInterval)}
-                  </BillingInterval>
-                </div>
-                <Savings>
-                  {tct('Save $[savings] vs. [budgetTerm]', {
-                    savings: formatPrice({cents: savings}),
-                    budgetTerm: activePlan.budgetTerm,
-                  })}
-                </Savings>
-              </Flex>
-            </TotalContainer>
-          )}
-        </Fragment>
+        <Flex direction="column" gap="xl">
+          <Text variant="muted">
+            {t('Prepay for usage by reserving volumes and save up to 20%')}
+          </Text>
+          <Flex direction="column" gap="md">
+            <Separator orientation="horizontal" border="primary" />
+            <VolumeSliders
+              checkoutTier={checkoutTier}
+              activePlan={activePlan}
+              organization={organization}
+              onUpdate={onUpdate}
+              formData={formData}
+              subscription={subscription}
+              isLegacy={isLegacy}
+              isNewCheckout
+              onReservedChange={debouncedReservedChange}
+            />
+          </Flex>
+        </Flex>
       )}
-    </ReserveAdditionalVolumeContainer>
+    </Flex>
   );
 }
 
 export default ReserveAdditionalVolume;
-
-const ReserveAdditionalVolumeContainer = styled(Container)`
-  padding: ${p => p.theme.space.xl};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-`;
-
-const RowWithTag = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const Title = styled('label')`
-  font-weight: 600;
-  margin: 0;
-  line-height: normal;
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const Price = styled('span')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.activeText};
-`;
-
-const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  margin: 0;
-`;
-
-const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const Separator = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: ${p => p.theme.space.md} 0;
-`;
-
-const TotalContainer = styled(Flex)`
-  background: ${p => p.theme.backgroundSecondary};
-  padding: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const Total = styled('span')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const Savings = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-`;

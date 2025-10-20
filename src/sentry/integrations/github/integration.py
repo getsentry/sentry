@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict
 from urllib.parse import parse_qsl
@@ -28,7 +28,11 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
+from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -50,7 +54,7 @@ from sentry.integrations.source_code_management.language_parsers import (
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -61,13 +65,17 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -77,6 +85,7 @@ from sentry.web.helpers import render_to_response
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
+from .utils import parse_github_blob_url
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -154,6 +163,9 @@ ERR_INTEGRATION_PENDING_DELETION = _(
 ERR_INTEGRATION_INVALID_INSTALLATION = _(
     "Your GitHub account does not have owner privileges for the chosen organization."
 )
+ERR_INTEGRATION_MISSING_ORGANIZATION = _(
+    "You must be logged into an organization to access this feature."
+)
 
 
 class GithubInstallationInfo(TypedDict):
@@ -173,13 +185,17 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
 
 def error(
     request,
-    org,
+    org: RpcUserOrganizationContext | None,
     error_short="Invalid installation request.",
     error_long=ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
 ):
+    if org is None:
+        org_id = None
+    else:
+        org_id = org.organization.id
     logger.error(
         "github.installation_error",
-        extra={"org_id": org.organization.id, "error_short": error_short},
+        extra={"org_id": org_id, "error_short": error_short},
     )
 
     return render_to_response(
@@ -208,9 +224,20 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+    RepositoryIntegration,
+    GitHubIssuesSpec,
+    IssueSyncIntegration,
+    CommitContextIntegration,
+    RepoTreesIntegration,
 ):
     integration_name = IntegrationProviderSlug.GITHUB
+
+    # IssueSyncIntegration configuration keys
+    comment_key = None
+    outbound_status_key = None
+    inbound_status_key = None
+    outbound_assignee_key = "sync_forward_assignment"
+    inbound_assignee_key = "sync_reverse_assignment"
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -258,13 +285,15 @@ class GitHubIntegration(
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_github_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_github_blob_url(repo.url, url)
         return source_path
 
     def get_repositories(
@@ -369,6 +398,152 @@ class GitHubIntegration(
 
         return False
 
+    # IssueSyncIntegration methods
+
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: RpcUser | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Propagate a sentry issue's assignee to a linked GitHub issue's assignee.
+        If assign=True, we're assigning the issue. Otherwise, deassign.
+        """
+        client = self.get_client()
+
+        # Parse the external issue key to get repo and issue number
+        # Format is "{repo_full_name}#{issue_number}"
+        try:
+            repo, issue_num = external_issue.key.split("#")
+        except ValueError:
+            logger.exception(
+                "github.assignee-outbound.invalid-key",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "external_issue_key": external_issue.key,
+                    "external_issue_id": external_issue.id,
+                },
+            )
+            return
+
+        github_username = None
+
+        # If we're assigning and have a user, find their GitHub username
+        if user and assign:
+            # Check if user has a GitHub identity linked
+            external_actor = ExternalActor.objects.filter(
+                provider=ExternalProviders.GITHUB.value,
+                user_id=user.id,
+                integration_id=external_issue.integration_id,
+                organization=external_issue.organization,
+            ).first()
+            if not external_actor:
+                logger.info(
+                    "github.assignee-outbound.external-actor-not-found",
+                    extra={
+                        "integration_id": external_issue.integration_id,
+                        "user_id": user.id,
+                    },
+                )
+                return
+
+            # Strip the @ from the username
+            github_username = external_actor.external_name.lstrip("@")
+
+        # Only update GitHub if we have a username to assign or if we're explicitly deassigning
+        if github_username or not assign:
+            try:
+                client.update_issue(repo, issue_num, [github_username] if github_username else [])
+            except Exception as e:
+                self.raise_error(e)
+
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
+        """
+        Propagate a sentry issue's status to a linked GitHub issue's status.
+        """
+        # Not implemented yet
+        pass
+
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        """
+        Given webhook data, check whether the GitHub issue status changed.
+        GitHub issues only have open/closed state.
+        """
+        # Not implemented yet, so we return NOOP
+        return ResolveSyncAction.NOOP
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config = []
+
+        if features.has(
+            "organizations:integrations-github-inbound-assignee-sync", self.organization
+        ):
+            config.append(
+                {
+                    "name": self.inbound_assignee_key,
+                    "type": "boolean",
+                    "label": _("Sync Github Assignment to Sentry"),
+                    "help": _(
+                        "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                    ),
+                    "default": False,
+                }
+            )
+        if features.has(
+            "organizations:integrations-github-outbound-assignee-sync", self.organization
+        ):
+            config.append(
+                {
+                    "name": self.outbound_assignee_key,
+                    "type": "boolean",
+                    "label": _("Sync Sentry Assignment to GitHub"),
+                    "help": _(
+                        "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                    ),
+                    "default": False,
+                }
+            )
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        """
+        Update the configuration field for an organization integration.
+        """
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
+
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         return GitHubPRCommentWorkflow(integration=self)
 
@@ -377,12 +552,10 @@ class GitHubIntegration(
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
-## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this pull request
+This pull request was merged and Sentry observed the following issues:
 
-{issue_list}
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+{issue_list}""".rstrip()
 
 
 class GitHubPRCommentWorkflow(PRCommentWorkflow):
@@ -444,10 +617,7 @@ OPEN_PR_COMMENT_BODY_TEMPLATE = """\
 ## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
-{issue_tables}
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+{issue_tables}""".rstrip()
 
 OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
 📄 File: **{filename}**
@@ -468,6 +638,20 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
+def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
+    if e.json:
+        message = e.json.get("message", "")
+        if RATE_LIMITED_MESSAGE in message:
+            return []
+        elif "403 Forbidden" in message:
+            return []
+    elif e.code == 404 or e.code == 403:
+        return []
+    elif isinstance(e, ApiInvalidRequestError):
+        return []
+    return None
+
+
 class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
     integration: GitHubIntegration
     organization_option_key = "sentry:github_open_pr_bot"
@@ -479,8 +663,9 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         try:
             pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
         except ApiError as e:
-            if (e.json and RATE_LIMITED_MESSAGE in e.json.get("message", "")) or e.code == 404:
-                return []
+            api_error_resp = process_api_error(e)
+            if api_error_resp is not None:
+                return api_error_resp
             else:
                 raise
 
@@ -616,6 +801,45 @@ class GitHubIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
+
+        # Check if this is the Codecov GitHub app to trigger account linking
+        github_app_id = extra.get("app_id")
+        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
+
+        if not github_app_id or not SENTRY_GITHUB_APP_ID:
+            logger.warning(
+                "codecov.account_link.configuration_error",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": organization.id,
+                    "has_github_app_id": bool(github_app_id),
+                    "has_sentry_github_app_id": bool(SENTRY_GITHUB_APP_ID),
+                },
+            )
+
+        if (
+            github_app_id
+            and SENTRY_GITHUB_APP_ID
+            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
+        ):
+            org_integration = OrganizationIntegration.objects.filter(
+                integration=integration, organization_id=organization.id
+            ).first()
+
+            # Double check org integration exists before linking accounts
+            if org_integration:
+                codecov_account_link.apply_async(
+                    kwargs={
+                        "integration_id": integration.id,
+                        "organization_id": organization.id,
+                    }
+                )
+            else:
+                logger.warning(
+                    "codecov.account_link.org_integration_missing",
+                    extra={"integration_id": integration.id, "organization_id": organization.id},
+                )
+
         repos = repository_service.get_repositories(
             organization_id=organization.id,
             providers=[IntegrationProviderSlug.GITHUB.value, "integrations:github"],
@@ -676,6 +900,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "account_type": installation["account"]["type"],
                 "account_id": installation["account"]["id"],
             },
+            "post_install_data": {"app_id": installation["app_id"]},
         }
 
         if state.get("sender"):
@@ -701,6 +926,7 @@ class GitHubInstallationError(StrEnum):
     MISSING_INTEGRATION = "Integration does not exist."
     INVALID_INSTALLATION = "User does not have access to given installation."
     FEATURE_NOT_AVAILABLE = "Your organization does not have access to this feature."
+    MISSING_ORGANIZATION = "You must be logged into an organization to access this feature."
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -779,10 +1005,7 @@ class OAuthLoginView:
             self.client = GithubSetupApiClient(access_token=payload["access_token"])
             authenticated_user_info = self.client.get_user_info()
 
-            if self.active_user_organization is not None and features.has(
-                "organizations:github-multi-org",
-                organization=self.active_user_organization.organization,
-            ):
+            if self.active_user_organization is not None:
                 owner_orgs = self._get_owner_github_organizations()
 
                 installation_info = self._get_eligible_multi_org_installations(
@@ -834,20 +1057,19 @@ class OAuthLoginView:
 class GithubOrganizationSelection:
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
-        has_scm_multi_org = (
-            features.has(
-                "organizations:integrations-scm-multi-org",
-                organization=self.active_user_organization.organization,
-            )
-            if self.active_user_organization is not None
-            else False
-        )
 
-        if self.active_user_organization is None or not features.has(
-            "organizations:github-multi-org",
+        if self.active_user_organization is None:
+            return error(
+                request,
+                None,
+                error_short=GitHubInstallationError.MISSING_ORGANIZATION,
+                error_long=ERR_INTEGRATION_MISSING_ORGANIZATION,
+            )
+
+        has_scm_multi_org = features.has(
+            "organizations:integrations-scm-multi-org",
             organization=self.active_user_organization.organization,
-        ):
-            return pipeline.next_step()
+        )
 
         with record_event(
             IntegrationPipelineViewType.ORGANIZATION_SELECTION
@@ -958,43 +1180,12 @@ class GitHubInstallation:
                 return error_page
 
             if self.active_user_organization is not None:
-                if features.has(
-                    "organizations:github-multi-org",
-                    organization=self.active_user_organization.organization,
-                ):
-                    try:
-                        integration = Integration.objects.get(
-                            external_id=installation_id, status=ObjectStatus.ACTIVE
-                        )
-                    except Integration.DoesNotExist:
-                        return pipeline.next_step()
-
-                else:
-                    try:
-                        # We want to limit GitHub integrations to 1 organization
-                        installations_exist = OrganizationIntegration.objects.filter(
-                            integration=Integration.objects.get(external_id=installation_id)
-                        ).exists()
-                    except Integration.DoesNotExist:
-                        return pipeline.next_step()
-
-                    if installations_exist:
-                        lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
-                        return error(
-                            request,
-                            self.active_user_organization,
-                            error_short=GitHubInstallationError.INSTALLATION_EXISTS,
-                            error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
-                        )
-
-                    # OrganizationIntegration does not exist, but Integration does exist.
-                    try:
-                        integration = Integration.objects.get(
-                            external_id=installation_id, status=ObjectStatus.ACTIVE
-                        )
-                    except Integration.DoesNotExist:
-                        lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
-                        return error(request, self.active_user_organization)
+                try:
+                    integration = Integration.objects.get(
+                        external_id=installation_id, status=ObjectStatus.ACTIVE
+                    )
+                except Integration.DoesNotExist:
+                    return pipeline.next_step()
 
             # Check that the authenticated GitHub user is the same as who installed the app.
             if (
@@ -1013,7 +1204,13 @@ class GitHubInstallation:
 
     def check_pending_integration_deletion(self, request: HttpRequest) -> HttpResponse | None:
         if self.active_user_organization is None:
-            return None
+            return error(
+                request,
+                None,
+                error_short=GitHubInstallationError.MISSING_ORGANIZATION,
+                error_long=ERR_INTEGRATION_MISSING_ORGANIZATION,
+            )
+
         # We want to wait until the scheduled deletions finish or else the
         # post install to migrate repos do not work.
         integration_pending_deletion_exists = OrganizationIntegration.objects.filter(

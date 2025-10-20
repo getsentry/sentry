@@ -11,6 +11,8 @@ from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
     FunctionSigContext,
+    MethodContext,
+    MethodSigContext,
     Plugin,
     SemanticAnalyzerPluginInterface,
 )
@@ -68,6 +70,20 @@ _FUNCTION_SIGNATURE_HOOKS = {
     "django.db.transaction.on_commit": _make_using_required_str,
     "django.db.transaction.set_rollback": _make_using_required_str,
 }
+
+
+def _modify_base_cache_version_type(ctx: MethodSigContext) -> FunctionLike:
+    if "version" not in ctx.default_signature.arg_names:
+        return ctx.default_signature
+
+    types = list(ctx.default_signature.arg_types)
+    types[ctx.default_signature.arg_names.index("version")] = AnyType(TypeOfAny.explicit)
+    return ctx.default_signature.copy_modified(types)
+
+
+def _remove_base_cache_decr_incr(ctx: MethodContext) -> Type:
+    ctx.api.fail("removed method", ctx.context)
+    return ctx.default_return_type
 
 
 _AUTH_TOKEN_TP = "sentry.auth.services.auth.model.AuthenticatedToken"
@@ -167,6 +183,25 @@ class SentryMypyPlugin(Plugin):
         self, fullname: str
     ) -> Callable[[FunctionSigContext], FunctionLike] | None:
         return _FUNCTION_SIGNATURE_HOOKS.get(fullname)
+
+    def get_method_signature_hook(
+        self, fullname: str
+    ) -> Callable[[MethodSigContext], FunctionLike] | None:
+        if fullname.startswith("django.core.cache.backends.base.BaseCache."):
+            return _modify_base_cache_version_type
+        else:
+            return None
+
+    def get_method_hook(self, fullname: str) -> Callable[[MethodContext], Type] | None:
+        if fullname in (
+            "django.core.cache.backends.base.BaseCache.adecr_version",
+            "django.core.cache.backends.base.BaseCache.aincr_version",
+            "django.core.cache.backends.base.BaseCache.decr_version",
+            "django.core.cache.backends.base.BaseCache.incr_version",
+        ):
+            return _remove_base_cache_decr_incr
+        else:
+            return None
 
     def get_customize_class_mro_hook(
         self, fullname: str

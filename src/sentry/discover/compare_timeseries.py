@@ -83,7 +83,7 @@ def make_rpc_request(
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
     query_parts = QueryParts(selected_columns=[aggregate], query=query, equations=[], orderby=[])
-    query_parts = translate_mep_to_eap(query_parts)
+    query_parts, dropped_fields = translate_mep_to_eap(query_parts)
 
     results = Spans.run_timeseries_query(
         params=snuba_params,

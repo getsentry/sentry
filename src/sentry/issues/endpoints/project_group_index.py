@@ -22,10 +22,12 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -47,13 +49,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            }
         }
-    }
+    )
 
     @track_slo_response("workflow")
     def get(self, request: Request, project: Project) -> Response:
@@ -172,7 +176,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         try:
             cursor_result, query_kwargs = prep_search(request, project, {"count_hits": True})
-        except ValidationError as exc:
+        except (ValidationError, InvalidSearchQuery) as exc:
             return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)

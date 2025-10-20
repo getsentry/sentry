@@ -7,7 +7,6 @@ import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageD
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
-  LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -30,21 +29,22 @@ const datePageFilterProps: PickableDays = {
 };
 
 describe('LogsTabContent', () => {
-  const {organization, project, setupPageFilters} = initializeLogsTest();
+  const {organization, project, setupPageFilters} = initializeLogsTest({
+    orgFeatures: ['search-query-builder-case-insensitivity'],
+  });
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
-      <LogsQueryParamsProvider source="location">
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsPageDataProvider>{children}</LogsPageDataProvider>
-          </TraceItemAttributeProvider>
-        </LogsPageParamsProvider>
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        </TraceItemAttributeProvider>
       </LogsQueryParamsProvider>
     );
   }
@@ -245,6 +245,52 @@ describe('LogsTabContent', () => {
     expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
       'aria-selected',
       'false'
+    );
+  });
+
+  it('should pass caseInsensitive to the query', async () => {
+    render(
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
+    );
+
+    expect(eventTableMock).toHaveBeenCalled();
+
+    const caseInsensitiveBtn = await screen.findByRole('button', {
+      name: 'Ignore case',
+    });
+    await userEvent.click(caseInsensitiveBtn);
+
+    expect(eventTableMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'ourlogs',
+          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+          sort: 'sentry.message.parameters.0',
+          query: 'severity:error',
+          caseInsensitive: 1,
+        }),
+      })
+    );
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'ourlogs',
+          yAxis: 'count(message)',
+          interval: '1h',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
+          caseInsensitive: 1,
+        }),
+      })
     );
   });
 });

@@ -1,5 +1,7 @@
 import type {Theme} from '@emotion/react';
 
+import type {Responsive} from 'sentry/components/core/layout/styles';
+
 import type {HeadingProps} from './heading';
 import type {TextProps} from './text';
 
@@ -14,7 +16,7 @@ export function getTextDecoration(p: TextProps<any> | HeadingProps) {
   return decorations.join(' ');
 }
 
-export function getLineHeight(density: TextProps<any>['density']) {
+export function getLineHeight(density: ResponsiveValue<TextProps<any>['density']>) {
   switch (density) {
     case 'compressed':
       return '1';
@@ -27,6 +29,11 @@ export function getLineHeight(density: TextProps<any>['density']) {
   }
 }
 
-export function getFontSize(size: TextProps<any>['size'], theme: Theme) {
-  return theme.fontSize[size ?? 'md'];
+export function getFontSize(
+  size: NonNullable<ResponsiveValue<TextProps<any>['size']>>,
+  theme: Theme
+) {
+  return theme.fontSize[size];
 }
+
+type ResponsiveValue<T> = T extends Responsive<infer U> ? U : T;

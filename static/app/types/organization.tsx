@@ -9,6 +9,7 @@ import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
+import type {PreventAIConfig} from './prevent';
 import type {Project} from './project';
 import type {Relay} from './relay';
 import type {User} from './user';
@@ -102,7 +103,6 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
-  effectiveSampleRate?: number | null;
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
@@ -114,6 +114,7 @@ export interface Organization extends OrganizationSummary {
   };
   orgRole?: string;
   planSampleRate?: number | null;
+  preventAiConfigGithub?: PreventAIConfig;
 }
 
 export interface Team {
@@ -400,6 +401,7 @@ export enum SessionStatus {
   HEALTHY = 'healthy',
   ABNORMAL = 'abnormal',
   ERRORED = 'errored',
+  UNHANDLED = 'unhandled',
   CRASHED = 'crashed',
 }
 

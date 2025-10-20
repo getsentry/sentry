@@ -46,7 +46,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    IntegrationError,
+    IntegrationConfigurationError,
     IntegrationProviderError,
 )
 from sentry.snuba.referrer import Referrer
@@ -132,8 +132,8 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         try:
             # eagerly populate this just for the error message
             self.default_identity
-        except Identity.DoesNotExist:
-            raise IntegrationError("Identity not found.")
+        except Identity.DoesNotExist as e:
+            raise IntegrationConfigurationError("Identity not found.") from e
         else:
             return GitLabApiClient(self)
 
@@ -227,10 +227,10 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
-## Suspect Issues
-This merge request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this merge request
+The following issues were detected after merging:
 
-{issue_list}"""
+{issue_list}""".rstrip()
 
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
@@ -281,7 +281,7 @@ OPEN_PR_COMMENT_BODY_TEMPLATE = """\
 ## 🔍 Existing Issues For Review
 Your merge request is modifying functions with the following pre-existing issues:
 
-{issue_tables}"""
+{issue_tables}""".rstrip()
 
 OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
 📄 File: **{filename}**

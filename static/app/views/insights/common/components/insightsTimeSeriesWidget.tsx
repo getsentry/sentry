@@ -11,7 +11,11 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
-import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  LegendSelection,
+  TimeSeries,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -38,7 +42,7 @@ import {
   ModalChartContainer,
 } from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
 import type {SpanFields} from 'sentry/views/insights/types';
@@ -48,9 +52,12 @@ export interface InsightsTimeSeriesWidgetProps
     LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
-  series: DiscoverSeries[];
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
+  /**
+   * Optional color palette that will be used inplace of COMMON_COLORS.
+   */
+  colorPalette?: readonly string[];
   description?: React.ReactNode;
   extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
@@ -67,13 +74,21 @@ export interface InsightsTimeSeriesWidgetProps
     referrer: string;
     search: MutableSearch;
     groupBy?: SpanFields[];
+    interval?: string;
     yAxis?: string[];
   };
-
   samples?: Samples;
+  /**
+   * During the transition from the `/events-stats/` endpoint to the `/events-timeseries/` endpoint we accept both `timeSeries` and `series` so different components can pass different data. Eventually `series` will go away.
+   */
+  series?: DiscoverSeries[];
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
+  /**
+   * During the transition from the `/events-stats/` endpoint to the `/events-timeseries/` endpoint we accept both `timeSeries` and `series` so different components can pass different data. Eventually `timeSeries` will take over.
+   */
+  timeSeries?: TimeSeries[];
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
@@ -94,27 +109,46 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     ...props?.aliases,
   };
 
+  const PlottableDataConstructor =
+    props.visualizationType === 'line'
+      ? Line
+      : props.visualizationType === 'area'
+        ? Area
+        : Bars;
+
   const yAxes = new Set<string>();
   const plottables = [
-    ...(props.series.filter(Boolean) ?? []).map(serie => {
-      const timeSeries = markDelayedData(
+    ...(props.series?.filter(Boolean) ?? []).map(serie => {
+      const delayedTimeSeries = markDelayedData(
         convertSeriesToTimeseries(serie),
         INGESTION_DELAY
       );
-      const PlottableDataConstructor =
-        props.visualizationType === 'line'
-          ? Line
-          : props.visualizationType === 'area'
-            ? Area
-            : Bars;
 
       // yAxis should not contain whitespace, some yAxes are like `epm() span.op:queue.publish`
-      yAxes.add(timeSeries?.yAxis?.split(' ')[0] ?? '');
+      yAxes.add(delayedTimeSeries?.yAxis?.split(' ')[0] ?? '');
 
-      return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
+      return new PlottableDataConstructor(delayedTimeSeries, {
+        color: serie.color ?? COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: aliases?.[timeSeries.yAxis],
+        alias: aliases?.[delayedTimeSeries.yAxis],
+      });
+    }),
+    ...(props.timeSeries?.filter(Boolean) ?? []).map((timeSeries, idx) => {
+      // TODO: After merge of ENG-5375 we don't need to run `markDelayedData` on output of `/events-timeseries/`
+      const delayedTimeSeries = markDelayedData(timeSeries, INGESTION_DELAY);
+
+      yAxes.add(timeSeries.yAxis);
+
+      let alias = aliases?.[delayedTimeSeries.yAxis];
+      const plottableName = formatTimeSeriesName(delayedTimeSeries);
+      if (aliases?.[plottableName]) {
+        alias = aliases?.[plottableName];
+      }
+
+      return new PlottableDataConstructor(delayedTimeSeries, {
+        color: props.colorPalette?.[idx] ?? COMMON_COLORS(theme)[plottableName],
+        stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
+        alias,
       });
     }),
     ...(props.extraPlottables ?? []),
@@ -158,7 +192,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  if (props.series.filter(Boolean).length === 0) {
+  if (
+    [...(props.series ?? []), ...(props.timeSeries ?? [])].filter(Boolean).length === 0
+  ) {
     return (
       <ChartContainer height={props.height}>
         <Widget
@@ -210,6 +246,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 search={props.queryInfo?.search}
                 aliases={aliases}
                 referrer={props.queryInfo?.referrer ?? ''}
+                interval={props.queryInfo?.interval}
               />
             )}
             {props.loaderSource !== 'releases-drawer' && (
@@ -247,6 +284,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
 const COMMON_COLORS = (theme: Theme): Record<string, string> => {
   const colors = theme.chart.getColorPalette(2);
+  const vitalColors = theme.chart.getColorPalette(4);
   return {
     'epm()': THROUGHPUT_COLOR(theme),
     'count()': COUNT_COLOR(theme),
@@ -256,5 +294,12 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
     'avg(messaging.message.receive.latency)': colors[1],
     'avg(span.duration)': colors[2],
+    'performance_score(measurements.score.lcp)': vitalColors[0],
+    'performance_score(measurements.score.fcp)': vitalColors[1],
+    'performance_score(measurements.score.inp)': vitalColors[2],
+    'performance_score(measurements.score.cls)': vitalColors[3],
+    'performance_score(measurements.score.ttfb)': vitalColors[4],
+    'epm() : span.op : queue.publish': colors[1],
+    'epm() : span.op : queue.process': colors[2],
   };
 };

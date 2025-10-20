@@ -1,20 +1,19 @@
 import {useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text/text';
 import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,6 +24,7 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
@@ -61,6 +61,7 @@ function AutomationBreadcrumbs() {
 }
 
 const initialData = {
+  name: 'New Automation',
   environment: null,
   frequency: 1440,
   enabled: true,
@@ -73,6 +74,8 @@ export default function AutomationNewSettings() {
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.lg;
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
     Record<string, string>
@@ -98,7 +101,7 @@ export default function AutomationNewSettings() {
     return connectedIds;
   }, [location.query.connectedIds]);
 
-  const {mutateAsync: createAutomation} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation();
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
@@ -125,41 +128,57 @@ export default function AutomationNewSettings() {
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
-          <Layout.HeaderContent>
-            <AutomationBreadcrumbs />
-            <Layout.Title>
-              <EditableAutomationName />
-            </Layout.Title>
-          </Layout.HeaderContent>
+          <HeaderInner maxWidth={maxWidth}>
+            <Layout.HeaderContent>
+              <AutomationBreadcrumbs />
+              <Layout.Title>
+                <EditableAutomationName />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <div>
+              <AutomationFeedbackButton />
+            </div>
+          </HeaderInner>
         </StyledLayoutHeader>
-        <Layout.Body>
+        <StyledBody maxWidth={maxWidth}>
           <Layout.Main fullWidth>
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,
                 setErrors: setAutomationBuilderErrors,
                 removeError,
+                mutationErrors: error?.responseJSON,
               }}
             >
-              <AutomationBuilderContext.Provider value={{state, actions}}>
+              <AutomationBuilderContext.Provider
+                value={{
+                  state,
+                  actions,
+                  showTriggerLogicTypeSelector: false,
+                }}
+              >
                 <AutomationForm model={model} />
               </AutomationBuilderContext.Provider>
             </AutomationBuilderErrorContext.Provider>
           </Layout.Main>
-        </Layout.Body>
+        </StyledBody>
       </Layout.Page>
       <StickyFooter>
-        <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap="md">
-          <LinkButton
-            priority="default"
-            to={`${makeAutomationBasePathname(organization.slug)}new/`}
-          >
-            {t('Back')}
-          </LinkButton>
-          <Button priority="primary" type="submit">
-            {t('Create Automation')}
-          </Button>
+        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <Text variant="muted" size="md">
+            {t('Step 2 of 2')}
+          </Text>
+          <Flex gap="md">
+            <LinkButton
+              priority="default"
+              to={`${makeAutomationBasePathname(organization.slug)}new/`}
+            >
+              {t('Back')}
+            </LinkButton>
+            <Button priority="primary" type="submit">
+              {t('Create Automation')}
+            </Button>
+          </Flex>
         </Flex>
       </StickyFooter>
     </FullHeightForm>
@@ -168,4 +187,29 @@ export default function AutomationNewSettings() {
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
+`;
+
+const HeaderInner = styled('div')<{maxWidth?: string}>`
+  display: contents;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: ${p => p.maxWidth};
+    width: 100%;
+  }
+`;
+
+const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
+  max-width: ${p => p.maxWidth};
+  padding: 0;
+  margin: ${p => p.theme.space.xl};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+    margin: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
+  }
 `;

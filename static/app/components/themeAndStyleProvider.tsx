@@ -1,14 +1,23 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, lazy} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
-import {loadPreferencesState} from 'sentry/actionCreators/preferences';
+import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
+
+const SentryComponentInspector =
+  NODE_ENV === 'development'
+    ? lazy(() =>
+        import('sentry/components/core/inspector').then(module => ({
+          default: module.SentryComponentInspector,
+        }))
+      )
+    : null;
 
 type Props = {
   children: React.ReactNode;
@@ -29,9 +38,6 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
-  // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
-  useEffect(() => loadPreferencesState(), []);
-
   const config = useLegacyStore(ConfigStore);
   const theme = useThemeSwitcher();
 
@@ -46,6 +52,10 @@ export function ThemeAndStyleProvider({children}: Props) {
         </Fragment>,
         document.head
       )}
+      {/* Only render the inspector in development */}
+      {NODE_ENV === 'development' && SentryComponentInspector ? (
+        <SentryComponentInspector />
+      ) : null}
     </ThemeProvider>
   );
 }

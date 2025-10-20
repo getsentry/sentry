@@ -96,18 +96,17 @@ class TestCommitContextIntegrationSLO(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_invalid_request(self, mock_record: MagicMock) -> None:
-        """Test invalid request records failure"""
+        """Test invalid request records halt"""
         from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 
         self.integration.client.get_blame_for_files = Mock(
             side_effect=ApiInvalidRequestError(text="Invalid request")
         )
 
-        with pytest.raises(ApiInvalidRequestError):
-            self.integration.get_blame_for_files([self.source_line], {})
+        self.integration.get_blame_for_files([self.source_line], {})
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-        assert_failure_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_invalid_request_gitlab(self, mock_record: MagicMock) -> None:

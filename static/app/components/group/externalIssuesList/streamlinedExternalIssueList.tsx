@@ -1,9 +1,10 @@
-import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -66,6 +67,7 @@ export function StreamlinedExternalIssueList({
   project,
 }: ExternalIssueListProps) {
   const organization = useOrganization();
+  const theme = useTheme();
   const {isLoading, integrations, linkedIssues} = useGroupExternalIssues({
     group,
     event,
@@ -89,7 +91,7 @@ export function StreamlinedExternalIssueList({
   }
 
   return (
-    <Fragment>
+    <Flex direction="row" gap="md">
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
@@ -131,6 +133,7 @@ export function StreamlinedExternalIssueList({
             const sharedButtonProps: ButtonProps = {
               size: 'zero',
               icon: integration.displayIcon,
+              priority: theme.isChonk ? 'transparent' : undefined,
               children: <IssueActionName>{integration.displayName}</IssueActionName>,
             };
 
@@ -200,11 +203,11 @@ export function StreamlinedExternalIssueList({
           })}
         </IssueActionWrapper>
       )}
-    </Fragment>
+    </Flex>
   );
 }
 
-const IssueActionWrapper = styled('div')`
+const IssueActionWrapper = styled('span')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
@@ -215,7 +218,7 @@ const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px solid ${p => p.theme.border};
+  border: ${p => (p.theme.isChonk ? 'none' : '1px solid ' + p.theme.border)};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
 `;

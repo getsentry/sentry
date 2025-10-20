@@ -68,7 +68,8 @@ describe('TeamMembers', () => {
 
   it('can add member to team with open membership', async () => {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -83,7 +84,8 @@ describe('TeamMembers', () => {
 
   it('can add multiple members with one click on dropdown', async () => {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -99,7 +101,8 @@ describe('TeamMembers', () => {
 
   it('can add member to team with team:admin permission', async () => {
     const org = OrganizationFixture({access: ['team:admin'], openMembership: false});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -114,7 +117,8 @@ describe('TeamMembers', () => {
 
   it('can add member to team with org:write permission', async () => {
     const org = OrganizationFixture({access: ['org:write'], openMembership: false});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -129,7 +133,8 @@ describe('TeamMembers', () => {
 
   it('can request access to add member to team without permission', async () => {
     const org = OrganizationFixture({access: [], openMembership: false});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -149,7 +154,8 @@ describe('TeamMembers', () => {
         openMembership: false,
       }),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -169,7 +175,8 @@ describe('TeamMembers', () => {
         openMembership: true,
       }),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -186,7 +193,8 @@ describe('TeamMembers', () => {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: true}),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -203,7 +211,8 @@ describe('TeamMembers', () => {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: false}),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: org,
     });
@@ -221,7 +230,8 @@ describe('TeamMembers', () => {
       url: `/organizations/${organization.slug}/members/${members[0]!.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization,
     });
@@ -251,7 +261,8 @@ describe('TeamMembers', () => {
     });
     const organizationMember = OrganizationFixture({access: []});
 
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: organizationMember,
     });
@@ -283,7 +294,8 @@ describe('TeamMembers', () => {
       body: [...members, owner],
     });
 
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization,
     });
@@ -309,7 +321,8 @@ describe('TeamMembers', () => {
 
     const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
 
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
+      outletContext: {team},
       initialRouterConfig,
       organization: orgWithTeamRoles,
     });
@@ -354,7 +367,8 @@ describe('TeamMembers', () => {
       body: team2,
     });
 
-    render(<TeamMembers team={team2} />, {
+    render(<TeamMembers />, {
+      outletContext: {team: team2},
       initialRouterConfig,
       organization,
     });
@@ -399,7 +413,8 @@ describe('TeamMembers', () => {
       body: team2,
     });
 
-    render(<TeamMembers team={team2} />, {
+    render(<TeamMembers />, {
+      outletContext: {team: team2},
       initialRouterConfig,
       organization,
     });
@@ -408,5 +423,16 @@ describe('TeamMembers', () => {
       (await screen.findAllByRole('button', {name: 'Add Member'})).at(0)
     ).toBeEnabled();
     expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeEnabled();
+  });
+
+  it('renders a "Pending" tag for pending team members', async () => {
+    render(<TeamMembers />, {
+      outletContext: {team},
+      initialRouterConfig,
+      organization,
+    });
+
+    // MembersFixure has a single pending member
+    expect(await screen.findByText('Pending')).toBeInTheDocument();
   });
 });

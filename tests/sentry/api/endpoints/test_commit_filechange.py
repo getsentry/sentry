@@ -47,13 +47,13 @@ class CommitFileChangeTest(APITestCase):
         )
         CommitFileChange.objects.create(
             organization_id=self.project.organization_id,
-            commit=commit,
+            commit_id=commit.id,
             filename=".gitignore",
             type="M",
         )
         CommitFileChange.objects.create(
             organization_id=self.project.organization_id,
-            commit=commit2,
+            commit_id=commit2.id,
             filename="/static/js/widget.js",
             type="A",
         )

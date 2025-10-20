@@ -10,6 +10,7 @@ from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.projectkey import ProjectKey
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba.outcomes import (
     QueryDefinition,
     massage_outcomes_result,
@@ -27,13 +28,15 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=20, window=1),
-            RateLimitCategory.USER: RateLimit(limit=20, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=20, window=1),
+                RateLimitCategory.USER: RateLimit(limit=20, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+            }
         }
-    }
+    )
 
     def get(self, request: Request, project, key_id) -> Response:
         try:

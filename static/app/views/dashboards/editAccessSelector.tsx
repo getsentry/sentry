@@ -113,10 +113,10 @@ function EditAccessSelector({
       newSelectedValues = ['_creator'];
     } else {
       if (areAllTeamsSelected) {
-        // selecting all teams deselects 'all users'
+        // selecting all teams deselects 'Select All'
         newSelectedValues = ['_creator', '_allUsers', ...teamIds];
       } else {
-        // deselecting any team deselects 'all users'
+        // deselecting any team deselects 'Select All'
         newSelectedValues = newSelectedValues.filter(
           (value: any) => value !== '_allUsers'
         );
@@ -263,17 +263,17 @@ function EditAccessSelector({
       makeCreatorOption(),
       {
         value: '_all_users_section',
+        label: 'Teams',
         options: [
           {
             value: '_allUsers',
-            label: t('All users'),
+            label: t('Select All'),
             disabled: !userCanEditDashboardPermissions,
           },
         ],
       },
       {
         value: '_teams',
-        label: t('Teams'),
         options: sortBy(teamsToRender, listSort).map(makeTeamOption),
         showToggleAllButton: userCanEditDashboardPermissions,
         disabled: !userCanEditDashboardPermissions,
@@ -336,7 +336,7 @@ function EditAccessSelector({
 
   const dropdownMenu = (
     <StyledCompactSelect
-      data-test-id={'edit-access-dropdown'}
+      data-test-id="edit-access-dropdown"
       size="sm"
       onChange={newSelectedOptions => {
         onSelectOptions(newSelectedOptions);
@@ -345,15 +345,16 @@ function EditAccessSelector({
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={
-        listOnly
+      triggerProps={{
+        children: listOnly
           ? [triggerAvatars]
           : [
-              <LabelContainer key="selector-label">{t('Edit Access:')}</LabelContainer>,
+              <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
               triggerAvatars,
-            ]
-      }
-      triggerProps={{borderless: listOnly, style: listOnly ? {padding: 2} : {}}}
+            ],
+        borderless: listOnly,
+        style: listOnly ? {padding: 2} : {},
+      }}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {
@@ -373,7 +374,7 @@ function EditAccessSelector({
 
   return (
     <Tooltip
-      title={t('Only the creator of the dashboard can edit permissions')}
+      title={t('Only the creator of this dashboard can manage editor access')}
       disabled={
         userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen
       }

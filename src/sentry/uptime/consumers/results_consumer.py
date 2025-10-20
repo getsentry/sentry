@@ -2,31 +2,31 @@ from __future__ import annotations
 
 import logging
 import random
+import uuid
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResult
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_DISALLOWED_BY_ROBOTS,
     CHECKSTATUS_MISSED_WINDOW,
     CheckResult,
 )
 
 from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
+from sentry.uptime.autodetect.ranking import _get_cluster
+from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
-from sentry.uptime.detectors.ranking import _get_cluster
-from sentry.uptime.detectors.result_handler import handle_onboarding_result
 from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_detector,
@@ -35,6 +35,7 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
+    disable_uptime_detector,
     remove_uptime_subscription_if_unused,
 )
 from sentry.uptime.subscriptions.tasks import (
@@ -44,7 +45,7 @@ from sentry.uptime.subscriptions.tasks import (
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -66,23 +67,12 @@ SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNU
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 
-def _get_snuba_uptime_checks_producer() -> KafkaProducer:
-    producer = get_arroyo_producer(
+def _get_snuba_uptime_checks_producer():
+    return get_arroyo_producer(
         "sentry.uptime.consumers.results_consumer",
         Topic.SNUBA_UPTIME_RESULTS,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
-
-    # Fallback to legacy producer creation if not rolled out
-    if producer is None:
-        cluster_name = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
-        producer_config["client.id"] = "sentry.uptime.consumers.results_consumer"
-        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-
-    return producer
 
 
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
@@ -148,8 +138,7 @@ def try_check_and_update_regions(
 
 
 def produce_snuba_uptime_result(
-    uptime_subscription: UptimeSubscription,
-    project: Project,
+    detector: Detector,
     result: CheckResult,
     metric_tags: dict[str, str],
 ) -> None:
@@ -157,7 +146,8 @@ def produce_snuba_uptime_result(
     Produces a message to Snuba's Kafka topic for uptime check results.
     """
     try:
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+        detector_state = detector.detectorstate_set.first()
+        if detector_state and detector_state.is_triggered:
             incident_status = IncidentStatus.IN_INCIDENT
         else:
             incident_status = IncidentStatus.NO_INCIDENT
@@ -175,8 +165,8 @@ def produce_snuba_uptime_result(
             "duration_ms": result["duration_ms"],
             "request_info": result["request_info"],
             # Add required Snuba-specific fields
-            "organization_id": project.organization_id,
-            "project_id": project.id,
+            "organization_id": detector.project.organization_id,
+            "project_id": detector.project.id,
             "retention_days": 90,
             "incident_status": incident_status.value,
             "region": result["region"],
@@ -308,6 +298,20 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         }
         subscription_regions = load_regions_for_uptime_subscription(subscription.id)
 
+        if result["status"] == CHECKSTATUS_DISALLOWED_BY_ROBOTS:
+            try:
+                detector = get_detector(subscription)
+                logger.info("disallowed_by_robots", extra=result)
+                metrics.incr(
+                    "uptime.result_processor.disallowed_by_robots",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
+                disable_uptime_detector(detector)
+            except Exception as e:
+                logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
+            return
+
         # Discard shadow mode region results
         if is_shadow_region_result(result, subscription_regions):
             metrics.incr(
@@ -323,16 +327,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         try:
             detector = get_detector(subscription, prefetch_workflow_data=True)
         except Detector.DoesNotExist:
-            # Nothing to do if there's an orphaned project subscription
+            # Nothing to do if there's an orphaned uptime subscription
             remove_uptime_subscription_if_unused(subscription)
             return
 
         organization = detector.project.organization
-
-        # Detailed logging for specific organizations, useful for if we need to
-        # debug a specific organizations checks.
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.before_dedupe", extra=result)
 
         # Nothing to do if this subscription is disabled.
         if not detector.enabled:
@@ -371,6 +370,18 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 tags={"mode": mode_name, **metric_tags},
                 sample_rate=1.0,
             )
+
+            # Don't log too much; this codepath can get used when the consumer is doing increased
+            # work, which can further increase its work, and so make a bad situation even worse.
+            if random.random() < 0.01:
+                logger.info(
+                    "uptime.result_processor.skipping_already_processed_update",
+                    extra={
+                        "guid": result["guid"],
+                        "region": result["region"],
+                        "subscription_id": result["subscription_id"],
+                    },
+                )
             return
 
         subscription_interval_ms = 1000 * subscription.interval_seconds
@@ -393,7 +404,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             last_interval_seen: str = cluster.get(last_interval_key) or "0"
 
             if int(last_interval_seen) == subscription_interval_ms:
-                num_missed_checks = num_intervals - 1
+                num_missed_checks = int(num_intervals - 1)
                 metrics.distribution(
                     "uptime.result_processer.num_missing_check",
                     num_missed_checks,
@@ -414,15 +425,43 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                             **result,
                         },
                     )
+
+                synthetic_metric_tags = metric_tags.copy()
+                synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
+                for i in range(0, num_missed_checks):
+                    missed_result: CheckResult = {
+                        "guid": str(uuid.uuid4()),
+                        "subscription_id": result["subscription_id"],
+                        "status": CHECKSTATUS_MISSED_WINDOW,
+                        "status_reason": None,
+                        "trace_id": str(uuid.uuid4()),
+                        "span_id": str(uuid.uuid4()),
+                        "region": result["region"],
+                        "scheduled_check_time_ms": last_update_ms
+                        + ((i + 1) * subscription_interval_ms),
+                        "actual_check_time_ms": result["actual_check_time_ms"],
+                        "duration_ms": 0,
+                        "request_info": None,
+                    }
+
+                    if options.get("uptime.snuba_uptime_results.enabled"):
+                        produce_snuba_uptime_result(
+                            detector,
+                            missed_result,
+                            synthetic_metric_tags.copy(),
+                        )
+
+                    produce_eap_uptime_result(
+                        detector,
+                        missed_result,
+                        synthetic_metric_tags.copy(),
+                    )
             else:
                 logger.info(
                     "uptime.result_processor.false_num_missing_check",
                     extra={**result},
                 )
                 cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
-
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.after_dedupe", extra=result)
 
         # We log the result stats here after the duplicate check so that we
         # know the "true" duration and delay of each check. Since during
@@ -456,10 +495,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # Snuba production _must_ happen after handling the result, since we
         # may mutate the UptimeSubscription when we determine we're in an incident
         if options.get("uptime.snuba_uptime_results.enabled"):
-            produce_snuba_uptime_result(subscription, detector.project, result, metric_tags.copy())
+            produce_snuba_uptime_result(detector, result, metric_tags.copy())
 
-        if features.has("organizations:uptime-eap-results", detector.project.organization):
-            produce_eap_uptime_result(subscription, detector.project, result, metric_tags.copy())
+        produce_eap_uptime_result(detector, result, metric_tags.copy())
 
         # Track the last update date to allow deduplication
         cluster.set(

@@ -5,8 +5,8 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
@@ -128,6 +128,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             />
           </Tooltip>
           {renderFingerprint(id, label)}
+          {fingerprint.mergedBySeer && ' (merged by Sentry)'}
         </FingerprintLabel>
 
         <Button
@@ -147,7 +148,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             <Flex align="center" gap="xs">
               <LinkButton
                 to={issueLink}
-                icon={<IconLink color={'linkColor'} />}
+                icon={<IconLink color="linkColor" />}
                 title={t('View latest event')}
                 aria-label={t('View latest event')}
                 borderless
@@ -155,12 +156,9 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
                 style={{marginLeft: space(1)}}
               />
               <EventDetails>
-                <EventOrGroupHeader
-                  data={latestEvent}
-                  hideIcons
-                  hideLevel
-                  source="merged-item"
-                />
+                <Text size="md" data-issue-title-primary>
+                  {latestEvent.title}
+                </Text>
               </EventDetails>
             </Flex>
           ) : null}

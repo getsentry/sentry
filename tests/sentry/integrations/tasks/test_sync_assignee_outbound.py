@@ -9,7 +9,8 @@ from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import IntegrationInstallationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.taskworker.retry import RetryError
 from sentry.testutils.asserts import assert_halt_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -71,10 +72,9 @@ class TestSyncAssigneeOutbound(TestCase):
     ) -> None:
         mock_sync_assignee.side_effect = raise_sync_assignee_exception
 
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(RetryError):
             sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
 
-        assert exc.match("Something went wrong")
         mock_record_failure.assert_called_once()
         mock_record_failure_args = mock_record_failure.call_args_list[0][0]
         assert mock_record_failure_args[0] is not None
@@ -165,7 +165,7 @@ class TestSyncAssigneeOutbound(TestCase):
     def test_integration_installation_configuration_error(
         self, mock_sync_assignee, mock_record_event
     ):
-        mock_sync_assignee.side_effect = IntegrationInstallationConfigurationError(
+        mock_sync_assignee.side_effect = IntegrationConfigurationError(
             "Insufficient permissions to assign user"
         )
 
@@ -175,5 +175,5 @@ class TestSyncAssigneeOutbound(TestCase):
         assert mock_record_event.call_count == 2
         assert_halt_metric(
             mock_record_event,
-            IntegrationInstallationConfigurationError("Insufficient permissions to assign user"),
+            IntegrationConfigurationError("Insufficient permissions to assign user"),
         )

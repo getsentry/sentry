@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconScrollVertically(props: SVGIconProps) {
+export function IconScrollVertically(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -24,7 +24,3 @@ function IconScrollVertically(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconScrollVertically.displayName = 'IconScrollVertically';
-
-export {IconScrollVertically};

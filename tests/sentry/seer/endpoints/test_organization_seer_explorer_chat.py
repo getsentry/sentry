@@ -102,7 +102,12 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == mock_response
         mock_call_seer_chat.assert_called_once_with(
-            self.organization, None, "What is this error about?", None, None
+            organization=self.organization,
+            run_id=None,
+            query="What is this error about?",
+            insert_index=None,
+            message_timestamp=None,
+            on_page_context=None,
         )
 
     @patch(
@@ -126,11 +131,12 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == mock_response
         mock_call_seer_chat.assert_called_once_with(
-            self.organization,
-            "789",
-            "Follow up question",
-            2,
-            1704067200.0,
+            organization=self.organization,
+            run_id="789",
+            query="Follow up question",
+            insert_index=2,
+            message_timestamp=1704067200.0,
+            on_page_context=None,
         )
 
     def test_post_with_ai_features_disabled_returns_403(self) -> None:
@@ -160,6 +166,39 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 403
         assert response.data == {"detail": "Seer has not been acknowledged by the organization."}
         mock_get_seer_org_acknowledgement.assert_called_once_with(self.organization.id)
+
+    def test_post_without_open_team_membership_returns_403(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        with patch(
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            return_value=True,
+        ):
+            data = {"query": "Test query"}
+            response = self.client.post(self.url, data, format="json")
+
+            assert response.status_code == 403
+            assert (
+                response.data["detail"]
+                == "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+            )
+
+    def test_get_without_open_team_membership_returns_403(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        with patch(
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            return_value=True,
+        ):
+            response = self.client.get(f"{self.url}123/")
+
+            assert response.status_code == 403
+            assert (
+                response.data["detail"]
+                == "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+            )
 
 
 class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
@@ -230,5 +269,10 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
             assert response.status_code == 200
             assert response.data == mock_response
             mock_call_seer_chat.assert_called_once_with(
-                self.organization, None, "Test query", None, None
+                organization=self.organization,
+                run_id=None,
+                query="Test query",
+                insert_index=None,
+                message_timestamp=None,
+                on_page_context=None,
             )

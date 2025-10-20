@@ -76,7 +76,10 @@ export function flamegraphSearchReducer(
       };
     }
     case 'set search results': {
-      return {...state, highlightFrames: null, ...action.payload};
+      const frames = action.payload.results.frames;
+      const spans = action.payload.results.spans;
+      const index = frames.size + spans.size > 0 ? 0 : null;
+      return {...state, index, highlightFrames: null, ...action.payload};
     }
     case 'set search index position': {
       return {...state, index: action.payload};

@@ -6,6 +6,7 @@ from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
 
+import sentry_sdk
 import zstandard
 from django.core.cache import cache
 from django.db import models
@@ -20,6 +21,7 @@ from sentry.models.files.utils import get_size_and_checksum, get_storage
 from sentry.objectstore import attachments
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
+from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -123,6 +125,17 @@ class EventAttachment(Model):
                 with measure_storage_operation("delete", "attachments"):
                     storage.delete(self.blob_path)
 
+                # delete double-written attachments
+                blob_path = self.blob_path.removeprefix(V1_PREFIX)
+                if blob_path.startswith(V2_PREFIX):
+                    try:
+                        organization_id = _get_organization(self.project_id)
+                        attachments.for_project(organization_id, self.project_id).delete(
+                            blob_path.removeprefix(V2_PREFIX)
+                        )
+                    except Exception:
+                        sentry_sdk.capture_exception()
+
             elif self.blob_path.startswith(V2_PREFIX):
                 organization_id = _get_organization(self.project_id)
                 attachments.for_project(organization_id, self.project_id).delete(
@@ -163,14 +176,17 @@ class EventAttachment(Model):
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        from sentry.models.files import FileBlob
-
         content_type = normalize_content_type(attachment.content_type, attachment.name)
-        data = attachment.data
-
-        if len(data) == 0:
+        if attachment.size == 0:
             return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
+        if attachment.stored_id is not None:
+            checksum = sha1().hexdigest()  # TODO: can we just remove the checksum requirement?
+            blob_path = V2_PREFIX + attachment.stored_id
+            return PutfileResult(
+                content_type=content_type, size=attachment.size, sha1=checksum, blob_path=blob_path
+            )
 
+        data = attachment.data
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 
@@ -178,7 +194,19 @@ class EventAttachment(Model):
             blob_path = ":" + data.decode()
 
         elif not in_random_rollout("objectstore.enable_for.attachments"):
-            blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
+            from sentry.models.files import FileBlob
+
+            object_key = FileBlob.generate_unique_path()
+            blob_path = V1_PREFIX
+            if in_random_rollout("objectstore.double_write.attachments"):
+                try:
+                    organization_id = _get_organization(project_id)
+                    attachments.for_project(organization_id, project_id).put(data, id=object_key)
+                    metrics.incr("storage.attachments.double_write")
+                    blob_path += V2_PREFIX
+                except Exception:
+                    sentry_sdk.capture_exception()
+            blob_path += object_key
 
             storage = get_storage()
             with measure_storage_operation("put", "attachments", size) as metric_emitter:

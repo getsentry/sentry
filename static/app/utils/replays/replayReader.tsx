@@ -511,6 +511,13 @@ export default class ReplayReader {
     return this._replayRecord.started_at.getTime() + start;
   };
 
+  getIsLive = () => {
+    // A replay is "LIVE" when:
+    // now < startTimestampMs + 60 minutes
+    const SIXTY_MINUTES_MS = 60 * 60 * 1000;
+    return Date.now() < this.getStartTimestampMs() + SIXTY_MINUTES_MS;
+  };
+
   getReplay = () => {
     return this._replayRecord;
   };

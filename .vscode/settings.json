@@ -100,5 +100,6 @@
   "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
   "prettier.configPath": "prettier.config.mjs",
-  "biome.enabled": false
+  "biome.enabled": false,
+  "cursorpyright.analysis.autoImportCompletions": true
 }

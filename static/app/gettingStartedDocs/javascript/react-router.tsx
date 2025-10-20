@@ -8,7 +8,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigOptions,
@@ -238,58 +238,6 @@ const getPackageJsonScriptsSnippet = () => `
   }
 }`;
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install @sentry/react-router',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/react-router',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/react-router',
-      },
-    ],
-  },
-];
-
-const getInstallConfigWithProfiling = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install @sentry/react-router @sentry/profiling-node',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/react-router @sentry/profiling-node',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/react-router @sentry/profiling-node',
-      },
-    ],
-  },
-];
-
 const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
@@ -306,52 +254,86 @@ const onboarding: OnboardingConfig = {
       </p>
     </Fragment>
   ),
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install the Sentry React Router SDK using [code:npm], [code:yarn], or [code:pnpm]:',
-        {code: <code />}
-      ),
-      configurations: params.isProfilingSelected
-        ? getInstallConfigWithProfiling()
-        : getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Install the Sentry React Router SDK using [code:npm], [code:yarn], or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'npm',
+              language: 'bash',
+              code: 'npm install @sentry/react-router',
+            },
+            {
+              label: 'yarn',
+              language: 'bash',
+              code: 'yarn add @sentry/react-router',
+            },
+            {
+              label: 'pnpm',
+              language: 'bash',
+              code: 'pnpm add @sentry/react-router',
+            },
+          ],
+        },
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'First, expose the hooks in your app folder by running the reveal command:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'First, expose the hooks in your app folder by running the reveal command:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: 'npx react-router reveal',
         },
       ],
     },
     {
-      description: tct(
-        'Initialize the Sentry React Router SDK in your [code:entry.client.tsx] file, above where you call [code:hydrateRoot]:',
-        {code: <code />}
-      ),
       title: t('Client Setup'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'Initialize the Sentry React Router SDK in your [code:entry.client.tsx] file, above where you call [code:hydrateRoot]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'tsx',
           code: getClientSetupSnippet(params),
         },
       ],
     },
     {
-      description: tct(
-        'Update your [code:app/root.tsx] file to report any unhandled errors from your error boundary component by adding [code:Sentry.captureException]:',
-        {code: <code />}
-      ),
       title: t('Error Boundary'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'Update your [code:app/root.tsx] file to report any unhandled errors from your error boundary component by adding [code:Sentry.captureException]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'tsx',
           code: getRootErrorBoundarySnippet(),
         },
@@ -359,22 +341,25 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Server Setup'),
-      description: tct(
-        'Create an [code:instrument.server.mjs] file in the root of your app:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'Create an [code:instrument.server.mjs] file in the root of your app:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'js',
           code: getServerSetupSnippet(params),
         },
-      ],
-    },
-    {
-      title: '',
-      description: tct('Update your [code:entry.server.tsx] file:', {code: <code />}),
-      configurations: [
         {
+          type: 'text',
+          text: tct('Update your [code:entry.server.tsx] file:', {code: <code />}),
+        },
+        {
+          type: 'code',
           language: 'tsx',
           code: getServerEntrySnippet(),
         },
@@ -382,11 +367,15 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Update Scripts'),
-      description: t(
-        'Update your package.json scripts to include the server instrumentation:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'Update your package.json scripts to include the server instrumentation:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'json',
           code: getPackageJsonScriptsSnippet(),
         },
@@ -394,25 +383,34 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Upload Source Maps (Optional)'),
-      description: tct(
-        'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/#source-maps-upload" />
+          type: 'text',
+          text: tct(
+            'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/#source-maps-upload" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
       collapsible: true,
     },
   ],
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Create a route that throws an error to verify that Sentry is working. After opening this route in your browser, you should see the error in your Sentry issue stream.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'Create a route that throws an error to verify that Sentry is working. After opening this route in your browser, you should see the error in your Sentry issue stream.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'tsx',
           code: getVerifySnippet(params),
         },
@@ -426,11 +424,15 @@ const replayOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/session-replay/',
-      }),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
           language: 'tsx',
           code: getClientSetupSnippet(params),
         },
@@ -446,14 +448,18 @@ const feedbackOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        {
+          type: 'code',
           language: 'tsx',
           code: getClientSetupSnippet(params),
         },
@@ -466,13 +472,18 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -541,6 +552,7 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'react-router',
+    configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'react-router',

@@ -11,8 +11,7 @@ import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {notificationCategories} from 'sentry/debug/notifications/data';
-import type {NotificationSource} from 'sentry/debug/notifications/types';
+import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
@@ -25,21 +24,25 @@ export function DebugNotificationsSearch() {
     return [{match: '/', callback: () => inputRef.current?.focus()}];
   }, []);
   useHotkeys(searchKeys);
-  const notificationSources = notificationCategories.flatMap(
-    category => category.sources
-  );
+  const {data: registry = {}} = useRegistry();
+  const sourceData = Object.values(registry)
+    .flat()
+    .map(registration => ({
+      source: registration.source,
+      category: registration.category,
+    }));
   return (
     <SearchComboBox
       label={t('Search notifications')}
       menuTrigger="focus"
       inputRef={inputRef}
-      defaultItems={notificationSources}
+      defaultItems={sourceData}
     >
-      {source => {
-        const sourceLabel = `${source.category.label} > ${source.label}`;
+      {item => {
+        const sourceLabel = `${item.category} > ${item.source}`;
         return (
           <Item
-            key={source.value}
+            key={item.source}
             textValue={sourceLabel}
             {...({label: sourceLabel, hideCheck: true} as any)}
           />
@@ -49,7 +52,12 @@ export function DebugNotificationsSearch() {
   );
 }
 
-interface SearchComboBoxProps<T extends NotificationSource>
+interface SearchItem {
+  category: string;
+  source: string;
+}
+
+interface SearchComboBoxProps<T extends SearchItem>
   extends Omit<AriaComboBoxProps<T>, 'children'> {
   children: CollectionChildren<T>;
   defaultItems: T[];
@@ -58,7 +66,7 @@ interface SearchComboBoxProps<T extends NotificationSource>
   label?: string;
 }
 
-function SearchComboBox<T extends NotificationSource>(props: SearchComboBoxProps<T>) {
+function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
   const [inputValue, setInputValue] = useState('');
   const {inputRef} = props;
   const listBoxRef = useRef<HTMLUListElement | null>(null);
@@ -116,7 +124,6 @@ function SearchComboBox<T extends NotificationSource>(props: SearchComboBoxProps
             listState={state}
             hasSearch={!!state.inputValue}
             hiddenOptions={new Set([])}
-            keyDownHandler={() => false}
             overlayIsOpen={state.isOpen}
             size="sm"
             {...listBoxProps}

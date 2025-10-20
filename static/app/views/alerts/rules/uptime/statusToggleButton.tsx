@@ -2,28 +2,23 @@ import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ObjectStatus} from 'sentry/types/core';
-
-import type {UptimeRule} from './types';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 
 interface StatusToggleButtonProps extends Omit<ButtonProps, 'onClick'> {
-  onToggleStatus: (status: ObjectStatus) => Promise<void>;
-  uptimeRule: UptimeRule;
+  onToggleStatus: (opts: {enabled: boolean}) => Promise<void>;
+  uptimeDetector: UptimeDetector;
 }
 
 export function StatusToggleButton({
-  uptimeRule,
+  uptimeDetector: {enabled},
   onToggleStatus,
   ...props
 }: StatusToggleButtonProps) {
-  const {status} = uptimeRule;
-  const isDisabled = status === 'disabled';
+  const Icon = enabled ? IconPause : IconPlay;
 
-  const Icon = isDisabled ? IconPlay : IconPause;
-
-  const label = isDisabled
-    ? t('Enable this uptime rule')
-    : t('Disable this uptime rule and stop performing checks');
+  const label = enabled
+    ? t('Disable this uptime rule and stop performing checks')
+    : t('Enable this uptime rule');
 
   return (
     <Button
@@ -31,9 +26,9 @@ export function StatusToggleButton({
       aria-label={label}
       title={label}
       onClick={async () => {
-        await onToggleStatus(isDisabled ? 'active' : 'disabled');
+        await onToggleStatus({enabled: !enabled});
         // TODO(epurkhiser): We'll need a hook here to trigger subscription
-        // refesh in getsentry when toggling uptime monitors since it will
+        // refresh in getsentry when toggling uptime monitors since it will
         // consume quota.
       }}
       {...props}

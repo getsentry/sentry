@@ -15,7 +15,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const {organization, projects, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership']},
+  organization: {features: ['open-membership']},
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -35,14 +35,11 @@ describe('ProjectPageFilter', () => {
     OrganizationStore.init();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['projects'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
 
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
@@ -132,7 +129,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.keyboard('{Enter}');
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/projects/project-1/',
+      pathname: '/organizations/org-slug/insights/projects/project-1/',
       query: {project: '1'},
     });
 
@@ -213,7 +210,7 @@ describe('ProjectPageFilter', () => {
 
   it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
-      organization: {features: ['global-views', 'open-membership']},
+      organization: {features: ['open-membership']},
       projects: [
         {id: '1', slug: 'project-1', isMember: true},
         {id: '2', slug: 'project-2', isMember: true},
@@ -236,7 +233,6 @@ describe('ProjectPageFilter', () => {
       organization: desyncOrganization,
       queryParams: {project: ['2']},
       router: desyncRouter,
-      shouldEnforceSingleProject: false,
     });
 
     render(<ProjectPageFilter />, {

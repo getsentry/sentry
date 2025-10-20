@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -27,7 +27,6 @@ import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
@@ -75,7 +74,6 @@ function IssueViewStarButton() {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
-  const prefersStackedNav = usePrefersStackedNav();
 
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -107,7 +105,7 @@ function IssueViewStarButton() {
     },
   });
 
-  if (!prefersStackedNav || !groupSearchView) {
+  if (!groupSearchView) {
     return null;
   }
 
@@ -153,9 +151,8 @@ function IssueViewEditMenu() {
   const user = useUser();
   const {mutateAsync: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
-  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!prefersStackedNav || !groupSearchView) {
+  if (!groupSearchView) {
     return null;
   }
 
@@ -219,7 +216,6 @@ function IssueViewsHeader({
   onRealtimeChange,
   headerActions,
 }: IssueViewsHeaderProps) {
-  const prefersStackedNav = usePrefersStackedNav();
   const {viewId} = useParams<{viewId?: string}>();
 
   const realtimeLabel = realtimeActive
@@ -227,11 +223,11 @@ function IssueViewsHeader({
     : t('Enable real-time updates');
 
   return (
-    <Layout.Header noActionWrap unified={prefersStackedNav}>
-      <Layout.HeaderContent unified={prefersStackedNav}>
-        <StyledLayoutTitle>
+    <Layout.Header noActionWrap unified>
+      <Layout.HeaderContent unified>
+        <Flex justify="between">
           <PageTitle title={title} description={description} />
-          <Actions>
+          <Flex align="center" gap="md">
             {headerActions}
             {!viewId && (
               <DisableInDemoMode>
@@ -246,8 +242,8 @@ function IssueViewsHeader({
             )}
             <IssueViewStarButton />
             <IssueViewEditMenu />
-          </Actions>
-        </StyledLayoutTitle>
+          </Flex>
+        </Flex>
       </Layout.HeaderContent>
       <Layout.HeaderActions />
     </Layout.Header>
@@ -255,17 +251,6 @@ function IssueViewsHeader({
 }
 
 export default IssueViewsHeader;
-
-const StyledLayoutTitle = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const Actions = styled('div')`
-  align-items: center;
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const LeftAlignContainer = styled('div')`
   text-align: left;

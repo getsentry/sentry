@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
-import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
@@ -24,9 +23,8 @@ import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {BaseGroup, Group, PriorityLevel, SavedSearch} from 'sentry/types/group';
+import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
@@ -51,25 +49,17 @@ import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
-import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
-import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
-import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
-import IssueListHeader from './header';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
-  getTabsWithCounts,
   isForReviewQuery,
   IssueSortOptions,
   Query,
-  TAB_MAX_COUNT,
-  type QueryCounts,
 } from './utils';
 
 const MAX_ITEMS = 25;
@@ -79,11 +69,7 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
-interface Props
-  extends RouteComponentProps<
-    Record<PropertyKey, string | undefined>,
-    {searchId?: string}
-  > {
+interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
@@ -101,10 +87,6 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
   sort?: string;
   statsPeriod?: string | null;
 }
-
-type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
-  query: string[];
-};
 
 type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
@@ -125,27 +107,6 @@ function useIssuesINPObserver() {
   }, []);
 }
 
-function useSavedSearches() {
-  const organization = useOrganization();
-  const prefersStackedNav = usePrefersStackedNav();
-  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg(
-    {
-      orgSlug: organization.slug,
-    },
-    {enabled: !prefersStackedNav}
-  );
-
-  const params = useParams();
-  const selectedSavedSearch = useSelectedSavedSearch();
-
-  return {
-    savedSearches,
-    savedSearchLoading: !prefersStackedNav && isPending,
-    savedSearch: selectedSavedSearch,
-    selectedSearchId: params.searchId ?? null,
-  };
-}
-
 const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   const page = location.query.page;
   const pageInt = Array.isArray(page)
@@ -160,7 +121,6 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 };
 
 function IssueListOverview({
-  router,
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
   title = t('Issues'),
@@ -172,7 +132,6 @@ function IssueListOverview({
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
-  const prefersStackedNav = usePrefersStackedNav();
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
@@ -183,7 +142,6 @@ function IssueListOverview({
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [pageLinks, setPageLinks] = useState('');
   const [queryCount, setQueryCount] = useState(0);
-  const [queryCounts, setQueryCounts] = useState<QueryCounts>({});
   const [queryMaxCount, setQueryMaxCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
@@ -195,8 +153,6 @@ function IssueListOverview({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-
-  const {savedSearch, savedSearchLoading, selectedSearchId} = useSavedSearches();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -226,50 +182,13 @@ function IssueListOverview({
     });
   }, [onRealtimePoll, pageLinks]);
 
-  const getQueryFromSavedSearchOrLocation = useCallback(
-    (props: {location: Location; savedSearch: SavedSearch | null}): string => {
-      if (!prefersStackedNav && props.savedSearch) {
-        return props.savedSearch.query;
-      }
-
-      const {query} = props.location.query;
-
-      if (query !== undefined) {
-        return decodeScalar(query, '');
-      }
-
-      return initialQuery;
-    },
-    [prefersStackedNav, initialQuery]
-  );
-
-  const getSortFromSavedSearchOrLocation = useCallback(
-    (props: {location: Location; savedSearch: SavedSearch | null}): IssueSortOptions => {
-      if (!props.location.query.sort && props.savedSearch?.id) {
-        return props.savedSearch.sort as IssueSortOptions;
-      }
-
-      if (props.location.query.sort) {
-        return props.location.query.sort as IssueSortOptions;
-      }
-      return DEFAULT_ISSUE_STREAM_SORT;
-    },
-    []
-  );
-
-  const query = useMemo((): string => {
-    return getQueryFromSavedSearchOrLocation({
-      savedSearch,
-      location,
-    });
-  }, [getQueryFromSavedSearchOrLocation, savedSearch, location]);
-
-  const sort = useMemo(() => {
-    return getSortFromSavedSearchOrLocation({
-      savedSearch,
-      location,
-    });
-  }, [getSortFromSavedSearchOrLocation, savedSearch, location]);
+  const query = defined(location.query.query)
+    ? (location.query.query as string)
+    : initialQuery;
+  const sort = decodeScalar(
+    location.query.sort,
+    DEFAULT_ISSUE_STREAM_SORT
+  ) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
     let currentPeriod: string;
@@ -317,27 +236,11 @@ function IssueListOverview({
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
-    // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
-    const savedSearchLookupEnabled = 0;
-    const savedSearchLookupDisabled = 1;
-
     const params: any = {
       ...getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
-      savedSearch:
-        savedSearchLoading && !prefersStackedNav
-          ? savedSearchLookupEnabled
-          : savedSearchLookupDisabled,
     };
-
-    if (selectedSearchId) {
-      params.searchId = selectedSearchId;
-    }
-
-    if (savedSearchLoading && !defined(location.query.query)) {
-      delete params.query;
-    }
 
     const currentQuery = location.query || {};
     if ('cursor' in currentQuery) {
@@ -353,13 +256,7 @@ function IssueListOverview({
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [
-    getEndpointParams,
-    location.query,
-    savedSearchLoading,
-    selectedSearchId,
-    prefersStackedNav,
-  ]);
+  }, [getEndpointParams, location.query]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -392,74 +289,11 @@ function IssueListOverview({
     }
   }, [pageLinks, realtimeActive]);
 
-  const fetchCounts = useCallback(
-    (currentQueryCount: number, fetchAllCounts: boolean) => {
-      const newQueryCounts: QueryCounts = {...queryCounts};
-
-      const endpointParams = getEndpointParams();
-      const tabQueriesWithCounts = getTabsWithCounts();
-      const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
-        ? endpointParams.query
-        : null;
-
-      // Update the count based on the exact number of issues, these shown as is
-      if (currentTabQuery) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        newQueryCounts[currentTabQuery] = {
-          count: currentQueryCount,
-          hasMore: false,
-        };
-      }
-
-      setQueryCounts(newQueryCounts);
-
-      // If all tabs' counts are fetched, skip and only set
-      if (
-        fetchAllCounts ||
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        !tabQueriesWithCounts.every(tabQuery => newQueryCounts[tabQuery] !== undefined)
-      ) {
-        const countsRequestParams: CountsEndpointParams = {
-          ...omit(endpointParams, 'query'),
-          // fetch the counts for the tabs whose counts haven't been fetched yet
-          query: tabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
-        };
-
-        // If no stats period values are set, use default
-        if (!countsRequestParams.statsPeriod && !countsRequestParams.start) {
-          countsRequestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-        }
-
-        api.request(`/organizations/${organization.slug}/issues-count/`, {
-          method: 'GET',
-          data: qs.stringify(countsRequestParams),
-
-          success: data => {
-            if (!data) {
-              return;
-            }
-            setQueryCounts({
-              ...newQueryCounts,
-              ...mapValues(data, (count: number | null) => ({
-                count: count ?? 0,
-                // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
-                hasMore: (count ?? 0) > TAB_MAX_COUNT,
-              })),
-            });
-          },
-          error: () => {
-            setQueryCounts({});
-          },
-        });
-      }
-    },
-    [api, getEndpointParams, organization.slug, queryCounts]
-  );
-
   const fetchStats = useCallback(
     async (newGroupIds: string[]) => {
       // If we have no groups to fetch, just skip stats
       if (!newGroupIds.length) {
+        setStatsLoading(false);
         return;
       }
 
@@ -522,135 +356,129 @@ function IssueListOverview({
     }
   }, [location.pathname, navigate, location.query]);
 
-  const fetchData = useCallback(
-    (fetchAllCounts = false) => {
-      resetNewViewQueryParam();
+  const fetchData = useCallback(() => {
+    resetNewViewQueryParam();
 
-      if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
-        GroupStore.loadInitialData([]);
+    if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
+      GroupStore.loadInitialData([]);
 
-        setIssuesLoading(true);
-        setQueryCount(0);
-        setError(null);
-      }
-
-      const span = getCurrentSentryReactRootSpan();
-      span?.setAttribute('query.sort', sort);
-
+      setIssuesLoading(true);
+      setQueryCount(0);
       setError(null);
+    }
 
-      api.clear();
-      pollerRef.current?.disable();
+    const span = getCurrentSentryReactRootSpan();
+    span?.setAttribute('query.sort', sort);
 
-      api.request(`/organizations/${organization.slug}/issues/`, {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-        success: async (data, _, resp) => {
-          if (!resp) {
-            return;
+    setError(null);
+
+    api.clear();
+    pollerRef.current?.disable();
+
+    api.request(`/organizations/${organization.slug}/issues/`, {
+      method: 'GET',
+      data: qs.stringify(requestParams),
+      success: async (data, _, resp) => {
+        if (!resp) {
+          return;
+        }
+
+        // If this is a direct hit, we redirect to the intended result directly.
+        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+          let redirect: string;
+          if (data[0]?.matchingEventId) {
+            const {id, matchingEventId} = data[0];
+            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+          } else {
+            const {id} = data[0];
+            redirect = `/organizations/${organization.slug}/issues/${id}/`;
           }
 
-          // If this is a direct hit, we redirect to the intended result directly.
-          if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-            let redirect: string;
-            if (data[0]?.matchingEventId) {
-              const {id, matchingEventId} = data[0];
-              redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
-            } else {
-              const {id} = data[0];
-              redirect = `/organizations/${organization.slug}/issues/${id}/`;
-            }
+          navigate(
+            normalizeUrl({
+              pathname: redirect,
+              query: {
+                referrer: 'issue-list',
+                ...extractSelectionParameters(location.query),
+              },
+            }),
+            {replace: true}
+          );
+          return;
+        }
 
-            navigate(
-              normalizeUrl({
-                pathname: redirect,
-                query: {
-                  referrer: 'issue-list',
-                  ...extractSelectionParameters(location.query),
-                },
-              }),
-              {replace: true}
-            );
-            return;
-          }
+        if (undoRef.current) {
+          GroupStore.loadInitialData(data);
+        }
+        GroupStore.add(data);
 
-          if (undoRef.current) {
-            GroupStore.loadInitialData(data);
-          }
-          GroupStore.add(data);
-
-          if (data.length === 0) {
-            trackAnalytics('issue_search.empty', {
-              organization,
-              search_type: 'issues',
-              search_source: 'main_search',
-              query,
-            });
-          }
-
-          const hits = resp.getResponseHeader('X-Hits');
-          const newQueryCount =
-            typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-          const maxHits = resp.getResponseHeader('X-Max-Hits');
-          const newQueryMaxCount =
-            typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-          const newPageLinks = resp.getResponseHeader('Link');
-
-          setError(null);
-          setIssuesLoading(false);
-          setIssuesSuccessfullyLoaded(true);
-          setQueryCount(newQueryCount);
-          setQueryMaxCount(newQueryMaxCount);
-          setPageLinks(newPageLinks === null ? '' : newPageLinks);
-
-          fetchCounts(newQueryCount, fetchAllCounts);
-
-          // Need to wait for stats request to finish before saving to cache
-          await fetchStats(data.map((group: BaseGroup) => group.id));
-          IssueListCacheStore.save(requestParams, {
-            groups: GroupStore.getState() as Group[],
-            queryCount: newQueryCount,
-            queryMaxCount: newQueryMaxCount,
-            pageLinks: newPageLinks ?? '',
-          });
-        },
-        error: err => {
-          trackAnalytics('issue_search.failed', {
+        if (data.length === 0) {
+          trackAnalytics('issue_search.empty', {
             organization,
             search_type: 'issues',
             search_source: 'main_search',
-            error: parseApiError(err),
+            query,
           });
+        }
 
-          setError(parseApiError(err));
-          setIssuesLoading(false);
-          setIssuesSuccessfullyLoaded(false);
-        },
-        complete: () => {
-          resumePolling();
+        const hits = resp.getResponseHeader('X-Hits');
+        const newQueryCount =
+          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        const maxHits = resp.getResponseHeader('X-Max-Hits');
+        const newQueryMaxCount =
+          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+        const newPageLinks = resp.getResponseHeader('Link');
 
-          if (!realtimeActive) {
-            actionTakenRef.current = false;
-            undoRef.current = false;
-          }
-        },
-      });
-    },
-    [
-      resetNewViewQueryParam,
-      realtimeActive,
-      sort,
-      api,
-      organization,
-      requestParams,
-      fetchCounts,
-      fetchStats,
-      navigate,
-      location.query,
-      query,
-      resumePolling,
-    ]
-  );
+        setError(null);
+        setIssuesLoading(false);
+        setIssuesSuccessfullyLoaded(true);
+        setQueryCount(newQueryCount);
+        setQueryMaxCount(newQueryMaxCount);
+        setPageLinks(newPageLinks === null ? '' : newPageLinks);
+
+        // Need to wait for stats request to finish before saving to cache
+        await fetchStats(data.map((group: BaseGroup) => group.id));
+        IssueListCacheStore.save(requestParams, {
+          groups: GroupStore.getState() as Group[],
+          queryCount: newQueryCount,
+          queryMaxCount: newQueryMaxCount,
+          pageLinks: newPageLinks ?? '',
+        });
+      },
+      error: err => {
+        trackAnalytics('issue_search.failed', {
+          organization,
+          search_type: 'issues',
+          search_source: 'main_search',
+          error: parseApiError(err),
+        });
+
+        setError(parseApiError(err));
+        setIssuesLoading(false);
+        setIssuesSuccessfullyLoaded(false);
+      },
+      complete: () => {
+        resumePolling();
+
+        if (!realtimeActive) {
+          actionTakenRef.current = false;
+          undoRef.current = false;
+        }
+      },
+    });
+  }, [
+    resetNewViewQueryParam,
+    realtimeActive,
+    sort,
+    api,
+    organization,
+    requestParams,
+    fetchStats,
+    navigate,
+    location.query,
+    query,
+    resumePolling,
+  ]);
 
   useDisableRouteAnalytics(issuesLoading);
   useRouteAnalyticsEventNames('issues.viewed', 'Issues: Viewed');
@@ -690,40 +518,24 @@ function IssueListOverview({
   }, []);
 
   const previousSelection = usePrevious(selection);
-  const previousSavedSearchLoading = usePrevious(savedSearchLoading);
   const previousIssuesLoading = usePrevious(issuesLoading);
 
   const previousRequestParams = usePrevious(requestParams);
 
   // Keep data up to date
   useEffect(() => {
-    const selectionChanged = !isEqual(previousSelection, selection);
-
-    // Wait for saved searches to load before we attempt to fetch stream data
-    // Selection changing could indicate that the projects query parameter has populated
-    // and we should refetch data.
-    if (savedSearchLoading && !selectionChanged) {
-      return;
-    }
-
-    if (previousSavedSearchLoading && !savedSearchLoading) {
-      return;
-    }
-
     // If any important url parameter changed or saved search changed
     // reload data.
     if (!isEqual(previousRequestParams, requestParams)) {
-      fetchData(selectionChanged);
+      fetchData();
     }
   }, [
     fetchData,
-    savedSearchLoading,
     selection,
     previousSelection,
     organization.features,
     issuesLoading,
     loadFromCache,
-    previousSavedSearchLoading,
     previousIssuesLoading,
     previousRequestParams,
     requestParams,
@@ -807,41 +619,13 @@ function IssueListOverview({
     [organization]
   );
 
-  const transitionTo = (
-    newParams: Partial<EndpointParams> = {},
-    newSavedSearch: (SavedSearch & {projectId?: number}) | null = savedSearch
-  ) => {
+  const transitionTo = (newParams: Partial<EndpointParams> = {}) => {
     const queryData = {
       ...omit(location.query, ['page', 'cursor']),
       referrer: 'issue-list',
       ...getEndpointParams(),
       ...newParams,
     };
-    let path: string;
-
-    if (newSavedSearch?.id) {
-      path = `/organizations/${organization.slug}/issues/searches/${newSavedSearch.id}/`;
-
-      // Remove the query as saved searches bring their own query string.
-      delete queryData.query;
-
-      // If we aren't going to another page in the same search
-      // drop the query and replace the current project, with the saved search search project
-      // if available.
-      if (!queryData.cursor && newSavedSearch.projectId) {
-        queryData.project = [newSavedSearch.projectId];
-      }
-      if (!queryData.cursor && !newParams.sort && newSavedSearch.sort) {
-        queryData.sort = newSavedSearch.sort;
-      }
-    } else {
-      if (prefersStackedNav) {
-        path = location.pathname;
-      } else {
-        path = `/organizations/${organization.slug}/issues/`;
-      }
-    }
-
     if (
       queryData.sort === IssueSortOptions.INBOX &&
       !FOR_REVIEW_QUERIES.includes(queryData.query || '')
@@ -850,7 +634,7 @@ function IssueListOverview({
     }
 
     navigate({
-      pathname: normalizeUrl(path),
+      pathname: location.pathname,
       query: queryData,
     });
   };
@@ -860,8 +644,7 @@ function IssueListOverview({
       // if query is the same, just re-fetch data
       fetchData();
     } else {
-      // Clear the saved search as the user wants something else.
-      transitionTo({query: newQuery}, null);
+      transitionTo({query: newQuery});
     }
   };
 
@@ -939,7 +722,7 @@ function IssueListOverview({
         setIssuesLoading(false);
       },
       complete: () => {
-        fetchData(true);
+        fetchData();
       },
     });
   };
@@ -985,9 +768,9 @@ function IssueListOverview({
       // avoid showing an empty state - if not on the last page, just show a spinner
       const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
       transitionTo({cursor: shouldGoBackAPage ? links.previous!.cursor : undefined});
-      fetchData(true);
+      fetchData();
     } else {
-      fetchData(true);
+      fetchData();
     }
   };
 
@@ -1055,7 +838,7 @@ function IssueListOverview({
 
   const onDelete = () => {
     actionTakenRef.current = true;
-    fetchData(true);
+    fetchData();
   };
 
   const paginationAnalyticsEvent = (direction: string) => {
@@ -1065,54 +848,22 @@ function IssueListOverview({
     });
   };
 
-  const onSavedSearchSelect = (newSavedSearch: SavedSearch) => {
-    trackAnalytics('organization_saved_search.selected', {
-      organization,
-      search_type: 'issues',
-      id: newSavedSearch.id ? parseInt(newSavedSearch.id, 10) : -1,
-      is_global: newSavedSearch.isGlobal,
-      query: newSavedSearch.query,
-      visibility: newSavedSearch.visibility,
-    });
-    setIssuesLoading(true);
-    setTimeout(() => {
-      transitionTo(undefined, newSavedSearch);
-    }, 0);
-  };
-
   const modifiedQueryCount = Math.max(queryCount, 0);
 
-  // TODO: these two might still be in use for reprocessing2
-  const showReprocessingTab = !!queryCounts?.[Query.REPROCESSING]?.count;
-  const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
+  const displayReprocessingActions = query === Query.REPROCESSING;
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
     <Layout.Page>
-      {prefersStackedNav ? (
-        <IssueViewsHeader
-          selectedProjectIds={selection.projects}
-          title={title}
-          description={titleDescription}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={onRealtimeChange}
-          headerActions={headerActions}
-        />
-      ) : (
-        <IssueListHeader
-          organization={organization}
-          query={query}
-          sort={sort}
-          queryCount={queryCount}
-          queryCounts={queryCounts}
-          realtimeActive={realtimeActive}
-          router={router}
-          displayReprocessingTab={showReprocessingTab}
-          selectedProjectIds={selection.projects}
-          onRealtimeChange={onRealtimeChange}
-        />
-      )}
+      <IssueViewsHeader
+        selectedProjectIds={selection.projects}
+        title={title}
+        description={titleDescription}
+        realtimeActive={realtimeActive}
+        onRealtimeChange={onRealtimeChange}
+        headerActions={headerActions}
+      />
       <StyledBody>
         <StyledMain>
           <IssuesDataConsentBanner source="issues" />
@@ -1162,11 +913,6 @@ function IssueListOverview({
             pageSize={MAX_ITEMS}
           />
         </StyledMain>
-        <SavedIssueSearches
-          {...{organization, query}}
-          onSavedSearchSelect={onSavedSearchSelect}
-          sort={sort}
-        />
       </StyledBody>
     </Layout.Page>
   );
@@ -1176,15 +922,7 @@ export default Sentry.withProfiler(IssueListOverview);
 
 const StyledBody = styled('div')`
   background-color: ${p => p.theme.background};
-
   flex: 1;
-  display: grid;
-  gap: 0;
-  padding: 0;
-
-  grid-template-rows: 1fr;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: 'content saved-searches';
 `;
 
 const StyledMain = styled('section')`

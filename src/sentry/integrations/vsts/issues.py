@@ -19,9 +19,9 @@ from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -310,7 +310,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                 },
             )
             if isinstance(e, ApiUnauthorized):
-                raise IntegrationInstallationConfigurationError(
+                raise IntegrationConfigurationError(
                     "Insufficient permissions to assign user to the VSTS issue."
                 ) from e
             raise IntegrationError("There was an error assigning the issue.") from e

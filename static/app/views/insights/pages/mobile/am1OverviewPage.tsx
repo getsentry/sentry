@@ -29,9 +29,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
-  MOBILE_LANDING_TITLE,
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
@@ -99,12 +97,11 @@ export function Am1MobileOverviewPage() {
     location,
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
-    withStaticFilters,
-    organization
+    withStaticFilters
   );
   const searchBarEventView = eventView.clone();
 
-  let columnTitles = checkIsReactNative(eventView)
+  const columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
 
@@ -149,19 +146,6 @@ export function Am1MobileOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('mobile-vitals')) {
-    columnTitles = [
-      ...columnTitles.slice(0, 5),
-      {title: 'ttid'},
-      ...columnTitles.slice(5, 0),
-    ];
-    tripleChartRowCharts.push(
-      ...[
-        PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
-        PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
-      ]
-    );
-  }
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
@@ -214,7 +198,6 @@ export function Am1MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

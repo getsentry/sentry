@@ -12,6 +12,7 @@ from sentry.backup.comparators import (
     ForeignKeyComparator,
     HashObfuscatingComparator,
     IgnoredComparator,
+    OptionValueComparator,
     ScrubbedData,
     SecretHexComparator,
     SubscriptionIDComparator,
@@ -2165,3 +2166,94 @@ def test_good_user_password_obfuscating_comparator_scrubbed_short() -> None:
 
     assert right["scrubbed"]
     assert right["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["..."]
+
+
+def test_good_option_value_comparator() -> None:
+    cmp = OptionValueComparator("value")
+    id = InstanceID("sentry.test", 0)
+
+    # Ensure that int and str-int are reasonably equivalent.
+    left: Any = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": 1,
+        },
+    }
+    right: Any = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": "1",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+    # Ensure that int and int are equivalent.
+    left = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": 1,
+        },
+    }
+    right = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": 1,
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+    # Ensure that str and str are equivalent.
+    left = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": "1",
+        },
+    }
+    right = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": "1",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_option_value_comparator() -> None:
+    cmp = OptionValueComparator("value")
+    id = InstanceID("sentry.test", 0)
+    # Ensure that str + bool are not the same
+    left: Any = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": True,
+        },
+    }
+    right: Any = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "value": "1",
+        },
+    }
+    findings = cmp.compare(id, left, right)
+    assert len(findings) == 1
+    assert findings[0]
+    assert findings[0].kind == ComparatorFindingKind.OptionValueComparator
+    assert findings[0].left_pk
+    assert findings[0].right_pk
+    assert "(True) of `value` was not equal to the right value (1)" in findings[0].reason

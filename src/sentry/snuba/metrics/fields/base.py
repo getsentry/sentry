@@ -201,7 +201,6 @@ _PREFIX_TO_GENERIC_METRIC_ENTITY: dict[str, MetricEntity] = {
 
 
 def _get_known_entity_of_metric_mri(metric_mri: str) -> MetricEntity | None:
-    # ToDo(ogi): Reimplement this
     try:
         SessionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]
@@ -1466,6 +1465,55 @@ DERIVED_METRICS = {
                 foreground_anr_user_count, all_user_count, alias=alias
             ),
         ),
+        CompositeEntityDerivedMetric(
+            metric_mri=SessionMRI.ERRORED_RATE.value,
+            metrics=[SessionMRI.ALL.value, SessionMRI.ERRORED.value],
+            unit="percentage",
+            post_query_func=lambda all, errored: max(0, (errored / all) if all else 0),
+        ),
+        CompositeEntityDerivedMetric(
+            metric_mri=SessionMRI.ERRORED_USER_RATE.value,
+            metrics=[SessionMRI.ALL_USER.value, SessionMRI.ERRORED_USER.value],
+            unit="percentage",
+            post_query_func=lambda all_user, errored_user: max(
+                0, (errored_user / all_user) if all_user else 0
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.ABNORMAL_RATE.value,
+            metrics=[SessionMRI.ALL.value, SessionMRI.ABNORMAL.value],
+            unit="percentage",
+            snql=lambda all_count, abnormal_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                abnormal_count, all_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.ABNORMAL_USER_RATE.value,
+            metrics=[SessionMRI.ALL_USER.value, SessionMRI.ABNORMAL_USER.value],
+            unit="percentage",
+            snql=lambda all_user_count, abnormal_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                abnormal_user_count, all_user_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHANDLED_RATE.value,
+            metrics=[SessionMRI.ALL.value, SessionMRI.UNHANDLED.value],
+            unit="percentage",
+            snql=lambda all_count, unhandled_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                unhandled_count, all_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHANDLED_USER_RATE.value,
+            metrics=[
+                SessionMRI.ALL_USER.value,
+                SessionMRI.UNHANDLED_USER.value,
+            ],
+            unit="percentage",
+            snql=lambda all_user_count, unhandled_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                unhandled_user_count, all_user_count, alias=alias
+            ),
+        ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASH_FREE_RATE.value,
             metrics=[SessionMRI.CRASH_RATE.value],
@@ -1587,6 +1635,15 @@ DERIVED_METRICS = {
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
+        ),
+        CompositeEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHEALTHY_RATE.value,
+            metrics=[
+                SessionMRI.ALL.value,
+                SessionMRI.ERRORED_ALL.value,
+            ],
+            unit="percentage",
+            post_query_func=lambda all, errored_all: (max(0, errored_all / all) if all else 0),
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.HEALTHY_USER.value,

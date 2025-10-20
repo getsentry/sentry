@@ -5,8 +5,10 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -70,26 +72,31 @@ const COLUMN_ORDER: Column[] = [
     key: 'tpm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
     key: `p50_if(span.duration,is_transaction,equals,true)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p50,
   },
   {
     key: `p75_if(span.duration,is_transaction,equals,true)`,
     name: t('p75()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p75,
   },
   {
     key: `p95_if(span.duration,is_transaction,equals,true)`,
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p95,
   },
   {
     key: 'failure_rate_if(is_transaction,equals,true)',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.failureRate,
   },
   {
     key: 'count_unique(user)',
@@ -156,11 +163,13 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+  });
 
-  let column_order = [...COLUMN_ORDER];
-
+  let filteredColumns = [...columns];
   if (!displayPerfScore) {
-    column_order = column_order.filter(
+    filteredColumns = filteredColumns.filter(
       col => col.key !== 'performance_score(measurements.score.total)'
     );
   }
@@ -171,32 +180,42 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       hasData={data.length > 0}
       isLoading={isLoading}
     >
-      <GridEditable
-        aria-label={t('Domains')}
-        isLoading={isLoading}
-        error={response.error}
-        data={data}
-        columnOrder={column_order}
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
-        grid={{
-          prependColumnWidths: ['max-content'],
-          renderPrependColumns,
-          renderHeadCell: column =>
-            renderHeadCell({
-              column,
-              sort,
-              location,
-            }),
-          renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, theme),
-        }}
-      />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <DemoTourElement
+        id={DemoTourStep.PERFORMANCE_TABLE}
+        title={t('See slow transactions')}
+        description={t(
+          `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
+      Select a transaction to see more details.`
+        )}
+      >
+        <GridEditable
+          aria-label={t('Domains')}
+          isLoading={isLoading}
+          error={response.error}
+          data={data}
+          columnOrder={filteredColumns}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
+          grid={{
+            prependColumnWidths: ['max-content'],
+            renderPrependColumns,
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+              }),
+            renderBodyCell: (column, row) =>
+              renderBodyCell(column, row, meta, location, organization, theme),
+            onResizeColumn: handleResizeColumn,
+          }}
+        />
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      </DemoTourElement>
     </VisuallyCompleteWithData>
   );
 }

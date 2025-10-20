@@ -93,6 +93,7 @@ export type IntegrationRepository = {
    * ex - getsentry/sentry
    */
   identifier: string;
+  isInstalled: boolean;
   name: string;
   defaultBranch?: string | null;
 };
@@ -266,7 +267,7 @@ export type SentryAppInstallation = {
   organization: {
     slug: string;
   };
-  status: 'installed' | 'pending';
+  status: 'installed' | 'pending' | 'pending_deletion';
   uuid: string;
   code?: string;
 };

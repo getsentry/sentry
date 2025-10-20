@@ -4,35 +4,36 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
-import {notificationCategories} from 'sentry/debug/notifications/data';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
+import {useRouteSource} from 'sentry/debug/notifications/hooks/useRouteSource';
 
 export function DebugNotificationsSidebar() {
-  const location = useLocation();
+  const {routeSource, baseRoute} = useRouteSource();
+  const {data: registry = {}} = useRegistry();
   return (
     <Flex direction="column" gap="xl" padding="xl 0">
-      {notificationCategories.map((category, i) => (
-        <Fragment key={category.value}>
+      {Object.entries(registry).map(([category, registrations], i) => (
+        <Fragment key={category}>
           {i !== 0 && <CategoryDivider />}
           <Container padding="md">
             <Container padding="md">
               <Heading as="h3" size="md">
-                {category.label}
+                {category}
               </Heading>
             </Container>
             <SourceList>
-              {category.sources.map(source => (
-                <Container key={source.value} as="li">
+              {registrations.map(registration => (
+                <Container key={registration.source} as="li">
                   <NotificationLinkButton
                     borderless
-                    active={location.query.source === source.value}
+                    active={routeSource === registration.source}
                     to={
-                      location.query.source === source.value
-                        ? {query: {...location.query, source: undefined}}
-                        : {query: {...location.query, source: source.value}}
+                      routeSource === registration.source
+                        ? baseRoute
+                        : {pathname: `${baseRoute}${registration.source}/`}
                     }
                   >
-                    {source.label}
+                    {registration.source}
                   </NotificationLinkButton>
                 </Container>
               ))}

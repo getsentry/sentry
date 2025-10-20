@@ -1,33 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import type {Organization} from 'sentry/types/organization';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 import {useMetricDetectorLimit} from './useMetricDetectorLimit';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
-function createWrapper(organization: Organization) {
-  return function Wrapper({children}: {children?: React.ReactNode}) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
-}
 
 const mockOrganization = OrganizationFixture({
   features: ['workflow-engine-metric-detector-limit', 'workflow-engine-ui'],
@@ -40,7 +18,6 @@ const mockOrganizationWithoutFeature = OrganizationFixture({
 describe('useMetricDetectorLimit', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    queryClient.clear();
     SubscriptionStore.init();
 
     MockApiClient.addMockResponse({
@@ -51,14 +28,15 @@ describe('useMetricDetectorLimit', () => {
   });
 
   it('handles feature flag is disabled', () => {
-    const wrapper = createWrapper(mockOrganizationWithoutFeature);
     const detectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       headers: {'X-Hits': '5'},
       body: [],
     });
 
-    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+      organization: mockOrganizationWithoutFeature,
+    });
 
     expect(result.current).toEqual({
       hasReachedLimit: false,
@@ -72,8 +50,6 @@ describe('useMetricDetectorLimit', () => {
   });
 
   it('handles no subscription data', async () => {
-    const wrapper = createWrapper(mockOrganization);
-
     SubscriptionStore.set(mockOrganization.slug, null as any);
     const detectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
@@ -81,7 +57,9 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
@@ -99,8 +77,6 @@ describe('useMetricDetectorLimit', () => {
   });
 
   it('handles detectors count is below limit', async () => {
-    const wrapper = createWrapper(mockOrganization);
-
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -119,7 +95,9 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -145,8 +123,6 @@ describe('useMetricDetectorLimit', () => {
   });
 
   it('handles detectors count equals limit', async () => {
-    const wrapper = createWrapper(mockOrganization);
-
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -165,7 +141,9 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -181,8 +159,6 @@ describe('useMetricDetectorLimit', () => {
   });
 
   it('handles detector limit is -1', async () => {
-    const wrapper = createWrapper(mockOrganization);
-
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -201,7 +177,9 @@ describe('useMetricDetectorLimit', () => {
       body: [],
     });
 
-    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -219,8 +197,6 @@ describe('useMetricDetectorLimit', () => {
   });
 
   it('handles detectors API error gracefully', async () => {
-    const wrapper = createWrapper(mockOrganization);
-
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -238,7 +214,9 @@ describe('useMetricDetectorLimit', () => {
       statusCode: 500,
     });
 
-    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);

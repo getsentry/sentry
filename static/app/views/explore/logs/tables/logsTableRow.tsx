@@ -1,6 +1,8 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import classNames from 'classnames';
+import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
@@ -31,11 +33,6 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  useLogsAddSearchFilter,
-  useLogsAnalyticsPageSource,
-  useLogsIsTableFrozen,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -50,6 +47,8 @@ import {
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
+import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
+import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   DetailsBody,
   DetailsContent,
@@ -74,10 +73,15 @@ import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   adjustAliases,
   getLogRowItem,
+  getLogRowTimestampMillis,
   getLogSeverityLevel,
   ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
-import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
+import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
+import {
+  useAddSearchFilter,
+  useQueryParamsFields,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type LogsRowProps = {
@@ -88,7 +92,13 @@ type LogsRowProps = {
   blockRowExpanding?: boolean;
   canDeferRenderElements?: boolean;
   embedded?: boolean;
+  embeddedOptions?: {
+    openWithExpandedIds?: string[];
+    replay?: ReplayEmbeddedTableOptions;
+  };
   isExpanded?: boolean;
+  logEnd?: string;
+  logStart?: string;
   onCollapse?: (logItemId: string) => void;
   /**
    * This should only be used in embedded views since we won't be opening the details.
@@ -122,6 +132,7 @@ function isInsideButton(element: Element | null): boolean {
 export const LogRowContent = memo(function LogRowContent({
   dataRow,
   embedded = false,
+  embeddedOptions,
   highlightTerms,
   meta,
   sharedHoverTimeoutRef,
@@ -132,10 +143,13 @@ export const LogRowContent = memo(function LogRowContent({
   blockRowExpanding,
   canDeferRenderElements,
   onEmbeddedRowClick,
+  logStart,
+  logEnd,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
   const fields = useQueryParamsFields();
+
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
@@ -208,7 +222,7 @@ export const LogRowContent = memo(function LogRowContent({
     }
   }, [isExpanded, onExpandHeight, dataRow]);
 
-  const addSearchFilter = useLogsAddSearchFilter();
+  const addSearchFilter = useAddSearchFilter();
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -249,6 +263,10 @@ export const LogRowContent = memo(function LogRowContent({
     meta,
     project,
     traceItemMeta: traceItemsResult?.data?.meta,
+    timestampRelativeTo: embeddedOptions?.replay?.timestampRelativeTo,
+    onReplayTimeClick: embeddedOptions?.replay?.onReplayTimeClick,
+    logStart,
+    logEnd,
   };
 
   const rowInteractProps: ComponentProps<typeof LogTableRow> = blockRowExpanding
@@ -267,11 +285,34 @@ export const LogRowContent = memo(function LogRowContent({
     <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
   );
 
+  let replayTimeClasses = {};
+  if (
+    embeddedOptions?.replay?.displayReplayTimeIndicator &&
+    embeddedOptions.replay.timestampRelativeTo
+  ) {
+    const logTimestamp = getLogRowTimestampMillis(dataRow);
+    const offsetMs = logTimestamp - embeddedOptions.replay.timestampRelativeTo;
+
+    const currentTime = embeddedOptions.replay.currentTime ?? 0;
+    const currentHoverTime = embeddedOptions.replay.currentHoverTime;
+
+    const hasOccurred = currentTime >= offsetMs;
+    const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= offsetMs;
+
+    replayTimeClasses = {
+      beforeCurrentTime: hasOccurred,
+      afterCurrentTime: !hasOccurred,
+      beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
+      afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
+    };
+  }
+
   return (
     <Fragment>
       <LogTableRow
         data-test-id="log-table-row"
-        {...rowInteractProps}
+        {...omit(rowInteractProps, 'className')}
+        className={classNames(rowInteractProps.className, replayTimeClasses)}
         onMouseEnter={e => {
           setShouldRenderHoverElements(true);
           if (rowInteractProps.onMouseEnter) {
@@ -279,7 +320,7 @@ export const LogRowContent = memo(function LogRowContent({
           }
         }}
       >
-        <LogsTableBodyFirstCell key={'first'}>
+        <LogsTableBodyFirstCell key="first">
           <LogFirstCellContent>
             {blockRowExpanding ? null : shouldRenderHoverElements ? (
               <StyledChevronButton
@@ -309,6 +350,7 @@ export const LogRowContent = memo(function LogRowContent({
               meta={meta}
               extra={{
                 ...rendererExtra,
+                canAppendTemplateToBody: true,
                 unit: meta?.units?.[field],
               }}
             />
@@ -514,7 +556,7 @@ function LogRowDetails({
 }
 
 function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: OurLogsResponseItem}) {
-  const addSearchFilter = useLogsAddSearchFilter();
+  const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
       <Button
@@ -558,9 +600,9 @@ function LogRowDetailsActions({
   tableDataRow: OurLogsResponseItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
-  const isTableFrozen = useLogsIsTableFrozen();
+  const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
-  const showFilterButtons = !isTableFrozen;
+  const showFilterButtons = !isFrozen;
 
   const {onClick: betterCopyToClipboard} = useCopyToClipboard({
     text: isPending || isError ? '' : ourlogToJson(data),

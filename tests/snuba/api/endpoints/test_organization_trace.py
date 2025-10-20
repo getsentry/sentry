@@ -9,9 +9,9 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.search.events.types import SnubaParams
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
@@ -372,6 +372,7 @@ class OrganizationEventsTraceEndpointTest(
         assert len(child["occurrences"]) == 1
         error_event = child["occurrences"][0]
         assert error_event is not None
+        assert error_event["event_id"] == self.root_event.event_id
         assert error_event["description"] == "File IO on Main Thread"
         assert error_event["project_slug"] == self.project.slug
         assert error_event["level"] == "info"

@@ -5,6 +5,7 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     allowAdditionalReservedEvents: false,
     allowOnDemand: false,
     availableCategories: [],
+    addOnCategories: {},
     basePrice: 0,
     billingInterval: 'monthly',
     categories: [],

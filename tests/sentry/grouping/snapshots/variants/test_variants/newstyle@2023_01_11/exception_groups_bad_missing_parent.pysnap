@@ -1,0 +1,16 @@
+---
+created: '2025-10-07T20:41:46.996731+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "a4f16891fa438620699cb2d9af5cc827"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        type*
+          "MyApp.Exception"
+        value* (stripped event-specific values)
+          "Test <int>"

@@ -1,8 +1,8 @@
 import {Link} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
@@ -49,7 +50,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         <Section title={t('Assign')}>
           <Text as="p">
             {tct(
-              'Sentry will attempt to autotmatically assign new issues based on [link:Ownership Rules].',
+              'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
               {
                 link: (
                   <Link
@@ -110,13 +111,15 @@ export function NewErrorDetectorForm() {
 
 export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   const project = useProjectFromId({project_id: detector.projectId});
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
 
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
     formDataToEndpointPayload: (data: ErrorDetectorFormData) => ({
       type: 'error',
       name: detector.name,
-      owner: detector.owner,
+      owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
       projectId: detector.projectId,
       workflowIds: data.workflowIds,
       dataSource: {},
@@ -138,21 +141,20 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
           <EditDetectorBreadcrumbs detector={detector} />
           <EditLayout.Title title={detector.name} project={project} />
         </EditLayout.HeaderContent>
-
         <EditLayout.Actions>
-          <div>
-            <ButtonBar>
-              <Button type="submit" priority="primary" size="sm">
-                {t('Save')}
-              </Button>
-            </ButtonBar>
-          </div>
+          <AutomationFeedbackButton />
         </EditLayout.Actions>
       </EditLayout.Header>
 
       <EditLayout.Body>
         <ErrorDetectorForm detector={detector} />
       </EditLayout.Body>
+
+      <EditLayout.Footer maxWidth={maxWidth}>
+        <Button type="submit" priority="primary" size="sm">
+          {t('Save')}
+        </Button>
+      </EditLayout.Footer>
     </EditLayout>
   );
 }

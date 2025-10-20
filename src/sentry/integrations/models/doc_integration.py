@@ -2,7 +2,6 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_model
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 
 
@@ -25,7 +24,7 @@ class DocIntegration(Model):
 
     # Allow future extensions by adding more metadata.
     # To start, only { resources: [{title, link}] }.
-    metadata = JSONField(null=True)
+    metadata = models.JSONField(default=dict, null=True)
 
     class Meta:
         app_label = "sentry"

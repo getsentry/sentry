@@ -17,16 +17,21 @@ export enum SessionField {
 }
 
 export type SessionsOperation =
-  | 'sum'
-  | 'count_unique'
-  | 'crash_rate'
-  | 'crash_free_rate'
+  | 'anr_rate'
   | 'count_abnormal'
+  | 'count_crashed'
   | 'count_errored'
   | 'count_healthy'
-  | 'count_crashed'
-  | 'anr_rate'
-  | 'foreground_anr_rate';
+  | 'count_unhandled'
+  | 'count_unique'
+  | 'crash_free_rate'
+  | 'crash_rate'
+  | 'foreground_anr_rate'
+  | 'sum'
+  | 'unhealthy_rate'
+  | 'abnormal_rate'
+  | 'errored_rate'
+  | 'unhandled_rate';
 
 export type SessionAggregationColumn = {
   outputType: AggregationOutputType | null;

@@ -13,10 +13,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
@@ -46,9 +45,8 @@ jest.mock('getsentry/hooks/useStripeInstance', () => ({
 
 describe('AmCheckout > ReviewAndConfirm', () => {
   const api = new MockApiClient();
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['seer-billing']});
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
@@ -141,7 +139,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -244,8 +242,8 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     const updatedData = {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -264,15 +262,6 @@ describe('AmCheckout > ReviewAndConfirm', () => {
           previewToken: preview.previewToken,
         }),
       })
-    );
-    // No DOM updates to wait on, but we can use this.
-    await waitFor(() =>
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: `/settings/${organization.slug}/billing/overview/`,
-          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
-        })
-      )
     );
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
@@ -312,6 +301,15 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         transactions: updatedData.reserved.transactions,
         previous_transactions: 10_000,
       }
+    );
+    // No DOM updates to wait on, but we can use this.
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
+        })
+      )
     );
   });
 

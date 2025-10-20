@@ -451,8 +451,6 @@ class SearchResolver:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
                 raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
-            if context_definition.term_resolver:
-                value = context_definition.term_resolver(value)
 
         if term.value.is_wildcard():
             is_list = False
@@ -466,6 +464,8 @@ class SearchResolver:
             elif term.operator == "NOT IN":
                 operator = ComparisonFilter.OP_NOT_LIKE
                 is_list = True
+            else:
+                raise InvalidSearchQuery(f"Cannot use operator: {term.operator} with wildcards")
 
             if is_list:
                 raw_value = cast(list[str], term.value.raw_value)
@@ -566,6 +566,8 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                     op=operator,
                     value=self._resolve_search_value(resolved_column, term.operator, value),
+                    ignore_case=self.params.case_insensitive
+                    and resolved_column.search_type == "string",
                 )
             ),
             context_definition,
@@ -818,7 +820,7 @@ class SearchResolver:
     def resolve_column(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
@@ -941,7 +943,7 @@ class SearchResolver:
     def resolve_function(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
@@ -1046,10 +1048,10 @@ class SearchResolver:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 
-        # We assume the first argument contains the resolved search_type as this is always the case for now
         if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
             search_type = function_definition.default_search_type
         else:
+            # unless infer_search_type_from_arguments is passed we assume the first argument is the search_type
             search_type = (
                 parsed_args[0].search_type
                 if function_definition.infer_search_type_from_arguments

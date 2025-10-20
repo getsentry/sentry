@@ -1,32 +1,43 @@
-import {cloneElement, isValidElement, useState} from 'react';
+import {useState} from 'react';
+import {Outlet, useOutletContext} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type Props = {
-  children: React.ReactNode;
+type TeamDetailsOutletContext = {
+  team: Team;
 };
 
-function TeamDetails({children}: Props) {
+function TeamDetailsOutlet(props: TeamDetailsOutletContext) {
+  return <Outlet context={props} />;
+}
+
+export function useTeamDetailsOutlet() {
+  return useOutletContext<TeamDetailsOutletContext>();
+}
+
+export default function TeamDetails() {
   const api = useApi();
-  const params = useParams<{teamId: string}>();
   const location = useLocation();
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
+  const params = useParams<{teamId: string}>();
   const {teams, isLoading, isError} = useTeamsById({slugs: [params.teamId]});
   const team = teams.find(({slug}) => slug === params.teamId);
 
@@ -110,12 +121,12 @@ function TeamDetails({children}: Props) {
             </Tabs>
           </TabsContainer>
 
-          {isValidElement(children) ? cloneElement<any>(children, {team}) : null}
+          <TeamDetailsOutlet team={team} />
         </div>
       ) : (
         <Alert.Container>
           <Alert type="warning">
-            <RequestAccessWrapper>
+            <Flex justify="between" align="center">
               <div>
                 {tct('You do not have access to the [teamSlug] team.', {
                   teamSlug: <strong>{`#${team.slug}`}</strong>,
@@ -128,7 +139,7 @@ function TeamDetails({children}: Props) {
               >
                 {team.isPending ? t('Request Pending') : t('Request Access')}
               </Button>
-            </RequestAccessWrapper>
+            </Flex>
           </Alert>
         </Alert.Container>
       )}
@@ -138,12 +149,4 @@ function TeamDetails({children}: Props) {
 
 const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-export default TeamDetails;
-
-const RequestAccessWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;

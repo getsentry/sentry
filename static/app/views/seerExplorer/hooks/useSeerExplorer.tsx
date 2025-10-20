@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {
   setApiQueryData,
@@ -10,6 +10,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 export type SeerExplorerResponse = {
@@ -26,7 +27,23 @@ type SeerExplorerChatResponse = {
   run_id: number;
 };
 
-const POLL_INTERVAL = 1000; // Poll every second
+const POLL_INTERVAL = 500; // Poll every 500ms
+
+const OPTIMISTIC_ASSISTANT_TEXTS = [
+  'Looking around...',
+  'One sec...',
+  'Following breadcrumbs...',
+  'Onboarding...',
+  'Hold tight...',
+  'Gathering threads...',
+  'Tracing the answer...',
+  'Stacking ideas...',
+  'Profiling your project...',
+  'Span by span...',
+  'Rolling logs...',
+  'Replaying prod...',
+  'Scanning the error-waves...',
+] as const;
 
 const makeSeerExplorerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey => [
   `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
@@ -78,16 +95,18 @@ export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
+  const captureAsciiSnapshot = useAsciiSnapshot();
 
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
-  const [optimisticMessageIds, setOptimisticMessageIds] = useState<Set<string>>(
-    new Set()
-  );
-  const [pendingOptimisticBlocks, setPendingOptimisticBlocks] = useState<{
-    blocks: Block[];
+  const [optimistic, setOptimistic] = useState<{
+    assistantBlockId: string;
+    assistantContent: string;
+    baselineSignature: string;
     insertIndex: number;
+    userBlockId: string;
+    userQuery: string;
   } | null>(null);
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
@@ -111,10 +130,12 @@ export const useSeerExplorer = () => {
         return;
       }
 
+      // Capture a coarse ASCII screenshot of the user's screen for extra context
+      const screenshot = captureAsciiSnapshot?.();
+
       setWaitingForResponse(true);
 
       // Calculate insert index first
-      const wasDeleted = deletedFromIndex !== null;
       const effectiveMessageLength =
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
@@ -122,99 +143,30 @@ export const useSeerExplorer = () => {
       // Generate timestamp in seconds to match backend format
       const timestamp = Date.now() / 1000;
 
-      // Optimistically add user message to the UI
-      if (currentRunId && apiData?.session) {
-        const userMessage: Block = {
-          id: `user-${timestamp}`,
-          message: {
-            role: 'user',
-            content: query,
-          },
-          timestamp: new Date().toISOString(),
-          loading: false,
-        };
+      // Record current real blocks signature to know when to clear optimistic UI
+      const baselineSignature = JSON.stringify(
+        (apiData?.session?.blocks || []).map(b => [
+          b.id,
+          b.message.role,
+          b.message.content,
+          !!b.loading,
+        ])
+      );
 
-        const loadingMessage: Block = {
-          id: `loading-${timestamp}`,
-          message: {
-            role: 'assistant',
-            content: 'Thinking...',
-          },
-          timestamp: new Date().toISOString(),
-          loading: true,
-        };
-
-        // Use the effective message list (considering deletions) for optimistic update
-        const effectiveMessages = wasDeleted
-          ? apiData.session.blocks.slice(0, calculatedInsertIndex)
-          : apiData.session.blocks;
-
-        const updatedSession = {
-          ...apiData.session,
-          blocks: [...effectiveMessages, userMessage, loadingMessage],
-          status: 'processing' as const,
-        };
-
-        // Track optimistic message IDs
-        setOptimisticMessageIds(
-          prev => new Set([...prev, userMessage.id, loadingMessage.id])
-        );
-
-        // Keep a local copy of optimistic blocks so they persist across polls
-        setPendingOptimisticBlocks({
-          blocks: [userMessage, loadingMessage],
-          insertIndex: calculatedInsertIndex,
-        });
-
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(orgSlug, currentRunId),
-          {session: updatedSession}
-        );
-      } else {
-        // Handle optimistic UI for the first message (no run yet or no session in cache)
-        const userMessage: Block = {
-          id: `user-${timestamp}`,
-          message: {
-            role: 'user',
-            content: query,
-          },
-          timestamp: new Date().toISOString(),
-          loading: false,
-        };
-
-        const loadingMessage: Block = {
-          id: `loading-${timestamp}`,
-          message: {
-            role: 'assistant',
-            content: 'Thinking...',
-          },
-          timestamp: new Date().toISOString(),
-          loading: true,
-        };
-
-        setOptimisticMessageIds(
-          prev => new Set([...prev, userMessage.id, loadingMessage.id])
-        );
-
-        setPendingOptimisticBlocks({
-          blocks: [userMessage, loadingMessage],
-          insertIndex: calculatedInsertIndex,
-        });
-
-        const newSession: NonNullable<SeerExplorerResponse['session']> = {
-          run_id: undefined,
-          blocks: [userMessage, loadingMessage],
-          status: 'processing',
-          updated_at: new Date().toISOString(),
-        };
-
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(orgSlug),
-          {session: newSession}
-        );
-      }
+      // Set optimistic UI: show user's message and a thinking placeholder,
+      // and hide all real blocks after the insert point. IDs mimic real pattern.
+      const assistantContent =
+        OPTIMISTIC_ASSISTANT_TEXTS[
+          Math.floor(Math.random() * OPTIMISTIC_ASSISTANT_TEXTS.length)
+        ];
+      setOptimistic({
+        insertIndex: calculatedInsertIndex,
+        userQuery: query,
+        baselineSignature,
+        userBlockId: `user-${timestamp}`,
+        assistantBlockId: `assistant-${timestamp}`,
+        assistantContent: assistantContent || 'Thinking...',
+      });
 
       try {
         const response = (await api.requestPromise(
@@ -225,6 +177,7 @@ export const useSeerExplorer = () => {
               query,
               insert_index: calculatedInsertIndex,
               message_timestamp: timestamp,
+              on_page_context: screenshot,
             },
           }
         )) as SeerExplorerChatResponse;
@@ -240,7 +193,7 @@ export const useSeerExplorer = () => {
         });
       } catch (e: any) {
         setWaitingForResponse(false);
-        setPendingOptimisticBlocks(null);
+        setOptimistic(null);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(orgSlug, currentRunId || undefined),
@@ -248,15 +201,22 @@ export const useSeerExplorer = () => {
         );
       }
     },
-    [queryClient, api, orgSlug, currentRunId, apiData, deletedFromIndex]
+    [
+      queryClient,
+      api,
+      orgSlug,
+      currentRunId,
+      apiData,
+      deletedFromIndex,
+      captureAsciiSnapshot,
+    ]
   );
 
   const startNewSession = useCallback(() => {
     setCurrentRunId(null);
     setWaitingForResponse(false);
     setDeletedFromIndex(null);
-    setOptimisticMessageIds(new Set());
-    setPendingOptimisticBlocks(null);
+    setOptimistic(null);
     if (orgSlug) {
       setApiQueryData<SeerExplorerResponse>(
         queryClient,
@@ -270,89 +230,100 @@ export const useSeerExplorer = () => {
     setDeletedFromIndex(index);
   }, []);
 
-  // Always filter messages based on deletedFromIndex before any other processing
-  let sessionData = apiData?.session ?? null;
+  // Always filter messages based on optimistic state and deletedFromIndex before any other processing
+  const sessionData = apiData?.session ?? null;
 
-  // If we are between queries (e.g., first message just set a new run id and
-  // the new query hasn't returned yet), keep showing optimistic blocks by
-  // constructing an ephemeral processing session.
-  if (!sessionData && pendingOptimisticBlocks) {
-    sessionData = {
-      run_id: currentRunId ?? undefined,
-      blocks: pendingOptimisticBlocks.blocks,
-      status: 'processing',
-      updated_at: new Date().toISOString(),
-    };
-  }
-  if (sessionData?.blocks && deletedFromIndex !== null) {
-    // Separate optimistic messages from real messages
-    const optimisticMessages = sessionData.blocks.filter(msg =>
-      optimisticMessageIds.has(msg.id)
-    );
-    const realMessages = sessionData.blocks.filter(
-      msg => !optimisticMessageIds.has(msg.id)
-    );
+  const filteredSessionData = (() => {
+    const realBlocks = sessionData?.blocks || [];
 
-    // Filter out real messages from the deleted index onwards, but keep optimistic messages
-    const filteredRealMessages = realMessages.slice(0, deletedFromIndex);
+    // Respect rewound/deleted index first for the real blocks view
+    const baseBlocks =
+      deletedFromIndex === null ? realBlocks : realBlocks.slice(0, deletedFromIndex);
 
-    sessionData = {
-      ...sessionData,
-      blocks: [...filteredRealMessages, ...optimisticMessages],
-    };
-  }
+    if (optimistic) {
+      const insert = Math.min(Math.max(optimistic.insertIndex, 0), baseBlocks.length);
 
-  // If we have pending optimistic blocks and the server has not completed processing,
-  // ensure they remain visible even if the next poll hasn't included them yet.
-  if (sessionData) {
-    if (pendingOptimisticBlocks && sessionData.status === 'processing') {
-      const existingIds = new Set(sessionData.blocks.map(b => b.id));
-      const nonExistingOptimistic = pendingOptimisticBlocks.blocks.filter(
-        b => !existingIds.has(b.id)
+      const optimisticUserBlock: Block = {
+        id: optimistic.userBlockId,
+        message: {role: 'user', content: optimistic.userQuery},
+        timestamp: new Date().toISOString(),
+        loading: false,
+      };
+
+      const optimisticThinkingBlock: Block = {
+        id: optimistic.assistantBlockId,
+        message: {role: 'assistant', content: optimistic.assistantContent},
+        timestamp: new Date().toISOString(),
+        loading: true,
+      };
+
+      const visibleBlocks = [
+        ...baseBlocks.slice(0, insert),
+        optimisticUserBlock,
+        optimisticThinkingBlock,
+      ];
+
+      const baseSession: NonNullable<SeerExplorerResponse['session']> = sessionData ?? {
+        run_id: currentRunId ?? undefined,
+        blocks: [],
+        status: 'processing',
+        updated_at: new Date().toISOString(),
+      };
+
+      return {
+        ...baseSession,
+        blocks: visibleBlocks,
+        status: 'processing',
+      } as NonNullable<typeof sessionData>;
+    }
+
+    if (sessionData && deletedFromIndex !== null) {
+      return {
+        ...sessionData,
+        blocks: baseBlocks,
+      } as NonNullable<typeof sessionData>;
+    }
+
+    return sessionData;
+  })();
+
+  // Clear optimistic blocks once the real blocks change in poll results
+  useEffect(() => {
+    if (optimistic) {
+      const currentSignature = JSON.stringify(
+        (apiData?.session?.blocks || []).map(b => [
+          b.id,
+          b.message.role,
+          b.message.content,
+          !!b.loading,
+        ])
       );
-
-      if (nonExistingOptimistic.length > 0) {
-        const safeInsertIndex = Math.min(
-          Math.max(pendingOptimisticBlocks.insertIndex, 0),
-          sessionData.blocks.length
-        );
-        const mergedBlocks = [
-          ...sessionData.blocks.slice(0, safeInsertIndex),
-          ...nonExistingOptimistic,
-          ...sessionData.blocks.slice(safeInsertIndex),
-        ];
-        sessionData = {
-          ...sessionData,
-          blocks: mergedBlocks,
-          status: 'processing',
-        };
+      if (currentSignature !== optimistic.baselineSignature) {
+        setOptimistic(null);
+        // Reveal all real blocks immediately after the server responds
+        setDeletedFromIndex(null);
       }
     }
+  }, [apiData?.session?.blocks, optimistic]);
 
-    // If processing is done, clear any pending optimistic blocks
-    if (pendingOptimisticBlocks && sessionData.status !== 'processing') {
-      setPendingOptimisticBlocks(null);
-    }
-  }
-
-  if (waitingForResponse && sessionData?.blocks) {
+  if (
+    waitingForResponse &&
+    filteredSessionData &&
+    Array.isArray(filteredSessionData.blocks)
+  ) {
     // Stop waiting once we see the response is no longer loading
-    const hasLoadingMessage = sessionData.blocks.some(block => block.loading);
+    const hasLoadingMessage = filteredSessionData.blocks.some(block => block.loading);
 
-    if (!hasLoadingMessage && sessionData.status !== 'processing') {
+    if (!hasLoadingMessage && filteredSessionData.status !== 'processing') {
       setWaitingForResponse(false);
       // Clear deleted index once response is complete
       setDeletedFromIndex(null);
-      // Clear optimistic message IDs since they should now be real messages
-      setOptimisticMessageIds(new Set());
-      // Clear any pending optimistic blocks
-      setPendingOptimisticBlocks(null);
     }
   }
 
   return {
-    sessionData,
-    isPolling: isPolling(sessionData, waitingForResponse),
+    sessionData: filteredSessionData,
+    isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
     sendMessage,
     startNewSession,

@@ -1,3 +1,5 @@
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
@@ -11,8 +13,15 @@ const HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
 } as const;
 
+const NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS = {
+  disableAggregateExtrapolation: '1',
+  samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+} as const;
+
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type SpansRPCQueryExtras = {
+  caseInsensitive?: CaseInsensitive;
+  disableAggregateExtrapolation?: string;
   samplingMode?: SamplingMode;
 };
 
@@ -33,6 +42,7 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 
 interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
+  disableExtrapolation?: boolean;
 }
 
 /**
@@ -57,10 +67,26 @@ export function useProgressiveQuery<
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
+  const disableExtrapolation = queryOptions?.disableExtrapolation || false;
+
+  const nonExtrapolatedMode = disableExtrapolation && queryHookArgs.enabled;
+  const nonExtrapolatedModeRequest = queryHookImplementation({
+    ...queryHookArgs,
+    queryExtras: {
+      ...queryHookArgs.queryExtras,
+      ...NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS,
+    },
+    enabled: nonExtrapolatedMode,
+  });
+
+  const normalMode = !disableExtrapolation && queryHookArgs.enabled;
   const normalSamplingModeRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled,
+    queryExtras: {
+      ...queryHookArgs.queryExtras,
+      ...NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
+    },
+    enabled: normalMode,
   });
 
   let triggerHighAccuracy = false;
@@ -68,14 +94,25 @@ export function useProgressiveQuery<
     triggerHighAccuracy =
       queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result) ?? false;
   }
-  // queryExtras is not passed in here because this request should be unsampled.
+  const highAccuracyMode =
+    !disableExtrapolation && queryHookArgs.enabled && triggerHighAccuracy;
   const highAccuracyRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && triggerHighAccuracy,
+    queryExtras: {
+      ...queryHookArgs.queryExtras,
+      ...HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
+    },
+    enabled: highAccuracyMode,
   });
 
-  if (highAccuracyRequest?.result?.isFetching || highAccuracyRequest?.result?.isFetched) {
+  if (nonExtrapolatedMode) {
+    return {
+      ...nonExtrapolatedModeRequest,
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+    };
+  }
+
+  if (highAccuracyMode) {
     return {
       ...highAccuracyRequest,
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,

@@ -11,8 +11,8 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -88,95 +88,86 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock(),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'wsgi.py',
-              value: 'wsgi.py',
               language: 'python',
               code: getSdkSetupSnippet(params),
             },
           ],
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
           ),
-          language: 'python',
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'wsgi.py',
-              value: 'wsgi.py',
               language: 'python',
               code: getErrorHandlerSnippet(),
             },
           ],
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
-  verify: (params: Params) => [
-    ...(params.isLogsSelected
-      ? [
-          {
-            type: StepType.VERIFY,
-            configurations: [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ],
-          },
-        ]
-      : []),
-  ],
+  verify: () => [],
 };
 
 const logsOnboarding = getPythonLogsOnboarding();
 
+const profilingOnboarding: OnboardingConfig = {
+  install: onboarding.install,
+  configure: onboarding.configure,
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
+  profilingOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
   logsOnboarding,

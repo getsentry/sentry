@@ -17,11 +17,17 @@ from sentry import eventstore, features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_repos_from_project_code_mappings,
+)
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -159,9 +165,11 @@ def _get_serialized_event(
     return serialized_event, event
 
 
-def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> dict[str, Any] | None:
+def _get_trace_tree_for_event(
+    event: Event | GroupEvent, project: Project, timeout: int = 15
+) -> dict[str, Any] | None:
     """
-    Returns the full trace for the given issue event with a 15-second timeout.
+    Returns the full trace for the given issue event with a timeout (default 15 seconds).
     Returns None if the timeout expires or if the trace cannot be fetched.
     """
     trace_id = event.trace_id
@@ -173,8 +181,13 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             organization=project.organization, status=ObjectStatus.ACTIVE
         )
         projects = list(projects_qs)
-        start = event.datetime - timedelta(days=1)
         end = event.datetime + timedelta(days=1)
+        # Web Vital issues are synthetic and don't necessarily occur at the same time as associated traces
+        # Don't restrict time range in these scenarios, ie use 90 day range
+        if event.group and event.group.issue_type.slug == WebVitalsGroup.slug:
+            start = event.datetime - timedelta(days=89)
+        else:
+            start = event.datetime - timedelta(days=1)
 
         snuba_params = SnubaParams(
             start=start,
@@ -213,8 +226,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "org_id": project.organization_id,
             "trace": trace,
         }
-
-    timeout = 15  # seconds
 
     try:
         with sentry_sdk.start_span(op="seer.autofix.get_trace_tree_for_event"):
@@ -319,7 +330,110 @@ def _get_profile_from_trace_tree(
     return None
 
 
-def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
+def _respond_with_error(reason: str, status: int):
+    return Response(
+        {
+            "detail": reason,
+        },
+        status=status,
+    )
+
+
+def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
+    """Get GitHub username for a user by checking ExternalActor mappings."""
+    external_actor: ExternalActor | None = (
+        ExternalActor.objects.filter(
+            user_id=user.id,
+            organization_id=organization_id,
+            provider__in=[
+                ExternalProviders.GITHUB.value,
+                ExternalProviders.GITHUB_ENTERPRISE.value,
+            ],
+        )
+        .order_by("-date_added")
+        .first()
+    )
+
+    if external_actor and external_actor.external_name:
+        username = external_actor.external_name
+        return username[1:] if username.startswith("@") else username
+
+    return None
+
+
+def _call_autofix(
+    *,
+    user: User | AnonymousUser | RpcUser,
+    group: Group,
+    repos: list[dict],
+    serialized_event: dict[str, Any],
+    profile: dict[str, Any] | None,
+    trace_tree: dict[str, Any] | None,
+    logs: dict[str, list[dict]] | None,
+    tags_overview: dict[str, Any] | None,
+    instruction: str | None = None,
+    timeout_secs: int = TIMEOUT_SECONDS,
+    pr_to_comment_on_url: str | None = None,
+    auto_run_source: str | None = None,
+    stopping_point: AutofixStoppingPoint | None = None,
+    github_username: str | None = None,
+):
+    path = "/v1/automation/autofix/start"
+    body = orjson.dumps(
+        {
+            "organization_id": group.organization.id,
+            "project_id": group.project.id,
+            "repos": repos,
+            "issue": {
+                "id": group.id,
+                "title": group.title,
+                "short_id": group.qualified_short_id,
+                "first_seen": group.first_seen.isoformat(),
+                "events": [serialized_event],
+            },
+            "profile": profile,
+            "trace_tree": trace_tree,
+            "logs": logs,
+            "tags_overview": tags_overview,
+            "instruction": instruction,
+            "timeout_secs": timeout_secs,
+            "last_updated": datetime.now().isoformat(),
+            "invoking_user": (
+                {
+                    "id": user.id,
+                    "display_name": user.get_display_name(),
+                    "github_username": github_username,
+                }
+                if not isinstance(user, AnonymousUser)
+                else None
+            ),
+            "options": {
+                "comment_on_pr_with_url": pr_to_comment_on_url,
+                "auto_run_source": auto_run_source,
+                "disable_coding_step": not group.organization.get_option(
+                    "sentry:enable_seer_coding", default=True
+                ),
+                "stopping_point": stopping_point,
+            },
+        },
+        option=orjson.OPT_NON_STR_KEYS,
+    )
+
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(body),
+        },
+    )
+
+    response.raise_for_status()
+
+    return response.json().get("run_id")
+
+
+def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     """
     Get high-level overview of all tags for an issue.
     Returns aggregated tag data with percentages for all tags.
@@ -422,83 +536,6 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     }
 
 
-def _respond_with_error(reason: str, status: int):
-    return Response(
-        {
-            "detail": reason,
-        },
-        status=status,
-    )
-
-
-def _call_autofix(
-    *,
-    user: User | AnonymousUser | RpcUser,
-    group: Group,
-    repos: list[dict],
-    serialized_event: dict[str, Any],
-    profile: dict[str, Any] | None,
-    trace_tree: dict[str, Any] | None,
-    logs: dict[str, list[dict]] | None,
-    tags_overview: dict[str, Any] | None,
-    instruction: str | None = None,
-    timeout_secs: int = TIMEOUT_SECONDS,
-    pr_to_comment_on_url: str | None = None,
-    auto_run_source: str | None = None,
-):
-    path = "/v1/automation/autofix/start"
-    body = orjson.dumps(
-        {
-            "organization_id": group.organization.id,
-            "project_id": group.project.id,
-            "repos": repos,
-            "issue": {
-                "id": group.id,
-                "title": group.title,
-                "short_id": group.qualified_short_id,
-                "first_seen": group.first_seen.isoformat(),
-                "events": [serialized_event],
-            },
-            "profile": profile,
-            "trace_tree": trace_tree,
-            "logs": logs,
-            "tags_overview": tags_overview,
-            "instruction": instruction,
-            "timeout_secs": timeout_secs,
-            "last_updated": datetime.now().isoformat(),
-            "invoking_user": (
-                {
-                    "id": user.id,
-                    "display_name": user.get_display_name(),
-                }
-                if not isinstance(user, AnonymousUser)
-                else None
-            ),
-            "options": {
-                "comment_on_pr_with_url": pr_to_comment_on_url,
-                "auto_run_source": auto_run_source,
-                "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=True
-                ),
-            },
-        },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
-
-    response.raise_for_status()
-
-    return response.json().get("run_id")
-
-
 def trigger_autofix(
     *,
     group: Group,
@@ -507,6 +544,7 @@ def trigger_autofix(
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
+    stopping_point: AutofixStoppingPoint | None = None,
 ):
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return _respond_with_error("AI Autofix is not enabled for this project.", 403)
@@ -573,10 +611,15 @@ def trigger_autofix(
 
     # get all tags overview for this issue
     try:
-        tags_overview = _get_all_tags_overview(group)
+        tags_overview = get_all_tags_overview(group)
     except Exception:
         logger.exception("Failed to get tags overview")
         tags_overview = None
+
+    # get github username for user
+    github_username = None
+    if not isinstance(user, AnonymousUser):
+        github_username = _get_github_username_for_user(user, group.organization.id)
 
     try:
         run_id = _call_autofix(
@@ -592,6 +635,8 @@ def trigger_autofix(
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url=pr_to_comment_on_url,
             auto_run_source=auto_run_source,
+            stopping_point=stopping_point,
+            github_username=github_username,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")
@@ -607,10 +652,12 @@ def trigger_autofix(
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # log billing event for seer autofix
-    quotas.backend.record_seer_run(
-        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-    )
+    # seer runs are free for web vitals issues during testing phase
+    if group.issue_type != WebVitalsGroup:
+        # log billing event for seer autofix
+        quotas.backend.record_seer_run(
+            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+        )
 
     return Response(
         {

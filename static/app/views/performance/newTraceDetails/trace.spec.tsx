@@ -845,7 +845,6 @@ function printVirtualizedList(container: HTMLElement) {
 }
 
 // @ts-expect-error ignore this line
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
   const stdout: string[] = [];
@@ -892,19 +891,16 @@ describe('trace view', () => {
     ProjectsStore.loadInitialData([project]);
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
     mockUseProjects.mockReturnValue({
       projects: [
         {
@@ -1113,6 +1109,7 @@ describe('trace view', () => {
     });
 
     it('scrolls to missing instrumentation node', async () => {
+      mockTracePreferences({missing_instrumentation: true});
       mockQueryString('?node=ms-queueprocess0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();

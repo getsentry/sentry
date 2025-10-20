@@ -111,7 +111,7 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
             issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
             group_cache[issue_id] = issue
         return SerializedIssue(
-            event_id=occurrence.id,
+            event_id=occurrence.event_id,
             project_id=occurrence.project_id,
             project_slug=span["project.slug"],
             start_timestamp=span["precise.start_ts"],
@@ -448,6 +448,7 @@ def query_trace_data(
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
+    referrer: Referrer = Referrer.API_TRACE_VIEW_GET_EVENTS,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -470,7 +471,7 @@ def query_trace_data(
             Spans.run_trace_query,
             trace_id=trace_id,
             params=snuba_params,
-            referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            referrer=referrer.value,
             config=SearchResolverConfig(),
             additional_attributes=additional_attributes,
         )

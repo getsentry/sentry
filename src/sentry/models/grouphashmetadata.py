@@ -25,7 +25,9 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 # 6 -> store client fingerprint as JSON rather than string (2025-02-07)
 # 7 -> add platform (2025-02-11)
 # 8 -> add schema version (2025-02-24)
-GROUPHASH_METADATA_SCHEMA_VERSION = "8"
+# 9 -> add event id (2025-09-29)
+# 10 -> add date updated (2025-10-01)
+GROUPHASH_METADATA_SCHEMA_VERSION = "10"
 
 
 # The overall grouping method used
@@ -76,6 +78,8 @@ class GroupHashMetadata(Model):
     # When the grouphash was created. Will be null for grouphashes created before we started
     # collecting metadata.
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    # The date the metadata was last updated.
+    date_updated = models.DateTimeField(default=timezone.now, null=True)
     # The version of the metadata schema which produced the data. Useful for backfilling when we add
     # to or change the data we collect and want to update existing records.
     schema_version = models.CharField(null=True)
@@ -83,6 +87,8 @@ class GroupHashMetadata(Model):
     # platform, as event platforms are normalized to a handful of known values, whereas project
     # platforms are all over the place.
     platform = models.CharField(null=True)
+    # The event ID of the event which generated the metadata.
+    event_id = models.CharField(max_length=32, null=True)
 
     # HASHING
 
@@ -125,7 +131,8 @@ class GroupHashMetadata(Model):
     def hash(self) -> str:
         return self.grouphash.hash
 
-    __repr__ = sane_repr("grouphash_id", "group_id", "hash")
+    __repr__ = sane_repr("grouphash_id", "group_id", "hash", "seer_matched_grouphash")
+    __str__ = __repr__
 
     def get_best_guess_schema_version(self) -> str:
         """

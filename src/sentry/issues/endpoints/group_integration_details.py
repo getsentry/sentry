@@ -28,9 +28,9 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
@@ -310,7 +310,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
             try:
                 data = installation.create_issue(request.data)
-            except IntegrationInstallationConfigurationError as exc:
+            except IntegrationConfigurationError as exc:
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
