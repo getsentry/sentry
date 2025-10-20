@@ -169,7 +169,7 @@ def get_all_alert_metric_specs(
     project: Project,
     enabled_features: set[str],
     prefilling: bool,
-    prefilling_for_deprecation: bool = False,
+    prefilling_for_deprecation: bool,
 ) -> list[HashedMetricSpec]:
     if not (
         "organizations:on-demand-metrics-extraction" in enabled_features
@@ -225,7 +225,7 @@ def get_default_version_alert_metric_specs(
     project: Project,
     enabled_features: set[str],
     prefilling: bool,
-    prefilling_for_deprecation: bool = False,
+    prefilling_for_deprecation: bool,
 ) -> list[HashedMetricSpec]:
     specs = get_all_alert_metric_specs(
         project, enabled_features, prefilling, prefilling_for_deprecation=prefilling_for_deprecation
@@ -240,7 +240,7 @@ def _get_alert_metric_specs(
     project: Project,
     enabled_features: set[str],
     prefilling: bool,
-    prefilling_for_deprecation: bool = False,
+    prefilling_for_deprecation: bool,
 ) -> list[HashedMetricSpec]:
     specs = get_all_alert_metric_specs(
         project, enabled_features, prefilling, prefilling_for_deprecation=prefilling_for_deprecation
@@ -489,7 +489,7 @@ def _convert_snuba_query_to_metrics(
     project: Project,
     snuba_query: SnubaQuery,
     prefilling: bool,
-    prefilling_for_deprecation: bool = False,
+    prefilling_for_deprecation: bool,
 ) -> Sequence[HashedMetricSpec] | None:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
@@ -527,7 +527,13 @@ def convert_widget_query_to_metric(
 
     for aggregate in aggregates:
         metrics_specs += _generate_metric_specs(
-            aggregate, widget_query, project, prefilling, groupbys, organization_bulk_query_cache
+            aggregate,
+            widget_query,
+            project,
+            prefilling,
+            prefilling_for_deprecation=False,
+            groupbys=groupbys,
+            organization_bulk_query_cache=organization_bulk_query_cache,
         )
 
     return metrics_specs
@@ -538,6 +544,7 @@ def _generate_metric_specs(
     widget_query: DashboardWidgetQuery,
     project: Project,
     prefilling: bool,
+    prefilling_for_deprecation: bool,
     groupbys: Sequence[str] | None = None,
     organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
 ) -> list[HashedMetricSpec]:
@@ -552,6 +559,7 @@ def _generate_metric_specs(
         widget_query.conditions,
         None,
         prefilling,
+        prefilling_for_deprecation,
         groupbys=groupbys,
         spec_type=MetricSpecType.DYNAMIC_QUERY,
         organization_bulk_query_cache=organization_bulk_query_cache,
@@ -788,10 +796,10 @@ def _convert_aggregate_and_query_to_metrics(
     query: str,
     environment: str | None,
     prefilling: bool,
+    prefilling_for_deprecation: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Sequence[str] | None = None,
     organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
-    prefilling_for_deprecation: bool = False,
 ) -> Sequence[HashedMetricSpec] | None:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
