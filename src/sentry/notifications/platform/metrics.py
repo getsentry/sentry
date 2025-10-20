@@ -11,6 +11,7 @@ class NotificationInteractionType(StrEnum):
     """Actions involved in notifications"""
 
     NOTIFY_TARGET_SYNC = "notify_target_sync"
+    NOTIFY_TARGET_ASYNC = "notify_target_async"
 
 
 @dataclass

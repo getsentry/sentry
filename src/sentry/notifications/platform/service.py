@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import Final
+from typing import Any, Final
 
 import sentry_sdk
 
@@ -13,6 +13,7 @@ from sentry.notifications.platform.metrics import (
 )
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
+from sentry.notifications.platform.target import NotificationTargetDto
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -21,6 +22,9 @@ from sentry.notifications.platform.types import (
     NotificationTemplate,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import notifications_tasks
 from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
@@ -117,7 +121,11 @@ class NotificationService[T: NotificationData]:
         targets = self._get_targets(strategy=strategy, targets=targets)
 
         for target in targets:
-            notify_target_async(target=target)
+            serialized_target = NotificationTargetDto(target=target)
+            notify_target_async.delay(
+                data=self.data,
+                nested_target=serialized_target.to_dict(),
+            )
 
     def notify_sync(
         self,
@@ -168,10 +176,47 @@ class NotificationService[T: NotificationData]:
         return targets
 
 
-def notify_target_async(*, target: NotificationTarget) -> None:
+@instrumented_task(
+    name="src.sentry.notifications.platform.service.notify_target_async",
+    namespace=notifications_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.REGION,
+)
+def notify_target_async[T: NotificationData](
+    *,
+    data: T,
+    nested_target: dict[str, Any],
+) -> None:
     """
     Send a notification directly to a target asynchronously.
     NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
             using this method directly to prevent unwanted noise associated with your notifications.
     """
-    raise NotImplementedError
+    lifecycle_metric = NotificationEventLifecycleMetric(
+        interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
+        notification_source=data.source,
+    )
+
+    with lifecycle_metric.capture() as lifecycle:
+        # Step 1: Deserialize the target from nested structure
+        serialized_target = NotificationTargetDto.from_dict(nested_target)
+        target = serialized_target.target
+        lifecycle_metric.notification_provider = target.provider_key
+
+        # Step 2: Get the provider, and validate the target against it
+        provider = provider_registry.get(target.provider_key)
+        provider.validate_target(target=target)
+
+        # Step 3: Render the template
+        template_cls = template_registry.get(data.source)
+        template = template_cls()
+        lifecycle_metric.notification_category = template.category
+        renderable = NotificationService.render_template(
+            data=data, template=template, provider=provider
+        )
+
+        # Step 4: Send the notification
+        try:
+            provider.send(target=target, renderable=renderable)
+        except Exception as e:
+            lifecycle.record_failure(failure_reason=e, create_issue=False)
