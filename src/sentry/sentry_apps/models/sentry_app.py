@@ -220,7 +220,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,
                 shard_identifier=self.id,
-                object_identifier=self.id,  # TODO: use slug instead of id
+                object_identifier=self.slug,
                 category=OutboxCategory.SENTRY_APP_DELETE,
                 region_name=region_name,
             )
