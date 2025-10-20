@@ -223,6 +223,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_DELETE,
                 region_name=region_name,
+                payload={"slug": self.slug},
             )
             for region_name in find_all_region_names()
         ]

@@ -66,3 +66,15 @@ class DatabaseBackedActionService(ActionService):
             config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
             config__target_identifier=str(sentry_app_id),
         ).update(status=status)
+
+    def update_action_status_for_webhook_via_sentry_app_slug(
+        self,
+        *,
+        region_name: str,
+        status: int,
+        sentry_app_slug: str,
+    ) -> None:
+        Action.objects.filter(
+            type=Action.Type.WEBHOOK,
+            config__target_identifier=sentry_app_slug,
+        ).update(status=status)

@@ -314,3 +314,20 @@ class TestActionService(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED
+
+    def test_update_action_status_for_webhook_via_sentry_app_slug(self) -> None:
+        action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={
+                "target_identifier": self.sentry_app.slug,
+            },
+        )
+        action_service.update_action_status_for_webhook_via_sentry_app_slug(
+            region_name="us",
+            sentry_app_slug=self.sentry_app.slug,
+            status=ObjectStatus.DISABLED,
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            action.refresh_from_db()
+            assert action.status == ObjectStatus.DISABLED
