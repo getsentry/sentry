@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
+import sentry_sdk
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
@@ -52,6 +53,7 @@ def ignore_unpublished_app_errors(
     return wrapper
 
 
+@sentry_sdk.trace(name="send_and_save_webhook_request")
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,

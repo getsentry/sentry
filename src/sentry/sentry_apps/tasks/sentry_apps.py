@@ -455,6 +455,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     silo_mode=SiloMode.REGION,
 )
 @retry_decorator
+@sentry_sdk.trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
