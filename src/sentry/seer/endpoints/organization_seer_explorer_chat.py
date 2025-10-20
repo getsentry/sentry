@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import orjson
 import requests
@@ -104,7 +105,7 @@ def _call_seer_explorer_chat(
 ):
     """Call Seer explorer chat endpoint."""
     path = "/v1/automation/explorer/chat"
-    payload = {
+    payload: dict[str, Any] = {
         "organization_id": organization.id,
         "run_id": run_id,
         "query": query,
