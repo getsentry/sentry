@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,6 +16,7 @@ import type {PreventAIOrg} from 'sentry/types/prevent';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar, {
   ALL_REPOS_VALUE,
+  type ManageReposToolbarRef,
 } from 'sentry/views/prevent/preventAI/manageReposToolbar';
 
 import {FeatureOverview} from './onboarding';
@@ -23,6 +24,7 @@ import {FeatureOverview} from './onboarding';
 function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const toolbarRef = useRef<ManageReposToolbarRef>(null);
 
   const [selectedOrgName, setSelectedOrgName] = useState(
     () => installedOrgs[0]?.name ?? ''
@@ -64,10 +66,15 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const isOrgSelected = !!selectedOrg;
   const isRepoSelected = selectedRepoName === ALL_REPOS_VALUE || !!selectedRepo;
 
+  const handleFocusRepoSelector = useCallback(() => {
+    toolbarRef.current?.focusRepoSelector();
+  }, []);
+
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
       <Flex align="center" justify="between">
         <ManageReposToolbar
+          ref={toolbarRef}
           installedOrgs={installedOrgs}
           selectedOrg={selectedOrgName}
           selectedRepo={selectedRepoName}
@@ -148,6 +155,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         repoName={selectedRepo?.name ?? ''}
         allRepos={selectedOrg?.repos ?? []}
         isEditingOrgDefaults={selectedRepoName === ALL_REPOS_VALUE}
+        onFocusRepoSelector={handleFocusRepoSelector}
       />
     </Flex>
   );

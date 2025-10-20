@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -20,6 +21,7 @@ interface ManageReposPanelProps {
   collapsed: boolean;
   isEditingOrgDefaults: boolean;
   onClose: () => void;
+  onFocusRepoSelector: () => void;
   orgName: string;
   repoName: string;
   allRepos?: Array<{id: string; name: string}>;
@@ -57,6 +59,7 @@ const sensitivityOptions: SensitivityOption[] = [
 function ManageReposPanel({
   collapsed,
   onClose,
+  onFocusRepoSelector,
   orgName,
   repoName,
   allRepos = [],
@@ -128,13 +131,14 @@ function ManageReposPanel({
                 <Heading as="h3">{t('AI Code Review Repository Settings')}</Heading>
                 <Text variant="muted" size="sm">
                   {tct(
-                    'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',
+                    'These settings apply to the selected [repoLink] repository. To switch, [switchLink:use the repository selector] in the page header.',
                     {
                       repoLink: (
                         <ExternalLink href={`https://github.com/${orgName}/${repoName}`}>
                           {repoName}
                         </ExternalLink>
                       ),
+                      switchLink: <TextButton onClick={onFocusRepoSelector} />,
                     }
                   )}
                 </Text>
@@ -478,5 +482,15 @@ export function getRepoConfig(
     repoConfig: orgConfig.org_defaults,
   };
 }
+
+const TextButton = styled('button')`
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+`;
 
 export default ManageReposPanel;
