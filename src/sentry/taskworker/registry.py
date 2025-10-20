@@ -15,9 +15,11 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 from sentry_sdk.consts import OP, SPANDATA
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.silo.base import SiloMode
 from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
+from sentry.taskworker.silolimiter import TaskSiloLimit
 from sentry.taskworker.task import P, R, Task
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -89,6 +91,7 @@ class TaskNamespace:
         at_most_once: bool = False,
         wait_for_delivery: bool = False,
         compression_type: CompressionType = CompressionType.PLAINTEXT,
+        silo_mode: SiloMode | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """
         Register a task.
@@ -135,6 +138,9 @@ class TaskNamespace:
                 wait_for_delivery=wait_for_delivery,
                 compression_type=compression_type,
             )
+            if silo_mode:
+                silo_limiter = TaskSiloLimit(silo_mode)
+                task = silo_limiter(task)
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique
             self._registered_tasks[name] = task

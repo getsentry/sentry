@@ -3,13 +3,12 @@ from __future__ import annotations
 import datetime
 import functools
 import logging
-from collections.abc import Callable, Iterable
-from typing import Any, TypeVar, cast
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import sentry_sdk
 from django.db.models import Model
 
-from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryError, retry_task
@@ -21,45 +20,6 @@ from sentry.utils import metrics
 ModelT = TypeVar("ModelT", bound=Model)
 
 logger = logging.getLogger(__name__)
-
-
-class TaskSiloLimit(SiloLimit):
-    """
-    Silo limiter for tasks
-
-    We don't want tasks to be spawned in the incorrect silo.
-    We can't reliably cause tasks to fail as not all tasks use
-    the ORM (which also has silo bound safety).
-    """
-
-    def handle_when_unavailable(
-        self,
-        original_method: Callable[P, R],
-        current_mode: SiloMode,
-        available_modes: Iterable[SiloMode],
-    ) -> Callable[P, R]:
-        def handle(*args: P.args, **kwargs: P.kwargs) -> Any:
-            name = original_method.__name__
-            message = f"Cannot call or spawn {name} in {current_mode},"
-            raise self.AvailabilityError(message)
-
-        return handle
-
-    def __call__(self, decorated_task: Task[P, R]) -> Task[P, R]:
-        # Replace the sentry.taskworker.Task interface used to schedule tasks.
-        replacements = {"delay", "apply_async"}
-        for attr_name in replacements:
-            task_attr = getattr(decorated_task, attr_name)
-            if callable(task_attr):
-                limited_attr = self.create_override(task_attr)
-                setattr(decorated_task, attr_name, limited_attr)
-
-        # Cast as the super class type is just Callable, but we know here
-        # we have Task instances.
-        limited_func = cast(Task[P, R], self.create_override(decorated_task))
-        if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name
-        return limited_func
 
 
 def load_model_from_db(
@@ -106,11 +66,12 @@ def instrumented_task(
             at_most_once=at_most_once,
             wait_for_delivery=wait_for_delivery,
             compression_type=compression_type,
+            silo_mode=silo_mode,
         )(func)
         if alias or alias_namespace:
             target_alias = alias if alias else name
             target_alias_namespace = alias_namespace if alias_namespace else namespace
-            alias_task = target_alias_namespace.register(
+            target_alias_namespace.register(
                 name=target_alias,
                 retry=retry,
                 expires=expires,
@@ -118,17 +79,8 @@ def instrumented_task(
                 at_most_once=at_most_once,
                 wait_for_delivery=wait_for_delivery,
                 compression_type=compression_type,
+                silo_mode=silo_mode,
             )(func)
-            if silo_mode:
-                silo_limiter = TaskSiloLimit(silo_mode)
-                alias_task = silo_limiter(alias_task)
-            target_alias_namespace.set(target_alias, alias_task)
-
-        if silo_mode:
-            silo_limiter = TaskSiloLimit(silo_mode)
-            task = silo_limiter(task)
-        namespace.set(name, task)
-
         return task
 
     return wrapped
