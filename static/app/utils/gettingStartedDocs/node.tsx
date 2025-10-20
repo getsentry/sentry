@@ -250,16 +250,19 @@ export const getNodeProfilingOnboarding = ({
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          language: 'javascript',
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Javascript',
               value: 'javascript',
@@ -323,20 +326,27 @@ Sentry.profiler.stopProfiler();
               }`,
             },
           ],
-          additionalInfo:
-            profilingLifecycle === 'trace'
-              ? tct(
-                  'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
-                    ),
-                  }
-                )
-              : '',
         },
         {
-          description: tct(
+          type: 'conditional',
+          condition: profilingLifecycle === 'trace',
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
+                  ),
+                }
+              ),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
@@ -351,9 +361,14 @@ Sentry.profiler.stopProfiler();
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 });
@@ -736,13 +751,16 @@ export const getNodeMcpOnboarding = ({
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
-        code: <code />,
-      }),
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          code: [
+          type: 'text',
+          text: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -759,13 +777,17 @@ Sentry.init({
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
             {
               code: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -776,8 +798,7 @@ const { McpServer } = require("@modelcontextprotocol/sdk");
 const server = Sentry.wrapMcpServerWithSentry(new McpServer({
     name: "my-mcp-server",
     version: "1.0.0",
-}));
-`,
+}));`,
             },
           ],
         },
