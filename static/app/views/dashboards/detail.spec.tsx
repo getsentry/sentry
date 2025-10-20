@@ -149,6 +149,10 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/measurements-meta/',
+        body: [],
+      });
     });
 
     afterEach(() => {
