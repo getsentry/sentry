@@ -98,6 +98,7 @@ describe('Flamegraph', () => {
     act(() => ProjectsStore.loadInitialData([project]));
     setWindowLocation('http://localhost/');
   });
+
   it('renders a missing profile', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
@@ -111,7 +112,6 @@ describe('Flamegraph', () => {
     });
 
     render(<ProfilesAndTransactionProvider />, {
-      organization: initializeOrg().organization,
       initialRouterConfig: {
         location: {
           pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
@@ -151,7 +151,6 @@ describe('Flamegraph', () => {
     });
 
     render(<ProfilesAndTransactionProvider />, {
-      organization: initializeOrg().organization,
       initialRouterConfig: {
         location: {
           pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
@@ -196,7 +195,6 @@ describe('Flamegraph', () => {
     );
 
     render(<ProfilesAndTransactionProvider />, {
-      organization: initializeOrg().organization,
       initialRouterConfig: {
         location: {
           pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
@@ -240,7 +238,6 @@ describe('Flamegraph', () => {
     setWindowLocation('http://localhost/?query=profiling+transaction');
 
     render(<ProfilesAndTransactionProvider />, {
-      organization: initializeOrg().organization,
       initialRouterConfig: {
         location: {
           pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
