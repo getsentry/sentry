@@ -330,11 +330,13 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
         mock_metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.process_update.start"),
                 call(
                     "incidents.alert_rules.threshold.alert",
                     tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call("incidents.alert_rules.process_update.start"),
                 call(
                     "incidents.alert_rules.threshold.resolve",
                     tags={"detection_type": "static"},
