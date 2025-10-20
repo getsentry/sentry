@@ -1486,8 +1486,16 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
                     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
+                    tot = 0
                     for payload in build_chunk_functions_eap_trace_items(chunk, eap_functions):
                         eap_producer.produce(topic, payload)
+                        tot += 1
+                    metrics.incr(
+                        "process_profile.eap_functions_metrics.ingested.count",
+                        tot,
+                        tags={"type": "chunk", "platform": profile["platform"]},
+                        sample_rate=1.0,
+                    )
 
             return True
         except Exception as e:
