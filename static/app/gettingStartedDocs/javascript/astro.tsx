@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   ContentBlock,
   Docs,
@@ -373,26 +373,33 @@ const replayOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       title: 'Configure Session Replay (Optional)',
-      description: tct(
-        'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+      collapsible: true,
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/" />
+          type: 'text',
+          text: tct(
+            'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Configure the Sentry integration in your [code:astro.config.mjs] file:',
             {
               code: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              label: 'astro.config.mjs',
-              value: 'javascript',
+              label: 'JavaScript',
               language: 'javascript',
               filename: 'astro.config.mjs',
               code: `
@@ -408,10 +415,13 @@ export default defineConfig({
     }),
   ],
 });
-              `,
+                `,
             },
           ],
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'Set sample rates and replay options in your [code:sentry.client.config.js] file:',
             {
               code: <code />,
@@ -419,10 +429,10 @@ export default defineConfig({
           ),
         },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'sentry.client.config.js',
               code: getReplaySDKSetupSnippet({
@@ -435,7 +445,10 @@ import * as Sentry from "@sentry/astro";`,
               }),
             },
           ],
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             `The [code:sentry.client.config.js] file allows you to configure client-side SDK options including replay settings. Learn more about manual SDK initialization [link:here].`,
             {
               code: <code />,
@@ -445,9 +458,8 @@ import * as Sentry from "@sentry/astro";`,
             }
           ),
         },
+        tracePropagationBlock,
       ],
-      additionalInfo: <TracePropagationMessage />,
-      collapsible: true,
     },
   ],
   verify: getReplayVerifyStep(),
@@ -475,18 +487,21 @@ const feedbackOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/astro";`,
@@ -496,10 +511,13 @@ const feedbackOnboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          type: 'custom',
+          content: crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#crash-report-modal',
+          }),
+        },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#crash-report-modal',
-      }),
     },
   ],
   verify: () => [],
@@ -512,12 +530,17 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        widgetCalloutBlock({
+          link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#user-feedback-widget',
+        }),
+      ],
     },
   ],
   verify: () => [],
