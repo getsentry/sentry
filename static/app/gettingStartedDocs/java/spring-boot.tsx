@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
@@ -201,20 +199,28 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
               link: <Link to="/settings/auth-tokens/" />,
             }
           ),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
-        params.platformOptions.packageManager === PackageManager.GRADLE
-          ? {
-              description: tct(
+        {
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.GRADLE,
+          content: [
+            {
+              type: 'text',
+              text: tct(
                 'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
                 {
                   code: <code />,
@@ -223,11 +229,21 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   ),
                 }
               ),
+            },
+            {
+              type: 'code',
               language: 'groovy',
               code: getGradleInstallSnippet(params),
-            }
-          : {
-              description: tct(
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.MAVEN,
+          content: [
+            {
+              type: 'text',
+              text: tct(
                 'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
                 {
                   code: <code />,
@@ -236,65 +252,77 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   ),
                 }
               ),
+            },
+            {
+              type: 'code',
               language: 'xml',
               code: getMavenInstallSnippet(params),
             },
-        ...(params.platformOptions.opentelemetry === YesNo.YES
-          ? [
-              {
-                description: tct(
-                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
-                  {
-                    code: <code />,
-                    linkMC: (
-                      <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
-                    ),
-                    linkGH: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
-                    ),
-                  }
-                ),
-                language: 'bash',
-                code: getOpenTelemetryRunSnippet(params),
-              },
-            ]
-          : []),
-      ],
-      additionalInfo: (
-        <p>
-          {tct(
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.opentelemetry === YesNo.YES,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                {
+                  code: <code />,
+                  linkMC: (
+                    <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                  ),
+                  linkGH: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'bash',
+              code: getOpenTelemetryRunSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
             'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
               ),
             }
-          )}
-        </p>
-      ),
+          ),
+        },
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Properties',
-              value: 'properties',
               language: 'properties',
               code: getConfigurationPropertiesSnippet(params),
             },
             {
               label: 'YAML',
-              value: 'yaml',
               language: 'properties',
               code: getConfigurationYamlSnippet(params),
             },
@@ -306,41 +334,41 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Then create an intentional error, so you can test that everything is working using either Java or Kotlin:'
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            'Then create an intentional error, so you can test that everything is working using either Java or Kotlin:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Java',
-              value: 'java',
               language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
               code: getVerifyJavaSnippet(),
             },
             {
               label: 'Kotlin',
-              value: 'kotlin',
               language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
               code: getVerifyKotlinSnippet(),
             },
           ],
         },
+        {
+          type: 'text',
+          text: t(
+            "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            "If you're an existing user and have disabled alerts, you won't receive this email."
+          ),
+        },
       ],
-      additionalInfo: (
-        <Fragment>
-          <p>
-            {t(
-              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-            )}
-          </p>
-          <p>
-            {t(
-              "If you're an existing user and have disabled alerts, you won't receive this email."
-            )}
-          </p>
-        </Fragment>
-      ),
     },
   ],
   nextSteps: () => [
