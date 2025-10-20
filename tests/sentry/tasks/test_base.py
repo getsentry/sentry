@@ -276,14 +276,10 @@ def test_retry_raise_if_no_retries_false(mock_current_task):
 
 def test_instrumented_task_with_alias_same_namespace() -> None:
     assert test_tasks.contains("tests.tasks.test_base.primary_task")
-    task_result = task_with_alias("test")
-    assert task_result == "Task with alias test"
+    assert task_with_alias("test") == "Task with alias test"
 
     assert test_tasks.contains("tests.tasks.test_base.alias_task")
-    alias_task_result = test_tasks.get("tests.tasks.test_base.alias_task")("test")
-    assert alias_task_result == "Task with alias test"
-
-    assert task_result == alias_task_result
+    assert test_tasks.get("tests.tasks.test_base.alias_task")("test") == "Task with alias test"
 
 
 def test_instrumented_task_with_alias_different_namespaces() -> None:
@@ -292,10 +288,10 @@ def test_instrumented_task_with_alias_different_namespaces() -> None:
     assert task_result == "Task with alias and alias namespace test"
 
     assert exampletasks.contains("tests.tasks.test_base.alias_task_alias_namespace")
-    alias_task_result = exampletasks.get("tests.tasks.test_base.alias_task_alias_namespace")("test")
-    assert alias_task_result == "Task with alias and alias namespace test"
-
-    assert task_result == alias_task_result
+    assert (
+        exampletasks.get("tests.tasks.test_base.alias_task_alias_namespace")("test")
+        == "Task with alias and alias namespace test"
+    )
 
 
 @override_settings(SILO_MODE=SiloMode.REGION)
@@ -304,7 +300,10 @@ def test_instrumented_task_with_alias_silo_limit_call_region() -> None:
     assert region_task_with_alias("test") == "Region task with alias test"
 
     assert test_tasks.contains("tests.tasks.test_base.region_alias_task")
-    assert region_task_with_alias("test") == "Region task with alias test"
+    assert (
+        test_tasks.get("tests.tasks.test_base.region_alias_task")("test")
+        == "Region task with alias test"
+    )
 
     assert test_tasks.contains("tests.tasks.test_base.control_primary_task")
     with pytest.raises(SiloLimit.AvailabilityError):
