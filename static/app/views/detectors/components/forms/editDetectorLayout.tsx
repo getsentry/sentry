@@ -67,11 +67,6 @@ export function EditDetectorLayout<
         <div>
           <EditLayout.Actions>
             <MonitorFeedbackButton />
-            <DisableDetectorAction detector={detector} />
-            <DeleteDetectorAction detector={detector} />
-            <Button type="submit" priority="primary" size="sm">
-              {t('Save')}
-            </Button>
           </EditLayout.Actions>
         </div>
 
@@ -82,6 +77,14 @@ export function EditDetectorLayout<
       </EditLayout.Header>
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+
+      <EditLayout.Footer maxWidth={maxWidth}>
+        <DisableDetectorAction detector={detector} />
+        <DeleteDetectorAction detector={detector} />
+        <Button type="submit" priority="primary" size="sm">
+          {t('Save')}
+        </Button>
+      </EditLayout.Footer>
     </EditLayout>
   );
 }
