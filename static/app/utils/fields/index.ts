@@ -2809,10 +2809,9 @@ export enum ReplayClickFieldKey {
   CLICK_TEXT_CONTENT = 'click.textContent',
   CLICK_TITLE = 'click.title',
   CLICK_COMPONENT_NAME = 'click.component_name',
-  CLICK_TEST = 'click.test',
 }
 
-export enum ReplayTapFieldKey {
+enum ReplayTapFieldKey {
   TAP_MESSAGE = 'tap.message',
   TAP_VIEW_ID = 'tap.view_id',
   TAP_VIEW_CLASS = 'tap.view_class',
@@ -3048,7 +3047,6 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_TITLE,
   ReplayClickFieldKey.CLICK_TESTID,
   ReplayClickFieldKey.CLICK_COMPONENT_NAME,
-  ReplayClickFieldKey.CLICK_TEST,
 ];
 
 export const REPLAY_TAP_FIELDS = [
@@ -3127,11 +3125,6 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
   [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
     desc: t('the name of the frontend component that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_TEST]: {
-    desc: t('im testing'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
