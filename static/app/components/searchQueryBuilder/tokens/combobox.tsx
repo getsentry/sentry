@@ -42,6 +42,7 @@ import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -182,6 +183,10 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
+  const organization = useOrganization();
+  const hasAskSeerConsentFlowChanges = organization.features.includes(
+    'ask-seer-consent-flow-update'
+  );
   const {gaveSeerConsent} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     const options = getHiddenOptions(
@@ -191,7 +196,8 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     );
 
     if (showAskSeerOption) {
-      if (gaveSeerConsent) {
+      // always show if feature is enabled
+      if (gaveSeerConsent || hasAskSeerConsentFlowChanges) {
         options.add(ASK_SEER_ITEM_KEY);
       } else {
         options.add(ASK_SEER_CONSENT_ITEM_KEY);
@@ -202,6 +208,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   }, [
     filterValue,
     gaveSeerConsent,
+    hasAskSeerConsentFlowChanges,
     items,
     maxOptions,
     shouldFilterResults,
