@@ -14,6 +14,7 @@ class SegmentDataForwarderTest(TestCase):
         super().setUp()
         self.forwarder = SegmentDataForwarder()
         self.data_forwarder = DataForwarder.objects.create(
+            organization=self.organization,
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "secret-api-key"},
             is_enabled=True,

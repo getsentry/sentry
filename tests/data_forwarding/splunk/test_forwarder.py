@@ -15,6 +15,7 @@ class SplunkDataForwarderTest(TestCase):
         super().setUp()
         self.forwarder = SplunkDataForwarder()
         self.data_forwarder = DataForwarder.objects.create(
+            organization=self.organization,
             provider=DataForwarderProviderSlug.SPLUNK,
             config={
                 "instance_url": "https://splunk.example.com:8088",

@@ -15,6 +15,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         super().setUp()
         self.forwarder = AmazonSQSDataForwarder()
         self.data_forwarder = DataForwarder.objects.create(
+            organization=self.organization,
             provider=DataForwarderProviderSlug.SQS,
             config={
                 "queue_url": "https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
