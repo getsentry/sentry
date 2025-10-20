@@ -562,13 +562,13 @@ function useTrackView({
     autofix_status: 'none',
     // Will be updated in GroupSummary if AI summary is available
     has_summary: false,
-    // Will be updated in SeerDrawer if autofix root cause is available
+    // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
     has_root_cause: false,
-    // Will be updated in SeerDrawer if autofix solution is available
+    // Will be updated in GroupSummaryWithAutofix if autofix solution is available
     has_solution: false,
-    // Will be updated in SeerDrawer if autofix code changes are available
+    // Will be updated in GroupSummaryWithAutofix if autofix code changes are available
     has_coded_solution: false,
-    // Will be updated in SeerDrawer if autofix PR is available
+    // Will be updated in GroupSummaryWithAutofix if autofix PR is available
     has_pr: false,
   });
   useDisableRouteAnalytics(!group || !event || !project);
