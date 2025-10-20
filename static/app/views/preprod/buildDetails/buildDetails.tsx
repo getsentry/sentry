@@ -1,3 +1,4 @@
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -16,7 +17,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  isSizeInfoProcessing,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import {BuildDetailsHeaderContent} from './header/buildDetailsHeaderContent';
 import {BuildDetailsMainContent} from './main/buildDetailsMainContent';
@@ -36,8 +40,16 @@ export default function BuildDetails() {
       {
         staleTime: 0,
         enabled: !!projectId && !!artifactId,
+        refetchInterval: query => {
+          const data = query.state.data;
+          const sizeInfo = data?.[0]?.size_info;
+          return isSizeInfoProcessing(sizeInfo) ? 10_000 : false;
+        },
       }
     );
+
+  const sizeInfo = buildDetailsQuery.data?.size_info;
+  const isProcessing = isSizeInfoProcessing(sizeInfo);
 
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
@@ -49,6 +61,15 @@ export default function BuildDetails() {
         enabled: !!projectId && !!artifactId,
       }
     );
+
+  const wasProcessingRef = useRef(isProcessing);
+
+  useEffect(() => {
+    if (wasProcessingRef.current && !isProcessing) {
+      appSizeQuery.refetch();
+    }
+    wasProcessingRef.current = isProcessing;
+  }, [isProcessing, appSizeQuery]);
 
   const {mutate: onRerunAnalysis, isPending: isRerunning} = useMutation<
     void,
@@ -87,10 +108,9 @@ export default function BuildDetails() {
     title = t('Build details v%s (%s)', version, buildNumber);
   }
 
-  // If the main data fetch fails, show a single error state instead of per component
   if (
     buildDetailsQuery.isError ||
-    (!buildDetailsQuery.data && !buildDetailsQuery.isPending)
+    (!buildDetailsQuery.data && !buildDetailsQuery.isLoading)
   ) {
     return (
       <SentryDocumentTitle title={title}>
@@ -123,7 +143,7 @@ export default function BuildDetails() {
             <BuildDetailsSide>
               <BuildDetailsSidebarContent
                 buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isPending}
+                isBuildDetailsPending={buildDetailsQuery.isLoading}
                 artifactId={artifactId}
                 projectId={projectId}
               />
@@ -134,7 +154,7 @@ export default function BuildDetails() {
                 onRerunAnalysis={onRerunAnalysis}
                 isRerunning={isRerunning}
                 buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isPending}
+                isBuildDetailsPending={buildDetailsQuery.isLoading}
               />
             </BuildDetailsMain>
           </UrlParamBatchProvider>
