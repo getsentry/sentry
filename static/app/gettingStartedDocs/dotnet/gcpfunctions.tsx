@@ -214,9 +214,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/dotnet/guides/google-cloud-functions/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/dotnet/guides/google-cloud-functions/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

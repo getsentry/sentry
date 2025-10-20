@@ -238,58 +238,6 @@ const getPackageJsonScriptsSnippet = () => `
   }
 }`;
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install @sentry/react-router',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/react-router',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/react-router',
-      },
-    ],
-  },
-];
-
-const getInstallConfigWithProfiling = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install @sentry/react-router @sentry/profiling-node',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/react-router @sentry/profiling-node',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/react-router @sentry/profiling-node',
-      },
-    ],
-  },
-];
-
 const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
@@ -306,16 +254,38 @@ const onboarding: OnboardingConfig = {
       </p>
     </Fragment>
   ),
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install the Sentry React Router SDK using [code:npm], [code:yarn], or [code:pnpm]:',
-        {code: <code />}
-      ),
-      configurations: params.isProfilingSelected
-        ? getInstallConfigWithProfiling()
-        : getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Install the Sentry React Router SDK using [code:npm], [code:yarn], or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'npm',
+              language: 'bash',
+              code: 'npm install @sentry/react-router',
+            },
+            {
+              label: 'yarn',
+              language: 'bash',
+              code: 'yarn add @sentry/react-router',
+            },
+            {
+              label: 'pnpm',
+              language: 'bash',
+              code: 'pnpm add @sentry/react-router',
+            },
+          ],
+        },
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -413,14 +383,19 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Upload Source Maps (Optional)'),
-      description: tct(
-        'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/#source-maps-upload" />
+          type: 'text',
+          text: tct(
+            'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/#source-maps-upload" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
       collapsible: true,
     },
   ],
