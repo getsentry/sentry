@@ -1,8 +1,9 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
+from pydantic import BaseModel
 
 from sentry.models.group import Group
 from sentry.seer.explorer.tools import (
@@ -11,7 +12,7 @@ from sentry.seer.explorer.tools import (
     get_issue_details,
     get_trace_waterfall,
 )
-from sentry.seer.sentry_data_models import EAPTrace, IssueDetails
+from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -479,6 +480,132 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
 
+    def test_get_trace_waterfall_sliding_window_second_period(self) -> None:
+        """Test that sliding window finds traces in the second 14-day period (14-28 days ago)"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        twenty_days_ago = before_now(days=20)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=twenty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace using short ID by sliding back to the second window
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_old_trace(self) -> None:
+        """Test that sliding window finds traces near the 90-day limit"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        eighty_days_ago = before_now(days=80)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=eighty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace by sliding back through multiple windows
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_beyond_limit(self) -> None:
+        """Test that traces beyond 90 days are not found"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        one_hundred_days_ago = before_now(days=100)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=one_hundred_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should not find the trace since it's beyond the 90-day limit
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert result is None
+
+
+class _ExplorerIssueProject(BaseModel):
+    id: int
+    slug: str
+
+
+class _ExplorerIssue(BaseModel):
+    """
+    A subset of BaseGroupSerializerResponse fields, required for Seer Explorer. In prod we send the full response.
+    """
+
+    id: int
+    shortId: str
+    title: str
+    culprit: str | None
+    permalink: str
+    level: str
+    status: str
+    substatus: str | None
+    platform: str | None
+    priority: str | None
+    type: str
+    issueType: str
+    issueCategory: str
+    hasSeen: bool
+    project: _ExplorerIssueProject
+
+    # Optionals
+    isUnhandled: bool | None = None
+    count: str | None = None
+    userCount: int | None = None
+    firstSeen: datetime | None = None
+    lastSeen: datetime | None = None
+
+
+class _SentryEventData(BaseModel):
+    """
+    Required fields for the serialized events used by Seer Explorer.
+    """
+
+    title: str
+    entries: list[dict]
+    tags: list[dict[str, str | None]] | None = None
+
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
 
@@ -523,7 +650,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             events[1].event_id[:8],
         ]:
             result = get_issue_details(
-                issue_id=group.qualified_short_id if use_short_id else group.id,
+                issue_id=group.qualified_short_id if use_short_id else str(group.id),
                 organization_id=self.organization.id,
                 selected_event=selected_event,
             )
@@ -535,37 +662,18 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
             assert result is not None
             assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
             assert result["tags_overview"] == mock_get_tags.return_value
 
-            # Validate structure and required fields of the main issue payload.
-            issue_dict = result["issue"]
-            assert isinstance(issue_dict, dict)
-            IssueDetails.parse_obj(issue_dict)
-            assert "id" in issue_dict
-            assert "shortId" in issue_dict
-            assert "status" in issue_dict
-            assert "substatus" in issue_dict
-            assert "culprit" in issue_dict
-            assert "level" in issue_dict
-            assert "issueType" in issue_dict
-            assert "issueCategory" in issue_dict
-            assert "hasSeen" in issue_dict
-            assert "assignedTo" in issue_dict
-            # count, userCount, firstSeen, lastSeen are optional.
+            # Validate fields of the main issue payload.
+            assert isinstance(result["issue"], dict)
+            _ExplorerIssue.parse_obj(result["issue"])
 
-            # Validate for some useful event fields.
-            event_dict = issue_dict["events"][0]
+            # Validate fields of the selected event.
+            event_dict = result["event"]
             assert isinstance(event_dict, dict)
-            assert "id" in event_dict
-            assert "title" in event_dict
-            assert "message" in event_dict
-            assert "eventID" in event_dict
-            assert "projectID" in event_dict
-            assert "user" in event_dict
-            assert "platform" in event_dict
-            assert "dateReceived" in event_dict
-            assert "type" in event_dict
-            assert "contexts" in event_dict
+            _SentryEventData.parse_obj(event_dict)
+            assert result["event_id"] == event_dict["id"]
 
             # Check correct event is returned based on selected_event_type.
             if selected_event == "oldest":
@@ -581,6 +689,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
             # Check event_trace_id matches mocked trace context.
             if event_dict["id"] == events[0].event_id:
+                assert events[0].trace_id == event0_trace_id
                 assert result["event_trace_id"] == event0_trace_id
             else:
                 assert result["event_trace_id"] is None
@@ -602,7 +711,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
         # Call with nonexistent organization ID.
         result = get_issue_details(
-            issue_id=group.id,
+            issue_id=str(group.id),
             organization_id=99999,
             selected_event="latest",
         )
@@ -612,7 +721,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         """Test returns None when group doesn't exist."""
         # Call with nonexistent group ID.
         result = get_issue_details(
-            issue_id=99999,
+            issue_id="99999",
             organization_id=self.organization.id,
             selected_event="latest",
         )
@@ -639,7 +748,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
         for et in ["oldest", "latest", "recommended"]:
             result = get_issue_details(
-                issue_id=group.id,
+                issue_id=str(group.id),
                 organization_id=self.organization.id,
                 selected_event=et,
             )
@@ -657,7 +766,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert isinstance(group, Group)
 
         result = get_issue_details(
-            issue_id=group.id,
+            issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="latest",
         )
@@ -667,4 +776,4 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert "event_trace_id" in result
         assert isinstance(result.get("project_id"), int)
         assert isinstance(result.get("issue"), dict)
-        IssueDetails.parse_obj(result.get("issue"))
+        _ExplorerIssue.parse_obj(result.get("issue", {}))
