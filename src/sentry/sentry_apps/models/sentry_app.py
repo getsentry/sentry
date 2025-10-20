@@ -220,9 +220,10 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,
                 shard_identifier=self.id,
-                object_identifier=self.slug,
+                object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_DELETE,
                 region_name=region_name,
+                payload={"slug": self.slug},
             )
             for region_name in find_all_region_names()
         ]
