@@ -29,7 +29,7 @@ export default function ProjectPluginsContainer() {
 
   useEffect(() => {
     // Track analytics
-    if (plugins) {
+    if (plugins.length > 0) {
       const installCount = plugins.filter(
         plugin => plugin.hasConfiguration && plugin.enabled
       ).length;
@@ -58,14 +58,14 @@ export default function ProjectPluginsContainer() {
       <ProjectPermissionAlert project={project} />
 
       <ProjectPlugins
-        organization={organization}
-        project={project}
+        plugins={plugins}
+        loading={loading}
+        error={isError ? error : undefined}
         onChange={(pluginId, shouldEnable) =>
           togglePluginMutation.mutate({pluginId, shouldEnable})
         }
-        loading={loading}
-        error={isError ? error : undefined}
-        plugins={plugins}
+        organization={organization}
+        project={project}
       />
     </Fragment>
   );
