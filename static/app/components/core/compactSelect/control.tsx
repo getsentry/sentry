@@ -158,7 +158,7 @@ export interface ControlProps
    */
   menuFooter?:
     | React.ReactNode
-    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+    | ((actions: {closeOverlay: () => void; resetSearch: () => void}) => React.ReactNode);
   /**
    * Items to be displayed in the trailing (right) side of the menu's header.
    */
@@ -574,7 +574,10 @@ export function Control({
               {menuFooter && (
                 <MenuFooter>
                   {typeof menuFooter === 'function'
-                    ? menuFooter({closeOverlay: overlayState.close})
+                    ? menuFooter({
+                        closeOverlay: overlayState.close,
+                        resetSearch: () => updateSearch(''),
+                      })
                     : menuFooter}
                 </MenuFooter>
               )}
