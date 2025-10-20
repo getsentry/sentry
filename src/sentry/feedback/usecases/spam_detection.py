@@ -15,6 +15,7 @@ SEER_TIMEOUT_S = 15
 SEER_RETRIES = 0
 
 
+@metrics.wraps("feedback.spam_detection_seer")
 def is_spam_seer(message: str, organization_id: int) -> bool | None:
     """
     Check if a message is spam using Seer.
