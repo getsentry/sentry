@@ -23,6 +23,7 @@ import {AutomationSearch} from 'sentry/views/automations/components/automationLi
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 export default function AutomationsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -136,11 +137,12 @@ function TableHeader() {
 
 function Actions() {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Flex gap="sm">
       <AutomationFeedbackButton />
       <LinkButton
-        to={`${makeAutomationBasePathname(organization.slug)}new/`}
+        to={`${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/`}
         priority="primary"
         icon={<IconAdd />}
         size="sm"

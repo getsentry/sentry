@@ -28,6 +28,10 @@ export const PRIMARY_NAV_GROUP_CONFIG: PrimaryNavGroupConfig = {
     basePaths: ['insights'],
     label: t('Insights'),
   },
+  [PrimaryNavGroup.MONITORS]: {
+    basePaths: ['monitors'],
+    label: t('Monitors'),
+  },
   [PrimaryNavGroup.SETTINGS]: {
     basePaths: ['settings'],
     label: t('Settings'),

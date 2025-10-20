@@ -18,6 +18,7 @@ export function getAlertsUrl({
   dataset = Dataset.GENERIC_METRICS,
   eventTypes = 'transaction',
   referrer,
+  linkPrefix = 'issues/monitors',
 }: {
   aggregate: string;
   organization: Organization;
@@ -25,6 +26,7 @@ export function getAlertsUrl({
   dataset?: Dataset;
   eventTypes?: string;
   interval?: string;
+  linkPrefix?: string;
   name?: string;
   project?: Project;
   query?: string;
@@ -56,6 +58,7 @@ export function getAlertsUrl({
       name,
       query,
       referrer,
+      linkPrefix,
     });
     return `${loc.pathname}?${qs.stringify(loc.query)}`;
   }

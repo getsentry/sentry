@@ -18,14 +18,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {ConnectMonitorsContent} from 'sentry/views/automations/components/editConnectedMonitors';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 function AutomationBreadcrumbs() {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automations'), to: makeAutomationBasePathname(organization.slug)},
+        {
+          label: t('Automations'),
+          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+        },
         {label: t('New Automation')},
       ]}
     />
@@ -35,6 +40,7 @@ function AutomationBreadcrumbs() {
 export default function AutomationNew() {
   const location = useLocation();
   const organization = useOrganization();
+  const {automationsLinkPrefix, monitorsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
@@ -75,7 +81,7 @@ export default function AutomationNew() {
               footerContent={
                 <LinkButton
                   icon={<IconAdd />}
-                  href={makeMonitorCreatePathname(organization.slug)}
+                  href={makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix)}
                   external
                 >
                   {t('Create New Monitor')}
@@ -93,14 +99,14 @@ export default function AutomationNew() {
           <Flex gap="md">
             <LinkButton
               priority="default"
-              to={makeAutomationBasePathname(organization.slug)}
+              to={makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}
             >
               {t('Cancel')}
             </LinkButton>
             <LinkButton
               priority="primary"
               to={{
-                pathname: `${makeAutomationBasePathname(organization.slug)}new/settings/`,
+                pathname: `${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/settings/`,
                 ...(connectedIds.length > 0 && {
                   query: {connectedIds},
                 }),
