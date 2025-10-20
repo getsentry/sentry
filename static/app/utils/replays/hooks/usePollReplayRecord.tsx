@@ -14,7 +14,7 @@ function usePollReplayRecord({
   enabled,
   orgSlug,
   replayId,
-  pollInterval = 1000, // Default to every 30 seconds
+  pollInterval = 30_000, // Default to every 30 seconds
 }: Props): ReplayRecord | undefined {
   // we use {} to avoid colliding with the queryKey used by useReplayData
   const queryKey: ApiQueryKey = [`/organizations/${orgSlug}/replays/${replayId}/`, {}];
