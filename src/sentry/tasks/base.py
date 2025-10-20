@@ -87,6 +87,9 @@ def instrumented_task(
             compression_type=compression_type,
             silo_mode=silo_mode,
         )(func)
+        # If an alias is provided, register the task for both "name" and "alias" under namespace
+        # If an alias namespace is provided, register the task in both namespace and alias_namespace
+        # When both are provided, register tasks namespace."name" and alias_namespace."alias"
         if alias or alias_namespace:
             target_alias = alias if alias else name
             target_alias_namespace = alias_namespace if alias_namespace else namespace
