@@ -1,15 +1,19 @@
 import {Outlet, useOutletContext} from 'react-router-dom';
 
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
-type Props = RouteComponentProps<{projectId: string}>;
-
-type InnerProps = Props & {project: Project};
+type InnerProps = {
+  params: {projectId: string};
+  project: Project;
+  routes: PlainRoute[];
+};
 
 type ProjectSettingsOutletContext = {
   project: Project;
@@ -23,7 +27,9 @@ export function useProjectSettingsOutlet() {
   return useOutletContext<ProjectSettingsOutletContext>();
 }
 
-function InnerProjectSettingsLayout({params, routes, project, ...props}: InnerProps) {
+function InnerProjectSettingsLayout({params, routes, project}: InnerProps) {
+  const location = useLocation();
+
   // set analytics params for route based analytics
   useRouteAnalyticsParams({
     project_id: project.id,
@@ -31,19 +37,27 @@ function InnerProjectSettingsLayout({params, routes, project, ...props}: InnerPr
   });
 
   return (
-    <SettingsLayout params={params} routes={routes} {...props}>
+    <SettingsLayout
+      params={params}
+      routes={routes}
+      location={location}
+      router={undefined as any}
+      route={undefined as any}
+      routeParams={undefined as any}
+    >
       <ProjectSettingsOutlet project={project} />
     </SettingsLayout>
   );
 }
 
-export default function ProjectSettingsLayout(props: Props) {
+export default function ProjectSettingsLayout() {
   const params = useParams<{projectId: string}>();
+  const routes = useRoutes();
 
   return (
     <ProjectContext projectSlug={params.projectId}>
       {({project}) => (
-        <InnerProjectSettingsLayout {...props} params={params} project={project} />
+        <InnerProjectSettingsLayout params={params} routes={routes} project={project} />
       )}
     </ProjectContext>
   );

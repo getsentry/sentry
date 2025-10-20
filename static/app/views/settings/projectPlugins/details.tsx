@@ -17,22 +17,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import withPlugins from 'sentry/utils/withPlugins';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-
-type Props = {
-  organization: Organization;
-  plugins: {
-    plugins: Plugin[];
-  };
-  project: Project;
-};
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 /**
  * There are currently two sources of truths for plugin details:
@@ -43,19 +34,33 @@ type Props = {
  *    The more correct way would be to pass `config` to PluginConfig and use plugin from
  *    PluginsStore
  */
-function ProjectPluginDetails({organization, plugins, project}: Props) {
+export default function ProjectPluginDetails() {
   const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
   const {pluginId, projectId} = useParams<{pluginId: string; projectId: string}>();
   const endpoint = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
 
   const {
+    data: plugins,
+    isPending: isPluginsPending,
+    isError: isPluginsError,
+    refetch: refetchPlugins,
+  } = useApiQuery<Plugin[]>([`/projects/${organization.slug}/${project.slug}/plugins/`], {
+    staleTime: 0,
+  });
+
+  const {
     data: pluginDetails,
-    isPending,
-    isError,
-    refetch,
+    isPending: isPluginDetailsPending,
+    isError: isPluginDetailsError,
+    refetch: refetchPluginDetails,
   } = useApiQuery<Plugin>([endpoint], {
     staleTime: 0,
   });
+
+  const isPending = isPluginsPending || isPluginDetailsPending;
+  const isError = isPluginsError || isPluginDetailsError;
 
   const trimSchema = (value: string) => value.split('//')[1];
 
@@ -103,7 +108,7 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
 
   // Enabled state is handled via PluginsStore and not via plugins detail
   const getEnabled = () => {
-    const plugin = plugins?.plugins?.find(({slug}) => slug === pluginId);
+    const plugin = plugins?.find(({slug}) => slug === pluginId);
     return plugin ? plugin.enabled : pluginDetails?.enabled;
   };
 
@@ -161,7 +166,14 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetchPlugins();
+          refetchPluginDetails();
+        }}
+      />
+    );
   }
 
   if (!pluginDetails) {
@@ -229,10 +241,6 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     </div>
   );
 }
-
-export {ProjectPluginDetails};
-
-export default withPlugins(ProjectPluginDetails);
 
 const StyledButton = styled(Button)`
   margin-right: ${space(0.75)};
