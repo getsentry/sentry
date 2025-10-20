@@ -16,20 +16,17 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import {useTogglePluginMutation} from 'sentry/views/settings/projectPlugins/useTogglePluginMutation';
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
-
-export default function ProjectPluginDetails({organization, project}: Props) {
+export default function ProjectPluginDetails() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
   const {pluginId, projectId} = useParams<{pluginId: string; projectId: string}>();
   const pluginsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/`;
   const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
