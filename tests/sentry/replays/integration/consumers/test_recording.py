@@ -4,7 +4,6 @@ import zlib
 from datetime import datetime
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock
 
 import msgpack
 import pytest
@@ -17,9 +16,7 @@ from sentry.utils import json
 
 
 @pytest.fixture
-@mock.patch("sentry.options.get")
-def consumer(options_get: MagicMock) -> ProcessingStrategy[KafkaPayload]:
-    options_get.return_value = True
+def consumer() -> ProcessingStrategy[KafkaPayload]:
     return ProcessReplayRecordingStrategyFactory(
         input_block_size=1,
         max_batch_size=1,

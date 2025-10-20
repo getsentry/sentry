@@ -20,7 +20,6 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
-from sentry.utils.projectflags import set_project_flag_and_signal
 
 
 class RecordingTestCase(TransactionTestCase):
@@ -66,6 +65,7 @@ class RecordingTestCase(TransactionTestCase):
 
     def submit(self, messages: list[ReplayRecording]) -> None:
         strategy = self.processing_factory().create_with_partitions(lambda x, force=False: None, {})
+
         for message in messages:
             strategy.submit(
                 Message(
@@ -111,7 +111,7 @@ class RecordingTestCase(TransactionTestCase):
     @patch("sentry.replays.usecases.ingest.track_outcome")
     @patch("sentry.replays.usecases.ingest.report_hydration_error")
     @thread_leak_allowlist(reason="replays", issue=97033)
-    def test_end_to_end_consumer_processing_old(
+    def test_end_to_end_consumer_processing(
         self,
         report_hydration_issue: MagicMock,
         track_outcome: MagicMock,
@@ -174,100 +174,3 @@ class RecordingTestCase(TransactionTestCase):
 
         assert track_outcome.called
         assert report_hydration_issue.called
-
-    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
-    @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.track_outcome")
-    @patch("sentry.replays.usecases.ingest.report_hydration_error")
-    @patch(
-        "sentry.replays.usecases.ingest.set_project_flag_and_signal",
-        wraps=set_project_flag_and_signal,
-    )
-    @thread_leak_allowlist(reason="replays", issue=97033)
-    def test_end_to_end_consumer_processing_new(
-        self,
-        set_project_flag_and_signal: MagicMock,
-        report_hydration_issue: MagicMock,
-        track_outcome: MagicMock,
-        mock_record: MagicMock,
-        mock_onboarding_task: MagicMock,
-    ) -> None:
-        data = [
-            {
-                "type": 5,
-                "data": {
-                    "tag": "breadcrumb",
-                    "payload": {
-                        "category": "replay.hydrate-error",
-                        "timestamp": 1.0,
-                        "data": {"url": "https://sentry.io"},
-                    },
-                },
-            }
-        ]
-        segment_id = 0
-
-        with self.options({"replay.consumer.enable_new_query_caching_system": True}):
-            self.submit(
-                [
-                    *self.nonchunked_messages(
-                        message=json.dumps(data).encode(),
-                        segment_id=segment_id,
-                        compressed=True,
-                        replay_event=json.dumps(
-                            {
-                                "type": "replay_event",
-                                "replay_id": self.replay_id,
-                                "timestamp": int(time.time()),
-                            }
-                        ).encode(),
-                        replay_video=b"hello, world!",
-                    ),
-                    *self.nonchunked_messages(
-                        message=json.dumps(data).encode(),
-                        segment_id=segment_id,
-                        compressed=True,
-                        replay_event=json.dumps(
-                            {
-                                "type": "replay_event",
-                                "replay_id": self.replay_id,
-                                "timestamp": int(time.time()),
-                            }
-                        ).encode(),
-                        replay_video=b"hello, world!",
-                    ),
-                ]
-            )
-
-            dat = self.get_recording_data(segment_id)
-            assert json.loads(bytes(dat).decode("utf-8")) == data
-            assert self.get_video_data(segment_id) == b"hello, world!"
-
-            self.project.refresh_from_db()
-            assert bool(self.project.flags.has_replays) is True
-
-            mock_onboarding_task.assert_called_with(
-                organization_id=self.project.organization_id,
-                task=OnboardingTask.SESSION_REPLAY,
-                status=OnboardingTaskStatus.COMPLETE,
-                date_completed=ANY,
-            )
-
-            assert_any_analytics_event(
-                mock_record,
-                FirstReplaySentEvent(
-                    organization_id=self.organization.id,
-                    project_id=self.project.id,
-                    platform=self.project.platform,
-                    user_id=self.organization.default_owner_id,
-                ),
-            )
-
-            # We emit a new outcome because its a segment-0 event. We emit a hydration error because
-            # thats our cached configuration but we don't emit an onboarding metric because this is
-            # our second event.
-            assert track_outcome.called
-            assert track_outcome.call_count == 2
-            assert report_hydration_issue.called
-            assert report_hydration_issue.call_count == 2
-            assert set_project_flag_and_signal.call_count == 1
