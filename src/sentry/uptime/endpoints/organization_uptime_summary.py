@@ -33,7 +33,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -79,10 +78,6 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
-        use_eap_results = features.has(
-            "organizations:uptime-eap-uptime-results-query", organization, actor=request.user
-        )
-
         try:
             # XXX: We need to query these using hex, since we store them without dashes.
             # We remove this once we remove the old uptime checks
@@ -101,31 +96,14 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
             return self.respond("Invalid uptime detector ids provided", status=400)
 
         try:
-            if use_eap_results:
-                eap_response = self._make_eap_request(
-                    organization,
-                    projects,
-                    subscription_ids,
-                    start,
-                    end,
-                    TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
-                    "subscription_id",
-                    include_avg_duration=True,
-                )
-            else:
-                eap_response = self._make_eap_request(
-                    organization,
-                    projects,
-                    subscription_ids,
-                    start,
-                    end,
-                    TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
-                    "uptime_subscription_id",
-                    include_avg_duration=False,
-                )
-            formatted_response = self._format_response(
-                eap_response, include_avg_duration=use_eap_results
+            eap_response = self._make_eap_request(
+                organization,
+                projects,
+                subscription_ids,
+                start,
+                end,
             )
+            formatted_response = self._format_response(eap_response)
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check summary")
             return self.respond("error making request", status=400)
@@ -150,9 +128,6 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         subscription_ids: list[str],
         start: datetime,
         end: datetime,
-        trace_item_type: TraceItemType.ValueType,
-        subscription_key: str,
-        include_avg_duration: bool = False,
     ) -> TraceItemTableResponse:
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(start)
@@ -160,7 +135,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         end_timestamp.FromDatetime(end)
 
         subscription_attribute_key = AttributeKey(
-            name=subscription_key,
+            name="subscription_id",
             type=AttributeKey.Type.TYPE_STRING,
         )
 
@@ -233,24 +208,22 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
             ),
         ]
 
-        # We're only recording duraitons in the uptime_results table
-        if include_avg_duration:
-            columns.append(
-                Column(
-                    label="avg_duration_us",
-                    aggregation=AttributeAggregation(
-                        aggregate=Function.FUNCTION_AVG,
-                        key=AttributeKey(name="check_duration_us", type=AttributeKey.Type.TYPE_INT),
-                        label="avg(check_duration_us)",
-                    ),
-                )
+        columns.append(
+            Column(
+                label="avg_duration_us",
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_AVG,
+                    key=AttributeKey(name="check_duration_us", type=AttributeKey.Type.TYPE_INT),
+                    label="avg(check_duration_us)",
+                ),
             )
+        )
 
         request = TraceItemTableRequest(
             meta=RequestMeta(
                 organization_id=organization.id,
                 project_ids=[project.id for project in projects],
-                trace_item_type=trace_item_type,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
                 downsampled_storage_config=DownsampledStorageConfig(
@@ -265,9 +238,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         assert len(responses) == 1
         return responses[0]
 
-    def _format_response(
-        self, response: TraceItemTableResponse, include_avg_duration: bool = False
-    ) -> dict[str, UptimeSummary]:
+    def _format_response(self, response: TraceItemTableResponse) -> dict[str, UptimeSummary]:
         """
         Formats the response from the EAP RPC request into a dictionary mapping
         subscription ids to UptimeSummary
@@ -287,7 +258,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
 
             # Get avg_duration_us if available, otherwise set to None
             avg_duration_us = None
-            if include_avg_duration and "avg_duration_us" in row_dict:
+            if "avg_duration_us" in row_dict:
                 avg_duration_us = row_dict["avg_duration_us"].val_double
 
             summary_stats = UptimeSummary(

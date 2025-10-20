@@ -586,10 +586,7 @@ class OrganizationEventsTraceEndpointTest(
         """Test that uptime results are included when include_uptime=1"""
         self.load_trace(is_eap=True)
 
-        features = self.FEATURES + [
-            "organizations:uptime-eap-enabled",
-            "organizations:uptime-eap-uptime-results-query",
-        ]
+        features = self.FEATURES + ["organizations:uptime-eap-enabled"]
         redirect_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
             project=self.project,
@@ -701,10 +698,7 @@ class OrganizationEventsTraceEndpointTest(
             scheduled_check_time=self.day_ago,
         )
 
-        features = self.FEATURES + [
-            "organizations:uptime-eap-enabled",
-            "organizations:uptime-eap-uptime-results-query",
-        ]
+        features = self.FEATURES + ["organizations:uptime-eap-enabled"]
 
         self.store_uptime_results([redirect_result, final_result])
 
@@ -739,10 +733,7 @@ class OrganizationEventsTraceEndpointTest(
             check_duration_us=200000,
         )
 
-        features = self.FEATURES + [
-            "organizations:uptime-eap-enabled",
-            "organizations:uptime-eap-uptime-results-query",
-        ]
+        features = self.FEATURES + ["organizations:uptime-eap-enabled"]
 
         self.store_uptime_results([uptime_result])
 
