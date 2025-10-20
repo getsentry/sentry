@@ -72,13 +72,13 @@ def process_sentry_app_deletes(
             "sentry_app_update.update_action_status",
             extra={
                 "region_name": region_name,
-                "sentry_app_id": object_identifier,
+                "sentry_app_id": shard_identifier,
             },
         )
         action_service.update_action_status_for_sentry_app_via_sentry_app_id(
             region_name=region_name,
             status=ObjectStatus.DISABLED,
-            sentry_app_id=object_identifier,
+            sentry_app_id=shard_identifier,
         )
         # TODO: also update webhook actions using object identifier (sentry app slug)
 
