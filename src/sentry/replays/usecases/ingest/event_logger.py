@@ -411,7 +411,7 @@ def _should_report_hydration_error_issue(project_id: int, context: ProcessorCont
         return ProjectOption.objects.get_value(
             project_id,
             "sentry:replay_hydration_error_issues",
-            default=False,
+            default=True,
         )
 
 
@@ -426,7 +426,7 @@ def _should_report_rage_click_issue(project_id: int, context: ProcessorContext) 
         return ProjectOption.objects.get_value(
             project_id,
             "sentry:replay_rage_click_issues",
-            default=False,
+            default=True,
         )
 
 

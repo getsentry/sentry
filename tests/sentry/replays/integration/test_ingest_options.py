@@ -12,7 +12,7 @@ def test_should_report_hydration_error_issue_no_value(default_project: Project) 
     result = _should_report_hydration_error_issue(
         default_project.id, {"options_cache": None, "has_sent_replays_cache": None}
     )
-    assert result is False
+    assert result is True
 
 
 @django_db_all
@@ -32,7 +32,7 @@ def test_should_report_hydration_error_issue_no_project() -> None:
     result = _should_report_hydration_error_issue(
         210492104914, {"options_cache": None, "has_sent_replays_cache": None}
     )
-    assert result is False
+    assert result is True
 
 
 @django_db_all
@@ -40,7 +40,7 @@ def test_should_report_rage_click_issue_no_value(default_project: Project) -> No
     result = _should_report_rage_click_issue(
         default_project.id, {"options_cache": None, "has_sent_replays_cache": None}
     )
-    assert result is False
+    assert result is True
 
 
 @django_db_all
@@ -48,7 +48,7 @@ def test_should_report_rage_click_issue_no_project() -> None:
     result = _should_report_rage_click_issue(
         210492104914, {"options_cache": None, "has_sent_replays_cache": None}
     )
-    assert result is False
+    assert result is True
 
 
 @django_db_all
