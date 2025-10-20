@@ -3,6 +3,7 @@ from functools import cached_property
 from time import sleep, time
 from unittest.mock import MagicMock, patch, sentinel
 
+import orjson
 from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
@@ -118,9 +119,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
-            assert "You are attempting to use this endpoint too frequently. Limit is 0 requests in 100 seconds" in response.serialize().decode(  # type: ignore[attr-defined]
-                "utf-8"
-            )
+            assert orjson.loads(response.content) == {
+                "detail": "You are attempting to use this endpoint too frequently. Limit is 0 requests in 100 seconds"
+            }
             assert response["Access-Control-Allow-Methods"] == "GET"
             assert response["Access-Control-Allow-Origin"] == "*"
             assert response["Access-Control-Allow-Headers"]
@@ -148,7 +149,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
-            assert response.json() == {
+            assert orjson.loads(response.content) == {
                 "detail": "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is 1"
             }
             assert response["Access-Control-Allow-Methods"] == "GET"
