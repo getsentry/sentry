@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -17,7 +16,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
@@ -36,28 +34,8 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const {slug: orgSlug} = organization;
   const replayId = readerResult.replayId;
-  const isLive = useIsLive({replayReader});
 
   const queryClient = useQueryClient();
-
-  const [showRefreshButton, setShowRefreshButton] = useState(false);
-
-  const countSegments = usePollReplayRecord({
-    enabled:
-      isLive &&
-      !showRefreshButton &&
-      organization.features.includes('replay-refresh-background'),
-    replayId,
-    orgSlug,
-  });
-
-  if (countSegments && replayRecord?.count_segments) {
-    if (countSegments > replayRecord.count_segments && !showRefreshButton) {
-      setShowRefreshButton(true);
-    } else if (countSegments <= replayRecord.count_segments && showRefreshButton) {
-      setShowRefreshButton(false);
-    }
-  }
 
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
@@ -84,7 +62,6 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const handleRefresh = () => {
     trackAnalytics('replay.details-refresh-clicked', {organization});
-    setShowRefreshButton(false);
     queryClient
       .refetchQueries({
         queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
@@ -101,6 +78,26 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
       )
       .then(() => startSummaryRequest());
   };
+
+  const ONE_MINUTE_MS = 1000 * 60;
+
+  const polledReplayRecord = usePollReplayRecord({
+    enabled: Boolean(
+      replayReader &&
+        Date.now() < replayReader.getStartTimestampMs() + 5 * ONE_MINUTE_MS &&
+        organization.features.includes('replay-refresh-background')
+    ),
+    replayId,
+    orgSlug,
+  });
+
+  const polledCountSegments = polledReplayRecord?.count_segments ?? 0;
+  const polledFinishedAt = polledReplayRecord?.finished_at?.getTime() ?? 0;
+
+  const prevSegments = replayRecord?.count_segments ?? 0;
+
+  const showRefreshButton = polledCountSegments > prevSegments;
+  const showIsLive = Date.now() < polledFinishedAt + 5 * ONE_MINUTE_MS;
 
   const badge = replayRecord ? (
     <UserBadge
@@ -134,7 +131,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {isLive ? (
+              {showIsLive ? (
                 <Tooltip
                   showUnderline
                   underlineColor="success"
@@ -143,14 +140,15 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   <Live />
                 </Tooltip>
               ) : null}
-              <RefreshButton
+              <Button
                 title={t('Replay is outdated. Refresh for latest activity.')}
+                data-test-id="refresh-button"
                 size="xs"
                 onClick={handleRefresh}
-                replayUpdated={showRefreshButton}
+                style={{visibility: showRefreshButton ? 'visible' : 'hidden'}}
               >
                 <IconRefresh />
-              </RefreshButton>
+              </Button>
             </TimeContainer>
           ) : null}
         </DisplayHeader>
@@ -200,7 +198,9 @@ const DisplayHeader = styled('div')`
 function Live() {
   return (
     <Flex align="center">
-      <LiveText bold>{t('LIVE')}</LiveText>
+      <LiveText bold data-test-id="live-badge">
+        {t('LIVE')}
+      </LiveText>
       <LiveIndicator />
     </Flex>
   );
@@ -248,8 +248,4 @@ const LiveIndicator = styled('div')`
     top: -6px;
     left: -6px;
   }
-`;
-
-const RefreshButton = styled(Button)<{replayUpdated: boolean}>`
-  visibility: ${p => (p.replayUpdated ? 'visible' : 'hidden')};
 `;
