@@ -131,8 +131,9 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
                 )
 
             if repos:
+                account_id = integration.metadata.get("account_id")
                 github_org_data = {
-                    "githubOrganizationId": integration.metadata.get("account_id"),
+                    "githubOrganizationId": str(account_id) if account_id is not None else None,
                     "name": integration.name,
                     "repos": repos,
                 }

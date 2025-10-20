@@ -294,3 +294,49 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         # Should return no repos since Seer failed
         response = self.get_success_response(self.organization.slug)
         assert response.data == {"orgRepos": []}
+
+    @patch("sentry.prevent.endpoints.organization_github_repos.make_signed_seer_api_request")
+    def test_get_prevent_github_repos_seer_integration_account_id_is_number(
+        self, mock_make_seer_request
+    ):
+        """Test that the endpoint returns the correct orgRepos when account_id is a number"""
+        self.login_as(user=self.user)
+
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"integrated_repos": {"test-github-org": ["test-repo"]}}
+        mock_make_seer_request.return_value = mock_response
+
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-github-org",
+            external_id="123456",
+            metadata={"account_id": 987654},
+        )
+
+        project = self.create_project(organization=self.organization)
+        self.create_repo(
+            project=project,
+            name="test-github-org/test-repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+            external_id="111222",
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == {
+            "orgRepos": [
+                {
+                    "githubOrganizationId": "987654",
+                    "name": "test-github-org",
+                    "repos": [
+                        {
+                            "id": "111222",
+                            "name": "test-repo",
+                            "fullName": "test-github-org/test-repo",
+                        }
+                    ],
+                }
+            ]
+        }
