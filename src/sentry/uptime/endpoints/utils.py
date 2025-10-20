@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Callable
 
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
@@ -18,6 +19,7 @@ Maximum number of uptime subscription IDs that may be queried at once
 def authorize_and_map_uptime_detector_subscription_ids(
     detector_ids: list[str],
     projects: list[Project],
+    sub_id_formatter: Callable[[str], str] = lambda sub_id: uuid.UUID(sub_id).hex,
 ) -> tuple[dict[str, int], list[str]]:
     """
     Authorize the detector ids and return their corresponding subscription ids.
@@ -76,8 +78,6 @@ def authorize_and_map_uptime_detector_subscription_ids(
 
     if set(detector_ids_ints) != validated_detector_ids:
         raise ValueError("Invalid detector ids provided")
-
-    sub_id_formatter = lambda sub_id: uuid.UUID(sub_id).hex
 
     subscription_id_to_detector_id = {
         sub_id_formatter(detector_data[1]): detector_data[0]

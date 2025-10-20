@@ -1,4 +1,5 @@
 import logging
+import uuid
 from datetime import datetime
 
 from drf_spectacular.utils import extend_schema
@@ -83,8 +84,17 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         )
 
         try:
+            # XXX: We need to query these using hex, since we store them without dashes.
+            # We remove this once we remove the old uptime checks
+            if use_eap_results:
+                subscription_id_formatter = lambda sub_id: uuid.UUID(sub_id).hex
+            else:
+                subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
+
             subscription_id_to_original_id, subscription_ids = (
-                authorize_and_map_uptime_detector_subscription_ids(uptime_detector_ids, projects)
+                authorize_and_map_uptime_detector_subscription_ids(
+                    uptime_detector_ids, projects, subscription_id_formatter
+                )
             )
 
         except ValueError:

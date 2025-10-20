@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 
 from sentry.testutils.cases import APITestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 
@@ -70,95 +69,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 "missed_window": 0,
             }
             assert data[str(self.detector.id)][0][1] == {
-                "failure": 0,
-                "failure_incident": 0,
-                "success": 0,
-                "missed_window": 0,
-            }
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff(self) -> None:
-        """Test that the endpoint returns data with date cutoff using detector IDs."""
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(self.detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.detector.id)]) == 90
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff_rounded_resolution(self) -> None:
-        """Test that the endpoint returns data with rounded resolution using detector IDs."""
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(self.detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.detector.id)]) == 89
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff_rounded_resolution_past_cutoff(self) -> None:
-        """Test that the endpoint returns data for a simple uptime check."""
-        subscription_id = uuid.uuid4().hex
-        subscription = self.create_uptime_subscription(
-            url="https://santry.io/test", subscription_id=subscription_id
-        )
-        detector = self.create_uptime_detector(uptime_subscription=subscription)
-
-        # Store data for the cutoff test scenario
-        self.store_uptime_data(
-            subscription_id, "success", scheduled_check_time=(MOCK_DATETIME - timedelta(days=5))
-        )
-        self.store_uptime_data(
-            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(days=5)
-        )
-        self.store_uptime_data(
-            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(hours=2)
-        )
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-        assert response.data is not None
-        data = json.loads(json.dumps(response.data))
-        # check that we return all the intervals,
-        # but the last one is the failure
-        assert len(data[str(detector.id)]) == 89
-        assert data[str(detector.id)][-1][1] == {
-            "failure": 1,
-            "failure_incident": 0,
-            "success": 0,
-            "missed_window": 0,
-        }
-        # make sure the rest of the intervals are empty
-        for i in range(88):
-            assert data[str(detector.id)][i][1] == {
                 "failure": 0,
                 "failure_incident": 0,
                 "success": 0,
