@@ -60,7 +60,7 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_DELETE)
 def process_sentry_app_deletes(
     shard_identifier: int,
-    object_identifier: str,
+    object_identifier: int,
     region_name: str,
     payload: Mapping[str, Any],
     **kwds: Any,
