@@ -69,7 +69,7 @@ class FeatureHandler:
         feature_name: str,
         actor: User | RpcUser | AnonymousUser | None,
         organizations: Sequence[Organization],
-    ) -> dict[str, bool]:
+    ) -> dict[str, bool] | None:
         raise NotImplementedError
 
 

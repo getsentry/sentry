@@ -379,7 +379,7 @@ class FeatureManager(RegisteredFeatureManager):
         feature_name: str,
         organizations: Sequence[Organization],
         actor: User | RpcUser | AnonymousUser | None = None,
-    ) -> dict[str, bool]:
+    ) -> dict[str, bool] | None:
         """
         Check the same set of feature flags for multiple organizations at once.
 
@@ -394,10 +394,8 @@ class FeatureManager(RegisteredFeatureManager):
 
         Returns:
             Mapping from organization keys (format: "organization:{id}") to
-            feature name to result mapping. Returns None if no handler is available
-            or on error.
+            feature name to result mapping.
         """
-        results: dict[str, bool] = {}
         try:
             if self._entity_handler and hasattr(
                 self._entity_handler, "batch_has_for_organizations"
@@ -407,6 +405,7 @@ class FeatureManager(RegisteredFeatureManager):
                         feature_name, actor, organizations
                     )
             else:
+                results: dict[str, bool] = {}
                 for organization in organizations:
                     org_key = f"organization:{organization.id}"
                     results[org_key] = self.has(feature_name, organization, actor=actor)
@@ -415,7 +414,8 @@ class FeatureManager(RegisteredFeatureManager):
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
-        return results
+                return None
+        return None
 
     @staticmethod
     def _shim_feature_strategy(
