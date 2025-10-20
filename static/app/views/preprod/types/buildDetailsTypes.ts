@@ -21,7 +21,7 @@ export interface BuildDetailsAppInfo {
   version?: string | null;
 }
 
-interface BuildDetailsVcsInfo {
+export interface BuildDetailsVcsInfo {
   base_ref?: string | null;
   base_repo_name?: string | null;
   base_sha?: string | null;

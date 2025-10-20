@@ -1,12 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {
+  PreprodBuildDetailsWithSizeInfoFixture,
+  PreprodVcsInfoFullFixture,
+} from 'sentry-fixture/preprod';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  BuildDetailsSizeAnalysisState,
-  BuildDetailsState,
-} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import BuildDetails from './buildDetails';
 
@@ -31,46 +32,12 @@ describe('BuildDetails', () => {
   const BUILD_DETAILS_URL = `/projects/org-slug/project-1/preprodartifacts/artifact-1/build-details/`;
   const SIZE_ANALYSIS_URL = `/projects/org-slug/project-1/files/preprodartifacts/artifact-1/size-analysis/`;
 
-  const createMockAppInfo = () => ({
-    version: '1.0.0',
-    build_number: '123',
-    name: 'Test App',
-  });
-
-  const createMockVcsInfo = () => ({
-    head_sha: 'abc123',
-  });
-
-  const createMockVcsInfoFull = () => ({
-    ...createMockVcsInfo(),
-    base_sha: 'def456',
-    pr_number: 42,
-    head_ref: 'feature-branch',
-    base_ref: 'main',
-    head_repo_name: 'test/repo',
-    base_repo_name: 'test/repo',
-  });
-
   const createMockSizeAnalysisData = () => ({
     treemap: {
       root: {name: 'root', size: 1024000, children: []},
       category_breakdown: {},
     },
     insights: [],
-  });
-
-  const createBuildDetailsResponse = (
-    sizeInfoState: BuildDetailsSizeAnalysisState,
-    sizeInfoData = {}
-  ) => ({
-    id: 'artifact-1',
-    state: BuildDetailsState.PROCESSED,
-    app_info: createMockAppInfo(),
-    vcs_info: createMockVcsInfo(),
-    size_info: {
-      state: sizeInfoState,
-      ...sizeInfoData,
-    },
   });
 
   beforeEach(() => {
@@ -137,13 +104,16 @@ describe('BuildDetails', () => {
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
-      body: {
-        ...createBuildDetailsResponse(2, {
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        BuildDetailsSizeAnalysisState.COMPLETED,
+        {
           install_size_bytes: 1024000,
           download_size_bytes: 512000,
-        }),
-        vcs_info: createMockVcsInfoFull(),
-      },
+        },
+        {
+          vcs_info: PreprodVcsInfoFullFixture(),
+        }
+      ),
     });
 
     const appSizeMock = MockApiClient.addMockResponse({
@@ -170,7 +140,9 @@ describe('BuildDetails', () => {
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
-      body: createBuildDetailsResponse(BuildDetailsSizeAnalysisState.PROCESSING),
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        BuildDetailsSizeAnalysisState.PROCESSING
+      ),
     });
 
     MockApiClient.addMockResponse({
@@ -199,12 +171,17 @@ describe('BuildDetails', () => {
       body: () => {
         callCount++;
         if (callCount === 1) {
-          return createBuildDetailsResponse(BuildDetailsSizeAnalysisState.PROCESSING);
+          return PreprodBuildDetailsWithSizeInfoFixture(
+            BuildDetailsSizeAnalysisState.PROCESSING
+          );
         }
-        return createBuildDetailsResponse(BuildDetailsSizeAnalysisState.COMPLETED, {
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
-        });
+        return PreprodBuildDetailsWithSizeInfoFixture(
+          BuildDetailsSizeAnalysisState.COMPLETED,
+          {
+            install_size_bytes: 1024000,
+            download_size_bytes: 512000,
+          }
+        );
       },
     });
 
@@ -248,10 +225,13 @@ describe('BuildDetails', () => {
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
-      body: createBuildDetailsResponse(BuildDetailsSizeAnalysisState.COMPLETED, {
-        install_size_bytes: 1024000,
-        download_size_bytes: 512000,
-      }),
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        BuildDetailsSizeAnalysisState.COMPLETED,
+        {
+          install_size_bytes: 1024000,
+          download_size_bytes: 512000,
+        }
+      ),
     });
 
     const appSizeMock = MockApiClient.addMockResponse({
@@ -285,9 +265,13 @@ describe('BuildDetails', () => {
       body: () => {
         callCount++;
         if (callCount === 1) {
-          return createBuildDetailsResponse(BuildDetailsSizeAnalysisState.PENDING);
+          return PreprodBuildDetailsWithSizeInfoFixture(
+            BuildDetailsSizeAnalysisState.PENDING
+          );
         }
-        return createBuildDetailsResponse(BuildDetailsSizeAnalysisState.PROCESSING);
+        return PreprodBuildDetailsWithSizeInfoFixture(
+          BuildDetailsSizeAnalysisState.PROCESSING
+        );
       },
     });
 
