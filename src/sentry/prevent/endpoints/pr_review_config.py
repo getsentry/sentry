@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from jsonschema import validate
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,7 +10,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT, PREVENT_AI_CONFIG_SCHEMA
+from sentry.prevent.models import PreventAIConfiguration
+from sentry.prevent.types.config import ORG_CONFIG_SCHEMA, PREVENT_AI_CONFIG_GITHUB_DEFAULT
 
 PREVENT_AI_CONFIG_GITHUB_OPTION = "sentry:prevent_ai_config_github"
 
@@ -34,30 +37,36 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
     }
     permission_classes = (PreventAIConfigPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization, git_organization: str) -> Response:
         """
-        Get the Prevent AI GitHub configuration for an organization.
-        If not explicitly set, return the default.
+        Get the Prevent AI GitHub configuration for a specific git organization.
         """
-        config = organization.get_option(PREVENT_AI_CONFIG_GITHUB_OPTION)
-        if config is None:
-            config = PREVENT_AI_CONFIG_GITHUB_DEFAULT
-        return Response({"preventAiConfigGithub": config}, status=200)
+        response_data = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
 
-    def put(self, request: Request, organization: Organization) -> Response:
+        config = PreventAIConfiguration.objects.filter(
+            organization_id=organization.id, provider="github", git_organization=git_organization
+        ).first()
+
+        if config:
+            response_data["github_organization"][git_organization] = config.data
+
+        return Response(response_data, status=200)
+
+    def put(self, request: Request, organization: Organization, git_organization: str) -> Response:
         """
         Update the Prevent AI GitHub configuration for an organization.
         """
-        config = request.data.get("config")
-        if config is None:
-            return Response({"detail": "Missing 'config' parameter"}, status=400)
-
         try:
-            validate(config, PREVENT_AI_CONFIG_SCHEMA)
+            validate(request.data, ORG_CONFIG_SCHEMA)
         except Exception:
             return Response({"detail": "Invalid config"}, status=400)
 
-        organization.update_option(PREVENT_AI_CONFIG_GITHUB_OPTION, config)
+        PreventAIConfiguration.objects.update_or_create(
+            organization_id=organization.id,
+            provider="github",
+            git_organization=git_organization,
+            defaults={"data": request.data},
+        )
 
         self.create_audit_entry(
             request=request,
@@ -67,4 +76,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
             data={"preventAiConfigGithub": "updated"},
         )
 
-        return Response({"preventAiConfigGithub": config}, status=200)
+        response_data = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
+        response_data["github_organization"][git_organization] = request.data
+
+        return Response(response_data, status=200)

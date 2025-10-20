@@ -77,7 +77,6 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -696,10 +695,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "preventAiConfigGithub": obj.get_option(
-                "sentry:prevent_ai_config_github",
-                PREVENT_AI_CONFIG_GITHUB_DEFAULT,
             ),
             "enablePrReviewTestGeneration": bool(
                 obj.get_option(

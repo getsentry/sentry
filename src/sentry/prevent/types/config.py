@@ -78,31 +78,14 @@ _REPO_OVERRIDES_SCHEMA = {
     "additionalProperties": False,
 }
 
-_ORG_CONFIG_SCHEMA = {
+ORG_CONFIG_SCHEMA = {
     "type": "object",
     "properties": {
         "org_defaults": _ORG_DEFAULTS_SCHEMA,
         "repo_overrides": _REPO_OVERRIDES_SCHEMA,
+        "schema_version": {"type": "string", "enum": ["v1"]},
     },
     "required": ["org_defaults", "repo_overrides"],
-    "additionalProperties": False,
-}
-
-
-PREVENT_AI_CONFIG_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "schema_version": {"type": "string", "enum": ["v1"]},
-        "default_org_config": _ORG_CONFIG_SCHEMA,
-        "github_organizations": {
-            "type": "object",
-            "patternProperties": {
-                ".*": _ORG_CONFIG_SCHEMA,
-            },
-            "additionalProperties": False,
-        },
-    },
-    "required": ["schema_version", "default_org_config", "github_organizations"],
     "additionalProperties": False,
 }
 
@@ -136,5 +119,5 @@ PREVENT_AI_CONFIG_GITHUB_DEFAULT = {
         },
         "repo_overrides": {},
     },
-    "github_organizations": {},
+    "github_organization": {},
 }

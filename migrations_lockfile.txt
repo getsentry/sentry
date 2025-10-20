@@ -25,6 +25,8 @@ notifications: 0002_notificationmessage_jsonfield
 
 preprod: 0017_break_commit_fks
 
+prevent: 0001_initial_prevent_ai_configuration
+
 releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job

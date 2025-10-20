@@ -1161,6 +1161,17 @@ PREVENT_URLS = [
         SyncReposEndpoint.as_view(),
         name="sentry-api-0-repositories-sync",
     ),
+    # Prevent AI endpoints
+    re_path(
+        r"^ai/github/config/(?P<git_organization>[^/]+)/$",
+        OrganizationPreventGitHubConfigEndpoint.as_view(),
+        name="sentry-api-0-organization-prevent-github-config",
+    ),
+    re_path(
+        r"^ai/github/repos/$",
+        OrganizationPreventGitHubReposEndpoint.as_view(),
+        name="sentry-api-0-organization-prevent-github-repos",
+    ),
 ]
 
 USER_URLS = [
@@ -2143,17 +2154,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/commits/$",
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-commits",
-    ),
-    # Prevent AI endpoints
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/prevent/github/config/$",
-        OrganizationPreventGitHubConfigEndpoint.as_view(),
-        name="sentry-api-0-organization-prevent-github-config",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/prevent/github/repos/$",
-        OrganizationPreventGitHubReposEndpoint.as_view(),
-        name="sentry-api-0-organization-prevent-github-repos",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",
