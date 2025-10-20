@@ -3594,8 +3594,8 @@ register(
     default={
         "sentry_app_slug": [],
         "installation_uuid": [
-            "2893a669-1743-4221-b47e-00ad9effca45",
-            "262bc32b-912c-443b-83e5-18b36ffd7fee",
+            "2893a669-1743-4221-b47e-00ad9effca45",  # lendable
+            "262bc32b-912c-443b-83e5-18b36ffd7fee",  # precoro-u9
         ],
     },
     flags=FLAG_AUTOMATOR_MODIFIABLE,
