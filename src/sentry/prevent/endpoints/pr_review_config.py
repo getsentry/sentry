@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 from jsonschema import validate
 from rest_framework.request import Request
@@ -39,7 +40,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
         """
         Get the Prevent AI GitHub configuration for a specific git organization.
         """
-        response_data = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
+        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
 
         config = PreventAIConfiguration.objects.filter(
             organization_id=organization.id, provider="github", git_organization=git_organization
@@ -74,7 +75,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
             data={"preventAiConfigGithub": "updated"},
         )
 
-        response_data = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
+        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
         response_data["github_organization"][git_organization] = request.data
 
         return Response(response_data, status=200)

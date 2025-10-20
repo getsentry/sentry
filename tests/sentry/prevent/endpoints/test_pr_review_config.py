@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 from unittest import mock
 
 from sentry.prevent.models import PreventAIConfiguration
@@ -108,11 +109,11 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         url_1 = f"/api/0/organizations/{self.org.slug}/prevent/ai/github/config/{git_org_1}/"
         url_2 = f"/api/0/organizations/{self.org.slug}/prevent/ai/github/config/{git_org_2}/"
 
-        config_1 = deepcopy(VALID_ORG_CONFIG)
+        config_1: dict[str, Any] = deepcopy(VALID_ORG_CONFIG)
         config_1["org_defaults"]["bug_prediction"]["enabled"] = True
         config_1["org_defaults"]["test_generation"]["enabled"] = True
 
-        config_2 = deepcopy(VALID_ORG_CONFIG)
+        config_2: dict[str, Any] = deepcopy(VALID_ORG_CONFIG)
         config_2["org_defaults"]["bug_prediction"]["enabled"] = False
         config_2["org_defaults"]["test_generation"]["enabled"] = False
 
