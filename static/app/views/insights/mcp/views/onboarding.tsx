@@ -23,7 +23,6 @@ import type {
 import {
   DocsPageLocation,
   ProductSolution,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -326,15 +325,10 @@ export function Onboarding() {
 
   const introduction = mcpDocs.introduction?.(docParams);
 
-  const steps = [
+  const steps: OnboardingStep[] = [
     ...(mcpDocs.install?.(docParams) || []),
     ...(mcpDocs.configure?.(docParams) || []),
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Verify that MCP monitoring is working correctly by triggering some MCP server interactions in your application.'
-      ),
-    },
+    ...(mcpDocs.verify?.(docParams) || []),
   ];
 
   return (
