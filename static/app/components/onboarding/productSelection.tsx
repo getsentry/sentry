@@ -92,7 +92,6 @@ export const platformProductAvailability = {
   'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-uwp': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
