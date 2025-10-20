@@ -650,7 +650,14 @@ def _should_use_on_demand_metrics(
     prefilling_for_deprecation: bool = False,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
-    supported_by = _query_supported_by(dataset, aggregate, query, groupbys, prefilling)
+    supported_by = _query_supported_by(
+        dataset,
+        aggregate,
+        query,
+        groupbys,
+        prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
+    )
 
     if prefilling_for_deprecation:
         return supported_by.on_demand_metrics
