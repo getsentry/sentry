@@ -20,16 +20,23 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.discord.types import DiscordPermissions
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.provider import IntegrationNotificationClient
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
@@ -79,6 +86,11 @@ metadata = IntegrationMetadata(
 )
 
 
+def record_discord_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiError) -> None:
+    """Stub function for Discord lifecycle termination"""
+    lifecycle.record_halt(halt_reason=str(error))
+
+
 class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> DiscordClient:
         return DiscordClient()
@@ -86,8 +98,24 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: DiscordRenderable
     ) -> None:
-        client = self.get_client()
-        client.send_message(channel_id=target.resource_id, message=payload)
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.SEND_NOTIFICATION,
+            spec=DiscordMessagingSpec(),
+        ).capture() as lifecycle:
+            client = self.get_client()
+            try:
+                client.send_message(channel_id=target.resource_id, message=payload)
+            except ApiError as e:
+                lifecycle.add_extras(
+                    {
+                        "target": json.dumps(target.to_dict()),
+                        "error_code": e.code if hasattr(e, "code") else None,
+                        "msg": str(e),
+                        "channel_id": target.resource_id,
+                    }
+                )
+                record_discord_lifecycle_termination_level(lifecycle, e)
+                raise
 
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove

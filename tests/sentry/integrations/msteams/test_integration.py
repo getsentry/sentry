@@ -1,12 +1,18 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
+import pytest
 import responses
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.msteams.integration import MsTeamsIntegrationProvider
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.integrations.msteams.integration import MsTeamsIntegration, MsTeamsIntegrationProvider
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.types import NotificationTargetResourceType
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.testutils.asserts import assert_count_of_metric
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import sign
 
@@ -110,3 +116,56 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_personal_installation(self) -> None:
         self.assert_setup_flow(installation_type="tenant")
+
+
+@control_silo_test
+class MsTeamsIntegrationSendNotificationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="msteams",
+            name="MS Teams",
+            external_id=team_id,
+            metadata={
+                "access_token": "test-access-token",
+                "service_url": "https://smba.trafficmanager.net/amer/",
+                "installation_type": "team",
+                "tenant_id": tenant_id,
+            },
+        )
+        self.installation = MsTeamsIntegration(self.integration, self.organization.id)
+        self.target = IntegrationNotificationTarget(
+            provider_key="msteams",
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="conversation123",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.msteams.client.MsTeamsClient.send_card")
+    def test_send_notification_success(
+        self, mock_send_card: MagicMock, mock_record: MagicMock
+    ) -> None:
+        from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+
+        payload = AdaptiveCard(body=[])  # Simple test payload
+
+        self.installation.send_notification(target=self.target, payload=payload)
+
+        mock_send_card.assert_called_once_with(conversation_id="conversation123", card=payload)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.msteams.client.MsTeamsClient.send_card")
+    def test_send_notification_api_error(
+        self, mock_send_card: MagicMock, mock_record: MagicMock
+    ) -> None:
+        from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+
+        mock_send_card.side_effect = ApiError("MS Teams API error", code=400)
+        payload = AdaptiveCard(body=[])
+
+        with pytest.raises(ApiError):
+            self.installation.send_notification(target=self.target, payload=payload)
+
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.HALTED, 1)

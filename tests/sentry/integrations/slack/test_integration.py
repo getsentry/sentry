@@ -13,7 +13,11 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.types import NotificationTargetResourceType
+from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -493,3 +497,62 @@ class SlackIntegrationConfigTest(TestCase):
     def test_config_data_born_as_bot(self) -> None:
         self.integration.metadata["installation_type"] = "born_as_bot"
         assert self.installation.get_config_data()["installationType"] == "born_as_bot"
+
+
+@control_silo_test
+class SlackIntegrationSendNotificationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="slack",
+            name="Slack",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.installation = SlackIntegration(self.integration, self.organization.id)
+        self.target = IntegrationNotificationTarget(
+            provider_key="slack",
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="C1234567890",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_notification_success(
+        self, mock_chat_post: MagicMock, mock_record: MagicMock
+    ) -> None:
+        payload = {
+            "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Test"}}],
+            "text": "Test",
+        }
+
+        self.installation.send_notification(target=self.target, payload=payload)
+
+        mock_chat_post.assert_called_once_with(
+            channel="C1234567890",
+            blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": "Test"}}],
+            text="Test",
+        )
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_notification_api_error(
+        self, mock_chat_post: MagicMock, mock_record: MagicMock
+    ) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_response.data = {"error": "channel_not_found"}
+        mock_response.api_url = "https://slack.com/api/chat.postMessage"
+
+        mock_chat_post.side_effect = SlackApiError("channel_not_found", mock_response)
+        payload = {"blocks": [], "text": "Test"}
+
+        with pytest.raises(SlackApiError):
+            self.installation.send_notification(target=self.target, payload=payload)
+
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.HALTED, 1)

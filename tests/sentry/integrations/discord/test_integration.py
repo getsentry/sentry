@@ -6,18 +6,25 @@ import responses
 from responses.matchers import header_matcher, json_params_matcher
 
 from sentry import audit_log, options
-from sentry.api.client import ApiError
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     DISCORD_BASE_URL,
     GUILD_URL,
     DiscordClient,
 )
-from sentry.integrations.discord.integration import COMMANDS, DiscordIntegrationProvider
+from sentry.integrations.discord.integration import (
+    COMMANDS,
+    DiscordIntegration,
+    DiscordIntegrationProvider,
+)
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.types import NotificationTargetResourceType
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.testutils.asserts import assert_count_of_metric
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -503,3 +510,44 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
                     "code": "some_auth_code",
                 }
             )
+
+
+@control_silo_test
+class DiscordIntegrationSendNotificationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="discord", name="Discord", external_id="123456789"
+        )
+        self.installation = DiscordIntegration(self.integration, self.organization.id)
+        self.target = IntegrationNotificationTarget(
+            provider_key="discord",
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="987654321",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.send_message")
+    def test_send_notification_success(
+        self, mock_send: mock.MagicMock, mock_record: mock.MagicMock
+    ) -> None:
+        payload = "Test Discord message"
+
+        self.installation.send_notification(target=self.target, payload=payload)
+
+        mock_send.assert_called_once_with(channel_id="987654321", message="Test Discord message")
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.send_message")
+    def test_send_notification_api_error(
+        self, mock_send: mock.MagicMock, mock_record: mock.MagicMock
+    ) -> None:
+        mock_send.side_effect = ApiError("Discord API error", code=400)
+        payload = "Test Discord message"
+
+        with pytest.raises(ApiError):
+            self.installation.send_notification(target=self.target, payload=payload)
+
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.HALTED, 1)
