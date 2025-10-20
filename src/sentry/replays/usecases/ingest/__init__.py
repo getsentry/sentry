@@ -235,21 +235,21 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
     # Write to GCS.
     storage_kv.set(recording.filename, recording.filedata)
 
+    try:
+        project = Project.objects.get_from_cache(id=recording.context["project_id"])
+        assert isinstance(project, Project)
+    except Project.DoesNotExist as exc:
+        logger.warning(
+            "Recording segment was received for a project that does not exist.",
+            extra={
+                "project_id": recording.context["project_id"],
+                "replay_id": recording.context["replay_id"],
+            },
+        )
+        raise DropEvent("Could not find project.") from exc
+
     # Write to billing consumer if its a billable event.
     if recording.context["segment_id"] == 0:
-        try:
-            project = Project.objects.get_from_cache(id=recording.context["project_id"])
-            assert isinstance(project, Project)
-        except Project.DoesNotExist as exc:
-            logger.warning(
-                "Recording segment was received for a project that does not exist.",
-                extra={
-                    "project_id": recording.context["project_id"],
-                    "replay_id": recording.context["replay_id"],
-                },
-            )
-            raise DropEvent("Could not find project.") from exc
-
         _track_initial_segment_event(
             recording.context["org_id"],
             project,
@@ -277,7 +277,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
         emit_replay_events(
             recording.actions_event,
             recording.context["org_id"],
-            recording.context["project_id"],
+            project,
             recording.context["replay_id"],
             recording.context["retention_days"],
             recording.replay_event,
@@ -290,7 +290,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
 def emit_replay_events(
     event_meta: ParsedEventMeta,
     org_id: int,
-    project_id: int,
+    project: Project,
     replay_id: str,
     retention_days: int,
     replay_event: dict[str, Any] | None,
@@ -299,7 +299,7 @@ def emit_replay_events(
 
     emit_click_events(
         event_meta.click_events,
-        project_id,
+        project.id,
         replay_id,
         retention_days,
         start_time=time.time(),
@@ -308,20 +308,20 @@ def emit_replay_events(
 
     emit_tap_events(
         event_meta.tap_events,
-        project_id,
+        project.id,
         replay_id,
         retention_days,
         start_time=time.time(),
         environment=environment,
     )
     emit_request_response_metrics(event_meta)
-    log_canvas_size(event_meta, org_id, project_id, replay_id)
-    log_mutation_events(event_meta, project_id, replay_id)
-    log_option_events(event_meta, project_id, replay_id)
-    log_multiclick_events(event_meta, project_id, replay_id)
-    log_rage_click_events(event_meta, project_id, replay_id)
-    report_hydration_error(event_meta, project_id, replay_id, replay_event)
-    report_rage_click(event_meta, project_id, replay_id, replay_event)
+    log_canvas_size(event_meta, org_id, project.id, replay_id)
+    log_mutation_events(event_meta, project.id, replay_id)
+    log_option_events(event_meta, project.id, replay_id)
+    log_multiclick_events(event_meta, project.id, replay_id)
+    log_rage_click_events(event_meta, project.id, replay_id)
+    report_hydration_error(event_meta, project, replay_id, replay_event)
+    report_rage_click(event_meta, project, replay_id, replay_event)
 
 
 def _track_initial_segment_event(
