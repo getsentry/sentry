@@ -18,13 +18,13 @@ import {t, tct} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 function DataForwardingStats() {
   const {orgId, projectId} = useParams<{orgId: string; projectId: string}>();
@@ -88,13 +88,9 @@ function DataForwardingStats() {
   );
 }
 
-type Props = {
-  project: Project;
-};
-
-function ProjectDataForwarding({project}: Props) {
+export default function ProjectDataForwarding() {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const {project} = useProjectSettingsOutlet();
   const [pluginState, setPluginState] = useState<Plugin[]>([]);
 
   const {
@@ -102,7 +98,7 @@ function ProjectDataForwarding({project}: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Plugin[]>([`/projects/${organization.slug}/${projectId}/plugins/`], {
+  } = useApiQuery<Plugin[]>([`/projects/${organization.slug}/${project.slug}/plugins/`], {
     staleTime: 0,
   });
 
@@ -201,5 +197,3 @@ function ProjectDataForwarding({project}: Props) {
     </div>
   );
 }
-
-export default ProjectDataForwarding;

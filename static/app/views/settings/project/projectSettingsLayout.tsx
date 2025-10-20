@@ -1,48 +1,50 @@
-import {cloneElement, isValidElement} from 'react';
+import {Outlet, useOutletContext} from 'react-router-dom';
 
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
-type Props = {
-  children: React.ReactNode;
-} & RouteComponentProps<{projectId: string}>;
+type Props = RouteComponentProps<{projectId: string}>;
 
 type InnerProps = Props & {project: Project};
 
-function InnerProjectSettingsLayout({
-  params,
-  routes,
-  project,
-  children,
-  ...props
-}: InnerProps) {
+type ProjectSettingsOutletContext = {
+  project: Project;
+};
+
+function ProjectSettingsOutlet(props: ProjectSettingsOutletContext) {
+  return <Outlet context={props} />;
+}
+
+export function useProjectSettingsOutlet() {
+  return useOutletContext<ProjectSettingsOutletContext>();
+}
+
+function InnerProjectSettingsLayout({params, routes, project, ...props}: InnerProps) {
   // set analytics params for route based analytics
   useRouteAnalyticsParams({
     project_id: project.id,
     project_platform: project.platform,
   });
 
-  const organization = useOrganization();
-
   return (
     <SettingsLayout params={params} routes={routes} {...props}>
-      {children && isValidElement(children)
-        ? cloneElement<any>(children, {organization, project})
-        : children}
+      <ProjectSettingsOutlet project={project} />
     </SettingsLayout>
   );
 }
 
-function ProjectSettingsLayout({params, ...props}: Props) {
+export default function ProjectSettingsLayout(props: Props) {
+  const params = useParams<{projectId: string}>();
+
   return (
     <ProjectContext projectSlug={params.projectId}>
-      {({project}) => <InnerProjectSettingsLayout {...{params, project, ...props}} />}
+      {({project}) => (
+        <InnerProjectSettingsLayout {...props} params={params} project={project} />
+      )}
     </ProjectContext>
   );
 }
-
-export default ProjectSettingsLayout;

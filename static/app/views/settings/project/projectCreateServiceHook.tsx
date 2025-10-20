@@ -2,16 +2,14 @@ import {Fragment} from 'react';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
-interface Props extends RouteComponentProps<{projectId: string}> {}
-
-function ProjectCreateServiceHook({params}: Props) {
-  const {projectId} = params;
+export default function ProjectCreateServiceHook() {
   const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
   const title = t('Create Service Hook');
 
   return (
@@ -20,12 +18,10 @@ function ProjectCreateServiceHook({params}: Props) {
         <SettingsPageHeader title={title} />
         <ServiceHookSettingsForm
           organization={organization}
-          projectId={projectId}
+          projectId={project.slug}
           initialData={{events: [], isActive: true}}
         />
       </Fragment>
     </SentryDocumentTitle>
   );
 }
-
-export default ProjectCreateServiceHook;
