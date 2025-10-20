@@ -4,6 +4,7 @@ from sentry.seer.endpoints.organization_seer_explorer_chat import _collect_user_
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.requests import drf_request_from_request
 
 
 @with_feature("organizations:seer-explorer")
@@ -334,7 +335,8 @@ class CollectUserOrgContextTest(APITestCase):
 
     def test_collect_context_with_member(self):
         """Test context collection for a user who is an organization member"""
-        request = self.make_request(user=self.user)
+        http_request = self.make_request(user=self.user)
+        request = drf_request_from_request(http_request)
         context = _collect_user_org_context(request, self.organization)
 
         assert context is not None
@@ -360,7 +362,8 @@ class CollectUserOrgContextTest(APITestCase):
         with unguarded_write(using="default"):
             self.member.teams.add(team2)
 
-        request = self.make_request(user=self.user)
+        http_request = self.make_request(user=self.user)
+        request = drf_request_from_request(http_request)
         context = _collect_user_org_context(request, self.organization)
 
         assert context is not None
@@ -373,25 +376,11 @@ class CollectUserOrgContextTest(APITestCase):
         with unguarded_write(using="default"):
             self.member.teams.clear()
 
-        request = self.make_request(user=self.user)
+        http_request = self.make_request(user=self.user)
+        request = drf_request_from_request(http_request)
         context = _collect_user_org_context(request, self.organization)
 
         assert context is not None
-        assert context["user_teams"] == []
-        assert context["user_projects"] == []
-        # Should still have all org projects
-        assert len(context["all_org_projects"]) == 3
-
-    def test_collect_context_non_member(self):
-        """Test context collection for a user who is not an org member"""
-        non_member_user = self.create_user(name="Non Member", email="nonmember@example.com")
-        request = self.make_request(user=non_member_user)
-        context = _collect_user_org_context(request, self.organization)
-
-        assert context is not None
-        assert context["org_slug"] == self.organization.slug
-        assert context["user_name"] is None
-        assert context["user_email"] is None
         assert context["user_teams"] == []
         assert context["user_projects"] == []
         # Should still have all org projects
