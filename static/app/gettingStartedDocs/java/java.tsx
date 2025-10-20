@@ -408,13 +408,16 @@ export const feedbackOnboardingCrashApiJava: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Java',
-              value: 'java',
               language: 'java',
               code: `import io.sentry.Sentry;
 import io.sentry.UserFeedback;
@@ -429,7 +432,6 @@ Sentry.captureUserFeedback(userFeedback);`,
             },
             {
               label: 'Kotlin',
-              value: 'kotlin',
               language: 'kotlin',
               code: `import io.sentry.Sentry
 import io.sentry.UserFeedback
