@@ -71,7 +71,7 @@ export type MenuListItemProps = {
    * not very visible - if possible, add additional text via the `details`
    * prop instead.
    */
-  tooltip?: React.ReactNode;
+  tooltip?: EdgeItems;
   /**
    * Additional props to be passed into <Tooltip />.
    */
@@ -130,7 +130,15 @@ function BaseMenuListItem({
       ref={mergeRefs(ref, itemRef)}
       {...props}
     >
-      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+      <Tooltip
+        skipWrapper
+        title={
+          typeof tooltip === 'function'
+            ? tooltip({disabled, isFocused, isSelected})
+            : tooltip
+        }
+        {...tooltipOptions}
+      >
         <InnerWrap
           isFocused={isFocused}
           disabled={disabled}
