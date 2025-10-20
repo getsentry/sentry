@@ -13,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
@@ -27,6 +28,7 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
@@ -41,6 +43,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -50,13 +53,21 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
   const title = useFormField('name');
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automation'), to: makeAutomationBasePathname(organization.slug)},
+        {
+          label: t('Automation'),
+          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+        },
         {
           label: title,
-          to: makeAutomationDetailsPathname(organization.slug, automationId),
+          to: makeAutomationDetailsPathname(
+            organization.slug,
+            automationId,
+            automationsLinkPrefix
+          ),
         },
         {label: t('Configure')},
       ]}
@@ -90,6 +101,7 @@ export default function AutomationEdit() {
 function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
@@ -144,10 +156,23 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...formData,
         };
         const updatedAutomation = await updateAutomation(updatedData);
-        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+        navigate(
+          makeAutomationDetailsPathname(
+            organization.slug,
+            updatedAutomation.id,
+            automationsLinkPrefix
+          )
+        );
       }
     },
-    [automation.id, organization.slug, navigate, updateAutomation, state]
+    [
+      automation.id,
+      organization.slug,
+      navigate,
+      updateAutomation,
+      state,
+      automationsLinkPrefix,
+    ]
   );
 
   return (
@@ -168,9 +193,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               </Layout.Title>
             </Layout.HeaderContent>
             <div>
-              <Flex>
-                <EditAutomationActions automation={automation} />
-              </Flex>
+              <AutomationFeedbackButton />
             </div>
           </HeaderInner>
         </StyledLayoutHeader>
@@ -198,6 +221,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </Layout.Main>
         </StyledBody>
       </Layout.Page>
+      <StickyFooter>
+        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <EditAutomationActions automation={automation} />
+        </Flex>
+      </StickyFooter>
     </FullHeightForm>
   );
 }

@@ -8,12 +8,12 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
 } from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 interface EditAutomationActionsProps {
   automation: Automation;
@@ -21,6 +21,7 @@ interface EditAutomationActionsProps {
 
 export function EditAutomationActions({automation}: EditAutomationActionsProps) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const navigate = useNavigate();
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
@@ -51,15 +52,20 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
       priority: 'danger',
       onConfirm: async () => {
         await deleteAutomation(automation.id);
-        navigate(makeAutomationBasePathname(organization.slug));
+        navigate(makeAutomationBasePathname(organization.slug, automationsLinkPrefix));
       },
     });
-  }, [deleteAutomation, automation.id, navigate, organization.slug]);
+  }, [
+    deleteAutomation,
+    automation.id,
+    navigate,
+    organization.slug,
+    automationsLinkPrefix,
+  ]);
 
   return (
     <div>
       <ButtonBar>
-        <AutomationFeedbackButton />
         <Button
           priority="default"
           size="sm"
