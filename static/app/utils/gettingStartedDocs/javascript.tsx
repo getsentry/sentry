@@ -3,7 +3,6 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
   type BasePlatformOptions,
-  type Configuration,
   type ContentBlock,
   type DocsParams,
   type OnboardingConfig,
