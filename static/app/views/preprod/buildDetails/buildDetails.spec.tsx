@@ -202,7 +202,6 @@ describe('BuildDetails', () => {
     // Size analysis should only be called once initially
     expect(appSizeMock).toHaveBeenCalledTimes(1);
 
-    // Wait for the refetchInterval to trigger and get the COMPLETED state
     await waitFor(
       () => {
         expect(buildDetailsMock).toHaveBeenCalledTimes(2);
@@ -258,7 +257,6 @@ describe('BuildDetails', () => {
     MockApiClient.clearMockResponses();
 
     let callCount = 0;
-    // Mock build details to return different responses on subsequent calls
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
