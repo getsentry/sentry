@@ -56,8 +56,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   // Move focus to this item on hover
   const {hoverProps} = useHover({
     // We rely on these props for styling the focus and hover effect
-    onHoverStart: () => setFocusWithin(true),
-    onHoverEnd: () => setFocusWithin(false),
+    onHoverStart: () => ref.current?.focus({preventScroll: true}),
   });
 
   // Show focus effect when document focus is on or inside the item
