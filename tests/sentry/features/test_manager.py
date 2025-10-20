@@ -47,16 +47,11 @@ class MockBatchHandler(features.BatchFeatureHandler):
     def _check_for_batch(self, feature_name, organization, actor):
         raise NotImplementedError
 
-    def has_batch_for_organizations(self, feature_names, actor, organizations):
-        # This implementation assumes self.features contains the feature names this handler can evaluate.
-        # Returns a dict from org key to subdict {feature: bool}
-        results = {}
+    def batch_has_for_organizations(self, feature_name, actor, organizations) -> dict[str, bool]:
+        results: dict[str, bool] = {}
         for org in organizations:
             entity_key = f"organization:{org.id}"
-            feature_results = {}
-            for feature_name in feature_names:
-                feature_results[feature_name] = feature_name in self.features
-            results[entity_key] = feature_results
+            results[entity_key] = feature_name in self.features
         return results
 
 
@@ -373,14 +368,14 @@ class FeatureManagerTest(TestCase):
         organizations = [self.organization, self.create_organization()]
 
         result = manager.batch_has_for_organizations(
-            ["organizations:feature"], organizations, actor=self.user
+            "organizations:feature", organizations, actor=self.user
         )
         assert result is not None
         for org in organizations:
-            assert result[f"organization:{org.id}"]["organizations:feature"]
+            assert result[f"organization:{org.id}"]
 
     def test_batch_has_for_organizations_no_entity_handler(self) -> None:
-        # Deliberately do NOT define has_batch_for_organizations
+        # Deliberately do NOT define batch_has_for_organizations
         class NoBatchOrgHandler(features.BatchFeatureHandler):
             features = {"organizations:feature"}
 
@@ -419,25 +414,6 @@ class FeatureManagerTest(TestCase):
         assert result is not None
         for org in organizations:
             assert result[f"organization:{org.id}"] is True
-
-    def test_batch_has_for_organizations_error(self) -> None:
-        manager = features.FeatureManager()
-        manager.add("organizations:feature", OrganizationFeature)
-        handler = mock.Mock(spec=features.FeatureHandler)
-        handler.has_batch_for_organizations.side_effect = Exception("something bad")
-        manager.add_entity_handler(handler)
-
-        organizations = [self.organization, self.create_organization()]
-
-        with (
-            mock.patch("sentry.features.manager.sentry_sdk.capture_exception") as mock_capture,
-            override_options({"features.error.capture_rate": 1.0}),
-        ):
-            result = manager.batch_has_for_organizations(
-                "organizations:feature", organizations, actor=self.user
-            )
-            assert result is None
-            assert mock_capture.call_count == 1
 
     def test_has(self) -> None:
         manager = features.FeatureManager()

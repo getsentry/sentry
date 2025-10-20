@@ -64,12 +64,12 @@ class FeatureHandler:
     ) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError
 
-    def has_batch_for_organizations(
+    def batch_has_for_organizations(
         self,
-        feature_names: Sequence[str],
+        feature_name: str,
         actor: User | RpcUser | AnonymousUser | None,
         organizations: Sequence[Organization],
-    ) -> dict[str, dict[str, bool | None]] | None:
+    ) -> dict[str, bool]:
         raise NotImplementedError
 
 
