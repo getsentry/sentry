@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
@@ -152,74 +150,100 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t(
-        `Install the SDK via %s:`,
-        packageManagerName[params.platformOptions.packageManager]
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            `Install the SDK via %s:`,
+            packageManagerName[params.platformOptions.packageManager]
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
               link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
-        ...(params.platformOptions.packageManager === PackageManager.GRADLE
-          ? [
-              {
-                language: 'groovy',
-                description: tct(
-                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
-                  {
-                    code: <code />,
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
-                    ),
-                  }
-                ),
-                code: getGradleInstallSnippet(params),
-              },
-            ]
-          : []),
-        ...(params.platformOptions.packageManager === PackageManager.MAVEN
-          ? [
-              {
-                language: 'xml',
-                description: tct(
-                  'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
-                  {
-                    code: <code />,
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
-                    ),
-                  }
-                ),
-                code: getMavenInstallSnippet(params),
-              },
-            ]
-          : []),
-      ],
-      additionalInfo: tct(
-        'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.GRADLE,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'groovy',
+              code: getGradleInstallSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.MAVEN,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'xml',
+              code: getMavenInstallSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configure Sentry as soon as possible in your application's lifecycle:"
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "Configure Sentry as soon as possible in your application's lifecycle:"
+          ),
+        },
+        {
+          type: 'code',
           language: 'kotlin',
           code: getConfigureSnippet(params),
         },
@@ -229,26 +253,29 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Trigger your first event from your development environment by intentionally creating an error with the [code:Sentry#captureException] method, to test that everything is working:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'Trigger your first event from your development environment by intentionally creating an error with the [code:Sentry#captureException] method, to test that everything is working:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'kotlin',
           code: getVerifySnippet(),
-          additionalInfo: (
-            <Fragment>
-              {t(
-                "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-              )}
-              <p>
-                {t(
-                  "If you're an existing user and have disabled alerts, you won't receive this email."
-                )}
-              </p>
-            </Fragment>
-          ),
+        },
+        {
+          type: 'text',
+          text: [
+            t(
+              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+            ),
+            t(
+              "If you're an existing user and have disabled alerts, you won't receive this email."
+            ),
+          ],
         },
       ],
     },
@@ -268,15 +295,15 @@ const feedbackOnboardingCrashApi: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
-            {
-              label: 'Kotlin',
-              value: 'kotlin',
-              language: 'kotlin',
-              code: `import io.sentry.kotlin.multiplatform.Sentry
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          language: 'kotlin',
+          code: `import io.sentry.kotlin.multiplatform.Sentry
 import io.sentry.kotlin.multiplatform.protocol.UserFeedback
 
 val sentryId = Sentry.captureMessage("My message")
@@ -287,8 +314,6 @@ val userFeedback = UserFeedback(sentryId).apply {
   name = "John Doe"
 }
 Sentry.captureUserFeedback(userFeedback)`,
-            },
-          ],
         },
       ],
     },
