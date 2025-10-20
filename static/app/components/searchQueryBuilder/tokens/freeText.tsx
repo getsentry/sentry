@@ -133,12 +133,11 @@ function countPreviousItemsOfType({
 function calculateNextFocusForFilter(
   state: ListState<ParseResultToken>,
   definition: FieldDefinition | null,
-  key: string | null,
-  hasInputChangeFlows: boolean
+  key: string | null
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
 
-  let part: FocusOverride['part'] = hasInputChangeFlows ? 'op' : 'value';
+  let part: FocusOverride['part'] = 'value';
   if (
     definition &&
     definition.kind === FieldKind.FUNCTION &&
@@ -259,9 +258,6 @@ function SearchQueryBuilderInputInternal({
   const [selectionIndex, setSelectionIndex] = useState(0);
 
   const organization = useOrganization();
-  const hasInputChangeFlows = organization.features.includes(
-    'search-query-builder-input-flow-changes'
-  );
   const hasWildcardOperators =
     organization.features.includes('search-query-builder-wildcard-operators') &&
     organization.features.includes('search-query-builder-default-to-contains');
@@ -481,8 +477,7 @@ function SearchQueryBuilderInputInternal({
             focusOverride: calculateNextFocusForFilter(
               state,
               getFieldDefinition(value),
-              value,
-              hasInputChangeFlows
+              value
             ),
             shouldCommitQuery: false,
           });
@@ -585,8 +580,7 @@ function SearchQueryBuilderInputInternal({
                   focusOverride: calculateNextFocusForFilter(
                     state,
                     getFieldDefinition(filterValue),
-                    null,
-                    hasInputChangeFlows
+                    null
                   ),
                   shouldCommitQuery: false,
                 });
@@ -629,8 +623,7 @@ function SearchQueryBuilderInputInternal({
               focusOverride: calculateNextFocusForFilter(
                 state,
                 getFieldDefinition(filterKey),
-                filterKey,
-                hasInputChangeFlows
+                filterKey
               ),
               shouldCommitQuery: false,
             });
