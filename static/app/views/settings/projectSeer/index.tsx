@@ -30,6 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {AutofixRepositories} from './autofixRepositories';
 import {SEER_THRESHOLD_OPTIONS} from './constants';
@@ -38,10 +39,6 @@ const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
-
-interface ProjectSeerProps {
-  project: Project;
-}
 
 export const SEER_THRESHOLD_MAP = [
   'off',
@@ -85,7 +82,7 @@ export const autofixAutomatingTuningField = {
   visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
-function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
+function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
@@ -263,7 +260,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   );
 }
 
-function ProjectSeer({project}: ProjectSeerProps) {
+function ProjectSeer({project}: {project: Project}) {
   const organization = useOrganization();
   const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
 
@@ -334,8 +331,9 @@ function ProjectSeer({project}: ProjectSeerProps) {
   );
 }
 
-export default function ProjectSeerContainer({project}: ProjectSeerProps) {
+export default function ProjectSeerContainer() {
   const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
