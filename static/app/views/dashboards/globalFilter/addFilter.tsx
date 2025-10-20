@@ -40,10 +40,11 @@ function getTagType(tag: Tag, dataset: WidgetType) {
 
 type AddFilterProps = {
   getSearchBarData: (widgetType: WidgetType) => SearchBarData;
+  globalFilters: GlobalFilter[];
   onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddFilter({getSearchBarData, onAddFilter}: AddFilterProps) {
+function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProps) {
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
@@ -74,6 +75,7 @@ function AddFilter({getSearchBarData, onAddFilter}: AddFilterProps) {
           value: tag.key,
           label: prettifyTagKey(tag.key),
           trailingItems: <TagBadge>{getTagType(tag, selectedDataset)}</TagBadge>,
+          disabled: globalFilters.some(filter => filter.tag.key === tag.key),
         };
       })
     : [];

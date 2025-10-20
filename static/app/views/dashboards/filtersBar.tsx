@@ -166,6 +166,7 @@ export default function FiltersBar({
                 />
               ))}
               <AddFilter
+                globalFilters={activeGlobalFilters}
                 getSearchBarData={getSearchBarData}
                 onAddFilter={newFilter => {
                   updateGlobalFilters([...activeGlobalFilters, newFilter]);
