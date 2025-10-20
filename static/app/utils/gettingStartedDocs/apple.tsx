@@ -120,9 +120,14 @@ SentrySDK.start { options in
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 };
