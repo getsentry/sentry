@@ -3194,6 +3194,12 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
