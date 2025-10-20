@@ -74,6 +74,7 @@ def process_sentry_app_deletes(object_identifier: int, region_name: str, **kwds:
             status=ObjectStatus.DISABLED,
             sentry_app_id=object_identifier,
         )
+        # TODO: also update webhook actions
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
