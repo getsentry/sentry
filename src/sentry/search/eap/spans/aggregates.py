@@ -22,6 +22,7 @@ from sentry.search.eap.columns import (
     ResolvedArguments,
     ValueArgumentDefinition,
 )
+from sentry.search.eap.normalizer import unquote_literal
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.validator import literal_validator, number_validator
 
@@ -67,6 +68,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
         elif key.type == AttributeKey.TYPE_INT:
             attr_value = AttributeValue(val_int=int(value))
         else:
+            value = unquote_literal(value)
             attr_value = AttributeValue(val_str=value)
     except ValueError:
         expected_type = "string"
