@@ -24,7 +24,7 @@ import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
+    features: ['workflow-engine-ui'],
   });
   const project = ProjectFixture({id: '1', slug: 'project-1'});
   const detector = MetricDetectorFixture({
@@ -177,7 +177,6 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
-      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       await screen.findByText('Slack Automation');
@@ -424,7 +423,6 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
-      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       // Wait for filtered results to load
