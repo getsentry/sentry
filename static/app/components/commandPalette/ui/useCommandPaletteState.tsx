@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import type Fuse from 'fuse.js';
 
-import {useCommandPaletteStore} from 'sentry/components/commandPalette/context';
+import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
@@ -69,7 +69,7 @@ function flattenActions(
 
 export function useCommandPaletteState() {
   const [query, setQuery] = useState('');
-  const {actions} = useCommandPaletteStore();
+  const actions = useCommandPaletteActions();
   const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {

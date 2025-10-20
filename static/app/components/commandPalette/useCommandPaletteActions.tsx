@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import {useCommandPaletteConfiguration} from './context';
+import {useCommandPaletteRegistration} from './context';
 import type {CommandPaletteAction} from './types';
 
 /**
@@ -9,16 +9,8 @@ import type {CommandPaletteAction} from './types';
  * Actions will be shown in the order that they are registered. See the
  * CommandPaletteAction type for available configuration options.
  */
-export function useCommandPaletteActions(
-  actions: CommandPaletteAction[] | null | undefined
-) {
-  const {registerActions, unregisterActions} = useCommandPaletteConfiguration();
+export function useCommandPaletteActions(actions: CommandPaletteAction[]) {
+  const registerActions = useCommandPaletteRegistration();
 
-  useEffect(() => {
-    if (!actions || actions.length === 0) {
-      return () => {};
-    }
-    registerActions(actions);
-    return () => unregisterActions(actions.map(a => a.key));
-  }, [registerActions, unregisterActions, actions]);
+  useEffect(() => registerActions(actions), [actions, registerActions]);
 }
