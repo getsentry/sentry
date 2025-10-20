@@ -1,14 +1,23 @@
-import {Fragment} from 'react';
+import {Fragment, lazy} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
-import {SentryComponentInspector} from 'sentry/components/core/inspector';
+import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
+
+const SentryComponentInspector =
+  NODE_ENV === 'development'
+    ? lazy(() =>
+        import('sentry/components/core/inspector').then(module => ({
+          default: module.SentryComponentInspector,
+        }))
+      )
+    : null;
 
 type Props = {
   children: React.ReactNode;
@@ -43,7 +52,10 @@ export function ThemeAndStyleProvider({children}: Props) {
         </Fragment>,
         document.head
       )}
-      <SentryComponentInspector />
+      {/* Only render the inspector in development */}
+      {NODE_ENV === 'development' && SentryComponentInspector ? (
+        <SentryComponentInspector />
+      ) : null}
     </ThemeProvider>
   );
 }

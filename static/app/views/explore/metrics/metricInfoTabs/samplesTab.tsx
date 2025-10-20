@@ -45,6 +45,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const TABLE_HEIGHT = 230;
 const RESULT_LIMIT = 50;
+const TWO_MINUTE_DELAY = 120;
 
 interface SamplesTabProps {
   metricName: string;
@@ -60,6 +61,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
     limit: RESULT_LIMIT,
     metricName,
     fields: ['timestamp', 'value', 'trace'],
+    ingestionDelaySeconds: TWO_MINUTE_DELAY,
   });
 
   // Extract trace IDs from the result

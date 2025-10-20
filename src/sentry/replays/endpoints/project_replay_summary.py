@@ -59,6 +59,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
     def __init__(self, **kw) -> None:
         storage.initialize_client()
+        # Trace sample rates for each method. Uses the default when not set (=0).
         self.sample_rate_post = options.get(
             "replay.endpoints.project_replay_summary.trace_sample_rate_post"
         )
@@ -127,7 +128,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         with sentry_sdk.start_transaction(
             name="replays.endpoints.project_replay_summary.get",
             op="replays.endpoints.project_replay_summary.get",
-            custom_sampling_context={"sample_rate": self.sample_rate_get},
+            custom_sampling_context=(
+                {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
+            ),
         ):
 
             if not self.has_replay_summary_access(project, request):
@@ -152,7 +155,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         with sentry_sdk.start_transaction(
             name="replays.endpoints.project_replay_summary.post",
             op="replays.endpoints.project_replay_summary.post",
-            custom_sampling_context={"sample_rate": self.sample_rate_post},
+            custom_sampling_context=(
+                {"sample_rate": self.sample_rate_post} if self.sample_rate_post else None
+            ),
         ):
 
             if not self.has_replay_summary_access(project, request):

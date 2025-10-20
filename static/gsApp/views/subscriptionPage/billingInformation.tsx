@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -20,7 +19,6 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
 
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   location: Location;
@@ -32,12 +30,6 @@ type Props = {
  * Update Billing Information view.
  */
 function BillingInformation({organization, subscription, location}: Props) {
-  useEffect(() => {
-    if (!organization || !subscription) return;
-
-    trackSubscriptionView(organization, subscription, 'details');
-  }, [organization, subscription]);
-
   const isNewBillingUI = hasNewBillingUI(organization);
   const hasBillingPerms = organization.access?.includes('org:billing');
 

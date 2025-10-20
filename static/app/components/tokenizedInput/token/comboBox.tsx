@@ -339,7 +339,6 @@ export function ComboBox({
             listState={state}
             hasSearch={!!filterValue}
             hiddenOptions={hiddenOptions}
-            keyDownHandler={() => true}
             overlayIsOpen={isOpen}
             size="sm"
           />

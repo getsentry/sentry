@@ -1,16 +1,21 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 
+from sentry.models.group import Group
 from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
+    get_issue_details,
     get_trace_waterfall,
 )
-from sentry.seer.sentry_data_models import EAPTrace
+from sentry.seer.sentry_data_models import EAPTrace, IssueDetails
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @pytest.mark.django_db(databases=["default", "control"])
@@ -473,3 +478,275 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         # Call with short ID and wrong org
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
+
+    def test_get_trace_waterfall_sliding_window_second_period(self) -> None:
+        """Test that sliding window finds traces in the second 14-day period (14-28 days ago)"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        twenty_days_ago = before_now(days=20)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=twenty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace using short ID by sliding back to the second window
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_old_trace(self) -> None:
+        """Test that sliding window finds traces near the 90-day limit"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        eighty_days_ago = before_now(days=80)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=eighty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace by sliding back through multiple windows
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_beyond_limit(self) -> None:
+        """Test that traces beyond 90 days are not found"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        one_hundred_days_ago = before_now(days=100)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=one_hundred_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should not find the trace since it's beyond the 90-day limit
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert result is None
+
+
+class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def _test_get_issue_details_success(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+        use_short_id: bool,
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create events with shared stacktrace (should have same group)
+        events = []
+        event0_trace_id = uuid.uuid4().hex
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            if i == 0:
+                data["contexts"] = data.get("contexts", {})
+                data["contexts"]["trace"] = {
+                    "trace_id": event0_trace_id,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                }
+
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        mock_get_recommended_event.return_value = events[1]
+
+        group = events[0].group
+        assert isinstance(group, Group)
+        assert events[1].group_id == group.id
+        assert events[2].group_id == group.id
+
+        for selected_event in [
+            "oldest",
+            "latest",
+            "recommended",
+            events[1].event_id,
+            events[1].event_id[:8],
+        ]:
+            result = get_issue_details(
+                issue_id=group.qualified_short_id if use_short_id else group.id,
+                organization_id=self.organization.id,
+                selected_event=selected_event,
+            )
+
+            # Short event IDs not supported.
+            if selected_event == events[1].event_id[:8]:
+                assert result is None
+                continue
+
+            assert result is not None
+            assert result["project_id"] == self.project.id
+            assert result["tags_overview"] == mock_get_tags.return_value
+
+            # Validate structure and required fields of the main issue payload.
+            issue_dict = result["issue"]
+            assert isinstance(issue_dict, dict)
+            IssueDetails.parse_obj(issue_dict)
+            assert "id" in issue_dict
+            assert "shortId" in issue_dict
+            assert "status" in issue_dict
+            assert "substatus" in issue_dict
+            assert "culprit" in issue_dict
+            assert "level" in issue_dict
+            assert "issueType" in issue_dict
+            assert "issueCategory" in issue_dict
+            assert "hasSeen" in issue_dict
+            assert "assignedTo" in issue_dict
+            # count, userCount, firstSeen, lastSeen are optional.
+
+            # Validate for some useful event fields.
+            event_dict = issue_dict["events"][0]
+            assert isinstance(event_dict, dict)
+            assert "id" in event_dict
+            assert "title" in event_dict
+            assert "message" in event_dict
+            assert "eventID" in event_dict
+            assert "projectID" in event_dict
+            assert "user" in event_dict
+            assert "platform" in event_dict
+            assert "dateReceived" in event_dict
+            assert "type" in event_dict
+            assert "contexts" in event_dict
+
+            # Check correct event is returned based on selected_event_type.
+            if selected_event == "oldest":
+                assert event_dict["id"] == events[0].event_id, selected_event
+            elif selected_event == "latest":
+                assert event_dict["id"] == events[-1].event_id, selected_event
+            elif selected_event == "recommended":
+                assert (
+                    event_dict["id"] == mock_get_recommended_event.return_value.event_id
+                ), selected_event
+            else:
+                assert event_dict["id"] == selected_event, selected_event
+
+            # Check event_trace_id matches mocked trace context.
+            if event_dict["id"] == events[0].event_id:
+                assert result["event_trace_id"] == event0_trace_id
+            else:
+                assert result["event_trace_id"] is None
+
+    def test_get_issue_details_success_int_id(self):
+        self._test_get_issue_details_success(use_short_id=False)
+
+    def test_get_issue_details_success_short_id(self):
+        self._test_get_issue_details_success(use_short_id=True)
+
+    def test_get_issue_details_nonexistent_organization(self):
+        """Test returns None when organization doesn't exist."""
+        # Create a valid group.
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        # Call with nonexistent organization ID.
+        result = get_issue_details(
+            issue_id=group.id,
+            organization_id=99999,
+            selected_event="latest",
+        )
+        assert result is None
+
+    def test_get_issue_details_nonexistent_group(self):
+        """Test returns None when group doesn't exist."""
+        # Call with nonexistent group ID.
+        result = get_issue_details(
+            issue_id=99999,
+            organization_id=self.organization.id,
+            selected_event="latest",
+        )
+        assert result is None
+
+    @patch("sentry.models.group.get_oldest_or_latest_event")
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_no_event_found(
+        self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_recommended_event.return_value = None
+        mock_get_oldest_or_latest_event.return_value = None
+
+        # Create events with shared stacktrace (should have same group)
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+
+        group = event.group
+        assert isinstance(group, Group)
+
+        for et in ["oldest", "latest", "recommended"]:
+            result = get_issue_details(
+                issue_id=group.id,
+                organization_id=self.organization.id,
+                selected_event=et,
+            )
+            assert result is None, et
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_tags_exception(self, mock_get_tags):
+        mock_get_tags.side_effect = Exception("Test exception")
+        """Test other fields are returned with null tags_overview when tag util fails."""
+        # Create a valid group.
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_details(
+            issue_id=group.id,
+            organization_id=self.organization.id,
+            selected_event="latest",
+        )
+        assert result is not None
+        assert result["tags_overview"] is None
+
+        assert "event_trace_id" in result
+        assert isinstance(result.get("project_id"), int)
+        assert isinstance(result.get("issue"), dict)
+        IssueDetails.parse_obj(result.get("issue"))

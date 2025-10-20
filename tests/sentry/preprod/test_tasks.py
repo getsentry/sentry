@@ -55,7 +55,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
-            build_configuration="release",
+            build_configuration_name="release",
         )
         assert artifact is not None
 
@@ -100,7 +100,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
-            build_configuration="release",
+            build_configuration_name="release",
             release_notes="This is a test release with important changes",
         )
         assert artifact is not None
@@ -124,7 +124,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
-            build_configuration="release",
+            build_configuration_name="release",
             head_sha="a" * 40,
             base_sha="b" * 40,
             provider="github",

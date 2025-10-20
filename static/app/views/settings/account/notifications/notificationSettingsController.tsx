@@ -1,11 +1,10 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import NotificationSettings from './notificationSettings';
 
-interface NotificationSettingsControllerProps extends RouteComponentProps {
+interface NotificationSettingsControllerProps {
   organizations: Organization[];
   organizationsLoading?: boolean;
 }
