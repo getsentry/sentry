@@ -65,7 +65,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.search.events.types import SnubaParams
-from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer_legacy
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data_legacy
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
@@ -923,7 +923,7 @@ def update_alert_rule(
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
+                success = delete_rule_in_seer_legacy(
                     alert_rule=alert_rule,
                 )
                 if not success:
@@ -1092,7 +1092,7 @@ def delete_alert_rule(
         if incidents.exists():
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
+                success = delete_rule_in_seer_legacy(
                     alert_rule=alert_rule,
                 )
                 if not success:

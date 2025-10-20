@@ -1,3 +1,5 @@
+import logging
+
 from django.db import router, transaction
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
@@ -24,9 +26,11 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
@@ -34,7 +38,9 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     can_edit_detector,
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSourceDetector, Detector
+
+logger = logging.getLogger(__name__)
 
 
 def get_detector_validator(
@@ -206,6 +212,28 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         if detector.type == MetricIssue.slug:
             schedule_update_project_config(detector)
+
+            data_source_detector = DataSourceDetector.objects.filter(
+                detector_id=detector.id
+            ).first()
+            if not data_source_detector:
+                return Response(status=404)
+
+            if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+                success = delete_rule_in_seer(
+                    source_id=data_source_detector.data_source_id, organization=organization
+                )
+                # We don't need to surface this to the user, but we should know about it.
+                if not success:
+                    logger.error(
+                        "Call to delete rule data in Seer failed",
+                        extra={
+                            "detector_id": detector.id,
+                        },
+                    )
+
+        RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
+        detector.update(status=ObjectStatus.PENDING_DELETION)
 
         create_audit_entry(
             request=request,

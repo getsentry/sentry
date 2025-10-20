@@ -36,7 +36,7 @@ from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
 )
-from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer_legacy
 from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -143,7 +143,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     @classmethod
     def delete_data_in_seer(cls, instance: AlertRule, **kwargs: Any) -> None:
         if instance.detection_type == AlertRuleDetectionType.DYNAMIC:
-            success = delete_rule_in_seer(alert_rule=instance)
+            success = delete_rule_in_seer_legacy(alert_rule=instance)
             if not success:
                 logger.error(
                     "Call to delete rule data in Seer failed",
