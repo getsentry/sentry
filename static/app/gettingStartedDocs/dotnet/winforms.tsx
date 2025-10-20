@@ -1,13 +1,9 @@
-import {Fragment} from 'react';
-
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -122,73 +118,82 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct('Install the [strong:NuGet] package:', {
-        strong: <strong />,
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct('Install the [strong:NuGet] package:', {
+            strong: <strong />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'shell',
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'shell',
               code: getInstallSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallSnippetCoreCli(params),
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [
-              {
-                description: tct(
-                  'Additionally, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-                  {
-                    sentryProfilingPackage: <code />,
-                  }
-                ),
-                code: [
-                  {
-                    language: 'shell',
-                    label: 'Package Manager',
-                    value: 'packageManager',
-                    code: getInstallProfilingSnippetPackageManager(params),
-                  },
-                  {
-                    language: 'shell',
-                    label: '.NET Core CLI',
-                    value: 'coreCli',
-                    code: getInstallProfilingSnippetCoreCli(params),
-                  },
-                ],
-              },
-              {
-                description: (
-                  <Alert type="info" showIcon={false}>
-                    {t('Profiling for .NET Framework is not supported.')}
-                  </Alert>
-                ),
-              },
-            ]
-          : []),
+        {
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'Additionally, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                {
+                  sentryProfilingPackage: <code />,
+                }
+              ),
+            },
+            {
+              type: 'code',
+              tabs: [
+                {
+                  label: 'Package Manager',
+                  language: 'shell',
+                  code: getInstallProfilingSnippetPackageManager(params),
+                },
+                {
+                  label: '.NET Core CLI',
+                  language: 'shell',
+                  code: getInstallProfilingSnippetCoreCli(params),
+                },
+              ],
+            },
+            {
+              type: 'alert',
+              alertType: 'info',
+              showIcon: false,
+              text: t('Profiling for .NET Framework is not supported.'),
+            },
+          ],
+        },
       ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Initialize the SDK as early as possible, like in the constructor of the [code:App]:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Initialize the SDK as early as possible, like in the constructor of the [code:App]:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'csharp',
           code: getConfigureSnippet(params),
         },
@@ -198,78 +203,94 @@ const onboarding: OnboardingConfig = {
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: t('To verify your set up, you can capture a message with the SDK:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify your set up, you can capture a message with the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Hello Sentry");',
         },
       ],
     },
     ...(params.isPerformanceSelected
-      ? [
+      ? ([
           {
             title: t('Tracing'),
-            description: t(
-              'You can measure the performance of your code by capturing transactions and spans.'
-            ),
-            configurations: [
+            content: [
               {
+                type: 'text',
+                text: t(
+                  'You can measure the performance of your code by capturing transactions and spans.'
+                ),
+              },
+              {
+                type: 'code',
                 language: 'csharp',
                 code: getPerformanceInstrumentationSnippet(),
               },
-            ],
-            additionalInfo: tct(
-              'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
               {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+                type: 'text',
+                text: tct(
+                  'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+                    ),
+                  }
                 ),
-              }
-            ),
+              },
+            ],
           },
           {
             title: t('Documentation'),
-            description: tct(
-              "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WinForms docs].",
+            content: [
               {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/winforms/" />
+                type: 'text',
+                text: tct(
+                  "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WinForms docs].",
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/winforms/" />
+                    ),
+                  }
                 ),
-              }
-            ),
+              },
+            ],
           },
-        ]
+        ] satisfies OnboardingStep[])
       : []),
     {
       title: t('Samples'),
-      description: (
-        <Fragment>
-          {t(
+      content: [
+        {
+          type: 'text',
+          text: t(
             'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              {tct(
-                '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-                {
-                  link: (
-                    <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                  ),
-                  code: <code />,
-                  strong: <strong />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {tct('[link:Basic F# sample] [strong:(F#)]', {
-                link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
+              '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
+              {
+                link: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
+                ),
+                code: <code />,
                 strong: <strong />,
-              })}
-            </ListItem>
-          </List>
-        </Fragment>
-      ),
+              }
+            ),
+            tct('[link:Basic F# sample] [strong:(F#)]', {
+              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+              strong: <strong />,
+            }),
+          ],
+        },
+      ],
     },
   ],
 };
