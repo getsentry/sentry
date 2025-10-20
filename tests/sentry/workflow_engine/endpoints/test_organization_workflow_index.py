@@ -7,6 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
@@ -620,6 +621,34 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         ]
         assert len(detector_workflow_audit_calls) == 2
 
+    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    def test_create_workflow_connected_to_error_detector(self, mock_audit: mock.MagicMock) -> None:
+        """
+        Tests that a member can create workflows with connections to a system-created detector
+        """
+        error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        workflow_data = {**self.valid_workflow, "detectorIds": [error_detector.id]}
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+        )
+
+        assert response.status_code == 201
+
+        created_detector_workflows = DetectorWorkflow.objects.filter(
+            workflow_id=response.data["id"]
+        )
+        assert created_detector_workflows.count() == 1
+        assert created_detector_workflows.first().detector_id == error_detector.id
+
+        detector_workflow_audit_calls = [
+            call
+            for call in mock_audit.call_args_list
+            if call.kwargs.get("event") == audit_log.get_event_id("DETECTOR_WORKFLOW_ADD")
+        ]
+        assert len(detector_workflow_audit_calls) == 1
+
     def test_create_workflow_with_invalid_detector_ids(self) -> None:
         workflow_data = {
             **self.valid_workflow,
@@ -640,15 +669,17 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         self.organization.save()
 
         member_user = self.create_user()
+        member_team = self.create_team(organization=self.organization)
         self.create_member(
-            team_roles=[(self.team, "contributor")],
+            team_roles=[(member_team, "contributor")],
             user=member_user,
             role="member",
             organization=self.organization,
         )
         self.login_as(user=member_user)
 
-        detector = self.create_detector()  # owned by self.user, not member_user
+        # Detector is a part of a project which the member does not have access to
+        detector = self.create_detector()
 
         workflow_data = {
             **self.valid_workflow,
@@ -660,6 +691,10 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             raw_data=workflow_data,
             status_code=403,
         )
+
+        # Verify no detector-workflow connections were created
+        created_detector_workflows = DetectorWorkflow.objects.all()
+        assert created_detector_workflows.count() == 0
 
 
 @region_silo_test
