@@ -4,10 +4,7 @@ import type {
   BuildDetailsSizeInfo,
   BuildDetailsVcsInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import {
-  BuildDetailsSizeAnalysisState,
-  BuildDetailsState,
-} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 function PreprodAppInfoFixture(
   params: Partial<BuildDetailsAppInfo> = {}
