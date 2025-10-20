@@ -317,9 +317,6 @@ class CollectUserOrgContextTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
         self.project1 = self.create_project(
             organization=self.organization, teams=[self.team], slug="project-1"
         )
@@ -362,8 +359,11 @@ class CollectUserOrgContextTest(APITestCase):
     def test_collect_context_with_multiple_teams(self):
         """Test context collection for a user in multiple teams"""
         team2 = self.create_team(organization=self.organization, slug="team-2")
+        member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
         with unguarded_write(using="default"):
-            self.member.teams.add(team2)
+            member.teams.add(team2)
 
         http_request = self.make_request(user=self.user)
         request = drf_request_from_request(http_request)
@@ -375,9 +375,12 @@ class CollectUserOrgContextTest(APITestCase):
 
     def test_collect_context_with_no_teams(self):
         """Test context collection for a member with no team membership"""
+        member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
         # Remove user from all teams
         with unguarded_write(using="default"):
-            self.member.teams.clear()
+            member.teams.clear()
 
         http_request = self.make_request(user=self.user)
         request = drf_request_from_request(http_request)
