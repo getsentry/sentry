@@ -90,21 +90,24 @@ function formatColumnOptions(
             ? prettifyTagKey(option.value.meta.name)
             : option.value.meta.name,
 
-        trailingItems: renderTag(
-          option.value.kind,
-          option.value.meta.name,
-          option.value.kind !== FieldValueKind.FUNCTION &&
-            option.value.kind !== FieldValueKind.EQUATION
-            ? option.value.meta.dataType
-            : undefined
-        ),
+        trailingItems: () => {
+          return renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType
+              : undefined
+          );
+        },
         disabled: !supported,
-        tooltip:
-          !supported && field.kind === FieldValueKind.FUNCTION
+        tooltip: ({disabled}: {disabled: boolean}) => {
+          return disabled && field.kind === FieldValueKind.FUNCTION
             ? tct('This field is not available for the [aggregate] function', {
                 aggregate: <strong>{field.function[0]}</strong>,
               })
-            : undefined,
+            : undefined;
+        },
       };
     });
 }
