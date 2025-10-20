@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry import deletions, eventstore, nodestore
+from sentry import deletions, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.exceptions import DeleteAborted
 from sentry.models.group import Group, GroupStatus
@@ -12,6 +12,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
