@@ -169,6 +169,9 @@ export default function FiltersBar({
             getSearchBarData={getSearchBarData}
             onAddFilter={newFilter => {
               updateGlobalFilters([...activeGlobalFilters, newFilter]);
+              trackAnalytics('dashboards2.global_filter.add', {
+                organization,
+              });
             }}
           />
         </Fragment>
