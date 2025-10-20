@@ -18,18 +18,25 @@ export const appleProfilingOnboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description:
-        params.profilingOptions?.defaultProfilingMode === 'continuous'
-          ? tct(
-              'UI Profiling requires a minimum version of [code:8.49.0] of the Sentry SDK.',
-              {
-                code: <code />,
-              }
-            )
-          : undefined,
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'conditional',
+          condition: params.profilingOptions?.defaultProfilingMode === 'continuous',
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'UI Profiling requires a minimum version of [code:8.49.0] of the Sentry SDK.',
+                {
+                  code: <code />,
+                }
+              ),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
             'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
             {
               alternateMethods: (
@@ -40,20 +47,21 @@ export const appleProfilingOnboarding: OnboardingConfig = {
           ),
         },
         {
+          type: 'code',
           language: 'url',
           code: `https://github.com/getsentry/sentry-cocoa.git`,
         },
         {
-          description: (
-            <p>
-              {tct(
-                'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-                {
-                  packageSwift: <code />,
-                }
-              )}
-            </p>
+          type: 'text',
+          text: tct(
+            'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
+            {
+              packageSwift: <code />,
+            }
           ),
+        },
+        {
+          type: 'code',
           language: 'swift',
           code: getInstallSnippet(params),
         },
@@ -63,18 +71,21 @@ export const appleProfilingOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To configure profiling, assign a closure to [code:SentryOptions.configureProfiling], setting the desired options on the object passed in as parameter.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To configure profiling, assign a closure to [code:SentryOptions.configureProfiling], setting the desired options on the object passed in as parameter.',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Swift',
-              value: 'swift',
               language: 'swift',
               code: `
 import Sentry
@@ -91,7 +102,10 @@ SentrySDK.start { options in
 }`,
             },
           ],
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
