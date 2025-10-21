@@ -4,6 +4,7 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.deletions.defaults.apigrant import ModelApiGrantDeletionTask
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.types.region import RegionMappingNotFound
 from sentry.workflow_engine.service.action import action_service
 
 
@@ -29,10 +30,13 @@ class SentryAppInstallationDeletionTask(ModelDeletionTask[SentryAppInstallation]
         pass
 
     def delete_instance(self, instance: SentryAppInstallation) -> None:
-        action_service.update_action_status_for_sentry_app_via_uuid(
-            organization_id=instance.organization_id,
-            status=ObjectStatus.DISABLED,
-            sentry_app_install_uuid=instance.uuid,
-        )
+        try:
+            action_service.update_action_status_for_sentry_app_via_uuid(
+                organization_id=instance.organization_id,
+                status=ObjectStatus.DISABLED,
+                sentry_app_install_uuid=instance.uuid,
+            )
+        except RegionMappingNotFound:
+            pass
 
         return super().delete_instance(instance)
