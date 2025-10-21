@@ -56,7 +56,7 @@ function flattenActions(
       });
     }
 
-    if ('actions' in action && action.actions.length > 0) {
+    if (action.type === 'group' && action.actions.length > 0) {
       const childParentLabel = parentLabel
         ? `${parentLabel} → ${action.display.label}`
         : action.display.label;
@@ -75,7 +75,7 @@ export function useCommandPaletteState() {
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (
       selectedAction &&
-      'actions' in selectedAction &&
+      selectedAction.type === 'group' &&
       selectedAction.actions.length > 0
     ) {
       return flattenActions(selectedAction.actions);

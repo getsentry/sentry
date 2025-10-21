@@ -28,6 +28,7 @@ export function CommandPaletteDemo() {
       display: {label: 'Go to Flex story'},
       to: '/stories/layout/flex/',
       groupingKey: 'navigate',
+      type: 'navigate',
     },
     {
       key: 'action-1',
@@ -36,6 +37,7 @@ export function CommandPaletteDemo() {
       onAction: () => {
         addSuccessMessage('Action executed');
       },
+      type: 'callback',
     },
     {
       key: 'parent-action',
@@ -48,8 +50,10 @@ export function CommandPaletteDemo() {
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
+          type: 'callback',
         },
       ],
+      type: 'group',
     },
   ];
 

@@ -10,6 +10,7 @@ import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
+import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -34,7 +35,7 @@ function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMen
       </IconWrap>
     ) : undefined,
     children:
-      'actions' in action
+      action.type === 'group'
         ? action.actions.slice(0, MAX_ACTIONS_PER_SECTION).map(actionToMenuItem)
         : [],
     hideCheck: true,
@@ -72,16 +73,20 @@ export function CommandPaletteContent() {
 
   const handleSelect = useCallback(
     (action: CommandPaletteAction) => {
-      // If there are child actions, we want to select the parent action and show the children
-      if ('actions' in action && action.actions.length > 0) {
-        selectAction(action);
-        return;
-      }
-      if ('onAction' in action) {
-        action.onAction();
-      }
-      if ('to' in action) {
-        navigate(normalizeUrl(action.to));
+      const actionType = action.type;
+      switch (actionType) {
+        case 'group':
+          selectAction(action);
+          return;
+        case 'navigate':
+          navigate(normalizeUrl(action.to));
+          break;
+        case 'callback':
+          action.onAction();
+          break;
+        default:
+          unreachable(actionType);
+          break;
       }
       closeModal();
     },

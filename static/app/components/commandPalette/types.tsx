@@ -25,6 +25,7 @@ interface CommonCommandPaletteAction {
 interface CommandPaletteActionLink extends CommonCommandPaletteAction {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
+  type: 'navigate';
 }
 
 interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
@@ -33,11 +34,13 @@ interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
    * Use the `to` prop if you want to navigate to a route.
    */
   onAction: () => void;
+  type: 'callback';
 }
 
 interface CommandPaletteActionGroup extends CommonCommandPaletteAction {
   /** Nested actions to show when this action is selected */
   actions: CommandPaletteAction[];
+  type: 'group';
 }
 
 export type CommandPaletteAction =
