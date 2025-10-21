@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -13,12 +15,15 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -101,6 +106,8 @@ export function LogsTabContent({
   relativeOptions,
 }: LogsTabProps) {
   const pageFilters = usePageFilters();
+  const organization = useOrganization();
+
   const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
@@ -312,6 +319,17 @@ export function LogsTabContent({
     return false;
   }, [pageFilters.selection.datetime]);
 
+  const isHighFidelity = organization.features.includes('ourlogs-high-fidelity');
+  const isPartialScan = useMemo(
+    () =>
+      Object.values(timeseriesResult.data).some(series => {
+        const isTopEvents = defined(topEventsLimit);
+        const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
+        return samplingMeta.sampleCount === 0 && samplingMeta.dataScanned;
+      }),
+    [timeseriesResult.data, topEventsLimit]
+  );
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
@@ -397,6 +415,15 @@ export function LogsTabContent({
               <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             )}
             <LogsGraphContainer>
+              {!isHighFidelity && isPartialScan && (
+                <Alert.Container>
+                  <StyledAlert type="warning">
+                    {t(
+                      "There's a very large volume of logs in this time period and we could only scan them partially. Try narrowing your time range to scan all logs."
+                    )}
+                  </StyledAlert>
+                </Alert.Container>
+              )}
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
             <LogsTableActionsContainer>
@@ -444,3 +471,7 @@ export function LogsTabContent({
     </SearchQueryBuilderProvider>
   );
 }
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
+`;
