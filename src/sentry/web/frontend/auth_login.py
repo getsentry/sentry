@@ -139,7 +139,10 @@ class AuthLoginView(BaseView):
         """
         Returns the next URI a user should visit in their authentication flow.
         """
-        next_uri_fallback = request.session.pop("_next", None)
+        # Don't pop _next here - it needs to persist through the entire auth flow
+        # including 2FA. It will be popped later by get_login_redirect() after
+        # all authentication steps complete.
+        next_uri_fallback = request.session.get("_next", None)
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def redirect_authenticated_user(self, request: HttpRequest, next_uri: str) -> HttpResponseBase:

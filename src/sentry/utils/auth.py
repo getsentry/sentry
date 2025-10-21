@@ -186,6 +186,8 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     if after_2fa is not None:
         return after_2fa
 
+    # Only pop _next from session after 2FA is complete to preserve
+    # invitation/redirect URLs across the 2FA flow
     login_url = request.session.pop("_next", None)
     if not login_url:
         return default
