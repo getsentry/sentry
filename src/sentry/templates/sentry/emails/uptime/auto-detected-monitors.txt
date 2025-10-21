@@ -1,12 +1,14 @@
-We've Automatically Created an Uptime Monitor for You
+We've Created a Free Uptime Monitor for Your Project
 
-We've noticed that your errors are happening at {{monitor_url_display}}, so we've automatically started monitoring it for you.
+We noticed that {{ monitor_url_display }} appears frequently in your project's errors, so we created a free uptime monitor to help keep an eye on it.
 
-{{project_slug}} | {{monitor_detail_url}}
-Created on {{date_created|date:"N j, Y, g:i:s a e"}}
+{{ monitor_url_display }} | {{ project_slug }}
+Created on {{ date_created|date:"N j, Y, g:i:s a e" }}
 
-This monitor will now check your URL every minute and alert you if it becomes unavailable. If this monitoring is undesirable you may edit or remove this monitor at any time: {{monitor_detail_url}}
+This monitor will check your URL every minute and alert you if it goes down. It's completely free, and you can customize it to adjust the check frequency, HTTP method, headers, or request body.
 
-View Monitors: {{ view_monitors_link }}
+{{ monitor_detail_url }}
 
-Learn more about Uptime Monitoring: "https://docs.sentry.io/product/alerts/uptime-monitoring/".
+Not interested? You can remove this monitor anytime, and we won't create it again.
+
+{{ monitor_detail_url }}

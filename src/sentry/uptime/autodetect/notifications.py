@@ -101,7 +101,7 @@ def send_auto_detected_notifications(detector_id: int) -> None:
     }
 
     message = MessageBuilder(
-        subject="We've automatically created an Uptime Monitor for you",
+        subject="We've Created a Free Uptime Monitor for Your Project",
         template="sentry/emails/uptime/auto-detected-monitors.txt",
         html_template="sentry/emails/uptime/auto-detected-monitors.html",
         type="uptime.auto_detected_monitors",
