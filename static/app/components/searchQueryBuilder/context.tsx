@@ -137,6 +137,7 @@ export function SearchQueryBuilderProvider({
     disabled,
     displayAskSeerFeedback,
     setDisplayAskSeerFeedback,
+    replaceRawSearchKeys,
   });
 
   const stableFieldDefinitionGetter = useMemo(
