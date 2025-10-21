@@ -428,7 +428,7 @@ export default function IssueViewsList() {
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          <MainTableLayout fullWidth>
+          <MainTableLayout width="full">
             <FilterSortBar>
               <SearchBar
                 defaultQuery={query}
