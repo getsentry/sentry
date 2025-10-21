@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, ClassVar, overload
 
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 from jsonschema import ValidationError
 
@@ -123,6 +123,12 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryAppInstallation))):
+            for outbox in self.outboxes_for_delete():
+                outbox.save()
+        return super().delete(*args, **kwargs)
 
     @property
     def api_application_id(self) -> int | None:
