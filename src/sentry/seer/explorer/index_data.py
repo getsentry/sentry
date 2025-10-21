@@ -84,7 +84,7 @@ def get_transactions_for_project(
         ],
         orderby=["-count()"],  # Sort by count descending (highest volume first)
         offset=0,
-        limit=500,
+        limit=limit,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",
