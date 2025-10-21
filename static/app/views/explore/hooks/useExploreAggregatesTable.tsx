@@ -7,7 +7,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import type {SpansRPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useQueryParamsAggregateFields,
@@ -20,7 +20,7 @@ interface UseExploreAggregatesTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 }
 
 export interface AggregatesTableResult {
