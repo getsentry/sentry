@@ -57,7 +57,7 @@ export function MonitorsSecondaryNav() {
 
         <SecondaryNav.Section id="monitors-automations">
           <SecondaryNav.Item
-            to={`${baseUrl}/alerts/`}
+            to={`${baseUrl}/automations/`}
             analyticsItemName="monitors_automations"
           >
             {t('Alerts')}
