@@ -172,6 +172,11 @@ class ProjectChooser:
                     elapsed.total_seconds(),
                     sample_rate=1.0,
                 )
+                metrics.incr(
+                    "workflow_engine.schedule.scheduled_cohort",
+                    tags={"cohort": cohort_id},
+                    sample_rate=1.0,
+                )
         logger.info(
             "schedule.selected_cohorts",
             extra={"selected": sorted(must_process), "may_process": sorted(may_process)},
