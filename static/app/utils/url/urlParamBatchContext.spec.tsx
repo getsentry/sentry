@@ -12,6 +12,31 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
 
+jest.mock('lodash/debounce', () =>
+  jest.fn().mockImplementation((callback, timeout) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const debounced = jest.fn((...args) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => callback(...args), timeout);
+    });
+
+    const cancel = jest.fn(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    });
+
+    const flush = jest.fn(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+      callback();
+    });
+
+    // @ts-expect-error mock lodash debounce
+    debounced.cancel = cancel;
+    // @ts-expect-error mock lodash debounce
+    debounced.flush = flush;
+    return debounced;
+  })
+);
+
 describe('UrlParamBatchProvider', () => {
   let mockNavigate: jest.Mock;
   beforeEach(() => {
