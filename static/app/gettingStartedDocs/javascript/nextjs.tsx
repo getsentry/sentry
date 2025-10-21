@@ -543,7 +543,7 @@ Sentry.init({
 };
 
 const profilingOnboarding = getJavascriptFullStackOnboarding({
-  basePackage: '@sentry/nextjs',
+  packageName: '@sentry/nextjs',
   browserProfilingLink:
     'https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/browser-profiling/',
   nodeProfilingLink:
@@ -612,10 +612,10 @@ const docs: Docs = {
   profilingOnboarding,
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'nextjs',
-    sdkPackage: '@sentry/nextjs',
+    packageName: '@sentry/nextjs',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'nextjs',
+    packageName: '@sentry/nextjs',
     configFileName: 'sentry.server.config.ts',
   }),
 };
