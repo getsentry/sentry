@@ -12,9 +12,6 @@ interface AppSizeLegendProps {
   selectedCategories: Set<TreemapType>;
 }
 
-const GAP_SIZE = 8; // xs gap from theme
-const MORE_BUTTON_WIDTH = 100;
-
 export function AppSizeLegend({
   root,
   selectedCategories,
@@ -24,6 +21,7 @@ export function AppSizeLegend({
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const containerRef = useRef<HTMLDivElement>(null);
   const measurementRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLDivElement>(null);
   const allItemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visibleCount, setVisibleCount] = useState<number | null>(null);
@@ -64,6 +62,8 @@ export function AppSizeLegend({
       }
 
       const containerWidth = containerRef.current.offsetWidth;
+      const gapSize =
+        typeof theme.space.xs === 'string' ? parseFloat(theme.space.xs) : theme.space.xs;
       let totalWidth = 0;
       let fitCount = sortedCategories.length;
 
@@ -75,10 +75,11 @@ export function AppSizeLegend({
         }
 
         const itemWidth = item.offsetWidth;
-        const neededWidth = totalWidth + (i > 0 ? GAP_SIZE : 0) + itemWidth;
+        const neededWidth = totalWidth + (i > 0 ? gapSize : 0) + itemWidth;
         const hasMoreItems = i < sortedCategories.length - 1;
+        const moreButtonWidth = moreButtonRef.current?.offsetWidth ?? 100;
         const maxWidth = hasMoreItems
-          ? containerWidth - MORE_BUTTON_WIDTH - GAP_SIZE
+          ? containerWidth - moreButtonWidth - gapSize
           : containerWidth;
 
         if (neededWidth > maxWidth) {
@@ -124,7 +125,7 @@ export function AppSizeLegend({
       }
       resizeObserver.disconnect();
     };
-  }, [sortedCategories]);
+  }, [sortedCategories, theme.space.xs]);
 
   useLayoutEffect(() => {
     return () => {
@@ -210,6 +211,7 @@ export function AppSizeLegend({
         })}
         {hiddenCategories.length > 0 && (
           <MoreContainer
+            ref={moreButtonRef}
             onMouseEnter={handleMoreMouseEnter}
             onMouseLeave={handleMoreMouseLeave}
           >
