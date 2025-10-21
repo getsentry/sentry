@@ -1,7 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -25,6 +25,31 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
   ]),
 }));
 
+jest.mock('lodash/debounce', () =>
+  jest.fn().mockImplementation((callback, timeout) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const debounced = jest.fn((...args) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => callback(...args), timeout);
+    });
+
+    const cancel = jest.fn(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    });
+
+    const flush = jest.fn(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+      callback();
+    });
+
+    // @ts-expect-error mock lodash debounce
+    debounced.cancel = cancel;
+    // @ts-expect-error mock lodash debounce
+    debounced.flush = flush;
+    return debounced;
+  })
+);
+
 const mockUseNavigate = jest.mocked(useNavigate);
 
 const router = RouterFixture({
@@ -37,6 +62,8 @@ describe('WidgetTemplatesList', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
+    jest.useFakeTimers();
+
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -50,6 +77,8 @@ describe('WidgetTemplatesList', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('should render the widget templates list', async () => {
@@ -97,6 +126,8 @@ describe('WidgetTemplatesList', () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
     render(
       <WidgetBuilderProvider>
         <WidgetTemplatesList
@@ -112,8 +143,12 @@ describe('WidgetTemplatesList', () => {
       }
     );
 
-    const widgetTemplate = await screen.findByText('Duration Distribution');
-    await userEvent.click(widgetTemplate);
+    const widgetTemplate = screen.getByText('Duration Distribution');
+    await user.click(widgetTemplate);
+
+    act(() => {
+      jest.runAllTimers();
+    });
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
