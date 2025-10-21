@@ -154,13 +154,16 @@ def send_and_save_webhook_request(
             in options.get("sentry-apps.webhook-logging.enabled")["sentry_app_slug"]
         )
         if debug_logging_enabled:
+            webhook_event = event
             logger.info(
                 "sentry_app_webhook_sent",
                 extra={
                     "sentry_app_slug": sentry_app.slug,
                     "organization_id": org_id,
                     "installation_uuid": app_platform_event.install.uuid,
-                    "event": event,
+                    "resource": app_platform_event.resource,
+                    "action": app_platform_event.action,
+                    "webhook_event": webhook_event,
                     "url": url,
                     "response_code": response.status_code,
                 },
