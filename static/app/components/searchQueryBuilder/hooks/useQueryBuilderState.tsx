@@ -686,7 +686,11 @@ function isTokenToBeReplaced(
  * description:[*test*,"*some text*"]`
  */
 export function replaceFreeTextTokens(
-  action: ReplaceTokensWithTextOnPasteAction,
+  action:
+    | ReplaceTokensWithTextOnPasteAction
+    | UpdateFreeTextActionOnCommit
+    | UpdateFreeTextActionOnBlur
+    | UpdateFreeTextActionOnExit,
   getFieldDefinition: FieldDefinitionGetter,
   replaceRawSearchKeys: string[],
   currentQuery: string
@@ -848,16 +852,75 @@ export function useQueryBuilderState({
           };
         }
         case 'UPDATE_FREE_TEXT_ON_SELECT':
-        case 'UPDATE_FREE_TEXT_ON_BLUR':
-        case 'UPDATE_FREE_TEXT_ON_COMMIT':
-        case 'UPDATE_FREE_TEXT_ON_EXIT':
+        case 'UPDATE_FREE_TEXT_ON_COLON':
         case 'UPDATE_FREE_TEXT_ON_FUNCTION':
-        case 'UPDATE_FREE_TEXT_ON_PARENTHESIS':
-        case 'UPDATE_FREE_TEXT_ON_COLON': {
+        case 'UPDATE_FREE_TEXT_ON_PARENTHESIS': {
           const newState = updateFreeText(state, action);
 
           return {
             ...newState,
+            clearAskSeerFeedback:
+              newState.query !== state.query && displayAskSeerFeedback ? true : false,
+          };
+        }
+        case 'UPDATE_FREE_TEXT_ON_BLUR': {
+          const newState = updateFreeText(state, action);
+
+          if (
+            !hasWildcardOperators ||
+            !replaceRawSearchKeys ||
+            replaceRawSearchKeys.length === 0
+          ) {
+            return newState;
+          }
+
+          const replacedState = replaceFreeTextTokens(
+            action,
+            getFieldDefinition,
+            replaceRawSearchKeys ?? [],
+            state.query
+          );
+
+          const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
+
+          return {
+            ...newState,
+            query,
+            committedQuery: query,
+            focusOverride: null,
+            clearAskSeerFeedback:
+              newState.query !== state.query && displayAskSeerFeedback ? true : false,
+          };
+        }
+        case 'UPDATE_FREE_TEXT_ON_EXIT':
+        case 'UPDATE_FREE_TEXT_ON_COMMIT': {
+          const newState = updateFreeText(state, action);
+
+          if (
+            !hasWildcardOperators ||
+            !replaceRawSearchKeys ||
+            replaceRawSearchKeys.length === 0
+          ) {
+            return newState;
+          }
+
+          const replacedState = replaceFreeTextTokens(
+            action,
+            getFieldDefinition,
+            replaceRawSearchKeys ?? [],
+            state.query
+          );
+
+          const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
+          const focusOverride = replacedState?.focusOverride
+            ? replacedState.focusOverride
+            : newState.focusOverride;
+
+          return {
+            ...newState,
+            query,
+            committedQuery: query,
+            focusOverride,
             clearAskSeerFeedback:
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
           };
