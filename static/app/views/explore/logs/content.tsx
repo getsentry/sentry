@@ -117,10 +117,7 @@ function LogsHeader() {
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
         ) : null}
 
-        <Layout.Title>
-          {title ? title : t('Logs')}
-          <FeatureBadge type="new" />
-        </Layout.Title>
+        <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar>
