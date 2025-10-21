@@ -18,9 +18,7 @@ class BaseChannelValidateTest(APITestCase):
         self.login_as(self.user)
 
     def _get_response(self, integration_id, channel):
-        return self.get_success_response(
-            self.organization.slug, integration_id, **{"channel": channel}
-        )
+        return self.get_success_response(self.organization.slug, integration_id, channel=channel)
 
 
 @control_silo_test
