@@ -983,6 +983,12 @@ urlpatterns += [
         react_page_view,
         name="prevent",
     ),
+    # Monitors
+    re_path(
+        r"^monitors/",
+        react_page_view,
+        name="monitors",
+    ),
     # Data Export
     re_path(
         r"^data-export/",
