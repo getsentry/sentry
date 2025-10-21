@@ -785,14 +785,10 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('escapes values with spaces and reserved characters', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
-      await userEvent.keyboard('assigned:');
-      await userEvent.click(screen.getByRole('option', {name: 'is'}));
-      await userEvent.keyboard('some" value{enter}');
+      await userEvent.keyboard('assigned:some" value{enter}');
 
       // Value should be surrounded by quotes and escaped
       expect(
@@ -915,8 +911,7 @@ describe('SearchQueryBuilder', () => {
     it('can add an unsupported filter key and value', async () => {
       const mockOnChange = jest.fn();
       render(
-        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />,
-        {organization: {features: ['search-query-builder-input-flow-changes']}}
+        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />
       );
       await userEvent.click(getLastInput());
 
@@ -926,10 +921,7 @@ describe('SearchQueryBuilder', () => {
         'foo '
       );
 
-      await userEvent.keyboard('a:');
-      expect(await screen.findByRole('option', {name: 'is'})).toHaveFocus();
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('b{enter}');
+      await userEvent.keyboard('a:b{enter}');
 
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
