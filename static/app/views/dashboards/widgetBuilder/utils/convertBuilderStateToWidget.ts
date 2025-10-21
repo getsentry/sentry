@@ -63,7 +63,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       fieldAliases: fieldAliases ?? [],
       name: legendAlias[index] ?? '',
       selectedAggregate: state.selectedAggregate,
-
+      linkedDashboards: state.linkedDashboards ?? [],
       // Big number widgets don't support sorting, so always ignore the sort state
       orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort,
     };
