@@ -1,7 +1,3 @@
-"""
-Constants shared across Seer modules.
-"""
-
 from sentry.integrations.types import IntegrationProviderSlug
 
 # Supported repository providers for Seer features
