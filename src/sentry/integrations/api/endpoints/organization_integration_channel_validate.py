@@ -29,27 +29,28 @@ from sentry.shared_integrations.exceptions import ApiError
 
 @control_silo_endpoint
 class OrganizationIntegrationChannelValidateEndpoint(OrganizationIntegrationBaseEndpoint):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     class ChannelValidateSerializer(serializers.Serializer):
         channel = serializers.CharField(required=True, allow_blank=False)
 
-    def get(
+    def post(
         self,
         request: Request,
         organization_context: Any,
         integration_id: int,
         **kwargs: Any,
     ) -> Response:
-        """Validate whether a channel exists for the given integration."""
-        serializer = self.ChannelValidateSerializer(data=request.GET)
+        """
+        Validate whether a channel exists for the given integration
+        """
+        serializer = self.ChannelValidateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         channel = serializer.validated_data["channel"].strip()
         integration = self.get_integration(organization_context.organization.id, integration_id)
-
         provider = integration.provider
 
         try:
