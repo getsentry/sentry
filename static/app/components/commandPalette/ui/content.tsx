@@ -34,7 +34,9 @@ function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMen
       </IconWrap>
     ) : undefined,
     children:
-      action.actions?.slice(0, MAX_ACTIONS_PER_SECTION).map(actionToMenuItem) ?? [],
+      'actions' in action
+        ? action.actions.slice(0, MAX_ACTIONS_PER_SECTION).map(actionToMenuItem)
+        : [],
     hideCheck: true,
   };
 }
@@ -71,14 +73,14 @@ export function CommandPaletteContent() {
   const handleSelect = useCallback(
     (action: CommandPaletteAction) => {
       // If there are child actions, we want to select the parent action and show the children
-      if (action.actions && action.actions.length > 0) {
+      if ('actions' in action && action.actions.length > 0) {
         selectAction(action);
         return;
       }
-      if (action.onAction) {
+      if ('onAction' in action) {
         action.onAction();
       }
-      if (action.to) {
+      if ('to' in action) {
         navigate(normalizeUrl(action.to));
       }
       closeModal();

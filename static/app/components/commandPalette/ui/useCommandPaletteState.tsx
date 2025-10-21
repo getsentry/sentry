@@ -6,9 +6,9 @@ import type {CommandPaletteAction} from 'sentry/components/commandPalette/types'
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-interface CommandPaletteActionWithPriority extends CommandPaletteAction {
+type CommandPaletteActionWithPriority = CommandPaletteAction & {
   priority: number;
-}
+};
 
 const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> = {
   keys: ['display.label', 'display.details'],
@@ -56,7 +56,7 @@ function flattenActions(
       });
     }
 
-    if (action.actions && action.actions.length > 0) {
+    if ('actions' in action && action.actions.length > 0) {
       const childParentLabel = parentLabel
         ? `${parentLabel} → ${action.display.label}`
         : action.display.label;
@@ -73,10 +73,13 @@ export function useCommandPaletteState() {
   const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
-    if (selectedAction?.actions?.length) {
+    if (
+      selectedAction &&
+      'actions' in selectedAction &&
+      selectedAction.actions.length > 0
+    ) {
       return flattenActions(selectedAction.actions);
     }
-
     return flattenActions(actions);
   }, [actions, selectedAction]);
 

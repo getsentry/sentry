@@ -3,7 +3,7 @@ import type {LocationDescriptor} from 'history';
 
 export type CommandPaletteGroupKey = 'navigate' | 'add' | 'help';
 
-export type CommandPaletteAction = {
+interface CommonCommandPaletteAction {
   display: {
     /** Primary text shown to the user */
     label: string;
@@ -14,19 +14,33 @@ export type CommandPaletteAction = {
   };
   /** Unique identifier for this action */
   key: string;
-  /** Nested actions to show when this action is selected */
-  actions?: CommandPaletteAction[];
   /** Section to group the action in the palette */
   groupingKey?: CommandPaletteGroupKey;
   /** Whether this action should be hidden from the palette */
   hidden?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
+}
+
+interface CommandPaletteActionLink extends CommonCommandPaletteAction {
+  /** Navigate to a route when selected */
+  to: LocationDescriptor;
+}
+
+interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
   /**
    * Execute a callback when the action is selected.
    * Use the `to` prop if you want to navigate to a route.
    */
-  onAction?: () => void;
-  /** Navigate to a route when selected */
-  to?: LocationDescriptor;
-};
+  onAction: () => void;
+}
+
+interface CommandPaletteActionGroup extends CommonCommandPaletteAction {
+  /** Nested actions to show when this action is selected */
+  actions: CommandPaletteAction[];
+}
+
+export type CommandPaletteAction =
+  | CommandPaletteActionLink
+  | CommandPaletteActionCallback
+  | CommandPaletteActionGroup;
