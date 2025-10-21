@@ -46,6 +46,12 @@ describe('useChonkPrompt', () => {
     const dismissMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       method: 'PUT',
+      body: {
+        data: {
+          feature: 'chonk_ui_dot_indicator',
+          status: 'snoozed',
+        },
+      },
     });
 
     const {result} = renderHookWithProviders(() => useChonkPrompt(), {
@@ -62,7 +68,7 @@ describe('useChonkPrompt', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           feature: 'chonk_ui_banner',
-          status: 'dismissed',
+          status: 'snoozed',
         }),
       })
     );
@@ -103,7 +109,7 @@ describe('useChonkPrompt', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           feature: 'chonk_ui_dot_indicator',
-          status: 'dismissed',
+          status: 'snoozed',
         }),
       })
     );
