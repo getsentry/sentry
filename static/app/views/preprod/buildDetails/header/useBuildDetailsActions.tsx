@@ -95,6 +95,16 @@ export function useBuildDetailsActions({
           if (errorJson.detail) {
             if (typeof errorJson.detail === 'string') {
               errorMessage = errorJson.detail;
+            } else if (errorJson.detail.code === 'staff-required') {
+              addErrorMessage(
+                t(
+                  'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
+                )
+              );
+              setTimeout(() => {
+                window.location.href = 'https://sentry.sentry.io/_admin/';
+              }, 2000);
+              return;
             } else if (errorJson.detail.message) {
               errorMessage = errorJson.detail.message;
             } else if (errorJson.detail.code) {
