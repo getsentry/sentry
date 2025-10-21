@@ -805,7 +805,19 @@ const server = Sentry.wrapMcpServerWithSentry(new McpServer({
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that MCP monitoring is working correctly by triggering some MCP server interactions in your application.'
+          ),
+        },
+      ],
+    },
+  ],
 });
 
 function getNodeLogsConfigureSnippet(
