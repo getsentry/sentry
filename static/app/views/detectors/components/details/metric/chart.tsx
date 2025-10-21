@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
@@ -7,6 +7,7 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -294,46 +295,61 @@ function MetricDetectorChart({
 
   if (isLoading) {
     return (
-      <Flex height={CHART_HEIGHT} justify="center" align="center">
-        <Placeholder height={`${CHART_HEIGHT}px`} />
-      </Flex>
+      <ChartContainerBody>
+        <Flex height={CHART_HEIGHT} justify="center" align="center">
+          <Placeholder height={`${CHART_HEIGHT}px`} />
+        </Flex>
+      </ChartContainerBody>
     );
   }
 
   if (error) {
+    const errorMessage =
+      typeof error?.responseJSON?.detail === 'string' ? error.responseJSON.detail : null;
     return (
-      <Flex height={CHART_HEIGHT} justify="center" align="center">
-        <ErrorPanel>
-          <IconWarning color="gray300" size="lg" />
-          <div>{t('Error loading chart data')}</div>
-        </ErrorPanel>
-      </Flex>
+      <Fragment>
+        {errorMessage && (
+          <Alert system type="error">
+            {errorMessage}
+          </Alert>
+        )}
+        <ChartContainerBody>
+          <Flex justify="center" align="center">
+            <ErrorPanel height={`${CHART_HEIGHT - 45}px`}>
+              <IconWarning color="gray300" size="lg" />
+              <div>{t('Error loading chart data')}</div>
+            </ErrorPanel>
+          </Flex>
+        </ChartContainerBody>
+      </Fragment>
     );
   }
 
   return (
-    <AreaChart
-      showTimeInTooltip
-      height={CHART_HEIGHT}
-      stacked={false}
-      series={series}
-      additionalSeries={additionalSeries}
-      yAxes={yAxes.length > 1 ? yAxes : undefined}
-      yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
-      grid={grid}
-      xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
-      tooltip={{
-        valueFormatter: getDetectorChartFormatters({
-          detectionType,
-          aggregate: snubaQuery.aggregate,
-        }).formatTooltipValue,
-      }}
-      {...chartZoomProps}
-      onChartReady={chart => {
-        chartZoomProps.onChartReady(chart);
-        openPeriodMarkerResult.onChartReady(chart);
-      }}
-    />
+    <ChartContainerBody>
+      <AreaChart
+        showTimeInTooltip
+        height={CHART_HEIGHT}
+        stacked={false}
+        series={series}
+        additionalSeries={additionalSeries}
+        yAxes={yAxes.length > 1 ? yAxes : undefined}
+        yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
+        grid={grid}
+        xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
+        tooltip={{
+          valueFormatter: getDetectorChartFormatters({
+            detectionType,
+            aggregate: snubaQuery.aggregate,
+          }).formatTooltipValue,
+        }}
+        {...chartZoomProps}
+        onChartReady={chart => {
+          chartZoomProps.onChartReady(chart);
+          openPeriodMarkerResult.onChartReady(chart);
+        }}
+      />
+    </ChartContainerBody>
   );
 }
 
@@ -349,14 +365,12 @@ export function MetricDetectorDetailsChart({
 
   return (
     <ChartContainer>
-      <ChartContainerBody>
-        <MetricDetectorChart
-          detector={detector}
-          // Pass snubaQuery separately to avoid checking null in all places
-          snubaQuery={snubaQuery}
-          {...dateParams}
-        />
-      </ChartContainerBody>
+      <MetricDetectorChart
+        detector={detector}
+        // Pass snubaQuery separately to avoid checking null in all places
+        snubaQuery={snubaQuery}
+        {...dateParams}
+      />
     </ChartContainer>
   );
 }
@@ -364,6 +378,7 @@ export function MetricDetectorDetailsChart({
 const ChartContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 `;
 
 const ChartContainerBody = styled('div')`
