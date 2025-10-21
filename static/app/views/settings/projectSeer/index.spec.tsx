@@ -142,6 +142,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             repositories: [
               {
+                organization_id: 3,
                 branch_name: '',
                 external_id: '101',
                 instructions: '',
@@ -152,6 +153,7 @@ describe('ProjectSeer', () => {
                 branch_overrides: [],
               },
               {
+                organization_id: 3,
                 branch_name: '',
                 external_id: '102',
                 instructions: '',
@@ -205,6 +207,7 @@ describe('ProjectSeer', () => {
             automated_run_stopping_point: 'root_cause',
             repositories: [
               {
+                organization_id: 3,
                 external_id: '101',
                 name: 'sentry',
                 owner: 'getsentry',

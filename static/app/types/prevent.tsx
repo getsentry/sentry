@@ -3,15 +3,14 @@ export type PreventAIProvider = 'github';
 
 export type Sensitivity = 'low' | 'medium' | 'high' | 'critical';
 
-interface PreventAIRepo {
+export interface PreventAIRepo {
   fullName: string;
   id: string;
   name: string;
-  url: string;
 }
 
 export interface PreventAIOrg {
-  id: string;
+  githubOrganizationId: string;
   name: string;
   provider: PreventAIProvider;
   repos: PreventAIRepo[];

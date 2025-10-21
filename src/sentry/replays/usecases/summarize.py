@@ -399,8 +399,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.TAP:
-                message = event["data"]["payload"]["message"]
-                return f"User tapped on {message} at {timestamp}"
+                message = event["data"]["payload"].get("message")
+                if message:
+                    return f"User tapped on {message} at {timestamp}"
+                else:
+                    return None
             case EventType.DEVICE_BATTERY:
                 charging = event["data"]["payload"]["data"]["charging"]
                 level = event["data"]["payload"]["data"]["level"]
@@ -411,6 +414,18 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.DEVICE_CONNECTIVITY:
                 state = event["data"]["payload"]["data"]["state"]
                 return f"Device connectivity was changed to {state} at {timestamp}"
+            case EventType.SCROLL:
+                view_id = event["data"]["payload"]["data"].get("view.id", "")
+                direction = event["data"]["payload"]["data"].get("direction", "")
+                return f"User scrolled {view_id} {direction} at {timestamp}"
+            case EventType.SWIPE:
+                view_id = event["data"]["payload"]["data"].get("view.id", "")
+                direction = event["data"]["payload"]["data"].get("direction", "")
+                return f"User swiped {view_id} {direction} at {timestamp}"
+            case EventType.BACKGROUND:
+                return f"User moved the app to the background at {timestamp}"
+            case EventType.FOREGROUND:
+                return f"User moved the app to the foreground at {timestamp}"
             case EventType.MUTATIONS:
                 return None
             case EventType.UNKNOWN:

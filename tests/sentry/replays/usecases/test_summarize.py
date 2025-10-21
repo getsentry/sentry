@@ -914,6 +914,88 @@ def test_as_log_message_device_connectivity() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
+def test_as_log_message_scroll() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1760948639388,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948639.388,
+                "category": "ui.scroll",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert as_log_message(event) == "User scrolled recycler_view up at 1760948639388.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_swipe() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1760948640299,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948640.299,
+                "category": "ui.swipe",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert as_log_message(event) == "User swiped recycler_view up at 1760948640299.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_background() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758735184405,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758735184.405,
+                "category": "app.background",
+                "data": {},
+            },
+        },
+    }
+    assert as_log_message(event) == "User moved the app to the background at 1758735184405.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_foreground() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758733250461,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.461,
+                "category": "app.foreground",
+                "data": {},
+            },
+        },
+    }
+    assert as_log_message(event) == "User moved the app to the foreground at 1758733250461.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
 def test_parse_iso_timestamp_to_ms() -> None:
     # Without timezone
     assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00") == 1672574400000

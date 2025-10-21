@@ -74,7 +74,7 @@ export default function AutomationNew() {
           </HeaderInner>
         </StyledLayoutHeader>
         <StyledBody maxWidth={maxWidth}>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ConnectMonitorsContent
               initialIds={connectedIds}
               saveConnectedIds={setConnectedIds}
