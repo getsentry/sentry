@@ -53,6 +53,10 @@ import type {
 import IssueAlertOptions, {
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  useChannelValidationError,
+  useIsValidatingChannel,
+} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -130,6 +134,7 @@ function getSubmitTooltipText({
   if (isMissingPlatform) {
     return t('Please select a platform');
   }
+
   return t('Please select a team');
 }
 
@@ -141,6 +146,8 @@ export function CreateProject() {
   const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
+  const channelValidationError = useChannelValidationError();
+  const isValidatingChannel = useIsValidatingChannel();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -204,18 +211,25 @@ export function CreateProject() {
     platform: formData.platform,
   });
 
+  const isNotifyingViaIntegration =
+    alertRuleConfig.shouldCreateRule &&
+    notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION);
+
   const formErrorCount = [
     missingValues.isMissingPlatform,
     missingValues.isMissingTeam,
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
+    isNotifyingViaIntegration && channelValidationError,
   ].filter(value => value).length;
 
-  const submitTooltipText = getSubmitTooltipText({
-    ...missingValues,
-    formErrorCount,
-  });
+  const submitTooltipText =
+    (isNotifyingViaIntegration && channelValidationError) ??
+    getSubmitTooltipText({
+      ...missingValues,
+      formErrorCount,
+    });
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -557,16 +571,25 @@ export function CreateProject() {
               <Tooltip
                 title={
                   canUserCreateProject
-                    ? submitTooltipText
+                    ? isNotifyingViaIntegration && isValidatingChannel
+                      ? t('Validating integration channel\u2026')
+                      : submitTooltipText
                     : t('You do not have permission to create projects')
                 }
-                disabled={formErrorCount === 0 && canUserCreateProject}
+                disabled={
+                  formErrorCount === 0 &&
+                  canUserCreateProject &&
+                  !(isNotifyingViaIntegration && isValidatingChannel)
+                }
               >
                 <Button
                   data-test-id="create-project"
                   priority="primary"
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
-                  busy={createProjectAndRules.isPending}
+                  busy={
+                    createProjectAndRules.isPending ||
+                    (isNotifyingViaIntegration && isValidatingChannel)
+                  }
                   onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}

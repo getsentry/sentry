@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
@@ -40,7 +40,10 @@ describe('MessagingIntegrationAlertRule', () => {
 
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
-    channel: 'channel',
+    channel: {
+      label: 'channel',
+      value: 'channel',
+    },
     integration: slackIntegrations[0],
     provider: 'slack',
     providersToIntegrations,
@@ -106,19 +109,6 @@ describe('MessagingIntegrationAlertRule', () => {
       />
     );
     expect(screen.getByLabelText('integration')).toBeDisabled();
-  });
-
-  it('shows informative message when provider is Slack and channel not found', async () => {
-    render(getComponent());
-    await userEvent.type(screen.getByLabelText('channel'), 'beyond-limit-channel');
-    await userEvent.hover(await screen.findByTestId('icon-warning'));
-    expect(
-      await screen.findByText(
-        /Slack only returns a limited number of channels. This one isn't listed/
-      )
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Create "beyond-limit-channel"'));
-    expect(mockSetChannel).toHaveBeenCalledWith('beyond-limit-channel');
   });
 
   it('loads channels', async () => {

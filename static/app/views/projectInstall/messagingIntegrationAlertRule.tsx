@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
+import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -11,6 +12,11 @@ import {
   providerDetails,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  useChannelValidationError,
+  useResetChannelValidation,
+  useValidateChannel,
+} from 'sentry/views/projectInstall/useValidateChannel';
 
 type Channel = {
   display: string;
@@ -41,6 +47,10 @@ export default function MessagingIntegrationAlertRule({
       enabled: !!provider && !!integration?.id,
     }
   );
+
+  const validateChannel = useValidateChannel();
+  const channelValidationError = useChannelValidationError();
+  const resetChannelValidation = useResetChannelValidation();
 
   const providerOptions = useMemo(
     () =>
@@ -77,7 +87,8 @@ export default function MessagingIntegrationAlertRule({
             onChange={(p: any) => {
               setProvider(p.value);
               setIntegration(providersToIntegrations[p.value]![0]);
-              setChannel('');
+              setChannel(undefined);
+              resetChannelValidation();
             }}
           />
         ),
@@ -91,27 +102,45 @@ export default function MessagingIntegrationAlertRule({
           />
         ),
         target: (
-          <InlineSelect
-            aria-label={t('channel')}
-            placeholder={
-              providerDetails[provider as keyof typeof providerDetails]?.placeholder
-            }
-            isSearchable
-            options={channels?.results.map(ch => ({
-              label: ch.display,
-              value: ch.display,
-            }))}
-            isLoading={isPending}
-            disabled={!integration}
-            value={channel ? {label: channel, value: channel} : undefined}
-            onChange={(option: SelectValue<string> | undefined) =>
-              setChannel(option?.value)
-            }
-            clearable
-            // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.
-            // This allows them to add a channel that is not present in the results.
-            creatable
-          />
+          <FormField name="channel" error={channelValidationError}>
+            {() => (
+              <InlineSelect
+                aria-label={t('channel')}
+                placeholder={
+                  providerDetails[provider as keyof typeof providerDetails]?.placeholder
+                }
+                isSearchable
+                options={channels?.results.map(ch => ({
+                  label: ch.display,
+                  value: ch.display,
+                }))}
+                isLoading={isPending || validateChannel.isPending}
+                disabled={!integration}
+                value={channel ? {label: channel, value: channel} : undefined}
+                onChange={(
+                  option: (SelectValue<string> & {label: string}) | undefined
+                ) => {
+                  if (option) {
+                    setChannel(option.label);
+                  } else {
+                    setChannel(undefined);
+                  }
+                  resetChannelValidation();
+                }}
+                onCreateOption={(newOption: string) => {
+                  setChannel(newOption);
+                  validateChannel.mutate({
+                    channel: newOption,
+                    integrationId: integration!.id,
+                  });
+                }}
+                clearable
+                // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.
+                // This allows them to add a channel that is not present in the results.
+                creatable
+              />
+            )}
+          </FormField>
         ),
       })}
     </Rule>
