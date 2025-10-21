@@ -16,16 +16,16 @@ import {
   TraceDrawerComponents,
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
 type GeneralInfoProps = {
   cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
   location: Location;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: TransactionNode;
+  onParentClick: (node: BaseNode) => void;
   organization: Organization;
 };
 
@@ -42,7 +42,7 @@ function GeneralInfo(props: GeneralInfoProps) {
       endTimestamp / 1e3
     );
 
-  const parentTransaction = TraceTree.ParentTransaction(node);
+  const parentTransaction = node.findParentTransaction();
 
   const items: SectionCardKeyValueList = [
     {

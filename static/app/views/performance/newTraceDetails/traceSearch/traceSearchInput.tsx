@@ -13,8 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceReducer} from 'sentry/views/performance/newTraceDetails/traceState';
 import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 import {
@@ -26,7 +25,7 @@ import {
 interface TraceSearchInputProps {
   onTraceSearch: (
     query: string,
-    node: TraceTreeNode<TraceTree.NodeValue> | null,
+    node: BaseNode | null,
     behavior: 'track result' | 'persist'
   ) => void;
   organization: Organization;

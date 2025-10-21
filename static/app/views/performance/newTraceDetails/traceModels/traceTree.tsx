@@ -15,6 +15,7 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
+  isAutogroupedNode,
   isEAPError,
   isEAPSpan,
   isJavascriptSDKEvent,
@@ -459,6 +460,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
 
         tree.eap_spans_count++;
+
+        // We only want to add transactions as profiled events.
+        if ((node as EapSpanNode).value.is_transaction && node.profiles.size > 0) {
+          tree.profiled_events.add(node);
+        }
       } else if (isUptimeCheck(value)) {
         node = new UptimeCheckNode(parent, value, {
           organization: options.organization,
@@ -475,6 +481,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           replayTraceSlug: options.replayTraceSlug,
           meta: options.meta,
         });
+
+        // We only want to add transactions as profiled events.
+        if (node.profiles.size > 0) {
+          tree.profiled_events.add(node);
+        }
       }
 
       if (node.canFetchChildren || !node.expanded) {
@@ -627,6 +638,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         TraceTree.ApplyPreferences(node, options);
       }
     }
+
+    this.build();
   }
 
   appendTree(tree: TraceTree) {
@@ -842,7 +855,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
-      const children = node.parent.directVisibleChildren;
+      const children = isParentAutogroupedNode(node.parent)
+        ? node.parent.tail.children
+        : node.parent.children;
       const index = children.indexOf(node);
       if (index === -1) {
         throw new Error('Node is not a child of its parent');
@@ -912,7 +927,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       queue.push(...node.getNextTraversalNodes());
 
-      if (node.children.length < 5) {
+      if (node.children.length < 5 || isAutogroupedNode(node)) {
         continue;
       }
 
@@ -990,8 +1005,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
               for (const error of child.errors) {
                 autoGroupedNode.errors.add(error);
               }
+            }
 
-              for (const occurrence of child.occurrences) {
+            if (node.children[j]!.occurrences.size > 0) {
+              for (const occurrence of node.children[j]!.occurrences) {
                 autoGroupedNode.occurrences.add(occurrence);
               }
             }

@@ -24,7 +24,7 @@ import type {
   TraceShape,
   TraceTree,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {makeTraceNodeBarColor} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
@@ -48,8 +48,8 @@ import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
   meta: TraceMetaQueryResults;
-  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onScrollToNode: (node: BaseNode) => void;
+  onTabScrollToNode: (node: BaseNode) => void;
   replay: ReplayRecord | null;
   scheduler: TraceScheduler;
   trace: TraceTree;
@@ -206,7 +206,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
   const onParentClick = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+    (node: BaseNode) => {
       props.onTabScrollToNode(node);
       traceDispatch({
         type: 'activate tab',
@@ -410,7 +410,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
 interface TraceDrawerTabProps {
   index: number;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTabScrollToNode: (node: BaseNode) => void;
   pinned: boolean;
   tab: TraceTabsReducerState['tabs'][number];
   theme: Theme;

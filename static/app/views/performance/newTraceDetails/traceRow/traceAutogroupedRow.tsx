@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
 import {
   AutogroupedTraceBar,
   makeTraceNodeBarColor,

@@ -7,7 +7,7 @@ import {
 
 export function getNodeId(node: AITraceSpanNode): string {
   if (isEAPSpanNode(node)) {
-    return node.metadata.event_id as string;
+    return node.value.event_id;
   }
   if (isTransactionNode(node)) {
     return node.value.event_id;

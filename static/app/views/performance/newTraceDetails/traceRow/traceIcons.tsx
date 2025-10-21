@@ -3,12 +3,11 @@ import clamp from 'lodash/clamp';
 
 import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 interface ErrorIconsProps {
-  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
+  errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
 }
@@ -53,7 +52,7 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
 interface TraceOccurenceIconsProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
+  occurrences: BaseNode['occurrences'];
 }
 
 export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {

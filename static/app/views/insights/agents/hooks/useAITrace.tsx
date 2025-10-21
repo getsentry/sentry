@@ -13,7 +13,7 @@ import {
   isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -69,11 +69,13 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
         tree.build();
 
-        const fetchableTransactions = TraceTree.FindAll(tree.root, node => {
-          return isTransactionNode(node) && node.canFetch && node.value !== null;
-        }).filter((node): node is TraceTreeNode<TraceTree.Transaction> =>
-          isTransactionNode(node)
-        );
+        const fetchableTransactions = tree.root
+          .findAllChildren(node => {
+            return (
+              isTransactionNode(node) && node.canFetchChildren && node.value !== null
+            );
+          })
+          .filter((node): node is TransactionNode => isTransactionNode(node));
 
         const uniqueTransactions = fetchableTransactions.filter(
           (node, index, array) =>
@@ -81,7 +83,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
         );
 
         const zoomPromises = uniqueTransactions.map(node =>
-          tree.zoom(node, true, {
+          tree.fetchNodeSubTree(true, node, {
             api,
             organization,
             preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -91,7 +93,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
         await Promise.all(zoomPromises);
 
         // Keep only transactions that include AI spans and the AI spans themselves
-        const flattenedNodes = TraceTree.FindAll(tree.root, node => {
+        const flattenedNodes = tree.root.findAllChildren(node => {
           if (
             !isTransactionNodeEquivalent(node) &&
             !isSpanNode(node) &&

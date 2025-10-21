@@ -1079,7 +1079,7 @@ describe('trace view', () => {
     });
 
     it('scrolls to sibling autogroup node', async () => {
-      mockQueryString('?node=ag-http0&node=txn-1');
+      mockQueryString('?node=ag-span0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);

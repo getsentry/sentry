@@ -91,7 +91,7 @@ export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPEr
   );
 }
 
-export function isEAPErrorNode(node: BaseNode): node is ErrorNode {
+export function isEAPErrorNode(node: BaseNode): node is BaseNode<TraceTree.EAPError> {
   return isEAPError(node.value);
 }
 
@@ -125,8 +125,13 @@ export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.Tra
   return !!(value && 'level' in value && 'message' in value);
 }
 
-export function isTraceErrorNode(node: BaseNode): node is ErrorNode {
+export function isTraceErrorNode(node: BaseNode): node is BaseNode<TraceTree.TraceError> {
   return isTraceError(node.value);
+}
+
+// TODO Abdullah Khan: Won't be needed once we fully migrate to the new BaseNode subclass
+export function isErrorNode(node: BaseNode): node is ErrorNode {
+  return isTraceErrorNode(node) || isEAPErrorNode(node);
 }
 
 export function isRootNode(node: BaseNode): node is RootNode {

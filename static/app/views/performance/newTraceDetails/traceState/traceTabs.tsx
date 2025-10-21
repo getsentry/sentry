@@ -11,11 +11,10 @@ import {
   isTraceNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
+export function getTraceTabTitle(node: BaseNode) {
   if (isTransactionNode(node)) {
     return (
       node.value['transaction.op'] +
@@ -52,7 +51,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 type Tab = {
-  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'profiles' | 'vitals';
+  node: BaseNode | 'trace' | 'profiles' | 'vitals';
   label?: string;
 };
 

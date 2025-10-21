@@ -3,10 +3,9 @@ import {
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
-export function getIsMCPNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+export function getIsMCPNode(node: BaseNode) {
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return false;
   }

@@ -9,7 +9,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
-import {TraceTree} from './traceModels/traceTree';
+import type {TraceTree} from './traceModels/traceTree';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {traceAnalytics, type TraceTreeSource} from './traceAnalytics';
 import {useTraceQueryParams} from './useTraceQueryParams';
@@ -70,7 +70,7 @@ function useTraceStateAnalytics({
       const traceAge = defined(traceTimestamp)
         ? getRelativeDate(traceTimestamp, 'ago')
         : 'unknown';
-      const issuesCount = TraceTree.UniqueIssues(traceNode).length;
+      const issuesCount = traceNode.uniqueIssues.length;
 
       traceAnalytics.trackTraceSuccessState(
         tree,

@@ -68,11 +68,8 @@ import {
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
-import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
   useTraceState,
   useTraceStateDispatch,
@@ -329,7 +326,7 @@ const getDurationComparison = (
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   baseDescription?: string;
   ratio?: number;
 };
@@ -412,7 +409,7 @@ type HighlightProps = {
   avgDuration: number | undefined;
   bodyContent: React.ReactNode;
   headerContent: React.ReactNode;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
   hideNodeActions?: boolean;
@@ -591,11 +588,11 @@ function HighLightEAPOpsBreakdown({
   node,
   onRowClick,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
   onRowClick: (op: string) => void;
 }) {
   const theme = useTheme();
-  const breakdown = node.eapSpanOpsBreakdown;
+  const breakdown = node.opsBreakdown;
 
   if (breakdown.length === 0) {
     return null;
@@ -765,13 +762,7 @@ const HighlightsRightColumn = styled('div')`
   overflow: hidden;
 `;
 
-function IssuesLink({
-  node,
-  children,
-}: {
-  children: React.ReactNode;
-  node: TraceTreeNode<TraceTree.NodeValue>;
-}) {
+function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
@@ -840,7 +831,7 @@ const ValueTd = styled('td')`
 `;
 
 function getThreadIdFromNode(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   transaction: EventTransaction | undefined
 ): string | undefined {
   if (isSpanNode(node) && node.value.data?.['thread.id']) {
@@ -997,14 +988,8 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
 }
 
 function NodeActions(props: {
-  node: TraceTreeNode<any>;
-  onTabScrollToNode: (
-    node:
-      | TraceTreeNode<any>
-      | ParentAutogroupNode
-      | SiblingAutogroupNode
-      | MissingInstrumentationNode
-  ) => void;
+  node: BaseNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   eventSize?: number | undefined;
 }) {
@@ -1019,7 +1004,7 @@ function NodeActions(props: {
 
   const {data: transaction} = useTransaction({
     event_id: transactionId,
-    project_slug: props.node.value.project_slug,
+    project_slug: props.node.projectSlug ?? '',
     organization,
   });
 
@@ -1034,7 +1019,7 @@ function NodeActions(props: {
     }
     return makeTransactionProfilingLink(profileId, {
       organization,
-      projectSlug: props.node.metadata.project_slug ?? '',
+      projectSlug: props.node.projectSlug ?? '',
     });
   }, [organization, props.node]);
 
@@ -1049,7 +1034,7 @@ function NodeActions(props: {
     }
     return makeTraceContinuousProfilingLink(props.node, profilerId, {
       organization,
-      projectSlug: props.node.metadata.project_slug ?? '',
+      projectSlug: props.node.projectSlug ?? '',
       traceId: params.traceSlug ?? '',
       threadId: getThreadIdFromNode(props.node, transaction),
     });

@@ -6,15 +6,15 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {
   isEAPSpanNode,
   isEAPTransactionNode,
+  isSpanNode,
   isUptimeCheckNode,
   isUptimeCheckTimingNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import {
-  getNodeDescriptionPrefix,
-  TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
+import type {UptimeCheckTimingNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode';
 import {
   makeTraceNodeBarColor,
   TraceBar,
@@ -31,12 +31,7 @@ import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI
 const NO_PROFILES: any = [];
 
 export function TraceSpanRow(
-  props: TraceRowProps<
-    | TraceTreeNode<TraceTree.Span>
-    | TraceTreeNode<TraceTree.EAPSpan>
-    | TraceTreeNode<TraceTree.UptimeCheck>
-    | TraceTreeNode<TraceTree.UptimeCheckTiming>
-  >
+  props: TraceRowProps<SpanNode | EapSpanNode | UptimeCheckNode | UptimeCheckTimingNode>
 ) {
   const spanId =
     isEAPSpanNode(props.node) ||
@@ -53,10 +48,13 @@ export function TraceSpanRow(
   ) : isUptimeCheckTimingNode(props.node) ? (
     <IconTimer size="xs" />
   ) : (
-    <PlatformIcon
-      platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
-    />
+    <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
   );
+
+  const isPrefetch =
+    isSpanNode(props.node) &&
+    props.node.value.data &&
+    !!props.node.value.data['http.request.prefetch'];
 
   return (
     <div
@@ -80,20 +78,20 @@ export function TraceSpanRow(
         <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className={props.listColumnClassName}>
             <TraceRowConnectors node={props.node} manager={props.manager} />
-            {props.node.children.length > 0 || props.node.canFetch ? (
+            {props.node.children.length > 0 || props.node.canFetchChildren ? (
               <TraceChildrenButton
                 icon={
-                  props.node.canFetch ? (
+                  props.node.canFetchChildren ? (
                     '+'
                   ) : (
                     <TraceIcons.Chevron direction={props.node.expanded ? 'up' : 'down'} />
                   )
                 }
                 status={props.node.fetchStatus}
-                expanded={props.node.expanded || props.node.zoomedIn}
+                expanded={props.node.expanded || props.node.hasFetchedChildren}
                 onDoubleClick={props.onExpandDoubleClick}
                 onClick={e =>
-                  props.node.canFetch ? props.onZoomIn(e) : props.onExpand(e)
+                  props.node.canFetchChildren ? props.onZoomIn(e) : props.onExpand(e)
                 }
               >
                 {childrenCount > 0 ? TRACE_COUNT_FORMATTER.format(childrenCount) : null}
@@ -119,7 +117,7 @@ export function TraceSpanRow(
               </React.Fragment>
             ) : (
               <span className="TraceDescription" title={props.node.value.description}>
-                {getNodeDescriptionPrefix(props.node)}
+                {isPrefetch ? '(prefetch) ' : ''}
                 {props.node.value.description
                   ? ellipsize(props.node.value.description, 100)
                   : (spanId ?? 'unknown')}
@@ -156,18 +154,14 @@ export function TraceSpanRow(
 }
 
 function getChildrenCount(
-  node:
-    | TraceTreeNode<TraceTree.Span>
-    | TraceTreeNode<TraceTree.EAPSpan>
-    | TraceTreeNode<TraceTree.UptimeCheck>
-    | TraceTreeNode<TraceTree.UptimeCheckTiming>
+  node: SpanNode | EapSpanNode | UptimeCheckNode | UptimeCheckTimingNode
 ) {
   if (isUptimeCheckTimingNode(node)) {
     return 0;
   }
 
   if (isEAPTransactionNode(node) && !node.expanded) {
-    return node.children.length - TraceTree.DirectVisibleChildren(node).length;
+    return node.children.length - node.directVisibleChildren.length;
   }
 
   return node.children.length;

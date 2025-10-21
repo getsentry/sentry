@@ -35,7 +35,7 @@ import {
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
 import {TraceTree} from './traceModels/traceTree';
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
 import {
   useVirtualizedList,
@@ -65,12 +65,11 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
-  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTraceNode,
+  isErrorNode,
   isMissingInstrumentationNode,
   isSpanNode,
-  isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
   isUptimeCheckNode,
@@ -108,16 +107,16 @@ interface TraceProps {
   isLoading: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
-    node: TraceTreeNode<TraceTree.NodeValue>,
+    node: BaseNode,
     event: React.MouseEvent<HTMLElement>,
     index: number
   ) => void;
   onTraceSearch: (
     query: string,
-    node: TraceTreeNode<TraceTree.NodeValue>,
+    node: BaseNode,
     behavior: 'track result' | 'persist'
   ) => void;
-  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
+  previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   rerender: () => void;
   scheduler: TraceScheduler;
   trace: TraceTree;
@@ -148,7 +147,7 @@ export function Trace({
   rerenderRef.current = rerender;
 
   const treePromiseStatusRef = useRef<Map<
-    TraceTreeNode<TraceTree.NodeValue>,
+    BaseNode,
     'loading' | 'error' | 'success'
   > | null>(null);
 
@@ -208,7 +207,7 @@ export function Trace({
   const onNodeZoomIn = useCallback(
     (
       event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: TraceTreeNode<TraceTree.NodeValue>,
+      node: BaseNode,
       value: boolean
     ) => {
       if (!isTransactionNode(node) && !isSpanNode(node)) {
@@ -219,7 +218,7 @@ export function Trace({
       rerenderRef.current();
 
       treeRef.current
-        .zoom(node, value, {
+        .fetchNodeSubTree(value, node, {
           api,
           organization,
           preferences: traceStatePreferencesRef.current,
@@ -245,23 +244,19 @@ export function Trace({
   const onNodeExpand = useCallback(
     (
       event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: TraceTreeNode<TraceTree.NodeValue>,
+      node: BaseNode,
       value: boolean
     ) => {
       event.stopPropagation();
 
-      treeRef.current.expand(node, value);
+      node.expand(value, treeRef.current);
       rerenderRef.current();
     },
     []
   );
 
   const onRowKeyDown = useCallback(
-    (
-      event: React.KeyboardEvent,
-      index: number,
-      node: TraceTreeNode<TraceTree.NodeValue>
-    ) => {
+    (event: React.KeyboardEvent, index: number, node: BaseNode) => {
       if (!manager.list) {
         return;
       }
@@ -283,13 +278,13 @@ export function Trace({
       }
 
       if (event.key === 'ArrowLeft') {
-        if (node.zoomedIn) {
+        if (node.hasFetchedChildren) {
           onNodeZoomIn(event, node, false);
         } else if (node.expanded) {
           onNodeExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
-        if (node.canFetch) {
+        if (node.canFetchChildren) {
           onNodeZoomIn(event, node, true);
         } else {
           onNodeExpand(event, node, true);
@@ -508,29 +503,17 @@ function RenderTraceRow(props: {
   index: number;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.NodeValue>;
-  onExpand: (
-    event: React.MouseEvent<Element>,
-    node: TraceTreeNode<TraceTree.NodeValue>,
-    value: boolean
-  ) => void;
+  node: BaseNode;
+  onExpand: (event: React.MouseEvent<Element>, node: BaseNode, value: boolean) => void;
   onRowClick: (
-    node: TraceTreeNode<TraceTree.NodeValue>,
+    node: BaseNode,
     event: React.MouseEvent<HTMLElement>,
     index: number
   ) => void;
-  onRowKeyDown: (
-    event: React.KeyboardEvent,
-    index: number,
-    node: TraceTreeNode<TraceTree.NodeValue>
-  ) => void;
-  onZoomIn: (
-    event: React.MouseEvent<Element>,
-    node: TraceTreeNode<TraceTree.NodeValue>,
-    value: boolean
-  ) => void;
+  onRowKeyDown: (event: React.KeyboardEvent, index: number, node: BaseNode) => void;
+  onZoomIn: (event: React.MouseEvent<Element>, node: BaseNode, value: boolean) => void;
   organization: Organization;
-  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
+  previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<Project['slug'], Project['platform']>;
   searchResultsIteratorIndex: number | null;
   style: React.CSSProperties;
@@ -607,7 +590,7 @@ function RenderTraceRow(props: {
   const onZoomInProp = props.onZoomIn;
   const onZoomIn = useCallback(
     (e: React.MouseEvent) => {
-      onZoomInProp(e, node, !node.zoomedIn);
+      onZoomInProp(e, node, !node.hasFetchedChildren);
     },
     [node, onZoomInProp]
   );
@@ -628,7 +611,7 @@ function RenderTraceRow(props: {
     paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
   };
 
-  const rowProps: TraceRowProps<TraceTreeNode<TraceTree.NodeValue>> = {
+  const rowProps: TraceRowProps<BaseNode> = {
     onExpand,
     onZoomIn,
     onRowClick,
@@ -676,7 +659,7 @@ function RenderTraceRow(props: {
     return <TraceAutogroupedRow {...rowProps} node={node} />;
   }
 
-  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
+  if (isErrorNode(node)) {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 

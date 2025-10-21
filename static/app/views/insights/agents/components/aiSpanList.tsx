@@ -29,8 +29,8 @@ import {
   isTransactionNode,
   isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   let startTime = 0;
@@ -69,16 +69,6 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   };
 }
 
-function getClosestNode<T extends AITraceSpanNode>(
-  node: AITraceSpanNode,
-  predicate: (node: TraceTreeNode) => node is T
-): T | null {
-  if (predicate(node)) {
-    return node;
-  }
-  return TraceTree.ParentNode(node, predicate) as T | null;
-}
-
 export function AISpanList({
   nodes,
   selectedNodeKey,
@@ -89,12 +79,11 @@ export function AISpanList({
   selectedNodeKey: string | null;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<
-      TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>,
-      AITraceSpanNode[]
-    > = new Map();
+    const result: Map<TransactionNode | EapSpanNode, AITraceSpanNode[]> = new Map();
     for (const node of nodes) {
-      const transaction = getClosestNode(node, isTransactionNodeEquivalent);
+      const transaction = node.findParent<TransactionNode | EapSpanNode>(p =>
+        isTransactionNodeEquivalent(p)
+      );
       if (!transaction) {
         continue;
       }
@@ -132,7 +121,7 @@ function TransactionWrapper({
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
-  transaction: TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>;
+  transaction: TransactionNode | EapSpanNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const theme = useTheme();
@@ -142,7 +131,7 @@ function TransactionWrapper({
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
     for (const node of nodes) {
-      const parent = getClosestNode(node, getIsAiRunNode);
+      const parent = node.findParent<AITraceSpanNode>(p => getIsAiRunNode(p));
       if (parent) {
         parents[getNodeId(node)] = parent;
       }
@@ -242,7 +231,7 @@ interface TraceBounds {
 }
 
 function calculateRelativeTiming(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   traceBounds: TraceBounds
 ): {leftPercent: number; widthPercent: number} {
   if (!node.value) return {leftPercent: 0, widthPercent: 0};

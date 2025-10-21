@@ -4,7 +4,7 @@ import type {Theme} from '@emotion/react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/project';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 export const TRACE_COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
@@ -33,7 +33,7 @@ export interface TraceRowProps<T extends TraceTree.Node> {
   onRowKeyDown: (e: React.KeyboardEvent) => void;
   onSpanArrowClick: (e: React.MouseEvent) => void;
   onZoomIn: (e: React.MouseEvent) => void;
-  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
+  previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<string, PlatformKey | undefined>;
   registerListColumnRef: (e: HTMLDivElement | null) => void;
   registerSpanArrowRef: (e: HTMLButtonElement | null) => void;
@@ -49,8 +49,8 @@ export interface TraceRowProps<T extends TraceTree.Node> {
 
 export function maybeFocusTraceRow(
   ref: HTMLDivElement | null,
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>
+  node: BaseNode,
+  previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>
 ) {
   if (!ref) {
     return;
@@ -65,9 +65,9 @@ export function maybeFocusTraceRow(
 
 export function TraceRowConnectors(props: {
   manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
 }) {
-  const hasChildren = TraceTree.HasVisibleChildren(props.node);
+  const hasChildren = props.node.hasVisibleChildren();
   const nodeDepth = TraceTree.Depth(props.node);
 
   return (
@@ -86,7 +86,7 @@ export function TraceRowConnectors(props: {
         );
       })}
       {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
-      {TraceTree.IsLastChild(props.node) ? (
+      {props.node.isLastChild() ? (
         <span className="TraceVerticalLastChildConnector" />
       ) : null}
     </Fragment>
@@ -99,7 +99,7 @@ export function TraceChildrenButton(props: {
   icon: React.ReactNode;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
-  status: TraceTreeNode<any>['fetchStatus'] | undefined;
+  status: BaseNode['fetchStatus'] | undefined;
 }) {
   return (
     <button
