@@ -90,7 +90,7 @@ def validate_detectors_exist_and_have_permissions(
     if missing_detector_ids:
         raise serializers.ValidationError(f"Some detectors do not exist: {missing_detector_ids}")
 
-    if not can_edit_detectors(detectors, request):
+    if not all(can_edit_detector_workflow_connections(detector, request) for detector in detectors):
         raise PermissionDenied
 
     return detectors
