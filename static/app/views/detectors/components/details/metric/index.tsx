@@ -5,7 +5,7 @@ import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
-import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
 import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
@@ -42,7 +42,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
             <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
           )}
           <ErrorBoundary mini>
-            <DetectorDetailsOngoingIssues
+            <DetectorDetailsOpenPeriodIssues
               detector={detector}
               intervalSeconds={intervalSeconds}
             />
