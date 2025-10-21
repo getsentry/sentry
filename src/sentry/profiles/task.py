@@ -1747,6 +1747,7 @@ def build_profile_functions_eap_trace_items(
         profile_id = AnyValue(string_value=profile.get_profile_id())
         thread_id = AnyValue(string_value=f.get_thread_id())
         profiling_type = AnyValue(string_value="transaction")
+        transaction_name = AnyValue(string_value=profile.get_transaction().name)
 
         depth: int | None = f.get_depth()
         stack_fingerprint: int | None = f.get_stack_fingerprint()
@@ -1765,6 +1766,7 @@ def build_profile_functions_eap_trace_items(
                 "profile_id": profile_id,
                 "thread_id": thread_id,
                 "profiling_type": profiling_type,
+                "transaction_name": transaction_name,
             }
             if depth is not None:
                 attributes["depth"] = AnyValue(int_value=depth)
