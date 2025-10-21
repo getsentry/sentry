@@ -237,6 +237,36 @@ def test_as_log_message_click() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
+def test_as_log_message_tap() -> None:
+    event = {
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "level": "info",
+                "timestamp": 1758212015.458114,
+                "category": "ui.tap",
+                "data": {
+                    "path": [
+                        {"name": "View"},
+                        {"name": "ScrollView"},
+                        {"name": "AnimatedComponent(ScrollView)"},
+                        {"name": "ScrollView"},
+                    ]
+                },
+                "message": "ScrollView > AnimatedComponent(ScrollView) > ScrollView > View",
+                "type": "default",
+            },
+        },
+        "type": 5,
+        "timestamp": 1758212015458,
+    }
+    assert (
+        as_log_message(event)
+        == "User tapped on ScrollView > AnimatedComponent(ScrollView) > ScrollView > View at 1758212015458.0"
+    )
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
 def test_as_log_message_lcp() -> None:
     event = {
         "type": 5,
@@ -827,6 +857,143 @@ def test_as_log_message_resource_script() -> None:
     }
     assert as_log_message(event) is None
     assert get_timestamp_unit(which(event)) == "s"
+
+
+def test_as_log_message_device_battery() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753203886279,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1753203886.279,
+                "category": "device.battery",
+                "data": {"level": 100.0, "charging": False},
+            },
+        },
+    }
+    assert as_log_message(event) == "Device battery was 100.0% and not charging at 1753203886279.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_device_orientation() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758212033534,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "level": "none",
+                "category": "device.orientation",
+                "timestamp": 1758212033.534864,
+                "data": {"position": "landscape"},
+                "type": "default",
+            },
+        },
+    }
+    assert as_log_message(event) == "Device orientation was changed to landscape at 1758212033534.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_device_connectivity() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758733250547,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.547,
+                "category": "device.connectivity",
+                "data": {"state": "wifi"},
+            },
+        },
+    }
+    assert as_log_message(event) == "Device connectivity was changed to wifi at 1758733250547.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_scroll() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1760948639388,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948639.388,
+                "category": "ui.scroll",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert as_log_message(event) == "User scrolled recycler_view up at 1760948639388.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_swipe() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1760948640299,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948640.299,
+                "category": "ui.swipe",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert as_log_message(event) == "User swiped recycler_view up at 1760948640299.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_background() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758735184405,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758735184.405,
+                "category": "app.background",
+                "data": {},
+            },
+        },
+    }
+    assert as_log_message(event) == "User moved the app to the background at 1758735184405.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_foreground() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758733250461,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.461,
+                "category": "app.foreground",
+                "data": {},
+            },
+        },
+    }
+    assert as_log_message(event) == "User moved the app to the foreground at 1758733250461.0"
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_parse_iso_timestamp_to_ms() -> None:

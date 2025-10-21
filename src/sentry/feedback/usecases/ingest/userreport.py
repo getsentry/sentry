@@ -9,7 +9,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry import eventstore, options
+from sentry import options
 from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.feedback.lib.types import UserReportDict
@@ -21,6 +21,7 @@ from sentry.feedback.lib.utils import (
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import user_feedback_received
 from sentry.utils import metrics

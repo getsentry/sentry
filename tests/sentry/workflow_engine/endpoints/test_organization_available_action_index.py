@@ -367,7 +367,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 2
+
+        # should only return the sentry app with a component
+        assert len(response.data) == 1
         assert response.data == [
             {
                 "type": Action.Type.SENTRY_APP,
@@ -382,19 +384,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": self.sentry_app_settings_schema["settings"],
                     "title": self.sentry_app_settings_schema["title"],
-                },
-            },
-            {
-                "type": Action.Type.SENTRY_APP,
-                "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": {},
-                "dataSchema": {},
-                "sentryApp": {
-                    "id": str(self.no_component_sentry_app.id),
-                    "name": self.no_component_sentry_app.name,
-                    "installationId": str(self.no_component_sentry_app_installation.id),
-                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
-                    "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
         ]
@@ -441,7 +430,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 9
+        assert len(response.data) == 8
         assert response.data == [
             # notification actions, sorted alphabetically with email first
             {
@@ -466,6 +455,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "configSchema": {},
                 "dataSchema": {},
             },
+            # webhook action should include sentry apps without components
             {
                 "type": Action.Type.WEBHOOK,
                 "handlerGroup": ActionHandler.Group.OTHER.value,
@@ -473,6 +463,10 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "dataSchema": {},
                 "services": [
                     {"slug": "slack", "name": "(Legacy) Slack"},
+                    {
+                        "slug": self.no_component_sentry_app.slug,
+                        "name": self.no_component_sentry_app.name,
+                    },
                     {"slug": "webhooks", "name": "WebHooks"},
                 ],
             },
@@ -489,19 +483,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": self.sentry_app_settings_schema["settings"],
                     "title": self.sentry_app_settings_schema["title"],
-                },
-            },
-            {
-                "type": Action.Type.SENTRY_APP,
-                "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": {},
-                "dataSchema": {},
-                "sentryApp": {
-                    "id": str(self.no_component_sentry_app.id),
-                    "name": self.no_component_sentry_app.name,
-                    "installationId": str(self.no_component_sentry_app_installation.id),
-                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
-                    "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
             # ticket creation actions, sorted alphabetically
