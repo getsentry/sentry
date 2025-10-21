@@ -33,6 +33,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -56,12 +57,18 @@ type ProjectState = {
 type ProjectStateMap = Record<string, ProjectState>;
 
 // Helper function to transform repositories data
-function transformRepositoriesToApiFormat(repositories: any[], repoIds: string[]) {
+function transformRepositoriesToApiFormat(
+  repositories: Repository[],
+  organizationId: string,
+  repoIds: string[]
+): SeerRepoDefinition[] {
   const selectedRepos = repositories.filter(repo => repoIds.includes(repo.externalId));
 
   return selectedRepos.map(repo => {
     const [owner, name] = (repo.name || '/').split('/');
     return {
+      integration_id: repo.integrationId,
+      organization_id: parseInt(organizationId, 10),
       provider: repo.provider?.name?.toLowerCase() || '',
       owner: owner || '',
       name: name || repo.name || '',
@@ -111,8 +118,10 @@ function ProjectRowWithUpdate({
   ) => void;
   project: Project;
   projectStates: ProjectStateMap;
-  repositories: any[];
+  repositories: Repository[];
 }) {
+  const organization = useOrganization();
+
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   const handleProjectClick = useCallback(() => {
@@ -128,7 +137,11 @@ function ProjectRowWithUpdate({
         repositories={repositories}
         selectedRepoIds={currentRepoIds}
         onSave={(repoIds: string[]) => {
-          const reposData = transformRepositoriesToApiFormat(repositories, repoIds);
+          const reposData = transformRepositoriesToApiFormat(
+            repositories,
+            organization.id,
+            repoIds
+          );
 
           updateProjectSeerPreferences({repositories: reposData});
 
@@ -148,6 +161,7 @@ function ProjectRowWithUpdate({
       />
     ));
   }, [
+    organization.id,
     repositories,
     projectStates,
     isFetchingRepositories,

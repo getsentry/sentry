@@ -122,6 +122,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         }
 
         return {
+          organization_id: parseInt(organization.id, 10),
           integration_id: repo.integrationId,
           provider,
           owner: owner || '',
@@ -139,6 +140,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       setShowSaveNotice(true);
     },
     [
+      organization.id,
       repositories,
       selectedRepoIds,
       repoSettings,
