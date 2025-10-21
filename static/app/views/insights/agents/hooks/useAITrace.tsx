@@ -103,7 +103,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
           }
 
           return getIsAiNode(node);
-        }) as AITraceSpanNode[];
+        });
 
         setNodes(flattenedNodes);
         setIsLoading(false);
