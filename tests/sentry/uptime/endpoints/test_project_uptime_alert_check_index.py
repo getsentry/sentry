@@ -2,7 +2,7 @@ import uuid
 from abc import abstractmethod
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
@@ -193,48 +193,13 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
 
 @region_silo_test
 @freeze_time(MOCK_DATETIME)
-class ProjectUptimeAlertCheckIndexEndpoint(
-    ProjectUptimeAlertCheckIndexBaseTest, UptimeCheckSnubaTestCase
-):
-    __test__ = True
-    features = {
-        "organizations:uptime-eap-enabled": False,
-        "organizations:uptime-eap-uptime-results-query": False,
-    }
-
-    def store_uptime_data(
-        self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        http_status=None,
-    ):
-        # if scheduled_check_time is None:
-        #     scheduled_check_time = datetime.now(timezone.utc) - timedelta(hours=12)
-        #
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status=check_status,
-            incident_status=incident_status,
-            scheduled_check_time=scheduled_check_time,
-            http_status=http_status,
-            region="default",
-        )
-
-
-@region_silo_test
-@freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
     ProjectUptimeAlertCheckIndexBaseTest, UptimeResultEAPTestCase
 ):
     __test__ = True
 
     def setUp(self) -> None:
-        self.features = {
-            "organizations:uptime-eap-enabled": True,
-            "organizations:uptime-eap-uptime-results-query": True,
-        }
+        self.features = {"organizations:uptime-eap-enabled": True}
         super().setUp()
 
     def store_uptime_data(
