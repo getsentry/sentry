@@ -195,13 +195,13 @@ def process_batch(
             schema_validator.validate(val)
 
             span = Span(
-                trace_id=val["trace_id"],
-                span_id=val["span_id"],
+                trace_id=cast(str, val["trace_id"]),
+                span_id=cast(str, val["span_id"]),
                 parent_span_id=val.get("parent_span_id"),
                 segment_id=cast(str | None, attribute_value(val, "sentry.segment.id")),
                 project_id=val["project_id"],
                 payload=payload.value,
-                end_timestamp=val["end_timestamp"],
+                end_timestamp=float(val["end_timestamp"]),
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
             )
 
