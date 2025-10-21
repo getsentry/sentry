@@ -5,11 +5,13 @@ from typing import Any, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
     TraceItemStatsRequest,
 )
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -27,7 +29,7 @@ from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.snuba_rpc import trace_item_stats_rpc
+from sentry.utils.snuba_rpc import attribute_names_rpc, trace_item_stats_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +122,20 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         if query_1 == query_2:
             return Response({"rankedAttributes": []})
 
+        # First, fetch attribute names to use as an allowlist
+        attribute_names_request = TraceItemAttributeNamesRequest(
+            meta=meta,
+            type=AttributeKey.Type.TYPE_STRING,
+            limit=1000,
+        )
+        attribute_names_response = attribute_names_rpc(attribute_names_request)
+
+        allowed_attribute_names = {
+            attr.name
+            for attr in attribute_names_response.attributes
+            if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
+        }
+
         cohort_1, _, _ = resolver.resolve_query(query_1)
         cohort_1_request = TraceItemStatsRequest(
             filter=cohort_1,
@@ -199,7 +215,10 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         processed_cohort_2_buckets = set()
 
         for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
-            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+            # Filter attributes to only those in the allowlist
+            if attribute.attribute_name not in allowed_attribute_names or not can_expose_attribute(
+                attribute.attribute_name, SupportedTraceItemType.SPANS
+            ):
                 continue
 
             for bucket in attribute.buckets:
@@ -208,7 +227,10 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 )
 
         for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
-            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+            # Filter attributes to only those in the allowlist
+            if attribute.attribute_name not in allowed_attribute_names or not can_expose_attribute(
+                attribute.attribute_name, SupportedTraceItemType.SPANS
+            ):
                 continue
             for bucket in attribute.buckets:
                 cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))

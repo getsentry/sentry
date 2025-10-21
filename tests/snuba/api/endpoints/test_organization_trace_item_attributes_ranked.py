@@ -246,8 +246,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.trace_item_stats_rpc")
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.attribute_names_rpc")
     def test_filters_out_internal_and_private_attributes(
-        self, mock_trace_item_stats_rpc, mock_compare_distributions
+        self, mock_attribute_names_rpc, mock_trace_item_stats_rpc, mock_compare_distributions
     ) -> None:
         """Test that internal and private attributes are filtered from the response.
 
@@ -335,6 +336,23 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Both cohorts return the same attributes
         mock_trace_item_stats_rpc.return_value = create_mock_response()
+
+        # Mock the attribute names RPC to return all the attribute names (including internal ones)
+        mock_attr_names_response = MagicMock()
+        mock_attributes = []
+        for attr_name in [
+            "sentry.device",
+            "browser",
+            "sentry.links",
+            "sentry._meta.fields.attributes.browser",
+            "sentry._internal.some_metric",
+            "__sentry_internal.debug_info",
+        ]:
+            attr = MagicMock()
+            attr.name = attr_name
+            mock_attributes.append(attr)
+        mock_attr_names_response.attributes = mock_attributes
+        mock_attribute_names_rpc.return_value = mock_attr_names_response
 
         mock_compare_distributions.return_value = {
             "results": [
