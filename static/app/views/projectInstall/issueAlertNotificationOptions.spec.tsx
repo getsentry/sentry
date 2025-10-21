@@ -16,7 +16,10 @@ describe('MessagingIntegrationAlertRule', () => {
 
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
-    channel: 'channel',
+    channel: {
+      label: 'channel',
+      value: 'channel',
+    },
     integration: undefined,
     provider: 'slack',
     providersToIntegrations: {},
