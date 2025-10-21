@@ -950,7 +950,7 @@ describe('TraceTree', () => {
 
       const parentAutogroupNode = tree.root.findChild(n =>
         isParentAutogroupedNode(n)
-      )! as ParentAutogroupNode;
+      ) as ParentAutogroupNode;
 
       // Expand the chain and collapse an intermediary child
       parentAutogroupNode.expand(true, tree);

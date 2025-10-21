@@ -177,14 +177,7 @@ describe('SpanNode', () => {
       const transaction = makeTransaction({
         event_id: 'txn-abc-123',
       });
-      const mockFn = jest.fn();
-      const transactionNode = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFn,
-        mockFn
-      );
+      const transactionNode = new TransactionNode(null, transaction, createMockExtra());
 
       const span = makeSpan({
         span_id: 'span-def-456',

@@ -233,7 +233,9 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
    * Returns the bounds of the added subtree as [start, end] timestamps.
    */
   appendSpans(spans: TraceTree.Span[], event: EventTransaction | null): [number, number] {
-    const txnChildren = this.findAllChildren(c => isTransactionNode(c));
+    const txnChildren = this.findAllChildren(c =>
+      isTransactionNode(c)
+    ) as TransactionNode[];
 
     // Clear children of root node as we are recreating the sub tree
     this.children = [];
@@ -285,7 +287,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
     // Reparent transactions under children spans
     for (const transaction of txnChildren) {
-      const parent = spanIdToNode.get(transaction.value.parent_span_id);
+      const parent = spanIdToNode.get(transaction.value?.parent_span_id ?? '');
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
         if (transaction.parent?.children.indexOf(transaction) === -1) {
