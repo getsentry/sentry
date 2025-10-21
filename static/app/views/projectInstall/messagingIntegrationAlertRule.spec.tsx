@@ -1,11 +1,28 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
+
+function setupValidateChannelSpy() {
+  const mockClear = jest.fn();
+  const originalUseValidateChannel = useValidateChannelModule.useValidateChannel;
+  const spy = jest.spyOn(useValidateChannelModule, 'useValidateChannel');
+
+  spy.mockImplementation((...args) => {
+    const result = originalUseValidateChannel(...args);
+    return {
+      ...result,
+      clear: mockClear,
+    };
+  });
+
+  return {mockClear, spy};
+}
 
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
@@ -135,7 +152,11 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(await screen.findByText('#alerts')).toBeInTheDocument();
     expect(screen.getByText('#general')).toBeInTheDocument();
     await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
-    expect(mockSetChannel).toHaveBeenCalledWith('#alerts');
+    expect(mockSetChannel).toHaveBeenCalledWith({
+      label: '#alerts',
+      value: '#alerts',
+      new: false,
+    });
   });
 
   it('shows empty state when no channels are returned', async () => {
@@ -160,5 +181,177 @@ describe('MessagingIntegrationAlertRule', () => {
     await selectEvent.openMenu(screen.getByLabelText('channel'));
     expect(await screen.findByText('No options')).toBeInTheDocument();
     expect(mockSetChannel).not.toHaveBeenCalled();
+  });
+
+  it('set custom channel as "new" when created', async () => {
+    render(getComponent());
+
+    await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
+      waitForElement: false,
+    });
+
+    expect(mockSetChannel).toHaveBeenCalledWith({
+      label: '#custom-channel',
+      value: '#custom-channel',
+      new: true,
+    });
+  });
+
+  it('validates custom channel when created', async () => {
+    const validationRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
+      body: {valid: true},
+    });
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...notificationProps}
+        channel={{label: '#custom-channel', value: 'custom-channel', new: true}}
+      />
+    );
+
+    await waitFor(() => {
+      expect(validationRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {channel: '#custom-channel'},
+        })
+      );
+    });
+  });
+
+  it('displays validation error when channel is invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
+      body: {valid: false, detail: 'Channel not found'},
+    });
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...notificationProps}
+        channel={{label: '#invalid-channel', value: '#invalid-channel', new: true}}
+      />
+    );
+
+    expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+  });
+
+  it('displays default error message when validation fails without detail', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
+      body: {valid: false},
+    });
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...notificationProps}
+        channel={{label: '#invalid-channel', value: '#invalid-channel', new: true}}
+      />
+    );
+
+    expect(await screen.findByText('Invalid integration channel')).toBeInTheDocument();
+  });
+
+  it('displays error when validation request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...notificationProps}
+        channel={{label: '#invalid-channel', value: '#invalid-channel', new: true}}
+      />
+    );
+
+    expect(
+      await screen.findByText('Unexpected integration channel validation error')
+    ).toBeInTheDocument();
+  });
+
+  it('clears validation error when channel is cleared', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
+      body: {valid: false, detail: 'Channel not found'},
+    });
+
+    const {mockClear, spy} = setupValidateChannelSpy();
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...notificationProps}
+        channel={{label: '#invalid-channel', value: '#invalid-channel', new: true}}
+      />
+    );
+
+    expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Clear choices'));
+    expect(mockSetChannel).toHaveBeenCalledWith(undefined);
+    expect(mockClear).toHaveBeenCalled();
+
+    spy.mockRestore();
+  });
+
+  it('clears validation error when provider is changed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
+      body: {valid: false, detail: 'Channel not found'},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
+      body: {results: []},
+    });
+
+    const {mockClear, spy} = setupValidateChannelSpy();
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...notificationProps}
+        channel={{label: '#invalid-channel', value: '#invalid-channel', new: true}}
+      />
+    );
+
+    expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+
+    await selectEvent.select(screen.getByText('Slack'), 'Discord');
+
+    expect(mockClear).toHaveBeenCalled();
+
+    spy.mockRestore();
+  });
+
+  it('clears validation error when integration is changed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
+      body: {valid: false, detail: 'Channel not found'},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegrations[1]!.id}/channels/`,
+      body: {results: []},
+    });
+
+    const {mockClear, spy} = setupValidateChannelSpy();
+
+    render(
+      <MessagingIntegrationAlertRule
+        {...notificationProps}
+        channel={{label: '#invalid-channel', value: '#invalid-channel', new: true}}
+      />
+    );
+
+    expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+
+    await selectEvent.select(
+      screen.getByText("Moo Deng's Workspace"),
+      "Moo Waan's Workspace"
+    );
+
+    expect(mockClear).toHaveBeenCalled();
+
+    spy.mockRestore();
   });
 });

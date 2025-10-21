@@ -10,12 +10,14 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
+import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -433,6 +435,100 @@ describe('CreateProject', () => {
 
       await userEvent.click(getSubmitButton());
       expect(projectCreationMockRequest).toHaveBeenCalled();
+    });
+
+    it('should disable submit button when channel validation fails and integration is selected', async () => {
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`,
+        body: {valid: false, detail: 'Channel not found'},
+      });
+
+      render(<CreateProject />, {organization});
+
+      await userEvent.click(screen.getByTestId('platform-apple-ios'));
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: /Notify via integration/,
+        })
+      );
+      await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
+        waitForElement: false,
+      });
+      expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
+      expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('Clear choices'));
+      await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
+      expect(
+        await screen.findByText(/provide an integration channel/)
+      ).toBeInTheDocument();
+    });
+
+    it('should NOT disable submit button when channel validation fails but integration is unchecked', async () => {
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`,
+        body: {valid: false, detail: 'Channel not found'},
+      });
+
+      render(<CreateProject />, {organization});
+
+      await userEvent.click(screen.getByTestId('platform-apple-ios'));
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: /Notify via integration/,
+        })
+      );
+      await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
+        waitForElement: false,
+      });
+      expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: /Notify via integration/,
+        })
+      );
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
+      });
+    });
+
+    it('should show validating tooltip and disable button while validating channel', async () => {
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+
+      jest.spyOn(useValidateChannelModule, 'useValidateChannel').mockReturnValue({
+        isFetching: true,
+        clear: jest.fn(),
+        error: undefined,
+      });
+
+      render(<CreateProject />, {organization});
+      await userEvent.click(screen.getByTestId('platform-apple-ios'));
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: /Notify via integration/,
+        })
+      );
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
+      expect(
+        await screen.findByText(/Validating integration channel/)
+      ).toBeInTheDocument();
     });
 
     it('should create an issue alert rule by default', async () => {

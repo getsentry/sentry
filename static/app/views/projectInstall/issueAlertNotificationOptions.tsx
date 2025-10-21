@@ -63,18 +63,24 @@ export const enum MultipleCheckboxOptions {
   INTEGRATION = 'integration',
 }
 
+export type IntegrationChannel = {
+  label: string;
+  value: string;
+  new?: boolean;
+};
+
 export type IssueAlertNotificationProps = {
   actions: MultipleCheckboxOptions[];
-  channel: string | undefined;
   integration: OrganizationIntegration | undefined;
   provider: string | undefined;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
   querySuccess: boolean;
   setActions: (action: MultipleCheckboxOptions[]) => void;
-  setChannel: (channel: string | undefined) => void;
+  setChannel: (channel?: IntegrationChannel) => void;
   setIntegration: (integration: OrganizationIntegration | undefined) => void;
   setProvider: (provider: string | undefined) => void;
   shouldRenderSetupButton: boolean;
+  channel?: IntegrationChannel;
 };
 
 export function useCreateNotificationAction({
@@ -109,7 +115,7 @@ export function useCreateNotificationAction({
   const [integration, setIntegration] = useState<OrganizationIntegration | undefined>(
     undefined
   );
-  const [channel, setChannel] = useState<string | undefined>(undefined);
+  const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState<boolean>(false);
 
   useEffect(() => {
@@ -180,7 +186,7 @@ export function useCreateNotificationAction({
           integrationAction = {
             id: IssueAlertActionType.SLACK,
             workspace: integration?.id,
-            channel,
+            channel: channel?.value,
           };
 
           break;
@@ -188,7 +194,7 @@ export function useCreateNotificationAction({
           integrationAction = {
             id: IssueAlertActionType.DISCORD,
             server: integration?.id,
-            channel_id: channel,
+            channel_id: channel?.value,
           };
 
           break;
@@ -196,7 +202,7 @@ export function useCreateNotificationAction({
           integrationAction = {
             id: IssueAlertActionType.MS_TEAMS,
             team: integration?.id,
-            channel,
+            channel: channel?.value,
           };
           break;
         default:

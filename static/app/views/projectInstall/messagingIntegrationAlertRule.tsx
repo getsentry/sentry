@@ -12,11 +12,7 @@ import {
   providerDetails,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
-  useChannelValidationError,
-  useResetChannelValidation,
-  useValidateChannel,
-} from 'sentry/views/projectInstall/useValidateChannel';
+import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 
 type Channel = {
   display: string;
@@ -48,9 +44,11 @@ export default function MessagingIntegrationAlertRule({
     }
   );
 
-  const validateChannel = useValidateChannel();
-  const channelValidationError = useChannelValidationError();
-  const resetChannelValidation = useResetChannelValidation();
+  const validateChannel = useValidateChannel({
+    channel,
+    integrationId: integration?.id,
+    enabled: !!integration?.id && !!channel?.new,
+  });
 
   const providerOptions = useMemo(
     () =>
@@ -88,7 +86,7 @@ export default function MessagingIntegrationAlertRule({
               setProvider(p.value);
               setIntegration(providersToIntegrations[p.value]![0]);
               setChannel(undefined);
-              resetChannelValidation();
+              validateChannel.clear();
             }}
           />
         ),
@@ -98,11 +96,15 @@ export default function MessagingIntegrationAlertRule({
             disabled={integrationOptions.length === 1}
             value={integration}
             options={integrationOptions}
-            onChange={(i: any) => setIntegration(i.value)}
+            onChange={(i: any) => {
+              setIntegration(i.value);
+              setChannel(undefined);
+              validateChannel.clear();
+            }}
           />
         ),
         target: (
-          <FormField name="channel" error={channelValidationError}>
+          <FormField name="channel" error={validateChannel.error}>
             {() => (
               <InlineSelect
                 aria-label={t('channel')}
@@ -114,25 +116,21 @@ export default function MessagingIntegrationAlertRule({
                   label: ch.display,
                   value: ch.display,
                 }))}
-                isLoading={isPending || validateChannel.isPending}
+                isLoading={isPending || validateChannel.isFetching}
                 disabled={!integration}
-                value={channel ? {label: channel, value: channel} : undefined}
+                value={channel ? {label: channel.label, value: channel.value} : undefined}
                 onChange={(
                   option: (SelectValue<string> & {label: string}) | undefined
                 ) => {
                   if (option) {
-                    setChannel(option.label);
+                    setChannel({value: option.value, label: option.label, new: false});
                   } else {
                     setChannel(undefined);
                   }
-                  resetChannelValidation();
+                  validateChannel.clear();
                 }}
                 onCreateOption={(newOption: string) => {
-                  setChannel(newOption);
-                  validateChannel.mutate({
-                    channel: newOption,
-                    integrationId: integration!.id,
-                  });
+                  setChannel({value: newOption, label: newOption, new: true});
                 }}
                 clearable
                 // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.

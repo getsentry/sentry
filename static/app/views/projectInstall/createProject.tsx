@@ -45,6 +45,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
+  type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
   AlertRuleOptions,
@@ -53,10 +54,7 @@ import type {
 import IssueAlertOptions, {
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
-import {
-  useChannelValidationError,
-  useIsValidatingChannel,
-} from 'sentry/views/projectInstall/useValidateChannel';
+import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -86,7 +84,7 @@ function getMissingValues({
   isOrgMemberWithNoAccess: boolean;
   notificationProps: {
     actions?: string[];
-    channel?: string;
+    channel?: IntegrationChannel;
   };
   projectName: string;
   team: string | undefined;
@@ -146,8 +144,7 @@ export function CreateProject() {
   const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
-  const channelValidationError = useChannelValidationError();
-  const isValidatingChannel = useIsValidatingChannel();
+
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -169,6 +166,12 @@ export function CreateProject() {
   const {createNotificationAction, notificationProps} = useCreateNotificationAction(
     createNotificationActionParam
   );
+
+  const validateChannel = useValidateChannel({
+    channel: notificationProps.channel,
+    integrationId: notificationProps.integration?.id,
+    enabled: false,
+  });
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -221,15 +224,16 @@ export function CreateProject() {
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
-    isNotifyingViaIntegration && channelValidationError,
+    isNotifyingViaIntegration && validateChannel.error,
   ].filter(value => value).length;
 
   const submitTooltipText =
-    (isNotifyingViaIntegration && channelValidationError) ??
-    getSubmitTooltipText({
-      ...missingValues,
-      formErrorCount,
-    });
+    isNotifyingViaIntegration && validateChannel.error
+      ? validateChannel.error
+      : getSubmitTooltipText({
+          ...missingValues,
+          formErrorCount,
+        });
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -571,7 +575,7 @@ export function CreateProject() {
               <Tooltip
                 title={
                   canUserCreateProject
-                    ? isNotifyingViaIntegration && isValidatingChannel
+                    ? isNotifyingViaIntegration && validateChannel.isFetching
                       ? t('Validating integration channel\u2026')
                       : submitTooltipText
                     : t('You do not have permission to create projects')
@@ -579,7 +583,7 @@ export function CreateProject() {
                 disabled={
                   formErrorCount === 0 &&
                   canUserCreateProject &&
-                  !(isNotifyingViaIntegration && isValidatingChannel)
+                  !(isNotifyingViaIntegration && validateChannel.isFetching)
                 }
               >
                 <Button
@@ -588,7 +592,7 @@ export function CreateProject() {
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
                   busy={
                     createProjectAndRules.isPending ||
-                    (isNotifyingViaIntegration && isValidatingChannel)
+                    (isNotifyingViaIntegration && validateChannel.isFetching)
                   }
                   onClick={() => debounceHandleProjectCreation(formData)}
                 >
