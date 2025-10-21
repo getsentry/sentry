@@ -12,6 +12,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
 import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {
   ProcessedInsight,
   ProcessedInsightFile,
@@ -42,7 +43,7 @@ export function AppSizeInsightsSidebarRow({
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
-  platform?: string;
+  platform?: Platform;
 }) {
   const theme = useTheme();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);

@@ -482,9 +482,9 @@ export type InsightInfoModalOptions = {
 };
 
 export async function openInsightInfoModal(options: InsightInfoModalOptions) {
-  const {InsightInfoModal, modalCss} = await import(
+  const {InsightInfoModal} = await import(
     'sentry/views/preprod/buildDetails/main/insights/insightInfoModal'
   );
 
-  openModal(deps => <InsightInfoModal {...deps} {...options} />, {modalCss});
+  openModal(deps => <InsightInfoModal {...deps} {...options} />);
 }

@@ -9,8 +9,8 @@ import {Heading} from 'sentry/components/core/text/heading';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {
-  Code,
   CodeBlockWrapper,
+  InlineCode,
   OrderedList,
 } from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 
@@ -129,17 +129,17 @@ function AlternativeIconsContent() {
         <OrderedList>
           <li>
             <Text>
-              {t('Save the script as')} <Code>optimize.sh</Code>
+              {t('Save the script as')} <InlineCode>optimize.sh</InlineCode>
             </Text>
           </li>
           <li>
             <Text>
-              {t('Run:')} <Code>source optimize.sh</Code>
+              {t('Run:')} <InlineCode>source optimize.sh</InlineCode>
             </Text>
           </li>
           <li>
             <Text>
-              {t('Optimize your images:')} <Code>{exampleCommand}</Code>
+              {t('Optimize your images:')} <InlineCode>{exampleCommand}</InlineCode>
             </Text>
           </li>
         </OrderedList>

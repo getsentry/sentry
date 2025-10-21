@@ -1,5 +1,4 @@
 import {Fragment, type ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -32,11 +31,6 @@ const ContentWrapper = styled('div')`
   min-width: 0;
 `;
 
-export const modalCss = css`
-  width: 90%;
-  max-width: 700px;
-`;
-
 export const CodeBlockWrapper = styled('div')`
   max-height: 300px;
   overflow: auto;
@@ -45,7 +39,7 @@ export const CodeBlockWrapper = styled('div')`
   padding: ${p => p.theme.space.sm} 0;
 `;
 
-export const Code = styled('code')`
+export const InlineCode = styled('code')`
   background: ${p => p.theme.backgroundSecondary};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.borderRadius};

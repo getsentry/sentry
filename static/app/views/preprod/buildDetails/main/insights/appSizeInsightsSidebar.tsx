@@ -10,13 +10,14 @@ import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   processedInsights: ProcessedInsight[];
-  platform?: string;
+  platform?: Platform;
 }
 
 export function AppSizeInsightsSidebar({

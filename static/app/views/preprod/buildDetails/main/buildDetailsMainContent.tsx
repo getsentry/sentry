@@ -28,6 +28,7 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
+import {validatedPlatform} from 'sentry/views/preprod/utils/sharedTypesUtils';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
 interface LoadingContentProps {
@@ -315,7 +316,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       {processedInsights.length > 0 && (
         <AppSizeInsights
           processedInsights={processedInsights}
-          platform={buildDetailsData?.app_info?.platform ?? undefined}
+          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
         />
       )}
     </Flex>
