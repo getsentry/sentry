@@ -125,85 +125,83 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-      <Fragment>
-        <FilterButtons gap="lg">
-          <ReleasesProvider organization={organization} selection={selection}>
-            <ReleasesSelectControl
-              handleChangeFilter={activeFilters => {
-                onDashboardFilterChange({
-                  ...activeFilters,
-                  [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
-                });
-                trackAnalytics('dashboards2.filter.change', {
-                  organization,
-                  filter_type: 'release',
-                });
-              }}
-              selectedReleases={selectedReleases}
-              isDisabled={isEditingDashboard}
-            />
-          </ReleasesProvider>
 
-          {organization.features.includes('dashboards-global-filters') && (
-            <Fragment>
-              {activeGlobalFilters.map(filter => (
-                <FilterSelector
-                  key={filter.tag.key}
-                  globalFilter={filter}
-                  searchBarData={getSearchBarData(filter.dataset)}
-                  onUpdateFilter={updatedFilter => {
-                    updateGlobalFilters(
-                      activeGlobalFilters.map(f =>
-                        f.tag.key === updatedFilter.tag.key ? updatedFilter : f
-                      )
-                    );
-                  }}
-                  onRemoveFilter={removedFilter => {
-                    updateGlobalFilters(
-                      activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
-                    );
-                  }}
-                />
-              ))}
-              <AddFilter
-                globalFilters={activeGlobalFilters}
-                getSearchBarData={getSearchBarData}
-                onAddFilter={newFilter => {
-                  updateGlobalFilters([...activeGlobalFilters, newFilter]);
-                }}
-              />
-            </Fragment>
-          )}
-        </FilterButtons>
-        {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-          <FilterButtons gap="lg">
-            <Button
-              title={
-                !hasEditAccess && t('You do not have permission to edit this dashboard')
-              }
-              priority="primary"
-              onClick={async () => {
-                await onSave?.();
-                invalidateStarredDashboards();
+      <ReleasesProvider organization={organization} selection={selection}>
+        <ReleasesSelectControl
+          handleChangeFilter={activeFilters => {
+            onDashboardFilterChange({
+              ...activeFilters,
+              [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+            });
+            trackAnalytics('dashboards2.filter.change', {
+              organization,
+              filter_type: 'release',
+            });
+          }}
+          selectedReleases={selectedReleases}
+          isDisabled={isEditingDashboard}
+        />
+      </ReleasesProvider>
+
+      {organization.features.includes('dashboards-global-filters') && (
+        <Fragment>
+          {activeGlobalFilters.map(filter => (
+            <FilterSelector
+              key={filter.tag.key}
+              globalFilter={filter}
+              searchBarData={getSearchBarData(filter.dataset)}
+              onUpdateFilter={updatedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.map(f =>
+                    f.tag.key === updatedFilter.tag.key ? updatedFilter : f
+                  )
+                );
               }}
-              disabled={!hasEditAccess}
-              busy={shouldBusySaveButton}
-            >
-              {t('Save')}
-            </Button>
-            <Button
-              data-test-id="filter-bar-cancel"
-              onClick={() => {
-                onCancel?.();
-                setActiveGlobalFilters(filters.globalFilter ?? []);
-                onDashboardFilterChange(filters);
+              onRemoveFilter={removedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
+                );
               }}
-            >
-              {t('Cancel')}
-            </Button>
-          </FilterButtons>
-        )}
-      </Fragment>
+            />
+          ))}
+          <AddFilter
+            globalFilters={activeGlobalFilters}
+            getSearchBarData={getSearchBarData}
+            onAddFilter={newFilter => {
+              updateGlobalFilters([...activeGlobalFilters, newFilter]);
+            }}
+          />
+        </Fragment>
+      )}
+
+      {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
+        <ButtonBar>
+          <Button
+            title={
+              !hasEditAccess && t('You do not have permission to edit this dashboard')
+            }
+            priority="primary"
+            onClick={async () => {
+              await onSave?.();
+              invalidateStarredDashboards();
+            }}
+            disabled={!hasEditAccess}
+            busy={shouldBusySaveButton}
+          >
+            {t('Save')}
+          </Button>
+          <Button
+            data-test-id="filter-bar-cancel"
+            onClick={() => {
+              onCancel?.();
+              setActiveGlobalFilters(filters.globalFilter ?? []);
+              onDashboardFilterChange(filters);
+            }}
+          >
+            {t('Cancel')}
+          </Button>
+        </ButtonBar>
+      )}
       <ToggleOnDemand />
     </Wrapper>
   );
@@ -214,22 +212,10 @@ const Wrapper = styled('div')`
   flex-direction: row;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+  flex-wrap: wrap;
 
   & button[aria-haspopup] {
     height: 100%;
     width: 100%;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: grid;
-    grid-auto-flow: row;
-  }
-`;
-
-const FilterButtons = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    align-items: flex-start;
-    gap: ${p => p.theme.space[p.gap!]};
   }
 `;
