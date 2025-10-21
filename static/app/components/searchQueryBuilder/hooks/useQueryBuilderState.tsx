@@ -881,7 +881,8 @@ export function useQueryBuilderState({
 
           if (
             !hasWildcardOperators ||
-            (replaceRawSearchKeys && replaceRawSearchKeys.length === 0)
+            !replaceRawSearchKeys ||
+            replaceRawSearchKeys.length === 0
           ) {
             return newState;
           }
