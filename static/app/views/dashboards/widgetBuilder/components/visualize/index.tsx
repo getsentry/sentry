@@ -36,7 +36,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  WidgetType,
+  type LinkedDashboard,
+} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -794,9 +798,9 @@ function Visualize({error, setError}: VisualizeProps) {
                                       fields[index]?.kind === FieldValueKind.FIELD &&
                                       fields[index]?.field
                                     ) {
-                                      const newLinkedDashboards = [
+                                      const newLinkedDashboards: LinkedDashboard[] = [
                                         ...linkedDashboards,
-                                        {dashboardId, fieldId: fields[index].field},
+                                        {dashboardId, field: fields[index].field},
                                       ];
                                       dispatch({
                                         type: BuilderStateAction.SET_LINKED_DASHBOARDS,
