@@ -61,7 +61,11 @@ class GithubRequestParser(BaseRequestParser):
         except orjson.JSONDecodeError:
             return HttpResponse(status=400)
 
-        if event.get("installation") and event.get("action") in {"created", "deleted"}:
+        if (
+            event.get("installation")
+            and not event.get("issue")
+            and event.get("action") in {"created", "deleted"}
+        ):
             self.try_forward_to_codecov(event=event)
             return self.get_response_from_control_silo()
 
