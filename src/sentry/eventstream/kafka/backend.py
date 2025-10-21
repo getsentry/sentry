@@ -10,15 +10,19 @@ from arroyo.backends.kafka import build_kafka_producer_configuration
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
+from sentry_kafka_schemas.codecs import Codec
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options
-from sentry.conf.types.kafka_definition import Topic
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstream.base import GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.eventstream.types import EventStreamEventType
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+
+EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 logger = logging.getLogger(__name__)
 
@@ -218,3 +222,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def requires_post_process_forwarder(self) -> bool:
         return True
+
+    def _send_item(self, trace_item: TraceItem) -> None:
+        producer = self.get_producer(Topic.SNUBA_ITEMS)
+        real_topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+        try:
+            producer.produce(
+                topic=real_topic,
+                value=EAP_ITEMS_CODEC.encode(trace_item),
+            )
+        except Exception as error:
+            logger.exception("Could not publish trace items: %s", error)
