@@ -377,7 +377,7 @@ def handle_resolve_in_release(
         if len(projects) > 1:
             raise MultipleProjectsError()
         # may not be a release yet
-        release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
+        release = get_release_to_resolve_by(projects[0])
 
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {
@@ -537,10 +537,6 @@ def process_group_resolution(
                     # in release
                     resolution_params.update(
                         {
-                            "release": Release.objects.filter(
-                                organization_id=release.organization_id,
-                                version=current_release_version,
-                            ).get(),
                             "type": GroupResolution.Type.in_release,
                             "status": GroupResolution.Status.resolved,
                         }
