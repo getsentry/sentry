@@ -72,6 +72,9 @@ from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
     DebugUnableToFetchCommitsEmailView,
 )
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
+from sentry.web.frontend.debug.debug_uptime_auto_detected_monitor_email import (
+    DebugUptimeAutoDetectedMonitorEmailView,
+)
 from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
@@ -160,4 +163,8 @@ urlpatterns = [
     re_path(r"^debug/charts/metric-alert-charts/$", DebugMetricAlertChartRendererView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
     re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
+    re_path(
+        r"^debug/mail/uptime-auto-detected-monitor-email/$",
+        DebugUptimeAutoDetectedMonitorEmailView.as_view(),
+    ),
 ]
