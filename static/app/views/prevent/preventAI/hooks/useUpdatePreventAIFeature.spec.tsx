@@ -205,5 +205,77 @@ describe('useUpdatePreventAIFeature', () => {
           ?.bug_prediction;
       expect(feature?.sensitivity).toBe('low');
     });
+
+    it('should delete repo override when use_org_defaults is enabled', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      if (config.github_organizations?.['org-1']?.repo_overrides) {
+        config.github_organizations['org-1'].repo_overrides['repo-123'] = {
+          vanilla: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            sensitivity: 'high',
+          },
+          test_generation: {
+            enabled: true,
+            triggers: {on_command_phrase: false, on_ready_for_review: false},
+          },
+          bug_prediction: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: true},
+            sensitivity: 'critical',
+          },
+        };
+      }
+
+      const updatedConfig = makePreventAIConfig(config, {
+        feature: 'use_org_defaults',
+        enabled: true,
+        orgId: 'org-1',
+        repoId: 'repo-123',
+      });
+
+      // The repo override should be deleted
+      expect(
+        updatedConfig.github_organizations?.['org-1']?.repo_overrides?.['repo-123']
+      ).toBeUndefined();
+    });
+
+    it('should create repo override when use_org_defaults is disabled', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      // No repo override exists initially
+      expect(
+        config.github_organizations?.['org-1']?.repo_overrides?.['repo-456']
+      ).toBeUndefined();
+
+      const updatedConfig = makePreventAIConfig(config, {
+        feature: 'use_org_defaults',
+        enabled: false,
+        orgId: 'org-1',
+        repoId: 'repo-456',
+      });
+
+      // A repo override should be created, cloned from org_defaults
+      const repoOverride =
+        updatedConfig.github_organizations?.['org-1']?.repo_overrides?.['repo-456'];
+      expect(repoOverride).toBeDefined();
+      expect(repoOverride).toEqual(
+        updatedConfig.github_organizations?.['org-1']?.org_defaults
+      );
+      // Should not mutate original
+      expect(
+        config.github_organizations?.['org-1']?.repo_overrides?.['repo-456']
+      ).toBeUndefined();
+    });
+
+    it('should error if repo name is not provided when feature is use_org_defaults', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      expect(() =>
+        makePreventAIConfig(config, {
+          feature: 'use_org_defaults',
+          enabled: true,
+          orgId: 'org-1',
+        })
+      ).toThrow('Repo name is required when feature is use_org_defaults');
+    });
   });
 });

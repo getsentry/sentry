@@ -14,7 +14,9 @@ import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PreventAIOrg} from 'sentry/types/prevent';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
-import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
+import ManageReposToolbar, {
+  ALL_REPOS_VALUE,
+} from 'sentry/views/prevent/preventAI/manageReposToolbar';
 
 import {FeatureOverview} from './onboarding';
 
@@ -25,9 +27,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const [selectedOrgId, setSelectedOrgId] = useState<string>(
     () => installedOrgs[0]?.githubOrganizationId ?? ''
   );
-  const [selectedRepoId, setSelectedRepoId] = useState<string>(
-    () => installedOrgs[0]?.repos?.[0]?.id ?? ''
-  );
+  const [selectedRepoId, setSelectedRepoId] = useState<string>(() => ALL_REPOS_VALUE);
 
   // If the selected org is not present in the list of orgs, use the first org
   const selectedOrg = useMemo(() => {
@@ -37,12 +37,15 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
 
   // Ditto for repos
   const selectedRepo = useMemo(() => {
+    if (selectedRepoId === ALL_REPOS_VALUE) {
+      return null;
+    }
     const found = selectedOrg?.repos?.find(repo => repo.id === selectedRepoId);
     return found ?? selectedOrg?.repos?.[0];
   }, [selectedOrg, selectedRepoId]);
 
   // When the org changes, if the selected repo is not present in the new org,
-  // use the first repo in the new org
+  // reset to "All Repos"
   const setSelectedOrgIdWithCascadeRepoId = useCallback(
     (orgId: string) => {
       setSelectedOrgId(orgId);
@@ -51,16 +54,17 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
       );
       if (
         newSelectedOrgData &&
+        selectedRepoId !== ALL_REPOS_VALUE &&
         !newSelectedOrgData.repos.some(repo => repo.id === selectedRepoId)
       ) {
-        setSelectedRepoId(newSelectedOrgData.repos[0]?.id ?? '');
+        setSelectedRepoId(ALL_REPOS_VALUE);
       }
     },
     [installedOrgs, selectedRepoId]
   );
 
   const isOrgSelected = !!selectedOrg;
-  const isRepoSelected = !!selectedRepo;
+  const isRepoSelected = selectedRepoId === ALL_REPOS_VALUE || !!selectedRepo;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
@@ -138,13 +142,15 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         />
       </Flex>
 
-      {selectedOrg && selectedRepo && (
+      {selectedOrg && (selectedRepoId === ALL_REPOS_VALUE || selectedRepo) && (
         <ManageReposPanel
           key={`${selectedOrgId || 'no-org'}-${selectedRepoId || 'no-repo'}`}
           collapsed={!isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
           org={selectedOrg}
           repo={selectedRepo}
+          allRepos={selectedOrg.repos}
+          isEditingOrgDefaults={selectedRepoId === ALL_REPOS_VALUE}
         />
       )}
     </Flex>

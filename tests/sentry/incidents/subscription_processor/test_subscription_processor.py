@@ -385,7 +385,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         self.metrics.incr.reset_mock()
         self.send_update(self.rule, self.trigger.alert_threshold, timedelta(hours=1))
-        assert self.metrics.incr.call_count == 0
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
 
     def test_no_alert(self) -> None:
         rule = self.rule
@@ -1808,7 +1808,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
 
         processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
         # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
@@ -1919,7 +1919,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
 
         processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
         # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
@@ -2016,7 +2016,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
 
         processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
         # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4== 100%
@@ -2128,7 +2128,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
 
         processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
         # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
@@ -2227,7 +2227,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
 
         processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
         # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
