@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from sentry import options
-from sentry.models.project import Project
+from sentry.seer.explorer.index_data import get_trace_for_transaction, get_transactions_for_project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 
@@ -49,9 +49,10 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     """
     Process a single project for LLM issue detection.
     """
-    project = Project.objects.get(id=project_id)
-
-    logger.info(
-        "Processing project for LLM detection",
-        extra={"project_id": project.id, "org_id": project.organization_id},
+    transactions = get_transactions_for_project(
+        project_id, limit=50, start_time_delta={"minutes": 30}
     )
+    for transaction in transactions:
+        trace = get_trace_for_transaction(transaction.name, transaction.project_id)
+        if trace:
+            logger.info("Found trace for LLM issue detection", extra={"trace_id": trace.trace_id})
