@@ -3230,13 +3230,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "uptime.date_cutoff_epoch_seconds",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Controls whether uptime monitoring creates issues via the issue platform.
 register(
     "uptime.create-issues",
