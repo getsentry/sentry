@@ -38,7 +38,13 @@ describe('AddFilter', () => {
   });
 
   it('renders all dataset options', async () => {
-    render(<AddFilter getSearchBarData={getSearchBarData} onAddFilter={() => {}} />);
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={() => {}}
+      />
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
     for (const dataset of DATASET_CHOICES.values()) {
       expect(screen.getByText(dataset)).toBeInTheDocument();
@@ -46,7 +52,13 @@ describe('AddFilter', () => {
   });
 
   it('retrieves filter keys for each dataset', async () => {
-    render(<AddFilter getSearchBarData={getSearchBarData} onAddFilter={() => {}} />);
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={() => {}}
+      />
+    );
 
     // Open the add global filter drop down
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
@@ -66,7 +78,13 @@ describe('AddFilter', () => {
   });
 
   it('does not render unsupported filter keys', async () => {
-    render(<AddFilter getSearchBarData={getSearchBarData} onAddFilter={() => {}} />);
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={() => {}}
+      />
+    );
 
     // Open the dropdown and select an arbitrary dataset
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
@@ -83,7 +101,13 @@ describe('AddFilter', () => {
 
   it('calls onAddFilter with expected global filter object', async () => {
     const onAddFilter = jest.fn();
-    render(<AddFilter getSearchBarData={getSearchBarData} onAddFilter={onAddFilter} />);
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={onAddFilter}
+      />
+    );
 
     // Open add global filter drop down
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
