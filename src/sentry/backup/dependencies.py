@@ -679,20 +679,6 @@ def merge_users_for_model_in_org(
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
 
-    model_relations = dependencies()[get_model_name(model)]
-    user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}
-
-    # Organization scoping via direct Organization FK if present; else empty (callers should
-    # pass only models where this is safe). Specific models can override below.
-    org_refs = {
-        k if k.endswith("_id") else f"{k}_id"
-        for k, v in model_relations.foreign_keys.items()
-        if v.model == Organization
-    }
-    for_this_org = (
-        Q(**{field_name: organization_id for field_name in org_refs}) if org_refs else Q()
-    )
-
     # Special-case: GroupSeen has unique_together (user_id, group). Safely dedupe conflicts inside org
     # then update remaining rows. Scope via group->project->organization.
     if model is GroupSeen:
@@ -705,6 +691,16 @@ def merge_users_for_model_in_org(
         ).delete()
         GroupSeen.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
         return
+
+    model_relations = dependencies()[get_model_name(model)]
+    user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}
+
+    org_refs = {
+        k if k.endswith("_id") else f"{k}_id"
+        for k, v in model_relations.foreign_keys.items()
+        if v.model == Organization
+    }
+    for_this_org = Q(**{field_name: organization_id for field_name in org_refs})
 
     for user_ref in user_refs:
         q = for_this_org & Q(**{user_ref: from_user_id})
