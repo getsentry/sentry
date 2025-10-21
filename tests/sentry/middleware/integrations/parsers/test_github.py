@@ -46,7 +46,10 @@ class GithubRequestParserTest(TestCase):
 
         self.get_integration()
         request = self.factory.post(
-            self.path, data=b"invalid-data", content_type="application/x-www-form-urlencoded"
+            self.path,
+            data=b"invalid-data",
+            content_type="application/x-www-form-urlencoded",
+            headers={"X-GITHUB-EVENT": "installation"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
@@ -62,7 +65,10 @@ class GithubRequestParserTest(TestCase):
             OrganizationIntegration.objects.filter(integration=integration).delete()
 
         request = self.factory.post(
-            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "issue"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -77,7 +83,12 @@ class GithubRequestParserTest(TestCase):
     @responses.activate
     def test_routing_no_integration_found(self) -> None:
         self.get_integration()
-        request = self.factory.post(self.path, data={}, content_type="application/json")
+        request = self.factory.post(
+            self.path,
+            data={},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "issue"},
+        )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
         response = parser.get_response()
@@ -98,7 +109,10 @@ class GithubRequestParserTest(TestCase):
             },
         )
         request = self.factory.post(
-            path, data={"installation": {"id": "1"}}, content_type="application/json"
+            path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "installation"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -113,7 +127,10 @@ class GithubRequestParserTest(TestCase):
     def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
-            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "installation"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         result = parser.get_integration_from_request()
@@ -124,7 +141,10 @@ class GithubRequestParserTest(TestCase):
     def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
-            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "issue"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -149,6 +169,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": "push"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -180,6 +201,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": "push"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -213,6 +235,7 @@ class GithubRequestParserTest(TestCase):
             reverse("sentry-integration-github-webhook"),
             data={"installation": {"id": "1"}, "action": "created"},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": "installation"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -228,6 +251,7 @@ class GithubRequestParserTest(TestCase):
             reverse("sentry-integration-github-webhook"),
             data={"installation": {"id": "1"}, "action": "deleted"},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": "installation"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -252,6 +276,7 @@ class GithubRequestParserTest(TestCase):
                 "repository": {"id": "1"},
             },
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": "issue"},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -266,3 +291,15 @@ class GithubRequestParserTest(TestCase):
             region_names=[region.name],
             destination_types={DestinationType.SENTRY_REGION: 1},
         )
+
+
+@control_silo_test
+class GithubRequestParserTypeRoutingTest(GithubRequestParserTest):
+    """
+    Test fixture that runs the routing tests with header-based routing enabled.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        with override_options({"github.webhook-type-routing.enabled": True}):
+            yield
