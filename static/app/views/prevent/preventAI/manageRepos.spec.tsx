@@ -11,7 +11,7 @@ describe('PreventAIManageRepos', () => {
   const github: PreventAIProvider = 'github';
   const installedOrgs = [
     {
-      id: 'org-1',
+      githubOrganizationId: 'org-1',
       name: 'Org One',
       provider: github,
       repos: [
@@ -30,7 +30,7 @@ describe('PreventAIManageRepos', () => {
       ],
     },
     {
-      id: 'org-2',
+      githubOrganizationId: 'org-2',
       name: 'Org Two',
       provider: github,
       repos: [
