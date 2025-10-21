@@ -1601,7 +1601,9 @@ class ConvertSearchFilterTest(unittest.TestCase):
         search_filter = SearchFilter(
             SearchKey("title"),
             "NOT IN",
-            SearchValue(["ApplicationNotResponding: ANR", "ApplicationNotResponding: Background ANR"]),
+            SearchValue(
+                ["ApplicationNotResponding: ANR", "ApplicationNotResponding: Background ANR"]
+            ),
         )
 
         result = convert_search_filter_to_snuba_query(search_filter)
@@ -1611,4 +1613,8 @@ class ConvertSearchFilterTest(unittest.TestCase):
         # First should be is_null
         assert result[0] == [["isNull", ["title"]], "=", 1]
         # Second should be the NOT IN condition
-        assert result[1] == ["title", "NOT IN", ["ApplicationNotResponding: ANR", "ApplicationNotResponding: Background ANR"]]
+        assert result[1] == [
+            "title",
+            "NOT IN",
+            ["ApplicationNotResponding: ANR", "ApplicationNotResponding: Background ANR"],
+        ]
