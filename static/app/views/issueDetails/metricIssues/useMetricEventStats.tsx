@@ -20,8 +20,8 @@ import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/util
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import type {
+  RPCQueryExtras,
   SamplingMode,
-  SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 interface MetricEventStatsParams {
@@ -62,7 +62,7 @@ export function useMetricEventStats(
     timePeriod,
     referrer,
     samplingMode,
-  }: MetricEventStatsParams & SpansRPCQueryExtras,
+  }: MetricEventStatsParams & RPCQueryExtras,
   options: Partial<UseApiQueryOptions<EventsStats>> = {}
 ) {
   const organization = useOrganization();

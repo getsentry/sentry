@@ -10,7 +10,7 @@ import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsCon
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useProgressiveQuery,
-  type SpansRPCQueryExtras,
+  type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
@@ -26,7 +26,7 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 }
 
 interface UseExploreTimeseriesResults {

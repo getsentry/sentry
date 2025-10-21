@@ -19,7 +19,7 @@ const NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS = {
 } as const;
 
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
-export type SpansRPCQueryExtras = {
+export type RPCQueryExtras = {
   caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
   samplingMode?: SamplingMode;
