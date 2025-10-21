@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,8 +9,8 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {AlternativeIconsInsightInfoModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
-import {OptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
+import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
 import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
 import type {
   ProcessedInsight,
@@ -46,8 +45,15 @@ export function AppSizeInsightsSidebarRow({
   platform?: string;
 }) {
   const theme = useTheme();
-  const [isFixModalOpen, setIsFixModalOpen] = useState(false);
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
+
+  const handleOpenModal = () => {
+    if (insight.key === 'alternate_icons_optimization') {
+      openAlternativeIconsInsightModal();
+    } else if (insight.key === 'image_optimization') {
+      openOptimizeImagesModal(platform);
+    }
+  };
 
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
@@ -78,7 +84,7 @@ export function AppSizeInsightsSidebarRow({
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <LinkText onClick={() => setIsFixModalOpen(true)}>
+          <LinkText onClick={handleOpenModal}>
             {t('See how to fix this locally →')}
           </LinkText>
         )}
@@ -122,21 +128,6 @@ export function AppSizeInsightsSidebarRow({
           </Container>
         )}
       </Container>
-
-      {insight.key === 'alternate_icons_optimization' && (
-        <AlternativeIconsInsightInfoModal
-          isOpen={isFixModalOpen}
-          onClose={() => setIsFixModalOpen(false)}
-        />
-      )}
-
-      {insight.key === 'image_optimization' && (
-        <OptimizeImagesModal
-          isOpen={isFixModalOpen}
-          onClose={() => setIsFixModalOpen(false)}
-          platform={platform}
-        />
-      )}
     </Flex>
   );
 }

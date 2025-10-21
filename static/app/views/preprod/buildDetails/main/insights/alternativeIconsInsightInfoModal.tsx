@@ -1,5 +1,6 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 
+import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -10,14 +11,8 @@ import {t} from 'sentry/locale';
 import {
   Code,
   CodeBlockWrapper,
-  InsightInfoModal,
   OrderedList,
 } from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
-
-interface AlternativeIconsInsightInfoModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
 
 const HEIC_SCRIPT = `#!/bin/bash
 #
@@ -81,10 +76,7 @@ optimize_icon() {
 
 type OutputFormat = 'heic' | 'png';
 
-export function AlternativeIconsInsightInfoModal({
-  isOpen,
-  onClose,
-}: AlternativeIconsInsightInfoModalProps) {
+function AlternativeIconsContent() {
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('heic');
 
   const currentScript = outputFormat === 'heic' ? HEIC_SCRIPT : PNG_SCRIPT;
@@ -100,11 +92,7 @@ export function AlternativeIconsInsightInfoModal({
         );
 
   return (
-    <InsightInfoModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t('Optimize alternate app icons')}
-    >
+    <Fragment>
       <Text>{description}</Text>
 
       <Container padding="md 0">
@@ -156,6 +144,13 @@ export function AlternativeIconsInsightInfoModal({
           </li>
         </OrderedList>
       </Flex>
-    </InsightInfoModal>
+    </Fragment>
   );
+}
+
+export function openAlternativeIconsInsightModal() {
+  openInsightInfoModal({
+    title: t('Optimize alternate app icons'),
+    children: <AlternativeIconsContent />,
+  });
 }

@@ -475,3 +475,16 @@ export async function openPrivateGamingSdkAccessModal(
 
   openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
 }
+
+export type InsightInfoModalOptions = {
+  children: React.ReactNode;
+  title: string;
+};
+
+export async function openInsightInfoModal(options: InsightInfoModalOptions) {
+  const {InsightInfoModal, modalCss} = await import(
+    'sentry/views/preprod/buildDetails/main/insights/insightInfoModal'
+  );
+
+  openModal(deps => <InsightInfoModal {...deps} {...options} />, {modalCss});
+}
