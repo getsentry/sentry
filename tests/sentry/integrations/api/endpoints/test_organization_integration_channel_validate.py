@@ -139,9 +139,7 @@ class ChannelValidateErrorCasesTest(BaseChannelValidateTest):
         assert "channel" in resp.data
 
     def test_integration_not_found(self):
-        resp = self.get_error_response(
-            self.organization.slug, 99999, status_code=404, **{"channel": "#x"}
-        )
+        resp = self.get_error_response(self.organization.slug, 99999, status_code=404, channel="#x")
         assert resp.status_code == 404
 
     def test_unsupported_provider(self):
@@ -149,7 +147,7 @@ class ChannelValidateErrorCasesTest(BaseChannelValidateTest):
             organization=self.organization, provider="github", name="GitHub", external_id="github:1"
         )
         resp = self.get_error_response(
-            self.organization.slug, integration.id, status_code=400, **{"channel": "#x"}
+            self.organization.slug, integration.id, status_code=400, channel="#x"
         )
         assert resp.data["valid"] is False
         assert "Unsupported provider" in resp.data.get("detail", "")
