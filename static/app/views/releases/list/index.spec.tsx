@@ -545,7 +545,6 @@ describe('ReleasesList', () => {
 
     await userEvent.clear(smartSearchBar);
     await userEvent.click(screen.getByRole('option', {name: 'release.version'}));
-    await userEvent.click(screen.getByRole('option', {name: 'is'}));
 
     expect(await screen.findByText('sentry@0.5.3')).toBeInTheDocument();
   });
