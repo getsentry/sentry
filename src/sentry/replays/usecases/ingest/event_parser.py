@@ -133,6 +133,10 @@ class EventType(Enum):
     DEVICE_BATTERY = 25
     DEVICE_ORIENTATION = 26
     DEVICE_CONNECTIVITY = 27
+    SCROLL = 28
+    SWIPE = 29
+    BACKGROUND = 30
+    FOREGROUND = 31
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -204,6 +208,14 @@ def which(event: dict[str, Any]) -> EventType:
                     return EventType.DEVICE_ORIENTATION
                 elif category == "device.connectivity":
                     return EventType.DEVICE_CONNECTIVITY
+                elif category == "ui.scroll":
+                    return EventType.SCROLL
+                elif category == "ui.swipe":
+                    return EventType.SWIPE
+                elif category == "app.background":
+                    return EventType.BACKGROUND
+                elif category == "app.foreground":
+                    return EventType.FOREGROUND
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "performanceSpan":
@@ -288,6 +300,10 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             | EventType.DEVICE_BATTERY
             | EventType.DEVICE_ORIENTATION
             | EventType.DEVICE_CONNECTIVITY
+            | EventType.SCROLL
+            | EventType.SWIPE
+            | EventType.BACKGROUND
+            | EventType.FOREGROUND
         ):
             return "ms"
 
@@ -609,6 +625,14 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.DEVICE_ORIENTATION:
             return None
         case EventType.DEVICE_CONNECTIVITY:
+            return None
+        case EventType.SCROLL:
+            return None
+        case EventType.SWIPE:
+            return None
+        case EventType.BACKGROUND:
+            return None
+        case EventType.FOREGROUND:
             return None
 
 

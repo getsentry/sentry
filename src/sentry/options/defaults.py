@@ -3195,6 +3195,12 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3585,4 +3591,15 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
+register(
+    "sentry-apps.webhook-logging.enabled",
+    type=Dict,
+    default={
+        "sentry_app_slug": [],
+        "installation_uuid": [],
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
