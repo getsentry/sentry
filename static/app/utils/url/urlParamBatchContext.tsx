@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef} from 'react';
 import debounce from 'lodash/debounce';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -22,27 +15,22 @@ const BatchContext = createContext<BatchContextType | null>(null);
 export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [pendingUpdates, setPendingUpdates] = useState<
-    Record<string, string | string[] | undefined>
-  >({});
 
-  const batchUrlParamUpdates = useCallback(
-    (updates: Record<string, string | string[] | undefined>) => {
-      setPendingUpdates(current => ({...current, ...updates}));
-    },
-    []
-  );
+  // Store the pending updates in a `ref` so that queuing updates doesn't cause a
+  // context re-render.
+  const pendingUpdates = useRef<Record<string, string | string[] | undefined>>({});
 
   const flushUpdates = useCallback(() => {
-    if (Object.keys(pendingUpdates).length === 0) {
+    if (Object.keys(pendingUpdates.current).length === 0) {
       return;
     }
+
     navigate(
       {
         ...location,
         query: {
           ...location.query,
-          ...pendingUpdates,
+          ...pendingUpdates.current,
         },
       },
 
@@ -50,23 +38,32 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
       // when the user navigates back
       {replace: true, preventScrollReset: true}
     );
-    setPendingUpdates({});
-  }, [location, navigate, pendingUpdates]);
+    pendingUpdates.current = {};
+  }, [location, navigate]);
 
-  // Debounce URL updates
+  // Debounced URL updater function
   const updateURL = useMemo(
     () =>
       debounce(() => {
+        // Flush all current pending URL query parameter updates
         flushUpdates();
       }, DEFAULT_DEBOUNCE_DURATION),
     [flushUpdates]
   );
 
-  // Trigger the URL updates
-  useEffect(() => {
-    updateURL();
-    return () => updateURL.cancel();
-  }, [updateURL]);
+  const batchUrlParamUpdates = useCallback(
+    (updates: Record<string, string | string[] | undefined>) => {
+      // Immediate update the pending URL query parameter updates
+      pendingUpdates.current = {
+        ...pendingUpdates.current,
+        ...updates,
+      };
+
+      // Immediately calls the debounced URL updater function
+      updateURL();
+    },
+    [updateURL]
+  );
 
   return (
     <BatchContext value={{batchUrlParamUpdates, flushUpdates}}>{children}</BatchContext>
