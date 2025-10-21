@@ -142,8 +142,7 @@ class ProjectChooser:
             last_run = cohort_updates.values.get(co)
             if last_run is None:
                 last_run = long_ago
-                # It's a bug if we don't know the last run outside of
-                # a few transitional periods.
+                # It's a bug if the cohort doesn't exist at this point.
                 metrics.incr(
                     "workflow_engine.schedule.cohort_not_found",
                     tags={"cohort": co},
@@ -173,6 +172,15 @@ class ProjectChooser:
                     elapsed.total_seconds(),
                     sample_rate=1.0,
                 )
+                metrics.incr(
+                    "workflow_engine.schedule.scheduled_cohort",
+                    tags={"cohort": cohort_id},
+                    sample_rate=1.0,
+                )
+        logger.info(
+            "schedule.selected_cohorts",
+            extra={"selected": sorted(must_process), "may_process": sorted(may_process)},
+        )
         return [
             project_id
             for project_id in all_project_ids
