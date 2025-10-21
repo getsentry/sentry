@@ -11,19 +11,25 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {type PreventAIOrgConfig} from 'sentry/types/prevent';
-import type {PreventAIFeatureConfigsByName, Sensitivity} from 'sentry/types/prevent';
+import type {
+  PreventAIFeatureConfigsByName,
+  PreventAIOrg,
+  PreventAIOrgConfig,
+  PreventAIRepo,
+  Sensitivity,
+} from 'sentry/types/prevent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature';
 
-interface ManageReposPanelProps {
+export type ManageReposPanelProps = {
   collapsed: boolean;
   isEditingOrgDefaults: boolean;
   onClose: () => void;
-  orgName: string;
-  repoName: string;
+  org: PreventAIOrg;
   allRepos?: Array<{id: string; name: string}>;
-}
+  onFocusRepoSelector?: () => void;
+  repo?: PreventAIRepo | null;
+};
 
 interface SensitivityOption {
   details: string;
@@ -57,8 +63,8 @@ const sensitivityOptions: SensitivityOption[] = [
 function ManageReposPanel({
   collapsed,
   onClose,
-  orgName,
-  repoName,
+  org,
+  repo,
   allRepos = [],
   isEditingOrgDefaults,
 }: ManageReposPanelProps) {
@@ -80,14 +86,16 @@ function ManageReposPanel({
   }
 
   const orgConfig =
-    organization.preventAiConfigGithub.github_organizations[orgName] ??
+    organization.preventAiConfigGithub.github_organizations[org.githubOrganizationId] ??
     organization.preventAiConfigGithub.default_org_config;
 
-  const {doesUseOrgDefaults, repoConfig} = getRepoConfig(orgConfig, repoName);
+  const {doesUseOrgDefaults, repoConfig} = isEditingOrgDefaults
+    ? {doesUseOrgDefaults: true, repoConfig: orgConfig.org_defaults}
+    : getRepoConfig(orgConfig, repo?.id ?? '');
 
-  const repoNamesWithOverrides = Object.keys(orgConfig.repo_overrides || {}).filter(
-    repoKey => allRepos.some(repo => repo.name === repoKey)
-  );
+  const repoNamesWithOverrides = allRepos
+    .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.id))
+    .map(r => r.name);
 
   return (
     <SlideOverPanel
@@ -131,8 +139,10 @@ function ManageReposPanel({
                     'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',
                     {
                       repoLink: (
-                        <ExternalLink href={`https://github.com/${orgName}/${repoName}`}>
-                          {repoName}
+                        <ExternalLink
+                          href={`https://github.com/${org.name}/${repo?.name}`}
+                        >
+                          {repo?.name}
                         </ExternalLink>
                       ),
                     }
@@ -180,8 +190,8 @@ function ManageReposPanel({
                 onChange={async () => {
                   await enableFeature({
                     feature: 'use_org_defaults',
-                    orgName,
-                    repoName,
+                    orgId: org.githubOrganizationId,
+                    repoId: repo?.id,
                     enabled: !doesUseOrgDefaults,
                   });
                 }}
@@ -220,8 +230,8 @@ function ManageReposPanel({
                       await enableFeature({
                         feature: 'vanilla',
                         enabled: newValue,
-                        orgName,
-                        repoName,
+                        orgId: org.githubOrganizationId,
+                        repoId: repo?.id,
                       });
                     }}
                     aria-label="Enable PR Review"
@@ -252,8 +262,8 @@ function ManageReposPanel({
                             await enableFeature({
                               feature: 'vanilla',
                               enabled: true,
-                              orgName,
-                              repoName,
+                              orgId: org.githubOrganizationId,
+                              repoId: repo?.id,
                               sensitivity: option.value,
                             })
                           }
@@ -297,8 +307,8 @@ function ManageReposPanel({
                       await enableFeature({
                         feature: 'test_generation',
                         enabled: newValue,
-                        orgName,
-                        repoName,
+                        orgId: org.githubOrganizationId,
+                        repoId: repo?.id,
                       });
                     }}
                     aria-label="Enable Test Generation"
@@ -335,8 +345,8 @@ function ManageReposPanel({
                       await enableFeature({
                         feature: 'bug_prediction',
                         enabled: newValue,
-                        orgName,
-                        repoName,
+                        orgId: org.githubOrganizationId,
+                        repoId: repo?.id,
                       });
                     }}
                     aria-label="Enable Error Prediction"
@@ -367,8 +377,8 @@ function ManageReposPanel({
                             await enableFeature({
                               feature: 'bug_prediction',
                               enabled: true,
-                              orgName,
-                              repoName,
+                              orgId: org.githubOrganizationId,
+                              repoId: repo?.id,
                               sensitivity: option.value,
                             })
                           }
@@ -405,8 +415,8 @@ function ManageReposPanel({
                               feature: 'bug_prediction',
                               trigger: {on_ready_for_review: newValue},
                               enabled: true,
-                              orgName,
-                              repoName,
+                              orgId: org.githubOrganizationId,
+                              repoId: repo?.id,
                             });
                           }}
                           aria-label="Auto Run on Opened Pull Requests"
@@ -437,8 +447,8 @@ function ManageReposPanel({
                               feature: 'bug_prediction',
                               trigger: {on_command_phrase: newValue},
                               enabled: true,
-                              orgName,
-                              repoName,
+                              orgId: org.githubOrganizationId,
+                              repoId: repo?.id,
                             });
                           }}
                           aria-label="Run When Mentioned"
@@ -463,9 +473,9 @@ interface GetRepoConfigResult {
 
 export function getRepoConfig(
   orgConfig: PreventAIOrgConfig,
-  repoName: string
+  repoId: string
 ): GetRepoConfigResult {
-  const repoConfig = orgConfig.repo_overrides[repoName];
+  const repoConfig = orgConfig.repo_overrides[repoId];
   if (repoConfig) {
     return {
       doesUseOrgDefaults: false,
