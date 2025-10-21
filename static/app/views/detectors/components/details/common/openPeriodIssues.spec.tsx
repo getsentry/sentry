@@ -7,9 +7,9 @@ import {SimpleGroupFixture} from 'sentry-fixture/group';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 
-describe('DetectorDetailsOngoingIssues', () => {
+describe('DetectorDetailsOpenPeriodIssues', () => {
   it('renders latest issue with one open period', async () => {
     const detector = MetricDetectorFixture({
       latestGroup: SimpleGroupFixture({
@@ -52,7 +52,7 @@ describe('DetectorDetailsOngoingIssues', () => {
       ],
     });
 
-    render(<DetectorDetailsOngoingIssues detector={detector} />);
+    render(<DetectorDetailsOpenPeriodIssues detector={detector} />);
 
     expect(await screen.findByTestId('event-issue-header')).toBeInTheDocument();
 
