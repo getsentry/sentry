@@ -11,14 +11,16 @@ from sentry.testutils.silo import control_silo_test
 
 class BaseChannelValidateTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-channel-validate"
-    method = "get"
+    method = "post"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     def _get_response(self, integration_id, channel):
-        return self.get_success_response(self.organization.slug, integration_id, channel=channel)
+        return self.get_success_response(
+            self.organization.slug, integration_id, **{"channel": channel}
+        )
 
 
 @control_silo_test
@@ -137,7 +139,9 @@ class ChannelValidateErrorCasesTest(BaseChannelValidateTest):
         assert "channel" in resp.data
 
     def test_integration_not_found(self):
-        resp = self.get_error_response(self.organization.slug, 99999, status_code=404, channel="#x")
+        resp = self.get_error_response(
+            self.organization.slug, 99999, status_code=404, **{"channel": "#x"}
+        )
         assert resp.status_code == 404
 
     def test_unsupported_provider(self):
@@ -145,7 +149,7 @@ class ChannelValidateErrorCasesTest(BaseChannelValidateTest):
             organization=self.organization, provider="github", name="GitHub", external_id="github:1"
         )
         resp = self.get_error_response(
-            self.organization.slug, integration.id, status_code=400, channel="#x"
+            self.organization.slug, integration.id, status_code=400, **{"channel": "#x"}
         )
         assert resp.data["valid"] is False
         assert "Unsupported provider" in resp.data.get("detail", "")
