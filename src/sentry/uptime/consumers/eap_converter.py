@@ -158,11 +158,10 @@ def convert_uptime_result_to_trace_items(
     """
     trace_items = []
 
-    request_info_list = result.get("request_info_list", [])  # Optional field
+    request_info_list: list[RequestInfo | None] = result.get("request_info_list", [])
     if not request_info_list:
         request_info = result["request_info"]
-        if request_info is not None:
-            request_info_list = [request_info]
+        request_info_list = [request_info]
 
     for sequence, request_info in enumerate(request_info_list):
         if sequence == 0:
