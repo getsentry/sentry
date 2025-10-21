@@ -28,6 +28,7 @@ export interface ProcessedInsightFile {
 export interface ProcessedInsight {
   description: string;
   files: ProcessedInsightFile[];
+  key: string;
   name: string;
   percentage: number;
   totalSavings: number;
@@ -144,6 +145,7 @@ export function processInsights(
         : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -178,6 +180,7 @@ export function processInsights(
         : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -210,6 +213,7 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -237,6 +241,7 @@ export function processInsights(
       const files = Array.isArray(insight.files) ? insight.files : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -261,6 +266,7 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -302,6 +308,7 @@ export function processInsights(
       if (config) {
         const files = Array.isArray(insight.files) ? insight.files : [];
         processedInsights.push({
+          key: config.key,
           name: config.name,
           description: config.description,
           totalSavings: insight.total_savings,
