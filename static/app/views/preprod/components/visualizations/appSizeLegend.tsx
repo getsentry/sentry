@@ -51,7 +51,7 @@ export function AppSizeLegend({
   }, [root, appSizeCategoryInfo]);
 
   useLayoutEffect(() => {
-    let resizeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let rafId: number | null = null;
     let lastWidth = 0;
 
     const calculateVisibleItems = () => {
@@ -104,23 +104,23 @@ export function AppSizeLegend({
       if (Math.abs(currentWidth - lastWidth) > 1) {
         lastWidth = currentWidth;
 
-        if (resizeTimeoutId !== null) {
-          clearTimeout(resizeTimeoutId);
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
         }
 
-        resizeTimeoutId = setTimeout(calculateVisibleItems, 50);
+        rafId = requestAnimationFrame(calculateVisibleItems);
       }
     });
 
     if (containerRef.current) {
       lastWidth = containerRef.current.offsetWidth;
-      setTimeout(calculateVisibleItems, 0);
+      rafId = requestAnimationFrame(calculateVisibleItems);
       resizeObserver.observe(containerRef.current);
     }
 
     return () => {
-      if (resizeTimeoutId !== null) {
-        clearTimeout(resizeTimeoutId);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
       }
       resizeObserver.disconnect();
     };
