@@ -20,7 +20,10 @@ export function AppSizeLegend({
   const theme = useTheme();
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const measurementRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLDivElement>(null);
+  const allItemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visibleCount, setVisibleCount] = useState<number | null>(null);
   const [isMoreHovered, setIsMoreHovered] = useState(false);
 
@@ -46,133 +49,186 @@ export function AppSizeLegend({
   }, [root, appSizeCategoryInfo]);
 
   useLayoutEffect(() => {
-    let resizeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let rafId: number | null = null;
+    let lastWidth = 0;
 
     const calculateVisibleItems = () => {
-      if (!containerRef.current || sortedCategories.length === 0) {
+      if (
+        !containerRef.current ||
+        !measurementRef.current ||
+        sortedCategories.length === 0
+      ) {
         return;
       }
 
-      const firstItemTop = itemRefs.current[0]?.getBoundingClientRect().top;
-      if (firstItemTop === undefined) {
-        return;
-      }
+      const containerWidth = containerRef.current.offsetWidth;
+      const gapSize =
+        typeof theme.space.xs === 'string' ? parseFloat(theme.space.xs) : theme.space.xs;
+      let totalWidth = 0;
+      let fitCount = sortedCategories.length;
 
-      let count = 0;
       for (let i = 0; i < sortedCategories.length; i++) {
-        const item = itemRefs.current[i];
-        if (item) {
-          const itemTop = item.getBoundingClientRect().top;
-          if (Math.abs(itemTop - firstItemTop) < 2) {
-            count++;
-          } else {
-            break;
-          }
-        } else {
+        const item = allItemRefs.current[i];
+        if (!item) {
+          fitCount = i;
           break;
         }
+
+        const itemWidth = item.offsetWidth;
+        const neededWidth = totalWidth + (i > 0 ? gapSize : 0) + itemWidth;
+        const hasMoreItems = i < sortedCategories.length - 1;
+        const moreButtonWidth = moreButtonRef.current?.offsetWidth ?? 100;
+        const maxWidth = hasMoreItems
+          ? containerWidth - moreButtonWidth - gapSize
+          : containerWidth;
+
+        if (neededWidth > maxWidth) {
+          fitCount = i;
+          break;
+        }
+
+        totalWidth = neededWidth;
       }
 
-      if (count === sortedCategories.length) {
-        setVisibleCount(null);
-      } else {
-        setVisibleCount(Math.max(1, count - 1));
-      }
+      const newVisibleCount =
+        fitCount === sortedCategories.length ? null : Math.max(1, fitCount);
+
+      setVisibleCount(prev => (prev === newVisibleCount ? prev : newVisibleCount));
     };
 
-    const resizeObserver = new ResizeObserver(() => {
-      if (resizeTimeoutId !== null) {
-        clearTimeout(resizeTimeoutId);
+    const resizeObserver = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry) return;
+
+      const currentWidth = entry.contentRect.width;
+
+      if (Math.abs(currentWidth - lastWidth) > 1) {
+        lastWidth = currentWidth;
+
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+
+        rafId = requestAnimationFrame(calculateVisibleItems);
       }
-      setVisibleCount(null);
-      resizeTimeoutId = setTimeout(calculateVisibleItems, 10);
     });
 
-    const initialTimeoutId = setTimeout(calculateVisibleItems, 0);
-
     if (containerRef.current) {
+      lastWidth = containerRef.current.offsetWidth;
+      rafId = requestAnimationFrame(calculateVisibleItems);
       resizeObserver.observe(containerRef.current);
     }
 
     return () => {
-      clearTimeout(initialTimeoutId);
-      if (resizeTimeoutId !== null) {
-        clearTimeout(resizeTimeoutId);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
       }
       resizeObserver.disconnect();
     };
-  }, [sortedCategories]);
+  }, [sortedCategories, theme.space.xs]);
+
+  useLayoutEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const visibleCategories =
     visibleCount === null ? sortedCategories : sortedCategories.slice(0, visibleCount);
   const hiddenCategories =
     visibleCount === null ? [] : sortedCategories.slice(visibleCount);
 
+  const handleMoreMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsMoreHovered(true);
+  };
+
+  const handleMoreMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsMoreHovered(false);
+    }, 200);
+  };
+
+  const getCategoryInfo = (categoryType: TreemapType) => {
+    return appSizeCategoryInfo[categoryType] ?? appSizeCategoryInfo[TreemapType.OTHER];
+  };
+
+  const renderLegendItem = (
+    categoryType: TreemapType,
+    isActive: boolean,
+    options?: {
+      onClick?: () => void;
+      ref?: (el: HTMLDivElement | null) => void;
+    }
+  ) => {
+    const categoryInfo = getCategoryInfo(categoryType);
+    if (!categoryInfo) return null;
+
+    return (
+      <LegendItem
+        key={categoryType}
+        ref={options?.ref}
+        onClick={options?.onClick}
+        isActive={isActive}
+      >
+        <LegendDot style={{backgroundColor: categoryInfo.color}} isActive={isActive} />
+        <LegendLabel>{categoryInfo.displayName}</LegendLabel>
+      </LegendItem>
+    );
+  };
+
   return (
     <LegendContainer ref={containerRef}>
+      <MeasurementContainer ref={measurementRef}>
+        {sortedCategories.map((categoryType, index) => {
+          const isActive =
+            selectedCategories.size === 0 || selectedCategories.has(categoryType);
+          return renderLegendItem(categoryType, isActive, {
+            ref: el => {
+              allItemRefs.current[index] = el;
+            },
+          });
+        })}
+      </MeasurementContainer>
+
       <Flex
         gap="xs"
         wrap={hiddenCategories.length > 0 ? 'nowrap' : 'wrap'}
         align="center"
         justify="end"
       >
-        {visibleCategories.map((categoryType, index) => {
-          const categoryInfo =
-            appSizeCategoryInfo[categoryType] ?? appSizeCategoryInfo[TreemapType.OTHER];
-          if (!categoryInfo) {
-            return null;
-          }
+        {visibleCategories.map(categoryType => {
           const isActive =
             selectedCategories.size === 0 || selectedCategories.has(categoryType);
-          return (
-            <LegendItem
-              key={categoryType}
-              ref={el => {
-                itemRefs.current[index] = el;
-              }}
-              onClick={() => onToggleCategory(categoryType)}
-              isActive={isActive}
-            >
-              <LegendDot
-                style={{backgroundColor: categoryInfo.color}}
-                isActive={isActive}
-              />
-              <LegendLabel>{categoryInfo.displayName}</LegendLabel>
-            </LegendItem>
-          );
+          return renderLegendItem(categoryType, isActive, {
+            onClick: () => onToggleCategory(categoryType),
+          });
         })}
         {hiddenCategories.length > 0 && (
           <MoreContainer
-            onMouseEnter={() => setIsMoreHovered(true)}
-            onMouseLeave={() => setIsMoreHovered(false)}
+            ref={moreButtonRef}
+            onMouseEnter={handleMoreMouseEnter}
+            onMouseLeave={handleMoreMouseLeave}
           >
             <LegendItem isActive>
               <MoreLabel>+{hiddenCategories.length} more</MoreLabel>
             </LegendItem>
             {isMoreHovered && (
-              <MoreDropdown>
+              <MoreDropdown
+                onMouseEnter={handleMoreMouseEnter}
+                onMouseLeave={handleMoreMouseLeave}
+              >
                 {hiddenCategories.map(categoryType => {
-                  const categoryInfo =
-                    appSizeCategoryInfo[categoryType] ??
-                    appSizeCategoryInfo[TreemapType.OTHER];
-                  if (!categoryInfo) {
-                    return null;
-                  }
                   const isActive =
                     selectedCategories.size === 0 || selectedCategories.has(categoryType);
-                  return (
-                    <LegendItem
-                      key={categoryType}
-                      onClick={() => onToggleCategory(categoryType)}
-                      isActive={isActive}
-                    >
-                      <LegendDot
-                        style={{backgroundColor: categoryInfo.color}}
-                        isActive={isActive}
-                      />
-                      <LegendLabel>{categoryInfo.displayName}</LegendLabel>
-                    </LegendItem>
-                  );
+                  return renderLegendItem(categoryType, isActive, {
+                    onClick: () => onToggleCategory(categoryType),
+                  });
                 })}
               </MoreDropdown>
             )}
@@ -185,6 +241,18 @@ export function AppSizeLegend({
 
 const LegendContainer = styled('div')`
   position: relative;
+`;
+
+const MeasurementContainer = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  flex-wrap: nowrap;
+  white-space: nowrap;
 `;
 
 const LegendItem = styled('div')<{isActive: boolean}>`
@@ -237,7 +305,7 @@ const MoreDropdown = styled('div')`
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: ${p => p.theme.space.xs};
+  margin-top: 2px;
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
