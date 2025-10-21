@@ -658,7 +658,11 @@ function updateFilterKey(
   };
 }
 
-function isReplaceToken(
+/**
+ * Check to see if the provided token details match the primary search key and operator.
+ * If so, we want to replace this token, with the merged filter value.
+ */
+function isTokenToBeReplaced(
   token: TokenResult<Token>,
   primarySearchKey: string
 ): token is TokenResult<Token.FILTER> {
@@ -704,14 +708,14 @@ export function replaceFreeTextTokens(
   const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
-  let replaceToken: TokenResult<Token.FILTER> | undefined;
+  let tokenToBeReplaced: TokenResult<Token.FILTER> | undefined;
   const freeTextToken = actionTokens.find(
     token => token.type === Token.FREE_TEXT && /\w/.test(token.value)
   );
 
   for (const token of tokens) {
-    if (isReplaceToken(token, primarySearchKey)) {
-      replaceToken = token;
+    if (isTokenToBeReplaced(token, primarySearchKey)) {
+      tokenToBeReplaced = token;
       break;
     }
   }
@@ -726,24 +730,24 @@ export function replaceFreeTextTokens(
   actionTokens.forEach(token => {
     const isNotFreeText = token.type !== Token.FREE_TEXT;
 
-    if (isNotFreeText && !isReplaceToken(token, primarySearchKey)) {
+    if (isNotFreeText && !isTokenToBeReplaced(token, primarySearchKey)) {
       filteredTokens.add(token.text);
     }
   });
 
   tokens.forEach(token => {
     const isNotFreeText = token.type !== Token.FREE_TEXT;
-    if (isNotFreeText && !isReplaceToken(token, primarySearchKey)) {
+    if (isNotFreeText && !isTokenToBeReplaced(token, primarySearchKey)) {
       filteredTokens.add(token.text);
     }
   });
 
   // case when there is a replace key and value present
-  if (replaceToken) {
+  if (tokenToBeReplaced) {
     const previousValue =
-      replaceToken.value.type === Token.VALUE_TEXT_LIST
-        ? replaceToken.value.text.slice(1, -1)
-        : replaceToken.value.text;
+      tokenToBeReplaced.value.type === Token.VALUE_TEXT_LIST
+        ? tokenToBeReplaced.value.text.slice(1, -1)
+        : tokenToBeReplaced.value.text;
 
     filteredTokens.add(
       `${primarySearchKey}:${WildcardOperators.CONTAINS}[${previousValue},${values}]`
