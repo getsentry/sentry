@@ -399,8 +399,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.TAP:
-                message = event["data"]["payload"]["message"]
-                return f"User tapped on {message} at {timestamp}"
+                message = event["data"]["payload"].get("message")
+                if message:
+                    return f"User tapped on {message} at {timestamp}"
+                else:
+                    return None
             case EventType.DEVICE_BATTERY:
                 charging = event["data"]["payload"]["data"]["charging"]
                 level = event["data"]["payload"]["data"]["level"]
