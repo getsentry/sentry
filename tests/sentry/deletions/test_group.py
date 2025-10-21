@@ -2,13 +2,13 @@ import os
 import random
 from datetime import datetime, timedelta
 from time import time
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
-from sentry import nodestore
-from sentry.deletions.defaults.group import ErrorEventsDeletionTask
+from sentry import deletions, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -16,6 +16,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
@@ -30,93 +31,102 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        one_minute = before_now(minutes=1).isoformat()
-        group1_data = {"timestamp": one_minute, "fingerprint": ["group1"]}
-        group2_data = {"timestamp": one_minute, "fingerprint": ["group2"]}
 
-        # Group 1 events
-        self.event = self.store_event(
-            data=group1_data | {"tags": {"foo": "bar"}}, project_id=self.project.id
-        )
-        self.event_id = self.event.event_id
-        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
-        group = self.event.group
-        self.event2 = self.store_event(data=group1_data, project_id=self.project.id)
-        self.node_id2 = Event.generate_node_id(self.project.id, self.event2.event_id)
+    def _generate_data(self, fingerprint: str | None = None) -> dict[str, Any]:
+        return {
+            "fingerprint": [fingerprint or uuid4().hex],
+            "timestamp": before_now(minutes=1).isoformat(),
+        }
 
-        # Group 2 event
-        self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
-        self.keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
+    def _get_node_id(self, event: Event) -> str:
+        return Event.generate_node_id(event.project_id, event.event_id)
 
-        UserReport.objects.create(
-            group_id=group.id, project_id=self.event.project_id, name="With group id"
+    def _create_event_with_many_group_children(self) -> Event:
+        event = self.store_event(
+            data=self._generate_data(fingerprint="group1"),
+            project_id=self.project.id,
         )
         UserReport.objects.create(
-            event_id=self.event.event_id, project_id=self.event.project_id, name="With event id"
+            group_id=event.group.id, project_id=event.project_id, name="With group id"
+        )
+        UserReport.objects.create(
+            event_id=event.event_id, project_id=event.project_id, name="With event id"
         )
         EventAttachment.objects.create(
-            event_id=self.event.event_id,
-            project_id=self.event.project_id,
+            event_id=event.event_id,
+            project_id=event.project_id,
             name="hello.png",
             content_type="image/png",
         )
-        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
-        GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)
-        GroupMeta.objects.create(group=group, key="foo", value="bar")
-        GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
+        GroupAssignee.objects.create(group=event.group, project=self.project, user_id=self.user.id)
+        GroupHash.objects.create(project=self.project, group=event.group, hash=uuid4().hex)
+        GroupMeta.objects.create(group=event.group, key="foo", value="bar")
+        GroupRedirect.objects.create(group_id=event.group.id, previous_group_id=1)
 
-    def test_simple(self) -> None:
-        ErrorEventsDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
-        group = self.event.group
-        assert nodestore.backend.get(self.node_id)
-        assert nodestore.backend.get(self.node_id2)
-        assert nodestore.backend.get(self.keep_node_id)
+        return event
+
+    def test_delete_group_with_many_related_children(self) -> None:
+        event = self._create_event_with_many_group_children()
+        assert event.group is not None
+
+        event2 = self.store_event(
+            data=self._generate_data(fingerprint="group1"), project_id=self.project.id
+        )
+        assert event2.group is not None
+
+        assert nodestore.backend.get(self._get_node_id(event))
+        assert nodestore.backend.get(self._get_node_id(event2))
 
         with self.tasks():
             delete_groups_for_project(
-                object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
+                object_ids=[event.group.id], transaction_id=uuid4().hex, project_id=self.project.id
             )
 
-        assert not UserReport.objects.filter(group_id=group.id).exists()
-        assert not UserReport.objects.filter(event_id=self.event.event_id).exists()
-        assert not EventAttachment.objects.filter(event_id=self.event.event_id).exists()
+        assert not UserReport.objects.filter(group_id=event.group.id).exists()
+        assert not UserReport.objects.filter(event_id=event.event_id).exists()
+        assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
 
-        assert not GroupRedirect.objects.filter(group_id=group.id).exists()
-        assert not GroupHash.objects.filter(group_id=group.id).exists()
-        assert not Group.objects.filter(id=group.id).exists()
-        assert not nodestore.backend.get(self.node_id)
-        assert not nodestore.backend.get(self.node_id2)
-        assert nodestore.backend.get(self.keep_node_id), "Does not remove from second group"
-        assert Group.objects.filter(id=self.keep_event.group_id).exists()
+        assert not GroupRedirect.objects.filter(group_id=event.group.id).exists()
+        assert not GroupHash.objects.filter(group_id=event.group.id).exists()
+        assert not Group.objects.filter(id=event.group.id).exists()
+        assert not nodestore.backend.get(self._get_node_id(event))
+        assert not nodestore.backend.get(self._get_node_id(event2))
 
-    def test_simple_multiple_groups(self) -> None:
-        other_event = self.store_event(
-            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["group3"]},
+    def test_multiple_groups(self) -> None:
+        event = self.store_event(
+            data=self._generate_data(fingerprint="group1"),
             project_id=self.project.id,
         )
-        other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
+        assert event.group is not None
+        keep_event = self.store_event(
+            data=self._generate_data(fingerprint="group2"),
+            project_id=self.project.id,
+        )
+        assert keep_event.group is not None
+        other_event = self.store_event(
+            data=self._generate_data(fingerprint="group3"),
+            project_id=self.project.id,
+        )
+        assert other_event.group is not None
 
-        group = self.event.group
         with self.tasks():
             delete_groups_for_project(
-                object_ids=[group.id, other_event.group_id],
+                object_ids=[event.group.id, other_event.group.id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
             )
 
-        assert not Group.objects.filter(id=group.id).exists()
+        assert not Group.objects.filter(id=event.group.id).exists()
         assert not Group.objects.filter(id=other_event.group_id).exists()
-        assert not nodestore.backend.get(self.node_id)
-        assert not nodestore.backend.get(other_node_id)
+        assert not nodestore.backend.get(self._get_node_id(event))
+        assert not nodestore.backend.get(self._get_node_id(other_event))
 
-        assert Group.objects.filter(id=self.keep_event.group_id).exists()
-        assert nodestore.backend.get(self.keep_node_id)
+        assert Group.objects.filter(id=keep_event.group.id).exists()
+        assert nodestore.backend.get(self._get_node_id(keep_event))
 
     def test_grouphistory_relation(self) -> None:
         other_event = self.store_event(
-            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["group3"]},
+            data=self._generate_data(fingerprint="other_group"),
             project_id=self.project.id,
         )
         other_group = other_event.group
@@ -171,39 +181,45 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         self, mock_delete_seer_grouping_records_by_hash_apply_async: mock.Mock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-        other_event = self.store_event(
-            data={
-                "timestamp": before_now(minutes=1).isoformat(),
-                "fingerprint": ["group3"],
-            },
+        event = self.store_event(
+            data=self._generate_data(fingerprint="group1"),
             project_id=self.project.id,
         )
-        other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
+        assert event.group
+        keep_event = self.store_event(
+            data=self._generate_data(fingerprint="group2"),
+            project_id=self.project.id,
+        )
+        assert keep_event.group
+        other_event = self.store_event(
+            data=self._generate_data(fingerprint="group3"),
+            project_id=self.project.id,
+        )
 
         hashes = [
             grouphash.hash
             for grouphash in GroupHash.objects.filter(
-                project_id=self.project.id, group_id__in=[self.event.group.id, other_event.group_id]
+                project_id=self.project.id, group_id__in=[event.group.id, other_event.group_id]
             )
         ]
-        group = self.event.group
+
         with self.tasks():
             delete_groups_for_project(
-                object_ids=[group.id, other_event.group_id],
+                object_ids=[event.group.id, other_event.group_id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
             )
 
-        assert not Group.objects.filter(id=group.id).exists()
+        assert not Group.objects.filter(id=event.group.id).exists()
         assert not Group.objects.filter(id=other_event.group_id).exists()
-        assert not nodestore.backend.get(self.node_id)
-        assert not nodestore.backend.get(other_node_id)
+        assert not nodestore.backend.get(self._get_node_id(event))
+        assert not nodestore.backend.get(self._get_node_id(other_event))
 
-        assert Group.objects.filter(id=self.keep_event.group_id).exists()
-        assert nodestore.backend.get(self.keep_node_id)
+        assert Group.objects.filter(id=keep_event.group_id).exists()
+        assert nodestore.backend.get(self._get_node_id(keep_event))
 
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
-            "args": [group.project.id, hashes, 0]
+            "args": [event.project.id, hashes, 0]
         }
 
     @mock.patch(
@@ -253,6 +269,74 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
                 "args": [self.project.id, error_group_hashes, 0]
             }
+
+    def test_delete_grouphashes_and_metadata(self) -> None:
+        """
+        Test that when deleting group hashes, the group hash metadata is deleted first and the references to the other group hashes are updated.
+        """
+        # This enables checking Seer for similarity and to mock the call to return a specific grouphash
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        # Create two events/grouphashes and one of them
+        # Event A will be deleted
+        event_a = self.store_event(
+            data={
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "error_a.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
+        assert grouphash_a.metadata is not None
+        assert grouphash_a.metadata.seer_matched_grouphash is None
+        metadata_a_id = grouphash_a.metadata.id
+
+        with mock.patch(
+            "sentry.grouping.ingest.seer.get_seer_similar_issues"
+        ) as mock_get_seer_similar_issues:
+            # This will allow grouphash_b to be matched to grouphash_a by Seer
+            mock_get_seer_similar_issues.return_value = (0.01, grouphash_a)
+
+            # Event B will be kept - different exception to ensure different group hash to grouphash_a
+            event_b = self.store_event(
+                data={
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "error_b.py"}]},
+                },
+                project_id=self.project.id,
+            )
+            grouphash_b = GroupHash.objects.get(hash=event_b.get_primary_hash())
+            assert grouphash_b.metadata is not None
+            metadata_b_id = grouphash_b.metadata.id
+
+            # Verify that seer matched event_b to event_a's hash
+            assert event_a.group_id == event_b.group_id
+
+            # Make sure it has not changed
+            grouphash_a.refresh_from_db()
+            assert grouphash_a.metadata is not None
+            assert grouphash_a.metadata.seer_matched_grouphash is None
+            assert grouphash_b.metadata is not None
+            assert grouphash_b.metadata.seer_matched_grouphash == grouphash_a
+
+            with self.tasks():
+                # It will delete all groups, group hashes and group hash metadata
+                task = deletions.get(model=Group, query={"id__in": [event_a.group_id]})
+                more = task.chunk()
+                assert not more
+
+            assert not Group.objects.filter(id=event_a.group_id).exists()
+            assert not GroupHash.objects.filter(id=grouphash_a.id).exists()
+            assert not GroupHashMetadata.objects.filter(id=metadata_a_id).exists()
+            assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
+            assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
+
+    def test_delete_grouphashes_and_metadata_and_metadata_but_delete_metadata_first(self) -> None:
+        """
+        Test that when deleting group hashes, the group hash metadata is deleted first (which will not update the references to the other group hashes)
+        """
+        with self.options({"deletions.group.delete_group_hashes_metadata_first": True}):
+            self.test_delete_grouphashes_and_metadata()
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):

@@ -744,6 +744,7 @@ class SubscriptionProcessor:
                 tags={"dual_processing": self._has_workflow_engine_processing},
             ),
         ):
+            metrics.incr("incidents.alert_rules.process_update.start")
             detector = self.get_detector(self._has_workflow_engine_processing)
             comparison_delta = self.get_comparison_delta(detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
@@ -766,6 +767,7 @@ class SubscriptionProcessor:
                                 "project_id": self.subscription.project.id,
                             },
                         )
+                        metrics.incr(f"{metric_prefix}.no_detector")
                         if self._has_workflow_engine_processing_only:
                             # Nothing more we can do.
                             return

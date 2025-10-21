@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
+import sentry_sdk
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
@@ -52,6 +53,7 @@ def ignore_unpublished_app_errors(
     return wrapper
 
 
+@sentry_sdk.trace(name="send_and_save_webhook_request")
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,
@@ -144,6 +146,25 @@ def send_and_save_webhook_request(
             response=response,
             headers=app_platform_event.headers,
         )
+
+        debug_logging_enabled = (
+            app_platform_event.install.uuid
+            in options.get("sentry-apps.webhook-logging.enabled")["installation_uuid"]
+            or sentry_app.slug
+            in options.get("sentry-apps.webhook-logging.enabled")["sentry_app_slug"]
+        )
+        if debug_logging_enabled:
+            logger.info(
+                "sentry_app_webhook_sent",
+                extra={
+                    "sentry_app_slug": sentry_app.slug,
+                    "organization_id": org_id,
+                    "installation_uuid": app_platform_event.install.uuid,
+                    "event": event,
+                    "url": url,
+                    "response_code": response.status_code,
+                },
+            )
 
         if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
             lifecycle.record_halt(
