@@ -66,15 +66,15 @@ describe('transformLegacySeriesToPlottables', () => {
       {
         seriesName: 'errored_rate(session)',
         data: [
-          {name: 1729796400000, value: 100},
-          {name: 1729800000000, value: 200},
+          {name: 172979640, value: 100},
+          {name: 172980000, value: 200},
         ],
       },
       {
         seriesName: 'sum(session)',
         data: [
-          {name: 1729796400000, value: 300},
-          {name: 1729800000000, value: 400},
+          {name: 172979640, value: 300},
+          {name: 172980000, value: 400},
         ],
       },
     ];
@@ -87,16 +87,32 @@ describe('transformLegacySeriesToPlottables', () => {
     expect(sessionResult[0]!.timeSeries.yAxis).toBe('errored_rate(session)');
     expect(sessionResult[1]!.timeSeries.yAxis).toBe('sum(session)');
     expect(sessionResult[0]!.timeSeries.values).toEqual([
-      {timestamp: 1729796400000, value: 100, confidence: undefined},
-      {timestamp: 1729800000000, value: 200, confidence: undefined},
+      {
+        timestamp: 172979640,
+        value: 100,
+        incomplete: false,
+      },
+      {
+        timestamp: 172980000,
+        value: 200,
+        incomplete: false,
+      },
     ]);
     expect(sessionResult[1]!.timeSeries.values).toEqual([
-      {timestamp: 1729796400000, value: 300, confidence: undefined},
-      {timestamp: 1729800000000, value: 400, confidence: undefined},
+      {
+        timestamp: 172979640,
+        value: 300,
+        incomplete: false,
+      },
+      {
+        timestamp: 172980000,
+        value: 400,
+        incomplete: false,
+      },
     ]);
     expect(sessionResult[0]!.timeSeries.meta.valueType).toBe('percentage');
     expect(sessionResult[1]!.timeSeries.meta.valueType).toBe('number');
-    expect(sessionResult[0]!.timeSeries.meta.interval).toBe(3600000);
-    expect(sessionResult[1]!.timeSeries.meta.interval).toBe(3600000);
+    expect(sessionResult[0]!.timeSeries.meta.interval).toBe(360);
+    expect(sessionResult[1]!.timeSeries.meta.interval).toBe(360);
   });
 });

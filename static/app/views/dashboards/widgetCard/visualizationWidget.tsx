@@ -1,6 +1,7 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
@@ -8,7 +9,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget as CommonWidget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
-import {transformLegacySeriesToPlottables} from './transformLegacySeriesToPlottables';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {

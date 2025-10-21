@@ -1,8 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
+import type {EventsStats} from 'sentry/types/organization';
 import {
   aggregateOutputType,
-  DurationUnit,
-  SizeUnit,
   type AggregationOutputType,
 } from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -12,6 +11,7 @@ import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 /**
  * Transforms legacy Series[] data into Plottable[] objects for the TimeSeriesWidgetVisualization component.
@@ -25,49 +25,42 @@ export function transformLegacySeriesToPlottables(
     return [];
   }
 
-  return timeseriesResults
+  const plottables = timeseriesResults
     .map(series => {
-      const timeSeries = transformLegacySeriesToTimeSeries(
-        series,
-        timeseriesResultsTypes
+      const fieldType =
+        timeseriesResultsTypes?.[series.seriesName] ??
+        aggregateOutputType(series.seriesName);
+      const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(fieldType);
+      const timeSeries = convertEventsStatsToTimeSeriesData(
+        series.seriesName,
+        createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
       );
-      return createPlottableFromTimeSeries(timeSeries, widget.displayType);
+      return createPlottableFromTimeSeries(timeSeries[1], widget.displayType);
     })
     .filter(plottable => plottable !== null);
+  return plottables;
 }
 
-function transformLegacySeriesToTimeSeries(
+function createEventsStatsFromSeries(
   series: Series,
-  timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined
-): TimeSeries {
-  const seriesName = series.seriesName;
-  const fieldType =
-    timeseriesResultsTypes?.[seriesName] ?? aggregateOutputType(seriesName);
-  const {valueType, valueUnit} = mapAggregationTypeToValueTypeAndUnit(fieldType);
-
-  let interval = 0;
-  if (series.data.length >= 2) {
-    const firstTimestamp =
-      typeof series.data[0]!.name === 'number' ? series.data[0]!.name : 0;
-    const secondTimestamp =
-      typeof series.data[1]!.name === 'number' ? series.data[1]!.name : 0;
-    if (firstTimestamp !== 0 && secondTimestamp !== 0) {
-      interval = secondTimestamp - firstTimestamp;
-    }
-  }
-
+  valueType: AggregationOutputType,
+  valueUnit: string | null
+): EventsStats {
   return {
-    yAxis: seriesName,
+    data: series.data.map(dataUnit => [
+      new Date(dataUnit.name).getTime() / 1000,
+      [{count: dataUnit.value, comparisonCount: undefined}],
+    ]),
     meta: {
-      interval,
-      valueType,
-      valueUnit,
+      fields: {
+        [series.seriesName]: valueType,
+      },
+      units: {
+        [series.seriesName]: valueUnit,
+      },
+      isMetricsData: false,
+      tips: {columns: undefined, query: undefined},
     },
-    values: series.data.map(dataPoint => ({
-      timestamp: new Date(dataPoint.name).getTime(),
-      value: dataPoint.value,
-      confidence: series.confidence,
-    })),
   };
 }
 
@@ -92,18 +85,8 @@ function mapAggregationTypeToValueTypeAndUnit(aggregationType: AggregationOutput
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
   switch (aggregationType) {
-    case 'duration':
-      return {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND};
-
-    case 'size':
-      return {valueType: 'size', valueUnit: SizeUnit.BYTE};
-
     case 'percentage':
-      return {valueType: 'percentage', valueUnit: 'percentage'};
-
-    case 'date':
-      return {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND};
-
+      return {valueType: 'percentage', valueUnit: null};
     case 'integer':
     case 'number':
     default:
