@@ -15,8 +15,12 @@ from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.types import NotificationTargetResourceType
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
@@ -513,7 +517,7 @@ class SlackIntegrationSendNotificationTest(TestCase):
         )
         self.installation = SlackIntegration(self.integration, self.organization.id)
         self.target = IntegrationNotificationTarget(
-            provider_key="slack",
+            provider_key=NotificationProviderKey.SLACK,
             resource_type=NotificationTargetResourceType.CHANNEL,
             resource_id="C1234567890",
             integration_id=self.integration.id,
@@ -525,7 +529,7 @@ class SlackIntegrationSendNotificationTest(TestCase):
     def test_send_notification_success(
         self, mock_chat_post: MagicMock, mock_record: MagicMock
     ) -> None:
-        payload = {
+        payload: SlackRenderable = {
             "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Test"}}],
             "text": "Test",
         }
@@ -550,7 +554,7 @@ class SlackIntegrationSendNotificationTest(TestCase):
         mock_response.api_url = "https://slack.com/api/chat.postMessage"
 
         mock_chat_post.side_effect = SlackApiError("channel_not_found", mock_response)
-        payload = {"blocks": [], "text": "Test"}
+        payload: SlackRenderable = {"blocks": [], "text": "Test"}
 
         with pytest.raises(SlackApiError):
             self.installation.send_notification(target=self.target, payload=payload)

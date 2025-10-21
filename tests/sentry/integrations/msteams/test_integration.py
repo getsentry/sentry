@@ -9,7 +9,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.msteams.integration import MsTeamsIntegration, MsTeamsIntegrationProvider
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.types import NotificationTargetResourceType
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import IntegrationTestCase, TestCase
@@ -134,7 +137,7 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
         )
         self.installation = MsTeamsIntegration(self.integration, self.organization.id)
         self.target = IntegrationNotificationTarget(
-            provider_key="msteams",
+            provider_key=NotificationProviderKey.MSTEAMS,
             resource_type=NotificationTargetResourceType.CHANNEL,
             resource_id="conversation123",
             integration_id=self.integration.id,
@@ -148,7 +151,12 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
     ) -> None:
         from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 
-        payload = AdaptiveCard(body=[])  # Simple test payload
+        payload: AdaptiveCard = {
+            "type": "AdaptiveCard",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "version": "1.2",
+            "body": [],
+        }
 
         self.installation.send_notification(target=self.target, payload=payload)
 
@@ -163,7 +171,12 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
         from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 
         mock_send_card.side_effect = ApiError("MS Teams API error", code=400)
-        payload = AdaptiveCard(body=[])
+        payload: AdaptiveCard = {
+            "type": "AdaptiveCard",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "version": "1.2",
+            "body": [],
+        }
 
         with pytest.raises(ApiError):
             self.installation.send_notification(target=self.target, payload=payload)

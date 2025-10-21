@@ -20,8 +20,12 @@ from sentry.integrations.discord.integration import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.types import NotificationTargetResourceType
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import IntegrationTestCase, TestCase
@@ -520,7 +524,7 @@ class DiscordIntegrationSendNotificationTest(TestCase):
         )
         self.installation = DiscordIntegration(self.integration, self.organization.id)
         self.target = IntegrationNotificationTarget(
-            provider_key="discord",
+            provider_key=NotificationProviderKey.DISCORD,
             resource_type=NotificationTargetResourceType.CHANNEL,
             resource_id="987654321",
             integration_id=self.integration.id,
@@ -532,11 +536,11 @@ class DiscordIntegrationSendNotificationTest(TestCase):
     def test_send_notification_success(
         self, mock_send: mock.MagicMock, mock_record: mock.MagicMock
     ) -> None:
-        payload = "Test Discord message"
+        payload: DiscordRenderable = {"content": "Test Discord message"}
 
         self.installation.send_notification(target=self.target, payload=payload)
 
-        mock_send.assert_called_once_with(channel_id="987654321", message="Test Discord message")
+        mock_send.assert_called_once_with(channel_id="987654321", message=payload)
         assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -545,7 +549,7 @@ class DiscordIntegrationSendNotificationTest(TestCase):
         self, mock_send: mock.MagicMock, mock_record: mock.MagicMock
     ) -> None:
         mock_send.side_effect = ApiError("Discord API error", code=400)
-        payload = "Test Discord message"
+        payload: DiscordRenderable = {"content": "Test Discord message"}
 
         with pytest.raises(ApiError):
             self.installation.send_notification(target=self.target, payload=payload)
