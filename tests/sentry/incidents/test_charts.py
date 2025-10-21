@@ -89,7 +89,9 @@ class BuildMetricAlertChartTest(TestCase):
     def test_eap_alert(self, mock_client_get: MagicMock, mock_generate_chart: MagicMock) -> None:
         mock_client_get.return_value.data = {"data": []}
         alert_rule = self.create_alert_rule(
-            query="span.op:pageload", dataset=Dataset.EventsAnalyticsPlatform
+            query="span.op:pageload",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            aggregate="apdex(span.duration, 8000)",
         )
         incident = self.create_incident(
             status=2,
