@@ -1,8 +1,4 @@
-import {
-  MetricDetectorFixture,
-  SnubaQueryDataSourceFixture,
-} from 'sentry-fixture/detectors';
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
