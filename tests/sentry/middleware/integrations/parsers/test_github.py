@@ -8,6 +8,7 @@ from rest_framework import status
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.models.webhookpayload import DestinationType
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
@@ -49,7 +50,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data=b"invalid-data",
             content_type="application/x-www-form-urlencoded",
-            headers={"X-GITHUB-EVENT": "installation"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
@@ -68,7 +69,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "issue"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -87,7 +88,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "issue"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -112,7 +113,7 @@ class GithubRequestParserTest(TestCase):
             path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "installation"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -130,7 +131,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "installation"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         result = parser.get_integration_from_request()
@@ -144,7 +145,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "issue"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -169,7 +170,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "push"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -201,7 +202,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "push"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -235,7 +236,7 @@ class GithubRequestParserTest(TestCase):
             reverse("sentry-integration-github-webhook"),
             data={"installation": {"id": "1"}, "action": "created"},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "installation"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -251,7 +252,7 @@ class GithubRequestParserTest(TestCase):
             reverse("sentry-integration-github-webhook"),
             data={"installation": {"id": "1"}, "action": "deleted"},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "installation"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -276,7 +277,7 @@ class GithubRequestParserTest(TestCase):
                 "repository": {"id": "1"},
             },
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "issue"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
