@@ -23,6 +23,7 @@ from sentry.search.events.filter import (
     _semver_build_filter_converter,
     _semver_filter_converter,
     _semver_package_filter_converter,
+    convert_search_filter_to_snuba_query,
     parse_semver,
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -1535,3 +1536,79 @@ class DetectorFilterTest(TestCase):
 
         # Should return no groups
         assert len(results.results) == 0
+
+
+class ConvertSearchFilterTest(unittest.TestCase):
+    """Test convert_search_filter_to_snuba_query function."""
+
+    def test_not_in_with_mixed_wildcards_and_literals(self) -> None:
+        """
+        Test that NOT IN filters with both wildcards and literal values
+        don't create overly nested list structures that are incompatible
+        with snuba_sdk's legacy parser.
+
+        This is a regression test for an issue where queries like:
+        !title:["ApplicationNotResponding*","ApplicationNotResponding: Background ANR"]
+        would create deeply nested lists that caused AttributeError when
+        snuba_sdk tried to parse them.
+        """
+        search_filter = SearchFilter(
+            SearchKey("title"),
+            "NOT IN",
+            SearchValue(["ApplicationNotResponding*", "ApplicationNotResponding: Background ANR"]),
+        )
+
+        result = convert_search_filter_to_snuba_query(search_filter)
+
+        # The result should be a list of conditions to be OR'd together:
+        # [is_null_condition, wildcard_condition, literal_condition]
+        assert isinstance(result, list)
+        assert len(result) == 3
+
+        # First condition should be the is_null check
+        assert result[0] == [["isNull", ["title"]], "=", 1]
+
+        # Second condition should be the wildcard match
+        assert result[1][0] == ["match", ["title", "'(?i)ApplicationNotResponding.*'"]]
+        assert result[1][1] == "!="
+        assert result[1][2] == 1
+
+        # Third condition should be the NOT IN for literals
+        assert result[2][0] == "title"
+        assert result[2][1] == "NOT IN"
+        assert result[2][2] == ["ApplicationNotResponding: Background ANR"]
+
+    def test_not_in_with_only_wildcards(self) -> None:
+        """Test NOT IN filter with only wildcard values."""
+        search_filter = SearchFilter(
+            SearchKey("title"),
+            "NOT IN",
+            SearchValue(["ApplicationNotResponding*", "ANR*"]),
+        )
+
+        result = convert_search_filter_to_snuba_query(search_filter)
+        assert isinstance(result, list)
+        # Should have is_null + one condition per wildcard (3 total)
+        assert len(result) == 3
+        # First should be is_null
+        assert result[0] == [["isNull", ["title"]], "=", 1]
+        # Others should be wildcard matches
+        assert result[1][0][0] == "match"
+        assert result[2][0][0] == "match"
+
+    def test_not_in_with_only_literals(self) -> None:
+        """Test NOT IN filter with only literal values."""
+        search_filter = SearchFilter(
+            SearchKey("title"),
+            "NOT IN",
+            SearchValue(["ApplicationNotResponding: ANR", "ApplicationNotResponding: Background ANR"]),
+        )
+
+        result = convert_search_filter_to_snuba_query(search_filter)
+        # For non-tag fields with NOT IN, should return [is_null_condition, actual_condition]
+        assert isinstance(result, list)
+        assert len(result) == 2
+        # First should be is_null
+        assert result[0] == [["isNull", ["title"]], "=", 1]
+        # Second should be the NOT IN condition
+        assert result[1] == ["title", "NOT IN", ["ApplicationNotResponding: ANR", "ApplicationNotResponding: Background ANR"]]

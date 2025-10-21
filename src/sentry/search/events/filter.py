@@ -641,22 +641,30 @@ def convert_search_filter_to_snuba_query(
         strs = search_filter.value.split_wildcards()
         if strs is not None and len(strs[1]) > 0:
             (non_wildcards, wildcards) = strs
+            # For split wildcards with NOT IN, we need to convert each wildcard
+            # separately and combine them. We convert wildcards to != and non-wildcards
+            # stay as NOT IN, but we should NOT recursively add is_null_condition
+            # for each one. Instead, we'll add a single is_null_condition for the
+            # entire group at the end.
             operator = "="
             if search_filter.operator == "NOT IN":
                 operator = "!="
-            condition = [
-                convert_search_filter_to_snuba_query(
-                    SearchFilter(search_filter.key, operator, SearchValue(wc))
-                )
-                for wc in wildcards
-            ]
+            # Create a temporary search key without the is_null handling to avoid
+            # recursive is_null conditions
+            condition = []
+            for wc in wildcards:
+                # Create the match condition directly without is_null
+                match_val: Any = 1
+                wc_condition = [["match", [name, f"'(?i){wc}'"]], operator, match_val]
+                condition.append(wc_condition)
             if len(non_wildcards) > 0:
-                non_wcs = convert_search_filter_to_snuba_query(
-                    SearchFilter(
-                        search_filter.key, search_filter.operator, SearchValue(non_wildcards)
-                    )
-                )
-                condition.append(non_wcs)
+                # For non-wildcards, create the condition directly
+                non_wc_condition = [name, search_filter.operator, non_wildcards]
+                condition.append(non_wc_condition)
+            # Now add is_null_condition once for the entire group if needed
+            if is_null_condition:
+                condition.insert(0, is_null_condition)
+            return condition
         elif search_filter.value.is_wildcard():
             # mypy complains if you just use the literal; int isn't an Any, somehow?
             match_val: Any = 1
