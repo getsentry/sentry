@@ -6,6 +6,7 @@ import orjson
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
@@ -21,6 +23,20 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+
+class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
+    repositories = serializers.ListField(required=True)
+    automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
+
+    def validate_repositories(self, value):
+        """Ensure all repositories have organization_id and integration_id set."""
+        for repo in value:
+            if not repo.get("organization_id") or not repo.get("integration_id"):
+                raise serializers.ValidationError(
+                    "All repositories must have organization_id and integration_id set"
+                )
+        return value
 
 
 class SeerProjectPreference(BaseModel):
@@ -71,14 +87,15 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     )
 
     def post(self, request: Request, project: Project) -> Response:
-        data = orjson.loads(request.body)
+        serializer = ProjectSeerPreferencesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         path = "/v1/project-preference/set"
         body = orjson.dumps(
             {
                 "preference": SeerProjectPreference.validate(
                     {
-                        **data,
+                        **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,
                     }

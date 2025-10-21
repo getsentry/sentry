@@ -147,6 +147,8 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
         # We expect a repository name to be in the format of "owner/name" for now.
         if len(repo_name_sections) > 1 and repo.provider:
             repo_dict = {
+                "organization_id": repo.organization_id,
+                "integration_id": str(repo.integration_id) if repo.integration_id else None,
                 "provider": repo.provider,
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
