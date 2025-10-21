@@ -163,7 +163,7 @@ def send_and_save_webhook_request(
                     "installation_uuid": app_platform_event.install.uuid,
                     "resource": app_platform_event.resource,
                     "action": app_platform_event.action,
-                    "event": webhook_event,
+                    "webhook_event": webhook_event,
                     "url": url,
                     "response_code": response.status_code,
                 },
