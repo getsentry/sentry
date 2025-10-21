@@ -102,7 +102,7 @@ export function useBuildDetailsActions({
                 )
               );
               setTimeout(() => {
-                window.location.href = 'https://sentry.sentry.io/_admin/';
+                window.location.href = '/_admin/';
               }, 2000);
               return;
             } else if (errorJson.detail.message) {
