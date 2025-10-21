@@ -18,7 +18,11 @@ import {
 } from 'sentry/utils/queryString';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  WidgetType,
+  type LinkedDashboard,
+} from 'sentry/views/dashboards/types';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -60,6 +64,7 @@ export const BuilderStateAction = {
   SET_Y_AXIS: 'SET_Y_AXIS',
   SET_QUERY: 'SET_QUERY',
   SET_SORT: 'SET_SORT',
+  SET_LINKED_DASHBOARDS: 'SET_LINKED_DASHBOARDS',
   SET_LIMIT: 'SET_LIMIT',
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
@@ -76,6 +81,7 @@ type WidgetAction =
   | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
   | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
+  | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
@@ -96,6 +102,7 @@ export interface WidgetBuilderState {
   fields?: Column[];
   legendAlias?: string[];
   limit?: number;
+  linkedDashboards?: LinkedDashboard[];
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
@@ -163,6 +170,12 @@ function useWidgetBuilderState(): {
     deserializer: deserializeThresholds,
     serializer: serializeThresholds,
   });
+  const [linkedDashboards, setLinkedDashboards] = useQueryParamState<LinkedDashboard[]>({
+    fieldName: 'linkedDashboards',
+    decoder: decodeList,
+    deserializer: deserializeLinkedDashboards,
+    serializer: serializeLinkedDashboards,
+  });
 
   const state = useMemo(
     () => ({
@@ -177,7 +190,7 @@ function useWidgetBuilderState(): {
       limit,
       legendAlias,
       thresholds,
-
+      linkedDashboards,
       // The selected aggregate is the last aggregate for big number widgets
       // if it hasn't been explicitly set
       selectedAggregate:
@@ -198,6 +211,7 @@ function useWidgetBuilderState(): {
       legendAlias,
       selectedAggregate,
       thresholds,
+      linkedDashboards,
     ]
   );
 
@@ -227,6 +241,7 @@ function useWidgetBuilderState(): {
             return {...axis, alias: undefined};
           });
           if (action.payload === DisplayType.TABLE) {
+            setLinkedDashboards([], options);
             setLimit(undefined, options);
             setYAxis([], options);
             setLegendAlias([], options);
@@ -311,6 +326,7 @@ function useWidgetBuilderState(): {
           }
           setThresholds(undefined, options);
           setSelectedAggregate(undefined, options);
+          setLinkedDashboards([], options);
           break;
         }
         case BuilderStateAction.SET_DATASET: {
@@ -359,6 +375,7 @@ function useWidgetBuilderState(): {
           setLegendAlias([], options);
           setSelectedAggregate(undefined, options);
           setLimit(undefined, options);
+          setLinkedDashboards([], options);
           break;
         }
         case BuilderStateAction.SET_FIELDS: {
@@ -519,6 +536,13 @@ function useWidgetBuilderState(): {
           }
           break;
         }
+        case BuilderStateAction.SET_LINKED_DASHBOARDS:
+          if (displayType === DisplayType.TABLE) {
+            setLinkedDashboards(action.payload, options);
+          } else {
+            setLinkedDashboards([], options);
+          }
+          break;
         case BuilderStateAction.SET_LIMIT:
           setLimit(action.payload, options);
           break;
@@ -565,6 +589,7 @@ function useWidgetBuilderState(): {
       setLegendAlias,
       setSelectedAggregate,
       setThresholds,
+      setLinkedDashboards,
       fields,
       yAxis,
       displayType,
@@ -632,6 +657,30 @@ export function serializeFields(fields: Column[]): string[] {
     }
     return generateFieldAsString(field);
   });
+}
+
+function serializeLinkedDashboards(linkedDashboards: LinkedDashboard[] = []): string[] {
+  return linkedDashboards.map(linkedDashboard => {
+    return JSON.stringify({
+      dashboardId: linkedDashboard.dashboardId,
+      fieldId: linkedDashboard.fieldId,
+    });
+  });
+}
+
+function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
+  return linkedDashboards
+    .map(linkedDashboard => {
+      const maybeLinkedDashboard = JSON.parse(linkedDashboard);
+      if (maybeLinkedDashboard.dashboardId && maybeLinkedDashboard.fieldId) {
+        return {
+          dashboardId: maybeLinkedDashboard.dashboardId,
+          fieldId: maybeLinkedDashboard.fieldId,
+        };
+      }
+      return undefined;
+    })
+    .filter(defined);
 }
 
 export function serializeSorts(dataset?: WidgetType) {

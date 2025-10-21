@@ -324,6 +324,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
   const fields = isChartWidget ? state.yAxis : state.fields;
+  const linkedDashboards = state.linkedDashboards || [];
   const updateAction = isChartWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
@@ -788,6 +789,34 @@ function Visualize({error, setError}: VisualizeProps) {
                               size="zero"
                               onClick={() => {
                                 openLinkToDashboardModal({
+                                  onLink: dashboardId => {
+                                    if (
+                                      fields[index]?.kind === FieldValueKind.FIELD &&
+                                      fields[index]?.field
+                                    ) {
+                                      const newLinkedDashboards = [
+                                        ...linkedDashboards,
+                                        {dashboardId, fieldId: fields[index].field},
+                                      ];
+                                      dispatch({
+                                        type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                                        payload: newLinkedDashboards,
+                                      });
+                                    }
+                                  },
+                                  currentLinkedDashboard: linkedDashboards.find(
+                                    linkedDashboard => {
+                                      if (
+                                        fields[index]?.kind === FieldValueKind.FIELD &&
+                                        fields[index]?.field
+                                      ) {
+                                        return (
+                                          linkedDashboard.fieldId === fields[index].field
+                                        );
+                                      }
+                                      return false;
+                                    }
+                                  ),
                                   source,
                                 });
                               }}
