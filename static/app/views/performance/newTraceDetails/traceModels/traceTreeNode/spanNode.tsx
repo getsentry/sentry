@@ -44,16 +44,8 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     );
   }
 
-  get description(): string | undefined {
-    return this.value.description;
-  }
-
   get endTimestamp(): number {
     return this.value.timestamp;
-  }
-
-  get startTimestamp(): number {
-    return this.value.start_timestamp;
   }
 
   get drawerTabsTitle(): string {

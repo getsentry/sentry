@@ -307,13 +307,11 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
       parent.children.push(transaction);
       transaction.parent = parent;
-
-      // Invalidating the node and its children to ensure the tree is rebuilt correctly,
-      // after we have potentially done some re-parenting.
-      this.invalidate();
-      this.forEachChild(child => child.invalidate());
     }
 
+    // Invalidating the node and its children to ensure the tree is rebuilt correctly,
+    // after we have potentially done some re-parenting.
+    this.invalidate();
     this.children.sort(traceChronologicalSort);
     this.forEachChild(c => {
       c.invalidate();
