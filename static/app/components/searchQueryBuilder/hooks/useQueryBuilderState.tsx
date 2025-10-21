@@ -707,6 +707,7 @@ export function replaceFreeTextTokens(
 
   const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
 
+  // TS doesn't know that replaceRawSearchKeys is always defined and non-empty
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
   let tokenToBeReplaced: TokenResult<Token.FILTER> | undefined;
   const freeTextToken = actionTokens.find(
