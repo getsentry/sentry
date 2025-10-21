@@ -245,17 +245,12 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                 for col_idx, col_name in enumerate(column_names)
             }
 
-            # Get avg_duration_us if available, otherwise set to None
-            avg_duration_us = None
-            if "avg_duration_us" in row_dict:
-                avg_duration_us = row_dict["avg_duration_us"].val_double
-
             summary_stats = UptimeSummary(
                 total_checks=int(row_dict["total_checks"].val_double),
                 failed_checks=int(row_dict["failed_checks"].val_double),
                 downtime_checks=int(row_dict["downtime_checks"].val_double),
                 missed_window_checks=int(row_dict["missed_window_checks"].val_double),
-                avg_duration_us=avg_duration_us,
+                avg_duration_us=row_dict["avg_duration_us"].val_double,
             )
 
             subscription_id = row_dict["uptime_subscription_id"].val_str
