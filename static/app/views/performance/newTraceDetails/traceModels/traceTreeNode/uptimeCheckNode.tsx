@@ -6,7 +6,6 @@ import {uniqueId} from 'sentry/utils/guid';
 import {UptimeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
 
@@ -141,18 +140,13 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={props.node} />;
+    return <TraceSpanRow {...props} node={this} />;
   }
 
-  renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return (
-      <UptimeNodeDetails
-        {...props}
-        node={props.node as TraceTreeNode<TraceTree.UptimeCheck>}
-      />
-    );
+    return <UptimeNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

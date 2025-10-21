@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceAutogroupedRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceAutogroupedRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
@@ -75,13 +74,13 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceAutogroupedRow {...props} node={props.node} />;
+    return <TraceAutogroupedRow {...props} node={this} />;
   }
 
-  renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <AutogroupNodeDetails {...props} node={props.node} />;
+    return <AutogroupNodeDetails {...props} node={this} />;
   }
 
   matchById(_id: string): boolean {

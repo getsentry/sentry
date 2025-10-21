@@ -14,7 +14,6 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceTransactionRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceTransactionRow';
 
@@ -51,10 +50,26 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       spanChildrenCount === undefined ? true : spanChildrenCount > 1;
 
     if (value) {
-      this.space = [
-        value.start_timestamp * 1e3,
-        (value.timestamp - value.start_timestamp) * 1e3,
-      ];
+      if (
+        value &&
+        'timestamp' in value &&
+        typeof value.timestamp === 'number' &&
+        'start_timestamp' in value &&
+        typeof value.start_timestamp === 'number'
+      ) {
+        this.space = [
+          value.start_timestamp * 1e3,
+          (value.timestamp - value.start_timestamp) * 1e3,
+        ];
+      } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
+        this.space = [value.timestamp * 1e3, 0];
+      } else if (
+        value &&
+        'start_timestamp' in value &&
+        typeof value.start_timestamp === 'number'
+      ) {
+        this.space = [value.start_timestamp * 1e3, 0];
+      }
 
       if ('performance_issues' in value && Array.isArray(value.performance_issues)) {
         value.performance_issues.forEach(issue => this.occurrences.add(issue));
@@ -76,10 +91,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return this.value.transaction;
   }
 
-  get startTimestamp(): number {
-    return this.value.start_timestamp;
-  }
-
   get endTimestamp(): number {
     return this.value.timestamp;
   }
@@ -93,6 +104,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     subtitle?: string;
   } {
     return {title: this.op || t('Trace'), subtitle: this.value.transaction};
+  }
+
+  get transactionId(): string {
+    return this.value.event_id;
   }
 
   // Returns a list of errors related to the txn with ids matching the given node's id
@@ -179,17 +194,17 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   renderWaterfallRow<T extends TraceTree.Node>(props: TraceRowProps<T>): React.ReactNode {
-    return <TraceTransactionRow {...props} node={props.node} />;
+    return <TraceTransactionRow {...props} node={this} />;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return (
       <TransactionNodeDetails
         {...props}
         // Won't need this cast once we use BaseNode type for props.node
-        node={props.node as TraceTreeNode<TraceTree.Transaction>}
+        node={this}
       />
     );
   }
@@ -263,29 +278,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
     const subTreeSpaceBounds: [number, number] = [this.space[0], this.space[1]];
 
-    this.children.sort(traceChronologicalSort);
-    this.forEachChild(c => {
-      c.invalidate();
-      // When reparenting transactions under spans, the children are not guaranteed to be in order
-      // so we need to sort them chronologically after the reparenting is complete
-      // Track the min and max space of the sub tree as spans have ms precision
-      subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
-      subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
-
-      if (isBrowserRequestNode(c)) {
-        const serverRequestHandler = c.parent?.children.find(n => n.op === 'http.server');
-
-        if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
-          serverRequestHandler.parent!.children =
-            serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
-          c.children.push(serverRequestHandler);
-          serverRequestHandler.parent = c;
-        }
-      }
-
-      c.children.sort(traceChronologicalSort);
-    });
-
     if (!Number.isFinite(subTreeSpaceBounds[0])) {
       subTreeSpaceBounds[0] = 0;
     }
@@ -317,7 +309,35 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
       parent.children.push(transaction);
       transaction.parent = parent;
+
+      // Invalidating the node and its children to ensure the tree is rebuilt correctly,
+      // after we have potentially done some re-parenting.
+      this.invalidate();
+      this.forEachChild(child => child.invalidate());
     }
+
+    this.children.sort(traceChronologicalSort);
+    this.forEachChild(c => {
+      c.invalidate();
+      // When reparenting transactions under spans, the children are not guaranteed to be in order
+      // so we need to sort them chronologically after the reparenting is complete
+      // Track the min and max space of the sub tree as spans have ms precision
+      subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
+      subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
+
+      if (isBrowserRequestNode(c)) {
+        const serverRequestHandler = c.parent?.children.find(n => n.op === 'http.server');
+
+        if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
+          serverRequestHandler.parent!.children =
+            serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+          c.children.push(serverRequestHandler);
+          serverRequestHandler.parent = c;
+        }
+      }
+
+      c.children.sort(traceChronologicalSort);
+    });
 
     spanIdToNode.forEach(node => {
       for (const performanceIssue of this.getRelatedPerformanceIssuesFromTransaction(
@@ -432,6 +452,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         if (index !== -1) {
           tree.list.splice(index + 1, 0, ...this.visibleChildren);
         }
+
+        this.invalidate();
+        this.forEachChild(child => child.invalidate());
+
         return data;
       })
       .catch(_e => {

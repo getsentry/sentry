@@ -4,7 +4,6 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {UptimeTimingDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime/timing';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
 
@@ -37,12 +36,12 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
       <TraceSpanRow
         {...props}
         // Won't need this cast once we use BaseNode type for props.node
-        node={this as unknown as TraceTreeNode<TraceTree.UptimeCheckTiming>}
+        node={this}
       />
     );
   }
 
-  renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
     return <UptimeTimingDetails {...props} node={this} />;
