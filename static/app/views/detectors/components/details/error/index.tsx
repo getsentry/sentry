@@ -14,6 +14,7 @@ import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/deta
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 
 type ErrorDetectorDetailsProps = {
   detector: Detector;
@@ -72,9 +73,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DatePageFilter />
-          <ErrorBoundary mini>
-            <DetectorDetailsOngoingIssues detector={detector} />
-          </ErrorBoundary>
+          <DetectorDetailsOngoingIssues detector={detector} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
