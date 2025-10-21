@@ -1948,7 +1948,6 @@ dependencies = [
     { name = "sentry-relay", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-sdk", extra = ["http2"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-usage-accountant", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "setuptools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "simplejson", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "slack-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "snuba-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2022,7 +2021,6 @@ dev = [
     { name = "types-redis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "types-requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "types-requests-oauthlib", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "types-setuptools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "types-simplejson", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "types-unidiff", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
@@ -2111,7 +2109,6 @@ requires-dist = [
     { name = "sentry-relay", specifier = ">=0.9.17" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.42.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
-    { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
     { name = "slack-sdk", specifier = ">=3.27.2" },
     { name = "snuba-sdk", specifier = ">=3.0.43" },
@@ -2185,7 +2182,6 @@ dev = [
     { name = "types-redis", specifier = ">=3.5.18" },
     { name = "types-requests", specifier = ">=2.32.0.20241016" },
     { name = "types-requests-oauthlib", specifier = ">=2.0.0.20250119" },
-    { name = "types-setuptools", specifier = ">=69.0.0.0" },
     { name = "types-simplejson", specifier = ">=3.17.7.2" },
     { name = "types-unidiff", specifier = ">=0.7.0.20240505" },
 ]
@@ -2738,14 +2734,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/types_requests_oauthlib-2.0.0.20250119-py3-none-any.whl", hash = "sha256:4e4f00c56b067b63416775596f8c9a6cdda5ada041d2df59d119b512d05a183d" },
-]
-
-[[package]]
-name = "types-setuptools"
-version = "69.0.0.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/types_setuptools-69.0.0.0-py3-none-any.whl", hash = "sha256:8c86195bae2ad81e6dea900a570fe9d64a59dbce2b11cc63c046b03246ea77bf" },
 ]
 
 [[package]]
