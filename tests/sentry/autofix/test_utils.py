@@ -28,11 +28,15 @@ class TestGetRepoFromCodeMappings(TestCase):
 
     def test_get_repos_from_project_code_mappings_with_data(self) -> None:
         project = self.create_project()
-        repo = self.create_repo(name="getsentry/sentry", provider="github", external_id="123")
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
         self.create_code_mapping(project=project, repo=repo)
         repos = get_autofix_repos_from_project_code_mappings(project)
         expected_repos = [
             {
+                "integration_id": str(repo.integration_id),
+                "organization_id": project.organization.id,
                 "provider": repo.provider,
                 "owner": "getsentry",
                 "name": "sentry",
