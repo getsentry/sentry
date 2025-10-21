@@ -20,7 +20,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import {useProjectAlertsOutlet} from 'sentry/views/settings/projectAlerts';
 
 function makeFetchProjectPluginsQueryKey(
@@ -32,8 +31,7 @@ function makeFetchProjectPluginsQueryKey(
 
 export default function ProjectAlertSettings() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
-  const {canEditRule} = useProjectAlertsOutlet();
+  const {canEditRule, project} = useProjectAlertsOutlet();
   const queryClient = useQueryClient();
 
   const {

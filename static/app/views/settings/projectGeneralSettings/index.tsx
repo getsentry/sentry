@@ -19,8 +19,6 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -36,20 +34,21 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type Props = {
   onChangeSlug: (slug: string) => void;
+  project: Project;
 };
 
 function isPlatformAllowed({
@@ -68,36 +67,18 @@ function isPlatformAllowed({
   return organization.enabledConsolePlatforms?.includes(platform) && !isSelfHosted;
 }
 
-function ProjectGeneralSettings({onChangeSlug}: Props) {
+export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const form: Record<string, FieldValue> = {};
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
   const api = useApi({persistInFlight: true});
 
   const makeProjectSettingsQueryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${projectId}/`,
+    `/projects/${organization.slug}/${project.slug}/`,
   ];
-
-  const {
-    data: project,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Project>(makeProjectSettingsQueryKey, {
-    staleTime: 0,
-  });
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
 
   const handleTransferFieldChange = (id: string, value: FieldValue) => {
     form[id] = value;
@@ -274,7 +255,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     );
   };
 
-  const endpoint = `/projects/${organization.slug}/${projectId}/`;
+  const endpoint = `/projects/${organization.slug}/${project.slug}/`;
   const access = new Set(organization.access.concat(project.access));
 
   const jsonFormProps = {
@@ -308,8 +289,8 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     apiEndpoint: endpoint,
     onSubmitSuccess: resp => {
       setApiQueryData(queryClient, makeProjectSettingsQueryKey, resp);
-      if (projectId !== resp.slug) {
-        changeProjectSlug(projectId, resp.slug);
+      if (project.slug !== resp.slug) {
+        changeProjectSlug(project.slug, resp.slug);
         // Container will redirect after stores get updated with new slug
         onChangeSlug(resp.slug);
       }
@@ -417,42 +398,35 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
   );
 }
 
-function ProjectGeneralSettingsContainer() {
+export default function ProjectGeneralSettingsContainer() {
   const routes = useRoutes();
   const navigate = useNavigate();
-  const projects = useLegacyStore(ProjectsStore);
   const organization = useOrganization();
   const location = useLocation();
+  const {project} = useProjectSettingsOutlet();
 
   // Use a ref to track the most current slug value
-  const changedSlugRef = useRef<string | undefined>(undefined);
+  const changedSlugRef = useRef<string>(project.slug);
 
   const setChangedSlug = useCallback((newSlug: string) => {
     changedSlugRef.current = newSlug;
   }, []);
 
   useEffect(() => {
-    if (changedSlugRef.current) {
-      const project = projects.projects.find(p => p.slug === changedSlugRef.current);
-
-      if (project) {
-        navigate(
-          recreateRoute('', {
-            params: {
-              orgId: organization.slug,
-              projectId: changedSlugRef.current,
-            },
-            routes,
-            location,
-          }),
-          {replace: true}
-        );
-      }
+    if (changedSlugRef.current !== project.slug) {
+      navigate(
+        recreateRoute('', {
+          params: {
+            orgId: organization.slug,
+            projectId: changedSlugRef.current,
+          },
+          routes,
+          location,
+        }),
+        {replace: true}
+      );
     }
-  }, [projects, navigate, routes, location, organization.slug]);
+  }, [navigate, routes, location, organization.slug, project.slug]);
 
-  return <ProjectGeneralSettings onChangeSlug={setChangedSlug} />;
+  return <ProjectGeneralSettings project={project} onChangeSlug={setChangedSlug} />;
 }
-
-export {ProjectGeneralSettings};
-export default ProjectGeneralSettingsContainer;

@@ -15,7 +15,7 @@ describe('ProjectAlertSettings', () => {
     digestsMinDelay,
     digestsMaxDelay,
   });
-  const {organization, routerProps} = initializeOrg({
+  const {organization} = initializeOrg({
     projects: [project],
     router: {
       params: {projectId: project.slug},
@@ -37,7 +37,10 @@ describe('ProjectAlertSettings', () => {
   });
 
   it('renders', async () => {
-    render(<ProjectAlertSettings canEditRule {...routerProps} />);
+    render(<ProjectAlertSettings />, {
+      outletContext: {project, canEditRule: true},
+      organization,
+    });
 
     expect(
       await screen.findByPlaceholderText('e.g. $shortID - $title')

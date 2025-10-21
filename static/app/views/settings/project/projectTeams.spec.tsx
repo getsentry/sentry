@@ -89,7 +89,10 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -145,7 +148,10 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -193,7 +199,10 @@ describe('ProjectTeams', () => {
       body: [team3NoAdmin],
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -240,7 +249,10 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -279,7 +291,10 @@ describe('ProjectTeams', () => {
       body: TeamFixture({slug: 'new-team'}),
     });
 
-    render(<ProjectTeams project={project} organization={org} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
