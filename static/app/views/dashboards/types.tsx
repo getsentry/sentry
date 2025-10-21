@@ -206,6 +206,7 @@ export enum DashboardState {
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
   PREVIEW = 'preview',
+  EMBEDDED = 'embedded',
 }
 
 // where we launch the dashboard widget from
