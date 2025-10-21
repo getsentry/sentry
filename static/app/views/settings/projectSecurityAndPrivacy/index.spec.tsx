@@ -14,7 +14,10 @@ describe('projectSecurityAndPrivacy', () => {
       safeFields: ['business-email', 'company'],
     });
 
-    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
+    render(<ProjectSecurityAndPrivacy />, {
+      organization,
+      outletContext: {project},
+    });
 
     // Store Minidumps As Attachments
     expect(
@@ -68,13 +71,10 @@ describe('projectSecurityAndPrivacy', () => {
     organization.dataScrubber = true;
     organization.scrubIPAddresses = false;
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
+    render(<ProjectSecurityAndPrivacy />, {
+      organization,
+      outletContext: {project},
     });
-
-    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
 
     expect(
       screen.getByRole('checkbox', {
@@ -105,7 +105,10 @@ describe('projectSecurityAndPrivacy', () => {
     });
     const project = ProjectFixture();
 
-    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
+    render(<ProjectSecurityAndPrivacy />, {
+      organization,
+      outletContext: {project},
+    });
 
     // Check that the data scrubber toggle is disabled
     expect(

@@ -1,5 +1,3 @@
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -18,11 +16,6 @@ describe('ProjectReplays', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: getProjectEndpoint,
-      method: 'GET',
-      body: ProjectFixture(),
-    });
-    MockApiClient.addMockResponse({
       url: `${getProjectEndpoint}keys/`,
       method: 'GET',
       body: [],
@@ -30,9 +23,10 @@ describe('ProjectReplays', () => {
   });
 
   it('can toggle rage click issue creation', async () => {
-    render(<ProjectReplays project={project} />, {
-      initialRouterConfig,
+    render(<ProjectReplays />, {
       organization,
+      outletContext: {project},
+      initialRouterConfig,
     });
 
     const mock = MockApiClient.addMockResponse({

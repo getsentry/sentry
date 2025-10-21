@@ -2,8 +2,6 @@ import {
   EnvironmentsFixture,
   HiddenEnvironmentsFixture,
 } from 'sentry-fixture/environments';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,32 +15,25 @@ jest
   .mockReturnValue('/org-slug/project-slug/settings/environments/');
 
 function renderComponent(isHidden: boolean) {
-  const {organization, project, routerProps} = initializeOrg();
-  const pathname = isHidden ? 'environments/hidden/' : 'environments/';
+  const {organization, project} = initializeOrg();
+  const pathname = isHidden
+    ? `/settings/projects/${project.slug}/environments/hidden/`
+    : `/settings/projects/${project.slug}/environments/`;
+  const route = isHidden
+    ? '/settings/projects/:projectId/environments/hidden/'
+    : '/settings/projects/:projectId/environments/';
 
-  return render(
-    <ProjectEnvironments
-      {...routerProps}
-      params={{projectId: project.slug}}
-      location={LocationFixture({pathname})}
-      organization={organization}
-      project={project}
-    />
-  );
+  return render(<ProjectEnvironments />, {
+    organization,
+    outletContext: {project},
+    initialRouterConfig: {
+      location: {pathname},
+      route,
+    },
+  });
 }
 
 describe('ProjectEnvironments', () => {
-  const project = ProjectFixture({
-    defaultEnvironment: 'production',
-  });
-
-  beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      body: project,
-    });
-  });
-
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });

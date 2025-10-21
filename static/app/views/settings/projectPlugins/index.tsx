@@ -1,9 +1,12 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Component, Fragment} from 'react';
 
-import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
+import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,7 +16,71 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 import ProjectPlugins from './projectPlugins';
 
-export default function ProjectPluginsContainer() {
+type Props = RouteComponentProps<{projectId: string}> & {
+  organization: Organization;
+  plugins: {
+    error: React.ComponentProps<typeof ProjectPlugins>['error'];
+    loading: boolean;
+    plugins: Plugin[];
+  };
+  project: Project;
+};
+
+class ProjectPluginsContainer extends Component<Props> {
+  componentDidMount() {
+    this.fetchData();
+  }
+
+  fetchData = async () => {
+    const {organization, params} = this.props;
+
+    const plugins = await fetchPlugins({...params, orgId: organization.slug});
+    const installCount = plugins.filter(
+      plugin => plugin.hasConfiguration && plugin.enabled
+    ).length;
+    trackIntegrationAnalytics(
+      'integrations.index_viewed',
+      {
+        integrations_installed: installCount,
+        view: 'legacy_integrations',
+        organization: this.props.organization,
+      },
+      {startSession: true}
+    );
+  };
+
+  handleChange = (pluginId: string, shouldEnable: boolean) => {
+    const {organization, params} = this.props;
+
+    const actionCreator = shouldEnable ? enablePlugin : disablePlugin;
+    actionCreator({projectId: params.projectId, orgId: organization.slug, pluginId});
+  };
+
+  render() {
+    const {loading, error, plugins} = this.props.plugins || {};
+    const {organization, project} = this.props;
+
+    const title = t('Legacy Integrations');
+
+    return (
+      <Fragment>
+        <SentryDocumentTitle title={title} orgSlug={organization.slug} />
+        <SettingsPageHeader title={title} />
+        <ProjectPermissionAlert project={project} />
+
+        <ProjectPlugins
+          {...this.props}
+          onChange={this.handleChange}
+          loading={loading}
+          error={error}
+          plugins={plugins}
+        />
+      </Fragment>
+    );
+  }
+}
+
+export default function ProjectPluginsWrapper() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
 
@@ -26,47 +93,21 @@ export default function ProjectPluginsContainer() {
     staleTime: 0,
   });
 
-  useEffect(() => {
-    if (plugins.length > 0) {
-      const installCount = plugins.filter(
-        plugin => plugin.hasConfiguration && plugin.enabled
-      ).length;
-      trackIntegrationAnalytics(
-        'integrations.index_viewed',
-        {
-          integrations_installed: installCount,
-          view: 'legacy_integrations',
-          organization,
-        },
-        {startSession: true}
-      );
-    }
-  }, [plugins, organization]);
-
-  const handleChange = useCallback(
-    (pluginId: string, shouldEnable: boolean) => {
-      const actionCreator = shouldEnable ? enablePlugin : disablePlugin;
-      actionCreator({projectId: project.slug, orgId: organization.slug, pluginId});
-    },
-    [organization.slug, project.slug]
-  );
-
-  const title = t('Legacy Integrations');
-
   return (
-    <Fragment>
-      <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-      <SettingsPageHeader title={title} />
-      <ProjectPermissionAlert project={project} />
-
-      <ProjectPlugins
-        onChange={handleChange}
-        loading={loading}
-        error={isError ? error : undefined}
-        plugins={plugins}
-        organization={organization}
-        project={project}
-      />
-    </Fragment>
+    <ProjectPluginsContainer
+      organization={organization}
+      project={project}
+      plugins={{
+        plugins,
+        loading,
+        error: isError ? error : undefined,
+      }}
+      params={{projectId: project.slug}}
+      location={undefined as any}
+      routes={undefined as any}
+      router={undefined as any}
+      route={undefined as any}
+      routeParams={undefined as any}
+    />
   );
 }

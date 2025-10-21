@@ -249,6 +249,3 @@ export default function ProjectReleaseTracking() {
     </div>
   );
 }
-
-// Export for tests
-export {ProjectReleaseTracking};

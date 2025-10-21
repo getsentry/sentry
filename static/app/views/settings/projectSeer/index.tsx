@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -212,8 +213,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   );
 }
 
-function ProjectSeer({project}: {project: Project}) {
-  const organization = useOrganization();
+function ProjectSeer({
+  organization,
+  project,
+}: {
+  organization: Organization;
+  project: Project;
+}) {
   const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
 
   const needsSetup =
@@ -298,7 +304,7 @@ export default function ProjectSeerContainer() {
     );
   }
 
-  return <ProjectSeer project={project} />;
+  return <ProjectSeer organization={organization} project={project} />;
 }
 
 const Subheading = styled('div')`
