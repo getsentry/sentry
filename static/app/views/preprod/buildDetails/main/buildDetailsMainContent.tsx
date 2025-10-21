@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -20,12 +20,11 @@ import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import type {
-  AppSizeApiResponse,
-  TreemapType,
-} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
+  isSizeInfoProcessing,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
@@ -95,7 +94,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   } = props;
   const {
     data: appSizeData,
-    isPending: isAppSizePending,
+    isLoading: isAppSizeLoading,
     isError: isAppSizeError,
     error: appSizeError,
   } = appSizeQuery;
@@ -120,34 +119,36 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
-  const [selectedCategories, setSelectedCategories] = useState<Set<TreemapType>>(
-    new Set()
-  );
+  const [selectedCategoriesParam, setSelectedCategoriesParam] =
+    useQueryParamState<string>({
+      fieldName: 'categories',
+    });
+
+  const selectedCategories: Set<TreemapType> = selectedCategoriesParam
+    ? new Set(
+        selectedCategoriesParam
+          .split(',')
+          .filter(
+            c => c.trim() !== '' && Object.values(TreemapType).includes(c as TreemapType)
+          )
+          .map(c => c as TreemapType)
+      )
+    : new Set();
 
   const handleToggleCategory = (category: TreemapType) => {
-    setSelectedCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
-      return next;
-    });
+    const next = new Set(selectedCategories);
+    if (next.has(category)) {
+      next.delete(category);
+    } else {
+      next.add(category);
+    }
+    setSelectedCategoriesParam(next.size > 0 ? Array.from(next).join(',') : undefined);
   };
 
   const sizeInfo = buildDetailsData?.size_info;
-
-  // We have two requests:
-  // - one for the build details (buildDetailsQuery)
-  // - one for the actual size data (appSizeQuery)
-
-  const isLoadingRequests = isAppSizePending || isBuildDetailsPending;
-  const isSizePending = sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING;
-  const isSizeProcessing = sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING;
+  const isLoadingRequests = isAppSizeLoading || isBuildDetailsPending;
   const isSizeNotStarted = sizeInfo === undefined;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
-
   const showNoSizeRequested = !isLoadingRequests && isSizeNotStarted;
 
   if (isLoadingRequests) {
@@ -158,7 +159,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  if (isSizePending || isSizeProcessing) {
+  const isWaitingForData = !appSizeData && !isAppSizeError;
+
+  if (isSizeInfoProcessing(sizeInfo) || isWaitingForData) {
     return (
       <LoadingContent>
         <BuildProcessing
@@ -194,34 +197,29 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  // Show an error if the treemap data fetch fails. Treemap data fetch
-  // will fail if size analysis is running so the data will (404) but
-  // this is handled above. Errors where we know the cause (error_code
-  // / error_message is set) will be shown above case so this is only
-  // the case where the size analysis *ought* to be successful -
-  // but loading the treemap fails.
   // TODO(EME-302): Currently we don't set the size metrics
   // error_{code,message} correctly so we often see this.
-  // If the main data fetch fails, this component will not be rendered.
   if (isAppSizeError) {
     return (
       <BuildError
         title={t('Size analysis failed')}
         message={appSizeError?.message ?? t('The treemap data could not be loaded')}
-      />
-    );
-  }
-
-  if (!appSizeData) {
-    return (
-      <BuildError
-        title={t('Size analysis failed')}
-        message={t('The treemap data could not be loaded')}
       >
         <Button onClick={onRerunAnalysis} disabled={isRerunning}>
           {isRerunning ? t('Rerunning...') : t('Retry analysis')}
         </Button>
       </BuildError>
+    );
+  }
+
+  if (!appSizeData?.treemap?.root) {
+    return (
+      <LoadingContent>
+        <BuildProcessing
+          title={t('Running size analysis')}
+          message={t('Hang tight, this may take a few minutes...')}
+        />
+      </LoadingContent>
     );
   }
 

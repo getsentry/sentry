@@ -83,6 +83,7 @@ export function PrivateGamingSdkAccessModal({
     onSubmit?.();
 
     const messageBody = [
+      `This is a request for SDK access for consoles. The user's details are:`,
       `User: ${user.name}`,
       `Email: ${user.email}`,
       gamingPlatforms.length === 1

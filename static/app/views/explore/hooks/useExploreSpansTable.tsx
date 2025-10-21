@@ -7,7 +7,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useProgressiveQuery,
-  type SpansRPCQueryExtras,
+  type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useQueryParamsExtrapolate,
@@ -20,7 +20,7 @@ interface UseExploreSpansTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 }
 
 export interface SpansTableResult {

@@ -16,15 +16,10 @@ class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
         detector = self.create_uptime_detector(
             uptime_subscription=subscription, project=self.project
         )
-
-        hex_formatter = lambda sub_id: uuid.UUID(sub_id).hex
-
         mapping, subscription_ids = authorize_and_map_uptime_detector_subscription_ids(
             detector_ids=[str(detector.id)],
             projects=[self.project],
-            sub_id_formatter=hex_formatter,
         )
-
         expected_hex_id = uuid.UUID(subscription_id).hex
         assert expected_hex_id in mapping
         assert mapping[expected_hex_id] == detector.id
@@ -39,7 +34,6 @@ class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
             authorize_and_map_uptime_detector_subscription_ids(
                 detector_ids=[invalid_id],
                 projects=[self.project],
-                sub_id_formatter=str,
             )
 
     def test_cross_project_access_denied(self) -> None:
@@ -58,7 +52,6 @@ class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
             authorize_and_map_uptime_detector_subscription_ids(
                 detector_ids=[str(other_detector.id)],
                 projects=[self.project],
-                sub_id_formatter=str,
             )
 
     def test_multiple_detectors(self) -> None:
@@ -72,28 +65,22 @@ class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
         subscription2 = self.create_uptime_subscription(
             url="https://example2.com", subscription_id=subscription_id2
         )
-
         detector1 = self.create_uptime_detector(
             uptime_subscription=subscription1, project=self.project
         )
         detector2 = self.create_uptime_detector(
             uptime_subscription=subscription2, project=self.project
         )
-
-        string_formatter = lambda sub_id: str(uuid.UUID(sub_id))
-
         mapping, subscription_ids = authorize_and_map_uptime_detector_subscription_ids(
             detector_ids=[str(detector1.id), str(detector2.id)],
             projects=[self.project],
-            sub_id_formatter=string_formatter,
         )
 
-        # Verify both detectors are mapped
         assert len(mapping) == 2
         assert len(subscription_ids) == 2
 
-        expected_str_id1 = str(uuid.UUID(subscription_id1))
-        expected_str_id2 = str(uuid.UUID(subscription_id2))
+        expected_str_id1 = uuid.UUID(subscription_id1).hex
+        expected_str_id2 = uuid.UUID(subscription_id2).hex
 
         assert expected_str_id1 in mapping
         assert expected_str_id2 in mapping

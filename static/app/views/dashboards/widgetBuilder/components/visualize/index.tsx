@@ -36,7 +36,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  WidgetType,
+  type LinkedDashboard,
+} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -90,21 +94,24 @@ function formatColumnOptions(
             ? prettifyTagKey(option.value.meta.name)
             : option.value.meta.name,
 
-        trailingItems: renderTag(
-          option.value.kind,
-          option.value.meta.name,
-          option.value.kind !== FieldValueKind.FUNCTION &&
-            option.value.kind !== FieldValueKind.EQUATION
-            ? option.value.meta.dataType
-            : undefined
-        ),
+        trailingItems: () => {
+          return renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType
+              : undefined
+          );
+        },
         disabled: !supported,
-        tooltip:
-          !supported && field.kind === FieldValueKind.FUNCTION
+        tooltip: ({disabled}: {disabled: boolean}) => {
+          return disabled && field.kind === FieldValueKind.FUNCTION
             ? tct('This field is not available for the [aggregate] function', {
                 aggregate: <strong>{field.function[0]}</strong>,
               })
-            : undefined,
+            : undefined;
+        },
       };
     });
 }
@@ -324,6 +331,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
   const fields = isChartWidget ? state.yAxis : state.fields;
+  const linkedDashboards = state.linkedDashboards || [];
   const updateAction = isChartWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
@@ -788,6 +796,34 @@ function Visualize({error, setError}: VisualizeProps) {
                               size="zero"
                               onClick={() => {
                                 openLinkToDashboardModal({
+                                  onLink: dashboardId => {
+                                    if (
+                                      fields[index]?.kind === FieldValueKind.FIELD &&
+                                      fields[index]?.field
+                                    ) {
+                                      const newLinkedDashboards: LinkedDashboard[] = [
+                                        ...linkedDashboards,
+                                        {dashboardId, field: fields[index].field},
+                                      ];
+                                      dispatch({
+                                        type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                                        payload: newLinkedDashboards,
+                                      });
+                                    }
+                                  },
+                                  currentLinkedDashboard: linkedDashboards.find(
+                                    linkedDashboard => {
+                                      if (
+                                        fields[index]?.kind === FieldValueKind.FIELD &&
+                                        fields[index]?.field
+                                      ) {
+                                        return (
+                                          linkedDashboard.field === fields[index].field
+                                        );
+                                      }
+                                      return false;
+                                    }
+                                  ),
                                   source,
                                 });
                               }}

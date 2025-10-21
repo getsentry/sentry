@@ -462,21 +462,19 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           undefined
         );
       return (
-        <NoOverflow>
-          <AlignCenter>
-            {replayTarget &&
-            Object.keys(replayTarget).length > 0 &&
-            replayExists(row[key]) ? (
-              <Tooltip title={t('View Replay')}>
-                <LinkButton to={replayTarget} size="xs">
-                  <IconPlay size="xs" />
-                </LinkButton>
-              </Tooltip>
-            ) : (
-              <NoValue>{NO_VALUE}</NoValue>
-            )}
-          </AlignCenter>
-        </NoOverflow>
+        <AlignCenter>
+          {replayTarget &&
+          Object.keys(replayTarget).length > 0 &&
+          replayExists(row[key]) ? (
+            <Tooltip title={t('View Replay')}>
+              <LinkButton to={replayTarget} size="xs">
+                <IconPlay size="xs" />
+              </LinkButton>
+            </Tooltip>
+          ) : (
+            <NoValue>{NO_VALUE}</NoValue>
+          )}
+        </AlignCenter>
       );
     }
 

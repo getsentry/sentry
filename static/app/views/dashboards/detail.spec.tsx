@@ -149,6 +149,10 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/measurements-meta/',
+        body: [],
+      });
     });
 
     afterEach(() => {
@@ -1315,7 +1319,8 @@ describe('Dashboards > Detail', () => {
         expect(router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
-              release: '',
+              release: [''],
+              globalFilter: [''],
             }),
           })
         );

@@ -1132,4 +1132,11 @@ export default typescript.config([
       ],
     },
   },
+  {
+    name: 'files/core-inspector',
+    files: ['static/app/components/core/inspector.tsx'],
+    rules: {
+      'boundaries/element-types': 'off',
+    },
+  },
 ]);

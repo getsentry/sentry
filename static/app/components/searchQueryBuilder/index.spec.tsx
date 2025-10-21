@@ -785,14 +785,10 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('escapes values with spaces and reserved characters', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
-      await userEvent.keyboard('assigned:');
-      await userEvent.click(screen.getByRole('option', {name: 'is'}));
-      await userEvent.keyboard('some" value{enter}');
+      await userEvent.keyboard('assigned:some" value{enter}');
 
       // Value should be surrounded by quotes and escaped
       expect(
@@ -915,8 +911,7 @@ describe('SearchQueryBuilder', () => {
     it('can add an unsupported filter key and value', async () => {
       const mockOnChange = jest.fn();
       render(
-        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />,
-        {organization: {features: ['search-query-builder-input-flow-changes']}}
+        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />
       );
       await userEvent.click(getLastInput());
 
@@ -926,10 +921,7 @@ describe('SearchQueryBuilder', () => {
         'foo '
       );
 
-      await userEvent.keyboard('a:');
-      expect(await screen.findByRole('option', {name: 'is'})).toHaveFocus();
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('b{enter}');
+      await userEvent.keyboard('a:b{enter}');
 
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
@@ -1129,8 +1121,6 @@ describe('SearchQueryBuilder', () => {
 
       const lastInput = (await screen.findAllByTestId('query-builder-input')).at(-1);
       expect(lastInput).toHaveFocus();
-
-      await userEvent.click(getLastInput());
 
       // Should have three tokens: a, or, b
       await screen.findByRole('row', {name: /a/});
@@ -4272,6 +4262,91 @@ describe('SearchQueryBuilder', () => {
           })
         ).toBeInTheDocument();
       });
+
+      it('should replace raw search keys on paste', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.paste('randomValue');
+
+        // Should have tokenized the pasted text
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+          })
+        ).toBeInTheDocument();
+        // Focus should be at the end of the pasted text
+        expect(
+          screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+        ).toHaveFocus();
+      });
+
+      it('should replace raw search keys on paste, leaving other tokens intact', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:firefox span.description:test"
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.paste('randomValue');
+
+        // leaves unrelated filter key tokens intact
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+
+        // leaves the same filter key minus the wildcard contains operator intact
+        expect(
+          screen.getByRole('row', {name: 'span.description:test'})
+        ).toBeInTheDocument();
+
+        // Should have tokenized the pasted text
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+          })
+        ).toBeInTheDocument();
+        // Focus should be at the end of the pasted text
+        expect(
+          screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+        ).toHaveFocus();
+      });
+
+      it('should replace raw search keys on paste, merging with existing tokens', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery={`span.description:${WildcardOperators.CONTAINS}test`}
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.paste('randomValue');
+        // the new filter key combobox is opened, when we get moved to the new token
+        await userEvent.keyboard('{Escape}');
+
+        // Should have tokenized the pasted text
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}[test,randomValue]`,
+          })
+        ).toBeInTheDocument();
+        // Focus should be at the end of the pasted text
+        expect(getLastInput()).toHaveFocus();
+      });
     });
   });
 
@@ -4585,35 +4660,55 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
-    it('displays enable ai button when searching free text and user has not given consent', async () => {
-      const mockOnSearch = jest.fn();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
+    describe('consent flow changes enabled', () => {
+      it('renders tooltip', async () => {
+        const mockOnSearch = jest.fn();
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/seer/setup-check/',
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {
+              orgHasAcknowledged: true,
+              userHasAcknowledged: true,
+            },
+          }),
+        });
+
+        render(
+          <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+                'ask-seer-consent-flow-update',
+              ],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+        const askSeerText = screen.getByText(/Ask Seer/);
+        expect(askSeerText).toBeInTheDocument();
+
+        await userEvent.hover(askSeerText);
+
+        const tooltipTitle = await screen.findByText(
+          /The assistant requires Generative AI/
+        );
+        expect(tooltipTitle).toBeInTheDocument();
+        expect(tooltipTitle).toBeVisible();
+
+        const tooltipLink = screen.getByText(/data processing policy/);
+        expect(tooltipLink).toBeInTheDocument();
+        expect(tooltipLink).toBeVisible();
+        expect(tooltipLink).toHaveAttribute(
+          'href',
+          'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
+        );
       });
-
-      render(
-        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-        {
-          organization: {
-            features: [
-              'gen-ai-features',
-              'gen-ai-explore-traces',
-              'gen-ai-explore-traces-consent-ui',
-            ],
-          },
-        }
-      );
-
-      await userEvent.click(getLastInput());
-      await userEvent.type(screen.getByRole('combobox'), 'some free text');
-
-      expect(screen.getByRole('option', {name: /Enable Gen AI/})).toBeInTheDocument();
     });
   });
 
