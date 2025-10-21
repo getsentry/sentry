@@ -1887,7 +1887,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         )
         assert response.status_code == 200, response.content
         group = response.data["groups"][0]
-        assert group["totals"]["sum(session)"] == 11
+        assert group["totals"]["unhealthy_rate(session)"] == pytest.approx(5 / 11)
 
     @freeze_time(MOCK_DATETIME)
     def test_unhandled_rate(self) -> None:
