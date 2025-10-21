@@ -161,6 +161,9 @@ export default function FiltersBar({
                 updateGlobalFilters(
                   activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
                 );
+                trackAnalytics('dashboards2.global_filter.remove', {
+                  organization,
+                });
               }}
             />
           ))}
