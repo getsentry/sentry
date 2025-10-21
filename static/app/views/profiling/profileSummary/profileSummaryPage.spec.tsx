@@ -61,9 +61,7 @@ describe('ProfileSummaryPage', () => {
     });
 
     render(<ProfileSummaryPage />, {
-      organization: OrganizationFixture({
-        features: ['profiling-summary-redesign'],
-      }),
+      organization: OrganizationFixture(),
       initialRouterConfig: {
         location: {
           pathname: '/profiling/summary/project-slug',
