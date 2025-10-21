@@ -24,7 +24,7 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
           return JSON.stringify(groupBy.value);
         }
 
-        if (groupBy.key === 'release') {
+        if (groupBy.key === 'release' && groupBy.value) {
           return formatVersion(groupBy.value);
         }
 
