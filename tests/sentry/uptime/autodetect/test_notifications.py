@@ -103,7 +103,7 @@ class UptimeAutoDetectedNotificationsTest(TestCase):
 
         assert mock_builder.call_count == 1
         call_kwargs = mock_builder.call_args[1]
-        assert call_kwargs["subject"] == "We've automatically created an Uptime Monitor for you"
+        assert call_kwargs["subject"] == "We've Created a Free Uptime Monitor for Your Project"
         assert call_kwargs["template"] == "sentry/emails/uptime/auto-detected-monitors.txt"
         assert call_kwargs["html_template"] == "sentry/emails/uptime/auto-detected-monitors.html"
         assert call_kwargs["type"] == "uptime.auto_detected_monitors"
