@@ -4343,7 +4343,7 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
         await userEvent.paste('randomValue');
-        // the filter key combobox is opened, so we need to close it
+        // the new filter key combobox is opened, when we get moved to the new token
         await userEvent.keyboard('{Escape}');
 
         // Should have tokenized the pasted text
@@ -4353,9 +4353,7 @@ describe('SearchQueryBuilder', () => {
           })
         ).toBeInTheDocument();
         // Focus should be at the end of the pasted text
-        expect(
-          screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
-        ).toHaveFocus();
+        expect(getLastInput()).toHaveFocus();
       });
     });
   });
