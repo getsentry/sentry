@@ -149,7 +149,10 @@ export function useCreateNotificationAction({
 
     if (firstAction.channel) {
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setChannel(firstAction.channel);
+      setChannel({
+        label: firstAction.channel,
+        value: firstAction.channel,
+      });
     }
   }, [defaultActions, providersToIntegrations]);
 
