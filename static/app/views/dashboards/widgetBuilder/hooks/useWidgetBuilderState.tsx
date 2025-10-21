@@ -663,8 +663,8 @@ function serializeLinkedDashboards(linkedDashboards: LinkedDashboard[] = []): st
   return linkedDashboards.map(linkedDashboard => {
     return JSON.stringify({
       dashboardId: linkedDashboard.dashboardId,
-      fieldId: linkedDashboard.fieldId,
-    });
+      field: linkedDashboard.field,
+    } satisfies LinkedDashboard);
   });
 }
 
@@ -672,11 +672,11 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
   return linkedDashboards
     .map(linkedDashboard => {
       const maybeLinkedDashboard = JSON.parse(linkedDashboard);
-      if (maybeLinkedDashboard.dashboardId && maybeLinkedDashboard.fieldId) {
+      if (maybeLinkedDashboard.dashboardId && maybeLinkedDashboard.field) {
         return {
           dashboardId: maybeLinkedDashboard.dashboardId,
-          fieldId: maybeLinkedDashboard.fieldId,
-        };
+          field: maybeLinkedDashboard.field,
+        } satisfies LinkedDashboard;
       }
       return undefined;
     })

@@ -811,7 +811,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                         fields[index]?.field
                                       ) {
                                         return (
-                                          linkedDashboard.fieldId === fields[index].field
+                                          linkedDashboard.field === fields[index].field
                                         );
                                       }
                                       return false;

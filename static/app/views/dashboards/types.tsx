@@ -72,7 +72,7 @@ interface WidgetQueryOnDemand {
 
 export type LinkedDashboard = {
   dashboardId: string;
-  fieldId: string;
+  field: string;
 };
 
 /**
