@@ -1523,7 +1523,7 @@ export function parseSearch(
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
   const config = additionalConfig
-    ? mergeSearchConfigOntoDefaults(defaultConfig, additionalConfig)
+    ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
   return tryParseSearch(query, {
@@ -1542,7 +1542,7 @@ export function parseSearch(
  * of the search config to override the default _only_ if they're actually
  * defined.
  */
-function mergeSearchConfigOntoDefaults(
+function mergeSearchConfigWithDefaults(
   a: SearchConfig,
   b: Partial<SearchConfig>
 ): SearchConfig {
