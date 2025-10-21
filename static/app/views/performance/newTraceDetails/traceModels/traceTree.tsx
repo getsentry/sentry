@@ -1133,7 +1133,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     const transactionNodes = tree.root.findAllChildren(
       node => node.canFetchChildren && transactionIds.has(node.id ?? '')
-    ) as TransactionNode[];
+    );
 
     const promises = transactionNodes.map(node =>
       tree.fetchNodeSubTree(true, node, {
