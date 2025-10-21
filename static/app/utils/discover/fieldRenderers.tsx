@@ -1377,6 +1377,7 @@ function getFieldRendererBase(
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }
 
+// TODO: Need to handle cases where a field already has a link in it's renderer
 function wrapFieldRendererInDashboardLink(
   renderer: FieldFormatterRenderFunctionPartial,
   dashboardLink: LinkedDashboard | undefined
