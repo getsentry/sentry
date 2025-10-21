@@ -8,6 +8,7 @@ export function ProcessedInsightFixture(
   params: Partial<ProcessedInsight> = {}
 ): ProcessedInsight {
   return {
+    key: 'duplicate_files',
     name: 'Duplicate files',
     description: 'You have files that are duplicated across your app',
     totalSavings: 1024000,

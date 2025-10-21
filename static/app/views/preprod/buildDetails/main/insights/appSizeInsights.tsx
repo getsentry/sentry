@@ -11,13 +11,15 @@ import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
 import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsProps {
   processedInsights: ProcessedInsight[];
+  platform?: Platform;
 }
 
-export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
+export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSidebarOpen = searchParams.get('insights') === 'open';
 
@@ -63,7 +65,7 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
       >
         {topInsights.map(insight => (
           <Flex
-            key={insight.name}
+            key={insight.key}
             align="center"
             justify="between"
             radius="md"
@@ -95,6 +97,7 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
         processedInsights={processedInsights}
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
+        platform={platform}
       />
     </Container>
   );

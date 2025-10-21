@@ -10,18 +10,21 @@ import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   processedInsights: ProcessedInsight[];
+  platform?: Platform;
 }
 
 export function AppSizeInsightsSidebar({
   processedInsights,
   isOpen,
   onClose,
+  platform,
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
@@ -38,12 +41,12 @@ export function AppSizeInsightsSidebar({
     sizeStorageKey: 'app-size-insights-sidebar-width',
   });
 
-  const toggleExpanded = (insightName: string) => {
+  const toggleExpanded = (insightKey: string) => {
     const newExpanded = new Set(expandedInsights);
-    if (newExpanded.has(insightName)) {
-      newExpanded.delete(insightName);
+    if (newExpanded.has(insightKey)) {
+      newExpanded.delete(insightKey);
     } else {
-      newExpanded.add(insightName);
+      newExpanded.add(insightKey);
     }
     setExpandedInsights(newExpanded);
   };
@@ -98,10 +101,11 @@ export function AppSizeInsightsSidebar({
               <Flex direction="column" gap="xl" width="100%">
                 {processedInsights.map(insight => (
                   <AppSizeInsightsSidebarRow
-                    key={insight.name}
+                    key={insight.key}
                     insight={insight}
-                    isExpanded={expandedInsights.has(insight.name)}
-                    onToggleExpanded={() => toggleExpanded(insight.name)}
+                    isExpanded={expandedInsights.has(insight.key)}
+                    onToggleExpanded={() => toggleExpanded(insight.key)}
+                    platform={platform}
                   />
                 ))}
               </Flex>
