@@ -1,10 +1,14 @@
 import {useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
@@ -95,28 +99,34 @@ function FilterSelector({
       onChange={handleChange}
       sizeLimit={10}
       sizeLimitMessage={t('Use search to find more filter values…')}
-      onReset={() => {
-        setActiveFilterValues([]);
-        onUpdateFilter({
-          ...globalFilter,
-          value: '',
-        });
-      }}
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
-      menuTitle={t('%s filter', getDatasetLabel(dataset))}
-      menuHeaderTrailingItems={
-        <Button
-          aria-label={t('Remove Filter')}
-          borderless
-          size="xs"
-          priority="link"
-          onClick={() => onRemoveFilter(globalFilter)}
-        >
-          {t('Remove')}
-        </Button>
-      }
+      menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+      menuHeaderTrailingItems={({closeOverlay}: any) => (
+        <Flex gap="md">
+          {activeFilterValues.length > 0 && (
+            <StyledButton
+              aria-label={t('Clear Selections')}
+              size="zero"
+              borderless
+              onClick={() => {
+                handleChange([]);
+                closeOverlay();
+              }}
+            >
+              {t('Clear')}
+            </StyledButton>
+          )}
+          <StyledButton
+            aria-label={t('Remove Filter')}
+            size="zero"
+            onClick={() => onRemoveFilter(globalFilter)}
+          >
+            {t('Remove Filter')}
+          </StyledButton>
+        </Flex>
+      )}
       triggerProps={{
         children: (
           <FilterSelectorTrigger
@@ -132,3 +142,14 @@ function FilterSelector({
 }
 
 export default FilterSelector;
+
+const StyledButton = styled(Button)`
+  font-size: inherit;
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
+`;
