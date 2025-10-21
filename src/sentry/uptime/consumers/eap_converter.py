@@ -9,7 +9,7 @@ all requests in a redirect chain.
 
 import logging
 import uuid
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, Sequence
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -158,7 +158,7 @@ def convert_uptime_result_to_trace_items(
     """
     trace_items = []
 
-    request_info_list: list[RequestInfo | None] = result.get("request_info_list", [])
+    request_info_list: Sequence[RequestInfo | None] = result.get("request_info_list", [])
     if not request_info_list:
         request_info = result["request_info"]
         request_info_list = [request_info]
