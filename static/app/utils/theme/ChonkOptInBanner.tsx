@@ -21,7 +21,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const id = useId();
 
-  if (props.collapsed === true || !chonkPrompt.showbannerPrompt) {
+  if (props.collapsed === true || !chonkPrompt.showBannerPrompt) {
     return null;
   }
 
