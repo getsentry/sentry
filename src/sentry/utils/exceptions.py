@@ -115,4 +115,12 @@ def quiet_redis_noise() -> Generator[None]:
         exception_grouping_context({RedisClusterException: "redis.redis_cluster_exception"}),
         set_sentry_exception_levels({TimeoutError: "info", MovedError: "info"}),
     ):
-        yield
+        try:
+            yield
+        except RedisClusterException:
+            # RedisClusterException, unlike the others, propagates in most cases, so we
+            # want to report it within the grouping context to ensure it is grouped correctly.
+            # Unless there's another exception in this execution context in the interim, any
+            # top-level reporting should be dropped by the Sentry dupe detection.
+            sentry_sdk.capture_exception()
+            raise

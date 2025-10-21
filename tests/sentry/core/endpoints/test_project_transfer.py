@@ -1,6 +1,7 @@
 import re
 from urllib.parse import ParseResult, parse_qs, urlparse
 
+import orjson
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
@@ -103,10 +104,9 @@ class ProjectTransferTest(APITestCase):
             for _ in range(3 + 1):
                 response = self.client.post(url, {"email": new_user.email})
         assert response.status_code == 429
-        assert (
-            response.content
-            == b'"You are attempting to use this endpoint too frequently. Limit is 3 requests in 3600 seconds"'
-        )
+        assert orjson.loads(response.content) == {
+            "detail": "You are attempting to use this endpoint too frequently. Limit is 3 requests in 3600 seconds"
+        }
 
     def test_transfer_project_to_current_organization(self) -> None:
         owner_a = self.create_user("a@example.com")

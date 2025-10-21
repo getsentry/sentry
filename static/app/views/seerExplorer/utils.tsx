@@ -42,10 +42,16 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_trace_waterfall: (args, isLoading) => {
-    const id = args.trace_id || '';
+    const traceId = args.trace_id || '';
+    const spanId = args.span_id;
+    if (spanId) {
+      return isLoading
+        ? `Digging into span ${spanId.slice(0, 8)}...`
+        : `Dug into span ${spanId.slice(0, 8)}`;
+    }
     return isLoading
-      ? `Viewing waterfall for trace ${id.slice(0, 8)}...`
-      : `Viewed waterfall for trace ${id.slice(0, 8)}`;
+      ? `Viewing waterfall for trace ${traceId.slice(0, 8)}...`
+      : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 };
 
@@ -99,6 +105,7 @@ export function buildToolLinkUrl(
       // Transform backend params to frontend format
       const queryParams: Record<string, any> = {
         query: query || '',
+        project: null,
       };
 
       const aggregateFields: any[] = [];
@@ -131,6 +138,28 @@ export function buildToolLinkUrl(
       return {
         pathname: `/organizations/${orgSlug}/traces/`,
         query: queryParams,
+      };
+    }
+    case 'get_trace_waterfall': {
+      const {trace_id, span_id, timestamp} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      const pathname = `/explore/traces/trace/${trace_id}/`;
+      const query: Record<string, string> = {};
+
+      if (span_id) {
+        query.node = `span-${span_id}`;
+      }
+
+      if (timestamp) {
+        query.timestamp = timestamp;
+      }
+
+      return {
+        pathname,
+        query,
       };
     }
     default:
