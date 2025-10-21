@@ -1556,6 +1556,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widget_queries = DashboardWidgetQuery.objects.filter(widget=widget)
         assert widget_queries.count() == 1
         widget_query = widget_queries.first()
+        assert widget_query is not None
         assert widget_query.fields == [
             "title",
             "total.count",
@@ -1579,6 +1580,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         translated_widget_queries = DashboardWidgetQuery.objects.filter(widget=translated_widget)
         assert translated_widget_queries.count() == 1
         translated_widget_query = translated_widget_queries.first()
+        assert translated_widget_query is not None
         assert translated_widget_query.fields == ["transaction", "count(span.duration)"]
         assert translated_widget_query.aggregates == ["count(span.duration)"]
         assert translated_widget_query.columns == ["transaction"]
