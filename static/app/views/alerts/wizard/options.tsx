@@ -115,7 +115,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_logs: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {

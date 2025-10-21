@@ -1,4 +1,3 @@
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -117,10 +116,7 @@ function LogsHeader() {
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
         ) : null}
 
-        <Layout.Title>
-          {title ? title : t('Logs')}
-          <FeatureBadge type="new" />
-        </Layout.Title>
+        <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar>
