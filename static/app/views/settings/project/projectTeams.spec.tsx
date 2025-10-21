@@ -48,11 +48,6 @@ describe('ProjectTeams', () => {
     TeamStore.loadInitialData([team1WithAdmin, team2WithAdmin]);
 
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
-    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
       body: [team1WithAdmin],

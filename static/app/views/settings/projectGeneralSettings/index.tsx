@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -405,28 +405,22 @@ export default function ProjectGeneralSettingsContainer() {
   const location = useLocation();
   const {project} = useProjectSettingsOutlet();
 
-  // Use a ref to track the most current slug value
-  const changedSlugRef = useRef<string>(project.slug);
-
-  const setChangedSlug = useCallback((newSlug: string) => {
-    changedSlugRef.current = newSlug;
-  }, []);
-
-  useEffect(() => {
-    if (changedSlugRef.current !== project.slug) {
+  const handleChangeSlug = useCallback(
+    (newSlug: string) => {
       navigate(
         recreateRoute('', {
           params: {
             orgId: organization.slug,
-            projectId: changedSlugRef.current,
+            projectId: newSlug,
           },
           routes,
           location,
         }),
         {replace: true}
       );
-    }
-  }, [navigate, routes, location, organization.slug, project.slug]);
+    },
+    [navigate, organization.slug, routes, location]
+  );
 
-  return <ProjectGeneralSettings project={project} onChangeSlug={setChangedSlug} />;
+  return <ProjectGeneralSettings project={project} onChangeSlug={handleChangeSlug} />;
 }

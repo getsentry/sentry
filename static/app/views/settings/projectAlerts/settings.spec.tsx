@@ -24,12 +24,6 @@ describe('ProjectAlertSettings', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
-
-    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
       body: [],

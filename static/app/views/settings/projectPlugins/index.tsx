@@ -16,6 +16,7 @@ import {useTogglePluginMutation} from './useTogglePluginMutation';
 export default function ProjectPluginsContainer() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+
   const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
 
   const {
@@ -29,7 +30,7 @@ export default function ProjectPluginsContainer() {
 
   useEffect(() => {
     // Track analytics
-    if (plugins.length > 0) {
+    if (plugins) {
       const installCount = plugins.filter(
         plugin => plugin.hasConfiguration && plugin.enabled
       ).length;
@@ -58,14 +59,14 @@ export default function ProjectPluginsContainer() {
       <ProjectPermissionAlert project={project} />
 
       <ProjectPlugins
-        plugins={plugins}
-        loading={loading}
-        error={isError ? error : undefined}
+        organization={organization}
+        project={project}
         onChange={(pluginId, shouldEnable) =>
           togglePluginMutation.mutate({pluginId, shouldEnable})
         }
-        organization={organization}
-        project={project}
+        loading={loading}
+        error={isError ? error : undefined}
+        plugins={plugins}
       />
     </Fragment>
   );

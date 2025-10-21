@@ -564,6 +564,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'tags/',
+      name: t('Tags & Context'),
+      component: make(() => import('sentry/views/settings/projectTags')),
+    },
+    {
       path: 'environments/',
       name: t('Environments'),
       component: make(() => import('sentry/views/settings/project/projectEnvironments')),
@@ -575,22 +580,6 @@ function buildRoutes(): RouteObject[] {
           path: 'hidden/',
         },
       ],
-    },
-    {
-      path: 'tags/',
-      name: t('Tags & Context'),
-      component: make(() => import('sentry/views/settings/projectTags')),
-    },
-    {
-      path: 'issue-tracking/',
-      redirectTo: '/settings/:orgId/:projectId/plugins/',
-    },
-    {
-      path: 'release-tracking/',
-      name: t('Release Tracking'),
-      component: make(
-        () => import('sentry/views/settings/project/projectReleaseTracking')
-      ),
     },
     {
       path: 'ownership/',
@@ -613,6 +602,25 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/projectUserFeedback')),
     },
     {
+      path: 'toolbar/',
+      name: t('Developer Toolbar'),
+      component: make(() => import('sentry/views/settings/project/projectToolbar')),
+    },
+    {
+      path: 'filters/',
+      name: t('Inbound Filters'),
+      component: make(() => import('sentry/views/settings/project/projectFilters')),
+      children: [
+        {
+          index: true,
+          redirectTo: 'data-filters/',
+        },
+        {
+          path: ':filterType/',
+        },
+      ],
+    },
+    {
       path: 'security-and-privacy/',
       name: t('Security & Privacy'),
       children: [
@@ -631,6 +639,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'issue-grouping/',
+      name: t('Issue Grouping'),
+      component: make(() => import('sentry/views/settings/projectIssueGrouping')),
+    },
+    {
       path: 'debug-symbols/',
       name: t('Debug Information Files'),
       component: make(() => import('sentry/views/settings/projectDebugFiles')),
@@ -639,26 +652,6 @@ function buildRoutes(): RouteObject[] {
       path: 'proguard/',
       name: t('ProGuard Mappings'),
       component: make(() => import('sentry/views/settings/projectProguard')),
-    },
-    {
-      path: 'performance/',
-      name: t('Performance'),
-      component: make(() => import('sentry/views/settings/projectPerformance')),
-    },
-    {
-      path: 'playstation/',
-      name: t('PlayStation'),
-      component: make(() => import('sentry/views/settings/project/tempest')),
-    },
-    {
-      path: 'replays/',
-      name: t('Replays'),
-      component: make(() => import('sentry/views/settings/project/projectReplays')),
-    },
-    {
-      path: 'toolbar/',
-      name: t('Developer Toolbar'),
-      component: make(() => import('sentry/views/settings/project/projectToolbar')),
     },
     {
       path: 'source-maps/',
@@ -684,46 +677,18 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'filters/',
-      name: t('Inbound Filters'),
-      component: make(() => import('sentry/views/settings/project/projectFilters')),
-      children: [
-        {
-          index: true,
-          redirectTo: 'data-filters/',
-        },
-        {
-          path: ':filterType/',
-        },
-      ],
+      path: 'performance/',
+      name: t('Performance'),
+      component: make(() => import('sentry/views/settings/projectPerformance')),
     },
     {
       path: 'dynamic-sampling/',
       redirectTo: 'performance/',
     },
     {
-      path: 'issue-grouping/',
-      name: t('Issue Grouping'),
-      component: make(() => import('sentry/views/settings/projectIssueGrouping')),
-    },
-    {
-      path: 'hooks/',
-      name: t('Service Hooks'),
-      component: make(() => import('sentry/views/settings/project/projectServiceHooks')),
-    },
-    {
-      path: 'hooks/new/',
-      name: t('Create Service Hook'),
-      component: make(
-        () => import('sentry/views/settings/project/projectCreateServiceHook')
-      ),
-    },
-    {
-      path: 'hooks/:hookId/',
-      name: t('Service Hook Details'),
-      component: make(
-        () => import('sentry/views/settings/project/projectServiceHookDetails')
-      ),
+      path: 'replays/',
+      name: t('Replays'),
+      component: make(() => import('sentry/views/settings/project/projectReplays')),
     },
     {
       path: 'keys/',
@@ -748,8 +713,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/loaderScript')),
     },
     {
-      path: 'csp/',
-      redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
+      path: 'release-tracking/',
+      name: t('Release Tracking'),
+      component: make(
+        () => import('sentry/views/settings/project/projectReleaseTracking')
+      ),
     },
     {
       path: 'security-headers/',
@@ -783,6 +751,10 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'csp/',
+      redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
+    },
+    {
       path: 'plugins/',
       name: t('Legacy Integrations'),
       children: [
@@ -796,6 +768,34 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/projectPlugins/details')),
         },
       ],
+    },
+    {
+      path: 'issue-tracking/',
+      redirectTo: '/settings/:orgId/:projectId/plugins/',
+    },
+    {
+      path: 'playstation/',
+      name: t('PlayStation'),
+      component: make(() => import('sentry/views/settings/project/tempest')),
+    },
+    {
+      path: 'hooks/',
+      name: t('Service Hooks'),
+      component: make(() => import('sentry/views/settings/project/projectServiceHooks')),
+    },
+    {
+      path: 'hooks/new/',
+      name: t('Create Service Hook'),
+      component: make(
+        () => import('sentry/views/settings/project/projectCreateServiceHook')
+      ),
+    },
+    {
+      path: 'hooks/:hookId/',
+      name: t('Service Hook Details'),
+      component: make(
+        () => import('sentry/views/settings/project/projectServiceHookDetails')
+      ),
     },
   ];
   const projectSettingsRoutes: SentryRouteObject = {
