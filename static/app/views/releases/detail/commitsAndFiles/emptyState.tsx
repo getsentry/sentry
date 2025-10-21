@@ -26,7 +26,7 @@ export function EmptyState({children}: Props) {
 export function NoReleaseRepos() {
   return (
     <Body>
-      <Main fullWidth>
+      <Main width="full">
         <Panel dashedBorder>
           <EmptyMessage
             icon={<IconCommit size="xl" />}
@@ -42,7 +42,7 @@ export function NoReleaseRepos() {
 export function NoRepositories({orgSlug}: {orgSlug: string}) {
   return (
     <Body>
-      <Main fullWidth>
+      <Main width="full">
         <Panel dashedBorder>
           <EmptyMessage
             icon={<IconCommit size="xl" />}

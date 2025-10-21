@@ -129,7 +129,7 @@ function TransactionEvents() {
       {({isLoading, tableData}) => {
         if (isLoading) {
           return (
-            <Layout.Main fullWidth>
+            <Layout.Main width="full">
               <LoadingIndicator />
             </Layout.Main>
           );

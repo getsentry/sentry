@@ -189,7 +189,7 @@ function EventsContent(props: Props) {
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <Search {...props} eventView={eventView} />
       {table}
     </Layout.Main>

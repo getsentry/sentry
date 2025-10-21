@@ -69,7 +69,7 @@ function WebVitalsLandingPage() {
     <React.Fragment>
       <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <TopMenuContainer>
               <ModulePageFilterBar
                 moduleName={ModuleName.VITAL}

@@ -44,7 +44,7 @@ function GroupEventAttachmentsContainer() {
       )}
     >
       <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <GroupEventAttachments project={group.project} group={group} />
         </Layout.Main>
       </StyledLayoutBody>

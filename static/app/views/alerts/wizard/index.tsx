@@ -170,7 +170,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
         </StyledHeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <WizardBody>
             <WizardOptions>
               {getAlertWizardCategories(organization).map(

@@ -53,7 +53,7 @@ function TagsPageContent() {
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <SegmentExplorerQuery
         eventView={eventView}
         orgSlug={organization.slug}
