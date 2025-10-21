@@ -667,6 +667,24 @@ def get_exportable_sentry_models() -> set[type[models.base.Model]]:
     )
 
 
+def dedupe_and_reassign_groupseen_in_org(
+    organization_id: int, from_user_id: int, to_user_id: int
+) -> None:
+    """
+    Dedupe GroupSeen rows inside an organization and reassign them to the new user.
+    """
+    from sentry.models.groupseen import GroupSeen
+
+    scoped = Q(group__project__organization_id=organization_id)
+    # Remove from_user rows that would collide with to_user for the same group
+    GroupSeen.objects.filter(
+        scoped,
+        user_id=from_user_id,
+        group_id__in=GroupSeen.objects.filter(scoped, user_id=to_user_id).values("group_id"),
+    ).delete()
+    GroupSeen.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
+
+
 def merge_users_for_model_in_org(
     model: type[models.base.Model], *, organization_id: int, from_user_id: int, to_user_id: int
 ) -> None:
@@ -679,17 +697,10 @@ def merge_users_for_model_in_org(
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
 
-    # Special-case: GroupSeen has unique_together (user_id, group). Safely dedupe conflicts inside org
-    # then update remaining rows. Scope via group->project->organization.
+    # Special-case: GroupSeen has unique_together (user_id, group). Dedupe conflicts inside org
+    # then update remaining rows.
     if model is GroupSeen:
-        scoped = Q(group__project__organization_id=organization_id)
-        # Remove from_user rows that would collide with to_user for the same group
-        GroupSeen.objects.filter(
-            scoped,
-            user_id=from_user_id,
-            group_id__in=GroupSeen.objects.filter(scoped, user_id=to_user_id).values("group_id"),
-        ).delete()
-        GroupSeen.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
+        dedupe_and_reassign_groupseen_in_org(organization_id, from_user_id, to_user_id)
         return
 
     model_relations = dependencies()[get_model_name(model)]
