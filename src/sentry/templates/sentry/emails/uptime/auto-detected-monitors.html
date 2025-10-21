@@ -1,0 +1,40 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block head %}
+  {{ block.super }}
+  <style>
+    img.hero {margin-bottom: 15px; width: 100%;}
+  </style>
+{% endblock %}
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    <div class="header-buttons">
+      <a href="{{ monitor_detail_url }}" class="btn view-on-sentry">View on Sentry</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block main %}
+  <h3>We've Created a Free Uptime Monitor for Your Project</h3>
+  <p>
+    We noticed that <strong>{{ monitor_url_display }}</strong> appears frequently in your project's errors, so we created an uptime monitor to help keep an eye on it.
+  </p>
+  <p>
+    <a href="{{ monitor_detail_url }}">{{ monitor_url_display }}</a> | <strong>{{ project_slug }}</strong>
+    <br /> Created on {{ date_created|date:"N j, Y, g:i:s a e" }}
+  </p>
+  <p>
+    This monitor will check your URL every minute and alert you if it goes down. It's <strong>completely free</strong>, and you can <a href="{{ monitor_detail_url }}">customize it</a> to adjust the check frequency, HTTP method, headers, or request body.
+  </p>
+  <p class="info-box">
+    Not interested? You can <a href="{{ monitor_detail_url }}">remove this monitor</a> anytime, and we won't create it again.
+  </p>
+{% endblock %}
+
+{% block footer %}{% endblock %}
