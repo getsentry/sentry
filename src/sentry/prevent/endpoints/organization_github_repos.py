@@ -2,7 +2,6 @@ import logging
 from collections import defaultdict
 
 import orjson
-import requests
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,9 +15,17 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
+
+PREVENT_AI_CONNECTION_POOL = connection_from_url(
+    settings.SEER_PREVENT_AI_URL,
+    maxsize=3,
+)
+
+SEER_PREVENT_AI_TIMEOUT = 30
 
 
 @region_silo_endpoint
@@ -48,15 +55,19 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            connection_pool=PREVENT_AI_CONNECTION_POOL,
+            path=path,
+            body=body,
+            timeout=SEER_PREVENT_AI_TIMEOUT,
         )
-        response.raise_for_status()
+
+        if response.status >= 400:
+            logger.warning(
+                "Failed to fetch integrated repos from Seer",
+                extra={"status": response.status, "organization_names": organization_names},
+            )
+            return {}
 
         return response.json().get("integrated_repos", {})
 
@@ -105,25 +116,27 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
         for github_org_name, integration in integration_map.items():
             installed_repos = repos_by_integration.get(github_org_name, [])
 
-            sentry_repo_names = {repo.name.split("/")[-1] for repo in installed_repos}
+            sentry_repos = {repo.name.split("/")[-1]: repo for repo in installed_repos}
+            sentry_repo_names = set(sentry_repos.keys())
             seer_repo_names = set(seer_integrated_repos.get(github_org_name, []))
 
             repos = []
-            for repo_name in sentry_repo_names | seer_repo_names:
+            for repo_name in sentry_repo_names & seer_repo_names:
                 repos.append(
                     {
+                        "id": sentry_repos[repo_name].external_id,
                         "name": repo_name,
                         "fullName": f"{github_org_name}/{repo_name}",
-                        "hasGhAppSentryIo": repo_name in sentry_repo_names,
-                        "hasGhAppSeerBySentry": repo_name in seer_repo_names,
                     }
                 )
 
-            github_org_data = {
-                "githubOrganizationId": integration.metadata.get("account_id"),
-                "name": integration.name,
-                "repos": repos,
-            }
-            org_repos.append(github_org_data)
+            if repos:
+                account_id = integration.metadata.get("account_id")
+                github_org_data = {
+                    "githubOrganizationId": str(account_id) if account_id is not None else None,
+                    "name": integration.name,
+                    "repos": repos,
+                }
+                org_repos.append(github_org_data)
 
         return Response(data={"orgRepos": org_repos})

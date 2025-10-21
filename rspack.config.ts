@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout from '@r4ai/remark-callout';
+import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -213,6 +213,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
+              experimental_rewrite_emotion_styled: process.env.NODE_ENV === 'development',
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -318,7 +319,22 @@ const appConfig: Configuration = {
                 remarkFrontmatter,
                 remarkMdxFrontmatter,
                 remarkGfm,
-                remarkCallout,
+                [
+                  remarkCallout,
+                  {
+                    root: (callout: Callout) => {
+                      return {
+                        tagName: 'Callout',
+                        properties: {
+                          title: callout.title,
+                          type: callout.type.toLowerCase(),
+                          isFoldable: callout.isFoldable ?? false,
+                          defaultFolded: callout.defaultFolded ?? false,
+                        },
+                      };
+                    },
+                  },
+                ],
               ],
               rehypePlugins: [
                 [
@@ -491,7 +507,7 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      ui: path.join(staticPrefix, 'app', 'components', 'core'),
+      '@sentry/scraps': path.join(staticPrefix, 'app', 'components', 'core'),
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),

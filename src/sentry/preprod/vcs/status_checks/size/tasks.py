@@ -127,7 +127,10 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     if check_id is None:
         logger.error(
             "preprod.status_checks.create.failed",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "organization_id": preprod_artifact.project.organization_id,
+            },
         )
         return
 
@@ -137,6 +140,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             "artifact_id": preprod_artifact.id,
             "status": status.value,
             "check_id": check_id,
+            "organization_id": preprod_artifact.project.organization_id,
         },
     )
 
@@ -266,7 +270,7 @@ class _StatusCheckProvider(ABC):
         self.organization_id = organization_id
         self.integration_id = integration_id
 
-    def _create_scm_interaction_event(self):
+    def _create_scm_interaction_event(self) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.CREATE_STATUS_CHECK,
             provider_key=self.provider_key,

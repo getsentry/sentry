@@ -1,11 +1,12 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -91,7 +92,6 @@ export const platformProductAvailability = {
   'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-uwp': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
@@ -381,10 +381,10 @@ function Product({
       title={
         disabled?.reason ??
         (description && (
-          <TooltipDescription>
+          <Stack gap="xs" justify="start">
             {description}
             {docLink && <ExternalLink href={docLink}>{t('Read the Docs')}</ExternalLink>}
-          </TooltipDescription>
+          </Stack>
         ))
       }
       delay={500}
@@ -450,7 +450,10 @@ export function ProductSelection({
   onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
-  const urlProducts = useMemo(() => params.product ?? [], [params.product]);
+  const urlProducts = useMemo(
+    () => (params.product ?? []) as ProductSolution[],
+    [params.product]
+  );
 
   const products: ProductSolution[] | undefined = platform
     ? platformProductAvailability[platform]
@@ -461,16 +464,14 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  const safeDependencies = useRef({onLoad, urlProducts});
-
-  useEffect(() => {
-    safeDependencies.current = {onLoad, urlProducts};
+  // Use useEffectEvent to pass urlProducts without adding it as a dependency
+  const initializeProducts = useEffectEvent(() => {
+    onLoad?.(urlProducts);
   });
 
+  // Call onLoad once on mount
   useEffect(() => {
-    safeDependencies.current.onLoad?.(
-      safeDependencies.current.urlProducts as ProductSolution[]
-    );
+    initializeProducts();
   }, []);
 
   const handleClickProduct = useCallback(
@@ -479,7 +480,7 @@ export function ProductSelection({
         urlProducts.includes(product)
           ? urlProducts.filter(p => p !== product)
           : [...urlProducts, product]
-      ) as Set<ProductSolution>;
+      );
 
       if (products?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, tracing is also enabled
@@ -499,7 +500,7 @@ export function ProductSelection({
       const selectedProducts = Array.from(newProduct);
 
       onChange?.({
-        previousProducts: urlProducts as ProductSolution[],
+        previousProducts: urlProducts,
         products: selectedProducts,
       });
       setParams({product: selectedProducts});
@@ -513,7 +514,7 @@ export function ProductSelection({
   }
 
   return (
-    <Products>
+    <Flex wrap="wrap" gap="md">
       <Product
         label={t('Error Monitoring')}
         disabled={{reason: t("Let's admit it, we all have errors.")}}
@@ -570,7 +571,7 @@ export function ProductSelection({
           checked={urlProducts.includes(ProductSolution.PROFILING)}
         />
       )}
-    </Products>
+    </Flex>
   );
 }
 
@@ -593,22 +594,9 @@ const ProductButton = withChonk(
   Button
 );
 
-const Products = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
 const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-`;
-
-const TooltipDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  justify-content: flex-start;
 `;

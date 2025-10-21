@@ -5,9 +5,10 @@ import {Heading, Text} from 'sentry/components/core/text';
 
 interface SubscriptionHeaderCardProps {
   sections: React.ReactNode[];
-  title: React.ReactNode;
+  isHighlighted?: boolean;
   isMainCard?: boolean;
   subtitle?: React.ReactNode;
+  title?: React.ReactNode;
 }
 
 function SubscriptionHeaderCard({
@@ -15,24 +16,27 @@ function SubscriptionHeaderCard({
   sections,
   isMainCard = false,
   subtitle,
+  isHighlighted = false,
 }: SubscriptionHeaderCardProps) {
   return (
     <Flex
       direction="column"
       padding="xl"
       background={isMainCard ? 'secondary' : 'primary'}
-      border="primary"
+      border={isHighlighted ? 'accent' : 'primary'}
       radius="md"
       gap="lg"
     >
-      <Flex align="center" gap="sm">
-        <Heading as="h2" size="lg">
-          {title}
-        </Heading>
-      </Flex>
+      {title && (
+        <Flex align="center" gap="sm">
+          <Heading as="h2" size="lg">
+            {title}
+          </Heading>
+        </Flex>
+      )}
 
       {subtitle && <Text variant="muted">{subtitle}</Text>}
-      <Flex direction="column" gap="lg" align="start">
+      <Flex direction="column" gap="lg" align="start" height="100%">
         {sections.map((section, index) => {
           return <Fragment key={index}>{section}</Fragment>;
         })}

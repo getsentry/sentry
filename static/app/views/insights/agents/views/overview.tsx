@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -13,10 +14,10 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -24,6 +25,11 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {ConversationsTable} from 'sentry/views/insights/agents/components/conversationsTable';
+import {
+  ConversationsTableSwitch,
+  useConversationsTableSwitch,
+} from 'sentry/views/insights/agents/components/conversationsTableSwitch';
 import {IssuesWidget} from 'sentry/views/insights/agents/components/issuesWidget';
 import LLMGenerationsWidget from 'sentry/views/insights/agents/components/llmCallsWidget';
 import TokenCostWidget from 'sentry/views/insights/agents/components/modelCostWidget';
@@ -39,6 +45,7 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
@@ -52,8 +59,6 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<TableType>;
@@ -76,8 +81,10 @@ function AgentsOverviewPage() {
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
   useDefaultToAllProjects();
+  const location = useLocation();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
+  useRemoveUrlCursorsOnSearch();
 
   useEffect(() => {
     trackAnalytics('agent-monitoring.page-view', {
@@ -155,12 +162,13 @@ function AgentsOverviewPage() {
     ? undefined
     : agentRunsRequest.data?.length > 0;
 
+  const resetParamsOnChange = useMemo(
+    () => Object.keys(location.query).filter(key => key.toLowerCase().includes('cursor')),
+    [location.query]
+  );
+
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <AgentsPageHeader
-        module={ModuleName.AGENTS}
-        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
-      />
       <ModuleFeature moduleName={ModuleName.AGENTS}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -168,9 +176,14 @@ function AgentsOverviewPage() {
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <InsightsProjectSelector />
-                    <InsightsEnvironmentSelector />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <InsightsProjectSelector resetParamsOnChange={resetParamsOnChange} />
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={resetParamsOnChange}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={resetParamsOnChange}
+                    />
                   </PageFilterBar>
                   {!showOnboarding && (
                     <QueryBuilderWrapper>
@@ -239,6 +252,8 @@ function AgentsOverviewPage() {
 }
 
 function TracesView() {
+  const {value: conversationTable} = useConversationsTableSwitch();
+
   return (
     <Fragment>
       <WidgetGrid rowHeight={260}>
@@ -252,7 +267,10 @@ function TracesView() {
           <ToolUsageWidget />
         </WidgetGrid.Position3>
       </WidgetGrid>
-      <TracesTable />
+      <Flex justify="end" paddingBottom="xl">
+        <ConversationsTableSwitch />
+      </Flex>
+      {conversationTable ? <ConversationsTable /> : <TracesTable />}
     </Fragment>
   );
 }
@@ -307,26 +325,19 @@ function PageWithProviders() {
 
 function LoadingPanel() {
   return (
-    <LoadingPlaceholder>
+    <Stack
+      position="relative"
+      justify="center"
+      gap="md"
+      height="100%"
+      border="primary"
+      radius="md"
+    >
       <LoadingMask visible />
       <LoadingIndicator size={24} />
-    </LoadingPlaceholder>
+    </Stack>
   );
 }
-
-const LoadingPlaceholder = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  height: 100%;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-
-  padding-top: 32px;
-`;
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};

@@ -31,6 +31,10 @@ import {
 import {
   displayBudgetName,
   formatReservedWithUnits,
+  getCreditApplied,
+  getCredits,
+  getFees,
+  getOnDemandItems,
   getPlanIcon,
   getProductIcon,
   getReservedBudgetCategoryForAddOn,
@@ -233,9 +237,18 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                         title={t('This product is only available with a PAYG budget.')}
                       >
                         <Tag icon={<IconLock locked size="xs" />}>
-                          {isChonk ? (
+                          {isChonk || activePlan.budgetTerm === 'pay-as-you-go' ? (
                             tct('Unlock with [budgetTerm]', {
-                              budgetTerm: displayBudgetName(activePlan, {title: true}),
+                              budgetTerm: displayBudgetName(
+                                activePlan,
+                                activePlan.budgetTerm === 'pay-as-you-go'
+                                  ? {
+                                      abbreviated: true,
+                                    }
+                                  : {
+                                      title: true,
+                                    }
+                              ),
                             })
                           ) : (
                             // "Unlock with on-demand" gets cut off in non-chonk theme
@@ -522,9 +535,10 @@ function TotalSummary({
     return subtext;
   };
 
-  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
-  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
-  const creditApplied = utils.getCreditApplied({
+  const fees = getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const onDemandItems = getOnDemandItems({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = getCreditApplied({
     creditApplied: previewData?.creditApplied ?? 0,
     invoiceItems: previewData?.invoiceItems ?? [],
   });
@@ -554,6 +568,19 @@ function TotalSummary({
                     </Item>
                   );
                 })}
+                {onDemandItems.length > 0 && (
+                  <Item data-test-id="summary-item-ondemand-total">
+                    <ItemWithPrice
+                      item={tct('[budgetTerm] usage', {
+                        budgetTerm: displayBudgetName(activePlan, {title: true}),
+                      })}
+                      price={utils.displayPrice({
+                        cents: onDemandItems.reduce((sum, item) => sum + item.amount, 0),
+                      })}
+                      shouldBoldItem={false}
+                    />
+                  </Item>
+                )}
                 {!!creditApplied && (
                   <Item data-test-id="summary-item-credit_applied">
                     <ItemWithPrice

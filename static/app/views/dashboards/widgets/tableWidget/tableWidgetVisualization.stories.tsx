@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -67,11 +67,11 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <code>TabularData</code>. This is a mandatory prop. If the <code>data</code>{' '}
           field is empty, such as
         </p>
-        <CodeSnippet language="json">
+        <CodeBlock language="json">
           {`
 ${JSON.stringify(tableWithEmptyData)}
           `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>Then the table renders empty like this:</p>
         <TableWidgetVisualization tableData={tableWithEmptyData} />
         <p>
@@ -85,11 +85,11 @@ ${JSON.stringify(tableWithEmptyData)}
           tableData={sampleHTTPRequestTableData}
           columns={customColumns}
         />
-        <CodeSnippet language="json">
+        <CodeBlock language="json">
           {`
 ${JSON.stringify(customColumns)}
           `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>
           To pass custom names for a column header, provide the prop <code>aliases</code>{' '}
           which maps column key to the alias. In some cases you may have both field
@@ -105,11 +105,11 @@ ${JSON.stringify(customColumns)}
           tableData={sampleHTTPRequestTableData}
           aliases={aliases}
         />
-        <CodeSnippet language="json">
+        <CodeBlock language="json">
           {`
 ${JSON.stringify(aliases)}
           `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -149,7 +149,7 @@ ${JSON.stringify(aliases)}
           <code>columns</code> prop with the field <code>sortable</code> set to true.
           e.g.,
         </p>
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 columns={[{
   key: 'count(span.duration)',
@@ -163,7 +163,7 @@ columns={[{
   type: 'string',
 }]}
           `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>
           This table <b>does not</b> sort entries. Almost all tables in Sentry rely on the{' '}
           <code>sort</code> URL query parameter as a reference for sorting, which is why
@@ -229,7 +229,7 @@ columns={[{
           sort={sort}
           onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
         />
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 const [data, setData] = useState<TabularData>(...);
 const [sort, setSort] = useState<Sort>();
@@ -253,7 +253,7 @@ function onChangeSort(newSort: Sort) {
   setData({data: sortedData, meta: data.meta});
 }
         `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -373,7 +373,7 @@ function onChangeSort(newSort: Sort) {
             }
           }}
         />
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 const [filter, setFilter] = useState<Array<string | number>>([]);
 
@@ -390,7 +390,7 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
   }
 }
         `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -439,7 +439,7 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
           tableData={sampleHTTPRequestTableData}
           getRenderer={getRenderer}
         />
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 function getRenderer(fieldName: string) {
   if (fieldName === 'http.request_method') {
@@ -455,7 +455,7 @@ function getRenderer(fieldName: string) {
   );
 }
           `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });

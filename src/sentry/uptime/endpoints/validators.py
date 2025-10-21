@@ -14,7 +14,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionDataSourceHandler,
     get_audit_log_data,
@@ -453,7 +452,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
                 interval_seconds=validated_data["interval_seconds"],
                 timeout_ms=validated_data["timeout_ms"],
                 trace_sampling=validated_data.get("trace_sampling", False),
-                uptime_status=UptimeStatus.OK,
                 method=validated_data.get("method", "GET"),
                 headers=validated_data.get("headers", None),
                 body=validated_data.get("body", None),
@@ -468,10 +466,15 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         super().update(instance, validated_data)
 
+        data_source = None
         if "data_source" in validated_data:
             data_source = validated_data.pop("data_source")
-            if data_source:
-                self.update_data_source(instance, data_source)
+        elif "data_sources" in validated_data:
+            data_source = validated_data.pop("data_sources")[0]
+
+        if data_source is not None:
+            self.update_data_source(instance, data_source)
+
         return instance
 
     def update_data_source(self, instance: Detector, data_source: dict[str, Any]):

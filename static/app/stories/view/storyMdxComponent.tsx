@@ -1,6 +1,10 @@
-import type {HTMLProps} from 'react';
+import type {HTMLProps, PropsWithChildren} from 'react';
+import React from 'react';
+import {type Callout as CalloutProps} from '@r4ai/remark-callout';
 
-import {InlineCode} from 'sentry/components/core/inlineCode';
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+
+import {InlineCode} from 'sentry/components/core/code';
 import {Stack} from 'sentry/components/core/layout';
 import type {TextProps} from 'sentry/components/core/text/text';
 import {Text} from 'sentry/components/core/text/text';
@@ -9,6 +13,14 @@ import {StoryHeading} from './storyHeading';
 
 type HeadingProps = {
   children: React.ReactNode;
+};
+
+const calloutToAlertType: Record<string, AlertProps['type']> = {
+  tip: 'muted',
+  note: 'info',
+  important: 'success',
+  warning: 'warning',
+  caution: 'error',
 };
 
 // Heading levels shifted N+1 for proper semantics on /stories pages
@@ -20,6 +32,29 @@ export const storyMdxComponents = {
   h5: (props: HeadingProps) => <StoryHeading as="h6" size="sm" {...props} />,
   h6: (props: HeadingProps) => <StoryHeading as="h6" size="xs" {...props} />,
   code: (props: HTMLProps<HTMLElement>) => <InlineCode {...props} />,
+  Callout: (props: PropsWithChildren<CalloutProps>) => {
+    const children = React.Children.toArray(props.children).filter(value => {
+      if (React.isValidElement(value)) {
+        if (value.props && typeof value.props === 'object') {
+          // data-callout-title child added by @r4ai/remark-callout
+          // but we want to style `props.title` differently
+          return !('data-callout-title' in value.props);
+        }
+      }
+      return true;
+    });
+    const expand = props.isFoldable ? children : undefined;
+    return (
+      <Alert
+        type={calloutToAlertType[props.type.toLowerCase()] ?? 'muted'}
+        expand={expand}
+        defaultExpanded={!props.defaultFolded}
+      >
+        <strong>{props.title}</strong>
+        {props.isFoldable ? null : children}
+      </Alert>
+    );
+  },
   p: (props: TextProps<'p'>) => (
     <Text as="p" size="md" density="comfortable" {...props} />
   ),

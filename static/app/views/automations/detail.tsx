@@ -24,6 +24,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {getUtcDateString} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -43,11 +44,13 @@ import {
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 const AUTOMATION_DETECTORS_LIMIT = 10;
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -81,7 +84,10 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               crumbs={[
                 {
                   label: t('Automations'),
-                  to: makeAutomationBasePathname(organization.slug),
+                  to: makeAutomationBasePathname(
+                    organization.slug,
+                    automationsLinkPrefix
+                  ),
                 },
                 {label: automation.name},
               ]}
@@ -116,9 +122,9 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                     automationId={automation.id}
                     query={{
                       ...(period && {statsPeriod: period}),
-                      start,
-                      end,
-                      utc,
+                      start: start ? getUtcDateString(start) : undefined,
+                      end: end ? getUtcDateString(end) : undefined,
+                      utc: utc ? 'true' : undefined,
                     }}
                   />
                 </ErrorBoundary>
@@ -226,6 +232,7 @@ export default function AutomationDetail() {
 
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -253,7 +260,11 @@ function Actions({automation}: {automation: Automation}) {
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
-        to={makeAutomationEditPathname(organization.slug, automation.id)}
+        to={makeAutomationEditPathname(
+          organization.slug,
+          automation.id,
+          automationsLinkPrefix
+        )}
         priority="primary"
         icon={<IconEdit />}
         size="sm"

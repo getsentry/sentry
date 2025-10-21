@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from rest_framework import status
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
@@ -29,10 +28,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.login_as(user=self.user)
 
         self.detector = self.create_detector()
-        self.group = self.create_group(priority=PriorityLevel.LOW)
-        # Metric issue is the only type (currently) that has open periods
-        self.group.type = MetricIssue.type_id
-        self.group.save()
+        self.group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.LOW)
 
         # Link detector to group
         DetectorGroup.objects.create(detector=self.detector, group=self.group)
@@ -52,12 +48,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def test_no_group_link(self) -> None:
         # Create a new detector with no linked group
         detector = self.create_detector()
-        resp = self.get_error_response(
+        resp = self.get_success_response(
             self.organization.slug,
             qs_params={"detectorId": detector.id},
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=200,
         )
-        assert resp.data["detail"] == "Group not found. Could not query open periods."
+        assert resp.data == []
 
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(

@@ -1241,7 +1241,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "project": self.project.id,
                 "dataset": "spans",
                 "statsPeriod": "1h",
-                "caseInsensitive": True,
+                "caseInsensitive": 1,
             }
         )
         assert response.status_code == 200, response.content
@@ -1308,7 +1308,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "project": self.project.id,
                 "dataset": "spans",
                 "statsPeriod": "1h",
-                "caseInsensitive": True,
+                "caseInsensitive": 1,
             }
         )
         assert response.status_code == 200, response.content
@@ -1323,6 +1323,75 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
             {
                 "span.description": "foooooo",
+                "count()": 1.0,
+            },
+        ]
+
+    def test_case_sensitivity_with_wildcards(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "FoOoOoO"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "FooOOoo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foooooo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "boooooo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "orderby": ["span.description"],
+                "query": "span.description:Foo*",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+                "caseInsensitive": 1,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "FoOoOoO",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "FooOOoo",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "foooooo",
+                "count()": 1.0,
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "orderby": ["span.description"],
+                "query": "!span.description:Foo*",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+                "caseInsensitive": 1,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "boooooo",
                 "count()": 1.0,
             },
         ]
@@ -5921,6 +5990,73 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
         assert meta["fields"]["count_if(span.status,equals,success)"] == "integer"
         assert meta["units"]["count_if(span.status,equals,success)"] is None
+
+    def test_count_if_span_status_equation_quoted(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": ""},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        equation = 'equation|count_if(span.status,equals,"success")'
+        response = self.do_request(
+            {
+                "field": [equation],
+                "query": "",
+                "orderby": equation,
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                equation: 1.0,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+        assert meta["fields"][equation] == "integer"
+        assert meta["units"][equation] is None
+
+        equation = 'equation|count_if(span.status,equals,"")'
+        response = self.do_request(
+            {
+                "field": [equation],
+                "query": "",
+                "orderby": equation,
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                equation: 1.0,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+        assert meta["fields"][equation] == "integer"
+        assert meta["units"][equation] is None
 
     def test_count_if_numeric(self) -> None:
         self.store_spans(

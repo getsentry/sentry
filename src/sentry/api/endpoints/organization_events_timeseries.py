@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -12,6 +12,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
+from sentry.api.endpoints.timeseries import (
+    EMPTY_STATS_RESPONSE,
+    Row,
+    SeriesMeta,
+    StatsMeta,
+    StatsResponse,
+    TimeSeries,
+)
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
@@ -46,49 +54,6 @@ TOP_EVENTS_DATASETS = {
 # Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
 INGESTION_DELAY = 90
 INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
-
-
-class StatsMeta(TypedDict):
-    dataset: str
-    start: float
-    end: float
-
-
-class Row(TypedDict):
-    timestamp: float
-    value: float
-    incomplete: bool
-    comparisonValue: NotRequired[float]
-    sampleCount: NotRequired[float]
-    sampleRate: NotRequired[float | None]
-    confidence: NotRequired[Literal["low", "high"] | None]
-    incompleteReason: NotRequired[str]
-
-
-class SeriesMeta(TypedDict):
-    order: NotRequired[int]
-    isOther: NotRequired[str]
-    valueUnit: str | None
-    dataScanned: NotRequired[Literal["partial", "full"]]
-    valueType: str
-    interval: float
-
-
-class GroupBy(TypedDict):
-    key: str
-    value: str
-
-
-class TimeSeries(TypedDict):
-    values: list[Row]
-    yAxis: str
-    groupBy: NotRequired[list[GroupBy]]
-    meta: SeriesMeta
-
-
-class StatsResponse(TypedDict):
-    meta: StatsMeta
-    timeSeries: list[TimeSeries]
 
 
 def null_zero(value: float) -> float | None:
@@ -181,7 +146,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     organization,
                 )
             except NoProjects:
-                return Response([], status=200)
+                return Response(EMPTY_STATS_RESPONSE, status=200)
 
         with handle_query_errors():
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)

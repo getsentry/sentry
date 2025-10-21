@@ -16,13 +16,13 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
       {
         name: '',
         conditions: '',
-        fields: ['session.status', 'sum(session)'],
-        aggregates: ['sum(session)'],
-        columns: ['session.status'],
+        fields: ['unhealthy_rate(session)', 'sum(session)'],
+        aggregates: ['unhealthy_rate(session)', 'sum(session)'],
+        columns: [],
         orderby: '',
       },
     ],
-    layout: {x: 0, y: 0, w: 3, h: 2, minH: 2},
+    layout: {x: 0, y: 0, w: 3, h: 3, minH: 2},
   },
   {
     id: 'user-health',
@@ -34,31 +34,51 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
       {
         name: '',
         conditions: '',
-        fields: ['session.status', 'count_unique(user)'],
-        aggregates: ['count_unique(user)'],
-        columns: ['session.status'],
+        fields: [
+          'abnormal_rate(user)',
+          'crash_rate(user)',
+          'errored_rate(user)',
+          'unhandled_rate(user)',
+        ],
+        aggregates: [
+          'abnormal_rate(user)',
+          'crash_rate(user)',
+          'errored_rate(user)',
+          'unhandled_rate(user)',
+        ],
+        columns: [],
         orderby: '',
       },
     ],
-    layout: {x: 3, y: 0, w: 3, h: 2, minH: 2},
+    layout: {x: 3, y: 0, w: 3, h: 3, minH: 2},
   },
   {
     id: 'session-health',
     title: t('Session Health'),
-    displayType: DisplayType.LINE,
+    displayType: DisplayType.AREA,
     widgetType: WidgetType.RELEASE,
     interval: '',
     queries: [
       {
         name: '',
         conditions: '',
-        fields: ['session.status', 'sum(session)'],
-        aggregates: ['sum(session)'],
-        columns: ['session.status'],
+        fields: [
+          'abnormal_rate(session)',
+          'crash_rate(session)',
+          'errored_rate(session)',
+          'unhandled_rate(session)',
+        ],
+        aggregates: [
+          'abnormal_rate(session)',
+          'crash_rate(session)',
+          'errored_rate(session)',
+          'unhandled_rate(session)',
+        ],
+        columns: [],
         orderby: '',
       },
     ],
-    layout: {x: 0, y: 2, w: 2, h: 2, minH: 2},
+    layout: {x: 0, y: 3, w: 2, h: 3, minH: 2},
   },
   {
     id: 'session-counts',
@@ -76,14 +96,14 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
         orderby: '',
       },
     ],
-    layout: {x: 2, y: 2, w: 2, h: 2, minH: 2},
+    layout: {x: 2, y: 3, w: 2, h: 3, minH: 2},
   },
   {
     id: 'user-counts',
     title: t('User Counts'),
     displayType: DisplayType.LINE,
     widgetType: WidgetType.RELEASE,
-    interval: '',
+    interval: '4h',
     queries: [
       {
         name: '',
@@ -94,7 +114,7 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
         orderby: '',
       },
     ],
-    layout: {x: 4, y: 2, w: 2, h: 2, minH: 2},
+    layout: {x: 4, y: 3, w: 2, h: 3, minH: 2},
   },
 ];
 
@@ -126,7 +146,7 @@ export function PlatformizedSessionsOverview() {
       router={router}
       routes={[]}
       dashboards={[]}
-      initialState={DashboardState.VIEW}
+      initialState={DashboardState.EMBEDDED}
     />
   );
 }

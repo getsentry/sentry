@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Prose} from 'sentry/components/core/text';
@@ -32,6 +32,7 @@ const knownSpanOrigins = {
     'auto.ai.langgraph',
     'auto.ai.anthropic',
     'auto.ai.litellm',
+    'auto.ai.google_genai',
   ],
   javascript: ['auto.ai.anthropic', 'auto.ai.openai', 'auto.vercelai.otel'],
 } as const;
@@ -136,6 +137,8 @@ const pythonIntegrationLinks: Record<PythonSpanOrigin, string> = {
   'auto.ai.langgraph': 'https://docs.sentry.io/platforms/python/integrations/langgraph/',
   'auto.ai.anthropic': 'https://docs.sentry.io/platforms/python/integrations/anthropic/',
   'auto.ai.litellm': 'https://docs.sentry.io/platforms/python/integrations/litellm/',
+  'auto.ai.google_genai':
+    'https://docs.sentry.io/platforms/python/integrations/google-genai/',
 };
 
 function PythonContent({
@@ -159,12 +162,12 @@ function PythonContent({
           }
         )}
       </Prose>
-      <CodeSnippet dark language="python" linesToHighlight={[3]} css={codeSnippetStyles}>
+      <CodeBlock dark language="python" linesToHighlight={[3]} css={codeSnippetStyles}>
         {`sentry_sdk.init(
   # ...
   send_default_pii=True,
 );`}
-      </CodeSnippet>
+      </CodeBlock>
       <Prose>
         {tct('For more details, see the [link:integration docs].', {
           link: <ExternalLink href={integrationLink} />,
@@ -210,7 +213,7 @@ function JavaScriptContent({
           }
         )}
       </Prose>
-      <CodeSnippet
+      <CodeBlock
         dark
         language="javascript"
         linesToHighlight={[5, 6]}
@@ -225,7 +228,7 @@ function JavaScriptContent({
     }),
   ],
 });`}
-      </CodeSnippet>
+      </CodeBlock>
       <Prose>
         {tct('For more details, see the [link:integration docs].', {
           link: (

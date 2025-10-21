@@ -13,6 +13,7 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
 from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_DISALLOWED_BY_ROBOTS,
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUS_SUCCESS,
@@ -30,19 +31,19 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.uptime.autodetect.ranking import _get_cluster
+from sentry.uptime.autodetect.result_handler import (
+    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
+    ONBOARDING_MONITOR_PERIOD,
+    build_onboarding_failure_key,
+)
+from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import (
     UptimeResultsStrategyFactory,
     build_last_seen_interval_key,
     build_last_update_key,
 )
-from sentry.uptime.detectors.ranking import _get_cluster
-from sentry.uptime.detectors.result_handler import (
-    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
-    ONBOARDING_MONITOR_PERIOD,
-    build_onboarding_failure_key,
-)
-from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
@@ -100,15 +101,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             consumer.submit(message)
 
     def test(self) -> None:
-        features = [
-            "organizations:uptime",
-            "organizations:uptime-create-issues",
-        ]
-
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
         with (
-            self.feature(features),
+            self.feature("organizations:uptime"),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
         ):
             # First processed result does NOT create an occurrence since we
@@ -172,7 +168,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert detector_state.is_triggered
 
         # Issue is resolved
-        with (self.feature(features),):
+        with self.feature("organizations:uptime"):
             # First processed result does NOT resolve since we have not yet met
             # the recovery threshold
             self.send_result(
@@ -201,7 +197,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_does_nothing_when_missing_detector(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         self.detector.delete()
 
@@ -221,12 +216,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert not logger.exception.called
             mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
-    def test_no_create_issues_feature(self) -> None:
+    def test_no_create_issues_option(self) -> None:
         self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
         self.detector.save()
         result = self.create_uptime_result(self.subscription.subscription_id)
         with (
-            self.feature(["organizations:uptime"]),
+            self.options({"uptime.create-issues": False}),
+            self.feature("organizations:uptime"),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
         ):
             self.send_result(result)
@@ -259,7 +255,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_no_subscription(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         subscription_id = uuid.uuid4().hex
         result = self.create_uptime_result(subscription_id, uptime_region="default")
@@ -323,7 +318,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature("organizations:uptime"),
         ):
             self.send_result(result)
             logger.info.assert_any_call(
@@ -350,7 +345,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature("organizations:uptime"),
         ):
             self.send_result(result)
             logger.info.assert_any_call(
@@ -364,7 +359,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         result["actual_check_time_ms"] = result["scheduled_check_time_ms"]
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature("organizations:uptime"),
         ):
             self.send_result(result)
             logger.info.assert_any_call(
@@ -392,7 +387,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature("organizations:uptime"),
         ):
             self.send_result(result)
 
@@ -417,7 +412,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_skip_already_processed(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         result = self.create_uptime_result(self.subscription.subscription_id)
         _get_cluster().set(
@@ -463,7 +457,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_skip_shadow_region(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         region_name = "shadow"
         self.create_uptime_subscription_region(
@@ -501,7 +494,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_missed(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         result = self.create_uptime_result(
             self.subscription.subscription_id, status=CHECKSTATUS_MISSED_WINDOW
@@ -532,10 +524,34 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_onboarding_failure(self) -> None:
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
+    def test_disallowed(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
+        ]
+        result = self.create_uptime_result(
+            self.subscription.subscription_id, status=CHECKSTATUS_DISALLOWED_BY_ROBOTS
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature(features),
+        ):
+            assert self.detector.enabled
+
+            self.send_result(result)
+
+            logger.info.assert_any_call(
+                "disallowed_by_robots",
+                extra={**result},
+            )
+
+            self.detector.refresh_from_db()
+            assert not self.detector.enabled
+
+    def test_onboarding_failure(self) -> None:
+        features = [
+            "organizations:uptime",
         ]
         # Update detector mode configuration
         self.detector.update(
@@ -588,9 +604,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
             mock.patch(
-                "sentry.uptime.detectors.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
+                "sentry.uptime.autodetect.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
             self.feature(features),
@@ -652,7 +668,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_onboarding_success_ongoing(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         self.detector.update(
             config={
@@ -700,7 +715,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_onboarding_success_graduate(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         self.detector.update(
             config={
@@ -721,7 +735,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
             self.tasks(),
             self.feature(features),
         ):
@@ -776,7 +790,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         self.detector.update(
             config={
@@ -798,10 +811,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.logger") as onboarding_logger,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.logger") as onboarding_logger,
             mock.patch(
-                "sentry.uptime.detectors.result_handler.update_uptime_detector",
+                "sentry.uptime.autodetect.result_handler.update_uptime_detector",
                 side_effect=UptimeMonitorNoSeatAvailable(None),
             ),
             self.tasks(),
@@ -961,7 +974,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_provider_stats(self) -> None:
         features = [
             "organizations:uptime",
-            "organizations:uptime-create-issues",
         ]
         subscription = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex,

@@ -4,17 +4,15 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useExploreDataset,
-  useExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useProgressiveQuery,
-  type SpansRPCQueryExtras,
+  type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useQueryParamsExtrapolate,
   useQueryParamsFields,
+  useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -22,7 +20,7 @@ interface UseExploreSpansTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 }
 
 export interface SpansTableResult {
@@ -34,6 +32,7 @@ export function useExploreSpansTable({
   enabled,
   limit,
   query,
+  queryExtras,
 }: UseExploreSpansTableOptions) {
   const extrapolate = useQueryParamsExtrapolate();
 
@@ -48,7 +47,7 @@ export function useExploreSpansTable({
 
   return useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
-    queryHookArgs: {enabled, limit, query},
+    queryHookArgs: {enabled, limit, query, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
@@ -66,7 +65,7 @@ function useExploreSpansTableImp({
 
   const dataset = useExploreDataset();
   const fields = useQueryParamsFields();
-  const sortBys = useExploreSortBys();
+  const sortBys = useQueryParamsSortBys();
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? fields : ['id', ...fields]),

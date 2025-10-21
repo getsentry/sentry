@@ -1,3 +1,5 @@
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
@@ -17,7 +19,8 @@ const NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS = {
 } as const;
 
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
-export type SpansRPCQueryExtras = {
+export type RPCQueryExtras = {
+  caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
   samplingMode?: SamplingMode;
 };
@@ -69,14 +72,20 @@ export function useProgressiveQuery<
   const nonExtrapolatedMode = disableExtrapolation && queryHookArgs.enabled;
   const nonExtrapolatedModeRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS,
+    queryExtras: {
+      ...queryHookArgs.queryExtras,
+      ...NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS,
+    },
     enabled: nonExtrapolatedMode,
   });
 
   const normalMode = !disableExtrapolation && queryHookArgs.enabled;
   const normalSamplingModeRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
+    queryExtras: {
+      ...queryHookArgs.queryExtras,
+      ...NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
+    },
     enabled: normalMode,
   });
 
@@ -89,7 +98,10 @@ export function useProgressiveQuery<
     !disableExtrapolation && queryHookArgs.enabled && triggerHighAccuracy;
   const highAccuracyRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
+    queryExtras: {
+      ...queryHookArgs.queryExtras,
+      ...HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
+    },
     enabled: highAccuracyMode,
   });
 

@@ -57,7 +57,7 @@ from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
-from sentry import auth, eventstore
+from sentry import auth
 from sentry.api.serializers.models.dashboard import DATASET_SOURCES
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
@@ -129,6 +129,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
@@ -3483,6 +3484,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         project: Project | None = None,
         timestamp: datetime | None = None,
         trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -3502,9 +3504,13 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         item_id = self.random_item_id()
 
         attributes_proto = {
-            "sentry.metric.name": AnyValue(string_value=metric_name),
+            "sentry.metric_name": AnyValue(string_value=metric_name),
             "sentry.value": AnyValue(double_value=metric_value),
         }
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
 
         return TraceItem(
             organization_id=organization.id,

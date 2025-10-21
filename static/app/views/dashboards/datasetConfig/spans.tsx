@@ -105,7 +105,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
         parameters: [
           {
             kind: 'column',
-            columnTypes: ['string'],
+            columnTypes: ['number', 'string'],
             defaultValue: 'span.op',
             required: true,
           },
@@ -231,7 +231,12 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    return getFieldRenderer(field, meta, false);
+    // Dashboard links are applicable to tables, which should only have one query hence the `queries[0]`
+    const dashboardLink = widget?.queries[0]?.linkedDashboards?.find(
+      linkedDashboard => linkedDashboard.field === field
+    );
+
+    return getFieldRenderer(field, meta, false, dashboardLink);
   },
 };
 

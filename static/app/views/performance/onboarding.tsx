@@ -28,15 +28,7 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCodeSnippet,
-  TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import type {
-  Configuration,
-  ContentBlock,
-  DocsParams,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
   StepType,
@@ -344,45 +336,6 @@ const ButtonList = styled(ButtonBar)`
   margin-bottom: 16px;
 `;
 
-function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
-  const subConfigurations = configuration.configurations ?? [];
-  return (
-    <ConfigurationWrapper>
-      {configuration.description && (
-        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-      )}
-      {configuration.code ? (
-        Array.isArray(configuration.code) ? (
-          <TabbedCodeSnippet tabs={configuration.code} />
-        ) : (
-          <OnboardingCodeSnippet language={configuration.language}>
-            {configuration.code}
-          </OnboardingCodeSnippet>
-        )
-      ) : null}
-      {subConfigurations.map((subConfiguration, index) => (
-        <ConfigurationRenderer key={index} configuration={subConfiguration} />
-      ))}
-      {configuration.additionalInfo && (
-        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
-      )}
-    </ConfigurationWrapper>
-  );
-}
-
-function RenderBlocksOrFallback({
-  contentBlocks,
-  children,
-}: {
-  children: React.ReactNode;
-  contentBlocks?: ContentBlock[];
-}) {
-  if (contentBlocks && contentBlocks.length > 0) {
-    return <ContentBlocksRenderer spacing={space(1)} contentBlocks={contentBlocks} />;
-  }
-  return children;
-}
-
 function OnboardingPanel({
   project,
   children,
@@ -637,9 +590,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
             <GuidedSteps.Step key={title} stepKey={title} title={title}>
-              <RenderBlocksOrFallback contentBlocks={step.content}>
-                <ConfigurationRenderer configuration={step} />
-              </RenderBlocksOrFallback>
+              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
               {index === steps.length - 1 ? (
                 <Fragment>
                   {eventWaitingIndicator}
@@ -810,39 +761,4 @@ const Arcade = styled('iframe')`
   margin-top: ${space(3)};
   height: 522px;
   border: 0;
-`;
-
-const CONTENT_SPACING = space(1);
-
-const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${CONTENT_SPACING};
-`;
-
-const DescriptionWrapper = styled('div')`
-  code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
-  }
-
-  :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
-  }
-
-  && > h4,
-  && > h5,
-  && > h6 {
-    font-size: ${p => p.theme.fontSize.xl};
-    font-weight: ${p => p.theme.fontWeight.bold};
-    line-height: 34px;
-  }
-
-  && > * {
-    margin: 0;
-    &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
-    }
-  }
-`;
-
-const AdditionalInfo = styled(DescriptionWrapper)`
-  margin-top: ${CONTENT_SPACING};
 `;

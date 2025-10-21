@@ -23,7 +23,8 @@ def snapshot_widget(widget: DashboardWidget):
     ):
 
         serialized_widget = serialize(widget)
-        serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
+        if serialized_widget and serialized_widget["dateCreated"]:
+            serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
         widget.widget_snapshot = serialized_widget
         widget.save()
 
@@ -80,7 +81,9 @@ def translate_dashboard_widget_queries(
     new_aliases = []
     new_selected_aggregate = None
     selected_aggregate_field = (
-        original_fields[selected_aggregate] if selected_aggregate is not None else None
+        original_fields[selected_aggregate]
+        if selected_aggregate is not None and selected_aggregate < len(original_fields)
+        else None
     )
 
     field_index = 0
@@ -96,7 +99,8 @@ def translate_dashboard_widget_queries(
         is_function_field = is_function(field)
 
         if is_equation_field:
-            new_fields.append(eap_query_parts["equations"][equation_index])
+            if old_index < original_fields_length:
+                new_fields.append(eap_query_parts["equations"][equation_index])
             new_aggregates.append(eap_query_parts["equations"][equation_index])
             equation_index += 1
 
@@ -116,7 +120,8 @@ def translate_dashboard_widget_queries(
             new_selected_aggregate = len(new_fields) - 1
 
         if len(field_aliases) == len(original_fields):
-            new_aliases.append(field_aliases[old_index])
+            if old_index < original_fields_length:
+                new_aliases.append(field_aliases[old_index])
 
     return (
         DashboardWidgetQuery(

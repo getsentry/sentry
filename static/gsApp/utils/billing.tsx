@@ -20,6 +20,7 @@ import {
 } from 'getsentry/constants';
 import {
   AddOnCategory,
+  InvoiceItemType,
   OnDemandBudgetMode,
   PlanName,
   PlanTier,
@@ -29,7 +30,9 @@ import {
   type BillingMetricHistory,
   type BillingStatTotal,
   type EventBucket,
+  type InvoiceItem,
   type Plan,
+  type PreviewInvoiceItem,
   type ProductTrial,
   type Subscription,
 } from 'getsentry/types';
@@ -345,6 +348,10 @@ export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
+export function isAm1Plan(planId?: string) {
+  return typeof planId === 'string' && planId.startsWith('am1');
+}
+
 export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
@@ -372,6 +379,7 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
 export const displayBudgetName = (
   plan?: Plan | null,
   options: {
+    abbreviated?: boolean;
     pluralOndemand?: boolean;
     title?: boolean;
     withBudget?: boolean;
@@ -379,6 +387,12 @@ export const displayBudgetName = (
 ) => {
   const budgetTerm = plan?.budgetTerm ?? 'pay-as-you-go';
   const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.abbreviated) {
+    if (budgetTerm === 'pay-as-you-go') {
+      return 'PAYG';
+    }
+    return 'OD';
+  }
   if (options.title) {
     if (budgetTerm === 'on-demand') {
       if (options.withBudget) {
@@ -587,11 +601,25 @@ export function getProductIcon(product: AddOnCategory, size?: IconSize) {
   }
 }
 
+/**
+ * Returns true if the subscription can use pay-as-you-go.
+ */
+export function supportsPayg(subscription: Subscription) {
+  return subscription.planDetails.allowOnDemand && subscription.supportsOnDemand;
+}
+
+/**
+ * Returns true if the current user has billing perms.
+ */
+export function hasBillingAccess(organization: Organization) {
+  return organization.access.includes('org:billing');
+}
+
 export function hasAccessToSubscriptionOverview(
   subscription: Subscription,
   organization: Organization
 ) {
-  return organization.access.includes('org:billing') || subscription.canSelfServe;
+  return hasBillingAccess(organization) || subscription.canSelfServe;
 }
 
 /**
@@ -726,6 +754,18 @@ export function partnerPlanEndingModalIsDismissed(
   }
 }
 
+export function getPercentage(quantity: number, total: number | null) {
+  if (typeof total === 'number' && total > 0) {
+    return (Math.min(quantity, total) / total) * 100;
+  }
+  return 0;
+}
+
+export function displayPercentage(quantity: number, total: number | null) {
+  const percentage = getPercentage(quantity, total);
+  return percentage.toFixed(0) + '%';
+}
+
 /**
  * Returns true if some billing details are set.
  */
@@ -759,3 +799,77 @@ export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
 ]);
+
+export function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        InvoiceItemType.DISCOUNT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+}
+
+/**
+ * Returns the credit applied to an invoice or preview data.
+ * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
+ * the invoice/preview data already accounts for the credit applied, so we return 0.
+ */
+export function getCreditApplied({
+  creditApplied,
+  invoiceItems,
+}: {
+  creditApplied: number;
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  const credits = getCredits({invoiceItems});
+  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+    return 0;
+  }
+  return creditApplied;
+}
+
+/**
+ * Returns extra fees included in the invoice or preview data, such as tax
+ * or cancellation fees.
+ */
+export function getFees({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+  );
+}
+
+/**
+ * Returns ondemand invoice items from the invoice or preview data.
+ */
+export function getOnDemandItems({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(item => item.type.startsWith('ondemand'));
+}
+
+/**
+ * Removes the budget term (pay-as-you-go/on-demand) from an ondemand item description.
+ */
+export function formatOnDemandDescription(
+  description: string,
+  plan?: Plan | null
+): string {
+  const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
+  return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
+}

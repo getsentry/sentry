@@ -25,7 +25,6 @@ describe('useUpdatePreventAIFeature', () => {
             test_generation: {
               enabled: false,
               triggers: {on_command_phrase: false, on_ready_for_review: false},
-              sensitivity: 'medium',
             },
             bug_prediction: {
               enabled: false,
@@ -46,7 +45,6 @@ describe('useUpdatePreventAIFeature', () => {
           test_generation: {
             enabled: false,
             triggers: {on_command_phrase: false, on_ready_for_review: false},
-            sensitivity: 'medium',
           },
           bug_prediction: {
             enabled: false,
@@ -79,8 +77,8 @@ describe('useUpdatePreventAIFeature', () => {
     result.current.enableFeature({
       feature: 'vanilla',
       enabled: true,
-      orgName: 'org-1',
-      repoName: 'repo-1',
+      orgId: 'org-1',
+      repoId: 'repo-1',
       trigger: {on_command_phrase: true},
     });
 
@@ -107,8 +105,8 @@ describe('useUpdatePreventAIFeature', () => {
       result.current.enableFeature({
         feature: 'vanilla',
         enabled: true,
-        orgName: 'org-1',
-        repoName: 'repo-1',
+        orgId: 'org-1',
+        repoId: 'repo-1',
         trigger: {on_command_phrase: true},
       })
     ).rejects.toBeDefined();
@@ -133,8 +131,8 @@ describe('useUpdatePreventAIFeature', () => {
       result.current.enableFeature({
         feature: 'vanilla',
         enabled: true,
-        orgName: 'org-1',
-        repoName: 'repo-1',
+        orgId: 'org-1',
+        repoId: 'repo-1',
       })
     ).rejects.toThrow('Organization has no AI Code Review config');
   });
@@ -145,7 +143,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'vanilla',
         enabled: true,
-        orgName: 'org-1',
+        orgId: 'org-1',
       });
       expect(
         updatedConfig.github_organizations?.['org-1']?.org_defaults?.vanilla?.enabled
@@ -161,8 +159,8 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'test_generation',
         enabled: true,
-        orgName: 'org-1',
-        repoName: 'repo-123',
+        orgId: 'org-1',
+        repoId: 'repo-123',
         trigger: {on_command_phrase: true},
       });
       expect(
@@ -182,8 +180,8 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'bug_prediction',
         enabled: false,
-        orgName: 'org-1',
-        repoName: 'repo-xyz',
+        orgId: 'org-1',
+        repoId: 'repo-xyz',
         trigger: {on_ready_for_review: true},
       });
       const feature =
@@ -193,19 +191,91 @@ describe('useUpdatePreventAIFeature', () => {
       expect(feature?.triggers.on_ready_for_review).toBe(true);
     });
 
-    it('should preserve sensitivity', () => {
+    it('should update sensitivity', () => {
       const config = structuredClone(mockOrg.preventAiConfigGithub!);
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'bug_prediction',
-        enabled: false,
-        orgName: 'org-1',
-        repoName: 'repo-xyz',
-        trigger: {on_ready_for_review: true},
+        enabled: true,
+        orgId: 'org-1',
+        repoId: 'repo-xyz',
+        sensitivity: 'low',
       });
       const feature =
         updatedConfig.github_organizations?.['org-1']?.repo_overrides?.['repo-xyz']
           ?.bug_prediction;
-      expect(feature?.sensitivity).toBe('medium');
+      expect(feature?.sensitivity).toBe('low');
+    });
+
+    it('should delete repo override when use_org_defaults is enabled', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      if (config.github_organizations?.['org-1']?.repo_overrides) {
+        config.github_organizations['org-1'].repo_overrides['repo-123'] = {
+          vanilla: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            sensitivity: 'high',
+          },
+          test_generation: {
+            enabled: true,
+            triggers: {on_command_phrase: false, on_ready_for_review: false},
+          },
+          bug_prediction: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: true},
+            sensitivity: 'critical',
+          },
+        };
+      }
+
+      const updatedConfig = makePreventAIConfig(config, {
+        feature: 'use_org_defaults',
+        enabled: true,
+        orgId: 'org-1',
+        repoId: 'repo-123',
+      });
+
+      // The repo override should be deleted
+      expect(
+        updatedConfig.github_organizations?.['org-1']?.repo_overrides?.['repo-123']
+      ).toBeUndefined();
+    });
+
+    it('should create repo override when use_org_defaults is disabled', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      // No repo override exists initially
+      expect(
+        config.github_organizations?.['org-1']?.repo_overrides?.['repo-456']
+      ).toBeUndefined();
+
+      const updatedConfig = makePreventAIConfig(config, {
+        feature: 'use_org_defaults',
+        enabled: false,
+        orgId: 'org-1',
+        repoId: 'repo-456',
+      });
+
+      // A repo override should be created, cloned from org_defaults
+      const repoOverride =
+        updatedConfig.github_organizations?.['org-1']?.repo_overrides?.['repo-456'];
+      expect(repoOverride).toBeDefined();
+      expect(repoOverride).toEqual(
+        updatedConfig.github_organizations?.['org-1']?.org_defaults
+      );
+      // Should not mutate original
+      expect(
+        config.github_organizations?.['org-1']?.repo_overrides?.['repo-456']
+      ).toBeUndefined();
+    });
+
+    it('should error if repo name is not provided when feature is use_org_defaults', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      expect(() =>
+        makePreventAIConfig(config, {
+          feature: 'use_org_defaults',
+          enabled: true,
+          orgId: 'org-1',
+        })
+      ).toThrow('Repo name is required when feature is use_org_defaults');
     });
   });
 });

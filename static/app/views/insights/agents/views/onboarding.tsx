@@ -9,13 +9,8 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCodeSnippet,
-  TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  Configuration,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -112,31 +107,6 @@ function WaitingIndicator({project}: {project: Project}) {
   );
 }
 
-function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
-  const subConfigurations = configuration.configurations ?? [];
-
-  return (
-    <ConfigurationWrapper>
-      {configuration.description && (
-        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-      )}
-      {Array.isArray(configuration.code) && configuration.code.length > 0 ? (
-        <TabbedCodeSnippet tabs={configuration.code} />
-      ) : typeof configuration.code === 'string' ? (
-        <OnboardingCodeSnippet language={configuration.language}>
-          {configuration.code}
-        </OnboardingCodeSnippet>
-      ) : null}
-      {subConfigurations.map((subConfiguration, index) => (
-        <ConfigurationRenderer key={index} configuration={subConfiguration} />
-      ))}
-      {configuration.additionalInfo && (
-        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
-      )}
-    </ConfigurationWrapper>
-  );
-}
-
 function StepRenderer({
   project,
   step,
@@ -151,11 +121,7 @@ function StepRenderer({
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
     >
-      {step.content ? (
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
-      ) : (
-        <ConfigurationRenderer configuration={step} />
-      )}
+      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -250,15 +216,17 @@ export function Onboarding() {
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'OpenAI Agents SDK', value: 'openai_agents'},
             {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'LangChain', value: 'langchain'},
             {label: 'LangGraph', value: 'langgraph'},
             {label: 'LiteLLM', value: 'litellm'},
             {label: 'Manual', value: 'manual'},
           ]
         : [
-            {label: 'Vercel AI SDK', value: 'vercelai'},
+            {label: 'Vercel AI SDK', value: 'vercel_ai'},
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'Manual', value: 'manual'},
           ],
     },
@@ -379,17 +347,17 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   position: relative;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   z-index: 10;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.pink400};
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const PulseSpacer = styled('div')`
-  height: ${space(4)};
+  height: ${p => p.theme.space['3xl']};
 `;
 
 const PulsingIndicator = styled('div')`
@@ -398,7 +366,7 @@ const PulsingIndicator = styled('div')`
 `;
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -409,19 +377,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -435,11 +403,11 @@ const HeaderText = styled('div')`
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -452,7 +420,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -469,7 +437,7 @@ const Body = styled('div')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;
@@ -496,10 +464,6 @@ const Divider = styled('hr')`
 
 const CONTENT_SPACING = space(1);
 
-const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${CONTENT_SPACING};
-`;
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
@@ -523,10 +487,6 @@ const DescriptionWrapper = styled('div')`
       margin-bottom: ${CONTENT_SPACING};
     }
   }
-`;
-
-const AdditionalInfo = styled(DescriptionWrapper)`
-  margin-top: ${CONTENT_SPACING};
 `;
 
 const OptionsWrapper = styled('div')`

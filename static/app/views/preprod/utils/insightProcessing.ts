@@ -28,6 +28,7 @@ export interface ProcessedInsightFile {
 export interface ProcessedInsight {
   description: string;
   files: ProcessedInsightFile[];
+  key: string;
   name: string;
   percentage: number;
   totalSavings: number;
@@ -118,6 +119,12 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     name: 'Compress video files',
     description: 'Video files can be compressed to reduce size.',
   },
+  {
+    key: 'alternate_icons_optimization',
+    name: 'Optimize alternate app icons',
+    description:
+      'Alternate icons don’t need full size quality because they are only shown downscaled in the homescreen.',
+  },
 ];
 
 /**
@@ -138,6 +145,42 @@ export function processInsights(
         : [];
 
       processedInsights.push({
+        key: config.key,
+        name: config.name,
+        description: config.description,
+        totalSavings: insight.total_savings,
+        percentage: (insight.total_savings / totalSize) * 100,
+        files: optimizableFiles.map((file: OptimizableImageFile) => {
+          const maxSavings = Math.max(
+            file.minify_savings || 0,
+            file.conversion_savings || 0
+          );
+          return {
+            path: file.file_path,
+            savings: maxSavings,
+            percentage: (maxSavings / totalSize) * 100,
+            data: {
+              fileType: 'optimizable_image' as const,
+              minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
+              conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
+              originalFile: file,
+            },
+          };
+        }),
+      });
+    }
+  }
+
+  if (insights.alternate_icons_optimization?.total_savings) {
+    const insight = insights.alternate_icons_optimization;
+    const config = INSIGHT_CONFIGS.find(c => c.key === 'alternate_icons_optimization');
+    if (config) {
+      const optimizableFiles = Array.isArray(insight.optimizable_files)
+        ? insight.optimizable_files
+        : [];
+
+      processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -170,6 +213,7 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -197,6 +241,7 @@ export function processInsights(
       const files = Array.isArray(insight.files) ? insight.files : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -221,6 +266,7 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -262,6 +308,7 @@ export function processInsights(
       if (config) {
         const files = Array.isArray(insight.files) ? insight.files : [];
         processedInsights.push({
+          key: config.key,
           name: config.name,
           description: config.description,
           totalSavings: insight.total_savings,

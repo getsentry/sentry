@@ -11,6 +11,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -23,7 +24,15 @@ import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+
+const DETECTOR_TYPE_TITLE_MAPPING: Record<DetectorType, string> = {
+  error: t('Error Monitors'),
+  metric_issue: t('Metric Monitors'),
+  monitor_check_in_failure: t('Cron Monitors'),
+  uptime_domain_failure: t('Uptime Monitors'),
+};
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -31,6 +40,7 @@ export default function DetectorsList() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
+  const {detectorFilter, assigneeFilter} = useMonitorViewContext();
 
   const {
     sort: sorts,
@@ -45,6 +55,14 @@ export default function DetectorsList() {
   });
   const sort = sorts[0] ?? {kind: 'desc', field: 'latestGroup'};
 
+  // Build the query with detector type and assignee filters if provided
+  // Map DetectorType values to query values (e.g., 'monitor_check_in_failure' -> 'cron')
+  const typeFilterQuery = detectorFilter ? `type:${detectorFilter}` : undefined;
+  const assigneeFilterQuery = assigneeFilter ? `assignee:${assigneeFilter}` : undefined;
+  const finalQuery = [typeFilterQuery, assigneeFilterQuery, query]
+    .filter(Boolean)
+    .join(' ');
+
   const {
     data: detectors,
     isLoading,
@@ -54,7 +72,7 @@ export default function DetectorsList() {
   } = useDetectorsQuery(
     {
       cursor,
-      query,
+      query: finalQuery,
       sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
       projects: selection.projects,
       limit: DETECTOR_LIST_PAGE_LIMIT,
@@ -78,10 +96,17 @@ export default function DetectorsList() {
     return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
 
+  // Determine the page title based on active filters
+  const pageTitle = detectorFilter
+    ? DETECTOR_TYPE_TITLE_MAPPING[detectorFilter]
+    : assigneeFilter === 'me'
+      ? t('My Monitors')
+      : t('Monitors');
+
   return (
-    <SentryDocumentTitle title={t('Monitors')}>
+    <SentryDocumentTitle title={pageTitle}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={t('Monitors')}>
+        <ListLayout actions={<Actions />} title={pageTitle}>
           <TableHeader />
           <div>
             <DetectorListTable
@@ -112,6 +137,7 @@ export default function DetectorsList() {
 function TableHeader() {
   const location = useLocation();
   const navigate = useNavigate();
+  const {detectorFilter, assigneeFilter} = useMonitorViewContext();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
 
   const onSearch = (searchQuery: string) => {
@@ -121,11 +147,20 @@ function TableHeader() {
     });
   };
 
+  // Exclude filter keys when they're set in context
+  const excludeKeys = [detectorFilter && 'type', assigneeFilter && 'assignee'].filter(
+    v => v !== undefined
+  );
+
   return (
     <Flex gap="xl">
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
-        <DetectorSearch initialQuery={query} onSearch={onSearch} />
+        <DetectorSearch
+          initialQuery={query}
+          onSearch={onSearch}
+          excludeKeys={excludeKeys}
+        />
       </div>
     </Flex>
   );
@@ -134,20 +169,25 @@ function TableHeader() {
 function Actions() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const {monitorsLinkPrefix, detectorFilter} = useMonitorViewContext();
 
-  let project: number | undefined;
-  if (selection.projects) {
-    // Find the first selected project id that is not the all access project
-    project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
-  }
+  // Pass the first selected project id that is not the all access project
+  const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
+
+  // If detectorFilter is set, pass it as a query param to skip type selection
+  const createPath = makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix);
+
+  const createQuery = detectorFilter
+    ? {project, detectorType: detectorFilter}
+    : {project};
 
   return (
     <Flex gap="sm">
       <MonitorFeedbackButton />
       <LinkButton
         to={{
-          pathname: makeMonitorCreatePathname(organization.slug),
-          query: project ? {project} : undefined,
+          pathname: createPath,
+          query: createQuery,
         }}
         priority="primary"
         icon={<IconAdd />}

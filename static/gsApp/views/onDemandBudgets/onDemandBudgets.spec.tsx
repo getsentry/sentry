@@ -17,7 +17,7 @@ import OnDemandBudgets from 'getsentry/views/onDemandBudgets';
 import OnDemandBudgetEdit from 'getsentry/views/onDemandBudgets/onDemandBudgetEdit';
 
 describe('OnDemandBudgets', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({access: ['org:billing']});
 
   const getComponent = (
     props: Omit<React.ComponentProps<typeof OnDemandBudgets>, 'organization'>

@@ -13,16 +13,15 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
-import {
-  useExploreDataset,
-  useExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
+  useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -41,9 +40,12 @@ export function useAddToDashboard() {
   const mode = useQueryParamsMode();
   const dataset = useExploreDataset();
   const groupBys = useQueryParamsGroupBys();
-  const sortBys = useExploreSortBys();
+  const sampleSortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const visualizes = useQueryParamsVisualizes();
   const query = useQueryParamsQuery();
+
+  const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {

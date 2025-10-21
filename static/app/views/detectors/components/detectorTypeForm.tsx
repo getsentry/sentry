@@ -129,7 +129,6 @@ function MonitorTypeField() {
 const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  max-width: ${p => p.theme.breakpoints.xl};
   gap: ${p => p.theme.space.xl};
 `;
 
@@ -144,6 +143,7 @@ const OptionBody = styled('div')`
   justify-content: space-between;
   padding: ${p => p.theme.space.xl};
   align-items: center;
+  gap: ${p => p.theme.space.sm};
 `;
 
 const OptionLabel = styled('label')<{disabled?: boolean}>`

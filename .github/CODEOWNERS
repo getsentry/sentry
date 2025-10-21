@@ -151,6 +151,10 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/uptime                                     @getsentry/crons
 ## End Uptime
 
+## Misc. Middleware
+# Located here so they do not take precedence over rules below.
+/src/sentry/middleware/reporting_endpoint.py             @getsentry/issue-detection-backend
+## End Misc. Middleware
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
@@ -538,7 +542,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
-/src/sentry/middleware/reporting_endpoint.py                @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
@@ -572,6 +575,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/post_process.py                           @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
+/src/sentry/tasks/llm_issue_detection.py                    @getsentry/issue-detection-backend
 /static/app/components/events/contexts/                     @getsentry/issue-workflow
 /static/app/components/events/eventTags/                    @getsentry/issue-workflow
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
@@ -612,6 +616,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_llm_issue_detection.py             @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
@@ -685,3 +690,12 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
+
+# Prevent
+/src/sentry/prevent/                                      @getsentry/prevent
+/src/sentry/overwatch/                                    @getsentry/prevent
+/src/sentry/overwatch_webhooks/                           @getsentry/prevent
+/static/app/components/prevent/                           @getsentry/prevent
+/static/app/views/prevent/                                @getsentry/prevent
+/static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
+# End of Prevent

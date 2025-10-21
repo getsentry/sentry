@@ -801,14 +801,14 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(customer.categories || {})
-                .filter(([_, bmh]) => RETENTION_SETTINGS_CATEGORIES.has(bmh.category))
-                .map(([category, bmh]) => (
-                  <tr key={category}>
+              {sortCategories(customer.categories || {})
+                .filter(bmh => RETENTION_SETTINGS_CATEGORIES.has(bmh.category))
+                .map(bmh => (
+                  <tr key={bmh.category}>
                     <td>
                       {getPlanCategoryName({
                         plan: customer.planDetails,
-                        category: category as DataCategory,
+                        category: bmh.category,
                       })}
                     </td>
                     <td>{bmh.retention?.standard}</td>
@@ -818,10 +818,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                         : bmh.retention?.downsampled}
                     </td>
                     <td>
-                      {
-                        customer.planDetails.retentions?.[category as DataCategory]
-                          ?.downsampled
-                      }
+                      {customer.planDetails.retentions?.[bmh.category]?.downsampled}
                     </td>
                   </tr>
                 ))}

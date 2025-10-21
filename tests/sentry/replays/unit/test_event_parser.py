@@ -259,6 +259,59 @@ def test_parse_highlighted_events_payload_sizes_invalid_op() -> None:
     assert len(result.request_response_sizes) == 0
 
 
+def test_parse_highlighted_events_with_tap_event() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "send_user_feedback",
+                },
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 1
+    assert builder.result.tap_events[0].timestamp == int(1758523985.314)
+    assert builder.result.tap_events[0].message == "send_user_feedback"
+    assert builder.result.tap_events[0].view_class == "androidx.appcompat.widget.AppCompatButton"
+    assert builder.result.tap_events[0].view_id == "send_user_feedback"
+
+
+def test_parse_highlighted_events_with_tap_event_missing_fields() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {},
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 1
+    assert builder.result.tap_events[0].timestamp == int(1758523985.314)
+    assert builder.result.tap_events[0].message == "send_user_feedback"
+    assert builder.result.tap_events[0].view_class == ""
+    assert builder.result.tap_events[0].view_id == ""
+
+
 # Click parsing.
 
 
@@ -920,6 +973,142 @@ def test_which() -> None:
     }
     assert which(event) == EventType.MUTATIONS
 
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "send_user_feedback",
+                },
+            },
+        },
+    }
+
+    assert which(event) == EventType.TAP
+
+    event = {
+        "type": 5,
+        "timestamp": 1753203886279,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1753203886.279,
+                "category": "device.battery",
+                "data": {"level": 100.0, "charging": False},
+            },
+        },
+    }
+    assert which(event) == EventType.DEVICE_BATTERY
+
+    event = {
+        "type": 5,
+        "timestamp": 1758212033534,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "level": "none",
+                "category": "device.orientation",
+                "timestamp": 1758212033.534864,
+                "data": {"position": "landscape"},
+                "type": "default",
+            },
+        },
+    }
+    assert which(event) == EventType.DEVICE_ORIENTATION
+
+    event = {
+        "type": 5,
+        "timestamp": 1758733250547,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.547,
+                "category": "device.connectivity",
+                "data": {"state": "wifi"},
+            },
+        },
+    }
+    assert which(event) == EventType.DEVICE_CONNECTIVITY
+
+    event = {
+        "type": 5,
+        "timestamp": 1760948639388,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948639.388,
+                "category": "ui.scroll",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.SCROLL
+
+    event = {
+        "type": 5,
+        "timestamp": 1760948640299,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948640.299,
+                "category": "ui.swipe",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.SWIPE
+
+    event = {
+        "type": 5,
+        "timestamp": 1758735184405,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758735184.405,
+                "category": "app.background",
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.BACKGROUND
+
+    event = {
+        "type": 5,
+        "timestamp": 1758733250461,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.461,
+                "category": "app.foreground",
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.FOREGROUND
+
     assert which({}) == EventType.UNKNOWN
 
 
@@ -1140,6 +1329,34 @@ def test_as_trace_item_context_rage_click_event() -> None:
     assert result["attributes"]["is_dead"] is True
     assert result["attributes"]["is_rage"] is True
     assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_tap_event() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "send_user_feedback",
+                },
+            },
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+    assert result["attributes"]["view_id"] == "send_user_feedback"
+    assert result["attributes"]["message"] == "send_user_feedback"
+    assert result["attributes"]["view_class"] == "androidx.appcompat.widget.AppCompatButton"
+    assert result["timestamp"] == 1758523985.314
 
 
 def test_as_trace_item_context_navigation_event() -> None:

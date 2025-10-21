@@ -70,6 +70,11 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
+export type LinkedDashboard = {
+  dashboardId: string;
+  field: string;
+};
+
 /**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
@@ -88,10 +93,23 @@ export type WidgetQuery = {
   // widgets.
   fields?: string[];
   isHidden?: boolean | null;
+  linkedDashboards?: LinkedDashboard[];
   // Contains the on-demand entries for the widget query.
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+};
+
+type WidgetChangedReason = {
+  equations: Array<{
+    equation: string;
+    reason: string | string[];
+  }> | null;
+  orderby: Array<{
+    orderby: string;
+    reason: string | string[];
+  }> | null;
+  selected_columns: string[];
 };
 
 export type Widget = {
@@ -99,6 +117,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
@@ -158,8 +177,11 @@ export type DashboardFilters = {
 };
 
 export type GlobalFilter = {
+  // Dataset the global filter will be applied to
   dataset: WidgetType;
+  // The tag being filtered
   tag: Tag;
+  // The raw filter condition string (e.g. 'tagKey:[values,...]')
   value: string;
 };
 
@@ -190,6 +212,7 @@ export enum DashboardState {
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
   PREVIEW = 'preview',
+  EMBEDDED = 'embedded',
 }
 
 // where we launch the dashboard widget from
