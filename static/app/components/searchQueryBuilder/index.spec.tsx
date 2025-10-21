@@ -4262,6 +4262,91 @@ describe('SearchQueryBuilder', () => {
           })
         ).toBeInTheDocument();
       });
+
+      it('should replace raw search keys on paste', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.paste('randomValue');
+
+        // Should have tokenized the pasted text
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+          })
+        ).toBeInTheDocument();
+        // Focus should be at the end of the pasted text
+        expect(
+          screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+        ).toHaveFocus();
+      });
+
+      it('should replace raw search keys on paste, leaving other tokens intact', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:firefox span.description:test"
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.paste('randomValue');
+
+        // leaves unrelated filter key tokens intact
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+
+        // leaves the same filter key minus the wildcard contains operator intact
+        expect(
+          screen.getByRole('row', {name: 'span.description:test'})
+        ).toBeInTheDocument();
+
+        // Should have tokenized the pasted text
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+          })
+        ).toBeInTheDocument();
+        // Focus should be at the end of the pasted text
+        expect(
+          screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+        ).toHaveFocus();
+      });
+
+      it('should replace raw search keys on paste, merging with existing tokens', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery={`span.description:${WildcardOperators.CONTAINS}test`}
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.paste('randomValue');
+        // the new filter key combobox is opened, when we get moved to the new token
+        await userEvent.keyboard('{Escape}');
+
+        // Should have tokenized the pasted text
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}[test,randomValue]`,
+          })
+        ).toBeInTheDocument();
+        // Focus should be at the end of the pasted text
+        expect(getLastInput()).toHaveFocus();
+      });
     });
   });
 
