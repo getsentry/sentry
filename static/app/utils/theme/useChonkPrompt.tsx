@@ -61,18 +61,18 @@ export function useChonkPrompt() {
         return;
       }
 
-      bannerPrompt.dismissPrompt();
+      bannerPrompt.snoozePrompt();
     },
     dismissDotIndicatorPrompt: () => {
       if (dotIndicatorPrompt.isPromptDismissed) {
         return;
       }
 
-      dotIndicatorPrompt.dismissPrompt();
+      dotIndicatorPrompt.snoozePrompt();
     },
     dismiss: () => {
-      bannerPrompt.dismissPrompt();
-      dotIndicatorPrompt.dismissPrompt();
+      bannerPrompt.snoozePrompt();
+      dotIndicatorPrompt.snoozePrompt();
     },
   };
 }
