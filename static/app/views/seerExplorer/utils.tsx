@@ -54,7 +54,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
-  search_code: (args, isLoading) => {
+  code_search: (args, isLoading) => {
     const repoName = args.repo_name || 'repository';
     const mode = args.mode || 'search';
     const path = args.path;
