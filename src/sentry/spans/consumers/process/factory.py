@@ -18,6 +18,7 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
+from sentry.spans.consumers.process.schema_validator import ProcessSpansSchemaValidator
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, SetJoinTimeout, run_task_with_multiprocessing
@@ -63,6 +64,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         if self.num_processes != 1:
             self.__pool = MultiprocessingPool(num_processes)
 
+        self.schema_validator = ProcessSpansSchemaValidator()
+
     def create_with_partitions(
         self,
         commit: Commit,
@@ -98,7 +101,11 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         if self.num_processes != 1:
             run_task = run_task_with_multiprocessing(
-                function=partial(process_batch, buffer),
+                function=partial(
+                    process_batch,
+                    buffer,
+                    self.schema_validator,
+                ),
                 next_step=flusher,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
@@ -108,7 +115,11 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             )
         else:
             run_task = RunTask(
-                function=partial(process_batch, buffer),
+                function=partial(
+                    process_batch,
+                    buffer,
+                    self.schema_validator,
+                ),
                 next_step=flusher,
             )
 
@@ -147,6 +158,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 @metrics.wraps("spans.buffer.process_batch")
 def process_batch(
     buffer: SpansBuffer,
+    schema_validator: ProcessSpansSchemaValidator,
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
     killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
@@ -179,16 +191,8 @@ def process_batch(
             ):
                 continue
 
-            # This is a bug in Relay (INC-1453)
-            #
-            # Add some assertions here to protect against downstream crashes.
-            # These will be caught by the wrapping except block. Not doing
-            # those assertions here but later will crash the consumer and is
-            # also violating mypy types.
-            assert isinstance(val["end_timestamp"], (int, float))
-            assert isinstance(val["start_timestamp"], (int, float))
-            assert isinstance(val["trace_id"], str)
-            assert isinstance(val["span_id"], str)
+            # Adding schema validation to avoid crashing the consumer downstream
+            schema_validator.validate(val)
 
             span = Span(
                 trace_id=val["trace_id"],
@@ -200,10 +204,6 @@ def process_batch(
                 end_timestamp=val["end_timestamp"],
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
             )
-
-            assert span.parent_span_id is None or isinstance(span.parent_span_id, str)
-            assert span.segment_id is None or isinstance(span.segment_id, str)
-            assert isinstance(span.payload, bytes)
 
             spans.append(span)
 
