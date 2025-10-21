@@ -1,6 +1,6 @@
 We've Created a Free Uptime Monitor for Your Project
 
-We noticed that {{ monitor_url_display }} appears frequently in your project's errors, so we created a free uptime monitor to help keep an eye on it.
+We noticed that {{ monitor_url_display }} appears frequently in your project's errors, so we created an uptime monitor to help keep an eye on it.
 
 {{ monitor_url_display }} | {{ project_slug }}
 Created on {{ date_created|date:"N j, Y, g:i:s a e" }}
