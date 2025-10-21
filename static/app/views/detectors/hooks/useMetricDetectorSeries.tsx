@@ -74,6 +74,14 @@ export function useMetricDetectorSeries({
   >(seriesQueryOptions, {
     // 5 minutes
     staleTime: 5 * 60 * 1000,
+    retry: (failureCount, apiError: RequestError) => {
+      // Disable retries for 400 status code
+      if (apiError?.status === 400) {
+        return false;
+      }
+
+      return failureCount < 2;
+    },
     ...options,
   });
 
