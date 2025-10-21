@@ -619,7 +619,7 @@ describe('Nav', () => {
               method: 'PUT',
               data: expect.objectContaining({
                 feature: 'chonk_ui_banner',
-                status: 'dismissed',
+                status: 'snoozed',
               }),
             })
           );
@@ -669,7 +669,7 @@ describe('Nav', () => {
             method: 'PUT',
             data: expect.objectContaining({
               feature: 'chonk_ui_banner',
-              status: 'dismissed',
+              status: 'snoozed',
             }),
           })
         );
@@ -681,7 +681,7 @@ describe('Nav', () => {
             method: 'PUT',
             data: expect.objectContaining({
               feature: 'chonk_ui_dot_indicator',
-              status: 'dismissed',
+              status: 'snoozed',
             }),
           })
         );

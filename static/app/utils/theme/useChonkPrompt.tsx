@@ -12,12 +12,14 @@ export function useChonkPrompt() {
   const bannerPrompt = usePrompt({
     organization,
     feature: 'chonk_ui_banner',
+    daysToSnooze: 7,
     options: {enabled: hasChonkUI},
   });
 
   const dotIndicatorPrompt = usePrompt({
     organization,
     feature: 'chonk_ui_dot_indicator',
+    daysToSnooze: 7,
     options: {enabled: hasChonkUI},
   });
 
@@ -61,18 +63,18 @@ export function useChonkPrompt() {
         return;
       }
 
-      bannerPrompt.dismissPrompt();
+      bannerPrompt.snoozePrompt();
     },
     dismissDotIndicatorPrompt: () => {
       if (dotIndicatorPrompt.isPromptDismissed) {
         return;
       }
 
-      dotIndicatorPrompt.dismissPrompt();
+      dotIndicatorPrompt.snoozePrompt();
     },
     dismiss: () => {
-      bannerPrompt.dismissPrompt();
-      dotIndicatorPrompt.dismissPrompt();
+      bannerPrompt.snoozePrompt();
+      dotIndicatorPrompt.snoozePrompt();
     },
   };
 }
