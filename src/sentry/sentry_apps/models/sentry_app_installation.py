@@ -16,9 +16,9 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, co
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
-from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutbox, ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.projects.services.project import RpcProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.sentry_apps.utils.errors import (
@@ -26,7 +26,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_all_region_names, find_regions_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -140,6 +140,19 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         # Use 0 in case of bad relations from api_applicaiton_id -- the replication ordering for
         # these isn't so important in that case.
         return super().outboxes_for_update(shard_identifier=self.api_application_id or 0)
+
+    def outboxes_for_delete(self) -> list[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.id,
+                object_identifier=self.id,
+                category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
+                region_name=region_name,
+                payload={"uuid": self.uuid},
+            )
+            for region_name in find_all_region_names()
+        ]
 
     def prepare_ui_component(
         self,

@@ -83,6 +83,31 @@ def process_sentry_app_deletes(
         # TODO: also update webhook actions using object identifier (sentry app slug)
 
 
+@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE)
+def process_sentry_app_installation_deletes(
+    shard_identifier: int,
+    object_identifier: int,
+    region_name: str,
+    payload: Mapping[str, Any],
+    **kwds: Any,
+):
+    # This function should only be used when the sentry app is being deleted.
+    # Currently this receiver is only used for deletion.
+    if options.get("workflow_engine.sentry-app-actions-outbox"):
+        logger.info(
+            "sentry_app_installation_delete.update_action_status",
+            extra={
+                "region_name": region_name,
+                "sentry_app_install_uuid": payload["uuid"],
+            },
+        )
+        action_service.update_action_status_for_sentry_app_via_uuid__region(
+            region_name=region_name,
+            status=ObjectStatus.DISABLED,
+            sentry_app_install_uuid=payload["uuid"],
+        )
+
+
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
 def process_api_application_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
