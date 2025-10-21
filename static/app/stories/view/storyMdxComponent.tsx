@@ -3,6 +3,7 @@ import React from 'react';
 import {type Callout as CalloutProps} from '@r4ai/remark-callout';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {Quote} from '@sentry/scraps/quote/quote';
 
 import {InlineCode} from 'sentry/components/core/code';
 import {Stack} from 'sentry/components/core/layout';
@@ -61,4 +62,5 @@ export const storyMdxComponents = {
   ul: (props: Omit<HTMLProps<HTMLUListElement>, 'wrap'>) => (
     <Stack {...props} as="ul" gap="lg" />
   ),
+  blockquote: (props: HTMLProps<HTMLQuoteElement>) => <Quote {...props} />,
 };
