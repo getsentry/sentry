@@ -250,7 +250,7 @@ function Dashboard() {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <SearchAndSelectorWrapper>
             <TeamFilter
               selectedTeams={selectedTeams}

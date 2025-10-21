@@ -1177,7 +1177,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main fullWidth>
+      <Main width="full">
         <SentryDocumentTitle
           title={rule ? t('Alert — %s', rule.name) : t('New Alert Rule')}
           orgSlug={organization.slug}

@@ -155,7 +155,7 @@ export function DatabaseSpanSummaryPage() {
 
       <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <HeaderContainer>

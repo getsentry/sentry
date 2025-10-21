@@ -103,7 +103,7 @@ export default function PreprodBuilds() {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <SentryDocumentTitle
           title={t('Preprod Builds - Release %s', formatVersion(params.release))}
           orgSlug={organization.slug}

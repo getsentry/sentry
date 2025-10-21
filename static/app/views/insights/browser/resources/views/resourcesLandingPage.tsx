@@ -32,7 +32,7 @@ function ResourcesLandingPage() {
       <PageAlertProvider>
         <ModuleFeature moduleName={ModuleName.RESOURCE}>
           <Layout.Body>
-            <Layout.Main fullWidth>
+            <Layout.Main width="full">
               <PageAlert />
               <StyledHeaderContainer>
                 <ToolRibbon>

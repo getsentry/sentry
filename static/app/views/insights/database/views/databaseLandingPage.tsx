@@ -127,7 +127,7 @@ export function DatabaseLandingPage() {
     <React.Fragment>
       <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               {hasModuleData && !onboardingProject && !isCriticalDataLoading && (
                 <NoDataMessage

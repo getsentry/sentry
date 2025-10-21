@@ -278,7 +278,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <SearchQueryBuilderProvider
         enableAISearch={areAiFeaturesAllowed}
         {...eapSpanSearchQueryProviderProps}

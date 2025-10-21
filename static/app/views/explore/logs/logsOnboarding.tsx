@@ -383,7 +383,7 @@ export function LogsTabOnboarding({
 }: LogsTabOnboardingProps) {
   return (
     <TopSectionBody noRowGap>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <FilterBarContainer>
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />

@@ -28,7 +28,7 @@ export default function DetectorNewSettings() {
     return (
       <Layout.Page>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <LoadingIndicator />
           </Layout.Main>
         </Layout.Body>

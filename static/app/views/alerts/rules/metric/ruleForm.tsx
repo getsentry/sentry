@@ -1369,7 +1369,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     // Rendering the main form body
     return (
-      <Main fullWidth>
+      <Main width="full">
         <ProjectPermissionAlert access={['alerts:write']} project={project} />
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}

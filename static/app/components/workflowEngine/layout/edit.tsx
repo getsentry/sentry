@@ -118,7 +118,7 @@ function HeaderFields({children}: RequiredChildren) {
 function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {
   return (
     <StyledBody maxWidth={maxWidth}>
-      <Layout.Main fullWidth>{children}</Layout.Main>
+      <Layout.Main width="full">{children}</Layout.Main>
     </StyledBody>
   );
 }

@@ -145,7 +145,7 @@ export default function ProfilingContent() {
           </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
-            <LayoutMain fullWidth>
+            <LayoutMain width="full">
               <ActionBar>
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />

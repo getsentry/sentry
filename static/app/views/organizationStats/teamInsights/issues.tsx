@@ -74,7 +74,7 @@ export default function TeamStatsIssues() {
 
         {isLoading && <LoadingIndicator />}
         {!isLoading && (
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <DescriptionCard
               title={t('All Unresolved Issues')}
               description={t(

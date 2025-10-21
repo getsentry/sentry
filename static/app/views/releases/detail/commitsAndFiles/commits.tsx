@@ -66,7 +66,7 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <SentryDocumentTitle
           title={routeTitleGen(
             t('Commits - Release %s', formatVersion(params.release)),

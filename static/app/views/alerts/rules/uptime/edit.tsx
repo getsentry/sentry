@@ -66,7 +66,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
   };
 
   return (
-    <Main fullWidth>
+    <Main width="full">
       <UptimeAlertForm rule={rule} handleDelete={handleDelete} />
     </Main>
   );

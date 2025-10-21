@@ -107,7 +107,7 @@ function Content() {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <Flex>
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />

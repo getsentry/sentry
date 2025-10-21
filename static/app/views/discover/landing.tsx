@@ -215,7 +215,7 @@ function DiscoverLanding() {
             </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main fullWidth>
+            <Layout.Main width="full">
               <StyledActions>
                 <StyledSearchBar
                   defaultQuery=""
