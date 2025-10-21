@@ -138,6 +138,24 @@ const styles = (theme: Theme, isDark: boolean) => css`
     background: ${theme.backgroundSecondary};
   }
 
+  body.theme-dark {
+    background: ${theme.tokens.background.primary};
+
+    .loading .loading-indicator {
+      background: ${theme.tokens.background.primary};
+    }
+  }
+
+  body.theme-system {
+    @media (prefers-color-scheme: dark) {
+      background: ${theme.tokens.background.primary};
+    }
+
+    .loading .loading-indicator {
+      background: ${theme.tokens.background.primary};
+    }
+  }
+
   abbr {
     ${theme.tooltipUnderline()};
   }
