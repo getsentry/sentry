@@ -12,12 +12,14 @@ export function useChonkPrompt() {
   const bannerPrompt = usePrompt({
     organization,
     feature: 'chonk_ui_banner',
+    daysToSnooze: 7,
     options: {enabled: hasChonkUI},
   });
 
   const dotIndicatorPrompt = usePrompt({
     organization,
     feature: 'chonk_ui_dot_indicator',
+    daysToSnooze: 7,
     options: {enabled: hasChonkUI},
   });
 
