@@ -10,8 +10,8 @@ interface MonitorViewContextValue {
 }
 
 const DEFAULT_MONITOR_VIEW_CONTEXT: MonitorViewContextValue = {
-  monitorsLinkPrefix: 'issues/monitors',
-  automationsLinkPrefix: 'issues/automations',
+  monitorsLinkPrefix: 'monitors',
+  automationsLinkPrefix: 'monitors/alerts',
   assigneeFilter: undefined,
   detectorFilter: undefined,
 };

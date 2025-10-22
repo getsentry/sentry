@@ -97,7 +97,7 @@ describe('EditAutomation', () => {
     // Redirect to the monitors list
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/automations/`
+        `/organizations/${organization.slug}/monitors/alerts/`
       )
     );
   });

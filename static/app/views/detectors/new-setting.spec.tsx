@@ -19,9 +19,9 @@ describe('DetectorEdit', () => {
   });
   const project = ProjectFixture({organization, environments: ['production']});
   const initialRouterConfig = {
-    route: '/organizations/:orgId/issues/monitors/new/settings/',
+    route: '/organizations/:orgId/monitors/new/settings/',
     location: {
-      pathname: '/organizations/org-slug/issues/monitors/new/settings/',
+      pathname: '/organizations/org-slug/monitors/new/settings/',
     },
   };
 
@@ -159,7 +159,7 @@ describe('DetectorEdit', () => {
       // Should navigate to the new monitor page
       await waitFor(() => {
         expect(router.location.pathname).toBe(
-          `/organizations/${organization.slug}/issues/monitors/123/`
+          `/organizations/${organization.slug}/monitors/123/`
         );
       });
     });
