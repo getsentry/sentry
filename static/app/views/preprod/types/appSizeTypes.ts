@@ -61,6 +61,7 @@ export enum TreemapType {
   FILES = 'files',
   EXECUTABLES = 'executables',
   RESOURCES = 'resources',
+  LOCALIZATIONS = 'localizations',
   ASSETS = 'assets',
   MANIFESTS = 'manifests',
   SIGNATURES = 'signatures',

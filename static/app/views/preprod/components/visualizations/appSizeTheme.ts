@@ -37,6 +37,11 @@ export function getAppSizeCategoryInfo(
       headerColor: createHeaderColor(groupColor2),
       displayName: t('Resources'),
     },
+    [TreemapType.LOCALIZATIONS]: {
+      color: groupColor2,
+      headerColor: createHeaderColor(groupColor2),
+      displayName: t('Localizations'),
+    },
     [TreemapType.ASSETS]: {
       color: groupColor3,
       headerColor: createHeaderColor(groupColor3),
