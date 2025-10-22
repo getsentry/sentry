@@ -95,7 +95,7 @@ export function SubfiltersList() {
                 subfilter,
                 subfilter_id: `${condition_id}.comparison.filters.${subfilter.id}`,
                 onUpdate: newSubfilter => updateSubfilter(subfilter.id, newSubfilter),
-                removeError: () => removeError(subfilter.id),
+                removeError: () => removeError(condition.id),
               }}
               key={subfilter.id}
             >
