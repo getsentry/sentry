@@ -123,13 +123,7 @@ class SubscriptionProcessor:
                 "organizations:workflow-engine-single-process-metric-issues",
                 project.organization,
             )
-            self._has_workflow_engine_processing = (
-                features.has(
-                    "organizations:workflow-engine-metric-alert-processing",
-                    project.organization,
-                )
-                or self._has_workflow_engine_processing_only
-            )
+            self._has_workflow_engine_processing = True
         except Project.DoesNotExist:
             # No more init needed; process_update knows to log and return early in this case.
             return

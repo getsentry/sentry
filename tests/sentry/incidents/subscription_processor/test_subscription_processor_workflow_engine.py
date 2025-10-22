@@ -50,7 +50,6 @@ from tests.sentry.incidents.subscription_processor.test_subscription_processor i
 @freeze_time()
 class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.subscription_processor.logger")
     def test_alert_metrics_logging(self, mock_logger: MagicMock, mock_metrics: MagicMock) -> None:
@@ -111,7 +110,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.subscription_processor.logger")
     def test_snoozed_alert_metrics_logging(
@@ -155,7 +153,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.subscription_processor.logger")
     def test_resolve_metrics_logging(self, mock_logger: MagicMock, mock_metrics: MagicMock) -> None:
@@ -207,7 +204,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.subscription_processor.logger")
     def test_snoozed_resolve_metrics_logging(
@@ -345,7 +341,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
             ]
         )
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.process_data_packet")
     def test_process_data_packet_called(self, mock_process_data_packet: MagicMock) -> None:
         rule = self.rule
@@ -361,7 +356,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         assert data_packet.source_id == str(self.sub.id)
         assert data_packet.packet.values == {"value": 10}
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.process_data_packet")
     @patch("sentry.incidents.subscription_processor.get_comparison_aggregation_value")
     def test_process_data_packet_not_called(
@@ -430,7 +424,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         # Ensure that single processing metric is sent
         mock_metric.incr.assert_any_call("incidents.workflow_engine.processing.single")
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.logger")
     def test_process_update__dual_processing__result_log(self, mock_logger):
         self.detector = self.create_detector(type=MetricIssue.slug)
@@ -459,7 +452,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
             },
         )
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.logger")
     def test_process_update__dual_processing__missing_detector(self, mock_logger: MagicMock):
         """
@@ -550,7 +542,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -579,7 +570,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -625,7 +615,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -680,7 +669,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
@@ -753,7 +741,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
@@ -812,7 +799,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
@@ -898,7 +884,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"

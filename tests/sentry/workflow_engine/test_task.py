@@ -122,7 +122,6 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
                 detector_id=detector.id,
             )
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_dual_processing(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -285,7 +284,6 @@ class TestProcessWorkflowActivity(TestCase):
             )
 
     @with_feature("organizations:workflow-engine-single-process-metric-issues")
-    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
     @mock.patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
