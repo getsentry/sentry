@@ -26,7 +26,6 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -297,37 +296,3 @@ class TestPartitionByMeasure(TestCase):
                 assert SamplingMeasure.TRANSACTIONS in result
                 assert set(result[SamplingMeasure.SPANS]) == {org1.id, org2.id}
                 assert result[SamplingMeasure.TRANSACTIONS] == [org3.id]
-
-    def test_partition_by_measure_without_spans_feature(self) -> None:
-        org1 = self.create_organization("test-org1")
-        org2 = self.create_organization("test-org2")
-
-        with override_options({"dynamic-sampling.check_span_feature_flag": True}):
-            result = partition_by_measure([org1.id, org2.id])
-
-            assert SamplingMeasure.TRANSACTIONS in result
-            assert result[SamplingMeasure.TRANSACTIONS] == [org1.id, org2.id]
-            assert SamplingMeasure.SPANS not in result or result[SamplingMeasure.SPANS] == []
-
-    def test_partition_by_measure_feature_flag_disabled(self) -> None:
-        org1 = self.create_organization("test-org1")
-
-        with override_options({"dynamic-sampling.check_span_feature_flag": False}):
-            result = partition_by_measure([org1.id])
-
-            assert SamplingMeasure.TRANSACTIONS in result
-            assert result[SamplingMeasure.TRANSACTIONS] == [org1.id]
-
-    def test_partition_by_measure_respects_project_mode(self) -> None:
-        org1 = self.create_organization("test-org1")
-        org2 = self.create_organization("test-org2")
-
-        org1.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-
-        with override_options({"dynamic-sampling.check_span_feature_flag": True}):
-            with self.feature({"organizations:dynamic-sampling-spans": [org1, org2]}):
-                result = partition_by_measure([org1.id, org2.id])
-
-                assert org2.id in result[SamplingMeasure.SPANS]
-                assert org1.id not in result[SamplingMeasure.SPANS]
-                assert org1.id not in result.get(SamplingMeasure.TRANSACTIONS, [])
