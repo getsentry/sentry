@@ -202,7 +202,7 @@ const DisplayHeader = styled('div')`
 function Live() {
   return (
     <Flex align="center">
-      <Text bold variant="success">
+      <Text bold variant="success" data-test-id="live-badge">
         {t('LIVE')}
       </Text>
       <LiveIndicator />
