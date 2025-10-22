@@ -60,33 +60,35 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const {startSummaryRequest} = useReplaySummaryContext();
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     trackAnalytics('replay.details-refresh-clicked', {organization});
-    queryClient
-      .refetchQueries({
+    if (organization.features.includes('replay-refresh-background')) {
+      await queryClient.refetchQueries({
         queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
         exact: true,
         type: 'all',
-      })
-      .then(() =>
-        queryClient.invalidateQueries({
-          queryKey: [
-            `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-          ],
-          type: 'all',
-        })
-      )
-      .then(() => startSummaryRequest());
+      });
+      await queryClient.invalidateQueries({
+        queryKey: [
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        ],
+        type: 'all',
+      });
+      startSummaryRequest();
+    } else {
+      window.location.reload();
+    }
   };
 
-  const ONE_MINUTE_MS = 1000 * 60;
+  const ONE_MINUTE_MS = 60_000;
+
+  // We poll for the replay record for 60 minutes after the replay started.
+  const REPLAY_EXPIRY_TIMESTAMP = replayReader
+    ? replayReader.getStartTimestampMs() + ONE_MINUTE_MS * 60
+    : 0;
 
   const polledReplayRecord = usePollReplayRecord({
-    enabled: Boolean(
-      replayReader &&
-        Date.now() < replayReader.getStartTimestampMs() + 60 * ONE_MINUTE_MS &&
-        organization.features.includes('replay-refresh-background')
-    ),
+    enabled: Date.now() < REPLAY_EXPIRY_TIMESTAMP,
     replayId,
     orgSlug,
   });
@@ -97,7 +99,9 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const prevSegments = replayRecord?.count_segments ?? 0;
 
   const showRefreshButton = polledCountSegments > prevSegments;
-  const showIsLive = Date.now() < polledFinishedAt + 5 * ONE_MINUTE_MS;
+
+  const FIVE_MINUTE_MS = 5 * ONE_MINUTE_MS;
+  const showIsLive = Date.now() < polledFinishedAt + FIVE_MINUTE_MS;
 
   const badge = replayRecord ? (
     <UserBadge

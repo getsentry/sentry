@@ -23,11 +23,10 @@ function usePollReplayRecord({
     refetchInterval: pollInterval,
     enabled,
     refetchIntervalInBackground: true,
-    staleTime: Infinity,
+    staleTime: 0,
   });
 
-  const raw = data?.data;
-  return raw ? mapResponseToReplayRecord(raw) : undefined;
+  return data?.data ? mapResponseToReplayRecord(data.data) : undefined;
 }
 
 export default usePollReplayRecord;
