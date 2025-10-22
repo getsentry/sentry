@@ -362,7 +362,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         "status_reason": None,
                         "trace_id": str(uuid.uuid4()),
                         "span_id": str(uuid.uuid4()),
-                        "region": result["region"],
+                        "region": "unknown",
                         "scheduled_check_time_ms": last_update_ms
                         + ((i + 1) * subscription_interval_ms),
                         "actual_check_time_ms": result["actual_check_time_ms"],
