@@ -91,15 +91,13 @@ class BulkDeleteQuery:
         if self.organization_id:
             queryset = queryset.filter(organization_id=self.organization_id)
 
-        if self.order_by and self.order_by[0] == "-":
-            step = -batch_size
-            order_field = self.order_by[1:]
-        elif self.order_by:
-            step = batch_size
-            order_field = self.order_by
-        else:
-            step = batch_size
-            order_field = "id"
+        if self.order_by:
+            if self.order_by[0] == "-":
+                step = -batch_size
+                order_field = self.order_by[1:]
+            else:
+                step = batch_size
+                order_field = self.order_by
 
         # Use regular queryset (not values_list) for RangeQuerySetWrapper
         # to avoid datetime serialization issues when filtering
