@@ -1,9 +1,9 @@
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsGroupBys,
   useSetQueryParamsGroupBys,
@@ -26,9 +26,7 @@ export function GroupBySelector({metricName}: GroupBySelectorProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const metricNameFilter = metricName
-    ? MutableSearch.fromQueryObject({['metric.name']: [metricName]}).formatString()
-    : undefined;
+  const metricNameFilter = createMetricNameFilter(metricName);
 
   const {attributes: numberTags, isLoading: numberTagsLoading} =
     useTraceItemAttributeKeys({
