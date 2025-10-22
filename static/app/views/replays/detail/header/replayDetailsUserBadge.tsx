@@ -202,9 +202,9 @@ const DisplayHeader = styled('div')`
 function Live() {
   return (
     <Flex align="center">
-      <LiveText bold data-test-id="live-badge">
+      <Text bold variant="success" data-test-id="live-badge">
         {t('LIVE')}
-      </LiveText>
+      </Text>
       <LiveIndicator />
     </Flex>
   );
@@ -222,13 +222,8 @@ const pulse = keyframes`
   }
 `;
 
-// HACK: For some reason, <Text> component with variant='success' doesn't use the success color
-const LiveText = styled(Text)`
-  color: ${p => p.theme.success};
-`;
-
 const LiveIndicator = styled('div')`
-  background: ${p => p.theme.success};
+  background: ${p => p.theme.successText};
   height: 8px;
   width: 8px;
   position: relative;
@@ -245,7 +240,7 @@ const LiveIndicator = styled('div')`
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.success};
+    border: 6px solid ${p => p.theme.successText};
     position: absolute;
     border-radius: 50%;
     height: 20px;
