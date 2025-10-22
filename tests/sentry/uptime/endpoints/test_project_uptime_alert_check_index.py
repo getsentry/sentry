@@ -198,10 +198,6 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
 ):
     __test__ = True
 
-    def setUp(self) -> None:
-        self.features = {"organizations:uptime-eap-enabled": True}
-        super().setUp()
-
     def store_uptime_data(
         self,
         subscription_id,
