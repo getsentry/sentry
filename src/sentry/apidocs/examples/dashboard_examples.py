@@ -58,6 +58,7 @@ DASHBOARD_OBJECT = {
                     ],
                     "isHidden": False,
                     "selectedAggregate": None,
+                    "linkedDashboards": [],
                 }
             ],
             "limit": None,

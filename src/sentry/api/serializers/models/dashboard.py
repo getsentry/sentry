@@ -37,6 +37,11 @@ class OnDemandResponse(TypedDict):
     dashboardWidgetQueryId: int
 
 
+class LinkedDashboardResponse(TypedDict):
+    field: str
+    dashboardId: int
+
+
 class DashboardWidgetQueryResponse(TypedDict):
     id: str
     name: str
@@ -50,6 +55,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     onDemand: list[OnDemandResponse]
     isHidden: bool
     selectedAggregate: int | None
+    linkedDashboards: list[LinkedDashboardResponse]
 
 
 class ThresholdType(TypedDict):
@@ -93,7 +99,7 @@ class DashboardWidgetSerializer(Serializer):
         data_sources = serialize(
             list(
                 DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
-                .prefetch_related("dashboardwidgetqueryondemand_set")
+                .prefetch_related("dashboardwidgetqueryondemand_set", "dashboardfieldlink_set")
                 .order_by("order")
             )
         )
@@ -358,7 +364,17 @@ class DashboardWidgetQuerySerializer(Serializer):
             widget_data_sources = [
                 d for d in data_sources if d["dashboardWidgetQueryId"] == widget_query.id
             ]
-            result[widget_query] = {"onDemand": widget_data_sources}
+
+            # Convert field links to response format
+            linked_dashboards = [
+                {"field": link.field, "dashboardId": link.dashboard_id}
+                for link in widget_query.dashboardfieldlink_set.all()
+            ]
+
+            result[widget_query] = {
+                "onDemand": widget_data_sources,
+                "linkedDashboards": linked_dashboards,
+            }
 
         return result
 
@@ -376,6 +392,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
             "selectedAggregate": obj.selected_aggregate,
+            "linkedDashboards": attrs["linkedDashboards"],
         }
 
 
