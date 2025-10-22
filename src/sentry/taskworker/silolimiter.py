@@ -41,9 +41,9 @@ class TaskSiloLimit(SiloLimit):
         # Task attributes are copied by functools.update_wrapper
         # Task properties (@property) are not, so we must explicitly copy them
         # as attributes. These are accessed by the scheduler and other code.
-        limited_func.fullname = decorated_task.fullname
-        limited_func.namespace = decorated_task.namespace
-        limited_func.retry = decorated_task.retry
+        limited_func.fullname = decorated_task.fullname  # type: ignore[attr-defined]
+        limited_func.namespace = decorated_task.namespace  # type: ignore[attr-defined]
+        limited_func.retry = decorated_task.retry  # type: ignore[attr-defined]
 
         # Cast limited_func as the super class type is just Callable, but we
         # know here we have Task instances.
