@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, cast
@@ -20,13 +21,15 @@ from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -193,14 +196,20 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         cohort_2_distribution = []
         cohort_2_distribution_map = defaultdict(list)
+        processed_cohort_2_buckets = set()
 
         for attribute in cohort_2_data.results[0].attribute_distributions.attributes:
+            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+                continue
+
             for bucket in attribute.buckets:
                 cohort_2_distribution_map[attribute.attribute_name].append(
                     {"label": bucket.label, "value": bucket.value}
                 )
 
         for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
+            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+                continue
             for bucket in attribute.buckets:
                 cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))
                 cohort_1_distribution_map[attribute.attribute_name].append(
@@ -218,7 +227,18 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                         cohort_2_distribution.append(
                             (attribute.attribute_name, bucket.label, baseline_value)
                         )
+                        processed_cohort_2_buckets.add((attribute.attribute_name, bucket.label))
                         break
+
+        # Add remaining cohort_2 buckets that weren't in cohort_1 (exist only in baseline)
+        cohort_2_distribution.extend(
+            [
+                (attribute_name, cast(str, bucket["label"]), cast(float, bucket["value"]))
+                for attribute_name, buckets in cohort_2_distribution_map.items()
+                for bucket in buckets
+                if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets
+            ]
+        )
 
         total_outliers = (
             int(totals_1_result["data"][0]["count(span.duration)"])
@@ -239,6 +259,16 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             total_baseline=total_baseline,
         )
 
+        logger.info(
+            "compare_distributions params: baseline=%s, outliers=%s, total_outliers=%s, total_baseline=%s, config=%s, meta=%s",
+            cohort_2_distribution,
+            cohort_1_distribution,
+            total_outliers,
+            total_baseline,
+            {"topKAttributes": 75, "topKBuckets": 75},
+            {"referrer": Referrer.API_TRACE_EXPLORER_STATS.value},
+        )
+
         scored_attrs_rrr = compare_distributions(
             baseline=cohort_2_distribution,
             outliers=cohort_1_distribution,
@@ -252,6 +282,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 "referrer": Referrer.API_TRACE_EXPLORER_STATS.value,
             },
         )
+        logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
 
         # Create RRR order mapping from compare_distributions results
         # scored_attrs_rrr returns a dict with 'results' key containing list of [attribute_name, score] pairs
@@ -270,18 +301,26 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         }
 
         for i, (attr, _) in enumerate(scored_attrs_rrf):
-            distribution = {
-                "attributeName": translate_internal_to_public_alias(
-                    attr, "string", SupportedTraceItemType.SPANS
-                )[0]
-                or attr,
-                "cohort1": cohort_1_distribution_map.get(attr),
-                "cohort2": cohort_2_distribution_map.get(attr),
-                "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
-                    "rrf": i,
-                    "rrr": rrr_order_map.get(attr),
-                },
-            }
-            ranked_distribution["rankedAttributes"].append(distribution)
+
+            public_alias, _, _ = translate_internal_to_public_alias(
+                attr, "string", SupportedTraceItemType.SPANS
+            )
+            if public_alias is None:
+                public_alias = attr
+
+            if not public_alias.startswith("tags[") and (
+                not public_alias.startswith("sentry.")
+                or public_alias == "sentry.normalized_description"
+            ):
+                distribution = {
+                    "attributeName": public_alias,
+                    "cohort1": cohort_1_distribution_map.get(attr),
+                    "cohort2": cohort_2_distribution_map.get(attr),
+                    "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
+                        "rrf": i,
+                        "rrr": rrr_order_map.get(attr),
+                    },
+                }
+                ranked_distribution["rankedAttributes"].append(distribution)
 
         return Response(ranked_distribution)

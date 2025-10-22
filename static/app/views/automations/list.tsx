@@ -23,6 +23,7 @@ import {AutomationSearch} from 'sentry/views/automations/components/automationLi
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 export default function AutomationsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -78,9 +79,9 @@ export default function AutomationsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Automations')}>
+    <SentryDocumentTitle title={t('Alerts')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={t('Automations')}>
+        <ListLayout actions={<Actions />} title={t('Alerts')}>
           <TableHeader />
           <div>
             <AutomationListTable
@@ -136,16 +137,17 @@ function TableHeader() {
 
 function Actions() {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Flex gap="sm">
       <AutomationFeedbackButton />
       <LinkButton
-        to={`${makeAutomationBasePathname(organization.slug)}new/`}
+        to={`${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/`}
         priority="primary"
         icon={<IconAdd />}
         size="sm"
       >
-        {t('Create Automation')}
+        {t('Create Alert')}
       </LinkButton>
     </Flex>
   );

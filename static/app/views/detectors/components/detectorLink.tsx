@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionType,
@@ -28,6 +28,7 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -168,7 +169,11 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
-            <DetailItem>{getDuration(dataSource.queryObj.intervalSeconds)}</DetailItem>
+            <DetailItem>
+              {tct('Every [duration]', {
+                duration: getDuration(dataSource.queryObj.intervalSeconds),
+              })}
+            </DetailItem>
           </Fragment>
         );
       })}
@@ -189,7 +194,6 @@ function Details({detector}: {detector: Detector}) {
       return <MetricDetectorDetails detector={detector} />;
     case 'uptime_domain_failure':
       return <UptimeDetectorDetails detector={detector} />;
-    // TODO: Implement details for Cron detectors
     case 'monitor_check_in_failure':
       return <CronDetectorDetails detector={detector} />;
     case 'error':
@@ -202,13 +206,14 @@ function Details({detector}: {detector: Detector}) {
 
 export function DetectorLink({detector, className}: DetectorLinkProps) {
   const org = useOrganization();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
   const project = useProjectFromId({project_id: detector.projectId});
 
   return (
     <TitleCell
       className={className}
       name={detector.name}
-      link={makeMonitorDetailsPathname(org.slug, detector.id)}
+      link={makeMonitorDetailsPathname(org.slug, detector.id, monitorsLinkPrefix)}
       systemCreated={!detectorTypeIsUserCreateable(detector.type)}
       disabled={!detector.enabled}
       details={

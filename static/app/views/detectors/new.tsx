@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -13,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface NewDetectorFormData {
@@ -22,12 +25,16 @@ interface NewDetectorFormData {
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
   const newMonitorName = t('New Monitor');
 
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+        {
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug, monitorsLinkPrefix),
+        },
         {label: newMonitorName},
       ]}
     />
@@ -37,9 +44,12 @@ function NewDetectorBreadcrumbs() {
 export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
   const location = useLocation();
   const {projects} = useProjects();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
   const detectorType = location.query.detectorType as DetectorType;
 
   const projectIdFromLocation =
@@ -53,7 +63,7 @@ export default function DetectorNew() {
       // Form doesn't allow type to be defined, cast to the expected shape
       const data = formData as NewDetectorFormData;
       navigate({
-        pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
+        pathname: `${makeMonitorBasePathname(organization.slug, monitorsLinkPrefix)}new/settings/`,
         query: {
           detectorType: location.query.detectorType as DetectorType,
           project: data.project,
@@ -70,20 +80,25 @@ export default function DetectorNew() {
     <EditLayout formProps={formProps}>
       <SentryDocumentTitle title={newMonitorName} />
 
-      <EditLayout.Header>
+      <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs />
           <EditLayout.Title title={newMonitorName} />
         </EditLayout.HeaderContent>
-        <MonitorFeedbackButton />
+        <div>
+          <MonitorFeedbackButton />
+        </div>
       </EditLayout.Header>
 
-      <EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>
         <DetectorTypeForm />
       </EditLayout.Body>
 
-      <EditLayout.Footer label={t('Step 1 of 2')}>
-        <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
+      <EditLayout.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
+        <LinkButton
+          priority="default"
+          to={makeMonitorBasePathname(organization.slug, monitorsLinkPrefix)}
+        >
           {t('Cancel')}
         </LinkButton>
         <Tooltip

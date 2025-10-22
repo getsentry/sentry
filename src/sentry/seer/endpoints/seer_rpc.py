@@ -75,6 +75,8 @@ from sentry.seer.explorer.index_data import (
 from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
+    get_issue_details,
+    get_repository_definition,
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
@@ -1021,8 +1023,10 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
+    "get_issue_details": get_issue_details,
     "execute_trace_query_chart": execute_trace_query_chart,
     "execute_trace_query_table": execute_trace_query_table,
+    "get_repository_definition": get_repository_definition,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

@@ -116,10 +116,56 @@ class SubscriptionProcessor:
 
     def __init__(self, subscription: QuerySubscription) -> None:
         self.subscription = subscription
+
+        try:
+            project = self.subscription.project
+            self._has_workflow_engine_processing_only = features.has(
+                "organizations:workflow-engine-single-process-metric-issues",
+                project.organization,
+            )
+            self._has_workflow_engine_processing = (
+                features.has(
+                    "organizations:workflow-engine-metric-alert-processing",
+                    project.organization,
+                )
+                or self._has_workflow_engine_processing_only
+            )
+        except Project.DoesNotExist:
+            # No more init needed; process_update knows to log and return early in this case.
+            return
+
         self._alert_rule: AlertRule | None = None
+        self.detector: Detector | None = None
+        self.last_update = to_datetime(0)  # should be overwritten on all success paths.
+        if self._has_workflow_engine_processing_only or self._has_workflow_engine_processing:
+            # If we're doing workflow engine processing, we need the Detector.
+            try:
+                self.detector = Detector.objects.get(
+                    data_sources__source_id=str(self.subscription.id),
+                    data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                )
+                if self._has_workflow_engine_processing_only:
+                    # Single processing mode; we only need self.detector and self.last_update,
+                    # so we can return.
+                    self.last_update = get_detector_last_update(self.detector, project.id)
+                    return
+            except Detector.DoesNotExist:
+                logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
+
+        if self._has_workflow_engine_processing_only and self.detector is None:
+            # Nothing more we can do.
+            return
+
+        # If we got here, we're trying to do legacy processing.
         try:
             self._alert_rule = AlertRule.objects.get_for_subscription(subscription)
         except AlertRule.DoesNotExist:
+            # This is a bug; if we aren't workflow engine only, there should always be an AlertRule.
+            # process_update looks for this case and cleans up, so we can exit early.
+            logger.info(
+                "No AlertRule found for subscription",
+                extra={"subscription_id": self.subscription.id},
+            )
             return
 
         self.triggers = AlertRuleTrigger.objects.get_for_alert_rule(self._alert_rule)
@@ -132,18 +178,6 @@ class SubscriptionProcessor:
         ) = get_alert_rule_stats(self._alert_rule, self.subscription, self.triggers)
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
-
-        self._has_workflow_engine_processing_only = features.has(
-            "organizations:workflow-engine-single-process-metric-issues",
-            self.subscription.project.organization,
-        )
-        self._has_workflow_engine_processing = (
-            features.has(
-                "organizations:workflow-engine-metric-alert-processing",
-                self.subscription.project.organization,
-            )
-            or self._has_workflow_engine_processing_only
-        )
 
     @property
     def alert_rule(self) -> AlertRule:
@@ -358,18 +392,6 @@ class SubscriptionProcessor:
             comparison_delta = self._alert_rule.comparison_delta
 
         return comparison_delta
-
-    def get_detector(self, has_metric_alert_processing: bool) -> Detector | None:
-        detector = None
-        if has_metric_alert_processing:
-            try:
-                detector = Detector.objects.get(
-                    data_sources__source_id=str(self.subscription.id),
-                    data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-                )
-            except Detector.DoesNotExist:
-                logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
-        return detector
 
     def handle_logging_metrics_dual_processing(
         self,
@@ -699,14 +721,15 @@ class SubscriptionProcessor:
         if self.has_downgraded(dataset, organization):
             return
 
-        if self._alert_rule is None:
-            # QuerySubscriptions must _always_ have an associated AlertRule
+        if self._alert_rule is None and not self._has_workflow_engine_processing_only:
+            # QuerySubscriptions must have an associated AlertRule if we are not using workflow engine only.
             # If the alert rule has been removed then clean up associated tables and return
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0)
             logger.error(
                 "Deleting QuerySubscription due to lack of matching AlertRule",
                 extra={
                     "subscription_id": self.subscription.id,
+                    "dual_processing": self._has_workflow_engine_processing,
                 },
             )
             delete_snuba_subscription(self.subscription)
@@ -733,7 +756,6 @@ class SubscriptionProcessor:
             )
 
         comparison_delta = None
-        detector = None
         with (
             metrics.timer(
                 "incidents.alert_rules.process_update",
@@ -744,8 +766,18 @@ class SubscriptionProcessor:
                 tags={"dual_processing": self._has_workflow_engine_processing},
             ),
         ):
-            detector = self.get_detector(self._has_workflow_engine_processing)
-            comparison_delta = self.get_comparison_delta(detector)
+            metrics.incr("incidents.alert_rules.process_update.start")
+            if self.detector is None and self._alert_rule is None:
+                logger.error(
+                    "No detector or alert rule found for subscription, skipping subscription processing",
+                    extra={
+                        "subscription_id": self.subscription.id,
+                        "project_id": self.subscription.project.id,
+                    },
+                )
+                return
+
+            comparison_delta = self.get_comparison_delta(self.detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
             if aggregation_value is None:
@@ -758,7 +790,7 @@ class SubscriptionProcessor:
                 legacy_results = None
 
                 if self._has_workflow_engine_processing:
-                    if detector is None:
+                    if not (detector := self.detector):
                         logger.error(
                             "Detector not found for subscription, skipping workflow engine processing",
                             extra={
@@ -766,12 +798,17 @@ class SubscriptionProcessor:
                                 "project_id": self.subscription.project.id,
                             },
                         )
+                        metrics.incr(f"{metric_prefix}.no_detector")
                         if self._has_workflow_engine_processing_only:
                             # Nothing more we can do.
                             return
                     else:
                         workflow_engine_results = self.process_results_workflow_engine(
                             detector, subscription_update, aggregation_value, organization
+                        )
+                        # Ensure that we have last_update stored for all Detector evaluations.
+                        store_detector_last_update(
+                            detector, self.subscription.project.id, self.last_update
                         )
 
                         if self._has_workflow_engine_processing_only:
@@ -791,7 +828,7 @@ class SubscriptionProcessor:
                     """
                     legacy_results = self.process_legacy_metric_alerts(
                         aggregation_value,
-                        detector,
+                        self.detector,
                         workflow_engine_results,
                     )
 
@@ -801,7 +838,7 @@ class SubscriptionProcessor:
                     logger.info(
                         metric_prefix,
                         extra={
-                            "detector": detector,
+                            "detector": self.detector,
                             "workflow_engine_triggered": bool(workflow_engine_results),
                             "metric_alert_triggered": bool(legacy_results),
                         },
@@ -1085,6 +1122,24 @@ def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscri
     """
     key_base = ALERT_RULE_BASE_KEY % (alert_rule.id, subscription.project_id)
     return [ALERT_RULE_BASE_STAT_KEY % (key_base, stat_key) for stat_key in ALERT_RULE_STAT_KEYS]
+
+
+def build_detector_last_update_key(detector: Detector, project_id: int) -> str:
+    return f"detector:{detector.id}:project:{project_id}:last_update"
+
+
+def get_detector_last_update(detector: Detector, project_id: int) -> datetime:
+    return to_datetime(
+        int(get_redis_client().get(build_detector_last_update_key(detector, project_id)) or "0")
+    )
+
+
+def store_detector_last_update(detector: Detector, project_id: int, last_update: datetime) -> None:
+    get_redis_client().set(
+        build_detector_last_update_key(detector, project_id),
+        int(last_update.timestamp()),
+        ex=REDIS_TTL,
+    )
 
 
 def build_trigger_stat_keys(

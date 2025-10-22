@@ -7,7 +7,7 @@ describe('ManageReposToolbar', () => {
   const github: PreventAIProvider = 'github';
   const installedOrgs: PreventAIOrg[] = [
     {
-      id: '1',
+      githubOrganizationId: '1',
       name: 'org-1',
       provider: github,
       repos: [
@@ -15,18 +15,16 @@ describe('ManageReposToolbar', () => {
           id: '1',
           name: 'repo-1',
           fullName: 'org-1/repo-1',
-          url: 'https://github.com/org-1/repo-1',
         },
         {
           id: '2',
           name: 'repo-2',
           fullName: 'org-1/repo-2',
-          url: 'https://github.com/org-1/repo-2',
         },
       ],
     },
     {
-      id: '2',
+      githubOrganizationId: '2',
       name: 'org-2',
       provider: github,
       repos: [
@@ -34,7 +32,6 @@ describe('ManageReposToolbar', () => {
           id: '3',
           name: 'repo-3',
           fullName: 'org-2/repo-3',
-          url: 'https://github.com/org-2/repo-3',
         },
       ],
     },
@@ -42,8 +39,8 @@ describe('ManageReposToolbar', () => {
 
   const defaultProps = {
     installedOrgs,
-    selectedOrg: 'org-1',
-    selectedRepo: 'repo-1',
+    selectedOrg: '1',
+    selectedRepo: '1',
     onOrgChange: jest.fn(),
     onRepoChange: jest.fn(),
   };
@@ -80,11 +77,11 @@ describe('ManageReposToolbar', () => {
     const orgOption = await screen.findByText('org-2');
     await userEvent.click(orgOption);
 
-    expect(defaultProps.onOrgChange).toHaveBeenCalledWith('org-2');
+    expect(defaultProps.onOrgChange).toHaveBeenCalledWith('2');
   });
 
   it('calls onRepoChange when repository is changed', async () => {
-    render(<ManageReposToolbar {...defaultProps} selectedRepo="repo-1" />);
+    render(<ManageReposToolbar {...defaultProps} selectedRepo="1" />);
     // Open the repo select dropdown
     const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
     await userEvent.click(repoTrigger);
@@ -93,13 +90,11 @@ describe('ManageReposToolbar', () => {
     const repoOption = await screen.findByText('repo-2');
     await userEvent.click(repoOption);
 
-    expect(defaultProps.onRepoChange).toHaveBeenCalledWith('repo-2');
+    expect(defaultProps.onRepoChange).toHaveBeenCalledWith('2');
   });
 
   it('shows only repos for the selected org', async () => {
-    render(
-      <ManageReposToolbar {...defaultProps} selectedOrg="org-2" selectedRepo="repo-3" />
-    );
+    render(<ManageReposToolbar {...defaultProps} selectedOrg="2" selectedRepo="3" />);
     // Open the repo select dropdown
     const repoTrigger = await screen.findByRole('button', {name: /repo-3/i});
     await userEvent.click(repoTrigger);
@@ -110,5 +105,24 @@ describe('ManageReposToolbar', () => {
     expect(repoOptionTexts).toContain('repo-3');
     expect(repoOptionTexts).not.toContain('repo-1');
     expect(repoOptionTexts).not.toContain('repo-2');
+  });
+
+  it('shows "All Repos" option at the top of repository dropdown', async () => {
+    render(<ManageReposToolbar {...defaultProps} />);
+    const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
+    await userEvent.click(repoTrigger);
+
+    expect(await screen.findByText('All Repos')).toBeInTheDocument();
+  });
+
+  it('calls onRepoChange with "__$ALL_REPOS__" when "All Repos" is selected', async () => {
+    render(<ManageReposToolbar {...defaultProps} />);
+    const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
+    await userEvent.click(repoTrigger);
+
+    const allReposOption = await screen.findByText('All Repos');
+    await userEvent.click(allReposOption);
+
+    expect(defaultProps.onRepoChange).toHaveBeenCalledWith('__$ALL_REPOS__');
   });
 });
