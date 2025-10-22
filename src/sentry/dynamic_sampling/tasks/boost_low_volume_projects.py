@@ -142,12 +142,12 @@ def partition_by_measure(
     spans = []
     transactions = []
 
+    # Use batch feature flag check to avoid N+1 queries.
+    feature_results = features.batch_has_for_organizations(
+        "organizations:dynamic-sampling-spans", orgs
+    )
     for org in orgs:
-        # This is an N+1 query that fetches getsentry database models
-        # internally, but we cannot abstract over batches of feature flag
-        # handlers yet. Hence, we must fetch organizations and do individual
-        # feature checks per org.
-        if features.has("organizations:dynamic-sampling-spans", org):
+        if feature_results.get(f"organization:{org.id}"):
             spans.append(org.id)
         else:
             transactions.append(org.id)
