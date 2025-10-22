@@ -137,11 +137,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         )
 
         # This hook is used for _after_ a detector has been updated
-        detector_handler_settings = instance.group_type.detector_settings
-        if detector_handler_settings:
-            hooks = detector_handler_settings.hooks
-            if hooks and hooks.on_create:
-                hooks.on_create(instance)
+        hooks = instance.settings.hooks
+        if hooks and hooks.on_create:
+            hooks.on_create(instance)
 
         return instance
 
@@ -216,11 +214,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 data=detector.get_audit_log_data(),
             )
 
-            # This hook is used for _after_ a detector has been created
-            detector_handler_settings = detector.group_type.detector_settings
-            if detector_handler_settings:
-                hooks = detector_handler_settings.hooks
-                if hooks and hooks.on_create:
-                    hooks.on_create(detector)
+            hooks = detector.settings.hooks
+            if hooks and hooks.on_create:
+                hooks.on_create(detector)
 
         return detector
