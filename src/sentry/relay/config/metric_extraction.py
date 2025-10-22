@@ -91,10 +91,10 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 
 def get_max_alert_specs(organization: Organization) -> int:
-    if organization.id in options.get("on_demand.extended_alert_spec_orgs") and options.get(
-        "on_demand.extended_max_alert_specs"
+    if organization.id in options.get("on_demand.extended_alert_spec_orgs") and (
+        extended_max_specs := options.get("on_demand.extended_max_alert_specs")
     ):
-        return options.get("on_demand.extended_max_alert_specs")
+        return extended_max_specs
 
     max_alert_specs = options.get("on_demand.max_alert_specs")
     return max_alert_specs
