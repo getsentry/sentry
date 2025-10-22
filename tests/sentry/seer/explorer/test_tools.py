@@ -797,16 +797,13 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def _test_get_issue_details_with_assignee(
+    def test_get_issue_details_with_assigned_user(
         self,
         mock_get_tags,
         mock_get_recommended_event,
-        assigned_type: Literal["user", "team"],
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
-
         data = load_data("python", timestamp=before_now(minutes=5))
-        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         event = self.store_event(data=data, project_id=self.project.id)
 
         mock_get_recommended_event.return_value = event
@@ -814,10 +811,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert isinstance(group, Group)
 
         # Create assignee.
-        if assigned_type == "user":
-            GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
-        else:
-            GroupAssignee.objects.create(group=group, project=self.project, team=self.team)
+        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
 
         result = get_issue_details(
             issue_id=str(group.id),
@@ -828,23 +822,38 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert result is not None
         md = _IssueMetadata.parse_obj(result["issue"])
         assert md.assignedTo is not None
+        assert md.assignedTo.type == "user"
+        assert md.assignedTo.id == str(self.user.id)
+        assert md.assignedTo.email == self.user.email
+        assert md.assignedTo.name == self.user.get_display_name()
 
-        if assigned_type == "user":
-            assert md.assignedTo.type == "user"
-            assert md.assignedTo.id == str(self.user.id)
-            assert md.assignedTo.email == self.user.email
-            assert md.assignedTo.name == self.user.get_display_name()
-        else:
-            assert md.assignedTo.type == "team"
-            assert md.assignedTo.id == str(self.team.id)
-            assert md.assignedTo.name == self.team.slug
-            assert md.assignedTo.email is None
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_with_assigned_team(self, mock_get_tags, mock_get_recommended_event):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        data = load_data("python", timestamp=before_now(minutes=5))
+        event = self.store_event(data=data, project_id=self.project.id)
 
-    def test_get_issue_details_with_assignee_user(self):
-        self._test_get_issue_details_with_assignee(assigned_type="user")
+        mock_get_recommended_event.return_value = event
+        group = event.group
+        assert isinstance(group, Group)
 
-    def test_get_issue_details_with_assignee_team(self):
-        self._test_get_issue_details_with_assignee(assigned_type="team")
+        # Create assignee.
+        GroupAssignee.objects.create(group=group, project=self.project, team=self.team)
+
+        result = get_issue_details(
+            issue_id=str(group.id),
+            organization_id=self.organization.id,
+            selected_event="recommended",
+        )
+
+        assert result is not None
+        md = _IssueMetadata.parse_obj(result["issue"])
+        assert md.assignedTo is not None
+        assert md.assignedTo.type == "team"
+        assert md.assignedTo.id == str(self.team.id)
+        assert md.assignedTo.name == self.team.slug
+        assert md.assignedTo.email is None
 
 
 @pytest.mark.django_db(databases=["default", "control"])
