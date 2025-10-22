@@ -13,6 +13,7 @@ from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
+    DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -37,6 +38,11 @@ class OnDemandResponse(TypedDict):
     dashboardWidgetQueryId: int
 
 
+class LinkedDashboardResponse(TypedDict):
+    field: str
+    dashboardId: int
+
+
 class DashboardWidgetQueryResponse(TypedDict):
     id: str
     name: str
@@ -50,6 +56,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     onDemand: list[OnDemandResponse]
     isHidden: bool
     selectedAggregate: int | None
+    linkedDashboards: list[LinkedDashboardResponse]
 
 
 class ThresholdType(TypedDict):
@@ -354,11 +361,26 @@ class DashboardWidgetQuerySerializer(Serializer):
             )
         )
 
+        # Fetch field links for all queries
+        field_links = DashboardFieldLink.objects.filter(
+            dashboard_widget_query_id__in=[i.id for i in item_list]
+        ).values("dashboard_widget_query_id", "field", "dashboard_id")
+
+        # Group field links by query
+        field_links_by_query: dict[int, list[dict[str, Any]]] = defaultdict(list)
+        for link in field_links:
+            field_links_by_query[link["dashboard_widget_query_id"]].append(
+                {"field": link["field"], "dashboardId": link["dashboard_id"]}
+            )
+
         for widget_query in item_list:
             widget_data_sources = [
                 d for d in data_sources if d["dashboardWidgetQueryId"] == widget_query.id
             ]
-            result[widget_query] = {"onDemand": widget_data_sources}
+            result[widget_query] = {
+                "onDemand": widget_data_sources,
+                "linkedDashboards": field_links_by_query.get(widget_query.id, []),
+            }
 
         return result
 
@@ -376,6 +398,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
             "selectedAggregate": obj.selected_aggregate,
+            "linkedDashboards": attrs["linkedDashboards"],
         }
 
 
