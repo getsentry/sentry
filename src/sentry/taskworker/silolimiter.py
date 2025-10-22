@@ -36,9 +36,7 @@ class TaskSiloLimit(SiloLimit):
                 limited_attr = self.create_override(task_attr)
                 setattr(decorated_task, attr_name, limited_attr)
 
-        # Cast as the super class type is just Callable, but we know here
-        # we have Task instances.
-        limited_func = cast(Task[P, R], self.create_override(decorated_task))
+        limited_func = self.create_override(decorated_task)
 
         # Task attributes are copied by functools.update_wrapper
         # Task properties (@property) are not, so we must explicitly copy them
@@ -47,4 +45,8 @@ class TaskSiloLimit(SiloLimit):
         limited_func.namespace = decorated_task.namespace
         limited_func.retry = decorated_task.retry
 
-        return limited_func
+        # Cast limited_func as the super class type is just Callable, but we
+        # know here we have Task instances.
+        limited_task = cast(Task[P, R], limited_func)
+
+        return limited_task
