@@ -158,7 +158,9 @@ def send_historical_data_to_seer(
         expected_seasonality=data_condition.comparison.get("seasonality"),
     )
     alert = AlertInSeer(
-        id=None, source_id=data_source.id, source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+        id=None,
+        source_id=int(data_source.source_id),
+        source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
     )
     body = StoreDataRequest(
         organization_id=project.organization.id,
