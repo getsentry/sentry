@@ -80,14 +80,14 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
 
             if i == 0:
                 span_op = "gen_ai.invoke_agent"
-                description = "Customer Support Agent"
-                sentry_tags = {"status": "ok"}
+                transaction = "Customer Support Agent"
+                status = "ok"
                 measurements = {}
                 tags = {"gen_ai.conversation.id": conversation_id}
             elif i == 1:
                 span_op = "gen_ai.chat"
-                description = None
-                sentry_tags = {"status": "ok"}
+                transaction = "llm-call"
+                status = "ok"
                 measurements = {
                     "gen_ai.usage.total_tokens": LLM_TOKENS,
                     "gen_ai.usage.total_cost": LLM_COST,
@@ -98,20 +98,20 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
                 }
             elif i == 2:
                 span_op = "gen_ai.execute_tool"
-                description = None
-                sentry_tags = {"status": "ok"}
+                transaction = "tool-call"
+                status = "ok"
                 measurements = {}
                 tags = {"gen_ai.conversation.id": conversation_id}
             elif i == 3:
                 span_op = "gen_ai.invoke_agent"
-                description = "Response Generator"
-                sentry_tags = {"status": "ok"}
+                transaction = "Response Generator"
+                status = "ok"
                 measurements = {}
                 tags = {"gen_ai.conversation.id": conversation_id}
             else:
                 span_op = "gen_ai.chat"
-                description = None
-                sentry_tags = {"status": "internal_error"}
+                transaction = "llm-call"
+                status = "internal_error"
                 measurements = {
                     "gen_ai.usage.total_tokens": LLM_TOKENS,
                     "gen_ai.usage.total_cost": LLM_COST,
@@ -131,8 +131,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
                 organization_id=self.organization.id,
                 is_eap=True,
                 op=span_op,
-                description=description,
-                sentry_tags=sentry_tags,
+                transaction=transaction,
+                status=status,
                 tags=tags,
                 measurements=measurements,
             )
@@ -174,8 +174,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             organization_id=self.organization.id,
             is_eap=True,
             op="gen_ai.invoke_agent",
-            description="Research Agent",
-            sentry_tags={"status": "ok"},
+            transaction="Research Agent",
+            status="ok",
             tags={"gen_ai.conversation.id": conversation_id},
             measurements={},
         )
@@ -190,7 +190,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             organization_id=self.organization.id,
             is_eap=True,
             op="gen_ai.chat",
-            sentry_tags={"status": "ok"},
+            transaction="llm-call",
+            status="ok",
             tags={
                 "gen_ai.conversation.id": conversation_id,
                 "gen_ai.operation.type": "ai_client",
@@ -211,8 +212,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             organization_id=self.organization.id,
             is_eap=True,
             op="gen_ai.invoke_agent",
-            description="Summarization Agent",
-            sentry_tags={"status": "ok"},
+            transaction="Summarization Agent",
+            status="ok",
             tags={"gen_ai.conversation.id": conversation_id},
             measurements={},
         )
@@ -227,7 +228,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             organization_id=self.organization.id,
             is_eap=True,
             op="gen_ai.chat",
-            sentry_tags={"status": "ok"},
+            transaction="llm-call",
+            status="ok",
             tags={
                 "gen_ai.conversation.id": conversation_id,
                 "gen_ai.operation.type": "ai_client",
@@ -272,7 +274,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             organization_id=self.organization.id,
             is_eap=True,
             op="gen_ai.chat",
-            sentry_tags={"status": "ok"},
+            status="ok",
             tags={
                 "gen_ai.conversation.id": conversation_id_1,
                 "gen_ai.operation.type": "ai_client",
@@ -293,7 +295,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             organization_id=self.organization.id,
             is_eap=True,
             op="gen_ai.chat",
-            sentry_tags={"status": "ok"},
+            status="ok",
             tags={
                 "gen_ai.conversation.id": conversation_id_2,
                 "gen_ai.operation.type": "ai_client",
@@ -331,7 +333,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
                 organization_id=self.organization.id,
                 is_eap=True,
                 op="gen_ai.chat",
-                sentry_tags={"status": "ok"},
+                status="ok",
                 tags={"gen_ai.conversation.id": conversation_id},
                 measurements={},
             )
@@ -370,7 +372,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             organization_id=self.organization.id,
             is_eap=True,
             op="default",
-            sentry_tags={"status": "ok"},
+            status="ok",
             tags={"gen_ai.conversation.id": conversation_id},
             measurements={},
         )
@@ -407,7 +409,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
             "invalid_argument",
         ]
 
-        for i, status in enumerate(statuses):
+        for i, span_status in enumerate(statuses):
             self.store_segment(
                 project_id=self.project.id,
                 trace_id=trace_id,
@@ -417,7 +419,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=1000,
                 organization_id=self.organization.id,
                 is_eap=True,
-                sentry_tags={"status": status},
+                status=span_status,
                 tags={"gen_ai.conversation.id": conversation_id},
             )
 
@@ -455,8 +457,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, APITestCase):
                 organization_id=self.organization.id,
                 is_eap=True,
                 op="gen_ai.invoke_agent",
-                description=agent_name,
-                sentry_tags={"status": "ok"},
+                transaction=agent_name,
+                status="ok",
                 tags={"gen_ai.conversation.id": conversation_id},
             )
 
