@@ -10,6 +10,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
+    partition_by_measure,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -281,3 +282,40 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert len(org_2_results) == 2
         assert (p2_1.id, 11, 5, 6) in org_2_results
         assert (p2_2.id, 15, 7, 8) in org_2_results
+
+
+class TestPartitionByMeasure(TestCase):
+    def test_partition_by_measure_with_spans_feature(self) -> None:
+        org = self.create_organization("test-org1")
+        with (
+            self.options({"dynamic-sampling.check_span_feature_flag": True}),
+            self.feature({"organizations:dynamic-sampling-spans": True}),
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.SPANS in result
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert result[SamplingMeasure.SPANS] == [org.id]
+            assert result[SamplingMeasure.TRANSACTIONS] == []
+
+    def test_partition_by_measure_without_spans_feature(self) -> None:
+        org = self.create_organization("test-org1")
+        with (
+            self.options({"dynamic-sampling.check_span_feature_flag": True}),
+            self.feature({"organizations:dynamic-sampling-spans": False}),
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.SPANS in result
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert result[SamplingMeasure.SPANS] == []
+            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
+
+    def test_partition_by_measure_with_span_feature_flag_disabled(self) -> None:
+        org = self.create_organization("test-org1")
+        with (
+            self.options({"dynamic-sampling.check_span_feature_flag": False}),
+            self.feature({"organizations:dynamic-sampling-spans": True}),
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert SamplingMeasure.SPANS not in result
+            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
