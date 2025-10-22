@@ -12,12 +12,6 @@ class OrganizationEventsUptimeResultsEndpointTest(
 ):
     dataset = "uptime_results"
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.features = {
-            "organizations:uptime-eap-enabled": True,
-        }
-
     def build_expected_result(self, **kwargs):
         return {"project.name": None, **kwargs}
 
