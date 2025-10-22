@@ -80,11 +80,11 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     }
   };
 
-  const ONE_MINUTE_MS = 60_000;
+  const ONE_HOUR_MS = 3_600_000;
 
   // We poll for the replay record for 60 minutes after the replay started.
   const REPLAY_EXPIRY_TIMESTAMP = replayReader
-    ? replayReader.getStartTimestampMs() + ONE_MINUTE_MS * 60
+    ? replayReader.getStartTimestampMs() + ONE_HOUR_MS
     : 0;
 
   const polledReplayRecord = usePollReplayRecord({
@@ -100,7 +100,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const showRefreshButton = polledCountSegments > prevSegments;
 
-  const FIVE_MINUTE_MS = 5 * ONE_MINUTE_MS;
+  const FIVE_MINUTE_MS = 300_000;
   const showIsLive = Date.now() < polledFinishedAt + FIVE_MINUTE_MS;
 
   const badge = replayRecord ? (
