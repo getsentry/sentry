@@ -64,6 +64,38 @@ describe('useFetchEventsTimeSeries', () => {
     );
   });
 
+  it('turns off extrapolation', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: 'epm()',
+          extrapolate: false,
+        },
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          disableAggregateExtrapolation: '1',
+        }),
+      })
+    );
+  });
+
   it('can be disabled', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,

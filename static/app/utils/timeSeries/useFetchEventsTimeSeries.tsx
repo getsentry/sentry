@@ -142,11 +142,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           topEvents,
           groupBy,
           sort: sort ? encodeSort(sort) : undefined,
-          disableAggregateExtrapolation: defined(extrapolate)
-            ? extrapolate
-              ? '0'
-              : '1'
-            : undefined,
+          // Careful! The value of `disableAggregateExtrapolation` does not matter. Any value will turn extrapolation off immediately. Pass `undefined` if extrapolation is on, otherwise pass `"1"`
+          disableAggregateExtrapolation:
+            defined(extrapolate) && !extrapolate ? '1' : undefined,
         },
       },
     ],
