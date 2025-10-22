@@ -673,9 +673,9 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": get_project_list(group.project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
-        conditions: list[list[Any]] = []
-        if not include_empty_values:
-            conditions.append([tag, "!=", ""])
+        conditions = [[tag, "!=", ""]]
+        if include_empty_values:
+            conditions = []
         aggregations = [["count()", "", "count"]]
         dataset, filters = self.apply_group_filters(group, filters)
 
@@ -1432,6 +1432,7 @@ class SnubaTagStorage(TagStorage):
         if environment_ids:
             filters["environment"] = environment_ids
         tag_expression = self.format_string.format(key)
+        safe_limit = limit if isinstance(limit, int) else 1000
         results = snuba.query(
             dataset=dataset,
             groupby=[tag_expression],
@@ -1443,7 +1444,7 @@ class SnubaTagStorage(TagStorage):
                 ["max", "timestamp", "last_seen"],
             ],
             orderby=orderby,
-            limit=limit,
+            limit=safe_limit,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
             tenant_ids=tenant_ids,
