@@ -170,14 +170,14 @@ class SnubaTagStorage(TagStorage):
         limit=3,
         raise_on_empty=True,
         tenant_ids=None,
-        include_empty_values: bool = False,
+        include_empty_values: bool | None = None,
         **kwargs,
     ):
         tag = self.format_string.format(key)
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
-        conditions = kwargs.get("conditions", [])
+        conditions = list(kwargs.get("conditions", []))
         aggregations = kwargs.get("aggregations", [])
 
         dataset, filters = self.apply_group_filters(group, filters)
@@ -508,7 +508,7 @@ class SnubaTagStorage(TagStorage):
         environment_id,
         key,
         tenant_ids=None,
-        include_empty_values: bool = False,
+        include_empty_values: bool | None = None,
     ):
         return self.__get_tag_key_and_top_values(
             group.project_id,
@@ -667,7 +667,7 @@ class SnubaTagStorage(TagStorage):
         environment_id,
         key: str,
         tenant_ids=None,
-        include_empty_values: bool = False,
+        include_empty_values: bool | None = None,
     ):
         tag = self.format_string.format(key)
         filters = {"project_id": get_project_list(group.project_id)}
@@ -695,7 +695,7 @@ class SnubaTagStorage(TagStorage):
         key: str,
         limit=TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values: bool = False,
+        include_empty_values: bool | None = None,
     ):
         tag = self.__get_tag_key_and_top_values(
             group.project_id,
@@ -715,7 +715,7 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values: bool = False,
+        include_empty_values: bool | None = None,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
@@ -776,40 +776,10 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
-        empties_by_key: dict[str, dict[str, Any]] = {}
-        if include_empty_values:
-            empties_filters = dict(filters)
-            empties_conditions = kwargs.get("conditions", [])
-            empties_aggregations = [
-                ["count()", "", "count"],
-                ["min", SEEN_COLUMN, "first_seen"],
-                ["max", SEEN_COLUMN, "last_seen"],
-            ]
-            # Force only empty-string values
-            empties_conditions.append([self.value_column, "=", ""])
-
-            empties_by_key = snuba.query(
-                dataset=dataset,
-                start=kwargs.get("start"),
-                end=kwargs.get("end"),
-                groupby=[self.key_column, self.value_column],
-                conditions=empties_conditions,
-                filter_keys=empties_filters,
-                aggregations=empties_aggregations,
-                # At most one empty per key
-                limitby=[1, self.key_column],
-                referrer="tagstore._get_tag_keys_and_top_values_empties",
-                tenant_ids=tenant_ids,
-            )
-
         # Then supplement the key objects with the top values for each.
         for keyobj in keys_with_counts:
             key = keyobj.key
             values = dict(values_by_key.get(key, dict()))
-            if include_empty_values:
-                empty_for_key = empties_by_key.get(key, {})
-                if "" in empty_for_key:
-                    values[""] = empty_for_key[""]
 
             # Keep the highest-count values up to value_limit
             # Sort values by count desc
@@ -1455,9 +1425,9 @@ class SnubaTagStorage(TagStorage):
         limit: int = 1000,
         offset: int = 0,
         tenant_ids: dict[str, int | str] | None = None,
-        include_empty_values: bool = False,
+        include_empty_values: bool | None = None,
     ) -> list[GroupTagValue]:
-        filters = {
+        filters: dict[str, list[Any]] = {
             "project_id": get_project_list(group.project_id),
         }
         if not include_empty_values:
@@ -1498,7 +1468,7 @@ class SnubaTagStorage(TagStorage):
         key: str,
         order_by="-id",
         tenant_ids=None,
-        include_empty_values: bool = False,
+        include_empty_values: bool | None = None,
     ):
         from sentry.api.paginator import SequencePaginator
 

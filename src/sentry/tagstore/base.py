@@ -146,7 +146,14 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_key(self, group, environment_id, key: str, tenant_ids=None):
+    def get_group_tag_key(
+        self,
+        group,
+        environment_id,
+        key: str,
+        tenant_ids=None,
+        include_empty_values: bool | None = None,
+    ):
         """
         >>> get_group_tag_key(group, 3, "key1")
         """
@@ -220,6 +227,7 @@ class TagStorage(Service):
         limit: int = 1000,
         offset: int = 0,
         tenant_ids: dict[str, int | str] | None = None,
+        include_empty_values: bool | None = None,
     ) -> list[GroupTagValue]:
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
@@ -227,7 +235,13 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_value_paginator(
-        self, group, environment_ids, key: str, order_by="-id", tenant_ids=None
+        self,
+        group,
+        environment_ids,
+        key: str,
+        order_by="-id",
+        tenant_ids=None,
+        include_empty_values: bool | None = None,
     ):
         """
         >>> get_group_tag_value_paginator(group, 3, 'environment')
@@ -262,14 +276,27 @@ class TagStorage(Service):
     ) -> dict[int, int]:
         raise NotImplementedError
 
-    def get_group_tag_value_count(self, group, environment_id, key: str, tenant_ids=None):
+    def get_group_tag_value_count(
+        self,
+        group,
+        environment_id,
+        key: str,
+        tenant_ids=None,
+        include_empty_values: bool | None = None,
+    ):
         """
         >>> get_group_tag_value_count(group, 3, 'key1')
         """
         raise NotImplementedError
 
     def get_top_group_tag_values(
-        self, group, environment_id, key: str, limit=TOP_VALUES_DEFAULT_LIMIT, tenant_ids=None
+        self,
+        group,
+        environment_id,
+        key: str,
+        limit=TOP_VALUES_DEFAULT_LIMIT,
+        tenant_ids=None,
+        include_empty_values: bool | None = None,
     ):
         """
         >>> get_top_group_tag_values(group, 3, 'key1')
@@ -301,6 +328,7 @@ class TagStorage(Service):
         keys: list[str] | None = None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
+        include_empty_values: bool | None = None,
         **kwargs,
     ):
 
