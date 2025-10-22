@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {
   CodeBlockWrapper,
   InlineCode,
-  OrderedList,
 } from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 
 const HEIC_SCRIPT = `#!/bin/bash
@@ -126,7 +125,7 @@ function AlternativeIconsContent() {
         <Heading as="h3" size="md">
           {t('How to use:')}
         </Heading>
-        <OrderedList>
+        <ol>
           <li>
             <Text>
               {t('Save the script as')} <InlineCode>optimize.sh</InlineCode>
@@ -142,7 +141,7 @@ function AlternativeIconsContent() {
               {t('Optimize your images:')} <InlineCode>{exampleCommand}</InlineCode>
             </Text>
           </li>
-        </OrderedList>
+        </ol>
       </Flex>
     </Fragment>
   );
