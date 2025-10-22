@@ -459,6 +459,7 @@ describe('CreateProject', () => {
       );
       await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
         waitForElement: false,
+        createOptionText: '#custom-channel',
       });
       expect(await screen.findByText('Channel not found')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
@@ -492,6 +493,7 @@ describe('CreateProject', () => {
       );
       await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
         waitForElement: false,
+        createOptionText: '#custom-channel',
       });
       expect(await screen.findByText('Channel not found')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
