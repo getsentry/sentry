@@ -31,7 +31,6 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
-    disable_uptime_detector,
     remove_uptime_subscription_if_unused,
 )
 from sentry.uptime.subscriptions.tasks import (
@@ -225,18 +224,20 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         subscription_regions = load_regions_for_uptime_subscription(subscription.id)
 
         if result["status"] == CHECKSTATUS_DISALLOWED_BY_ROBOTS:
-            try:
-                detector = get_detector(subscription)
-                logger.info("disallowed_by_robots", extra=result)
-                metrics.incr(
-                    "uptime.result_processor.disallowed_by_robots",
-                    sample_rate=1.0,
-                    tags={"uptime_region": result.get("region", "default")},
-                )
-                disable_uptime_detector(detector)
-            except Exception as e:
-                logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
             return
+            # Disabled, as there a lot of these right now
+            # try:
+            #     detector = get_detector(subscription)
+            #     logger.info("disallowed_by_robots", extra=result)
+            #     metrics.incr(
+            #         "uptime.result_processor.disallowed_by_robots",
+            #         sample_rate=1.0,
+            #         tags={"uptime_region": result.get("region", "default")},
+            #     )
+            #     disable_uptime_detector(detector)
+            # except Exception as e:
+            #     logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
+            # return
 
         # Discard shadow mode region results
         if is_shadow_region_result(result, subscription_regions):
