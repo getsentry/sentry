@@ -41,6 +41,9 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 
 
 def send_new_detector_data(detector: Detector) -> None:
+    """
+    Send historical data for a new Detector to Seer.
+    """
     # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
     data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
     if not data_source_detector:
@@ -78,12 +81,8 @@ def send_new_detector_data(detector: Detector) -> None:
             detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
         )
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
-        data_condition_group = data_condition.condition_group
-        data_condition.delete()
-        data_condition_group.delete()
         raise ValidationError("Couldn't send data to Seer, unable to create detector")
-    else:
-        metrics.incr("anomaly_detection_monitor.created")
+    metrics.incr("anomaly_detection_monitor.created")
 
 
 def handle_send_historical_data_to_seer(
@@ -159,7 +158,9 @@ def send_historical_data_to_seer(
         expected_seasonality=data_condition.comparison.get("seasonality"),
     )
     alert = AlertInSeer(
-        id=None, source_id=data_source.id, source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+        id=None,
+        source_id=int(data_source.source_id),
+        source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
     )
     body = StoreDataRequest(
         organization_id=project.organization.id,

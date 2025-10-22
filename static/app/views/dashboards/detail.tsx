@@ -35,7 +35,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -53,7 +52,6 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {
   cloneDashboard,
@@ -132,12 +130,12 @@ type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
-  selection: PageFilters;
   theme: Theme;
   children?: React.ReactNode;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;
+  useTimeseriesVisualization?: boolean;
 };
 
 type State = {
@@ -345,6 +343,11 @@ class DashboardDetail extends Component<Props, State> {
         return null;
       }
     }
+  }
+
+  get isEmbedded() {
+    const {dashboardState} = this.state;
+    return DashboardState.EMBEDDED === dashboardState;
   }
 
   get isPreview() {
@@ -1026,6 +1029,7 @@ class DashboardDetail extends Component<Props, State> {
       onSetNewWidget,
       onDashboardUpdate,
       projects,
+      useTimeseriesVisualization,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1100,47 +1104,49 @@ class DashboardDetail extends Component<Props, State> {
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>
                 <NoProjectMessage organization={organization}>
-                  <Layout.Header>
-                    <Layout.HeaderContent>
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
-                            label: this.getBreadcrumbLabel(),
-                          },
-                        ]}
-                      />
-                      <Layout.Title>
-                        <DashboardTitle
-                          dashboard={modifiedDashboard ?? dashboard}
-                          onUpdate={this.setModifiedDashboard}
-                          isEditingDashboard={this.isEditingDashboard}
+                  {this.isEmbedded ? null : (
+                    <Layout.Header>
+                      <Layout.HeaderContent>
+                        <Breadcrumbs
+                          crumbs={[
+                            {
+                              label: t('Dashboards'),
+                              to: `/organizations/${organization.slug}/dashboards/`,
+                            },
+                            {
+                              label: this.getBreadcrumbLabel(),
+                            },
+                          ]}
                         />
-                      </Layout.Title>
-                    </Layout.HeaderContent>
-                    <Layout.HeaderActions>
-                      <Controls
-                        organization={organization}
-                        dashboards={dashboards}
-                        dashboard={dashboard}
-                        hasUnsavedFilters={hasUnsavedFilters}
-                        onEdit={this.onEdit}
-                        onCancel={this.onCancel}
-                        onCommit={this.onCommit}
-                        onAddWidget={this.onAddWidget}
-                        onDelete={this.onDelete(dashboard)}
-                        onChangeEditAccess={this.onChangeEditAccess}
-                        dashboardState={dashboardState}
-                        widgetLimitReached={widgetLimitReached}
-                        isSaving={isCommittingChanges}
-                      />
-                    </Layout.HeaderActions>
-                  </Layout.Header>
+                        <Layout.Title>
+                          <DashboardTitle
+                            dashboard={modifiedDashboard ?? dashboard}
+                            onUpdate={this.setModifiedDashboard}
+                            isEditingDashboard={this.isEditingDashboard}
+                          />
+                        </Layout.Title>
+                      </Layout.HeaderContent>
+                      <Layout.HeaderActions>
+                        <Controls
+                          organization={organization}
+                          dashboards={dashboards}
+                          dashboard={dashboard}
+                          hasUnsavedFilters={hasUnsavedFilters}
+                          onEdit={this.onEdit}
+                          onCancel={this.onCancel}
+                          onCommit={this.onCommit}
+                          onAddWidget={this.onAddWidget}
+                          onDelete={this.onDelete(dashboard)}
+                          onChangeEditAccess={this.onChangeEditAccess}
+                          dashboardState={dashboardState}
+                          widgetLimitReached={widgetLimitReached}
+                          isSaving={isCommittingChanges}
+                        />
+                      </Layout.HeaderActions>
+                    </Layout.Header>
+                  )}
                   <Layout.Body>
-                    <Layout.Main fullWidth>
+                    <Layout.Main width="full">
                       <MetricsCardinalityProvider
                         organization={organization}
                         location={location}
@@ -1171,7 +1177,7 @@ class DashboardDetail extends Component<Props, State> {
                                 dashboardPermissions={dashboard.permissions}
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
-                                hasUnsavedChanges={hasUnsavedFilters}
+                                hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard
@@ -1268,6 +1274,9 @@ class DashboardDetail extends Component<Props, State> {
                                     onNewWidgetScrollComplete={
                                       this.handleScrollToNewWidgetComplete
                                     }
+                                    useTimeseriesVisualization={
+                                      useTimeseriesVisualization
+                                    }
                                   />
 
                                   <WidgetBuilderV2
@@ -1334,6 +1343,6 @@ function DashboardDetailWithThemeAndNavigate(props: Omit<Props, 'theme' | 'navig
   return <DashboardDetail {...props} theme={theme} navigate={navigate} />;
 }
 
-export default withPageFilters(
-  withProjects(withApi(withOrganization(DashboardDetailWithThemeAndNavigate)))
+export default withProjects(
+  withApi(withOrganization(DashboardDetailWithThemeAndNavigate))
 );

@@ -166,7 +166,7 @@ const installationMethodOnboarding: Record<
             text: t('Add the Sentry AWS Serverless SDK as a dependency'),
           },
           getInstallCodeBlock(params, {
-            basePackage: '@sentry/aws-serverless',
+            packageName: '@sentry/aws-serverless',
           }),
         ],
       },
@@ -218,17 +218,17 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
-    basePackage: '@sentry/aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'aws-lambda',
-    sdkPackage: '@sentry/aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   mcpOnboarding: getNodeMcpOnboarding({
-    basePackage: 'aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   platformOptions,
 };

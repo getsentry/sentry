@@ -487,7 +487,7 @@ export const APIRoute = createAPIFileRoute("/api/sentry-example-api")({
 };
 
 const profilingOnboarding = getJavascriptFullStackOnboarding({
-  basePackage: '@sentry/tanstackstart-react',
+  packageName: '@sentry/tanstackstart-react',
   browserProfilingLink:
     'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/profiling/browser-profiling/',
   nodeProfilingLink:
@@ -498,12 +498,12 @@ const docs: Docs = {
   onboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'tanstackstart-react',
+    packageName: '@sentry/tanstackstart-react',
     configFileName: 'app/ssr.tsx',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'tanstackstart-react',
-    sdkPackage: '@sentry/tanstackstart-react',
+    packageName: '@sentry/tanstackstart-react',
   }),
 };
 

@@ -37,31 +37,34 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return (
-    <SentryDocumentTitle
-      title={title ? t('%s - New Automation', title) : t('New Automation')}
-    />
+    <SentryDocumentTitle title={title ? t('%s - New Alert', title) : t('New Alert')} />
   );
 }
 
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automation'), to: makeAutomationBasePathname(organization.slug)},
-        {label: title ? title : t('New Automation')},
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+        },
+        {label: title ? title : t('New Alert')},
       ]}
     />
   );
 }
 
 const initialData = {
-  name: 'New Automation',
+  name: 'New Alert',
   environment: null,
   frequency: 1440,
   enabled: true,
@@ -71,6 +74,7 @@ export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
@@ -112,10 +116,16 @@ export default function AutomationNewSettings() {
         const automation = await createAutomation(
           getNewAutomationData(data as AutomationFormData, state)
         );
-        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+        navigate(
+          makeAutomationDetailsPathname(
+            organization.slug,
+            automation.id,
+            automationsLinkPrefix
+          )
+        );
       }
     },
-    [createAutomation, state, navigate, organization.slug]
+    [createAutomation, state, navigate, organization.slug, automationsLinkPrefix]
   );
 
   return (
@@ -141,7 +151,7 @@ export default function AutomationNewSettings() {
           </HeaderInner>
         </StyledLayoutHeader>
         <StyledBody maxWidth={maxWidth}>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,
@@ -171,12 +181,12 @@ export default function AutomationNewSettings() {
           <Flex gap="md">
             <LinkButton
               priority="default"
-              to={`${makeAutomationBasePathname(organization.slug)}new/`}
+              to={`${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/`}
             >
               {t('Back')}
             </LinkButton>
             <Button priority="primary" type="submit">
-              {t('Create Automation')}
+              {t('Create Alert')}
             </Button>
           </Flex>
         </Flex>

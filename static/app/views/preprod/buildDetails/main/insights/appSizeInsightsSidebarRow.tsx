@@ -1,15 +1,18 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
 import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {
   ProcessedInsight,
   ProcessedInsightFile,
@@ -26,16 +29,33 @@ export function formatUpside(percentage: number): string {
   return `~0%`;
 }
 
+const INSIGHTS_WITH_MORE_INFO_MODAL = [
+  'image_optimization',
+  'alternate_icons_optimization',
+];
+
 export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
   onToggleExpanded,
+  platform,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
+  platform?: Platform;
 }) {
   const theme = useTheme();
+  const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
+
+  const handleOpenModal = () => {
+    if (insight.key === 'alternate_icons_optimization') {
+      openAlternativeIconsInsightModal();
+    } else if (insight.key === 'image_optimization') {
+      openOptimizeImagesModal(platform);
+    }
+  };
+
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
       <Flex align="start" justify="between">
@@ -60,9 +80,16 @@ export function AppSizeInsightsSidebarRow({
         </Flex>
       </Flex>
 
-      <Text variant="muted" size="sm">
-        {insight.description}
-      </Text>
+      <Stack gap="lg" align="start" paddingBottom="md">
+        <Text variant="muted" size="sm">
+          {insight.description}
+        </Text>
+        {shouldShowTooltip && (
+          <Button priority="link" onClick={handleOpenModal} size="sm">
+            {t('Fix this locally')}
+          </Button>
+        )}
+      </Stack>
 
       <Container>
         <Button
@@ -112,7 +139,18 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
   }
 
   return (
-    <FlexAlternatingRow>
+    <Flex
+      align="center"
+      justify="between"
+      gap="lg"
+      padding="xs sm"
+      style={{
+        borderRadius: '4px',
+        minWidth: 0,
+        maxWidth: '100%',
+        overflow: 'hidden',
+      }}
+    >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
@@ -124,7 +162,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
           ({formatUpside(file.percentage / 100)})
         </Text>
       </Flex>
-    </FlexAlternatingRow>
+    </Flex>
   );
 }
 
@@ -150,8 +188,19 @@ function OptimizableImageFileRow({
   );
 
   return (
-    <Container>
-      <FlexAlternatingRow>
+    <Fragment key={file.path}>
+      <Flex
+        align="center"
+        justify="between"
+        gap="lg"
+        padding="xs sm"
+        style={{
+          borderRadius: '4px',
+          minWidth: 0,
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}
+      >
         <Text size="sm" ellipsis style={{flex: 1}}>
           {file.path}
         </Text>
@@ -163,7 +212,7 @@ function OptimizableImageFileRow({
             ({formatUpside(file.percentage / 100)})
           </Text>
         </Flex>
-      </FlexAlternatingRow>
+      </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
         {hasMinifySavings && (
           <Flex align="center" gap="sm">
@@ -212,18 +261,6 @@ function OptimizableImageFileRow({
           </Flex>
         )}
       </Flex>
-    </Container>
+    </Fragment>
   );
 }
-
-const FlexAlternatingRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-radius: ${({theme}) => theme.borderRadius};
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  gap: ${({theme}) => theme.space.lg};
-  padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
-`;

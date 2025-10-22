@@ -52,7 +52,14 @@ def schedule_update_project_config(detector: Detector) -> None:
     """
     enabled_features = on_demand_metrics_feature_flags(detector.project.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    if "organizations:on-demand-metrics-extraction" not in enabled_features and not prefilling:
+    prefilling_for_deprecation = (
+        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
+    )
+    if (
+        "organizations:on-demand-metrics-extraction" not in enabled_features
+        and not prefilling
+        and not prefilling_for_deprecation
+    ):
         return
 
     snuba_query = fetch_snuba_query(detector)
@@ -65,6 +72,7 @@ def schedule_update_project_config(detector: Detector) -> None:
         snuba_query.query,
         None,
         prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
     )
     if should_use_on_demand:
         schedule_invalidate_project_config(
@@ -243,10 +251,15 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
+        data_source: SnubaQueryDataSourceType | None = None
+
         if "data_source" in validated_data:
-            data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
-            if data_source:
-                self.update_data_source(instance, data_source)
+            data_source = validated_data.pop("data_source")
+        elif "data_sources" in validated_data:
+            data_source = validated_data.pop("data_sources")[0]
+
+        if data_source is not None:
+            self.update_data_source(instance, data_source)
 
         instance.save()
 
@@ -266,7 +279,14 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         detector = super().create(validated_data)
 
         if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC.value:
-            send_new_detector_data(detector)
+            try:
+                send_new_detector_data(detector)
+            except Exception:
+                # Sending historical data failed; Detector won't be save, but we
+                # need to clean up database state that has already been created.
+                detector.workflow_condition_group.delete()
+
+                raise
 
         schedule_update_project_config(detector)
         return detector

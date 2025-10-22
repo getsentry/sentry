@@ -9,6 +9,7 @@ from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
@@ -16,38 +17,42 @@ from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 
+# Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
+SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
+USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
+
+
+def is_system_created_detector(detector: Detector) -> bool:
+    return detector.type in (ErrorGroupType.slug,)
+
+
+def can_edit_system_created_detectors(request: Request, project: Project) -> bool:
+    return request.access.has_any_project_scope(project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES)
+
+
+def can_edit_user_created_detectors(request: Request, project: Project) -> bool:
+    return request.access.has_any_project_scope(project, USER_CREATED_DETECTOR_REQUIRED_SCOPES)
+
 
 def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     """
     Determine if the requesting user has access to edit the given detectors.
-    If the request does not have the "alerts:write" permission, then we must verify that the user is a team admin
-    with "project:write" access to the project(s) in their request.
+    System created detectors lock edit access to org:write, while user created detectors
+    are more permissive.
     """
-    if request.access.has_scope("org:admin") or request.access.has_scope("org:write"):
-        return True
+    required_scopes = (
+        SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
+        if any(is_system_created_detector(detector) for detector in detectors)
+        else USER_CREATED_DETECTOR_REQUIRED_SCOPES
+    )
 
     projects = Project.objects.filter(
         id__in=detectors.values_list("project_id", flat=True).distinct()
     )
 
-    for project in projects:
-        detectors_for_project = detectors.filter(project=project.id)
-
-        has_project_access = request.access.has_project_scope(project, "project:read")
-        has_alerts_write = request.access.has_project_scope(project, "alerts:write")
-
-        if has_alerts_write and has_project_access:
-            # team admins can modify all detectors for projects they have access to
-            has_team_admin_access = request.access.has_project_scope(project, "project:write")
-            if has_team_admin_access:
-                continue
-            # members can modify user-created detectors for projects they have access to
-            if all(detector.created_by_id is not None for detector in detectors_for_project):
-                continue
-
-        return False
-
-    return True
+    return all(
+        request.access.has_any_project_scope(project, required_scopes) for project in projects
+    )
 
 
 def can_edit_detector(detector: Detector, request: Request) -> bool:
@@ -56,23 +61,20 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
     in their request.
     """
-    # if the requesting user has any of these org-level permissions, then they can create an alert
-    if request.access.has_scope("org:admin") or request.access.has_scope("org:write"):
-        return True
+    if is_system_created_detector(detector) and not can_edit_system_created_detectors(
+        request, detector.project
+    ):
+        return False
 
-    project = detector.project
+    return can_edit_user_created_detectors(request, detector.project)
 
-    if request.access.has_project_scope(project, "alerts:write"):
-        # team admins can modify all detectors for projects they have access to
-        has_team_admin_access = request.access.has_project_scope(project, "project:write")
-        if has_team_admin_access:
-            return True
-        # members can modify user-created detectors for projects they have access to
-        has_project_access = request.access.has_project_scope(project, "project:read")
-        if has_project_access and detector.created_by_id is not None:
-            return True
 
-    return False
+def can_edit_detector_workflow_connections(detector: Detector, request: Request) -> bool:
+    """
+    Anyone with alert write access to the project can connect/disconnect detectors of any type,
+    which is slightly different from full edit access which differs by detector type.
+    """
+    return can_edit_user_created_detectors(request, detector.project)
 
 
 def validate_detectors_exist_and_have_permissions(
@@ -88,7 +90,7 @@ def validate_detectors_exist_and_have_permissions(
     if missing_detector_ids:
         raise serializers.ValidationError(f"Some detectors do not exist: {missing_detector_ids}")
 
-    if not can_edit_detectors(detectors, request):
+    if not all(can_edit_detector_workflow_connections(detector, request) for detector in detectors):
         raise PermissionDenied
 
     return detectors
@@ -161,7 +163,7 @@ class DetectorWorkflowValidator(CamelSnakeSerializer):
                     project__organization=self.context["organization"],
                     id=validated_data["detector_id"],
                 )
-                if not can_edit_detector(detector, self.context["request"]):
+                if not can_edit_detector_workflow_connections(detector, self.context["request"]):
                     raise PermissionDenied
                 workflow = Workflow.objects.get(
                     organization=self.context["organization"], id=validated_data["workflow_id"]
