@@ -90,7 +90,9 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
               <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
             </TagBadge>
           ),
-          disabled: globalFilters.some(filter => filter.tag.key === tag.key),
+          disabled: globalFilters.some(
+            filter => filter.tag.key === tag.key && filter.dataset === selectedDataset
+          ),
         };
       })
     : [];
