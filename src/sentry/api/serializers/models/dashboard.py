@@ -13,7 +13,6 @@ from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
-    DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -100,7 +99,7 @@ class DashboardWidgetSerializer(Serializer):
         data_sources = serialize(
             list(
                 DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
-                .prefetch_related("dashboardwidgetqueryondemand_set")
+                .prefetch_related("dashboardwidgetqueryondemand_set", "dashboardfieldlink_set")
                 .order_by("order")
             )
         )
@@ -361,25 +360,20 @@ class DashboardWidgetQuerySerializer(Serializer):
             )
         )
 
-        # Fetch field links for all queries
-        field_links = DashboardFieldLink.objects.filter(
-            dashboard_widget_query_id__in=[i.id for i in item_list]
-        ).values("dashboard_widget_query_id", "field", "dashboard_id")
-
-        # Group field links by query
-        field_links_by_query: dict[int, list[dict[str, Any]]] = defaultdict(list)
-        for link in field_links:
-            field_links_by_query[link["dashboard_widget_query_id"]].append(
-                {"field": link["field"], "dashboardId": link["dashboard_id"]}
-            )
-
         for widget_query in item_list:
             widget_data_sources = [
                 d for d in data_sources if d["dashboardWidgetQueryId"] == widget_query.id
             ]
+
+            # Convert field links to response format
+            linked_dashboards = [
+                {"field": link.field, "dashboardId": link.dashboard_id}
+                for link in widget_query.dashboardfieldlink_set.all()
+            ]
+
             result[widget_query] = {
                 "onDemand": widget_data_sources,
-                "linkedDashboards": field_links_by_query.get(widget_query.id, []),
+                "linkedDashboards": linked_dashboards,
             }
 
         return result
