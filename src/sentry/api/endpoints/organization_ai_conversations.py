@@ -193,40 +193,55 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
         ]
 
         if conversations:
-            self._enrich_with_agent_flows(all_time_params, conversations)
+            self._enrich_conversations(all_time_params, conversations)
 
         return conversations
 
-    def _enrich_with_agent_flows(self, snuba_params, conversations: list[dict]) -> None:
+    def _enrich_conversations(self, snuba_params, conversations: list[dict]) -> None:
         """
-        Enrich conversations with flow information by querying agent spans.
-        Flow is an ordered array of agent names (from gen_ai.invoke_agent spans).
+        Enrich conversations with flow and trace IDs by querying all spans.
         """
         conversation_ids = [conv["conversationId"] for conv in conversations]
 
-        agent_spans_results = Spans.run_table_query(
+        # Query all spans for these conversations to get both agent flows and trace IDs
+        all_spans_results = Spans.run_table_query(
             params=snuba_params,
-            query_string=f"span.op:gen_ai.invoke_agent gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
+                "span.op",
                 "span.description",
+                "trace",
                 "precise.start_ts",
             ],
             orderby=["gen_ai.conversation.id", "precise.start_ts"],
             offset=0,
-            limit=1000,
-            referrer=Referrer.API_AI_CONVERSATIONS_AGENT_FLOWS.value,
+            limit=10000,
+            referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
             config=SearchResolverConfig(auto_fields=True),
             sampling_mode=None,
         )
 
         flows_by_conversation = defaultdict(list)
-        for row in agent_spans_results.get("data", []):
+        traces_by_conversation = defaultdict(set)
+
+        for row in all_spans_results.get("data", []):
             conv_id = row.get("gen_ai.conversation.id", "")
-            agent_name = row.get("span.description", "")
-            if conv_id and agent_name:
-                flows_by_conversation[conv_id].append(agent_name)
+            if not conv_id:
+                continue
+
+            # Collect trace IDs
+            trace_id = row.get("trace", "")
+            if trace_id:
+                traces_by_conversation[conv_id].add(trace_id)
+
+            # Collect agent flow (only from invoke_agent spans)
+            if row.get("span.op") == "gen_ai.invoke_agent":
+                agent_name = row.get("span.description", "")
+                if agent_name:
+                    flows_by_conversation[conv_id].append(agent_name)
 
         for conversation in conversations:
             conv_id = conversation["conversationId"]
             conversation["flow"] = flows_by_conversation.get(conv_id, [])
+            conversation["traceIds"] = list(traces_by_conversation.get(conv_id, set()))

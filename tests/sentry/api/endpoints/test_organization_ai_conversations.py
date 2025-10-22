@@ -169,6 +169,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert conversation["duration"] > 0
         assert conversation["timestamp"] > 0
         assert conversation["flow"] == ["Customer Support Agent", "Response Generator"]
+        assert len(conversation["traceIds"]) == 1
+        assert conversation["traceIds"][0] == trace_id
 
     def test_conversation_spanning_multiple_traces(self) -> None:
         """Test a conversation with spans across multiple traces"""
@@ -232,6 +234,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 2
         assert conversation["flow"] == ["Research Agent", "Summarization Agent"]
+        assert len(conversation["traceIds"]) == 2
+        assert set(conversation["traceIds"]) == {trace_id_1, trace_id_2}
 
     def test_multiple_conversations(self) -> None:
         """Test multiple conversations are returned correctly"""
@@ -344,6 +348,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert conversation["totalTokens"] == 0
         assert conversation["totalCost"] == 0.0
         assert conversation["flow"] == []
+        assert len(conversation["traceIds"]) == 1
 
     def test_mixed_error_statuses(self) -> None:
         """Test that various error statuses are counted correctly"""
