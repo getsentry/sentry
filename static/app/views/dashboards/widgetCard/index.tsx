@@ -42,6 +42,7 @@ import {
   OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -49,6 +50,7 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
+import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
@@ -112,6 +114,7 @@ type Props = WithRouterProps & {
   showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
+  useTimeseriesVisualization?: boolean;
   windowWidth?: number;
 };
 
@@ -174,6 +177,7 @@ function WidgetCard(props: Props) {
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     disableTableActions,
+    useTimeseriesVisualization,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -304,6 +308,27 @@ function WidgetCard(props: Props) {
   const widgetQueryError = isWidgetInvalid
     ? t('Widget query condition is invalid.')
     : undefined;
+
+  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  if (canUseTimeseriesVisualization && useTimeseriesVisualization) {
+    return (
+      <ErrorBoundary
+        customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      >
+        <VisualizationWidget
+          widget={widget}
+          selection={selection}
+          dashboardFilters={dashboardFilters}
+          onDataFetched={onDataFetched}
+          onWidgetTableSort={onWidgetTableSort}
+          onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+          renderErrorMessage={renderErrorMessage}
+          onDataFetchStart={onDataFetchStart}
+          tableItemLimit={tableItemLimit}
+        />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary
