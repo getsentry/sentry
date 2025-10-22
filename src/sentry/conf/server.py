@@ -2084,7 +2084,7 @@ SENTRY_USE_UPTIME = False
 SENTRY_USE_TASKBROKER = False
 
 # This flag activates the objectstore in devservices
-SENTRY_USE_OBJECTSTORE = False
+SENTRY_USE_OBJECTSTORE = True
 
 # Max file size for serialized file uploads in API
 SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000

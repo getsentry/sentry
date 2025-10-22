@@ -62,6 +62,9 @@ export default function BuildDetails() {
       }
     );
 
+  const testImageHash = 'test-snapshot-hash-12345';
+  const snapshotUrl = `/projects/${organization.slug}/${projectId}/files/snapshots/${testImageHash}/`;
+
   const wasProcessingRef = useRef(isProcessing);
 
   useEffect(() => {
@@ -156,6 +159,15 @@ export default function BuildDetails() {
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isLoading}
               />
+              <TestSnapshotContainer>
+                <h3>Test Snapshot</h3>
+                <img
+                  src={`/api/0${snapshotUrl}`}
+                  alt="Test Snapshot"
+                  style={{maxWidth: '400px', border: '1px solid #ccc'}}
+                />
+                <p>Image hash: {testImageHash}</p>
+              </TestSnapshotContainer>
             </BuildDetailsMain>
           </UrlParamBatchProvider>
         </BuildDetailsBody>
@@ -183,4 +195,12 @@ const BuildDetailsSide = styled(Layout.Side)`
     min-width: 325px;
     max-width: 325px;
   }
+`;
+
+const TestSnapshotContainer = styled('div')`
+  margin-top: ${p => p.theme.space['3xl']};
+  padding: ${p => p.theme.space.lg};
+  border: 2px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundSecondary};
 `;

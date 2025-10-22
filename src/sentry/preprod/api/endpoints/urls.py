@@ -34,6 +34,7 @@ from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
 )
+from .project_preprod_snapshot import ProjectPreprodSnapshotEndpoint
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .pull_request.organization_pullrequest_size_analysis_download import (
@@ -70,6 +71,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/install-details/$",
         ProjectPreprodInstallDetailsEndpoint.as_view(),
         name="sentry-api-0-project-preprod-install-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/snapshots/(?P<image_hash>[^/]+)/$",
+        ProjectPreprodSnapshotEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshot",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/delete/$",
