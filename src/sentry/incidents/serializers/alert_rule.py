@@ -10,7 +10,6 @@ from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import features
 from sentry.api.exceptions import BadRequest, RequestTimeout
 from sentry.api.fields.actor import ActorField
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
@@ -298,15 +297,12 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
 
             self._handle_triggers(alert_rule, triggers)
 
-            should_dual_write = features.has(
-                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
-            )
-            if should_dual_write:
-                try:
-                    dual_write_alert_rule(alert_rule, user)
-                except Exception:
-                    sentry_sdk.capture_exception()
-                    raise BadRequest(message="Error when creating alert rule")
+            try:
+                dual_write_alert_rule(alert_rule, user)
+            except Exception:
+                sentry_sdk.capture_exception()
+                raise BadRequest(message="Error when creating alert rule")
+
             return alert_rule
 
     def _apply_error_upsampling_if_needed(self, validated_data):
