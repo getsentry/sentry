@@ -25,18 +25,29 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
-class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
-    repositories = serializers.ListField(required=True)
-    automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
+class BranchOverrideSerializer(CamelSnakeSerializer):
+    tag_name = serializers.CharField(required=True)
+    tag_value = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=True)
 
-    def validate_repositories(self, value):
-        """Ensure all repositories have organization_id and integration_id set."""
-        for repo in value:
-            if not repo.get("organization_id") or not repo.get("integration_id"):
-                raise serializers.ValidationError(
-                    "All repositories must have organization_id and integration_id set"
-                )
-        return value
+
+class RepositorySerializer(CamelSnakeSerializer):
+    organization_id = serializers.IntegerField(required=True)
+    integration_id = serializers.CharField(required=True)
+    provider = serializers.CharField(required=True)
+    owner = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
+    external_id = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=False, allow_null=True)
+    branch_overrides = BranchOverrideSerializer(many=True, required=False)
+    instructions = serializers.CharField(required=False, allow_null=True)
+    base_commit_sha = serializers.CharField(required=False, allow_null=True)
+    provider_raw = serializers.CharField(required=False, allow_null=True)
+
+
+class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
+    repositories = RepositorySerializer(many=True, required=True)
+    automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
 
 
 class SeerProjectPreference(BaseModel):
