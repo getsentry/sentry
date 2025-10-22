@@ -1,4 +1,4 @@
-import {act, useState, type ReactNode} from 'react';
+import {act, type ReactNode} from 'react';
 import {duration} from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
@@ -87,7 +87,6 @@ describe('replayDetailsUserBadge', () => {
 
   it('should show refresh button when replay record is outdated', async () => {
     const now = Date.now();
-    // Todo: Consider counting endpoint times
     const STARTED_AT = new Date(now - 10 * 1000);
     const FINISHED_AT_FIVE_SECONDS = new Date(now - 5 * 1000);
     const FINISHED_AT_TEN_SECONDS = new Date(now);
