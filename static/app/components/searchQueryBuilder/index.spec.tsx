@@ -4396,7 +4396,7 @@ describe('SearchQueryBuilder', () => {
               name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
             })
           ).toBeInTheDocument();
-          expect(getLastInput()).toHaveFocus();
+          expect(getLastInput()).not.toHaveFocus();
         });
       });
 
