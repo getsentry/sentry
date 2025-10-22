@@ -262,7 +262,11 @@ export function areWildcardOperatorsAllowed(
     return false;
   }
 
-  if (fieldDefinition.valueType === FieldValueType.STRING) {
+  if (
+    fieldDefinition.valueType === FieldValueType.STRING ||
+    fieldDefinition.valueType === FieldValueType.NUMBER ||
+    fieldDefinition.valueType === FieldValueType.INTEGER
+  ) {
     return fieldDefinition.allowWildcard ?? true;
   }
 
