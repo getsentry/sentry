@@ -91,22 +91,25 @@ class BulkDeleteQuery:
         if self.organization_id:
             queryset = queryset.filter(organization_id=self.organization_id)
 
-        if self.order_by[0] == "-":
+        if self.order_by and self.order_by[0] == "-":
             step = -batch_size
             order_field = self.order_by[1:]
-        else:
+        elif self.order_by:
             step = batch_size
             order_field = self.order_by
+        else:
+            step = batch_size
+            order_field = "id"
 
-        queryset = queryset.values_list("id", order_field)
-
+        # Use regular queryset (not values_list) for RangeQuerySetWrapper
+        # to avoid datetime serialization issues when filtering
         wrapper = RangeQuerySetWrapper(
             queryset,
             step=step,
             order_by=order_field,
             override_unique_safety_check=True,
-            result_value_getter=lambda item: item[1],
+            result_value_getter=lambda item: getattr(item, order_field),
         )
 
         for batch in itertools.batched(wrapper, chunk_size):
-            yield tuple(item[0] for item in batch)
+            yield tuple(item.id for item in batch)

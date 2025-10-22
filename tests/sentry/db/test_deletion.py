@@ -86,3 +86,89 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
             results.update(chunk)
 
         assert results == expected_group_ids
+
+    def test_iteration_with_multiple_batches_datetime_field(self) -> None:
+        """Test that datetime field ordering works correctly across multiple batches.
+
+        This test specifically validates the fix for the issue where datetime values
+        from values_list() were being passed to filter() causing TypeError.
+        """
+        now = timezone.now()
+        target_project = self.project
+
+        # Create multiple groups with different last_seen times to ensure
+        # multiple batches with datetime-based pagination
+        expected_group_ids = set()
+        for i in range(5):
+            group = self.create_group(target_project, last_seen=now - timedelta(hours=i))
+            expected_group_ids.add(group.id)
+
+        other_project = self.create_project()
+        self.create_group(other_project, last_seen=now)
+
+        # Use a small batch_size and chunk_size to force multiple iterations
+        # This ensures the RangeQuerySetWrapper filters with datetime values
+        iterator = BulkDeleteQuery(
+            model=Group,
+            project_id=target_project.id,
+            dtfield="last_seen",
+            order_by="last_seen",
+            days=0,
+        ).iterator(chunk_size=2, batch_size=2)
+
+        results: set[int] = set()
+        for chunk in iterator:
+            results.update(chunk)
+
+        assert results == expected_group_ids
+
+    def test_datetime_field_pagination_bug_reproduction(self) -> None:
+        """Reproduces the exact bug: TypeError when filtering datetime values.
+
+        This test reproduces the exact scenario from the bug report where
+        RangeQuerySetWrapper would fail with:
+        TypeError: fromisoformat: argument must be str
+
+        The bug occurred when:
+        1. BulkDeleteQuery.iterator() used values_list("id", datetime_field)
+        2. RangeQuerySetWrapper extracted datetime objects as cur_value
+        3. Filtering with datetime objects (not strings) caused Django to fail
+
+        With the fix, we use regular queryset (not values_list) so datetime
+        objects are properly handled during filtering.
+        """
+        now = timezone.now()
+        target_project = self.project
+
+        # Create groups with staggered datetime values
+        # This ensures the RangeQuerySetWrapper must paginate through multiple batches
+        groups = []
+        for i in range(10):
+            group = self.create_group(target_project, last_seen=now - timedelta(minutes=i * 10))
+            groups.append(group)
+
+        # Small batch_size forces multiple RangeQuerySetWrapper iterations
+        # Each iteration after the first will call filter() with a datetime value
+        # which would have triggered: TypeError: fromisoformat: argument must be str
+        iterator = BulkDeleteQuery(
+            model=Group,
+            project_id=target_project.id,
+            dtfield="last_seen",
+            order_by="last_seen",
+            days=0,
+        ).iterator(chunk_size=3, batch_size=3)
+
+        # If the bug exists, this will raise TypeError on the second iteration
+        # when RangeQuerySetWrapper tries to filter with a datetime object
+        collected_ids = []
+        iteration_count = 0
+        for chunk in iterator:
+            iteration_count += 1
+            collected_ids.extend(chunk)
+
+        # Verify we actually did multiple iterations (proving we tested pagination)
+        assert iteration_count > 1, "Test must iterate multiple times to prove the fix"
+
+        # Verify all groups were collected
+        assert len(collected_ids) == len(groups)
+        assert set(collected_ids) == {g.id for g in groups}
