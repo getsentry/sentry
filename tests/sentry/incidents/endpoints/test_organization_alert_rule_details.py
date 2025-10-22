@@ -57,13 +57,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.migration_helpers.alert_rule import (
-    migrate_alert_rule,
-    migrate_metric_action,
-    migrate_metric_data_conditions,
-    migrate_resolve_threshold_data_condition,
-)
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
@@ -229,19 +224,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        critical_trigger = AlertRuleTrigger.objects.get(
-            alert_rule_id=self.alert_rule.id, label="critical"
-        )
-        critical_trigger_action = AlertRuleTriggerAction.objects.get(
-            alert_rule_trigger=critical_trigger
-        )
-        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
-
-        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
-        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
-            self.alert_rule
-        )
+        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
+        self.detector = Detector.objects.get(id=ard.detector_id)
 
         with (
             self.feature("organizations:incidents"),
@@ -804,19 +788,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        critical_trigger = AlertRuleTrigger.objects.get(
-            alert_rule_id=self.alert_rule.id, label="critical"
-        )
-        critical_trigger_action = AlertRuleTriggerAction.objects.get(
-            alert_rule_trigger=critical_trigger
-        )
-        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
-
-        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
-        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
-            self.alert_rule
-        )
+        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
+        self.detector = Detector.objects.get(id=ard.detector_id)
 
         alert_rule = self.alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
