@@ -1,8 +1,8 @@
 import {useMemo, useRef} from 'react';
 
+import {DockableSplitPanel} from 'sentry/components/dockableSplitPanel';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import SplitPanel from 'sentry/components/splitPanel';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -67,7 +67,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
       <PanelBody>
         <div ref={measureRef}>
           {hasSize ? (
-            <SplitPanel
+            <DockableSplitPanel
               availableSize={width}
               left={{
                 content: (
@@ -81,6 +81,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
                 max: width - MIN_RIGHT_WIDTH,
               }}
               right={<MetricInfoTabs traceMetric={traceMetric} />}
+              rightLabel="Tables"
+              leftLabel="Graph"
             />
           ) : null}
         </div>
