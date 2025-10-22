@@ -60,6 +60,7 @@ class RpcProjectFlags(RpcModel):
     has_insights_agent_monitoring: bool
     has_insights_mcp: bool
     has_logs: bool
+    has_trace_metrics: bool
 
 
 class RpcProject(RpcModel):
