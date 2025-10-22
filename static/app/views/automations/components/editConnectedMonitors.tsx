@@ -113,7 +113,7 @@ function AllMonitors({
   );
 }
 
-export function ConnectMonitorsContent({
+function ConnectMonitorsContent({
   initialIds,
   saveConnectedIds,
   footerContent,
