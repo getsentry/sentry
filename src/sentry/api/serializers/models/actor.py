@@ -11,7 +11,7 @@ class ActorSerializerResponse(TypedDict):
 
 
 class ActorSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> ActorSerializerResponse:
         if obj.class_name() == "User":
             actor_type = "user"
             name = obj.get_display_name()
