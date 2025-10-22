@@ -198,7 +198,7 @@ const LiveIndicator = styled('div')`
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.success};
+    border: 6px solid ${p => p.theme.successText};
     position: absolute;
     border-radius: 50%;
     height: 20px;
