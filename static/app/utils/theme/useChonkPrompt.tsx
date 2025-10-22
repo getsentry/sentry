@@ -23,8 +23,12 @@ function promptWasDismissedWithoutSnoozing(
     return false;
   }
 
+  if (typeof promptData.dismissed_ts !== 'number') {
+    return false;
+  }
+
   const now = moment.utc();
-  const dismissedOn = moment.unix(promptData.dismissed_ts ?? 0).utc();
+  const dismissedOn = moment.unix(promptData.dismissed_ts).utc();
   return now.diff(dismissedOn, 'days') > daysSinceDismiss;
 }
 
@@ -47,6 +51,15 @@ export function useChonkPrompt() {
     options: {enabled: hasChonkUI},
   });
 
+  const bannerData = bannerPrompt.data;
+  const dotIndicatorData = dotIndicatorPrompt.data;
+
+  const bannerIsPromptDismissed = bannerPrompt.isPromptDismissed;
+  const dotIndicatorIsPromptDismissed = dotIndicatorPrompt.isPromptDismissed;
+
+  const showBannerPrompt = bannerPrompt.showPrompt;
+  const showDotIndicatorPrompt = dotIndicatorPrompt.showPrompt;
+
   useEffect(() => {
     if (!hasChonkUI) {
       return;
@@ -57,21 +70,30 @@ export function useChonkPrompt() {
     }
 
     if (
-      bannerPrompt.data &&
-      bannerPrompt.isPromptDismissed &&
-      promptWasDismissedWithoutSnoozing(bannerPrompt.data, DAYS_SINCE_DISMISS)
+      bannerData &&
+      bannerIsPromptDismissed &&
+      promptWasDismissedWithoutSnoozing(bannerData, DAYS_SINCE_DISMISS)
     ) {
-      bannerPrompt.showPrompt();
+      showBannerPrompt();
     }
 
     if (
-      dotIndicatorPrompt.data &&
-      dotIndicatorPrompt.isPromptDismissed &&
-      promptWasDismissedWithoutSnoozing(dotIndicatorPrompt.data, DAYS_SINCE_DISMISS)
+      dotIndicatorData &&
+      dotIndicatorIsPromptDismissed &&
+      promptWasDismissedWithoutSnoozing(dotIndicatorData, DAYS_SINCE_DISMISS)
     ) {
-      dotIndicatorPrompt.showPrompt();
+      showDotIndicatorPrompt();
     }
-  }, [bannerPrompt, dotIndicatorPrompt, hasChonkUI, user?.options?.prefersChonkUI]);
+  }, [
+    bannerData,
+    dotIndicatorData,
+    bannerIsPromptDismissed,
+    dotIndicatorIsPromptDismissed,
+    showBannerPrompt,
+    showDotIndicatorPrompt,
+    hasChonkUI,
+    user?.options?.prefersChonkUI,
+  ]);
 
   // UsePrompt returns undefined if the prompt is loading or has failed to load
   // so we need to check for that before rendering the component
@@ -79,9 +101,9 @@ export function useChonkPrompt() {
     return {
       showBannerPrompt: false,
       showDotIndicatorPrompt: false,
-      dismissBannerPrompt: noop,
-      dismissDotIndicatorPrompt: noop,
-      dismiss: noop,
+      snoozeBannerPrompt: noop,
+      snoozeDotIndicatorPrompt: noop,
+      snooze: noop,
     };
   }
 
@@ -94,35 +116,32 @@ export function useChonkPrompt() {
     return {
       showBannerPrompt: false,
       showDotIndicatorPrompt: false,
-      dismissBannerPrompt: noop,
-      dismissDotIndicatorPrompt: noop,
-      dismiss: noop,
+      snoozeBannerPrompt: noop,
+      snoozeDotIndicatorPrompt: noop,
+      snooze: noop,
     };
   }
 
-  // The dot indicator is only visible after the tooltip is dismissed
-  const showDotIndicatorPrompt = Boolean(
-    bannerPrompt.isPromptDismissed && !dotIndicatorPrompt.isPromptDismissed
-  );
-
   return {
     showBannerPrompt: !bannerPrompt.isPromptDismissed,
-    showDotIndicatorPrompt,
-    dismissBannerPrompt: () => {
+    showDotIndicatorPrompt: Boolean(
+      bannerPrompt.isPromptDismissed && !dotIndicatorPrompt.isPromptDismissed
+    ),
+    snoozeBannerPrompt: () => {
       if (bannerPrompt.isPromptDismissed) {
         return;
       }
 
       bannerPrompt.snoozePrompt();
     },
-    dismissDotIndicatorPrompt: () => {
+    snoozeDotIndicatorPrompt: () => {
       if (dotIndicatorPrompt.isPromptDismissed) {
         return;
       }
 
       dotIndicatorPrompt.snoozePrompt();
     },
-    dismiss: () => {
+    snooze: () => {
       bannerPrompt.snoozePrompt();
       dotIndicatorPrompt.snoozePrompt();
     },

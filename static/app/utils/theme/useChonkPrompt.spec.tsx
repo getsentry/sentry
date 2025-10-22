@@ -66,7 +66,7 @@ describe('useChonkPrompt', () => {
     await waitFor(() => expect(result.current.showBannerPrompt).toBe(true));
     expect(result.current.showDotIndicatorPrompt).toBe(false);
 
-    result.current.dismissBannerPrompt();
+    result.current.snoozeBannerPrompt();
 
     expect(dismissMock).toHaveBeenCalledWith(
       '/organizations/org-slug/prompts-activity/',
@@ -107,7 +107,7 @@ describe('useChonkPrompt', () => {
     await waitFor(() => expect(result.current.showBannerPrompt).toBe(false));
     expect(result.current.showDotIndicatorPrompt).toBe(true);
 
-    result.current.dismissDotIndicatorPrompt();
+    result.current.snoozeDotIndicatorPrompt();
 
     expect(dismissMock).toHaveBeenCalledWith(
       '/organizations/org-slug/prompts-activity/',
@@ -192,7 +192,7 @@ describe('useChonkPrompt', () => {
     });
 
     await waitFor(() => expect(result.current.showBannerPrompt).toBe(true));
-    result.current.dismissBannerPrompt();
+    result.current.snoozeBannerPrompt();
     await waitFor(() => expect(result.current.showDotIndicatorPrompt).toBe(true));
   });
 

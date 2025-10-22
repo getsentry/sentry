@@ -44,7 +44,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
           analyticsEventName="Navigation: Chonk UI Banner Opt In Clicked"
           onClick={() => {
             mutateUserOptions({prefersChonkUI: true});
-            chonkPrompt.dismiss();
+            chonkPrompt.snooze();
           }}
         >
           {t('Try It Out')}
@@ -53,7 +53,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
       <DismissButton
         icon={<IconClose />}
         aria-label={t('Dismiss')}
-        onClick={chonkPrompt.dismissBannerPrompt}
+        onClick={chonkPrompt.snoozeBannerPrompt}
         size="xs"
         borderless
         analyticsEventKey="navigation.banner_dismiss_chonk_ui"
