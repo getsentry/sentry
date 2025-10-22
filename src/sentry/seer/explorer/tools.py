@@ -13,9 +13,11 @@ from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
@@ -272,6 +274,52 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
     trace = get_trace_waterfall(trace_id, organization_id)
     return trace.dict() if trace else {}
+
+
+def get_repository_definition(*, organization_id: int, repo_full_name: str) -> dict | None:
+    """
+    Look up a repository by full name (owner/repo-name) that the org has access to.
+    Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
+
+    Args:
+        organization_id: The ID of the organization
+        repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
+
+    Returns:
+        dict with RepoDefinition fields if found, None otherwise
+    """
+    parts = repo_full_name.split("/")
+    if len(parts) != 2:
+        logger.warning(
+            "seer.rpc.invalid_repo_name_format",
+            extra={"repo_full_name": repo_full_name},
+        )
+        return None
+
+    owner, name = parts
+
+    repo = Repository.objects.filter(
+        organization_id=organization_id,
+        name=repo_full_name,
+        status=ObjectStatus.ACTIVE,
+        provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+    ).first()
+
+    if not repo:
+        logger.info(
+            "seer.rpc.repository_not_found",
+            extra={"organization_id": organization_id, "repo_full_name": repo_full_name},
+        )
+        return None
+
+    return {
+        "organization_id": organization_id,
+        "integration_id": str(repo.integration_id) if repo.integration_id else None,
+        "provider": repo.provider,
+        "owner": owner,
+        "name": name,
+        "external_id": repo.external_id,
+    }
 
 
 def get_issue_details(

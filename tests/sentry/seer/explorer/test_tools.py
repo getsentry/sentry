@@ -5,11 +5,14 @@ from unittest.mock import patch
 import pytest
 from pydantic import BaseModel
 
+from sentry.constants import ObjectStatus
 from sentry.models.group import Group
+from sentry.models.repository import Repository
 from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
+    get_repository_definition,
     get_trace_waterfall,
 )
 from sentry.seer.sentry_data_models import EAPTrace
@@ -777,3 +780,209 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert isinstance(result.get("project_id"), int)
         assert isinstance(result.get("issue"), dict)
         _ExplorerIssue.parse_obj(result.get("issue", {}))
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestGetRepositoryDefinition(APITransactionTestCase):
+    def test_get_repository_definition_success(self):
+        """Test successful repository lookup"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        assert result["organization_id"] == self.organization.id
+        assert result["integration_id"] == "123"
+        assert result["provider"] == "integrations:github"
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "seer"
+        assert result["external_id"] == "12345678"
+
+    def test_get_repository_definition_invalid_format(self):
+        """Test that invalid repo name format returns None"""
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="invalid-format",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_not_found(self):
+        """Test that nonexistent repository returns None"""
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="nonexistent/repo",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_wrong_org(self):
+        """Test that repository from different org returns None"""
+        other_org = self.create_organization()
+        Repository.objects.create(
+            organization_id=other_org.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_inactive_repo(self):
+        """Test that inactive repository returns None"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.DISABLED,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_no_integration_id(self):
+        """Test repository without integration_id"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=None,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        assert result["integration_id"] is None
+
+    def test_get_repository_definition_unsupported_provider(self):
+        """Test that repositories with unsupported providers are filtered out"""
+        # Create a GitLab repo (unsupported provider)
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:gitlab",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        # Should return None since GitLab is not a supported provider
+        assert result is None
+
+    def test_get_repository_definition_github_enterprise(self):
+        """Test that GitHub Enterprise provider is supported"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github_enterprise",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        assert result["provider"] == "integrations:github_enterprise"
+
+    def test_get_repository_definition_multiple_providers(self):
+        """Test that when multiple repos with different supported providers exist, first one is returned"""
+        # Create two repos with same name but different providers
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github_enterprise",
+            external_id="87654321",
+            integration_id=456,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Should return one of them without raising MultipleObjectsReturned
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        # Should return the first matching repo (in this case, GitHub)
+        assert result["provider"] in [
+            "integrations:github",
+            "integrations:github_enterprise",
+        ]
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "seer"
+
+    def test_get_repository_definition_filters_unsupported_with_supported(self):
+        """Test that unsupported providers are ignored even when a supported one exists"""
+        # Create unsupported provider repo
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:gitlab",
+            external_id="99999999",
+            integration_id=999,
+            status=ObjectStatus.ACTIVE,
+        )
+        # Create supported provider repo
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        # Should return the GitHub repo, not GitLab
+        assert result is not None
+        assert result["provider"] == "integrations:github"
+        assert result["external_id"] == "12345678"

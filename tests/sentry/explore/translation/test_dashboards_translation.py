@@ -96,7 +96,7 @@ class DashboardTranslationTestCase(TestCase):
         # Assert widget type and dataset source are set correctly
         assert transaction_widget.widget_type == DashboardWidgetTypes.SPANS
         assert (
-            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value
+            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_2.value
         )
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
@@ -641,6 +641,43 @@ class DashboardTranslationTestCase(TestCase):
         assert new_query.columns == []
         assert new_query.selected_aggregate is None
 
+    def test_query_with_orderby_not_in_selected_fields(self) -> None:
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            limit=2,
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=["title", "count()"],
+            columns=["title"],
+            aggregates=["count()"],
+            orderby="-p50(transaction.duration)",
+            conditions="transaction:foo",
+            order=0,
+        )
+
+        translate_dashboard_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        assert transaction_widget.widget_snapshot
+
+        new_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
+        assert new_queries.count() == 1
+        new_query = new_queries.first()
+        assert new_query is not None
+        assert new_query.widget_id == transaction_widget.id
+        assert new_query.fields == ["transaction", "count(span.duration)"]
+        assert new_query.conditions == "(transaction:foo) AND is_transaction:1"
+        assert new_query.aggregates == ["count(span.duration)"]
+        assert new_query.columns == ["transaction"]
+        assert new_query.orderby == "-p50(span.duration)"
+        assert new_query.selected_aggregate is None
+
 
 class DashboardRestoreTransactionWidgetTestCase(TestCase):
     @property
@@ -704,7 +741,7 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         # Verify translation occurred
         assert transaction_widget.widget_type == DashboardWidgetTypes.SPANS
         assert (
-            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value
+            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_2.value
         )
         assert transaction_widget.widget_snapshot is not None
 

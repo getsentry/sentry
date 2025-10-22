@@ -96,6 +96,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     uptime_detector_ids, projects, subscription_id_formatter
                 )
             )
+
         except ValueError:
             return self.respond("Invalid uptime detector ids provided", status=400)
 

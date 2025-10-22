@@ -69,7 +69,7 @@ function DestinationSummaryPage() {
       />
       <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <HeaderContainer>

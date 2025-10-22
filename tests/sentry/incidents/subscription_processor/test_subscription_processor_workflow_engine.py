@@ -395,8 +395,8 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         data_source.detectors.set([detector])
 
         processor = self.send_update(rule, trigger.alert_threshold + 1)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
+        # We're single processing; 'triggers' should not be set.
+        assert not hasattr(processor, "triggers")
 
         assert mock_process_data_packet.call_count == 1
         assert (

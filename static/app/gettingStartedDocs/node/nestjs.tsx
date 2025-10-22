@@ -116,7 +116,7 @@ const onboarding: OnboardingConfig = {
           text: t('Add the Sentry NestJS SDK as a dependency:'),
         },
         getInstallCodeBlock(params, {
-          basePackage: '@sentry/nestjs',
+          packageName: '@sentry/nestjs',
         }),
       ],
     },
@@ -332,17 +332,17 @@ const docs: Docs = {
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
-    basePackage: '@sentry/nestjs',
+    packageName: '@sentry/nestjs',
   }),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'nestjs',
-    sdkPackage: '@sentry/nestjs',
+    packageName: '@sentry/nestjs',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'nestjs',
+    packageName: '@sentry/nestjs',
   }),
   mcpOnboarding: getNodeMcpOnboarding({
-    basePackage: 'nestjs',
+    packageName: '@sentry/nestjs',
   }),
 };
 

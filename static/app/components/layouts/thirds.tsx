@@ -1,5 +1,8 @@
+import type {HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
@@ -142,13 +145,39 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   }
 `;
 
+interface MainProps extends HTMLAttributes<HTMLElement> {
+  children: React.ReactNode;
+  /**
+   * Set the width of the main content.
+   * - 'twothirds': The main content will span the left two-thirds of the Body. Use this for layouts with a side column.
+   * - 'full': The main content will span the width of the container. Use when the layout does not have a side column.
+   * - 'full-constrained': The main content will span the width of the container and wrapped in a 1440px wide container.
+   * Defaults to 'twothirds'.
+   */
+  width?: 'twothirds' | 'full' | 'full-constrained';
+}
+
 /**
  * Containers for left column of the 66/33 layout.
  */
-export const Main = styled('section')<{fullWidth?: boolean}>`
-  grid-column: ${p => (p.fullWidth ? '1/3' : '1/2')};
-  max-width: 100%;
-`;
+export function Main({children, width = 'twothirds', ...props}: MainProps) {
+  // We need the extra DOM element when the width is constrained because Main is a part of a grid layout.
+  // If we apply the max width directly the right end of the page background will be missing
+  return (
+    <Container
+      column={width === 'twothirds' ? '1/2' : '1/3'}
+      as="section"
+      width="100%"
+      {...props}
+    >
+      {width === 'full-constrained' ? (
+        <Container maxWidth="1440px">{children}</Container>
+      ) : (
+        children
+      )}
+    </Container>
+  );
+}
 
 /**
  * Container for the right column the 66/33 layout

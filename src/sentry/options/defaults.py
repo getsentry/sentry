@@ -2430,6 +2430,10 @@ register(
 # are listed in 'extended_widget_spec_orgs' option.
 register("on_demand.extended_max_widget_specs", default=750, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("on_demand.extended_widget_spec_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Some organizations can have more alert specs on a case-by-case basis. Widgets using this limit
+# are listed in 'extended_alert_spec_orgs' option.
+register("on_demand.extended_max_alert_specs", default=750, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("on_demand.extended_alert_spec_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "on_demand.max_widget_cardinality.count",
     default=10000,
@@ -2867,13 +2871,6 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Maximum number of spans in a segment. Larger segments drop the oldest spans.
-register(
-    "spans.buffer.max-segment-spans",
-    type=Int,
-    default=1001,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
     "spans.buffer.redis-ttl",
@@ -3240,13 +3237,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "uptime.snuba_uptime_results.enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Controls whether uptime monitoring creates issues via the issue platform.
 register(
     "uptime.create-issues",
@@ -3575,6 +3565,14 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to forward events to eap_items. 1.0
+# means that 100% of projects will forward events to eap_items.
+register(
+    "eventstream.eap_forwarding_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswich for LLM issue detection

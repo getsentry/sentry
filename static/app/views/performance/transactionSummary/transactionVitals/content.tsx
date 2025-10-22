@@ -58,7 +58,7 @@ function VitalsContent() {
   return (
     <Histogram location={location} zoomKeys={zoomKeys}>
       {({activeFilter, handleFilterChange, handleResetView, isZoomed}) => (
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <VitalsCardsDiscoverQuery
             eventView={eventView}
             orgSlug={organization.slug}

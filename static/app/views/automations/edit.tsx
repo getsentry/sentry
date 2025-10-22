@@ -198,7 +198,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </HeaderInner>
         </StyledLayoutHeader>
         <StyledBody maxWidth={maxWidth}>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,

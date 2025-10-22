@@ -68,7 +68,7 @@ function Profiles({transaction}: ProfilesProps) {
   );
 
   return (
-    <StyledMain fullWidth>
+    <StyledMain width="full">
       <FilterActions>
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
