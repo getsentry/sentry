@@ -76,7 +76,7 @@ const onboarding: OnboardingConfig = {
           ),
         },
         getInstallCodeBlock(params, {
-          basePackage: '@sentry/google-cloud-serverless',
+          packageName: '@sentry/google-cloud-serverless',
         }),
       ],
     },
@@ -165,14 +165,14 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
-    basePackage: '@sentry/google-cloud-serverless',
+    packageName: '@sentry/google-cloud-serverless',
   }),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'gcp-functions',
-    sdkPackage: '@sentry/google-cloud-serverless',
+    packageName: '@sentry/google-cloud-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'google-cloud-serverless',
+    packageName: '@sentry/google-cloud-serverless',
   }),
   mcpOnboarding: getNodeMcpOnboarding(),
 };

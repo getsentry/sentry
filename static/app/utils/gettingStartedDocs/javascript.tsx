@@ -169,12 +169,12 @@ export const getJavascriptLogsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
   docsPlatform,
-  sdkPackage,
+  packageName,
   installSnippetBlock,
 }: {
   docsPlatform: string;
   installSnippetBlock: ContentBlock;
-  sdkPackage: `@sentry/${string}`;
+  packageName: `@sentry/${string}`;
 }): OnboardingConfig<PlatformOptions> => ({
   install: () => [
     {
@@ -183,10 +183,10 @@ export const getJavascriptLogsOnboarding = <
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
             {
               code: <code />,
-              sdkPackage: <code>{sdkPackage}</code>,
+              packageName: <code>{packageName}</code>,
             }
           ),
         },
@@ -222,7 +222,7 @@ export const getJavascriptLogsOnboarding = <
           type: 'code',
           language: 'javascript',
           code: `
-import * as Sentry from "${sdkPackage}";
+import * as Sentry from "${packageName}";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -259,7 +259,7 @@ Sentry.init({
         {
           type: 'code',
           language: 'jsx',
-          code: `import * as Sentry from "${sdkPackage}";
+          code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
         },
@@ -272,10 +272,10 @@ export const getJavascriptLogsFullStackOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
   docsPlatform,
-  sdkPackage,
+  packageName,
 }: {
   docsPlatform: string;
-  sdkPackage: `@sentry/${string}`;
+  packageName: `@sentry/${string}`;
 }): OnboardingConfig<PlatformOptions> => ({
   install: () => [
     {
@@ -284,10 +284,10 @@ export const getJavascriptLogsFullStackOnboarding = <
         {
           type: 'text',
           text: tct(
-            'To add logs make sure [sdkPackage] is up-to-date. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            'To add logs make sure [packageName] is up-to-date. The minimum version of [packageName] that supports logs is [code:9.41.0].',
             {
               code: <code />,
-              sdkPackage: <code>{sdkPackage}</code>,
+              packageName: <code>{packageName}</code>,
             }
           ),
         },
@@ -299,19 +299,19 @@ export const getJavascriptLogsFullStackOnboarding = <
               label: 'npm',
               value: 'npm',
               language: 'bash',
-              code: `npm install ${sdkPackage} --save`,
+              code: `npm install ${packageName} --save`,
             },
             {
               label: 'yarn',
               value: 'yarn',
               language: 'bash',
-              code: `yarn add ${sdkPackage}`,
+              code: `yarn add ${packageName}`,
             },
             {
               label: 'pnpm',
               value: 'pnpm',
               language: 'bash',
-              code: `pnpm add ${sdkPackage}`,
+              code: `pnpm add ${packageName}`,
             },
           ],
         },
@@ -346,7 +346,7 @@ export const getJavascriptLogsFullStackOnboarding = <
           type: 'code',
           language: 'javascript',
           code: `
-import * as Sentry from "${sdkPackage}";
+import * as Sentry from "${packageName}";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -385,7 +385,7 @@ Sentry.init({
         {
           type: 'code',
           language: 'jsx',
-          code: `import * as Sentry from "${sdkPackage}";
+          code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
         },
@@ -397,14 +397,14 @@ Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
 export const getJavascriptFullStackOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
-  basePackage,
+  packageName,
   browserProfilingLink,
   nodeProfilingLink,
   getProfilingHeaderContent = getDefaultProfilingHeaderContent,
 }: {
-  basePackage: string;
   browserProfilingLink: string;
   nodeProfilingLink: string;
+  packageName: `@sentry/${string}`;
   getProfilingHeaderContent?: (params: DocsParams) => ContentBlock[];
 }): OnboardingConfig<PlatformOptions> => ({
   install: () => [
@@ -414,10 +414,10 @@ export const getJavascriptFullStackOnboarding = <
         {
           type: 'text',
           text: tct(
-            'To enable profiling, add [code:@sentry/profiling-node] to your imports and make sure [packageCode] is up-to-date. The minimum version of [packageCode] that supports node and browser profiling is [code:7.60.0].',
+            'To enable profiling, add [code:@sentry/profiling-node] to your imports and make sure [packageName] is up-to-date. The minimum version of [packageName] that supports node and browser profiling is [code:7.60.0].',
             {
               code: <code />,
-              packageCode: <code>{basePackage}</code>,
+              packageName: <code>{packageName}</code>,
             }
           ),
         },
@@ -427,17 +427,17 @@ export const getJavascriptFullStackOnboarding = <
             {
               label: 'npm',
               language: 'bash',
-              code: `npm install ${basePackage} @sentry/profiling-node --save`,
+              code: `npm install ${packageName} @sentry/profiling-node --save`,
             },
             {
               label: 'yarn',
               language: 'bash',
-              code: `yarn add ${basePackage} @sentry/profiling-node`,
+              code: `yarn add ${packageName} @sentry/profiling-node`,
             },
             {
               label: 'pnpm',
               language: 'bash',
-              code: `pnpm add ${basePackage} @sentry/profiling-node`,
+              code: `pnpm add ${packageName} @sentry/profiling-node`,
             },
           ],
         },

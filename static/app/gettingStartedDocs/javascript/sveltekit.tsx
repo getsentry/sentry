@@ -247,7 +247,7 @@ const crashReportOnboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding = getJavascriptFullStackOnboarding({
-  basePackage: '@sentry/sveltekit',
+  packageName: '@sentry/sveltekit',
   browserProfilingLink:
     'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/browser-profiling/',
   nodeProfilingLink:
@@ -262,12 +262,12 @@ const docs: Docs = {
   featureFlagOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'sveltekit',
+    packageName: '@sentry/sveltekit',
     configFileName: 'instrumentation.server.js',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'sveltekit',
-    sdkPackage: '@sentry/sveltekit',
+    packageName: '@sentry/sveltekit',
   }),
 };
 

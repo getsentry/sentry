@@ -136,7 +136,7 @@ const docs: Docs = {
   profilingOnboarding: getNodeProfilingOnboarding(),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'azure-functions',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),

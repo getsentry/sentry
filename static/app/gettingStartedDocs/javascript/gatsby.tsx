@@ -399,7 +399,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'gatsby',
-  sdkPackage: '@sentry/gatsby',
+  packageName: '@sentry/gatsby',
 });
 
 const docs: Docs = {

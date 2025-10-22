@@ -274,7 +274,7 @@ const crashReportOnboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding = getJavascriptFullStackOnboarding({
-  basePackage: '@sentry/remix',
+  packageName: '@sentry/remix',
   browserProfilingLink:
     'https://docs.sentry.io/platforms/javascript/guides/remix/profiling/browser-profiling/',
   nodeProfilingLink:
@@ -289,12 +289,12 @@ const docs: Docs = {
   featureFlagOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'remix',
+    packageName: '@sentry/remix',
     configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'remix',
-    sdkPackage: '@sentry/remix',
+    packageName: '@sentry/remix',
   }),
 };
 

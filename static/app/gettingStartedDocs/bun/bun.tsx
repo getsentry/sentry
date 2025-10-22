@@ -148,7 +148,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'bun',
-    sdkPackage: '@sentry/bun',
+    packageName: '@sentry/bun',
   }),
 };
 

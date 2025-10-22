@@ -93,7 +93,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Add the Sentry Cloudflare SDK as a dependency:'),
         },
-        getInstallCodeBlock(params, {basePackage: '@sentry/cloudflare'}),
+        getInstallCodeBlock(params, {packageName: '@sentry/cloudflare'}),
       ],
     },
   ],
@@ -231,11 +231,11 @@ const docs: Docs = {
   crashReportOnboarding,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'cloudflare',
-    sdkPackage: '@sentry/cloudflare',
-    generateConfigureSnippet: (params, sdkPackage) => ({
+    packageName: '@sentry/cloudflare',
+    generateConfigureSnippet: (params, packageName) => ({
       type: 'code',
       language: 'javascript',
-      code: `import * as Sentry from "${sdkPackage}";
+      code: `import * as Sentry from "${packageName}";
 
 export default Sentry.withSentry(
   env => ({
@@ -257,10 +257,10 @@ export default Sentry.withSentry(
     }),
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'cloudflare',
+    packageName: '@sentry/cloudflare',
   }),
   mcpOnboarding: getNodeMcpOnboarding({
-    basePackage: 'cloudflare',
+    packageName: '@sentry/cloudflare',
   }),
 };
 

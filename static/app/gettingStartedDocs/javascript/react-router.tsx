@@ -536,7 +536,7 @@ const performanceOnboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding = getJavascriptFullStackOnboarding({
-  basePackage: '@sentry/react-router',
+  packageName: '@sentry/react-router',
   browserProfilingLink:
     'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/browser-profiling/',
   nodeProfilingLink:
@@ -551,12 +551,12 @@ const docs: Docs = {
   performanceOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'react-router',
+    packageName: '@sentry/react-router',
     configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'react-router',
-    sdkPackage: '@sentry/react-router',
+    packageName: '@sentry/react-router',
   }),
 };
 

@@ -573,12 +573,12 @@ const docs: Docs = {
   featureFlagOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'solidstart',
+    packageName: '@sentry/solidstart',
     configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'solidstart',
-    sdkPackage: '@sentry/solidstart',
+    packageName: '@sentry/solidstart',
   }),
 };
 

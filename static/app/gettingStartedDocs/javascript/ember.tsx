@@ -384,7 +384,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'ember',
-  sdkPackage: '@sentry/ember',
+  packageName: '@sentry/ember',
 });
 
 const docs: Docs = {
