@@ -61,6 +61,7 @@ def process_segment(
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
+    _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
@@ -137,6 +138,21 @@ def _enrich_spans(
     groupings.write_to_spans(spans)
 
     return segment, spans
+
+
+@metrics.wraps("spans.consumers.process_segments.add_segment_name")
+def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) -> None:
+    segment_name = segment.get("name")
+    if not segment_name:
+        return
+
+    for span in spans:
+        if not attribute_value(span, "sentry.segment.name"):
+            span["attributes"] = span.get("attributes") or {}
+            span["attributes"]["sentry.segment.name"] = {  # type: ignore[index]
+                "type": "string",
+                "value": segment_name,
+            }
 
 
 @metrics.wraps("spans.consumers.process_segments.compute_breakdowns")
