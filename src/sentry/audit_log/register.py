@@ -627,7 +627,14 @@ default_manager.add(
         template="disconnected detector {detector_name} from workflow {workflow_name}",
     )
 )
-
+default_manager.add(
+    AuditLogEvent(
+        event_id=203,
+        name="PREVENT_CONFIG_EDIT",
+        api_name="prevent.config.edit",
+        template="prevent_ai.config.edit: {service} {git_organization}",
+    )
+)
 default_manager.add(
     AuditLogEvent(
         event_id=204,

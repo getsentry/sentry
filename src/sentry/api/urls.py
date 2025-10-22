@@ -1163,7 +1163,7 @@ PREVENT_URLS = [
     ),
     # Prevent AI endpoints
     re_path(
-        r"^ai/github/config/(?P<git_organization>[^/]+)/$",
+        r"^ai/github/config/(?P<git_organization_id>[^/]+)/$",
         OrganizationPreventGitHubConfigEndpoint.as_view(),
         name="sentry-api-0-organization-prevent-github-config",
     ),

@@ -50,8 +50,8 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
     def test_get_returns_config_when_exists(self):
         PreventAIConfiguration.objects.create(
             organization_id=self.org.id,
-            provider="github",
-            git_organization=self.git_org,
+            service="github",
+            git_organization_id=self.git_org,
             data=VALID_ORG_CONFIG,
         )
 
@@ -70,15 +70,15 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         assert resp.data["github_organization"][self.git_org] == VALID_ORG_CONFIG
 
         config = PreventAIConfiguration.objects.get(
-            organization_id=self.org.id, provider="github", git_organization=self.git_org
+            organization_id=self.org.id, service="github", git_organization_id=self.git_org
         )
         assert config.data == VALID_ORG_CONFIG
 
     def test_put_updates_existing_config(self):
         PreventAIConfiguration.objects.create(
             organization_id=self.org.id,
-            provider="github",
-            git_organization=self.git_org,
+            service="github",
+            git_organization_id=self.git_org,
             data={"org_defaults": {"bug_prediction": {"enabled": False}}, "repo_overrides": {}},
         )
 
@@ -87,17 +87,19 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
 
         assert (
             PreventAIConfiguration.objects.filter(
-                organization_id=self.org.id, provider="github", git_organization=self.git_org
+                organization_id=self.org.id, service="github", git_organization_id=self.git_org
             ).count()
             == 1
         )
 
         config = PreventAIConfiguration.objects.get(
-            organization_id=self.org.id, provider="github", git_organization=self.git_org
+            organization_id=self.org.id, service="github", git_organization_id=self.git_org
         )
         assert config.data == VALID_ORG_CONFIG
 
-    @mock.patch("sentry.api.base.create_audit_entry")
+    @mock.patch(
+        "sentry.prevent.endpoints.pr_review_config.OrganizationPreventGitHubConfigEndpoint.create_audit_entry"
+    )
     def test_audit_entry_created(self, mock_create_audit_entry):
         self.client.put(self.url, data=VALID_ORG_CONFIG, format="json")
         assert mock_create_audit_entry.called

@@ -36,22 +36,28 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
     }
     permission_classes = (PreventAIConfigPermission,)
 
-    def get(self, request: Request, organization: Organization, git_organization: str) -> Response:
+    def get(
+        self, request: Request, organization: Organization, git_organization_id: str
+    ) -> Response:
         """
         Get the Prevent AI GitHub configuration for a specific git organization.
         """
         response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
 
         config = PreventAIConfiguration.objects.filter(
-            organization_id=organization.id, provider="github", git_organization=git_organization
+            organization_id=organization.id,
+            service="github",
+            git_organization_id=git_organization_id,
         ).first()
 
         if config:
-            response_data["github_organization"][git_organization] = config.data
+            response_data["github_organization"][git_organization_id] = config.data
 
         return Response(response_data, status=200)
 
-    def put(self, request: Request, organization: Organization, git_organization: str) -> Response:
+    def put(
+        self, request: Request, organization: Organization, git_organization_id: str
+    ) -> Response:
         """
         Update the Prevent AI GitHub configuration for an organization.
         """
@@ -62,8 +68,8 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
 
         PreventAIConfiguration.objects.update_or_create(
             organization_id=organization.id,
-            provider="github",
-            git_organization=git_organization,
+            service="github",
+            git_organization_id=git_organization_id,
             defaults={"data": request.data},
         )
 
@@ -71,11 +77,14 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
             request=request,
             organization=organization,
             target_object=organization.id,
-            event=audit_log.get_event_id("ORG_EDIT"),
-            data={"preventAiConfigGithub": "updated"},
+            event=audit_log.get_event_id("PREVENT_CONFIG_EDIT"),
+            data={
+                "git_organization": git_organization_id,
+                "service": "github",
+            },
         )
 
         response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
-        response_data["github_organization"][git_organization] = request.data
+        response_data["github_organization"][git_organization_id] = request.data
 
         return Response(response_data, status=200)
