@@ -38,30 +38,28 @@ const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {
  */
 export interface IncidentPeriod {
   /**
-   * Color for the marker
-   */
-  color: string;
-  /**
    * End timestamp in milliseconds
    */
   end: number;
+  /**
+   * Unique identifier for the incident/event
+   */
   id: string;
   /**
-   * Display name for the incident
+   * Priority of the incident/event
    */
-  name: string;
+  priority: 'high' | 'medium';
   /**
    * Start timestamp in milliseconds
    */
   start: number;
   /**
-   * Type identifier for the incident
+   * Type of the incident/event. This determines how the marker is rendered.
+   * - `trigger-interval`: A marker for the duration of the interval before the beginning of an open period.
+   * - `open-period-start`: A marker for the start of an open period.
+   * - `open-period-transition`: Used for priority transitions within an open period.
    */
-  type: string;
-  /**
-   * Color for hover state (optional)
-   */
-  hoverColor?: string;
+  type: 'trigger-interval' | 'open-period-start' | 'open-period-transition';
 }
 
 interface IncidentMarkerSeriesProps {
@@ -73,6 +71,42 @@ interface IncidentMarkerSeriesProps {
   theme: Theme;
   yAxisIndex: number;
 }
+
+const makeStripeBackgroundSvgNode = (color: string) => {
+  return {
+    key: 'stripe-background',
+    tag: 'svg',
+    attrs: {
+      width: '2',
+      height: `${INCIDENT_MARKER_HEIGHT}`,
+      viewBox: `0 0 2 ${INCIDENT_MARKER_HEIGHT}`,
+      shapeRendering: 'crispEdges',
+    },
+    children: [
+      {
+        key: 'stripe-background-line',
+        tag: 'rect',
+        attrs: {
+          x: '0',
+          y: '0',
+          width: '1',
+          height: `${INCIDENT_MARKER_HEIGHT}`,
+          fill: color,
+        },
+      },
+    ],
+  };
+};
+
+const getPriorityColor = ({
+  priority,
+  theme,
+}: {
+  priority: 'high' | 'medium';
+  theme: Theme;
+}) => {
+  return priority === 'medium' ? theme.yellow300 : theme.red300;
+};
 
 /**
  * Creates a custom series that renders incident highlights underneath the main chart
@@ -103,6 +137,12 @@ function IncidentMarkerSeries({
       return {type: 'group', children: []};
     }
 
+    const allItemsWithinPeriod = incidentPeriods
+      .filter(period => period.id === dataItem?.id)
+      .toSorted((a, b) => a.start - b.start);
+    const isLastItem =
+      allItemsWithinPeriod.indexOf(dataItem) === allItemsWithinPeriod.length - 1;
+
     // Use the start/end timestamps to get the chart coordinates to draw the
     // rectangle. The 2nd tuple passed to `api.coord()` is always 0 because we
     // don't care about the y-coordinate as the rectangles have a static height.
@@ -129,57 +169,84 @@ function IncidentMarkerSeries({
 
     const shape = {
       // Position the rectangle in the space created by the grid/xAxis offset
-      x: incidentStartX + renderMarkerPadding / 2 - 1,
+      x: incidentStartX,
       y: incidentStartY + renderMarkerPadding - 1,
-      width: width - renderMarkerPadding,
+      width,
       height: INCIDENT_MARKER_HEIGHT,
-      r: 2,
+      r:
+        dataItem.type === 'trigger-interval'
+          ? [2, 0, 0, 2]
+          : isLastItem
+            ? [0, 2, 2, 0]
+            : [0, 0, 0, 0],
     };
+
+    const color = getPriorityColor({
+      priority: dataItem.priority,
+      theme,
+    });
 
     return {
       type: 'rect',
       transition: ['shape'],
       shape,
       style: {
-        fill: dataItem.color,
-        opacity: 0.9,
+        fill:
+          dataItem.type === 'trigger-interval'
+            ? {
+                svgElement: makeStripeBackgroundSvgNode(color),
+                svgWidth: 2,
+                svgHeight: INCIDENT_MARKER_HEIGHT,
+              }
+            : color,
+        opacity: 1,
       },
     };
   };
 
   // Create mark lines for the start of each incident period
-  const markLineData: MarkLineComponentOption['data'] = incidentPeriods.map(period => {
-    const lineStyle: MarkLineComponentOption['lineStyle'] = {
-      color: period.color ?? theme.gray400,
-      type: 'solid',
-      width: 1,
-      opacity: 0.8,
-    };
+  const markLineData: MarkLineComponentOption['data'] = incidentPeriods
+    .filter(period => period.type === 'open-period-start')
+    .map(data => {
+      const color = getPriorityColor({
+        priority: data.priority,
+        theme,
+      });
 
-    return {
-      xAxis: period.start,
-      lineStyle,
-      emphasis: {
-        lineStyle: {
-          ...lineStyle,
-          width: 2,
-          opacity: 1,
+      const lineStyle: MarkLineComponentOption['lineStyle'] = {
+        color,
+        type: 'solid',
+        width: 1,
+        opacity: 0.8,
+      };
+
+      return {
+        xAxis: data.start,
+        lineStyle,
+        emphasis: {
+          lineStyle: {
+            ...lineStyle,
+            width: 2,
+            opacity: 1,
+          },
         },
-      },
-      label: {
-        show: false,
-      },
-      tooltip: {
-        trigger: 'item',
-        position: 'bottom',
-        formatter: markLineTooltip
-          ? () => {
-              return markLineTooltip({theme, period});
-            }
-          : undefined,
-      },
-    };
-  });
+        label: {
+          show: false,
+        },
+        tooltip: {
+          trigger: 'item',
+          position: 'bottom',
+          formatter: markLineTooltip
+            ? () => {
+                return markLineTooltip({
+                  theme,
+                  period: data,
+                });
+              }
+            : undefined,
+        },
+      };
+    });
 
   return {
     id: seriesId ?? INCIDENT_MARKER_SERIES_ID,
@@ -329,7 +396,10 @@ export function useIncidentMarkers({
           renderItem: () => null,
           markArea: {
             itemStyle: {
-              color: data.hoverColor,
+              color: getPriorityColor({
+                priority: data.priority,
+                theme,
+              }),
               opacity: 0.2,
             },
             data: [
@@ -411,7 +481,7 @@ export function useIncidentMarkers({
         echartsInstance.off('click', handleClick);
       };
     },
-    [seriesId, incidentPeriods, onClick]
+    [incidentPeriods, seriesId, theme, onClick]
   );
 
   const incidentMarkerSeries = useMemo(() => {

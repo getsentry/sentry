@@ -32,11 +32,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {
-  BACKEND_LANDING_TITLE,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/backend/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
   FRONTEND_PLATFORMS,
@@ -229,9 +225,8 @@ export function Am1BackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>

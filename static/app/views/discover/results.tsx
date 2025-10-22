@@ -763,7 +763,7 @@ export class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
+    const {organization, location, selection, api, setSavedQuery, isHomepage} =
       this.props;
     const {
       eventView,
@@ -796,13 +796,12 @@ export class Results extends Component<Props, State> {
             location={location}
             eventView={eventView}
             yAxis={yAxisArray}
-            router={router}
             isHomepage={isHomepage}
             splitDecision={splitDecision}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
-              <Top fullWidth>
+              <Top width="full">
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 {this.renderTips()}
@@ -841,7 +840,7 @@ export class Results extends Component<Props, State> {
                   />
                 </MetricsCardinalityProvider>
               </Top>
-              <Layout.Main fullWidth={!showTags}>
+              <Layout.Main width={showTags ? 'twothirds' : 'full'}>
                 <Table
                   organization={organization}
                   eventView={eventView}

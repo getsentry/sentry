@@ -133,7 +133,7 @@ function ScreenDetailsPage() {
               ]}
             />
             <Layout.Body>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <PageAlert />
                 {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
               </Layout.Main>

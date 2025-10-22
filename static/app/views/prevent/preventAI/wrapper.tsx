@@ -1,7 +1,7 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -15,17 +15,17 @@ export default function PreventAIPageWrapper() {
     <SentryDocumentTitle title={PREVENT_AI_PAGE_TITLE} orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <HeaderContentBar>
+          <Flex align="center" justify="between" direction="row">
             <Layout.Title>
               {PREVENT_AI_PAGE_TITLE}
               <FeatureBadge type="beta" />
             </Layout.Title>
-          </HeaderContentBar>
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
         <PreventQueryParamsProvider>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <Outlet />
           </Layout.Main>
         </PreventQueryParamsProvider>
@@ -33,10 +33,3 @@ export default function PreventAIPageWrapper() {
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;

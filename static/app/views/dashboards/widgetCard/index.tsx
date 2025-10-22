@@ -1,4 +1,4 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -9,6 +9,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
@@ -19,12 +21,14 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -33,6 +37,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
+  DashboardFilterKeys,
   DisplayType,
   OnDemandExtractionState,
   WidgetType,
@@ -44,7 +49,12 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
+import {
+  getMenuOptions,
+  useDroppedColumnsWarning,
+  useIndexedEventsWarning,
+  useTransactionsDeprecationWarning,
+} from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -121,6 +131,7 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
+  const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
@@ -160,7 +171,6 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
-    router,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     disableTableActions,
@@ -186,8 +196,17 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
+  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
+    widget,
+    selection,
+  });
+  const droppedColumnsWarning = useDroppedColumnsWarning(widget);
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
+  const conflictingFilterWarning = useConflictingFilterWarning({
+    widget,
+    dashboardFilters,
+  });
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -225,9 +244,7 @@ function WidgetCard(props: Props) {
 
       navigate(
         {
-          pathname: `${location.pathname}${
-            location.pathname.endsWith('/') ? '' : '/'
-          }widget/${props.index}/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
           query: {
             ...location.query,
             sort:
@@ -254,9 +271,14 @@ function WidgetCard(props: Props) {
 
   const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
-  const warnings = [onDemandWarning, sessionDurationWarning, spanTimeRangeWarning].filter(
-    Boolean
-  ) as string[];
+  const warnings = [
+    onDemandWarning,
+    sessionDurationWarning,
+    spanTimeRangeWarning,
+    transactionsDeprecationWarning,
+    droppedColumnsWarning,
+    conflictingFilterWarning,
+  ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
   const actionsMessage = actionsDisabled
@@ -273,7 +295,6 @@ function WidgetCard(props: Props) {
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
-        router,
         props.onDelete,
         props.onDuplicate,
         props.onEdit
@@ -304,7 +325,13 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
-          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+          onFullScreenViewClick={
+            disableFullscreen
+              ? undefined
+              : currentDashboardId
+                ? onFullScreenViewClick
+                : undefined
+          }
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
@@ -413,6 +440,45 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
         numDays: retentionLimitDays,
       }
     );
+  }
+
+  return null;
+}
+
+// Displays a warning message if there is a conflict between widget and global filters
+function useConflictingFilterWarning({
+  widget,
+  dashboardFilters,
+}: {
+  dashboardFilters: DashboardFilters | undefined;
+  widget: Widget;
+}) {
+  const conflictingFilterKeys = useMemo(() => {
+    if (!dashboardFilters) return [];
+
+    const widgetFilterKeys = widget.queries.flatMap(query => {
+      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      if (!parseResult) {
+        return [];
+      }
+      return parseResult
+        .filter(token => token.type === Token.FILTER)
+        .map(token => token.key.text);
+    });
+    const globalFilterKeys =
+      dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
+        ?.filter(filter => filter.dataset === widget.widgetType)
+        .map(filter => filter.tag.key) ?? [];
+
+    const widgetFilterKeySet = new Set(widgetFilterKeys);
+    return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
+  }, [widget.queries, widget.widgetType, dashboardFilters]);
+
+  if (conflictingFilterKeys.length > 0) {
+    return tct('[strong:Filter conflicts:] [filters]', {
+      strong: <strong />,
+      filters: conflictingFilterKeys.join(', '),
+    });
   }
 
   return null;

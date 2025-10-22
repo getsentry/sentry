@@ -16,27 +16,16 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.sliding_window_org",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=15 * 60,  # 15 minutes
-    time_limit=15 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=15 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=15 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def sliding_window_org() -> None:

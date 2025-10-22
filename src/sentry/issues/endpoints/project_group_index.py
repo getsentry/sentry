@@ -5,7 +5,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, eventstore
+from sentry import analytics
 from sentry.analytics.events.project_issue_searched import ProjectIssueSearchEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -29,6 +29,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.services import eventstore
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import normalize_event_id

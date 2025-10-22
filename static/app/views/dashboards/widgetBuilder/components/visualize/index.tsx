@@ -5,6 +5,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -13,7 +14,7 @@ import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconDelete} from 'sentry/icons';
+import {IconDelete, IconLink} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -34,7 +35,12 @@ import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
+import {
+  DisplayType,
+  WidgetType,
+  type LinkedDashboard,
+} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -88,21 +94,24 @@ function formatColumnOptions(
             ? prettifyTagKey(option.value.meta.name)
             : option.value.meta.name,
 
-        trailingItems: renderTag(
-          option.value.kind,
-          option.value.meta.name,
-          option.value.kind !== FieldValueKind.FUNCTION &&
-            option.value.kind !== FieldValueKind.EQUATION
-            ? option.value.meta.dataType
-            : undefined
-        ),
+        trailingItems: () => {
+          return renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType
+              : undefined
+          );
+        },
         disabled: !supported,
-        tooltip:
-          !supported && field.kind === FieldValueKind.FUNCTION
+        tooltip: ({disabled}: {disabled: boolean}) => {
+          return disabled && field.kind === FieldValueKind.FUNCTION
             ? tct('This field is not available for the [aggregate] function', {
                 aggregate: <strong>{field.function[0]}</strong>,
               })
-            : undefined,
+            : undefined;
+        },
       };
     });
 }
@@ -272,6 +281,7 @@ function Visualize({error, setError}: VisualizeProps) {
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
+  const isTableWidget = state.displayType === DisplayType.TABLE;
   const {tags: numericSpanTags} = useTraceItemTags('number');
   const {tags: stringSpanTags} = useTraceItemTags('string');
 
@@ -321,6 +331,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
   const fields = isChartWidget ? state.yAxis : state.fields;
+  const linkedDashboards = state.linkedDashboards || [];
   const updateAction = isChartWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
@@ -372,6 +383,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const hasExploreEquations = organization.features.includes(
     'visibility-explore-equations'
   );
+  const hasDrillDownFlows = useHasDrillDownFlows();
 
   return (
     <Fragment>
@@ -776,7 +788,48 @@ function Visualize({error, setError}: VisualizeProps) {
                               }}
                             />
                           )}
-                          <StyledDeleteButton
+                          {hasDrillDownFlows && isTableWidget && (
+                            <Button
+                              borderless
+                              icon={<IconLink />}
+                              aria-label={t('Link field')}
+                              size="zero"
+                              onClick={() => {
+                                openLinkToDashboardModal({
+                                  onLink: dashboardId => {
+                                    if (
+                                      fields[index]?.kind === FieldValueKind.FIELD &&
+                                      fields[index]?.field
+                                    ) {
+                                      const newLinkedDashboards: LinkedDashboard[] = [
+                                        ...linkedDashboards,
+                                        {dashboardId, field: fields[index].field},
+                                      ];
+                                      dispatch({
+                                        type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                                        payload: newLinkedDashboards,
+                                      });
+                                    }
+                                  },
+                                  currentLinkedDashboard: linkedDashboards.find(
+                                    linkedDashboard => {
+                                      if (
+                                        fields[index]?.kind === FieldValueKind.FIELD &&
+                                        fields[index]?.field
+                                      ) {
+                                        return (
+                                          linkedDashboard.field === fields[index].field
+                                        );
+                                      }
+                                      return false;
+                                    }
+                                  ),
+                                  source,
+                                });
+                              }}
+                            />
+                          )}
+                          <Button
                             borderless
                             icon={<IconDelete />}
                             size="zero"
@@ -1033,8 +1086,6 @@ export const FieldRow = styled('div')`
   width: 100%;
   min-width: 0;
 `;
-
-export const StyledDeleteButton = styled(Button)``;
 
 export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;

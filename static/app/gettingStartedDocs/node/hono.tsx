@@ -16,7 +16,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -43,7 +43,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const { Hono } = require("hono");
 const { HTTPException } = require("hono/http-exception");
 
@@ -105,10 +105,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Add the Sentry Node SDK as a dependency:'),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params)[0]!.code,
-        },
+        getInstallCodeBlock(params),
       ],
     },
   ],
@@ -280,7 +277,7 @@ const docs: Docs = {
   crashReportOnboarding,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'hono',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   profilingOnboarding: getNodeProfilingOnboarding(),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),

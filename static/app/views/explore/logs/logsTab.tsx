@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -27,6 +28,7 @@ import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/trace
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -114,6 +116,8 @@ export function LogsTabContent({
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
     getMaxIngestDelayTimestamp()
   );
+  const [_, setPersistentParams] = usePersistedLogsPageParams();
+  const [caseInsensitive] = useCaseInsensitivity();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
@@ -162,6 +166,7 @@ export function LogsTabContent({
       fields: [...groupBys.filter(Boolean), ...yAxes],
       topEvents: topEventsLimit,
       orderby,
+      caseInsensitive,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
@@ -232,25 +237,36 @@ export function LogsTabContent({
     await tableData.refetch();
   }, [tableData, queryClient]);
 
+  const onColumnsChange = useCallback(
+    (newFields: string[]) => {
+      setPersistentParams(prev => ({
+        ...prev,
+        fields: newFields,
+      }));
+      setFields(newFields);
+    },
+    [setFields, setPersistentParams]
+  );
+
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
           columns={fields.slice()}
-          onColumnsChange={setFields}
+          onColumnsChange={onColumnsChange}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
           handleReset={() => {
-            setFields(defaultLogFields());
+            onColumnsChange(defaultLogFields());
           }}
           isDocsButtonHidden
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringAttributes, numberAttributes]);
+  }, [fields, onColumnsChange, stringAttributes, numberAttributes]);
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
@@ -299,7 +315,7 @@ export function LogsTabContent({
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <FilterBarContainer>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />

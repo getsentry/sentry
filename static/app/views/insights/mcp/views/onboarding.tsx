@@ -10,20 +10,14 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCodeSnippet,
-  TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  Configuration,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   DocsPageLocation,
   ProductSolution,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -115,31 +109,6 @@ function WaitingIndicator({project}: {project: Project}) {
   );
 }
 
-function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
-  const subConfigurations = configuration.configurations ?? [];
-
-  return (
-    <ConfigurationWrapper>
-      {configuration.description && (
-        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-      )}
-      {Array.isArray(configuration.code) && configuration.code.length > 0 ? (
-        <TabbedCodeSnippet tabs={configuration.code} />
-      ) : typeof configuration.code === 'string' ? (
-        <OnboardingCodeSnippet language={configuration.language}>
-          {configuration.code}
-        </OnboardingCodeSnippet>
-      ) : null}
-      {subConfigurations.map((subConfiguration, index) => (
-        <ConfigurationRenderer key={index} configuration={subConfiguration} />
-      ))}
-      {configuration.additionalInfo && (
-        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
-      )}
-    </ConfigurationWrapper>
-  );
-}
-
 function StepRenderer({
   project,
   step,
@@ -154,11 +123,7 @@ function StepRenderer({
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
     >
-      {step.content ? (
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
-      ) : (
-        <ConfigurationRenderer configuration={step} />
-      )}
+      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -326,15 +291,10 @@ export function Onboarding() {
 
   const introduction = mcpDocs.introduction?.(docParams);
 
-  const steps = [
+  const steps: OnboardingStep[] = [
     ...(mcpDocs.install?.(docParams) || []),
     ...(mcpDocs.configure?.(docParams) || []),
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Verify that MCP monitoring is working correctly by triggering some MCP server interactions in your application.'
-      ),
-    },
+    ...(mcpDocs.verify?.(docParams) || []),
   ];
 
   return (
@@ -475,10 +435,6 @@ const Arcade = styled('iframe')`
 
 const CONTENT_SPACING = space(1);
 
-const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${CONTENT_SPACING};
-`;
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
@@ -502,8 +458,4 @@ const DescriptionWrapper = styled('div')`
       margin-bottom: ${CONTENT_SPACING};
     }
   }
-`;
-
-const AdditionalInfo = styled(DescriptionWrapper)`
-  margin-top: ${CONTENT_SPACING};
 `;

@@ -212,25 +212,6 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 status_code=403,
             )
 
-    def test_member_cannot_disconnect_sentry_detectors(self) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        self.login_as(user=self.member_user)
-
-        sentry_detector = self.create_detector(
-            project=self.create_project(organization=self.organization),
-        )
-        detector_workflow = self.create_detector_workflow(
-            detector=sentry_detector,
-            workflow=self.workflow,
-        )
-        with outbox_runner():
-            self.get_error_response(
-                self.organization.slug,
-                detector_workflow.id,
-                status_code=403,
-            )
-
     def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         self.organization.flags.allow_joinleave = True

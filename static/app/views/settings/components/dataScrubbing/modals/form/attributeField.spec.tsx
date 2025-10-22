@@ -51,19 +51,16 @@ describe('AttributeField', () => {
 
     // Setup the PageFilters store with default values
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: false,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: false,
       },
-      new Set()
-    );
+    });
   });
 
   it('default render', async () => {

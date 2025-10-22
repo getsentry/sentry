@@ -25,8 +25,8 @@ jobs:
     # Map a step output to a job output
     outputs:
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
-      testable_modified_files: ${{ steps.changes.outputs.testable_modified_files }}
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
+      typecheckable_rules_changed: ${{ steps.changes.outputs.typecheckable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -190,6 +190,19 @@ jobs:
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
+      - name: Download jest-balance.json
+        id: download-artifact
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
+        with:
+          workflow: 38531594 # jest-balancer.yml
+          workflow_conclusion: success # The conclusion of the workflow we're looking for
+          branch: master # The branch we're looking for
+          name: jest-balance.json # Artifact name
+          name_is_regexp: false
+          path: tests/js/test-balancer/ # Directory where to extract artifact(s), defaults to the current directory
+          search_artifacts: true # Search for the last workflow run whose stored the artifact we're looking for
+          if_no_artifact_found: warn # Can be one of: "fail", "warn", "ignore"
+
       - name: jest
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -219,7 +232,7 @@ jobs:
       # it reduces large coverage fluctuations.
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         timeout-minutes: 5
         with:

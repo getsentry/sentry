@@ -38,6 +38,7 @@ from sentry.testutils.cases import (
     ProfilesSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TraceMetricsTestCase,
     UptimeCheckSnubaTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
@@ -55,7 +56,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsEndpointTestBase(
-    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase
+    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase, TraceMetricsTestCase
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
@@ -1565,7 +1566,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
             data = response.data["data"]
-            assert data[0]["failure_rate()"] == 0.75
+            assert data[0]["failure_rate()"] == 0.875
 
     def test_count_miserable_alias_field(self) -> None:
         self._setup_user_misery()
@@ -4064,7 +4065,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert len(response.data["data"]) == 1
             data = response.data["data"]
             assert data[0]["count()"] == 8
-            assert data[0]["failure_count()"] == 6
+            assert data[0]["failure_count()"] == 7
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:

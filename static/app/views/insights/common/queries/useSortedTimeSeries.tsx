@@ -1,5 +1,11 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import {useEffectEvent} from '@react-aria/utils';
+import * as Sentry from '@sentry/react';
+import isEmpty from 'lodash/isEmpty';
+import isEqualWith from 'lodash/isEqualWith';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import {NODE_ENV} from 'sentry/constants';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -14,8 +20,12 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,9 +48,12 @@ import {
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
+const {warn} = Sentry.logger;
+
 type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
+  caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
@@ -74,6 +87,7 @@ export const useSortedTimeSeries = <
     enabled,
     samplingMode,
     disableAggregateExtrapolation,
+    caseInsensitive,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -101,6 +115,33 @@ export const useSortedTimeSeries = <
     ? intervalToMilliseconds(eventView.interval)
     : undefined;
 
+  // Add a sampled fetch of equivalent `/events-timeseries/` response so we can
+  // compare the result and spot-check that there aren't any differences.
+
+  // Re-roll the random value whenever the filters change
+  const key = `${yAxis.join(',')}-${typeof search === 'string' ? search : search?.formatString()}-${topEvents}-${(fields ?? []).join(',')}-${pageFilters.selection.datetime.period}-${pageFilters.selection.datetime.start}-${pageFilters.selection.datetime.end}-${disableAggregateExtrapolation}`;
+
+  const isTimeSeriesEndpointComparisonEnabled =
+    useIsSampled(0.1, key) &&
+    organization.features.includes('explore-events-time-series-spot-check');
+
+  const timeSeriesResult = useFetchEventsTimeSeries(
+    dataset ?? DiscoverDatasets.SPANS,
+    {
+      yAxis: yAxis as unknown as any,
+      query: search,
+      topEvents,
+      groupBy: fields as unknown as any,
+      pageFilters: pageFilters.selection,
+      sort: decodeSorts(orderby)[0],
+      interval,
+      sampling: samplingMode,
+      extrapolate: !disableAggregateExtrapolation,
+      enabled: isTimeSeriesEndpointComparisonEnabled,
+    },
+    `${referrer}-time-series`
+  );
+
   const result = useGenericDiscoverQuery<
     MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
     DiscoverQueryProps
@@ -122,6 +163,7 @@ export const useSortedTimeSeries = <
       // Timeseries requests do not support cursors, overwrite it to undefined so
       // pagination does not cause extra requests
       cursor: undefined,
+      caseInsensitive,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
@@ -143,6 +185,41 @@ export const useSortedTimeSeries = <
   const data: SeriesMap = useMemo(() => {
     return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis, fields);
   }, [isFetchingOrLoading, result.data, yAxis, fields]);
+
+  const otherData = useMemo(() => {
+    return timeSeriesResult.data
+      ? Object.groupBy(timeSeriesResult.data.timeSeries, ts => ts.yAxis)
+      : {};
+  }, [timeSeriesResult.data]);
+
+  // We don't want to re-run the comparison every time the `data` changes, since
+  // `data` might be changed or mutated by the live reload functionality.
+  // Instead, extract that into an effect event so it doesn't have a dependency
+  // on `data`.
+  const compareResponses = useEffectEvent(() => {
+    if (!isEmpty(data) && !isEmpty(otherData)) {
+      if (!isEqualWith(data, otherData, comparator)) {
+        warn(`\`useDiscoverSeries\` found a data difference in responses`, {
+          statsData: JSON.stringify(data),
+          timeSeriesData: JSON.stringify(otherData),
+        });
+      }
+    }
+  });
+
+  useEffect(() => {
+    if (
+      isTimeSeriesEndpointComparisonEnabled &&
+      !result.isFetching &&
+      !timeSeriesResult.isFetching
+    ) {
+      compareResponses();
+    }
+  }, [
+    isTimeSeriesEndpointComparisonEnabled,
+    result.isFetching,
+    timeSeriesResult.isFetching,
+  ]);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
@@ -199,9 +276,7 @@ export function transformToSeriesMap(
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          if (groupName === 'Other') {
-            timeSeries.meta.isOther = true;
-          }
+          timeSeries.meta.isOther = groupName === 'Other';
         }
 
         allTimeSeries.push(timeSeries);
@@ -224,16 +299,14 @@ export function transformToSeriesMap(
         const [, timeSeries] = convertEventsStatsToTimeSeriesData(
           axis,
           seriesData,
-          seriesData.order
+          groupData.order as unknown as number // `order` is always present
         );
 
         if (fields) {
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          if (groupName === 'Other') {
-            timeSeries.meta.isOther = true;
-          }
+          timeSeries.meta.isOther = groupName === 'Other';
         }
 
         allTimeSeries.push(timeSeries);
@@ -259,40 +332,99 @@ export function convertEventsStatsToTimeSeriesData(
         value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
       };
 
-      if (seriesData.meta?.accuracy?.confidence) {
-        item.confidence = seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null;
-      }
+      if (seriesData.meta?.accuracy) {
+        const confidenceItem = seriesData.meta.accuracy.confidence?.[index];
+        if (defined(confidenceItem) && Object.hasOwn(confidenceItem, 'value')) {
+          item.confidence = confidenceItem.value;
+        }
 
-      if (seriesData.meta?.accuracy?.sampleCount) {
-        item.sampleCount =
-          seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined;
-      }
+        const sampleCountItem = seriesData.meta.accuracy.sampleCount?.[index];
+        if (defined(sampleCountItem) && Object.hasOwn(sampleCountItem, 'value')) {
+          item.sampleCount = sampleCountItem.value;
+        }
 
-      if (seriesData.meta?.accuracy?.samplingRate) {
-        item.sampleRate =
-          seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined;
+        const sampleRateItem = seriesData.meta.accuracy.samplingRate?.[index];
+        if (defined(sampleRateItem) && Object.hasOwn(sampleRateItem, 'value')) {
+          item.sampleRate = sampleRateItem.value;
+        }
       }
 
       return item;
     }
   );
 
-  const interval = getTimeSeriesInterval(values);
-
-  const serie: TimeSeries = {
-    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
+  const timeSeries: TimeSeries = {
     values,
+    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
     meta: {
       valueType: seriesData.meta?.fields?.[yAxis]!,
       valueUnit: seriesData.meta?.units?.[yAxis] as DataUnit,
-      interval,
+      interval: getTimeSeriesInterval(values),
       dataScanned: seriesData.meta?.dataScanned,
     },
   };
 
+  const delayedTimeSeries = markDelayedData(timeSeries, 90);
+
   if (defined(order)) {
-    serie.meta.order = order;
+    delayedTimeSeries.meta.order = order;
   }
 
-  return [serie.meta.order ?? 0, serie];
+  return [delayedTimeSeries.meta.order ?? 0, delayedTimeSeries];
+}
+
+const NUMERIC_KEYS: Array<symbol | string | number> = [
+  'value',
+  'sampleCount',
+  'sampleRate',
+];
+
+function comparator(
+  valueA: unknown,
+  valueB: unknown,
+  key: symbol | string | number | undefined,
+  objA: Record<PropertyKey, unknown>,
+  objB: Record<PropertyKey, unknown>
+) {
+  if (
+    key &&
+    NUMERIC_KEYS.includes(key) &&
+    typeof valueA === 'number' &&
+    typeof valueB === 'number' &&
+    (objA?.incomplete || objB?.incomplete)
+  ) {
+    // Treat numerical values in incomplete buckets as equal, we don't care about the differences there
+    return true;
+  }
+
+  if (
+    key &&
+    NUMERIC_KEYS.includes(key) &&
+    typeof valueA === 'number' &&
+    typeof valueB === 'number'
+  ) {
+    // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
+    return areNumbersAlmostEqual(valueA, valueB, 5);
+  }
+
+  // This can be removed when ENG-5677 is resolved. There's a known bug here.
+  if (key === 'dataScanned') {
+    return true;
+  }
+
+  // Otherwise use default deep comparison
+  return undefined;
+}
+
+function useIsSampled(rate: number, key = '') {
+  const [isSampled, setIsSampled] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (NODE_ENV !== 'test') {
+      const rand = Math.random();
+      setIsSampled(rand <= rate);
+    }
+  }, [rate, key]);
+
+  return isSampled;
 }

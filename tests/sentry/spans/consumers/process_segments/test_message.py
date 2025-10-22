@@ -11,7 +11,7 @@ from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
+from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
 
 
@@ -92,8 +92,8 @@ class TestSpansTask(TestCase):
 
         assert len(processed_spans) == len(spans)
         child_span, segment_span = processed_spans
-        child_attrs = child_span["attributes"]
-        segment_data = segment_span["attributes"]
+        child_attrs = child_span["attributes"] or {}
+        segment_data = segment_span["attributes"] or {}
 
         assert child_attrs["sentry.transaction"] == segment_data["sentry.transaction"]
         assert child_attrs["sentry.transaction.method"] == segment_data["sentry.transaction.method"]

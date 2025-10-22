@@ -26,13 +26,13 @@ import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
-  useExploreQuery,
-  useSetExploreQuery,
-} from 'sentry/views/explore/contexts/pageParamsContext';
-import {
   useReadQueriesFromLocation,
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  useQueryParamsQuery,
+  useSetQueryParamsQuery,
+} from 'sentry/views/explore/queryParams/context';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -45,8 +45,8 @@ interface FieldProps {
 }
 
 export function FieldRenderer({data, meta, unit, column}: FieldProps) {
-  const userQuery = useExploreQuery();
-  const setUserQuery = useSetExploreQuery();
+  const userQuery = useQueryParamsQuery();
+  const setUserQuery = useSetQueryParamsQuery();
 
   return (
     <BaseExploreFieldRenderer

@@ -1,8 +1,7 @@
 import beautify from 'js-beautify';
 
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -16,38 +15,6 @@ import {t, tct} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 type Params = DocsParams;
-
-const getInstallConfig = (params: Params) => [
-  {
-    type: StepType.INSTALL,
-    configurations: [
-      {
-        description: t('Add this script tag to the top of the page:'),
-        language: 'html',
-        code: beautify.html(
-          `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
-          {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
-        ),
-        additionalInfo: (
-          <Alert type="info">
-            {tct(
-              'Make sure that Session Replay is enabled in your [link:project settings].',
-              {
-                link: (
-                  <ExternalLink
-                    href={normalizeUrl(
-                      `/settings/${params.organization.slug}/projects/${params.project.slug}/loader-script/`
-                    )}
-                  />
-                ),
-              }
-            )}
-          </Alert>
-        ),
-      },
-    ],
-  },
-];
 
 const getVerifySnippet = () => `
 <!-- A button to trigger a test error -->
@@ -63,9 +30,13 @@ const feedbackOnboardingJsLoader: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      content: [
         {
-          description: t('Add this script tag to the top of the page:'),
+          type: 'text',
+          text: t('Add this script tag to the top of the page:'),
+        },
+        {
+          type: 'code',
           language: 'html',
           code: beautify.html(
             `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
@@ -78,15 +49,18 @@ const feedbackOnboardingJsLoader: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'When using the Loader Script, you can lazy load the User Feedback integration like this:'
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            'When using the Loader Script, you can lazy load the User Feedback integration like this:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: `
 window.sentryOnLoad = function () {
@@ -97,27 +71,29 @@ window.sentryOnLoad = function () {
   Sentry.lazyLoadIntegration("feedbackIntegration")
     .then((feedbackIntegration) => {
       Sentry.addIntegration(feedbackIntegration({
-      	// User Feedback configuration options
+        // User Feedback configuration options
       }));
     })
     .catch(() => {
       // this can happen if e.g. a network error occurs,
       // in this case User Feedback will not be enabled
     });
-};
-              `,
+};`,
             },
           ],
         },
-      ],
-      additionalInfo: tct(
-        `For a full list of User Feedback configuration options, [link:read the docs].`,
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/configuration/" />
+          type: 'text',
+          text: tct(
+            `For a full list of User Feedback configuration options, [link:read the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/configuration/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -125,35 +101,83 @@ window.sentryOnLoad = function () {
 };
 
 const replayOnboardingJsLoader: OnboardingConfig = {
-  install: (params: Params) => getInstallConfig(params),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: t('Add this script tag to the top of the page:'),
+        },
+        {
+          type: 'code',
+          language: 'html',
+          code: beautify.html(
+            `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
+            {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
+          ),
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          text: tct(
+            'Make sure that Session Replay is enabled in your [link:project settings].',
+            {
+              link: (
+                <ExternalLink
+                  href={normalizeUrl(
+                    `/settings/${params.organization.slug}/projects/${params.project.slug}/loader-script/`
+                  )}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
   configure: (params: Params) => [
     {
       title: t('Configure Session Replay (Optional)'),
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
-      }),
-      configurations: [
+      collapsible: true,
+      content: [
         {
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
           language: 'html',
           code: getReplayJsLoaderSdkSetupSnippet(params),
         },
+        tracePropagationBlock,
       ],
-      collapsible: true,
-      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
-      ),
-      configurations: [
+      content: [
         {
-          description: t('You can simulate an error by adding the following code:'),
+          type: 'text',
+          text: t(
+            'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+          ),
+        },
+        {
+          type: 'text',
+          text: t('You can simulate an error by adding the following code:'),
+        },
+        {
+          type: 'code',
           language: 'html',
           code: getVerifySnippet(),
-          additionalInfo: t(
+        },
+        {
+          type: 'text',
+          text: t(
             'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
           ),
         },

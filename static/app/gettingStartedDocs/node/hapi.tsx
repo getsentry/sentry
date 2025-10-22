@@ -16,7 +16,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -31,7 +31,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const Hapi = require('@hapi/hapi');
 
 const init = async () => {
@@ -69,32 +69,43 @@ server.route({
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+    tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
     }),
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Node SDK as a dependency:'),
-      configurations: getInstallConfig(params),
+      content: [
+        {
+          type: 'text',
+          text: t('Add the Sentry Node SDK as a dependency:'),
+        },
+        getInstallCodeBlock(params),
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'instrument.(js|mjs)',
               code: getSdkInitSnippet(params, 'node'),
@@ -102,7 +113,8 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
               code: <code />,
@@ -111,10 +123,12 @@ const onboarding: OnboardingConfig = {
               ),
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               filename: 'index.(js|mjs)',
               code: getSdkSetupSnippet(),
@@ -131,11 +145,15 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: getVerifySnippet(params),
         },
@@ -165,13 +183,16 @@ const feedbackOnboardingNode: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: `import * as Sentry from "@sentry/node";
 
@@ -203,9 +224,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -218,7 +244,7 @@ const docs: Docs = {
   crashReportOnboarding,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'hapi',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   profilingOnboarding: getNodeProfilingOnboarding(),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),

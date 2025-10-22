@@ -8,6 +8,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {Flex} from 'sentry/components/core/layout';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
@@ -274,7 +275,7 @@ export function generateTargetQuery({
   projects: Project[];
   row: Record<string, any>;
   search: MutableSearch;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   yAxes: string[];
 }) {
   search = search.copy();
@@ -372,7 +373,7 @@ export function viewSamplesTarget({
   projects: Project[];
   query: string;
   row: Record<string, any>;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   visualizes: readonly Visualize[];
 }) {
   const search = new MutableSearch(query);
@@ -511,17 +512,12 @@ export function computeVisualizeSampleTotals(
 
 function DisabledDateOption({label}: {label: ReactNode}) {
   return (
-    <DisabledDateOptionContainer>
+    <Flex align="center">
       {label}
       <StyledIconBuisness />
-    </DisabledDateOptionContainer>
+    </Flex>
   );
 }
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
@@ -745,6 +741,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: undefined,
 };
 
 /**

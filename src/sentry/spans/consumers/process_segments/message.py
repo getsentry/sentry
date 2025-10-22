@@ -14,6 +14,7 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
+from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -23,7 +24,6 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
@@ -145,7 +145,8 @@ def _compute_breakdowns(
 ) -> None:
     config = project.get_option("sentry:breakdowns")
     breakdowns = compute_breakdowns(spans, config)
-    segment.setdefault("attributes", {}).update(breakdowns)
+    segment["attributes"] = segment.get("attributes") or {}
+    segment["attributes"].update(breakdowns)  # type: ignore[union-attr]
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
@@ -231,7 +232,7 @@ def _detect_performance_problems(
             culprit=event_data["transaction"],
             evidence_data=problem.evidence_data or {},
             evidence_display=problem.evidence_display,
-            detection_time=to_datetime(segment_span["end_timestamp"]),
+            detection_time=to_datetime(segment_span["end_timestamp"]),  # type: ignore[arg-type]  # checked in process-spans
             level="info",
         )
 
@@ -265,7 +266,7 @@ def _record_signals(
     )
 
     for module in insights_modules(
-        [FilterSpan.from_span_attributes(span.get("attributes", {})) for span in spans]
+        [FilterSpan.from_span_attributes(span.get("attributes") or {}) for span in spans]
     ):
         set_project_flag_and_signal(
             project,

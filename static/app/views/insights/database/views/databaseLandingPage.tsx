@@ -32,7 +32,6 @@ import {
 } from 'sentry/views/insights/database/components/tables/queriesTable';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export function DatabaseLandingPage() {
@@ -126,10 +125,9 @@ export function DatabaseLandingPage() {
 
   return (
     <React.Fragment>
-      <BackendHeader module={ModuleName.DB} />
       <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               {hasModuleData && !onboardingProject && !isCriticalDataLoading && (
                 <NoDataMessage

@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
@@ -1057,6 +1058,210 @@ export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   AggregationKey.USER_MISERY,
 ];
 
+const LOG_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
+  ...AGGREGATION_FIELDS,
+  [AggregationKey.COUNT]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.STRING,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+        ],
+        defaultValue: OurLogKnownFieldKey.MESSAGE,
+        required: false,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_UNIQUE]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        required: true,
+        defaultValue: OurLogKnownFieldKey.MESSAGE,
+      },
+    ],
+  },
+  [AggregationKey.SUM]: {
+    ...AGGREGATION_FIELDS[AggregationKey.SUM],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P50]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P50],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P75]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P75],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P90]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P90],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P95]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P95],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P99]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P99],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MAX]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MAX],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MIN]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MIN],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+};
+
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
@@ -1603,6 +1808,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The event identification number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.MESSAGE]: {
     desc: t('Error message or transaction name'),
@@ -1623,6 +1829,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated profile'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.HAS]: {
@@ -1635,6 +1842,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated Session Replay'),
     kind: FieldKind.TAG,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TIMESTAMP]: {
     desc: t('The time an event finishes'),
@@ -1650,16 +1858,19 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The trace identification number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRACE_PARENT_SPAN]: {
     desc: t('Span identification number of the parent to the event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRACE_SPAN]: {
     desc: t('Span identification number of the root span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRANSACTION]: {
     desc: t('Error or transaction name identifier'),
@@ -2274,7 +2485,9 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
 };
 
-const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
+const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  ...LOG_AGGREGATION_FIELDS,
+};
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
@@ -2598,6 +2811,12 @@ export enum ReplayClickFieldKey {
   CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
+enum ReplayTapFieldKey {
+  TAP_MESSAGE = 'tap.message',
+  TAP_VIEW_ID = 'tap.view_id',
+  TAP_VIEW_CLASS = 'tap.view_class',
+}
+
 /**
  * Some fields inside the ReplayRecord type are intentionally omitted:
  * `environment` -> Not backend support, omitted because we have a dropdown for it
@@ -2830,6 +3049,12 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
+export const REPLAY_TAP_FIELDS = [
+  ReplayTapFieldKey.TAP_MESSAGE,
+  ReplayTapFieldKey.TAP_VIEW_ID,
+  ReplayTapFieldKey.TAP_VIEW_CLASS,
+];
+
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
 const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> = {
   [ReplayClickFieldKey.CLICK_ALT]: {
@@ -2905,7 +3130,26 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
 };
 
+const REPLAY_TAP_FIELD_DEFINITIONS: Record<ReplayTapFieldKey, FieldDefinition> = {
+  [ReplayTapFieldKey.TAP_MESSAGE]: {
+    desc: t('`Message` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_CLASS]: {
+    desc: t('`View Class` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_ID]: {
+    desc: t('`View ID` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export enum FeedbackFieldKey {
+  AI_CATEGORIZATION_LABELS = 'ai_categorization.labels',
   BROWSER_NAME = 'browser.name',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
@@ -2916,6 +3160,7 @@ export enum FeedbackFieldKey {
 }
 
 export const FEEDBACK_FIELDS = [
+  FeedbackFieldKey.AI_CATEGORIZATION_LABELS,
   FieldKey.ASSIGNED,
   FeedbackFieldKey.BROWSER_NAME,
   FieldKey.DEVICE_BRAND,
@@ -2949,6 +3194,12 @@ export const FEEDBACK_FIELDS = [
 ];
 
 const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+  [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
+    desc: t('AI-generated labels for categorizing feedback'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: true,
+  },
   [FeedbackFieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
@@ -2998,7 +3249,8 @@ export const getFieldDefinition = (
     | 'feedback'
     | 'span'
     | 'log'
-    | 'uptime' = 'event',
+    | 'uptime'
+    | 'tracemetric' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
@@ -3009,6 +3261,11 @@ export const getFieldDefinition = (
       if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
+        ];
+      }
+      if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        return REPLAY_TAP_FIELD_DEFINITIONS[
+          key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
         ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {

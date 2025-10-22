@@ -63,10 +63,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -108,7 +105,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
         parameters: [
           {
             kind: 'column',
-            columnTypes: ['string'],
+            columnTypes: ['number', 'string'],
             defaultValue: 'span.op',
             required: true,
           },
@@ -139,23 +136,19 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
-function SpansSearchBarDataProviderWrapper({children}: {children: React.ReactNode}) {
-  const organization = useOrganization();
-  const enabled = organization.features.includes('visibility-explore-view');
-
-  return (
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled={enabled}>
-      {children}
-    </TraceItemAttributeProvider>
-  );
-}
-
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
+  const organization = useOrganization();
+
+  const traceItemAttributeConfig = {
+    traceItemType: TraceItemDataset.SPANS,
+    enabled: organization.features.includes('visibility-explore-view'),
+  };
+
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
   const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
     itemType: TraceItemDataset.SPANS,
@@ -184,7 +177,6 @@ export const SpansConfig: DatasetConfig<
   enableEquations: true,
   SearchBar: SpansSearchBar,
   useSearchBarDataProvider: useSpansSearchBarDataProvider,
-  SearchBarDataProviderWrapper: SpansSearchBarDataProviderWrapper,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
@@ -239,7 +231,12 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    return getFieldRenderer(field, meta, false);
+    // Dashboard links are applicable to tables, which should only have one query hence the `queries[0]`
+    const dashboardLink = widget?.queries[0]?.linkedDashboards?.find(
+      linkedDashboard => linkedDashboard.field === field
+    );
+
+    return getFieldRenderer(field, meta, false, dashboardLink);
   },
 };
 

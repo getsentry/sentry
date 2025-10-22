@@ -338,7 +338,14 @@ register(
 # Deletions
 register(
     "deletions.group-hashes-batch-size",
-    default=10000,
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "deletions.group.delete_group_hashes_metadata_first",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -513,6 +520,20 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable new msgspec-based recording parser.
+register(
+    "replay.consumer.msgspec_recording_parser",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable new database query caching.
+register(
+    "replay.consumer.enable_new_query_caching_system",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Trace sampling rates for replay summary endpoint.
 register(
     "replay.endpoints.project_replay_summary.trace_sample_rate_post",
@@ -600,12 +621,16 @@ register(
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+# Debug values are used for the Notification Debug CLI
+register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -736,6 +761,9 @@ register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_M
 register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+# Debug values are used for the Notification Debug CLI
+register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -795,6 +823,7 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("snuba.preprocess-group-redirects", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1102,6 +1131,14 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether token count metrics are collected for stacktraces sent to Seer
+register(
+    "seer.similarity.token_count_metrics_enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL,
 )
 
 # seer nearest neighbour endpoint timeout
@@ -1879,6 +1916,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
+    "performance.issues.large_http_payload.filtered_paths",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.db_on_main_thread.total_spans_duration_threshold",
     default=16,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2416,33 +2458,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "delightful_metrics.minimetrics_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of projects that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-projects",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
-register(
-    "custom-metrics-querying-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -2782,6 +2797,7 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
 # transitioned to the optimized logic, and before the next config change, we probably either want to
@@ -2849,13 +2865,6 @@ register(
     "spans.buffer.max-segment-bytes",
     type=Int,
     default=10 * 1024 * 1024,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Maximum number of spans in a segment. Larger segments drop the oldest spans.
-register(
-    "spans.buffer.max-segment-spans",
-    type=Int,
-    default=1001,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # TTL for keys in Redis. This is a downside protection in case of bugs.
@@ -3120,6 +3129,13 @@ register(
 register(
     "workflow_engine.scheduler.use_conditional_delete",
     type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.associate_error_detectors",
+    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3139,9 +3155,43 @@ register(
 )
 
 register(
+    "workflow_engine.group.type_id.open_periods_type_denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.sentry-app-actions-outbox",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.num_cohorts",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.use_cohort_selection",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
+    type=Int,
+    default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3176,7 +3226,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 register(
     "uptime.date_cutoff_epoch_seconds",
     type=Int,
@@ -3184,8 +3233,25 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Controls whether uptime monitoring creates issues via the issue platform.
 register(
-    "uptime.snuba_uptime_results.enabled",
+    "uptime.create-issues",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring automatically detects hostnames from error events.
+register(
+    "uptime.automatic-hostname-detection",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring automatically creates subscriptions for detected URLs.
+register(
+    "uptime.automatic-subscription-creation",
     type=Bool,
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3425,15 +3491,6 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # This is mutually exclusive with the above setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option used to enable/disable tracking
 # rate of potential functions metrics to
 # be written into EAP
@@ -3441,21 +3498,6 @@ register(
     "profiling.track_functions_metrics_write_rate.eap.enabled",
     default=False,
     type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s.active-orgs",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3499,4 +3541,59 @@ register(
     type=String,
     default="plaintext",
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Lists all the consumers we want to dump the stacktrace upon shutdown.
+# We have seen some consumers hanging after restart. This should help
+# us to identify where they get stuck.
+# The consumer name is the ones defined in sentry.consumers.KAFKA_CONSUMERS.
+register(
+    "consumer.dump_stacktrace_on_shutdown",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for treating demo user as unauthenticated
+# in our auth pipelines.
+register(
+    "demo-user.auth.pipelines.always.unauthenticated.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to forward events to eap_items. 1.0
+# means that 100% of projects will forward events to eap_items.
+register(
+    "eventstream.eap_forwarding_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswich for LLM issue detection
+register(
+    "issue-detection.llm-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with LLM issue detection enabled
+register(
+    "issue-detection.llm-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
+register(
+    "sentry-apps.webhook-logging.enabled",
+    type=Dict,
+    default={
+        "sentry_app_slug": [],
+        "installation_uuid": [],
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

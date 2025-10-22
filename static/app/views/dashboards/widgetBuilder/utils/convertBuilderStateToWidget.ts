@@ -63,11 +63,17 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       fieldAliases: fieldAliases ?? [],
       name: legendAlias[index] ?? '',
       selectedAggregate: state.selectedAggregate,
-
+      linkedDashboards: state.linkedDashboards ?? [],
       // Big number widgets don't support sorting, so always ignore the sort state
       orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort,
     };
   });
+
+  const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(
+    state.displayType ?? DisplayType.TABLE
+  )
+    ? undefined
+    : state.limit;
 
   return {
     title: state.title ?? '',
@@ -76,7 +82,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     interval: '1h', // TODO: Not sure what to put here yet
     queries: widgetQueries,
     widgetType: state.dataset,
-    limit: state.limit,
+    limit,
     thresholds: state.thresholds,
   };
 }

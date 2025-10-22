@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Function
 
-from sentry import constants, eventstore, features, options
+from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -29,6 +29,7 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource

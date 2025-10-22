@@ -11,7 +11,7 @@ from typing import Any, cast
 import sentry_sdk
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import (
     CompatibleSpan,
     attribute_value,
@@ -88,7 +88,7 @@ def build_shim_event_data(
         "received": segment_span["received"],
         "timestamp": segment_span["end_timestamp"],
         "start_timestamp": segment_span["start_timestamp"],
-        "datetime": to_datetime(segment_span["end_timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "datetime": to_datetime(segment_span["end_timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ"),  # type: ignore[union-attr]  # checked in process-spans
         "spans": [],
     }
 

@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -17,11 +17,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 export default function AutomationsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -77,9 +79,9 @@ export default function AutomationsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Automations')} noSuffix>
+    <SentryDocumentTitle title={t('Automations')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />}>
+        <ListLayout actions={<Actions />} title={t('Automations')}>
           <TableHeader />
           <div>
             <AutomationListTable
@@ -135,16 +137,18 @@ function TableHeader() {
 
 function Actions() {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
-    <Fragment>
+    <Flex gap="sm">
+      <AutomationFeedbackButton />
       <LinkButton
-        to={`${makeAutomationBasePathname(organization.slug)}new/`}
+        to={`${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/`}
         priority="primary"
         icon={<IconAdd />}
         size="sm"
       >
         {t('Create Automation')}
       </LinkButton>
-    </Fragment>
+    </Flex>
   );
 }

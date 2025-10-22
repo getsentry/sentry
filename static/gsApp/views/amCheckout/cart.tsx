@@ -15,7 +15,6 @@ import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
@@ -30,7 +29,12 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
+  getCreditApplied,
+  getCredits,
+  getFees,
+  getOnDemandItems,
   getPlanIcon,
   getProductIcon,
   getReservedBudgetCategoryForAddOn,
@@ -235,16 +239,22 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                         <Tag icon={<IconLock locked size="xs" />}>
                           {isChonk || activePlan.budgetTerm === 'pay-as-you-go' ? (
                             tct('Unlock with [budgetTerm]', {
-                              budgetTerm:
+                              budgetTerm: displayBudgetName(
+                                activePlan,
                                 activePlan.budgetTerm === 'pay-as-you-go'
-                                  ? 'PAYG'
-                                  : activePlan.budgetTerm,
+                                  ? {
+                                      abbreviated: true,
+                                    }
+                                  : {
+                                      title: true,
+                                    }
+                              ),
                             })
                           ) : (
                             // "Unlock with on-demand" gets cut off in non-chonk theme
                             <Text size="xs">
                               {tct('Unlock with [budgetTerm]', {
-                                budgetTerm: activePlan.budgetTerm,
+                                budgetTerm: displayBudgetName(activePlan, {title: true}),
                               })}
                             </Text>
                           )}
@@ -364,7 +374,7 @@ function SubtotalSummary({
               <ItemFlex>
                 <Text>
                   {tct('[budgetTerm] spend limit', {
-                    budgetTerm: capitalize(activePlan.budgetTerm),
+                    budgetTerm: displayBudgetName(activePlan, {title: true}),
                   })}
                 </Text>
                 <Flex direction="column" gap="sm" align="end">
@@ -525,9 +535,10 @@ function TotalSummary({
     return subtext;
   };
 
-  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
-  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
-  const creditApplied = utils.getCreditApplied({
+  const fees = getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const onDemandItems = getOnDemandItems({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = getCreditApplied({
     creditApplied: previewData?.creditApplied ?? 0,
     invoiceItems: previewData?.invoiceItems ?? [],
   });
@@ -557,6 +568,19 @@ function TotalSummary({
                     </Item>
                   );
                 })}
+                {onDemandItems.length > 0 && (
+                  <Item data-test-id="summary-item-ondemand-total">
+                    <ItemWithPrice
+                      item={tct('[budgetTerm] usage', {
+                        budgetTerm: displayBudgetName(activePlan, {title: true}),
+                      })}
+                      price={utils.displayPrice({
+                        cents: onDemandItems.reduce((sum, item) => sum + item.amount, 0),
+                      })}
+                      shouldBoldItem={false}
+                    />
+                  </Item>
+                )}
                 {!!creditApplied && (
                   <Item data-test-id="summary-item-credit_applied">
                     <ItemWithPrice

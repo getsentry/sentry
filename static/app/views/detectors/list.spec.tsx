@@ -39,7 +39,7 @@ describe('DetectorsList', () => {
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
   it('displays all detector info correctly', async () => {
@@ -168,6 +168,7 @@ describe('DetectorsList', () => {
       // Click through menus to select type:error
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'type'}));
+
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
@@ -200,11 +201,7 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
-
-      // It takes two enters. One to enter the search term, and one to submit the search.
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('{enter}');
+      await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
 
       await screen.findByText('Assigned Detector');
       expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
@@ -295,10 +292,7 @@ describe('DetectorsList', () => {
           }),
         ],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select detectors', async () => {
@@ -497,11 +491,7 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
-
-      // It takes two enters. One to enter the search term, and one to submit the search.
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('{enter}');
+      await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
 
       // Wait for filtered results to load
       await screen.findByText('Assigned Detector 1');

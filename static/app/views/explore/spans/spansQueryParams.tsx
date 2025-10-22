@@ -97,9 +97,19 @@ export function getTargetWithReadableQueryParams(
         : '0'
       : writableQueryParams.extrapolate
   );
+  updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
 
   updateNullableLocation(target, SPANS_FIELD_KEY, writableQueryParams.fields);
+  updateNullableLocation(
+    target,
+    SPANS_SORT_KEY,
+    writableQueryParams.sortBys === null
+      ? null
+      : writableQueryParams.sortBys?.map(
+          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
+        )
+  );
 
   updateNullableLocation(
     target,
@@ -107,6 +117,15 @@ export function getTargetWithReadableQueryParams(
     writableQueryParams.aggregateFields?.map(aggregateField =>
       JSON.stringify(aggregateField)
     )
+  );
+  updateNullableLocation(
+    target,
+    SPANS_AGGREGATE_SORT_KEY,
+    writableQueryParams.aggregateSortBys === null
+      ? null
+      : writableQueryParams.aggregateSortBys?.map(
+          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
+        )
   );
 
   return target;

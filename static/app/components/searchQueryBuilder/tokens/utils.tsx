@@ -7,7 +7,11 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  WildcardOperators,
+  type ParseResultToken,
+} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
@@ -113,12 +117,16 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 
 export function getInitialFilterText(
   key: string,
-  fieldDefinition: FieldDefinition | null
+  fieldDefinition: FieldDefinition | null,
+  hasWildcardOperators: boolean
 ) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
+
+  const allowContainsOperator =
+    hasWildcardOperators && areWildcardOperatorsAllowed(fieldDefinition);
 
   switch (valueType) {
     case FieldValueType.INTEGER:
@@ -127,7 +135,11 @@ export function getInitialFilterText(
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
-    case FieldValueType.STRING:
+    case FieldValueType.STRING: {
+      return allowContainsOperator
+        ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
+        : `${keyText}:${defaultValue}`;
+    }
     default:
       return `${keyText}:${defaultValue}`;
   }

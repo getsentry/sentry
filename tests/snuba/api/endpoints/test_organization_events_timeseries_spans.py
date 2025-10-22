@@ -126,7 +126,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             3_600_000,
             event_counts,
             sample_count=event_counts,
-            sample_rate=[1 if val else 0 for val in event_counts],
+            sample_rate=[1 if val else None for val in event_counts],
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
@@ -522,6 +522,107 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "valueUnit": None,
             "interval": 60_000,
             "isOther": True,
+            "order": 2,
+        }
+
+    def test_top_events_with_none_as_groupby(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}, "tags": {"foo": "a"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2001,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar"}, "tags": {"foo": "b"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                # Without the foo tag this groupby will be None
+                self.create_span(
+                    {"sentry_tags": {"transaction": "baz"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=1999,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        self.end = self.start + timedelta(minutes=6)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count()",
+                "groupBy": ["foo", "sum(span.self_time)"],
+                "orderby": ["-sum(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 3,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 3
+
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [
+            {"key": "foo", "value": "a"},
+        ]
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 60_000,
+            "isOther": False,
+            "order": 0,
+        }
+
+        timeseries = response.data["timeSeries"][1]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [
+            {"key": "foo", "value": "b"},
+        ]
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 60_000,
+            "isOther": False,
+            "order": 1,
+        }
+
+        timeseries = response.data["timeSeries"][2]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [
+            {"key": "foo", "value": None},
+        ]
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 60_000,
+            "isOther": False,
             "order": 2,
         }
 
@@ -1059,7 +1160,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             3_600_000,
             [val * 10 for val in event_counts],
             sample_count=event_counts,
-            sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+            sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
             confidence=["low" if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
@@ -1133,7 +1234,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 3_600_000,
                 expected_values,
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             ), y_axis
 
@@ -1184,7 +1285,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 3_600_000,
                 [val * 10 if y_axis == "count()" else val for val in event_counts],
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 
@@ -1257,7 +1358,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 60_000,
                 [val * 10 for val in event_counts],
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 

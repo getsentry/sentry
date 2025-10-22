@@ -14,10 +14,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
@@ -36,13 +32,7 @@ function getFreeTextFromQuery(query: string) {
   return '';
 }
 
-export function PlatformLandingPageLayout({
-  children,
-  performanceType,
-}: {
-  children: React.ReactNode;
-  performanceType: 'backend' | 'frontend';
-}) {
+export function PlatformLandingPageLayout({children}: {children: React.ReactNode}) {
   const location = useLocation();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
@@ -58,13 +48,8 @@ export function PlatformLandingPageLayout({
       organization={organization}
       renderDisabled={NoAccess}
     >
-      {performanceType === 'backend' ? (
-        <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
-      ) : (
-        <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
-      )}
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>

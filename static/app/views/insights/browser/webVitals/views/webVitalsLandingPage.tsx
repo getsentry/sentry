@@ -23,7 +23,6 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 const WEB_VITALS_COUNT = 5;
@@ -68,11 +67,9 @@ function WebVitalsLandingPage() {
 
   return (
     <React.Fragment>
-      <FrontendHeader module={ModuleName.VITAL} />
-
       <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <TopMenuContainer>
               <ModulePageFilterBar
                 moduleName={ModuleName.VITAL}

@@ -31,6 +31,7 @@ import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
@@ -357,7 +358,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/account/notifications/notificationSettingsController'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':fineTuneType/',
@@ -368,7 +368,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/account/accountNotificationFineTuningController'
               )
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -487,7 +486,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/account/apiApplications')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: ':appId/',
@@ -585,7 +583,6 @@ function buildRoutes(): RouteObject[] {
       path: 'tags/',
       name: t('Tags & Context'),
       component: make(() => import('sentry/views/settings/projectTags')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'issue-tracking/',
@@ -983,7 +980,6 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/settings/organizationTeams')),
-          deprecatedRouteProps: true,
         },
         {
           path: ':teamId/',
@@ -991,7 +987,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/settings/organizationTeams/teamDetails')
           ),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -1003,7 +998,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamMembers')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'notifications/',
@@ -1018,7 +1012,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamProjects')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'settings/',
@@ -1026,7 +1019,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamSettings')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1680,6 +1672,36 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
+  const monitorRoutes: SentryRouteObject = {
+    path: '/monitors/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/detectors/monitorViewContainer')),
+    children: [
+      ...detectorRoutes.children!,
+      automationRoutes,
+      {
+        path: 'my-monitors/',
+        component: make(() => import('sentry/views/detectors/list/myMonitors')),
+      },
+      {
+        path: 'errors/',
+        component: make(() => import('sentry/views/detectors/list/error')),
+      },
+      {
+        path: 'metrics/',
+        component: make(() => import('sentry/views/detectors/list/metric')),
+      },
+      {
+        path: 'crons/',
+        component: make(() => import('sentry/views/detectors/list/cron')),
+      },
+      {
+        path: 'uptime/',
+        component: make(() => import('sentry/views/detectors/list/uptime')),
+      },
+    ],
+  };
+
   const replayChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -1820,49 +1842,66 @@ function buildRoutes(): RouteObject[] {
     )
     .filter(route => route !== null);
 
-  const transactionSummaryChildren: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionOverview')
-      ),
-      deprecatedRouteProps: true,
-    },
-    traceView,
-    {
-      path: 'replays/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionReplays')
-      ),
-    },
-    {
-      path: 'vitals/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionVitals')
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'tags/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionTags')
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'events/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionEvents')
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'profiles/',
-      component: make(
-        () => import('sentry/views/performance/transactionSummary/transactionProfiles')
-      ),
-    },
-  ];
+  const transactionSummaryRoute: SentryRouteObject = {
+    path: 'summary/',
+    children: [
+      traceView,
+      {
+        component: make(
+          () => import('sentry/views/performance/transactionSummary/layout')
+        ),
+        children: [
+          {
+            index: true,
+            handle: {tab: TransactionSummaryTab.TRANSACTION_SUMMARY},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionOverview')
+            ),
+          },
+          {
+            path: 'replays/',
+            handle: {tab: TransactionSummaryTab.REPLAYS},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionReplays')
+            ),
+          },
+          {
+            path: 'vitals/',
+            handle: {tab: TransactionSummaryTab.WEB_VITALS},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionVitals')
+            ),
+          },
+          {
+            path: 'tags/',
+            handle: {tab: TransactionSummaryTab.TAGS},
+            component: make(
+              () => import('sentry/views/performance/transactionSummary/transactionTags')
+            ),
+          },
+          {
+            path: 'events/',
+            handle: {tab: TransactionSummaryTab.EVENTS},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionEvents')
+            ),
+          },
+          {
+            path: 'profiles/',
+            handle: {tab: TransactionSummaryTab.PROFILING},
+            component: make(
+              () =>
+                import('sentry/views/performance/transactionSummary/transactionProfiles')
+            ),
+          },
+        ],
+      },
+    ],
+  };
 
   const moduleRoutes: SentryRouteObject[] = [
     {
@@ -1870,6 +1909,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.HTTP},
           component: make(
             () => import('sentry/views/insights/http/views/httpLandingPage')
           ),
@@ -1887,6 +1927,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.VITAL},
           component: make(
             () =>
               import('sentry/views/insights/browser/webVitals/views/webVitalsLandingPage')
@@ -1905,6 +1946,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.RESOURCE},
           component: make(
             () =>
               import('sentry/views/insights/browser/resources/views/resourcesLandingPage')
@@ -1924,6 +1966,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.DB},
           component: make(
             () => import('sentry/views/insights/database/views/databaseLandingPage')
           ),
@@ -1941,6 +1984,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.CACHE},
           component: make(
             () => import('sentry/views/insights/cache/views/cacheLandingPage')
           ),
@@ -1952,6 +1996,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.QUEUE},
           component: make(
             () => import('sentry/views/insights/queues/views/queuesLandingPage')
           ),
@@ -1969,6 +2014,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.MOBILE_VITALS},
           component: make(
             () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
           ),
@@ -1985,26 +2031,9 @@ function buildRoutes(): RouteObject[] {
       path: `${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`,
       children: [
         {
+          handle: {module: ModuleName.SESSIONS},
           index: true,
           component: make(() => import('sentry/views/insights/sessions/views/overview')),
-        },
-      ],
-    },
-    {
-      path: `${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/agents/views/overview')),
-        },
-      ],
-    },
-    {
-      path: `${MODULE_BASE_URLS[ModuleName.MCP]}/`,
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/mcp/views/overview')),
         },
       ],
     },
@@ -2015,74 +2044,87 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/insights/index')),
     },
-    {
-      path: 'summary/',
-      children: transactionSummaryChildren,
-    },
+    transactionSummaryRoute,
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/frontend/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
           ),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
         ...moduleRoutes,
       ],
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/backend/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/backend/backendOverviewPage')
           ),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
         ...moduleRoutes,
       ],
     },
     {
       path: `${MOBILE_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/mobile/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           ),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
         ...moduleRoutes,
       ],
     },
     {
       path: `${AGENTS_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/agents/layout')),
       children: [
         {
           index: true,
           component: make(() => import('sentry/views/insights/pages/agents/redirect')),
         },
-        {
-          path: 'summary/',
-          children: transactionSummaryChildren,
-        },
+        transactionSummaryRoute,
         traceView,
-        ...moduleRoutes,
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.AGENTS},
+              component: make(
+                () => import('sentry/views/insights/agents/views/overview')
+              ),
+            },
+          ],
+        },
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.MCP]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.MCP},
+              component: make(() => import('sentry/views/insights/mcp/views/overview')),
+            },
+          ],
+        },
       ],
     },
     {
@@ -2134,15 +2176,7 @@ function buildRoutes(): RouteObject[] {
       index: true,
       redirectTo: '/insights/frontend/',
     },
-    {
-      path: 'summary/',
-      children: transactionSummaryChildren,
-    },
-    {
-      path: 'vitaldetail/',
-      component: make(() => import('sentry/views/performance/vitalDetail')),
-      deprecatedRouteProps: true,
-    },
+    transactionSummaryRoute,
     traceView,
     ...insightsRedirectObjects,
     {
@@ -2192,16 +2226,21 @@ function buildRoutes(): RouteObject[] {
     traceView,
   ];
 
+  const metricsChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/explore/metrics/content')),
+    },
+  ];
+
   const profilingChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/profiling/content')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'summary/:projectId/',
       component: make(() => import('sentry/views/profiling/profileSummary')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'profile/:projectId/differential-flamegraph/',
@@ -2211,7 +2250,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'profile/:projectId/',
       component: make(() => import('sentry/views/profiling/continuousProfileProvider')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
@@ -2224,7 +2262,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'profile/:projectId/:eventId/',
       component: make(() => import('sentry/views/profiling/transactionProfileProvider')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
@@ -2238,7 +2275,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/profiling')),
     withOrgPath: true,
     children: profilingChildren,
-    deprecatedRouteProps: true,
   };
 
   const exploreChildren: SentryRouteObject[] = [
@@ -2275,6 +2311,11 @@ function buildRoutes(): RouteObject[] {
       path: 'logs/',
       component: make(() => import('sentry/views/explore/logs')),
       children: logsChildren,
+    },
+    {
+      path: 'metrics/',
+      component: make(() => import('sentry/views/explore/metrics')),
+      children: metricsChildren,
     },
     {
       path: 'saved-queries/',
@@ -2487,7 +2528,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/feedback/index')),
     withOrgPath: true,
     children: feedbackV2Children,
-    deprecatedRouteProps: true,
   };
 
   const issueTabs: SentryRouteObject[] = [
@@ -2556,39 +2596,32 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: errorHandler(OverviewWrapper),
-      deprecatedRouteProps: true,
     },
     {
       path: `${IssueTaxonomy.ERRORS_AND_OUTAGES}/`,
       component: make(() => import('sentry/views/issueList/pages/errorsOutages')),
-      deprecatedRouteProps: true,
     },
     {
       path: `${IssueTaxonomy.BREACHED_METRICS}/`,
       component: make(() => import('sentry/views/issueList/pages/breachedMetrics')),
-      deprecatedRouteProps: true,
     },
     {
       path: `${IssueTaxonomy.WARNINGS}/`,
       component: make(() => import('sentry/views/issueList/pages/warnings')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
-      deprecatedRouteProps: true,
     },
     {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
-      deprecatedRouteProps: true,
     },
     {
       path: 'searches/:searchId/',
       component: errorHandler(OverviewWrapper),
-      deprecatedRouteProps: true,
     },
     // Redirects for legacy tags route.
     {
@@ -2622,7 +2655,6 @@ function buildRoutes(): RouteObject[] {
       path: 'feedback/',
       component: make(() => import('sentry/views/feedback/index')),
       children: feedbackV2Children,
-      deprecatedRouteProps: true,
     },
     {
       path: 'alerts/',
@@ -2933,6 +2965,7 @@ function buildRoutes(): RouteObject[] {
       feedbackv2Routes,
       issueRoutes,
       alertRoutes,
+      monitorRoutes,
       preventRoutes,
       preprodRoutes,
       pullRequestRoutes,
@@ -2951,7 +2984,6 @@ function buildRoutes(): RouteObject[] {
       legacyOrganizationRootRoutes,
       legacyOrgRedirects,
     ],
-    deprecatedRouteProps: true,
   };
 
   const legacyRedirectRoutes: SentryRouteObject = {
@@ -3119,13 +3151,21 @@ function buildRoutes(): RouteObject[] {
       {
         path: '/',
         component: errorHandler(App),
-        deprecatedRouteProps: true,
         children: [
           rootRoutes,
           authV2Routes,
           organizationRoutes,
           legacyRedirectRoutes,
-          {path: '*', component: errorHandler(RouteNotFound), deprecatedRouteProps: true},
+          {
+            path: '*',
+            component: errorHandler(OrganizationLayout),
+            children: [
+              {
+                path: '*',
+                component: errorHandler(RouteNotFound),
+              },
+            ],
+          },
         ],
       },
     ],

@@ -10,7 +10,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, similarity, tsdb
+from sentry import analytics, similarity, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
@@ -25,10 +25,10 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -169,10 +169,11 @@ def migrate_events(
     opt_destination_id: int | None,
     opt_eventstream_state: Mapping[str, Any] | None,
 ) -> tuple[int, Mapping[str, Any]]:
+    extra = {"source_id": args.source_id, "project_id": project.id}
     logger.info(
         "migrate_events.start",
         extra={
-            "source_id": args.source_id,
+            **extra,
             "opt_destination_id": opt_destination_id,
             "migrate_args": args,
         },
@@ -203,7 +204,7 @@ def migrate_events(
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
     update_open_periods(source, destination)
-    logger.info("migrate_events.migrate", extra={"destination_id": destination_id})
+    logger.info("migrate_events.migrate", extra={**extra, "destination_id": destination_id})
 
     if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
         eventstream_state = args.replacement.start_snuba_replacement(
@@ -258,7 +259,9 @@ def update_open_periods(source: Group, destination: Group) -> None:
     except GroupOpenPeriod.DoesNotExist:
         logger.exception("No open period found for group", extra={"group_id": destination.id})
 
-    source_open_period = GroupOpenPeriod.objects.filter(group=source).order_by("-datetime").first()
+    source_open_period = (
+        GroupOpenPeriod.objects.filter(group=source).order_by("-date_started").first()
+    )
     if not source_open_period:
         logger.error("No open period found for group", extra={"group_id": destination.id})
         return
@@ -517,15 +520,14 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 
 @instrumented_task(
     name="sentry.tasks.unmerge",
-    queue="unmerge",
+    namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60,
-    ),
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
+    extra = {"source_id": args.source_id, "project_id": args.project_id}
+    logger.info("unmerge.start.task", extra=extra)
 
     source = Group.objects.get(project_id=args.project_id, id=args.source_id)
 
@@ -556,22 +558,14 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
     # Convert Event objects to GroupEvent objects
     events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
     # Log info related to this unmerge
-    logger.info(
-        "unmerge.check",
-        extra={
-            "source_id": source.id,
-            "num_events": len(events),
-        },
-    )
+    logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
 
     # If there are no more events to process, we're done with the migration.
     if not events:
         unlock_hashes(args.project_id, locked_primary_hashes)
-        for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
+        for unmerge_key, (_, eventstream_state) in args.destinations.items():
             logger.warning(
-                "Unmerge complete (eventstream state: %s)",
-                eventstream_state,
-                extra={"source_id": source.id},
+                "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
             )
             if eventstream_state:
                 args.replacement.stop_snuba_replacement(eventstream_state)
@@ -601,7 +595,7 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
     logger.info(
         "unmerge.destinations",
         extra={
-            "source_id": source.id,
+            **extra,
             "source_events": len(source_events),
             "destination_events": len(destination_events),
             "source_fields_reset": source_fields_reset,

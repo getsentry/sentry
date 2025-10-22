@@ -14,19 +14,18 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {
-  PageParamsProvider,
-  useExploreSortBys,
-  useSetExploreMode,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsSortBys,
   useQueryParamsVisualizes,
+  useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -426,7 +425,7 @@ describe('ExploreToolbar', () => {
   it('allows changing sort by in samples mode', async () => {
     let sortBys: any;
     function Component() {
-      sortBys = useExploreSortBys();
+      sortBys = useQueryParamsSortBys();
       return <ExploreToolbar />;
     }
     render(
@@ -482,8 +481,8 @@ describe('ExploreToolbar', () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
-      setMode = useSetExploreMode();
-      sortBys = useExploreSortBys();
+      setMode = useSetQueryParamsMode();
+      sortBys = useQueryParamsAggregateSortBys();
       return <ExploreToolbar />;
     }
     render(
@@ -553,11 +552,13 @@ describe('ExploreToolbar', () => {
   });
 
   it('allows for different sort bys on samples and aggregates mode', async () => {
-    let sortBys: any;
+    let samplesSortBys: any;
+    let aggregateSortBys: any;
     let setMode: any;
     function Component() {
-      setMode = useSetExploreMode();
-      sortBys = useExploreSortBys();
+      setMode = useSetQueryParamsMode();
+      samplesSortBys = useQueryParamsSortBys();
+      aggregateSortBys = useQueryParamsAggregateSortBys();
       return <ExploreToolbar />;
     }
 
@@ -569,27 +570,27 @@ describe('ExploreToolbar', () => {
 
     const section = screen.getByTestId('section-sort-by');
 
-    expect(sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
+    expect(samplesSortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
 
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
 
-    expect(sortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
+    expect(samplesSortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
 
     act(() => setMode(Mode.AGGREGATE));
 
-    expect(sortBys).toEqual([{field: 'count(span.duration)', kind: 'desc'}]);
+    expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'desc'}]);
 
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
 
-    expect(sortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
+    expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
 
     act(() => setMode(Mode.SAMPLES));
-    expect(sortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
+    expect(samplesSortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
 
     act(() => setMode(Mode.AGGREGATE));
-    expect(sortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
+    expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
   it('opens compare queries', async () => {

@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.types import attribute_value, get_span_op
+from sentry.spans.consumers.process_segments.types import Attribute, attribute_value, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -15,7 +15,10 @@ SHARED_SENTRY_ATTRIBUTES = (
     "sentry.user.ip",
     "sentry.user.username",
     "sentry.user.email",
+    "sentry.user.geo.city",
     "sentry.user.geo.country_code",
+    "sentry.user.geo.region",
+    "sentry.user.geo.subdivision",
     "sentry.user.geo.subregion",
     "sentry.environment",
     "sentry.transaction",
@@ -89,7 +92,7 @@ class TreeEnricher:
             # Assume that Relay has extracted the shared tags into `data` on the
             # root span. Once `sentry_tags` is removed, the logic from
             # `extract_shared_tags` should be moved here.
-            segment_attrs = self._segment_span.get("attributes", {})
+            segment_attrs = self._segment_span.get("attributes") or {}
             shared_attrs = {k: v for k, v in segment_attrs.items() if k in SHARED_SENTRY_ATTRIBUTES}
 
             is_mobile = attribute_value(self._segment_span, "sentry.mobile") == "true"
@@ -107,9 +110,9 @@ class TreeEnricher:
                         "value": mobile_start_type,
                     }
 
-            if self._ttid_ts is not None and span["end_timestamp"] <= self._ttid_ts:
+            if self._ttid_ts is not None and span["end_timestamp"] <= self._ttid_ts:  # type: ignore[operator]  # checked in process-spans
                 attributes["sentry.ttid"] = {"type": "string", "value": "ttid"}
-            if self._ttfd_ts is not None and span["end_timestamp"] <= self._ttfd_ts:
+            if self._ttfd_ts is not None and span["end_timestamp"] <= self._ttfd_ts:  # type: ignore[operator]  # checked in process-spans
                 attributes["sentry.ttfd"] = {"type": "string", "value": "ttfd"}
 
             for key, value in shared_attrs.items():
@@ -131,7 +134,7 @@ class TreeEnricher:
         of all time intervals where no child span was active.
         """
 
-        intervals = self._span_map.get(span["span_id"], [])
+        intervals = self._span_map.get(span["span_id"], [])  # type: ignore[arg-type]  # checked in process-spans
         # Sort by start ASC, end DESC to skip over nested intervals efficiently
         intervals.sort(key=lambda x: (x[0], -x[1]))
 
@@ -197,7 +200,8 @@ def _timestamp_by_op(spans: list[SpanEvent], op: str) -> float | None:
 
 def _span_interval(span: SpanEvent) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
-    return _us(span["start_timestamp"]), _us(span["end_timestamp"])
+
+    return _us(span["start_timestamp"]), _us(span["end_timestamp"])  # type: ignore[arg-type]  # checked in process-spans
 
 
 def _us(timestamp: float) -> int:
@@ -209,7 +213,7 @@ def _us(timestamp: float) -> int:
 def compute_breakdowns(
     spans: Sequence[SpanEvent],
     breakdowns_config: dict[str, dict[str, Any]],
-) -> dict[str, Any]:
+) -> dict[str, Attribute]:
     """
     Computes breakdowns from all spans and writes them to the segment span.
 
@@ -218,7 +222,7 @@ def compute_breakdowns(
     are converted into attributes on the span trace item.
     """
 
-    ret = {}
+    ret: dict[str, Attribute] = {}
     for breakdown_name, breakdown_config in breakdowns_config.items():
         ty = breakdown_config.get("type")
 
@@ -228,7 +232,7 @@ def compute_breakdowns(
             continue
 
         for key, value in breakdowns.items():
-            ret[f"{breakdown_name}.{key}"] = {"value": value}
+            ret[f"{breakdown_name}.{key}"] = {"value": value, "type": "double"}
 
     return ret
 

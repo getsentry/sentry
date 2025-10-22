@@ -149,6 +149,10 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/measurements-meta/',
+        body: [],
+      });
     });
 
     afterEach(() => {
@@ -293,14 +297,11 @@ describe('Dashboards > Detail', () => {
         },
       });
       PageFiltersStore.init();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
       widgets = [
         WidgetFixture({
           queries: [
@@ -1318,7 +1319,8 @@ describe('Dashboards > Detail', () => {
         expect(router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
-              release: '',
+              release: [''],
+              globalFilter: [''],
             }),
           })
         );
