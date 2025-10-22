@@ -29,12 +29,14 @@ interface TableData {
   conversationId: string;
   duration: number;
   errors: number;
-  flow: string;
+  flow: string[];
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
   totalCost: number | null;
   totalTokens: number;
+  traceCount: number;
+  traceIds: string[];
 }
 
 export function ConversationsTable() {
@@ -166,6 +168,8 @@ const BodyCell = memo(function BodyCell({
   switch (column.key) {
     case 'conversationId':
       return <span>{dataRow.conversationId}</span>;
+    case 'flow':
+      return <span>{dataRow.flow.join(' → ')}</span>;
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
@@ -173,7 +177,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            // query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
+            query: `span.status:internal_error trace:[${dataRow.traceIds.join(',')}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,

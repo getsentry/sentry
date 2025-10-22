@@ -469,6 +469,8 @@ class Referrer(StrEnum):
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
+    API_AI_CONVERSATIONS = "api.ai-conversations"
+    API_AI_CONVERSATIONS_AGENT_FLOWS = "api.ai-conversations.agent-flows"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"

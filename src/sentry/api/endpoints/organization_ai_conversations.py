@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,9 +8,13 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 
 
 class OrganizationAIConversationsSerializer(serializers.Serializer):
@@ -40,7 +46,7 @@ class OrganizationAIConversationsSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationAIConversationsEndpoint(OrganizationEndpoint):
+class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
     """Endpoint for fetching AI agent conversation traces."""
 
     publish_status = {
@@ -55,6 +61,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
 
+        try:
+            snuba_params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
+
         serializer = OrganizationAIConversationsSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -64,156 +75,122 @@ class OrganizationAIConversationsEndpoint(OrganizationEndpoint):
         # Create paginator with data function
         def data_fn(offset: int, limit: int):
             return self._get_conversations(
-                organization=organization,
+                snuba_params=snuba_params,
                 offset=offset,
                 limit=limit,
-                sort=validated_data.get("sort", "-timestamp"),
-                query=validated_data.get("query", ""),
+                _sort=validated_data.get("sort", "-timestamp"),
+                _query=validated_data.get("query", ""),
             )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: results,
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: results,
+            )
 
     def _get_conversations(
-        self, organization: Organization, offset: int, limit: int, sort: str, query: str
+        self, snuba_params, offset: int, limit: int, _sort: str, _query: str
     ) -> list[dict]:
         """
-        Fetch conversation data. Currently returns hardcoded data.
-        In the future, this will query real trace data from the database.
+        Fetch conversation data by querying spans grouped by gen_ai.conversation.id.
 
         Args:
-            organization: The organization to fetch conversations for (unused in hardcoded implementation)
+            snuba_params: Snuba parameters including projects, time range, etc.
             offset: Starting index for pagination
             limit: Number of results to return
-            sort: Sort field and direction
-            query: Search query (unused in hardcoded implementation)
+            _sort: Sort field and direction (currently only supports timestamp sorting, unused for now)
+            _query: Search query (not yet implemented)
         """
-        # Hardcoded sample data matching the TableData interface
-        all_conversations = [
-            {
-                "conversationId": "conv-12345-abc",
-                "flow": "Customer Support Agent → Database Query Tool → Response Generator",
-                "duration": 2450,  # milliseconds
-                "errors": 0,
-                "llmCalls": 3,
-                "toolCalls": 5,
-                "totalTokens": 1250,
-                "totalCost": 0.0045,
-                "timestamp": 1729520400000,  # Unix timestamp in milliseconds
-            },
-            {
-                "conversationId": "conv-67890-def",
-                "flow": "Research Assistant → Web Search Tool → Summarization Agent",
-                "duration": 5230,
-                "errors": 1,
-                "llmCalls": 5,
-                "toolCalls": 8,
-                "totalTokens": 3400,
-                "totalCost": 0.0128,
-                "timestamp": 1729520340000,
-            },
-            {
-                "conversationId": "conv-24680-ghi",
-                "flow": "Code Assistant → Documentation Tool → Code Generator",
-                "duration": 3100,
-                "errors": 0,
-                "llmCalls": 4,
-                "toolCalls": 6,
-                "totalTokens": 2100,
-                "totalCost": 0.0078,
-                "timestamp": 1729520280000,
-            },
-            {
-                "conversationId": "conv-13579-jkl",
-                "flow": "Translation Agent → Language Detection → Translation Service",
-                "duration": 1800,
-                "errors": 0,
-                "llmCalls": 2,
-                "toolCalls": 3,
-                "totalTokens": 950,
-                "totalCost": 0.0032,
-                "timestamp": 1729520220000,
-            },
-            {
-                "conversationId": "conv-86420-mno",
-                "flow": "Data Analysis Agent → SQL Tool → Visualization Generator",
-                "duration": 4500,
-                "errors": 2,
-                "llmCalls": 6,
-                "toolCalls": 9,
-                "totalTokens": 4200,
-                "totalCost": 0.0156,
-                "timestamp": 1729520160000,
-            },
-            {
-                "conversationId": "conv-97531-pqr",
-                "flow": "Email Assistant → Calendar Tool → Draft Generator",
-                "duration": 2900,
-                "errors": 0,
-                "llmCalls": 3,
-                "toolCalls": 4,
-                "totalTokens": 1600,
-                "totalCost": 0.0058,
-                "timestamp": 1729520100000,
-            },
-            {
-                "conversationId": "conv-15935-stu",
-                "flow": "Content Moderator → Toxicity Detector → Classification Agent",
-                "duration": 1200,
-                "errors": 0,
-                "llmCalls": 2,
-                "toolCalls": 2,
-                "totalTokens": 680,
-                "totalCost": 0.0024,
-                "timestamp": 1729520040000,
-            },
-            {
-                "conversationId": "conv-75395-vwx",
-                "flow": "Image Analysis Agent → Vision Model → Description Generator",
-                "duration": 6200,
-                "errors": 1,
-                "llmCalls": 4,
-                "toolCalls": 5,
-                "totalTokens": 2800,
-                "totalCost": 0.0112,
-                "timestamp": 1729519980000,
-            },
-            {
-                "conversationId": "conv-35795-yza",
-                "flow": "Sentiment Analyzer → Text Preprocessor → Classification Model",
-                "duration": 1500,
-                "errors": 0,
-                "llmCalls": 2,
-                "toolCalls": 3,
-                "totalTokens": 850,
-                "totalCost": 0.0029,
-                "timestamp": 1729519920000,
-            },
-            {
-                "conversationId": "conv-95135-bcd",
-                "flow": "Product Recommender → User Profile Tool → Recommendation Engine",
-                "duration": 3400,
-                "errors": 0,
-                "llmCalls": 5,
-                "toolCalls": 7,
-                "totalTokens": 2500,
-                "totalCost": 0.0095,
-                "timestamp": 1729519860000,
-            },
-        ]
+        # Query spans grouped by conversation ID with aggregations
+        results = Spans.run_table_query(
+            params=snuba_params,
+            query_string="has:gen_ai.conversation.id",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "failure_count()",
+                "count_if(gen_ai.operation.type,equals,ai_client)",
+                "count_if(span.op,equals,gen_ai.execute_tool)",
+                "sum(gen_ai.usage.total_tokens)",
+                "sum(gen_ai.usage.total_cost)",
+                "max(timestamp)",
+                "min(precise.start_ts)",
+                "max(precise.finish_ts)",
+                "count_unique(trace)",
+                "array_join(trace)",
+            ],
+            orderby=["-max(timestamp)"],
+            offset=offset,
+            limit=limit,
+            referrer=Referrer.API_AI_CONVERSATIONS.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode=None,
+        )
 
-        # Apply sorting (basic implementation for hardcoded data)
-        reverse = sort.startswith("-")
-        sort_key = sort[1:] if reverse else sort
+        # Format results to match frontend expectations
+        conversations = []
+        for row in results.get("data", []):
+            start_ts = row.get("min(precise.start_ts)", 0)
+            finish_ts = row.get("max(precise.finish_ts)", 0)
+            duration_ms = int((finish_ts - start_ts) * 1000) if finish_ts and start_ts else 0
 
-        # Map frontend field names to dict keys
-        if sort_key in all_conversations[0]:
-            all_conversations.sort(
-                key=lambda x: x[sort_key] if x[sort_key] is not None else 0, reverse=reverse
-            )
+            timestamp_seconds = row.get("max(timestamp)", 0)
+            timestamp_ms = int(timestamp_seconds * 1000) if timestamp_seconds else 0
 
-        # Apply pagination
-        return all_conversations[offset : offset + limit]
+            # Extract trace IDs from array_join result
+            trace_ids_raw = row.get("array_join(trace)", [])
+            trace_ids = trace_ids_raw if isinstance(trace_ids_raw, list) else []
+
+            conversation = {
+                "conversationId": row.get("gen_ai.conversation.id", ""),
+                "flow": [],
+                "duration": duration_ms,
+                "errors": int(row.get("failure_count()", 0)),
+                "llmCalls": int(row.get("count_if(gen_ai.operation.type,equals,ai_client)", 0)),
+                "toolCalls": int(row.get("count_if(span.op,equals,gen_ai.execute_tool)", 0)),
+                "totalTokens": int(row.get("sum(gen_ai.usage.total_tokens)", 0)),
+                "totalCost": float(row.get("sum(gen_ai.usage.total_cost)", 0)),
+                "timestamp": timestamp_ms,
+                "traceCount": int(row.get("count_unique(trace)", 0)),
+                "traceIds": trace_ids,
+            }
+            conversations.append(conversation)
+
+        if conversations:
+            self._enrich_with_agent_flows(snuba_params, conversations)
+
+        return conversations
+
+    def _enrich_with_agent_flows(self, snuba_params, conversations: list[dict]) -> None:
+        """
+        Enrich conversations with flow information by querying agent spans.
+        Flow is an ordered array of agent names (from gen_ai.invoke_agent spans).
+        """
+        conversation_ids = [conv["conversationId"] for conv in conversations]
+
+        agent_spans_results = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"span.op:gen_ai.invoke_agent gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "span.description",
+                "timestamp",
+            ],
+            orderby=["gen_ai.conversation.id", "timestamp"],
+            offset=0,
+            limit=1000,
+            referrer=Referrer.API_AI_CONVERSATIONS_AGENT_FLOWS.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode=None,
+        )
+
+        flows_by_conversation = defaultdict(list)
+        for row in agent_spans_results.get("data", []):
+            conv_id = row.get("gen_ai.conversation.id", "")
+            agent_name = row.get("span.description", "")
+            if conv_id and agent_name:
+                flows_by_conversation[conv_id].append(agent_name)
+
+        for conversation in conversations:
+            conv_id = conversation["conversationId"]
+            conversation["flow"] = flows_by_conversation.get(conv_id, [])
