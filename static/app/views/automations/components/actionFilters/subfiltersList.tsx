@@ -190,7 +190,9 @@ function ComparisonTypeField() {
       ]}
       onChange={(option: SelectValue<DataConditionType>) => {
         onUpdate({
-          ...subfilter,
+          id: subfilter.id,
+          match: subfilter.match,
+          value: subfilter.value,
           ...(option.value === DataConditionType.EVENT_ATTRIBUTE
             ? {attribute: Attribute.MESSAGE}
             : {key: ''}),
