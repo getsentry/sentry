@@ -7,7 +7,10 @@ import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  useProgressiveQuery,
+  type RPCQueryExtras,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useLogsFrozenProjectIds,
   useLogsFrozenSearch,
@@ -26,6 +29,7 @@ import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/use
 interface UseLogsAggregatesTableOptions {
   enabled: boolean;
   limit?: number;
+  queryExtras?: RPCQueryExtras;
   referrer?: string;
 }
 
@@ -66,9 +70,14 @@ function useLogsAggregatesTableImpl({
   enabled,
   limit,
   referrer,
+  queryExtras,
 }: UseLogsAggregatesTableOptions) {
-  const _referrer = referrer ?? 'api.explore.logs-table-aggregates';
-  const {queryKey, other} = useLogsAggregatesQueryKey({limit, referrer: _referrer});
+  referrer = referrer ?? 'api.explore.logs-table-aggregates';
+  const {queryKey, other} = useLogsAggregatesQueryKey({
+    limit,
+    queryExtras,
+    referrer,
+  });
 
   const queryResult = useApiQuery<LogsAggregatesResult>(queryKey, {
     enabled,
@@ -87,9 +96,11 @@ function useLogsAggregatesTableImpl({
 function useLogsAggregatesQueryKey({
   limit,
   referrer,
+  queryExtras,
 }: {
   referrer: string;
   limit?: number;
+  queryExtras?: RPCQueryExtras;
 }) {
   const organization = useOrganization();
   const _search = useQueryParamsSearch();
@@ -128,6 +139,7 @@ function useLogsAggregatesQueryKey({
       cursor: aggregateCursor,
       referrer,
       caseInsensitive,
+      sampling: queryExtras?.samplingMode,
     },
     pageFiltersReady,
     eventView,

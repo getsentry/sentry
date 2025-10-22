@@ -20,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
@@ -136,7 +137,7 @@ function useLogsQueryKey({
       orderby,
       per_page: limit ? limit : undefined,
       referrer,
-      sampling: highFidelity ? 'HIGHEST_ACCURACY_FLEX_TIME' : undefined,
+      sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : undefined,
       caseInsensitive,
     },
     pageFiltersReady,
@@ -452,6 +453,10 @@ export function useInfiniteLogsQuery({
       signal,
       meta,
     }): Promise<ApiResult<EventsLogsResult>> => {
+      endpointOptions = {
+        ...endpointOptions,
+        query: {...endpointOptions.query, sampling: SAMPLING_MODE.NORMAL},
+      };
       let response = await fetchDataQuery({
         queryKey: [
           url,
@@ -476,7 +481,7 @@ export function useInfiniteLogsQuery({
       ) {
         endpointOptions = {
           ...endpointOptions,
-          query: {...endpointOptions.query, sampling: 'HIGHEST_ACCURACY'},
+          query: {...endpointOptions.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
         };
         response = await fetchDataQuery({
           queryKey: [
