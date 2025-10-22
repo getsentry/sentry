@@ -222,6 +222,7 @@ const pulse = keyframes`
   }
 `;
 
+// HACK: For some reason, <Text> component with variant='success' doesn't use the success color
 const LiveText = styled(Text)`
   color: ${p => p.theme.success};
 `;
