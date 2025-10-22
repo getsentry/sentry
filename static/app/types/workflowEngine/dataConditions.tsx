@@ -111,7 +111,7 @@ export interface DataConditionHandler {
   handlerSubgroup?: DataConditionHandlerSubgroupType;
 }
 
-export interface BaseSubfilter {
+interface BaseSubfilter {
   id: string;
   match: MatchType;
   value: string;
