@@ -317,4 +317,5 @@ class TestPartitionByMeasure(TestCase):
         ):
             result = partition_by_measure([org.id])
             assert SamplingMeasure.TRANSACTIONS in result
+            assert SamplingMeasure.SPANS not in result
             assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
