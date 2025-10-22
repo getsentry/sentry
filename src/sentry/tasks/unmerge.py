@@ -259,7 +259,9 @@ def update_open_periods(source: Group, destination: Group) -> None:
     except GroupOpenPeriod.DoesNotExist:
         logger.exception("No open period found for group", extra={"group_id": destination.id})
 
-    source_open_period = GroupOpenPeriod.objects.filter(group=source).order_by("-datetime").first()
+    source_open_period = (
+        GroupOpenPeriod.objects.filter(group=source).order_by("-date_started").first()
+    )
     if not source_open_period:
         logger.error("No open period found for group", extra={"group_id": destination.id})
         return
