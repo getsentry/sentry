@@ -41,7 +41,12 @@ function DataConsentBanner({
     return projects.map(project => project.firstEvent).some(Boolean);
   }, [projects]);
 
-  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
+  const {
+    isLoading,
+    isError,
+    isPromptDismissed,
+    dismiss: dismissPrompt,
+  } = usePrompt({
     feature: 'data_consent_banner',
     organization,
   });

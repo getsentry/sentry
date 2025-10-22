@@ -308,7 +308,7 @@ export function usePrompt({
       )
     : undefined;
 
-  const dismissPrompt = useCallback(() => {
+  const dismiss = useCallback(() => {
     if (!organization) {
       return;
     }
@@ -339,7 +339,7 @@ export function usePrompt({
     );
   }, [api, feature, organization, projectId, queryClient]);
 
-  const snoozePrompt = useCallback(() => {
+  const snooze = useCallback(() => {
     if (!organization) {
       return;
     }
@@ -369,7 +369,7 @@ export function usePrompt({
     );
   }, [api, feature, organization, projectId, queryClient]);
 
-  const showPrompt = useCallback(() => {
+  const show = useCallback(() => {
     if (!organization) {
       return;
     }
@@ -403,9 +403,9 @@ export function usePrompt({
     isError: prompt.isError,
     data: prompt.data?.data,
     isPromptDismissed,
-    dismissPrompt,
-    snoozePrompt,
-    showPrompt,
+    dismiss,
+    snooze,
+    show,
   };
 }
 

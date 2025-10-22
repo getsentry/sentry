@@ -122,7 +122,12 @@ export function SubscriptionUpsellBanner({
 }: SubscriptionUpsellBannerProps) {
   const isNewBillingUI = hasNewBillingUI(organization);
   const isHidden = useIsSubscriptionUpsellHidden(subscription, organization);
-  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
+  const {
+    isLoading,
+    isError,
+    isPromptDismissed,
+    dismiss: dismissPrompt,
+  } = usePrompt({
     feature: BANNER_PROMPT_KEY,
     organization,
     options: {enabled: !isHidden},

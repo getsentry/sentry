@@ -12,7 +12,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function AllViewsWelcomeBanner() {
   const organization = useOrganization();
 
-  const {isPromptDismissed, isLoading, isError, dismissPrompt} = usePrompt({
+  const {
+    isPromptDismissed,
+    isLoading,
+    isError,
+    dismiss: dismissPrompt,
+  } = usePrompt({
     feature: 'issue_views_all_views_banner',
     organization,
   });

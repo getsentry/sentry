@@ -118,8 +118,8 @@ export function EventDetailsContent({
     isLoading: promptLoading,
     isError: promptError,
     isPromptDismissed,
-    dismissPrompt,
-    showPrompt,
+    dismiss: dismissPrompt,
+    show: showPrompt,
   } = usePrompt({
     feature: 'issue_feedback_hidden',
     organization,

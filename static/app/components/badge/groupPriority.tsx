@@ -134,7 +134,12 @@ const DataConsentLearnMore = HookOrDefault({
 
 function GroupPriorityLearnMore() {
   const organization = useOrganization();
-  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
+  const {
+    isLoading,
+    isError,
+    isPromptDismissed,
+    dismiss: dismissPrompt,
+  } = usePrompt({
     feature: 'issue_priority',
     organization,
   });

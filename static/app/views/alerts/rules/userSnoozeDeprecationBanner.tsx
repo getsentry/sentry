@@ -13,7 +13,12 @@ interface Props {
 export function UserSnoozeDeprecationBanner({projectId}: Props) {
   const organization = useOrganization();
 
-  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
+  const {
+    isLoading,
+    isError,
+    isPromptDismissed,
+    dismiss: dismissPrompt,
+  } = usePrompt({
     feature: 'user_snooze_deprecation',
     organization,
     projectId,

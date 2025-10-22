@@ -57,8 +57,8 @@ export function useChonkPrompt() {
   const bannerIsPromptDismissed = bannerPrompt.isPromptDismissed;
   const dotIndicatorIsPromptDismissed = dotIndicatorPrompt.isPromptDismissed;
 
-  const showBannerPrompt = bannerPrompt.showPrompt;
-  const showDotIndicatorPrompt = dotIndicatorPrompt.showPrompt;
+  const showBannerPrompt = bannerPrompt.show;
+  const showDotIndicatorPrompt = dotIndicatorPrompt.show;
 
   useEffect(() => {
     if (!hasChonkUI) {
@@ -132,18 +132,18 @@ export function useChonkPrompt() {
         return;
       }
 
-      bannerPrompt.snoozePrompt();
+      bannerPrompt.snooze();
     },
     snoozeDotIndicatorPrompt: () => {
       if (dotIndicatorPrompt.isPromptDismissed) {
         return;
       }
 
-      dotIndicatorPrompt.snoozePrompt();
+      dotIndicatorPrompt.snooze();
     },
     snooze: () => {
-      bannerPrompt.snoozePrompt();
-      dotIndicatorPrompt.snoozePrompt();
+      bannerPrompt.snooze();
+      dotIndicatorPrompt.snooze();
     },
   };
 }

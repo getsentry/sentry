@@ -20,7 +20,12 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscription}) {
   const organization = useOrganization();
   const hasBillingAccess = organization.access.includes('org:billing');
-  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
+  const {
+    isLoading,
+    isError,
+    isPromptDismissed,
+    dismiss: dismissPrompt,
+  } = usePrompt({
     feature: 'data_consent_priority',
     organization,
   });
