@@ -613,7 +613,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
     dateCreated: str
-    createdBy: UserSerializerResponse
+    createdBy: UserSerializerResponse | None
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters

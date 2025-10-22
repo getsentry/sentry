@@ -2349,7 +2349,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2366,7 +2366,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2386,7 +2386,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type] # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2566,7 +2566,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2602,7 +2602,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2633,7 +2633,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2660,7 +2660,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2706,7 +2706,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[arg-type]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
