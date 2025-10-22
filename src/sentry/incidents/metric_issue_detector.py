@@ -52,7 +52,14 @@ def schedule_update_project_config(detector: Detector) -> None:
     """
     enabled_features = on_demand_metrics_feature_flags(detector.project.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    if "organizations:on-demand-metrics-extraction" not in enabled_features and not prefilling:
+    prefilling_for_deprecation = (
+        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
+    )
+    if (
+        "organizations:on-demand-metrics-extraction" not in enabled_features
+        and not prefilling
+        and not prefilling_for_deprecation
+    ):
         return
 
     snuba_query = fetch_snuba_query(detector)
@@ -65,6 +72,7 @@ def schedule_update_project_config(detector: Detector) -> None:
         snuba_query.query,
         None,
         prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
     )
     if should_use_on_demand:
         schedule_invalidate_project_config(
