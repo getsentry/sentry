@@ -3,13 +3,12 @@ from __future__ import annotations
 import datetime
 import functools
 import logging
-from collections.abc import Callable, Iterable
-from typing import Any, TypeVar, cast
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import sentry_sdk
 from django.db.models import Model
 
-from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryError, retry_task
@@ -21,45 +20,6 @@ from sentry.utils import metrics
 ModelT = TypeVar("ModelT", bound=Model)
 
 logger = logging.getLogger(__name__)
-
-
-class TaskSiloLimit(SiloLimit):
-    """
-    Silo limiter for tasks
-
-    We don't want tasks to be spawned in the incorrect silo.
-    We can't reliably cause tasks to fail as not all tasks use
-    the ORM (which also has silo bound safety).
-    """
-
-    def handle_when_unavailable(
-        self,
-        original_method: Callable[P, R],
-        current_mode: SiloMode,
-        available_modes: Iterable[SiloMode],
-    ) -> Callable[P, R]:
-        def handle(*args: P.args, **kwargs: P.kwargs) -> Any:
-            name = original_method.__name__
-            message = f"Cannot call or spawn {name} in {current_mode},"
-            raise self.AvailabilityError(message)
-
-        return handle
-
-    def __call__(self, decorated_task: Task[P, R]) -> Task[P, R]:
-        # Replace the sentry.taskworker.Task interface used to schedule tasks.
-        replacements = {"delay", "apply_async"}
-        for attr_name in replacements:
-            task_attr = getattr(decorated_task, attr_name)
-            if callable(task_attr):
-                limited_attr = self.create_override(task_attr)
-                setattr(decorated_task, attr_name, limited_attr)
-
-        # Cast as the super class type is just Callable, but we know here
-        # we have Task instances.
-        limited_func = cast(Task[P, R], self.create_override(decorated_task))
-        if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name
-        return limited_func
 
 
 def load_model_from_db(
@@ -76,6 +36,8 @@ def load_model_from_db(
 def instrumented_task(
     name: str,
     namespace: TaskNamespace,
+    alias: str | None = None,
+    alias_namespace: TaskNamespace | None = None,
     retry: Retry | None = None,
     expires: int | datetime.timedelta | None = None,
     processing_deadline_duration: int | datetime.timedelta | None = None,
@@ -93,6 +55,25 @@ def instrumented_task(
     - statsd metrics for duration and memory usage.
     - sentry sdk tagging.
     - hybrid cloud silo restrictions
+    - alias and alias namespace for renaming a task or moving it to a different namespace
+
+    Basic task definition:
+        @instrumented_task(
+            name="sentry.tasks.some_task",
+            namespace=some_namespace,
+        )
+        def func():
+            ...
+
+    Renaming a task and/or moving task to a different namespace:
+        @instrumented_task(
+            name="sentry.tasks.new_task_name",
+            namespace=new_namespace,
+            alias="sentry.tasks.previous_task_name",
+            alias_namespace=previous_namespace,
+        )
+        def func():
+            ...
     """
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
@@ -104,11 +85,24 @@ def instrumented_task(
             at_most_once=at_most_once,
             wait_for_delivery=wait_for_delivery,
             compression_type=compression_type,
+            silo_mode=silo_mode,
         )(func)
-
-        if silo_mode:
-            silo_limiter = TaskSiloLimit(silo_mode)
-            return silo_limiter(task)
+        # If an alias is provided, register the task for both "name" and "alias" under namespace
+        # If an alias namespace is provided, register the task in both namespace and alias_namespace
+        # When both are provided, register tasks namespace."name" and alias_namespace."alias"
+        if alias or alias_namespace:
+            target_alias = alias if alias else name
+            target_alias_namespace = alias_namespace if alias_namespace else namespace
+            target_alias_namespace.register(
+                name=target_alias,
+                retry=retry,
+                expires=expires,
+                processing_deadline_duration=processing_deadline_duration,
+                at_most_once=at_most_once,
+                wait_for_delivery=wait_for_delivery,
+                compression_type=compression_type,
+                silo_mode=silo_mode,
+            )(func)
         return task
 
     return wrapped
