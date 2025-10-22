@@ -23,10 +23,7 @@ export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type RPCQueryExtras = {
   caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
-  logQueries?: string[];
-  metricQueries?: string[];
   samplingMode?: SamplingMode;
-  spanQueries?: string[];
 };
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
