@@ -188,6 +188,7 @@ describe('MessagingIntegrationAlertRule', () => {
 
     await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
       waitForElement: false,
+      createOptionText: '#custom-channel',
     });
 
     expect(mockSetChannel).toHaveBeenCalledWith({
