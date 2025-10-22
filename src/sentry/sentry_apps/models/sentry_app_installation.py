@@ -128,7 +128,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryAppInstallation))):
             for outbox in self.outboxes_for_delete():
                 outbox.save()
-        return super().delete(*args, **kwargs)
+            return super().delete(*args, **kwargs)
 
     @property
     def api_application_id(self) -> int | None:
