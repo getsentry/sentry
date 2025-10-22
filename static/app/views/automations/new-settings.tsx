@@ -42,9 +42,7 @@ import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return (
-    <SentryDocumentTitle
-      title={title ? t('%s - New Automation', title) : t('New Automation')}
-    />
+    <SentryDocumentTitle title={title ? t('%s - New Alert', title) : t('New Alert')} />
   );
 }
 
@@ -56,17 +54,17 @@ function AutomationBreadcrumbs() {
     <Breadcrumbs
       crumbs={[
         {
-          label: t('Automation'),
+          label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
         },
-        {label: title ? title : t('New Automation')},
+        {label: title ? title : t('New Alert')},
       ]}
     />
   );
 }
 
 const initialData = {
-  name: 'New Automation',
+  name: 'New Alert',
   environment: null,
   frequency: 1440,
   enabled: true,
@@ -188,7 +186,7 @@ export default function AutomationNewSettings() {
               {t('Back')}
             </LinkButton>
             <Button priority="primary" type="submit">
-              {t('Create Automation')}
+              {t('Create Alert')}
             </Button>
           </Flex>
         </Flex>

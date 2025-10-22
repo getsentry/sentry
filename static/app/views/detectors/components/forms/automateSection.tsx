@@ -29,7 +29,7 @@ function ConnectedAutomations({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   return (
-    <Section title={t('Connected Automations')}>
+    <Section title={t('Connected Alerts')}>
       <ConnectedAutomationsList
         data-test-id="drawer-connected-automations-list"
         automationIds={automationIds}
@@ -58,14 +58,14 @@ function AllAutomations({
   }, []);
 
   return (
-    <Section title={t('All Automations')}>
+    <Section title={t('All Alerts')}>
       <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
       <ConnectedAutomationsList
         data-test-id="drawer-all-automations-list"
         automationIds={null}
         connectedAutomationIds={new Set(automationIds)}
         toggleConnected={toggleConnected}
-        emptyMessage={t('No automations found')}
+        emptyMessage={t('No alerts found')}
         cursor={cursor}
         onCursor={setCursor}
         query={searchQuery}
@@ -161,7 +161,7 @@ export function AutomateSection() {
         />
       ),
       {
-        ariaLabel: t('Connect Automations'),
+        ariaLabel: t('Connect Alerts'),
         shouldCloseOnInteractOutside: el => {
           if (!ref.current) {
             return true;
@@ -175,7 +175,7 @@ export function AutomateSection() {
   if (workflowIds.length > 0) {
     return (
       <Container>
-        <Section title={t('Connected Automations')}>
+        <Section title={t('Connected Alerts')}>
           <ConnectedAutomationsList
             automationIds={workflowIds}
             cursor={undefined}
@@ -186,10 +186,10 @@ export function AutomateSection() {
         <ButtonWrapper justify="between">
           {/* TODO: Implement create automation flow */}
           <Button size="sm" icon={<IconAdd />} disabled>
-            {t('Create New Automation')}
+            {t('Create New Alert')}
           </Button>
           <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
-            {t('Edit Automations')}
+            {t('Edit Alerts')}
           </Button>
         </ButtonWrapper>
       </Container>
@@ -207,7 +207,7 @@ export function AutomateSection() {
           icon={<IconAdd />}
           onClick={toggleDrawer}
         >
-          {t('Connect an Automation')}
+          {t('Connect an Alert')}
         </Button>
       </Section>
     </Container>

@@ -62,7 +62,7 @@ export function ConnectedAutomationsList({
   automationIds,
   connectedAutomationIds,
   toggleConnected,
-  emptyMessage = t('No automations connected'),
+  emptyMessage = t('No alerts connected'),
   cursor,
   onCursor,
   limit = DEFAULT_AUTOMATIONS_PER_PAGE,

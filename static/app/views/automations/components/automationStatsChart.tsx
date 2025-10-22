@@ -54,7 +54,7 @@ export function AutomationStatsChart({
     <Panel>
       <StyledPanelBody withPadding>
         <ChartHeader>
-          <HeaderTitleLegend>{t('Automations Triggered')}</HeaderTitleLegend>
+          <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
         </ChartHeader>
         {isPending && <Placeholder height="200px" />}
         {isError && <LoadingError />}
@@ -76,7 +76,7 @@ export function AutomationStatsChart({
                 }}
                 series={[
                   {
-                    seriesName: t('Automations Triggered'),
+                    seriesName: t('Alerts Triggered'),
                     data:
                       fireHistory?.map(automation => ({
                         name: automation.date,

@@ -28,10 +28,10 @@ function AutomationBreadcrumbs() {
     <Breadcrumbs
       crumbs={[
         {
-          label: t('Automations'),
+          label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
         },
-        {label: t('New Automation')},
+        {label: t('New Alert')},
       ]}
     />
   );
@@ -60,13 +60,13 @@ export default function AutomationNew() {
   });
 
   return (
-    <SentryDocumentTitle title={t('New Automation')}>
+    <SentryDocumentTitle title={t('New Alert')}>
       <StyledLayoutPage>
         <StyledLayoutHeader>
           <HeaderInner maxWidth={maxWidth}>
             <Layout.HeaderContent>
               <AutomationBreadcrumbs />
-              <Layout.Title>{t('New Automation')}</Layout.Title>
+              <Layout.Title>{t('New Alert')}</Layout.Title>
             </Layout.HeaderContent>
             <div>
               <AutomationFeedbackButton />

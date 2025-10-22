@@ -174,7 +174,7 @@ describe('DetectorDetails', () => {
           organization,
           initialRouterConfig,
         });
-        expect(await screen.findByText('No automations connected')).toBeInTheDocument();
+        expect(await screen.findByText('No alerts connected')).toBeInTheDocument();
       });
 
       it('displays connected automations', async () => {

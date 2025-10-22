@@ -16,8 +16,8 @@ export function EditableAutomationName() {
               },
             });
           }}
-          errorMessage={t('Please set a name for your automation.')}
-          placeholder={t('New Automation')}
+          errorMessage={t('Please set a name for your alert.')}
+          placeholder={t('New Alert')}
         />
       )}
     </FormField>
