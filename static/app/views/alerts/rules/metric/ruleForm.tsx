@@ -578,8 +578,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
         timeWindow:
-          ['span_metrics'].includes(value as string) &&
-          timeWindow === TimeWindow.ONE_MINUTE
+          isEapAlertType(value as MetricAlertType) && timeWindow === TimeWindow.ONE_MINUTE
             ? TimeWindow.FIVE_MINUTES
             : timeWindow,
       }));
@@ -1370,7 +1369,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     // Rendering the main form body
     return (
-      <Main fullWidth>
+      <Main width="full">
         <ProjectPermissionAlert access={['alerts:write']} project={project} />
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}

@@ -143,8 +143,12 @@ export function useSortedFilterKeyItems({
     gaveSeerConsent,
   } = useSearchQueryBuilder();
 
-  const hasWildcardOperators = useOrganization().features.includes(
+  const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
+  );
+  const hasAskSeerConsentFlowChanges = organization.features.includes(
+    'ask-seer-consent-flow-update'
   );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
@@ -204,7 +208,11 @@ export function useSortedFilterKeyItems({
     const askSeerItem = [];
     if (enableAISearch) {
       askSeerItem.push(
-        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+        hasAskSeerConsentFlowChanges
+          ? createAskSeerItem()
+          : gaveSeerConsent
+            ? createAskSeerItem()
+            : createAskSeerConsentItem()
       );
     }
 
@@ -308,6 +316,7 @@ export function useSortedFilterKeyItems({
     flatKeys,
     gaveSeerConsent,
     getFieldDefinition,
+    hasAskSeerConsentFlowChanges,
     hasWildcardOperators,
     includeSuggestions,
     inputValue,

@@ -14,21 +14,12 @@ import {
   ReplaySessionColumn,
   ReplaySlowestTransactionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'sentry/utils/discover/fields';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
-import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
@@ -37,67 +28,14 @@ import useReplaysFromTransaction from './useReplaysFromTransaction';
 import useReplaysWithTxData from './useReplaysWithTxData';
 
 function TransactionReplays() {
-  const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
-  const {projects} = useProjects();
+  const {
+    eventView: replayIdsEventView,
+    organization,
+    setError,
+  } = useTransactionSummaryContext();
 
-  return (
-    <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
-      tab={Tab.REPLAYS}
-      getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
-      childComponent={ReplaysContentWrapper}
-    />
-  );
-}
+  const location = useLocation();
 
-function getDocumentTitle(transactionName: string): string {
-  const hasTransactionName =
-    typeof transactionName === 'string' && String(transactionName).trim().length > 0;
-
-  if (hasTransactionName) {
-    return [String(transactionName).trim(), t('Replays')].join(' \u2014 ');
-  }
-
-  return [t('Summary'), t('Replays')].join(' \u2014 ');
-}
-
-function generateEventView({
-  location,
-  transactionName,
-}: {
-  location: Location;
-  transactionName: string;
-}) {
-  const fields = [
-    'replayId',
-    'count()',
-    'transaction.duration',
-    'trace',
-    'timestamp',
-    ...SPAN_OP_BREAKDOWN_FIELDS,
-    SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-  ];
-
-  return EventView.fromSavedQuery({
-    id: '',
-    name: `Replay events within a transaction`,
-    version: 2,
-    fields,
-    query: `event.type:transaction transaction:"${transactionName}" !replayId:""`,
-    projects: [Number(location.query.project)],
-  });
-}
-
-function ReplaysContentWrapper({
-  eventView: replayIdsEventView,
-  location,
-  organization,
-  setError,
-}: ChildProps) {
   // Hard-code 90d to match the count query. There's no date selector for the replay tab.
   const {data, fetchError, isFetching, pageLinks} = useReplaysFromTransaction({
     replayIdsEventView,
@@ -117,7 +55,7 @@ function ReplaysContentWrapper({
 
   if (!data) {
     return isFetching ? (
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <LoadingIndicator />
       </Layout.Main>
     ) : (
@@ -174,7 +112,7 @@ function ReplaysContent({
   const {allMobileProj} = useAllMobileProj({});
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <ReplayTable
         columns={[
           ReplaySessionColumn,

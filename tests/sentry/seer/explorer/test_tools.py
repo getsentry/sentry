@@ -1,16 +1,25 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
+from pydantic import BaseModel
 
+from sentry.constants import ObjectStatus
+from sentry.models.group import Group
+from sentry.models.repository import Repository
 from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
+    get_issue_details,
+    get_repository_definition,
     get_trace_waterfall,
 )
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @pytest.mark.django_db(databases=["default", "control"])
@@ -473,3 +482,402 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         # Call with short ID and wrong org
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
+
+    def test_get_trace_waterfall_sliding_window_second_period(self) -> None:
+        """Test that sliding window finds traces in the second 14-day period (14-28 days ago)"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        twenty_days_ago = before_now(days=20)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=twenty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace using short ID by sliding back to the second window
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_old_trace(self) -> None:
+        """Test that sliding window finds traces near the 90-day limit"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        eighty_days_ago = before_now(days=80)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=eighty_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace by sliding back through multiple windows
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_sliding_window_beyond_limit(self) -> None:
+        """Test that traces beyond 90 days are not found"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        one_hundred_days_ago = before_now(days=100)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=one_hundred_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should not find the trace since it's beyond the 90-day limit
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert result is None
+
+
+class _ExplorerIssueProject(BaseModel):
+    id: int
+    slug: str
+
+
+class _ExplorerIssue(BaseModel):
+    """
+    A subset of BaseGroupSerializerResponse fields, required for Seer Explorer. In prod we send the full response.
+    """
+
+    id: int
+    shortId: str
+    title: str
+    culprit: str | None
+    permalink: str
+    level: str
+    status: str
+    substatus: str | None
+    platform: str | None
+    priority: str | None
+    type: str
+    issueType: str
+    issueCategory: str
+    hasSeen: bool
+    project: _ExplorerIssueProject
+
+    # Optionals
+    isUnhandled: bool | None = None
+    count: str | None = None
+    userCount: int | None = None
+    firstSeen: datetime | None = None
+    lastSeen: datetime | None = None
+
+
+class _SentryEventData(BaseModel):
+    """
+    Required fields for the serialized events used by Seer Explorer.
+    """
+
+    title: str
+    entries: list[dict]
+    tags: list[dict[str, str | None]] | None = None
+
+
+class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def _test_get_issue_details_success(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+        use_short_id: bool,
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create events with shared stacktrace (should have same group)
+        events = []
+        event0_trace_id = uuid.uuid4().hex
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            if i == 0:
+                data["contexts"] = data.get("contexts", {})
+                data["contexts"]["trace"] = {
+                    "trace_id": event0_trace_id,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                }
+
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        mock_get_recommended_event.return_value = events[1]
+
+        group = events[0].group
+        assert isinstance(group, Group)
+        assert events[1].group_id == group.id
+        assert events[2].group_id == group.id
+
+        for selected_event in [
+            "oldest",
+            "latest",
+            "recommended",
+            events[1].event_id,
+            events[1].event_id[:8],
+        ]:
+            result = get_issue_details(
+                issue_id=group.qualified_short_id if use_short_id else str(group.id),
+                organization_id=self.organization.id,
+                selected_event=selected_event,
+            )
+
+            # Short event IDs not supported.
+            if selected_event == events[1].event_id[:8]:
+                assert result is None
+                continue
+
+            assert result is not None
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+            assert result["tags_overview"] == mock_get_tags.return_value
+
+            # Validate fields of the main issue payload.
+            assert isinstance(result["issue"], dict)
+            _ExplorerIssue.parse_obj(result["issue"])
+
+            # Validate fields of the selected event.
+            event_dict = result["event"]
+            assert isinstance(event_dict, dict)
+            _SentryEventData.parse_obj(event_dict)
+            assert result["event_id"] == event_dict["id"]
+
+            # Check correct event is returned based on selected_event_type.
+            if selected_event == "oldest":
+                assert event_dict["id"] == events[0].event_id, selected_event
+            elif selected_event == "latest":
+                assert event_dict["id"] == events[-1].event_id, selected_event
+            elif selected_event == "recommended":
+                assert (
+                    event_dict["id"] == mock_get_recommended_event.return_value.event_id
+                ), selected_event
+            else:
+                assert event_dict["id"] == selected_event, selected_event
+
+            # Check event_trace_id matches mocked trace context.
+            if event_dict["id"] == events[0].event_id:
+                assert events[0].trace_id == event0_trace_id
+                assert result["event_trace_id"] == event0_trace_id
+            else:
+                assert result["event_trace_id"] is None
+
+    def test_get_issue_details_success_int_id(self):
+        self._test_get_issue_details_success(use_short_id=False)
+
+    def test_get_issue_details_success_short_id(self):
+        self._test_get_issue_details_success(use_short_id=True)
+
+    def test_get_issue_details_nonexistent_organization(self):
+        """Test returns None when organization doesn't exist."""
+        # Create a valid group.
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        # Call with nonexistent organization ID.
+        result = get_issue_details(
+            issue_id=str(group.id),
+            organization_id=99999,
+            selected_event="latest",
+        )
+        assert result is None
+
+    def test_get_issue_details_nonexistent_group(self):
+        """Test returns None when group doesn't exist."""
+        # Call with nonexistent group ID.
+        result = get_issue_details(
+            issue_id="99999",
+            organization_id=self.organization.id,
+            selected_event="latest",
+        )
+        assert result is None
+
+    @patch("sentry.models.group.get_oldest_or_latest_event")
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_no_event_found(
+        self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        mock_get_recommended_event.return_value = None
+        mock_get_oldest_or_latest_event.return_value = None
+
+        # Create events with shared stacktrace (should have same group)
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+
+        group = event.group
+        assert isinstance(group, Group)
+
+        for et in ["oldest", "latest", "recommended"]:
+            result = get_issue_details(
+                issue_id=str(group.id),
+                organization_id=self.organization.id,
+                selected_event=et,
+            )
+            assert result is None, et
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_tags_exception(self, mock_get_tags):
+        mock_get_tags.side_effect = Exception("Test exception")
+        """Test other fields are returned with null tags_overview when tag util fails."""
+        # Create a valid group.
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_details(
+            issue_id=str(group.id),
+            organization_id=self.organization.id,
+            selected_event="latest",
+        )
+        assert result is not None
+        assert result["tags_overview"] is None
+
+        assert "event_trace_id" in result
+        assert isinstance(result.get("project_id"), int)
+        assert isinstance(result.get("issue"), dict)
+        _ExplorerIssue.parse_obj(result.get("issue", {}))
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestGetRepositoryDefinition(APITransactionTestCase):
+    def test_get_repository_definition_success(self):
+        """Test successful repository lookup"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        assert result["organization_id"] == self.organization.id
+        assert result["integration_id"] == "123"
+        assert result["provider"] == "integrations:github"
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "seer"
+        assert result["external_id"] == "12345678"
+
+    def test_get_repository_definition_invalid_format(self):
+        """Test that invalid repo name format returns None"""
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="invalid-format",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_not_found(self):
+        """Test that nonexistent repository returns None"""
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="nonexistent/repo",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_wrong_org(self):
+        """Test that repository from different org returns None"""
+        other_org = self.create_organization()
+        Repository.objects.create(
+            organization_id=other_org.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_inactive_repo(self):
+        """Test that inactive repository returns None"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.DISABLED,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is None
+
+    def test_get_repository_definition_no_integration_id(self):
+        """Test repository without integration_id"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=None,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        assert result["integration_id"] is None

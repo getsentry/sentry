@@ -775,6 +775,7 @@ TIMEDELTA_ALLOW_LIST = {
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
+    "flush-delayed-workflows",
     "sync-options",
     "sync-options-control",
     "schedule-digests",
@@ -895,6 +896,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.email",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
@@ -916,7 +918,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.user_report",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
-    "sentry.uptime.detectors.tasks",
+    "sentry.uptime.autodetect.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
@@ -948,7 +950,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": timedelta(seconds=20),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -1100,6 +1102,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
+    "llm-issue-detection": {
+        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
@@ -2545,7 +2551,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
     "uptime-results": "default",
-    "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -2879,6 +2884,7 @@ SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 

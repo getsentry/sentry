@@ -13,18 +13,7 @@ describe('ContinuousProfileProvider', () => {
     MockApiClient.clearMockResponses();
   });
   it('fetches chunk', async () => {
-    const {organization, project, router} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            start: new Date().toISOString(),
-            end: new Date().toISOString(),
-            profilerId: uuid4(),
-            eventId: '1',
-          },
-        },
-      },
-    });
+    const {organization, project} = initializeOrg();
     ProjectsStore.loadInitialData([project]);
 
     const captureMessage = jest.spyOn(Sentry, 'captureMessage');
@@ -38,10 +27,20 @@ describe('ContinuousProfileProvider', () => {
       body: {},
     });
 
-    render(<ContinuosProfileProvider>{null}</ContinuosProfileProvider>, {
-      router,
+    render(<ContinuosProfileProvider />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        route: '/explore/profiling/profile/:projectId/:eventId/',
+        location: {
+          pathname: `/explore/profiling/profile/${project.slug}/1/`,
+          query: {
+            start: new Date().toISOString(),
+            end: new Date().toISOString(),
+            profilerId: uuid4(),
+            eventId: '1',
+          },
+        },
+      },
     });
 
     await waitFor(() => expect(chunkRequest).toHaveBeenCalled());
@@ -54,28 +53,26 @@ describe('ContinuousProfileProvider', () => {
       [new Date().toISOString(), undefined, uuid4()],
       [new Date().toISOString(), new Date().toISOString(), undefined],
     ]) {
-      const {organization, project, router} = initializeOrg({
-        // params: {orgId: organization.slug, projectId: project.slug},
-        router: {
-          location: {
-            query: {
-              start,
-              end,
-              profilerId,
-              eventId: '1',
-            },
-          },
-        },
-      });
+      const {organization, project} = initializeOrg();
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/1/`,
         body: {},
       });
       const captureMessage = jest.spyOn(Sentry, 'captureMessage');
-      render(<ContinuosProfileProvider>{null}</ContinuosProfileProvider>, {
-        router,
+      render(<ContinuosProfileProvider />, {
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          route: '/explore/profiling/profile/:projectId/:eventId/',
+          location: {
+            pathname: `/explore/profiling/profile/${project.slug}/1/`,
+            query: {
+              start: start ?? '',
+              end: end ?? '',
+              profilerId: profilerId ?? '',
+              eventId: '1',
+            },
+          },
+        },
       });
 
       await waitFor(() =>

@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import eventstore, features
+from sentry import features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
@@ -19,6 +19,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services import eventstore
 from sentry.services.eventstore.processing import (
     event_processing_store,
     transaction_processing_store,

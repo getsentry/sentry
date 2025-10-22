@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -36,6 +37,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -49,10 +51,14 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automation'), to: makeAutomationBasePathname(organization.slug)},
+        {
+          label: t('Automation'),
+          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+        },
         {label: title ? title : t('New Automation')},
       ]}
     />
@@ -70,9 +76,12 @@ export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.lg;
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
     Record<string, string>
@@ -109,10 +118,16 @@ export default function AutomationNewSettings() {
         const automation = await createAutomation(
           getNewAutomationData(data as AutomationFormData, state)
         );
-        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+        navigate(
+          makeAutomationDetailsPathname(
+            organization.slug,
+            automation.id,
+            automationsLinkPrefix
+          )
+        );
       }
     },
-    [createAutomation, state, navigate, organization.slug]
+    [createAutomation, state, navigate, organization.slug, automationsLinkPrefix]
   );
 
   return (
@@ -125,16 +140,20 @@ export default function AutomationNewSettings() {
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
-          <Layout.HeaderContent>
-            <AutomationBreadcrumbs />
-            <Layout.Title>
-              <EditableAutomationName />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <AutomationFeedbackButton />
+          <HeaderInner maxWidth={maxWidth}>
+            <Layout.HeaderContent>
+              <AutomationBreadcrumbs />
+              <Layout.Title>
+                <EditableAutomationName />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <div>
+              <AutomationFeedbackButton />
+            </div>
+          </HeaderInner>
         </StyledLayoutHeader>
-        <Layout.Body>
-          <Layout.Main fullWidth>
+        <StyledBody maxWidth={maxWidth}>
+          <Layout.Main width="full">
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,
@@ -154,22 +173,24 @@ export default function AutomationNewSettings() {
               </AutomationBuilderContext.Provider>
             </AutomationBuilderErrorContext.Provider>
           </Layout.Main>
-        </Layout.Body>
+        </StyledBody>
       </Layout.Page>
       <StickyFooter>
-        <Text variant="muted" size="md">
-          {t('Step 2 of 2')}
-        </Text>
-        <Flex gap="md">
-          <LinkButton
-            priority="default"
-            to={`${makeAutomationBasePathname(organization.slug)}new/`}
-          >
-            {t('Back')}
-          </LinkButton>
-          <Button priority="primary" type="submit">
-            {t('Create Automation')}
-          </Button>
+        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <Text variant="muted" size="md">
+            {t('Step 2 of 2')}
+          </Text>
+          <Flex gap="md">
+            <LinkButton
+              priority="default"
+              to={`${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/`}
+            >
+              {t('Back')}
+            </LinkButton>
+            <Button priority="primary" type="submit">
+              {t('Create Automation')}
+            </Button>
+          </Flex>
         </Flex>
       </StickyFooter>
     </FullHeightForm>
@@ -178,4 +199,29 @@ export default function AutomationNewSettings() {
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
+`;
+
+const HeaderInner = styled('div')<{maxWidth?: string}>`
+  display: contents;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: ${p => p.maxWidth};
+    width: 100%;
+  }
+`;
+
+const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
+  max-width: ${p => p.maxWidth};
+  padding: 0;
+  margin: ${p => p.theme.space.xl};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+    margin: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
+  }
 `;

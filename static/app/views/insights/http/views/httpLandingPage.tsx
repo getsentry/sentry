@@ -95,7 +95,7 @@ export function HTTPLandingPage() {
     <React.Fragment>
       <ModuleFeature moduleName={ModuleName.HTTP}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ToolRibbon>

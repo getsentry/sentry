@@ -32,7 +32,7 @@ import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
-import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
@@ -170,7 +170,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                   onStatsLoaded={checkHasUnknown}
                 />
                 <ErrorBoundary mini>
-                  <DetectorDetailsOngoingIssues
+                  <DetectorDetailsOpenPeriodIssues
                     detector={detector}
                     intervalSeconds={intervalSeconds}
                   />

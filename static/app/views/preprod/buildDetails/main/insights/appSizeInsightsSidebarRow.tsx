@@ -9,7 +9,10 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
 import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {
   ProcessedInsight,
   ProcessedInsightFile,
@@ -26,16 +29,33 @@ export function formatUpside(percentage: number): string {
   return `~0%`;
 }
 
+const INSIGHTS_WITH_MORE_INFO_MODAL = [
+  'image_optimization',
+  'alternate_icons_optimization',
+];
+
 export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
   onToggleExpanded,
+  platform,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
+  platform?: Platform;
 }) {
   const theme = useTheme();
+  const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
+
+  const handleOpenModal = () => {
+    if (insight.key === 'alternate_icons_optimization') {
+      openAlternativeIconsInsightModal();
+    } else if (insight.key === 'image_optimization') {
+      openOptimizeImagesModal(platform);
+    }
+  };
+
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
       <Flex align="start" justify="between">
@@ -60,9 +80,16 @@ export function AppSizeInsightsSidebarRow({
         </Flex>
       </Flex>
 
-      <Text variant="muted" size="sm">
-        {insight.description}
-      </Text>
+      <Flex direction="column" gap="xs">
+        <Text variant="muted" size="sm">
+          {insight.description}
+        </Text>
+        {shouldShowTooltip && (
+          <LinkText onClick={handleOpenModal}>
+            {t('See how to fix this locally →')}
+          </LinkText>
+        )}
+      </Flex>
 
       <Container>
         <Button
@@ -226,4 +253,17 @@ const FlexAlternatingRow = styled('div')`
   overflow: hidden;
   gap: ${({theme}) => theme.space.lg};
   padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
+`;
+
+const LinkText = styled('span')`
+  color: ${p => p.theme.purple300};
+  font-size: ${p => p.theme.fontSize.sm};
+  cursor: pointer;
+  text-decoration: underline;
+  padding: ${p => p.theme.space.xs} 0;
+  display: inline-block;
+
+  &:hover {
+    color: ${p => p.theme.purple400};
+  }
 `;

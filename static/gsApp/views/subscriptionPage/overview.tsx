@@ -131,12 +131,9 @@ function Overview({location, subscription, promotionData}: Props) {
       openCodecovModal({organization});
     }
 
-    // Open on-demand budget modal if hash fragment present and user has access
-    if (
-      window.location.hash === '#open-ondemand-modal' &&
-      subscription.supportsOnDemand &&
-      hasAccessToSubscriptionOverview(subscription, organization)
-    ) {
+    // Open on-demand budget modal if hash fragment present
+    // Modal logic handles checking perms
+    if (window.location.hash === '#open-ondemand-modal' && !isNewBillingUI) {
       openOnDemandBudgetEditModal({organization, subscription});
 
       // Clear hash to prevent modal reopening on refresh
@@ -146,7 +143,15 @@ function Overview({location, subscription, promotionData}: Props) {
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api, navigate]);
+  }, [
+    organization,
+    location.query,
+    subscription,
+    promotionData,
+    api,
+    navigate,
+    isNewBillingUI,
+  ]);
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
