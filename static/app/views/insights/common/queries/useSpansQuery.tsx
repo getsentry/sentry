@@ -114,6 +114,7 @@ function useSpansQueryBase<T>({
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
     spanQueries: queryExtras?.spanQueries,
     logQueries: queryExtras?.logQueries,
+    metricQueries: queryExtras?.metricQueries,
   });
 
   if (trackResponseAnalytics) {
