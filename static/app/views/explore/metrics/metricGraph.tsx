@@ -15,9 +15,9 @@ import {
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {getQuerySymbol} from 'sentry/views/explore/metrics/metricToolbar/querySymbol';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -80,7 +80,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${getQuerySymbol(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+      title={`${getVisualizeLabel(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
     />
   );
 
@@ -141,6 +141,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
           />
         )
       }
+      height={visualize.visible ? undefined : 0}
       revealActions="always"
       borderless
     />

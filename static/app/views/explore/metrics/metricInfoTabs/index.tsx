@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsMode,
   useSetQueryParamsMode,
@@ -16,6 +17,7 @@ interface MetricInfoTabsProps {
 }
 
 export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
+  const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
   return (
@@ -32,16 +34,18 @@ export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
         </TabList>
       </HeaderWrapper>
 
-      <BodyContainer>
-        <TabPanels>
-          <TabPanels.Item key={Mode.AGGREGATE}>
-            <AggregatesTab metricName={traceMetric.name} />
-          </TabPanels.Item>
-          <TabPanels.Item key={Mode.SAMPLES}>
-            <SamplesTab metricName={traceMetric.name} />
-          </TabPanels.Item>
-        </TabPanels>
-      </BodyContainer>
+      {visualize.visible && (
+        <BodyContainer>
+          <TabPanels>
+            <TabPanels.Item key={Mode.AGGREGATE}>
+              <AggregatesTab metricName={traceMetric.name} />
+            </TabPanels.Item>
+            <TabPanels.Item key={Mode.SAMPLES}>
+              <SamplesTab metricName={traceMetric.name} />
+            </TabPanels.Item>
+          </TabPanels>
+        </BodyContainer>
+      )}
     </TabStateProvider>
   );
 }

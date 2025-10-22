@@ -1,11 +1,12 @@
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import styled from '@emotion/styled';
+
+import {Container, Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {
   BottomSectionBody,
   FilterBarContainer,
@@ -22,13 +23,15 @@ import {
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
-type LogsTabProps = PickableDays;
+const MAX_METRICS_ALLOWED = 4;
+
+type MetricsTabProps = PickableDays;
 
 export function MetricsTabContent({
   defaultPeriod,
   maxPickableDays,
   relativeOptions,
-}: LogsTabProps) {
+}: MetricsTabProps) {
   return (
     <MultiMetricsQueryParamsProvider>
       <MetricsTabFilterSection
@@ -36,6 +39,7 @@ export function MetricsTabContent({
         maxPickableDays={maxPickableDays}
         relativeOptions={relativeOptions}
       />
+      <MetricsQueryBuilderSection />
       <MetricsTabBodySection />
     </MultiMetricsQueryParamsProvider>
   );
@@ -66,12 +70,11 @@ function MetricsTabFilterSection({
   );
 }
 
-function MetricsTabBodySection() {
+function MetricsQueryBuilderSection() {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
-
   return (
-    <BottomSectionBody>
+    <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg">
         {metricQueries.map((metricQuery, index) => {
           return (
@@ -86,15 +89,23 @@ function MetricsTabBodySection() {
             </MetricsQueryParamsProvider>
           );
         })}
-        <Button
-          size="sm"
-          priority="default"
-          icon={<IconAdd />}
-          onClick={addMetricQuery}
-          style={{width: 'fit-content'}}
-        >
-          {t('Add Metric')}
-        </Button>
+        <div>
+          <ToolbarVisualizeAddChart
+            add={addMetricQuery}
+            disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+          />
+        </div>
+      </Flex>
+    </MetricsQueryBuilderContainer>
+  );
+}
+
+function MetricsTabBodySection() {
+  const metricQueries = useMultiMetricsQueryParams();
+
+  return (
+    <BottomSectionBody>
+      <Flex direction="column" gap="lg">
         {metricQueries.map((metricQuery, index) => {
           return (
             <MetricsQueryParamsProvider
@@ -112,3 +123,8 @@ function MetricsTabBodySection() {
     </BottomSectionBody>
   );
 }
+
+const MetricsQueryBuilderContainer = styled(Container)`
+  padding: ${p => `${p.theme.space.xl} ${p.theme.space['3xl']}`};
+  background-color: ${p => p.theme.background};
+`;
