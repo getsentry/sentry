@@ -84,7 +84,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const polledReplayRecord = usePollReplayRecord({
     enabled: Boolean(
       replayReader &&
-        Date.now() < replayReader.getStartTimestampMs() + 5 * ONE_MINUTE_MS &&
+        Date.now() < replayReader.getStartTimestampMs() + 60 * ONE_MINUTE_MS &&
         organization.features.includes('replay-refresh-background')
     ),
     replayId,
