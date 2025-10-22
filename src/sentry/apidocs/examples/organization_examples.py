@@ -392,6 +392,7 @@ class OrganizationExamples:
                         "hasInsightsAgentMonitoring": False,
                         "hasInsightsMCP": False,
                         "hasLogs": False,
+                        "hasTraceMetrics": False,
                         "platform": "node",
                         "platforms": [],
                         "latestRelease": None,
@@ -457,6 +458,7 @@ class OrganizationExamples:
                     "hasInsightsAgentMonitoring": False,
                     "hasInsightsMCP": False,
                     "hasLogs": False,
+                    "hasTraceMetrics": False,
                     "latestRelease": None,
                 }
             ],

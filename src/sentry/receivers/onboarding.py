@@ -26,6 +26,7 @@ from sentry.analytics.events.first_sourcemaps_sent import (
     FirstSourcemapsSentEvent,
     FirstSourcemapsSentEventForProject,
 )
+from sentry.analytics.events.first_trace_metric_sent import FirstTraceMetricSentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.project_created import ProjectCreatedEvent
@@ -57,6 +58,7 @@ from sentry.signals import (
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
+    first_trace_metric_received,
     first_transaction_received,
     integration_added,
     member_invited,
@@ -344,6 +346,20 @@ def record_first_insight_span(project, module: InsightModules, **kwargs):
 def record_first_log(project, **kwargs):
     analytics.record(
         FirstLogSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+    )
+
+
+@first_trace_metric_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_trace_metric"
+)
+def record_first_trace_metric(project, **kwargs):
+    analytics.record(
+        FirstTraceMetricSentEvent(
             user_id=get_owner_id(project),
             organization_id=project.organization_id,
             project_id=project.id,
