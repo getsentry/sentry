@@ -186,6 +186,7 @@ def _cleanup(
     silent: bool,
     router: str | None,
 ) -> None:
+    start_time = time.time()
     _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
@@ -198,11 +199,10 @@ def _cleanup(
         try:
             from sentry.runner import configure
 
-            configure()
+            if not settings.configured:
+                configure()
 
             from sentry.utils import metrics
-
-            start_time = time.time()
 
             # list of models which this query is restricted to
             model_list = {m.lower() for m in model}
@@ -226,72 +226,52 @@ def _cleanup(
 
             deletes = models_which_use_deletions_code_path()
 
-            # Track timing for each deletion stage to monitor execution progress and identify bottlenecks
-            with metrics.timer(
-                "cleanup.stage", instance=router, tags={"stage": "specialized_cleanups"}
-            ):
-                _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
+            _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
 
-                # Handle project/organization specific logic
-                project_id, organization_id = _handle_project_organization_cleanup(
-                    project, organization, days, deletes
-                )
-                if organization_id is not None:
-                    transaction.set_tag("organization_id", organization_id)
-                if project_id is not None:
-                    transaction.set_tag("project_id", project_id)
+            # Handle project/organization specific logic
+            project_id, organization_id = _handle_project_organization_cleanup(
+                project, organization, days, deletes
+            )
+            if organization_id is not None:
+                transaction.set_tag("organization_id", organization_id)
+            if project_id is not None:
+                transaction.set_tag("project_id", project_id)
 
-            # This does not use the deletions code path, but rather uses the BulkDeleteQuery class
-            # to delete records in bulk (i.e. does not need to worry about child relations)
-            with metrics.timer(
-                "cleanup.stage", instance=router, tags={"stage": "bulk_query_deletes"}
-            ):
-                run_bulk_query_deletes(
-                    is_filtered,
-                    days,
-                    project,
-                    project_id,
-                    models_attempted,
-                )
+            run_bulk_query_deletes(
+                is_filtered,
+                days,
+                project,
+                project_id,
+                models_attempted,
+            )
 
-            with metrics.timer(
-                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_in_deletes"}
-            ):
-                run_bulk_deletes_in_deletes(
-                    task_queue,
-                    deletes,
-                    is_filtered,
-                    days,
-                    project,
-                    project_id,
-                    models_attempted,
-                )
+            run_bulk_deletes_in_deletes(
+                task_queue,
+                deletes,
+                is_filtered,
+                days,
+                project,
+                project_id,
+                models_attempted,
+            )
 
-            with metrics.timer(
-                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_by_project"}
-            ):
-                run_bulk_deletes_by_project(
-                    task_queue, project, project_id, is_filtered, days, models_attempted
-                )
+            run_bulk_deletes_by_project(
+                task_queue, project, project_id, is_filtered, days, models_attempted
+            )
 
-            with metrics.timer(
-                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_by_organization"}
-            ):
-                run_bulk_deletes_by_organization(
-                    task_queue, organization_id, is_filtered, days, models_attempted
-                )
+            run_bulk_deletes_by_organization(
+                task_queue, organization_id, is_filtered, days, models_attempted
+            )
 
-            with metrics.timer("cleanup.stage", instance=router, tags={"stage": "file_blobs"}):
-                remove_file_blobs(is_filtered, silent, models_attempted)
+            remove_file_blobs(is_filtered, silent, models_attempted)
 
         finally:
             # Shut down our pool
             _stop_pool(pool, task_queue)
 
-            if start_time:
-                duration = int(time.time() - start_time)
-                metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
-                click.echo("Clean up took %s second(s)." % duration)
+            duration = int(time.time() - start_time)
+            metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
+            click.echo("Clean up took %s second(s)." % duration)
 
             # Check for models that were specified but never attempted
             if model_list:
