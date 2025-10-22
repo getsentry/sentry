@@ -52,6 +52,7 @@ class FilterTypes:
     ERROR_MESSAGES = "error_messages"
     RELEASES = "releases"
     LOG_MESSAGES = "log_messages"
+    TRACE_METRIC_NAMES = "trace_metric_names"
 
 
 def get_filter_key(flt):
@@ -433,5 +434,20 @@ def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | 
             "op": "glob",
             "name": "log.body",
             "value": log_messages,
+        },
+    }
+
+
+def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> GenericFilter | None:
+    if not trace_metric_names:
+        return None
+
+    return {
+        "id": "trace-metric-name",
+        "isEnabled": True,
+        "condition": {
+            "op": "glob",
+            "name": "trace_metric.name",
+            "value": trace_metric_names,
         },
     }
