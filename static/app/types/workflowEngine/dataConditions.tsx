@@ -1,4 +1,8 @@
 import {PriorityLevel} from 'sentry/types/group';
+import type {
+  Attribute,
+  MatchType,
+} from 'sentry/views/automations/components/actionFilters/constants';
 
 import type {Action} from './actions';
 
@@ -106,3 +110,21 @@ export interface DataConditionHandler {
   type: DataConditionType;
   handlerSubgroup?: DataConditionHandlerSubgroupType;
 }
+
+export interface BaseSubfilter {
+  id: string;
+  match: MatchType;
+  value: string;
+}
+
+export interface AttributeSubfilter extends BaseSubfilter {
+  attribute: Attribute;
+  key: never;
+}
+
+export interface TagSubfilter extends BaseSubfilter {
+  attribute: never;
+  key: string;
+}
+
+export type Subfilter = AttributeSubfilter | TagSubfilter | BaseSubfilter;

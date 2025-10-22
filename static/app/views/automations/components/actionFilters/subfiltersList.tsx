@@ -11,18 +11,31 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
-  Attributes,
+  DataConditionType,
+  type AttributeSubfilter,
+  type Subfilter,
+  type TagSubfilter,
+} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  Attribute,
   MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
+function isAttributeSubfilter(subfilter: Subfilter): subfilter is AttributeSubfilter {
+  return 'attribute' in subfilter;
+}
+
+function isTagSubfilter(subfilter: Subfilter): subfilter is TagSubfilter {
+  return 'key' in subfilter;
+}
+
 interface SubfilterProps {
-  onUpdate: (comparison: Record<string, any>) => void;
+  onUpdate: (comparison: Subfilter) => void;
   removeError: () => void;
-  subfilter: Record<string, any>;
+  subfilter: Subfilter;
   subfilter_id: string;
 }
 
@@ -48,6 +61,8 @@ export function SubfiltersList() {
       ...subfilters,
       {
         id: uuid4(),
+        match: MatchType.EQUAL,
+        value: '',
       },
     ];
     onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
@@ -55,13 +70,13 @@ export function SubfiltersList() {
 
   function removeSubfilter(id: string) {
     const newSubfilters = subfilters.filter(
-      (subfilter: Record<string, any>) => subfilter.id !== id
+      (subfilter: Subfilter) => subfilter.id !== id
     );
     onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
-  function updateSubfilter(id: string, newSubfilter: Record<string, any>) {
-    const newSubfilters = subfilters.map((subfilter: Record<string, any>) => {
+  function updateSubfilter(id: string, newSubfilter: Subfilter) {
+    const newSubfilters = subfilters.map((subfilter: Subfilter) => {
       if (subfilter.id === id) {
         return newSubfilter;
       }
@@ -73,7 +88,7 @@ export function SubfiltersList() {
   return (
     <div>
       <div>
-        {subfilters.map((subfilter: Record<string, any>, i: number) => {
+        {subfilters.map((subfilter: Subfilter, i: number) => {
           return (
             <SubfilterContext.Provider
               value={{
@@ -148,10 +163,10 @@ function Branch({lastChild}: BranchProps) {
 function ComparisonTypeField() {
   const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
 
-  if ('attribute' in subfilter || 'key' in subfilter) {
+  if (isAttributeSubfilter(subfilter) || isTagSubfilter(subfilter)) {
     return (
       <Fragment>
-        {'attribute' in subfilter ? <AttributeField /> : <KeyField />}
+        {isAttributeSubfilter(subfilter) ? <AttributeField /> : <KeyField />}
         <MatchField />
         <ValueField />
       </Fragment>
@@ -161,7 +176,7 @@ function ComparisonTypeField() {
     <AutomationBuilderSelect
       name={`${subfilter_id}.type`}
       aria-label={t('Comparison type')}
-      value={subfilter.type ?? ''}
+      value=""
       placeholder={t('Select value type')}
       options={[
         {
@@ -175,13 +190,11 @@ function ComparisonTypeField() {
       ]}
       onChange={(option: SelectValue<DataConditionType>) => {
         onUpdate({
-          id: subfilter.id,
-          match: MatchType.EQUAL,
-          value: '',
+          ...subfilter,
           ...(option.value === DataConditionType.EVENT_ATTRIBUTE
-            ? {attribute: Attributes.MESSAGE}
-            : {key: undefined}),
-        });
+            ? {attribute: Attribute.MESSAGE}
+            : {key: ''}),
+        } as Subfilter);
       }}
     />
   );
@@ -189,17 +202,22 @@ function ComparisonTypeField() {
 
 function AttributeField() {
   const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
+
+  if (!isAttributeSubfilter(subfilter)) {
+    return null;
+  }
+
   return (
     <AutomationBuilderSelect
       name={`${subfilter_id}.attribute`}
       aria-label={t('Attribute')}
       placeholder={t('Select attribute')}
-      value={subfilter.attribute ?? ''}
-      options={Object.values(Attributes).map(attribute => ({
+      value={subfilter.attribute}
+      options={Object.values(Attribute).map(attribute => ({
         value: attribute,
         label: attribute,
       }))}
-      onChange={(option: SelectValue<string>) => {
+      onChange={(option: SelectValue<Attribute>) => {
         onUpdate({...subfilter, attribute: option.value});
       }}
     />
@@ -208,12 +226,17 @@ function AttributeField() {
 
 function KeyField() {
   const {subfilter, subfilter_id, onUpdate, removeError} = useSubfilterContext();
+
+  if (!isTagSubfilter(subfilter)) {
+    return null;
+  }
+
   return (
     <AutomationBuilderInput
       name={`${subfilter_id}.key`}
       aria-label={t('Tag')}
       placeholder={t('tag')}
-      value={subfilter.key ?? ''}
+      value={subfilter.key}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({...subfilter, key: e.target.value});
         removeError();
@@ -253,7 +276,7 @@ function ValueField() {
       name={`${subfilter_id}.value`}
       aria-label={t('Value')}
       placeholder={t('value')}
-      value={`${subfilter.value ?? ''}`}
+      value={subfilter.value ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({...subfilter, value: e.target.value});
         removeError();
@@ -262,11 +285,7 @@ function ValueField() {
   );
 }
 
-export function SubfilterDetailsList({
-  subfilters,
-}: {
-  subfilters: Array<Record<string, any>>;
-}) {
+export function SubfilterDetailsList({subfilters}: {subfilters: Subfilter[]}) {
   return (
     <DetailsListWrapper>
       {subfilters.map((subfilter, index) => (
@@ -278,20 +297,32 @@ export function SubfilterDetailsList({
   );
 }
 
-function SubfilterDetails({subfilter}: {subfilter: Record<string, any>}) {
+function SubfilterDetails({subfilter}: {subfilter: Subfilter}) {
   return tct('[item] [match] [value]', {
-    item: subfilter.attribute ?? subfilter.key,
+    item: isAttributeSubfilter(subfilter)
+      ? subfilter.attribute
+      : isTagSubfilter(subfilter)
+        ? subfilter.key
+        : '',
     match: subfilter.match === MatchType.EQUAL ? t('is') : t('is not'),
-    value: subfilter.value,
+    value: subfilter.value ?? '',
   });
 }
 
-export function validateSubfilters(
-  subfilters: Array<Record<string, any>>
-): string | undefined {
+export function validateSubfilters(subfilters: Subfilter[]): string | undefined {
   for (const subfilter of subfilters) {
-    const isMissingAttributeOrTag = !subfilter.attribute && !subfilter.key;
-    if (isMissingAttributeOrTag || !subfilter.match || !subfilter.value) {
+    const isMissingAttributeOrTag =
+      !isAttributeSubfilter(subfilter) && !isTagSubfilter(subfilter);
+    const missingAttribute = isAttributeSubfilter(subfilter) && !subfilter.attribute;
+    const missingKey = isTagSubfilter(subfilter) && !subfilter.key;
+
+    if (
+      isMissingAttributeOrTag ||
+      missingAttribute ||
+      missingKey ||
+      !subfilter.match ||
+      !subfilter.value
+    ) {
       return t('Ensure all subfilters are filled in.');
     }
   }

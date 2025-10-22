@@ -31,8 +31,8 @@ const stripDataConditionId = (condition: any) => {
 };
 
 const stripSubfilterId = (subfilter: any) => {
-  const {id: _id, ...subfilterWithoutTypeAndId} = subfilter;
-  return subfilterWithoutTypeAndId;
+  const {id: _id, ...subfilterWithoutId} = subfilter;
+  return subfilterWithoutId;
 };
 
 const stripActionId = (action: any) => {
