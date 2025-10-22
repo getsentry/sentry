@@ -138,6 +138,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     askSeerNLQueryRef,
     autoSubmitSeer,
     setAutoSubmitSeer,
+    enableAISearch,
   } = useSearchQueryBuilder();
 
   const {
@@ -397,10 +398,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     state.selectionManager.setFocusedKey(null);
   };
 
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
-  if (!areAiFeaturesAllowed) {
+  if (!enableAISearch) {
     return null;
   }
 
