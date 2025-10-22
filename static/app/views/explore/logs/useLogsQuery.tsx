@@ -470,13 +470,11 @@ export function useInfiniteLogsQuery({
         meta,
       });
 
-      const result = response[0] as EventsLogsResult | undefined;
-      const resultData = result?.data;
-      const resultMeta = result?.meta;
+      let result = response[0] as EventsLogsResult | undefined;
 
       if (
-        !resultData?.length && // no matches found
-        resultMeta?.dataScanned === 'partial' && // partial scan performed
+        !result?.data?.length && // no matches found
+        result?.meta?.dataScanned === 'partial' && // partial scan performed
         !endpointOptions?.data?.highFidelity // not high fidelity mode
       ) {
         endpointOptions = {
@@ -495,13 +493,15 @@ export function useInfiniteLogsQuery({
           signal,
           meta,
         });
+
+        result = response[0] as EventsLogsResult | undefined;
       }
 
-      if (pageParam?.querySortDirection && Array.isArray(resultData)) {
+      if (pageParam?.querySortDirection && Array.isArray(result?.data)) {
         // We reverse the data if the query sort direction has been changed from the table sort direction.
         response[0] = {
           ...(response[0] as {data?: EventsLogsResult['data']}),
-          data: [...resultData].reverse(),
+          data: [...result.data].reverse(),
         };
       }
       return response as ApiResult<EventsLogsResult>;
