@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SelectOption} from '@sentry/scraps/select/option';
+
 import {Select} from 'sentry/components/core/select';
+import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -104,7 +107,7 @@ export default function MessagingIntegrationAlertRule({
           />
         ),
         target: (
-          <FormField name="channel" error={validateChannel.error}>
+          <ChannelField name="channel" error={validateChannel.error} inline={false}>
             {() => (
               <InlineSelect
                 aria-label={t('channel')}
@@ -136,9 +139,28 @@ export default function MessagingIntegrationAlertRule({
                 // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.
                 // This allows them to add a channel that is not present in the results.
                 creatable
+                formatCreateLabel={(inputValue: string) => inputValue}
+                menuPlacement="auto"
+                components={{
+                  Option: (
+                    optionProps: React.ComponentProps<typeof SelectComponents.Option>
+                  ) => {
+                    return (
+                      <SelectOption
+                        {...optionProps}
+                        data={{
+                          ...optionProps.data,
+                          // Hide IconAdd for new channel options by setting __isNew__ to false
+                          // We are doing that to don't give the impression that the user can create a new channel.
+                          __isNew__: false,
+                        }}
+                      />
+                    );
+                  },
+                }}
               />
             )}
-          </FormField>
+          </ChannelField>
         ),
       })}
     </Rule>
@@ -161,4 +183,8 @@ const InlineSelectControl = styled(Select)`
 
 const InlineSelect = styled(Select)`
   min-width: 220px;
+`;
+
+const ChannelField = styled(FormField)`
+  padding: 0;
 `;
