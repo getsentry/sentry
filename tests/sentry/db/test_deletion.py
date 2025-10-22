@@ -160,7 +160,7 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
 
         # If the bug exists, this will raise TypeError on the second iteration
         # when RangeQuerySetWrapper tries to filter with a datetime object
-        collected_ids = []
+        collected_ids: list[int] = []
         iteration_count = 0
         for chunk in iterator:
             iteration_count += 1
