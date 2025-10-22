@@ -715,6 +715,7 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
+        include_empty_values: bool = False,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
@@ -726,6 +727,24 @@ class SnubaTagStorage(TagStorage):
         keys_with_counts = self.get_group_tag_keys(
             group, environment_ids, keys=keys, tenant_ids=tenant_ids
         )
+
+        # If we need to include empty values, use the per-key path which reliably
+        # returns empty-string values for each key that will be displayed.
+        if include_empty_values:
+            for keyobj in keys_with_counts:
+                tag = self.__get_tag_key_and_top_values(
+                    group.project_id,
+                    group,
+                    environment_ids[0] if environment_ids else None,
+                    keyobj.key,
+                    limit=value_limit,
+                    tenant_ids=tenant_ids,
+                    include_empty_values=True,
+                )
+                keyobj.values_seen = tag.values_seen
+                keyobj.count = tag.count
+                keyobj.top_values = tag.top_values
+            return keys_with_counts
 
         # Then get the top values with first_seen/last_seen/count for each
         filters: dict[str, list[Any]] = {"project_id": get_project_list(group.project_id)}
@@ -757,10 +776,46 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
+        empties_by_key: dict[str, dict[str, Any]] = {}
+        if include_empty_values:
+            empties_filters = dict(filters)
+            empties_conditions = kwargs.get("conditions", [])
+            empties_aggregations = [
+                ["count()", "", "count"],
+                ["min", SEEN_COLUMN, "first_seen"],
+                ["max", SEEN_COLUMN, "last_seen"],
+            ]
+            # Force only empty-string values
+            empties_conditions.append([self.value_column, "=", ""])
+
+            empties_by_key = snuba.query(
+                dataset=dataset,
+                start=kwargs.get("start"),
+                end=kwargs.get("end"),
+                groupby=[self.key_column, self.value_column],
+                conditions=empties_conditions,
+                filter_keys=empties_filters,
+                aggregations=empties_aggregations,
+                # At most one empty per key
+                limitby=[1, self.key_column],
+                referrer="tagstore._get_tag_keys_and_top_values_empties",
+                tenant_ids=tenant_ids,
+            )
+
         # Then supplement the key objects with the top values for each.
         for keyobj in keys_with_counts:
             key = keyobj.key
-            values = values_by_key.get(key, dict())
+            values = dict(values_by_key.get(key, dict()))
+            if include_empty_values:
+                empty_for_key = empties_by_key.get(key, {})
+                if "" in empty_for_key:
+                    values[""] = empty_for_key[""]
+
+            # Keep the highest-count values up to value_limit
+            # Sort values by count desc
+            sorted_items = sorted(values.items(), key=lambda kv: kv[1]["count"], reverse=True)
+            limited_items = sorted_items[:value_limit] if value_limit is not None else sorted_items
+
             keyobj.top_values = tuple(
                 GroupTagValue(
                     group_id=group.id,
@@ -770,7 +825,7 @@ class SnubaTagStorage(TagStorage):
                     first_seen=parse_datetime(data["first_seen"]),
                     last_seen=parse_datetime(data["last_seen"]),
                 )
-                for value, data in values.items()
+                for value, data in limited_items
             )
 
         return keys_with_counts
