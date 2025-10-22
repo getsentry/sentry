@@ -64,6 +64,7 @@ export function AppSizeLegend({
       const containerWidth = containerRef.current.offsetWidth;
       const gapSize =
         typeof theme.space.xs === 'string' ? parseFloat(theme.space.xs) : theme.space.xs;
+      const buffer = 16;
       let totalWidth = 0;
       let fitCount = sortedCategories.length;
 
@@ -79,8 +80,8 @@ export function AppSizeLegend({
         const hasMoreItems = i < sortedCategories.length - 1;
         const moreButtonWidth = moreButtonRef.current?.offsetWidth ?? 100;
         const maxWidth = hasMoreItems
-          ? containerWidth - moreButtonWidth - gapSize
-          : containerWidth;
+          ? containerWidth - moreButtonWidth - gapSize + buffer
+          : containerWidth - buffer;
 
         if (neededWidth > maxWidth) {
           fitCount = i;
