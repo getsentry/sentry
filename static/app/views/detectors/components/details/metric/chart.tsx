@@ -295,11 +295,13 @@ function MetricDetectorChart({
 
   if (isLoading) {
     return (
-      <ChartContainerBody>
-        <Flex height={CHART_HEIGHT} justify="center" align="center">
-          <Placeholder height={`${CHART_HEIGHT}px`} />
-        </Flex>
-      </ChartContainerBody>
+      <ChartContainer>
+        <ChartContainerBody>
+          <Flex height={CHART_HEIGHT} justify="center" align="center">
+            <Placeholder height={`${CHART_HEIGHT}px`} />
+          </Flex>
+        </ChartContainerBody>
+      </ChartContainer>
     );
   }
 
@@ -307,7 +309,7 @@ function MetricDetectorChart({
     const errorMessage =
       typeof error?.responseJSON?.detail === 'string' ? error.responseJSON.detail : null;
     return (
-      <Fragment>
+      <ChartContainer style={{overflow: 'hidden'}}>
         {errorMessage && (
           <Alert system type="error">
             {errorMessage}
@@ -321,35 +323,37 @@ function MetricDetectorChart({
             </ErrorPanel>
           </Flex>
         </ChartContainerBody>
-      </Fragment>
+      </ChartContainer>
     );
   }
 
   return (
-    <ChartContainerBody>
-      <AreaChart
-        showTimeInTooltip
-        height={CHART_HEIGHT}
-        stacked={false}
-        series={series}
-        additionalSeries={additionalSeries}
-        yAxes={yAxes.length > 1 ? yAxes : undefined}
-        yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
-        grid={grid}
-        xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
-        tooltip={{
-          valueFormatter: getDetectorChartFormatters({
-            detectionType,
-            aggregate: snubaQuery.aggregate,
-          }).formatTooltipValue,
-        }}
-        {...chartZoomProps}
-        onChartReady={chart => {
-          chartZoomProps.onChartReady(chart);
-          openPeriodMarkerResult.onChartReady(chart);
-        }}
-      />
-    </ChartContainerBody>
+    <ChartContainer>
+      <ChartContainerBody>
+        <AreaChart
+          showTimeInTooltip
+          height={CHART_HEIGHT}
+          stacked={false}
+          series={series}
+          additionalSeries={additionalSeries}
+          yAxes={yAxes.length > 1 ? yAxes : undefined}
+          yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
+          grid={grid}
+          xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
+          tooltip={{
+            valueFormatter: getDetectorChartFormatters({
+              detectionType,
+              aggregate: snubaQuery.aggregate,
+            }).formatTooltipValue,
+          }}
+          {...chartZoomProps}
+          onChartReady={chart => {
+            chartZoomProps.onChartReady(chart);
+            openPeriodMarkerResult.onChartReady(chart);
+          }}
+        />
+      </ChartContainerBody>
+    </ChartContainer>
   );
 }
 
@@ -364,21 +368,18 @@ export function MetricDetectorDetailsChart({
   const dateParams = start && end ? {start, end} : {statsPeriod};
 
   return (
-    <ChartContainer>
-      <MetricDetectorChart
-        detector={detector}
-        // Pass snubaQuery separately to avoid checking null in all places
-        snubaQuery={snubaQuery}
-        {...dateParams}
-      />
-    </ChartContainer>
+    <MetricDetectorChart
+      detector={detector}
+      // Pass snubaQuery separately to avoid checking null in all places
+      snubaQuery={snubaQuery}
+      {...dateParams}
+    />
   );
 }
 
 const ChartContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 `;
 
 const ChartContainerBody = styled('div')`
