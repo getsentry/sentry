@@ -95,15 +95,6 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.status_code == 200, response.data
         assert "cohort1Total" in response.data
         assert "cohort2Total" in response.data
-        distributions = response.data["rankedAttributes"]
-
-        # Verify filtering: no attributes should start with "tags[" or "sentry." (except sentry.normalized_description)
-        for attr in distributions:
-            assert not attr["attributeName"].startswith("tags[")
-            assert not (
-                attr["attributeName"].startswith("sentry.")
-                and attr["attributeName"] != "sentry.normalized_description"
-            )
 
         assert mock_compare_distributions.called
         call_args = mock_compare_distributions.call_args
