@@ -59,6 +59,7 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
 
     default_features = sentry.features.has
     default_batch_has = sentry.features.batch_has
+    default_batch_has_for_organizations = sentry.features.batch_has_for_organizations
 
     def resolve_feature_name_value_for_org(organization, feature_name_value):
         if isinstance(feature_name_value, list):
@@ -135,11 +136,28 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
             }
             return {result_key: results_for_org}
 
+    def batch_features_override_for_organizations(
+        _feature_name: str, organizations: Sequence[Organization], *args, **kwargs
+    ):
+        if _feature_name in names:
+            return {
+                f"organization:{organization.id}": resolve_feature_name_value_for_org(
+                    organization, names[_feature_name]
+                )
+                for organization in organizations
+            }
+        else:
+            return default_batch_has_for_organizations(_feature_name, organizations, **kwargs)
+
     with patch("sentry.features.has") as features_has:
         features_has.side_effect = features_override
         with patch("sentry.features.batch_has") as features_batch_has:
             features_batch_has.side_effect = batch_features_override
-            yield
+            with patch(
+                "sentry.features.batch_has_for_organizations"
+            ) as features_batch_has_for_orgs:
+                features_batch_has_for_orgs.side_effect = batch_features_override_for_organizations
+                yield
 
 
 class FeatureContextManagerOrDecorator:
