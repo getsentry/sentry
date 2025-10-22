@@ -5,7 +5,9 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -39,7 +41,9 @@ export function AppSizeInsightsSidebarRow({
   isExpanded,
   onToggleExpanded,
   platform,
+  duplicateFilePaths,
 }: {
+  duplicateFilePaths: Set<string>;
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
@@ -124,7 +128,11 @@ export function AppSizeInsightsSidebarRow({
             })}
           >
             {insight.files.map((file, fileIndex) => (
-              <FileRow key={`${file.path}-${fileIndex}`} file={file} />
+              <FileRow
+                key={`${file.path}-${fileIndex}`}
+                file={file}
+                filePathHasMultipleOfSameInsight={duplicateFilePaths.has(file.path)}
+              />
             ))}
           </Container>
         )}
@@ -133,9 +141,21 @@ export function AppSizeInsightsSidebarRow({
   );
 }
 
-function FileRow({file}: {file: ProcessedInsightFile}) {
+function FileRow({
+  file,
+  filePathHasMultipleOfSameInsight,
+}: {
+  file: ProcessedInsightFile;
+  filePathHasMultipleOfSameInsight: boolean;
+}) {
   if (file.data.fileType === 'optimizable_image') {
-    return <OptimizableImageFileRow file={file} originalFile={file.data.originalFile} />;
+    return (
+      <OptimizableImageFileRow
+        file={file}
+        originalFile={file.data.originalFile}
+        filePathHasMultipleOfSameInsight={filePathHasMultipleOfSameInsight}
+      />
+    );
   }
 
   return (
@@ -169,8 +189,10 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
 function OptimizableImageFileRow({
   file,
   originalFile,
+  filePathHasMultipleOfSameInsight,
 }: {
   file: ProcessedInsightFile;
+  filePathHasMultipleOfSameInsight: boolean;
   originalFile: OptimizableImageFile;
 }) {
   if (file.data.fileType !== 'optimizable_image') {
@@ -187,6 +209,33 @@ function OptimizableImageFileRow({
     originalFile.conversion_savings || 0
   );
 
+  const hasMetadata =
+    (originalFile.idiom || originalFile.colorspace) && filePathHasMultipleOfSameInsight;
+  // TODO (EME-460): Add link to formal documentation about idiom/colorspaces in apple binaries as well as more info about app thinning
+  const tooltipContent = hasMetadata && (
+    <Flex direction="column" gap="lg" align="start">
+      <Text size="xs" align="left">
+        {t(
+          'This image shows up multiple times because this build likely did not have app thinning applied. That means your binary can include different copies of the same image meant for different device types.'
+        )}
+      </Text>
+      <Flex direction="column" gap="xs" align="start">
+        {originalFile.idiom && (
+          <Flex align="center" gap="xs">
+            <Text size="xs">{t('Idiom:')}</Text>
+            <Text size="xs">{originalFile.idiom}</Text>
+          </Flex>
+        )}
+        {originalFile.colorspace && (
+          <Flex align="center" gap="xs">
+            <Text size="xs">{t('Colorspace:')}</Text>
+            <Text size="xs">{originalFile.colorspace}</Text>
+          </Flex>
+        )}
+      </Flex>
+    </Flex>
+  );
+
   return (
     <Fragment key={file.path}>
       <Flex
@@ -201,9 +250,18 @@ function OptimizableImageFileRow({
           overflow: 'hidden',
         }}
       >
-        <Text size="sm" ellipsis style={{flex: 1}}>
-          {file.path}
-        </Text>
+        <Flex align="center" gap="xs" style={{minWidth: 0, overflow: 'hidden'}}>
+          <Text size="sm" ellipsis>
+            {file.path}
+          </Text>
+          {hasMetadata && (
+            <Tooltip title={tooltipContent} isHoverable skipWrapper>
+              <Flex align="center" style={{flexShrink: 0}}>
+                <IconFlag size="xs" color="subText" />
+              </Flex>
+            </Tooltip>
+          )}
+        </Flex>
         <Flex align="center" gap="sm">
           <Text variant="primary" bold size="sm" tabular>
             -{formatBytesBase10(maxSavings)}
