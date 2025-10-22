@@ -19,11 +19,11 @@ class PreventAIConfiguration(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    service = models.CharField(max_length=64)
+    provider = models.CharField(max_length=64)
     git_organization_id = models.CharField(max_length=255)
     data = models.JSONField(default=dict)
 
     class Meta:
         app_label = "prevent"
         db_table = "sentry_preventaiconfiguration"
-        unique_together = (("organization_id", "service", "git_organization_id"),)
+        unique_together = (("organization_id", "provider", "git_organization_id"),)

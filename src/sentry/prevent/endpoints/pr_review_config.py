@@ -46,7 +46,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
 
         config = PreventAIConfiguration.objects.filter(
             organization_id=organization.id,
-            service="github",
+            provider="github",
             git_organization_id=git_organization_id,
         ).first()
 
@@ -68,7 +68,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
 
         PreventAIConfiguration.objects.update_or_create(
             organization_id=organization.id,
-            service="github",
+            provider="github",
             git_organization_id=git_organization_id,
             defaults={"data": request.data},
         )
@@ -80,7 +80,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("PREVENT_CONFIG_EDIT"),
             data={
                 "git_organization": git_organization_id,
-                "service": "github",
+                "provider": "github",
             },
         )
 
