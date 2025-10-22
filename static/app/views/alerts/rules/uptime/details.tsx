@@ -81,7 +81,7 @@ export default function UptimeAlertDetails() {
   if (isPending || loadingProject) {
     return (
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
       </Layout.Body>

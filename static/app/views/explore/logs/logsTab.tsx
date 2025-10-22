@@ -273,7 +273,7 @@ export function LogsTabContent({
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <FilterBarContainer>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />

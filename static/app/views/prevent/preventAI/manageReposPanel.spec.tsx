@@ -2,10 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {PreventAIOrgConfig} from 'sentry/types/prevent';
+import type {PreventAIOrg, PreventAIOrgConfig, PreventAIRepo} from 'sentry/types/prevent';
 import ManageReposPanel, {
   getRepoConfig,
+  type ManageReposPanelProps,
 } from 'sentry/views/prevent/preventAI/manageReposPanel';
+import {ALL_REPOS_VALUE} from 'sentry/views/prevent/preventAI/manageReposToolbar';
 
 let mockUpdatePreventAIFeatureReturn: any = {};
 jest.mock('sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature', () => ({
@@ -13,12 +15,24 @@ jest.mock('sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature', () =
 }));
 
 describe('ManageReposPanel', () => {
-  const defaultProps = {
+  const mockOrg: PreventAIOrg = {
+    githubOrganizationId: 'org-1',
+    name: 'org-1',
+    provider: 'github',
+    repos: [],
+  };
+
+  const mockRepo: PreventAIRepo = {
+    id: 'repo-1',
+    name: 'repo-1',
+    fullName: 'org-1/repo-1',
+  };
+
+  const defaultProps: ManageReposPanelProps = {
     collapsed: false,
     onClose: jest.fn(),
-    repoName: 'repo-1',
-    orgName: 'org-1',
-    repoFullName: 'org-1/repo-1',
+    repo: mockRepo,
+    org: mockOrg,
     isEditingOrgDefaults: false,
   };
 
@@ -74,7 +88,7 @@ describe('ManageReposPanel', () => {
 
   it('renders the panel header and description with org defaults when "All Repos" is selected', async () => {
     const props = {...defaultProps};
-    props.repoName = '';
+    props.repo = {id: ALL_REPOS_VALUE, name: 'All Repos', fullName: ''};
     props.isEditingOrgDefaults = true;
     render(<ManageReposPanel {...props} />, {organization: mockOrganization});
     expect(
@@ -87,11 +101,11 @@ describe('ManageReposPanel', () => {
 
   it('renders [none] when no repos have overrides when editing org defaults', async () => {
     const props = {...defaultProps};
-    props.repoName = '';
+    props.repo = {id: ALL_REPOS_VALUE, name: 'All Repos', fullName: ''};
     props.isEditingOrgDefaults = true;
-    const mockOrg = structuredClone(mockOrganization);
-    mockOrg.preventAiConfigGithub!.default_org_config.repo_overrides = {};
-    render(<ManageReposPanel {...props} />, {organization: mockOrg});
+    const mockOrgNoOverrides = structuredClone(mockOrganization);
+    mockOrgNoOverrides.preventAiConfigGithub!.default_org_config.repo_overrides = {};
+    render(<ManageReposPanel {...props} />, {organization: mockOrgNoOverrides});
     expect(await screen.findByText(/\[none\]/i)).toBeInTheDocument();
   });
 
@@ -267,13 +281,13 @@ describe('ManageReposPanel', () => {
     expect(mockEnableFeature).toHaveBeenCalledWith({
       feature: 'use_org_defaults',
       enabled: false,
-      orgName: 'org-1',
-      repoName: 'repo-1',
+      orgId: 'org-1',
+      repoId: 'repo-1',
     });
   });
 
   it('does not show toggle when editing organization defaults', async () => {
-    render(<ManageReposPanel {...defaultProps} repoName="" isEditingOrgDefaults />, {
+    render(<ManageReposPanel {...defaultProps} repo={null} isEditingOrgDefaults />, {
       organization: mockOrganization,
     });
     expect(
