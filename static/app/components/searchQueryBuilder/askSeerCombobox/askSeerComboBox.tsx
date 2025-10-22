@@ -84,7 +84,8 @@ function useUpdateOverlayPositionOnContentChange({
 interface AskSeerComboBoxProps<T extends QueryTokensProps>
   extends Omit<AriaComboBoxProps<unknown>, 'children'> {
   /**
-   * The source of the analytics event
+   * The source of the analytics event, must be a dot-separated identifier like "trace.
+   * explorer" or "issue.list"
    * @example 'trace.explorer'
    *
    * The combobox has the following analytic events, that will need to be tracked with your provided analyticsSource:
@@ -104,7 +105,8 @@ interface AskSeerComboBoxProps<T extends QueryTokensProps>
     string
   >;
   /**
-   * The owner of the feedback form
+   * The owner of the feedback form, must be an underscore-separated identifier like
+   * "trace_explorer_ai_query" or "issue_list_ai_query"
    *
    * @example 'trace_explorer_ai_query'
    */
