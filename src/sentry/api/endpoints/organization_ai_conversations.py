@@ -1,4 +1,6 @@
+import dataclasses
 from collections import defaultdict
+from datetime import datetime
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -95,6 +97,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
         """
         Fetch conversation data by querying spans grouped by gen_ai.conversation.id.
 
+        This is a two-step process:
+        1. Find conversation IDs that have spans in the time range (with pagination/sorting)
+        2. Get complete aggregations for those conversations (all spans, ignoring time filter)
+
         Args:
             snuba_params: Snuba parameters including projects, time range, etc.
             offset: Starting index for pagination
@@ -102,24 +108,15 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             _sort: Sort field and direction (currently only supports timestamp sorting, unused for now)
             _query: Search query (not yet implemented)
         """
-        # Query spans grouped by conversation ID with aggregations
-        results = Spans.run_table_query(
+        # Step 1: Find conversation IDs with spans in the time range
+        conversation_ids_results = Spans.run_table_query(
             params=snuba_params,
             query_string="has:gen_ai.conversation.id",
             selected_columns=[
                 "gen_ai.conversation.id",
-                "failure_count()",
-                "count_if(gen_ai.operation.type,equals,ai_client)",
-                "count_if(span.op,equals,gen_ai.execute_tool)",
-                "sum(gen_ai.usage.total_tokens)",
-                "sum(gen_ai.usage.total_cost)",
-                "max(timestamp)",
-                "min(precise.start_ts)",
                 "max(precise.finish_ts)",
-                "count_unique(trace)",
-                "array_join(trace)",
             ],
-            orderby=["-max(timestamp)"],
+            orderby=["-max(precise.finish_ts)"],
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
@@ -127,37 +124,76 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             sampling_mode=None,
         )
 
-        # Format results to match frontend expectations
-        conversations = []
+        conversation_ids = [
+            row.get("gen_ai.conversation.id")
+            for row in conversation_ids_results.get("data", [])
+            if row.get("gen_ai.conversation.id")
+        ]
+
+        if not conversation_ids:
+            return []
+
+        # Step 2: Get complete aggregations for these conversations (all time)
+        all_time_params = dataclasses.replace(
+            snuba_params,
+            start=datetime(2020, 1, 1),
+            end=datetime(2100, 1, 1),
+        )
+
+        results = Spans.run_table_query(
+            params=all_time_params,
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "failure_count()",
+                "count_if(gen_ai.operation.type,equals,ai_client)",
+                "count_if(span.op,equals,gen_ai.execute_tool)",
+                "sum(gen_ai.usage.total_tokens)",
+                "sum(gen_ai.usage.total_cost)",
+                "min(precise.start_ts)",
+                "max(precise.finish_ts)",
+                "count_unique(trace)",
+            ],
+            orderby=None,
+            offset=0,
+            limit=len(conversation_ids),
+            referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode=None,
+        )
+
+        # Create a map of conversation data by ID
+        conversations_map = {}
         for row in results.get("data", []):
             start_ts = row.get("min(precise.start_ts)", 0)
             finish_ts = row.get("max(precise.finish_ts)", 0)
             duration_ms = int((finish_ts - start_ts) * 1000) if finish_ts and start_ts else 0
+            timestamp_ms = int(finish_ts * 1000) if finish_ts else 0
 
-            timestamp_seconds = row.get("max(timestamp)", 0)
-            timestamp_ms = int(timestamp_seconds * 1000) if timestamp_seconds else 0
-
-            # Extract trace IDs from array_join result
-            trace_ids_raw = row.get("array_join(trace)", [])
-            trace_ids = trace_ids_raw if isinstance(trace_ids_raw, list) else []
-
-            conversation = {
-                "conversationId": row.get("gen_ai.conversation.id", ""),
+            conv_id = row.get("gen_ai.conversation.id", "")
+            conversations_map[conv_id] = {
+                "conversationId": conv_id,
                 "flow": [],
                 "duration": duration_ms,
-                "errors": int(row.get("failure_count()", 0)),
-                "llmCalls": int(row.get("count_if(gen_ai.operation.type,equals,ai_client)", 0)),
-                "toolCalls": int(row.get("count_if(span.op,equals,gen_ai.execute_tool)", 0)),
-                "totalTokens": int(row.get("sum(gen_ai.usage.total_tokens)", 0)),
-                "totalCost": float(row.get("sum(gen_ai.usage.total_cost)", 0)),
+                "errors": int(row.get("failure_count()") or 0),
+                "llmCalls": int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
+                "toolCalls": int(row.get("count_if(span.op,equals,gen_ai.execute_tool)") or 0),
+                "totalTokens": int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
+                "totalCost": float(row.get("sum(gen_ai.usage.total_cost)") or 0),
                 "timestamp": timestamp_ms,
-                "traceCount": int(row.get("count_unique(trace)", 0)),
-                "traceIds": trace_ids,
+                "traceCount": int(row.get("count_unique(trace)") or 0),
+                "traceIds": [],
             }
-            conversations.append(conversation)
+
+        # Preserve the order from step 1
+        conversations = [
+            conversations_map[conv_id]
+            for conv_id in conversation_ids
+            if conv_id in conversations_map
+        ]
 
         if conversations:
-            self._enrich_with_agent_flows(snuba_params, conversations)
+            self._enrich_with_agent_flows(all_time_params, conversations)
 
         return conversations
 
@@ -174,9 +210,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             selected_columns=[
                 "gen_ai.conversation.id",
                 "span.description",
-                "timestamp",
+                "precise.start_ts",
             ],
-            orderby=["gen_ai.conversation.id", "timestamp"],
+            orderby=["gen_ai.conversation.id", "precise.start_ts"],
             offset=0,
             limit=1000,
             referrer=Referrer.API_AI_CONVERSATIONS_AGENT_FLOWS.value,
