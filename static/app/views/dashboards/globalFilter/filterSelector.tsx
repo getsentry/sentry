@@ -59,13 +59,24 @@ function FilterSelector({
   });
 
   const {data, isFetching} = queryResult;
-  const options = useMemo(() => {
+  const fetchedOptions = useMemo(() => {
     if (!data) return [];
     return data.map(value => ({
       label: value,
       value,
     }));
   }, [data]);
+
+  const savedFilterValueOptions = useMemo(() => {
+    return activeFilterValues
+      .map(value => ({
+        label: value,
+        value,
+      }))
+      .filter(option => !fetchedOptions.some(o => o.value === option.value));
+  }, [activeFilterValues, fetchedOptions]);
+
+  const options = [...savedFilterValueOptions, ...fetchedOptions];
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues)) {
