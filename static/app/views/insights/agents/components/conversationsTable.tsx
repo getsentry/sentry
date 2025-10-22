@@ -11,6 +11,8 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -69,9 +71,34 @@ const rightAlignColumns = new Set([
 
 function ConversationsTableInner() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
+
+  // Fetch data from the API
+  const queryCursor =
+    typeof location.query.tableCursor === 'string'
+      ? location.query.tableCursor
+      : undefined;
+
+  const {
+    data = [],
+    isLoading,
+    error,
+    getResponseHeader,
+  } = useApiQuery<TableData[]>(
+    [
+      `/organizations/${organization.slug}/ai-conversations/`,
+      {query: {cursor: queryCursor}},
+    ],
+    {
+      staleTime: 0,
+    }
+  );
+
+  const pageLinks = getResponseHeader?.('Link');
 
   const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
@@ -107,9 +134,9 @@ function ConversationsTableInner() {
     <Fragment>
       <GridEditableContainer>
         <GridEditable
-          isLoading={false}
-          error={null}
-          data={[]}
+          isLoading={isLoading}
+          error={error}
+          data={data}
           columnOrder={columnOrder}
           columnSortBy={EMPTY_ARRAY}
           stickyHeader
@@ -120,7 +147,7 @@ function ConversationsTableInner() {
           }}
         />
       </GridEditableContainer>
-      <Pagination pageLinks={undefined} onCursor={handleCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
