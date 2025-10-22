@@ -259,6 +259,7 @@ def delete_group_hashes(
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
             if options.get("deletions.group.delete_group_hashes_metadata_first"):
+                metrics.incr("deletions.group.delete_group_hashes_metadata_first", sample_rate=1.0)
                 # If we delete the grouphash metadata rows first we will not need to update the references to the other grouphashes.
                 # If we try to delete the group hashes first, then it will require the updating of the columns first.
                 #

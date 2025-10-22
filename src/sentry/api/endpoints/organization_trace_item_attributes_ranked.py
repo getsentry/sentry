@@ -301,18 +301,26 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         }
 
         for i, (attr, _) in enumerate(scored_attrs_rrf):
-            distribution = {
-                "attributeName": translate_internal_to_public_alias(
-                    attr, "string", SupportedTraceItemType.SPANS
-                )[0]
-                or attr,
-                "cohort1": cohort_1_distribution_map.get(attr),
-                "cohort2": cohort_2_distribution_map.get(attr),
-                "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
-                    "rrf": i,
-                    "rrr": rrr_order_map.get(attr),
-                },
-            }
-            ranked_distribution["rankedAttributes"].append(distribution)
+
+            public_alias, _, _ = translate_internal_to_public_alias(
+                attr, "string", SupportedTraceItemType.SPANS
+            )
+            if public_alias is None:
+                public_alias = attr
+
+            if not public_alias.startswith("tags[") and (
+                not public_alias.startswith("sentry.")
+                or public_alias == "sentry.normalized_description"
+            ):
+                distribution = {
+                    "attributeName": public_alias,
+                    "cohort1": cohort_1_distribution_map.get(attr),
+                    "cohort2": cohort_2_distribution_map.get(attr),
+                    "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
+                        "rrf": i,
+                        "rrr": rrr_order_map.get(attr),
+                    },
+                }
+                ranked_distribution["rankedAttributes"].append(distribution)
 
         return Response(ranked_distribution)
