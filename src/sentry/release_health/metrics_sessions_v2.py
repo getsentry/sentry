@@ -40,6 +40,7 @@ from sentry.release_health.base import (
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import get_public_name_from_mri
 from sentry.snuba.metrics.datasource import get_series
+from sentry.snuba.metrics.fields.base import DERIVED_METRICS, CompositeEntityDerivedMetric
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query import (
     DeprecatingMetricsQuery,
@@ -531,7 +532,8 @@ def run_sessions_query(
             # We only return the top-N groups, based on the first field that is being
             # queried, assuming that those are the most relevant to the user.
             primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
-            orderby = MetricOrderByField(field=primary_metric_field, direction=Direction.DESC)
+            if primary_metric_field is not None:
+                orderby = MetricOrderByField(field=primary_metric_field, direction=Direction.DESC)
 
     orderby_sequence = None
     if orderby is not None:
@@ -850,7 +852,7 @@ def _parse_orderby(
     return MetricOrderByField(field.metric_fields[0], direction)
 
 
-def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> MetricField:
+def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> MetricField | None:
     """Determine the field by which results will be ordered in case there is no orderBy"""
     primary_metric_field = None
     for i, field in enumerate(fields):
@@ -858,6 +860,13 @@ def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> M
             primary_metric_field = field.metric_fields[0]
 
     assert primary_metric_field
+
+    # CompositeEntityDerivedMetrics cannot be used as orderby, so leave it as None in this scenario.
+    if primary_metric_field.metric_mri in DERIVED_METRICS:
+        derived_metric = DERIVED_METRICS[primary_metric_field.metric_mri]
+        if isinstance(derived_metric, CompositeEntityDerivedMetric):
+            return None
+
     return primary_metric_field
 
 
