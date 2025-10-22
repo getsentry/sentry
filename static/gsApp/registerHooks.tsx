@@ -126,11 +126,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'sidebar:try-business': props => (
     <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
   ),
-  'sidebar:billing-status': props => (
-    <PrimaryNavigationQuotaExceeded
-      key="quota-exceeded-sidebar-item"
-      organization={props.organization}
-    />
+  'sidebar:billing-status': () => (
+    <PrimaryNavigationQuotaExceeded key="quota-exceeded-sidebar-item" />
   ),
 
   /**

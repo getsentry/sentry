@@ -101,7 +101,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   }
 
   it('should render for multiple categories', async () => {
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
@@ -132,7 +132,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       `billing-status-last-shown-categories-${organization.id}`,
       'errors' // exceeded categories
     );
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
@@ -160,7 +160,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     newSub.categories.profileDuration!.usageExceeded = true;
     SubscriptionStore.set(organization.slug, newSub);
     localStorage.clear();
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(
       screen.queryByRole('button', {name: 'Billing Status'})
     ).not.toBeInTheDocument();
@@ -174,7 +174,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     );
     subscription.onDemandMaxSpend = 100;
     SubscriptionStore.set(organization.slug, subscription);
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
@@ -211,7 +211,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       enabled: true,
     };
     SubscriptionStore.set(organization.slug, subscription);
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
@@ -238,7 +238,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should not render for managed orgs', () => {
     subscription.canSelfServe = false;
     SubscriptionStore.set(organization.slug, subscription);
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(
       screen.queryByRole('button', {name: 'Billing Status'})
     ).not.toBeInTheDocument();
@@ -249,7 +249,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should update prompts when dismissed', async () => {
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
@@ -265,7 +265,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should update prompts when non-billing user takes action', async () => {
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
@@ -297,7 +297,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       body: freeSub,
     });
 
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
@@ -311,14 +311,14 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should auto open based on localStorage', async () => {
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(
       await screen.findByRole('button', {name: 'Billing Status'})
     ).toBeInTheDocument();
     expect(screen.queryByText('Quotas Exceeded')).not.toBeInTheDocument();
 
     localStorage.clear();
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(
       await screen.findByRole('button', {name: 'Billing Status'})
     ).toBeInTheDocument();
@@ -347,7 +347,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
         },
       }, // dismissed at beginning of billing cycle
     });
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(
       await screen.findByRole('button', {name: 'Billing Status'})
     ).toBeInTheDocument();
@@ -355,7 +355,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
     // even when localStorage is cleared, the alert should not show
     localStorage.clear();
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(
       await screen.findByRole('button', {name: 'Billing Status'})
     ).toBeInTheDocument();
@@ -382,19 +382,19 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       }, // dismissed on last day before current billing cycle
     });
     localStorage.clear();
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
   });
 
   it('should auto open the alert when categories have changed', async () => {
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(screen.queryByText('Quotas Exceeded')).not.toBeInTheDocument();
 
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
       'errors-replays'
     ); // spans not included, so alert should show even though last opened "today"
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     assertLocalStorageStateAfterAutoOpen();
   });
@@ -404,7 +404,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       `billing-status-last-shown-date-${organization.id}`,
       'Sun Jun 05 2022'
     ); // more than a day, so alert should show even though categories haven't changed
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     assertLocalStorageStateAfterAutoOpen();
   });
@@ -414,7 +414,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       `billing-status-last-shown-date-${organization.id}`,
       'Sun May 29 2022'
     ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
-    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    render(<PrimaryNavigationQuotaExceeded />, {organization});
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     assertLocalStorageStateAfterAutoOpen();
   });

@@ -203,7 +203,7 @@ export function PrimaryNavigationItems() {
           <Hook name="sidebar:try-business" organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <Hook name="sidebar:billing-status" organization={organization} />
+          <Hook name="sidebar:billing-status" />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationServiceIncidents />

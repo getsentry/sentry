@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
@@ -149,7 +150,8 @@ function QuotaExceededContent({
   );
 }
 
-function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
+function PrimaryNavigationQuotaExceeded() {
+  const organization = useOrganization();
   const subscription = useSubscription();
   const exceededCategories = (
     sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
@@ -207,7 +209,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
 
   const {isLoading, isError, isPromptDismissed, snoozePrompt} = usePrompts({
     features: promptsToCheck,
-    organization,
     daysToSnooze:
       -1 *
       getDaysSinceDate(

@@ -7,6 +7,7 @@ import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type PromptsUpdateParams = {
   /**
@@ -140,20 +141,19 @@ export function usePromptsCheck(
  */
 export function usePrompts({
   features,
-  organization,
   projectId,
   daysToSnooze,
   options,
   isDismissed = promptIsDismissed,
 }: {
   features: string[];
-  organization: Organization | null;
   daysToSnooze?: number;
   isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
 }) {
   const api = useApi({persistInFlight: true});
+  const organization = useOrganization({allowNull: true});
   const prompts = usePromptsCheck({feature: features, organization, projectId}, options);
   const queryClient = useQueryClient();
   const isPromptDismissed: Record<string, boolean> = useMemo(() => {

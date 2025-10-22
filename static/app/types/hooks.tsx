@@ -279,7 +279,7 @@ export type FeatureDisabledHooks = {
 type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'sidebar:billing-status': GenericOrganizationComponentHook;
+  'sidebar:billing-status': GenericComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
