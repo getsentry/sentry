@@ -21,7 +21,7 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
@@ -449,7 +449,7 @@ export function useLogAnalytics({
   aggregateSortBys: readonly Sort[];
   interval: string;
   isTopN: boolean;
-  logsAggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
+  logsAggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
   logsTableResult: UseInfiniteLogsQueryResult;
   logsTimeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   mode: Mode;

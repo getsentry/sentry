@@ -31,12 +31,12 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0996_add_dashboard_field_link_model
+sentry: 0997_add_has_trace_metrics_bit_to_project_model
 
 social_auth: 0003_social_auth_json_field
 
 tempest: 0001_squashed_0002_make_message_type_nullable
 
-uptime: 0047_remove_uptime_status_columns
+uptime: 0048_delete_uptime_status_columns
 
 workflow_engine: 0093_add_action_config_index
