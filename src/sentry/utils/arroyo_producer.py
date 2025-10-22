@@ -5,7 +5,6 @@ from collections import deque
 from collections.abc import Callable
 from typing import Deque
 
-import sentry_sdk
 from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
 from arroyo.types import BrokerValue, Partition
@@ -38,18 +37,7 @@ class SingletonProducer:
         self, destination: ArroyoTopic | Partition, payload: KafkaPayload
     ) -> _ProducerFuture:
         future = self._get().produce(destination, payload)
-
         self._track_futures(future)
-        sorted_headers = sorted(payload.headers, key=lambda h: len(h[1]), reverse=True)
-        with sentry_sdk.start_span(op="process", name="Kafka Payload Details for Replay") as span:
-
-            if len(sorted_headers) > 0:
-                span.set_data("top_header_1_name", sorted_headers[0][0])
-                span.set_data("top_header_1_size_bytes", len(sorted_headers[0][1]))
-
-            if len(sorted_headers) > 1:
-                span.set_data("top_header_2_name", sorted_headers[1][0])
-                span.set_data("top_header_2_size_bytes", len(sorted_headers[1][1]))
 
         return future
 
