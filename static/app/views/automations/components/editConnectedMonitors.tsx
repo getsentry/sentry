@@ -14,6 +14,7 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -130,7 +131,18 @@ function ConnectMonitorsContent({
   );
 
   const toggleConnected = ({detector}: {detector: Detector}) => {
-    const oldDetectorsData =
+    const newDetectorIds = (
+      connectedIds.includes(detector.id)
+        ? connectedIds.filter(id => id !== detector.id)
+        : [...connectedIds, detector.id]
+    )
+      // Sort by ID to match the API response order
+      .toSorted((a, b) => Number(a) - Number(b));
+
+    setConnectedIds(newDetectorIds);
+    saveConnectedIds(newDetectorIds);
+
+    const cachedConnectedDetectors =
       getApiQueryData<Detector[]>(
         queryClient,
         makeDetectorListQueryKey({
@@ -138,28 +150,30 @@ function ConnectMonitorsContent({
           ids: connectedIds,
         })
       ) ?? [];
+    const connectedDetectorsData = newDetectorIds
+      .map(id => {
+        if (id === detector.id) {
+          return detector;
+        }
+        return cachedConnectedDetectors.find(d => d.id === id);
+      })
+      .filter(defined);
 
-    const newDetectors = (
-      oldDetectorsData.some(d => d.id === detector.id)
-        ? oldDetectorsData.filter(d => d.id !== detector.id)
-        : [...oldDetectorsData, detector]
-    )
-      // API will return ID ascending, so this avoids re-ordering
-      .toSorted((a, b) => Number(a.id) - Number(b.id));
-    const newDetectorIds = newDetectors.map(d => d.id);
+    // If for some reason the cached data doesn't match the full list of connected detectors,
+    // don't optimistically update the cache. React query will show a loading state in this case.
+    if (connectedDetectorsData.length !== newDetectorIds.length) {
+      return;
+    }
 
-    // Update the query cache to prevent the list from being fetched anew
+    // If we do have the correct data already, optimistically update the cache to avoid a loading state.
     setApiQueryData<Detector[]>(
       queryClient,
       makeDetectorListQueryKey({
         orgSlug: organization.slug,
         ids: newDetectorIds,
       }),
-      newDetectors
+      connectedDetectorsData
     );
-
-    setConnectedIds(newDetectorIds);
-    saveConnectedIds(newDetectorIds);
   };
 
   return (
