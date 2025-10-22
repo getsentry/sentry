@@ -239,12 +239,12 @@ interface VisualizeLabelProps {
   visualize: Visualize;
 }
 
+export function getVisualizeLabel(index: number) {
+  return String.fromCharCode('A'.charCodeAt(0) + index);
+}
+
 export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
-  const label = visualize.visible ? (
-    String.fromCharCode('A'.charCodeAt(0) + index)
-  ) : (
-    <IconHide />
-  );
+  const label = visualize.visible ? getVisualizeLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;
 }
