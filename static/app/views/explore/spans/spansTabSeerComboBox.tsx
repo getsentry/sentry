@@ -12,6 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -189,11 +190,18 @@ export function SpansTabSeerComboBox() {
     [askSeerSuggestedQueryRef, navigate, organization, pageFilters.selection]
   );
 
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
+  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
+
   return (
     <AskSeerComboBox
       initialQuery={initialSeerQuery}
       askSeerMutationOptions={spansTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
+      analyticsSource="trace.explorer"
+      feedbackSource="trace_explorer_ai_query"
     />
   );
 }
