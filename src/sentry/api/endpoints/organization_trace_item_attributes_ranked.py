@@ -302,10 +302,11 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         for i, (attr, _) in enumerate(scored_attrs_rrf):
 
-            public_alias = (
-                translate_internal_to_public_alias(attr, "string", SupportedTraceItemType.SPANS)[0]
-                or attr
+            public_alias, _, _ = translate_internal_to_public_alias(
+                attr, "string", SupportedTraceItemType.SPANS
             )
+            if public_alias is None:
+                public_alias = attr
 
             if not public_alias.startswith("tags[") and (
                 not public_alias.startswith("sentry.")
