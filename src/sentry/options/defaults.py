@@ -2866,13 +2866,6 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Maximum number of spans in a segment. Larger segments drop the oldest spans.
-register(
-    "spans.buffer.max-segment-spans",
-    type=Int,
-    default=1001,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
     "spans.buffer.redis-ttl",
