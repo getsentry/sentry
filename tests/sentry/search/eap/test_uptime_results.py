@@ -3,7 +3,7 @@ from unittest import TestCase
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
-    DoubleArray,
+    IntArray,
     StrArray,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -15,7 +15,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.uptime_checks.definitions import UPTIME_CHECK_DEFINITIONS
+from sentry.search.eap.uptime_results.definitions import UPTIME_RESULT_DEFINITIONS
 from sentry.search.events.types import SnubaParams
 
 
@@ -24,7 +24,7 @@ class SearchResolverQueryTest(TestCase):
         self.resolver = SearchResolver(
             params=SnubaParams(),
             config=SearchResolverConfig(),
-            definitions=UPTIME_CHECK_DEFINITIONS,
+            definitions=UPTIME_RESULT_DEFINITIONS,
         )
 
     def test_simple_query(self) -> None:
@@ -63,12 +63,12 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_numeric_comparison(self) -> None:
-        where, having, _ = self.resolver.resolve_query("duration_ms:>1000")
+        where, having, _ = self.resolver.resolve_query("request_duration_us:>1000")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="request_duration_us", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_GREATER_THAN,
-                value=AttributeValue(val_double=1000),
+                value=AttributeValue(val_int=1000),
             )
         )
         assert having is None
@@ -77,9 +77,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("http_status_code:[200,404,500]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="http_status_code", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="http_status_code", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_IN,
-                value=AttributeValue(val_double_array=DoubleArray(values=[200, 404, 500])),
+                value=AttributeValue(val_int_array=IntArray(values=[200, 404, 500])),
             )
         )
         assert having is None
@@ -127,10 +127,10 @@ class SearchResolverQueryTest(TestCase):
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
                             key=AttributeKey(
-                                name="http_status_code", type=AttributeKey.Type.TYPE_DOUBLE
+                                name="http_status_code", type=AttributeKey.Type.TYPE_INT
                             ),
                             op=ComparisonFilter.OP_EQUALS,
-                            value=AttributeValue(val_double=500),
+                            value=AttributeValue(val_int=500),
                         )
                     ),
                 ]
