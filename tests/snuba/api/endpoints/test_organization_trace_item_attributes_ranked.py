@@ -96,16 +96,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "cohort1Total" in response.data
         assert "cohort2Total" in response.data
         distributions = response.data["rankedAttributes"]
-        attribute = next(a for a in distributions if a["attributeName"] == "sentry.device")
-        assert attribute
-        assert attribute["cohort1"] == [
-            {"label": "mobile", "value": 3.0},
-            {"label": "desktop", "value": 1.0},
-        ]
-        assert attribute["cohort2"] == [{"label": "desktop", "value": 2.0}]
 
-        attribute = next(a for a in distributions if a["attributeName"] == "browser")
-        assert attribute["attributeName"] == "browser"
+        # Verify filtering: no attributes should start with "tags[" or "sentry." (except sentry.normalized_description)
+        for attr in distributions:
+            assert not attr["attributeName"].startswith("tags[")
+            assert not (
+                attr["attributeName"].startswith("sentry.")
+                and attr["attributeName"] != "sentry.normalized_description"
+            )
 
         assert mock_compare_distributions.called
         call_args = mock_compare_distributions.call_args
@@ -272,22 +270,39 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             # Create attribute distributions with a mix of public and internal attributes
             mock_attribute_distributions = MagicMock(spec=AttributeDistributions)
 
-            # Public attributes that should appear
-            # Using a known sentry attribute for simplicity
-            public_attr = MagicMock()
-            public_attr.attribute_name = "sentry.device"
-            public_bucket = MagicMock()
-            public_bucket.label = "desktop"
-            public_bucket.value = 10.0
-            public_attr.buckets = [public_bucket]
+            # Attribute that maps to a valid public alias (not starting with tags[ or sentry.)
+            # sentry.release maps to "release" which doesn't have sentry. prefix
+            valid_attr = MagicMock()
+            valid_attr.attribute_name = "sentry.release"
+            valid_bucket = MagicMock()
+            valid_bucket.label = "1.0.0"
+            valid_bucket.value = 10.0
+            valid_attr.buckets = [valid_bucket]
 
-            # Another public attribute (user-defined tag)
-            public_attr2 = MagicMock()
-            public_attr2.attribute_name = "browser"  # Custom tag
-            public_bucket2 = MagicMock()
-            public_bucket2.label = "chrome"
-            public_bucket2.value = 8.0
-            public_attr2.buckets = [public_bucket2]
+            # Attribute that maps to public alias starting with "sentry." (should be filtered)
+            # environment maps to "sentry.environment" which has sentry. prefix
+            sentry_prefixed_attr = MagicMock()
+            sentry_prefixed_attr.attribute_name = "environment"
+            sentry_bucket = MagicMock()
+            sentry_bucket.label = "production"
+            sentry_bucket.value = 8.0
+            sentry_prefixed_attr.buckets = [sentry_bucket]
+
+            # Exception: sentry.normalized_description should NOT be filtered
+            normalized_desc_attr = MagicMock()
+            normalized_desc_attr.attribute_name = "sentry.normalized_description"
+            normalized_desc_bucket = MagicMock()
+            normalized_desc_bucket.label = "GET /api/*"
+            normalized_desc_bucket.value = 6.0
+            normalized_desc_attr.buckets = [normalized_desc_bucket]
+
+            # Attribute that maps to tags[...] format (should be filtered)
+            tags_attr = MagicMock()
+            tags_attr.attribute_name = "custom_tag"  # Would map to tags[custom_tag,string]
+            tags_bucket = MagicMock()
+            tags_bucket.label = "value1"
+            tags_bucket.value = 7.0
+            tags_attr.buckets = [tags_bucket]
 
             # Private attribute (marked with private=True in definitions)
             private_attr = MagicMock()
@@ -322,8 +337,10 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             internal_attr2.buckets = [internal_bucket2]
 
             mock_attribute_distributions.attributes = [
-                public_attr,
-                public_attr2,
+                valid_attr,
+                sentry_prefixed_attr,
+                normalized_desc_attr,
+                tags_attr,
                 private_attr,
                 meta_attr,
                 internal_attr,
@@ -341,8 +358,10 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         mock_attr_names_response = MagicMock()
         mock_attributes = []
         for attr_name in [
-            "sentry.device",
-            "browser",
+            "sentry.release",
+            "environment",
+            "sentry.normalized_description",
+            "custom_tag",
             "sentry.links",
             "sentry._meta.fields.attributes.browser",
             "sentry._internal.some_metric",
@@ -356,13 +375,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         mock_compare_distributions.return_value = {
             "results": [
-                ("sentry.device", 0.9),
-                ("browser", 0.8),
+                ("sentry.release", 0.9),
+                ("environment", 0.85),
+                ("sentry.normalized_description", 0.8),
+                ("custom_tag", 0.75),
             ]
         }
 
         # Store a simple span
-        self._store_span(tags={"browser": "chrome"}, duration=100)
+        self._store_span(tags={"custom_tag": "value1"}, duration=100)
 
         response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
 
@@ -371,15 +392,25 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         # Get all attribute names from the response
         attribute_names = [attr["attributeName"] for attr in response.data["rankedAttributes"]]
 
-        # Verify that public attributes appear
-        # Note: tags[browser,string] is the format for custom user tags
+        # Verify that valid attributes appear (those not starting with tags[ or sentry.)
         assert (
-            "tags[browser,string]" in attribute_names or "browser" in attribute_names
-        ), "Public attribute 'browser' should be in response"
-        # sentry.device gets mapped to its public alias
-        assert any(
-            "device" in name for name in attribute_names
-        ), "Public attribute 'device' should be in response"
+            "release" in attribute_names
+        ), "Valid attribute 'release' (from sentry.release) should be in response (doesn't start with tags[ or sentry.)"
+
+        # Verify that sentry.normalized_description appears (exception to sentry. filtering)
+        assert (
+            "sentry.normalized_description" in attribute_names
+        ), "sentry.normalized_description should appear (exception to sentry.* filtering)"
+
+        # Verify that attributes with public_alias starting with "sentry." are filtered
+        assert (
+            "sentry.environment" not in attribute_names
+        ), "Attribute 'sentry.environment' (from environment) should be filtered out (public alias starts with sentry.)"
+
+        # Verify that attributes with public_alias starting with "tags[" are filtered
+        assert not any(
+            name.startswith("tags[") for name in attribute_names
+        ), "Attributes with public aliases starting with 'tags[' should be filtered out"
 
         # Verify that private/internal attributes are filtered out
         assert (
@@ -395,8 +426,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             "__sentry_internal" in name for name in attribute_names
         ), "Internal attributes with '__sentry_internal' prefix should be filtered out"
 
-        # Also verify the distribution maps don't contain these attributes
+        # Also verify the distribution maps don't contain filtered attributes
         for attr in response.data["rankedAttributes"]:
+            assert not attr["attributeName"].startswith(
+                "tags["
+            ), f"Attribute {attr['attributeName']} should not start with tags["
+            assert not (
+                attr["attributeName"].startswith("sentry.")
+                and attr["attributeName"] != "sentry.normalized_description"
+            ), f"Attribute {attr['attributeName']} should not start with sentry. (except sentry.normalized_description)"
             assert not attr["attributeName"].startswith(
                 "sentry._meta"
             ), f"Attribute {attr['attributeName']} should not start with sentry._meta"
