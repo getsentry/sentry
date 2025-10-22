@@ -16,7 +16,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.root-timeout": 10,
     "spans.buffer.segment-page-size": 100,
     "spans.buffer.max-segment-bytes": 10 * 1024 * 1024,
-    "spans.buffer.max-segment-spans": 1001,
     "spans.buffer.redis-ttl": 3600,
     "spans.buffer.max-flush-segments": 500,
     "spans.buffer.max-memory-percentage": 1.0,
