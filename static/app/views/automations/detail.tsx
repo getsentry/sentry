@@ -83,7 +83,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Automations'),
+                  label: t('Alerts'),
                   to: makeAutomationBasePathname(
                     organization.slug,
                     automationsLinkPrefix
@@ -245,9 +245,7 @@ function Actions({automation}: {automation: Automation}) {
       },
       {
         onSuccess: () => {
-          addSuccessMessage(
-            newEnabled ? t('Automation enabled') : t('Automation disabled')
-          );
+          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );

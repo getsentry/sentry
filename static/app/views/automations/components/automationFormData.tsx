@@ -109,7 +109,7 @@ export function validateAutomationBuilderState(state: AutomationBuilderState) {
     }
     // validate action filter actions
     if (actionFilter.actions?.length === 0) {
-      errors[actionFilter.id] = t('You must add an action for this automation to run.');
+      errors[actionFilter.id] = t('You must add an action for this alert to run.');
       continue;
     }
     for (const action of actionFilter.actions || []) {

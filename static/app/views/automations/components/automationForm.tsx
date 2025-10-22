@@ -61,7 +61,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
       </Card>
       <Card>
         <Heading as="h2" size="lg">
-          {t('Automation Builder')}
+          {t('Alert Builder')}
         </Heading>
         <AutomationBuilder />
       </Card>

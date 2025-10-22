@@ -152,7 +152,7 @@ function DetectorListTable({
               sortKey="connectedWorkflows"
               sort={sort}
             >
-              {t('Automations')}
+              {t('Alerts')}
             </HeaderCell>
           </SimpleTable.Header>
         ) : (

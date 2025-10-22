@@ -18,7 +18,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
     typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
 
   return (
-    <Section title={t('Connected Automations')}>
+    <Section title={t('Connected Alerts')}>
       <ErrorBoundary mini>
         <ConnectedAutomationsList
           automationIds={detector.workflowIds}

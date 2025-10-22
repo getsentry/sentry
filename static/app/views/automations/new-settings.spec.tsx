@@ -108,14 +108,14 @@ describe('AutomationNewSettings', () => {
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
 
     // Submit the form
-    await userEvent.click(screen.getByRole('button', {name: 'Create Automation'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           data: {
-            name: 'New Automation',
+            name: 'New Alert',
             triggers: {
               logicType: 'any-short',
               conditions: [

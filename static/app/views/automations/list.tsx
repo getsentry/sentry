@@ -79,9 +79,9 @@ export default function AutomationsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Automations')}>
+    <SentryDocumentTitle title={t('Alerts')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={t('Automations')}>
+        <ListLayout actions={<Actions />} title={t('Alerts')}>
           <TableHeader />
           <div>
             <AutomationListTable
@@ -147,7 +147,7 @@ function Actions() {
         icon={<IconAdd />}
         size="sm"
       >
-        {t('Create Automation')}
+        {t('Create Alert')}
       </LinkButton>
     </Flex>
   );
