@@ -5,7 +5,9 @@ import pytest
 from django.utils import timezone
 
 from sentry.conf.types.taskworker import crontab
+from sentry.silo.base import SiloMode
 from sentry.taskworker.app import TaskworkerApp
+from sentry.taskworker.retry import Retry
 from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -424,3 +426,46 @@ def test_schedulerunner_tick_fast_and_slow(
 
 def extract_sent_tasks(mock: Mock) -> list[str]:
     return [call[0][0].taskname for call in mock.call_args_list]
+
+
+@pytest.mark.django_db
+def test_schedulerunner_silo_limited_task_has_task_properties() -> None:
+    app = TaskworkerApp()
+    namespace = app.taskregistry.create_namespace("test")
+
+    @namespace.register(
+        name="control_task",
+        retry=Retry(times=3, on=(Exception,)),
+        silo_mode=SiloMode.CONTROL,
+    )
+    def control_func() -> None:
+        pass
+
+    assert hasattr(control_func, "fullname")
+    assert control_func.fullname == "test:control_task"
+    assert hasattr(control_func, "namespace")
+    assert control_func.namespace == namespace
+    assert hasattr(control_func, "name")
+    assert control_func.name == "control_task"
+    assert hasattr(control_func, "retry")
+    assert control_func.retry is not None
+    assert control_func.retry._times == 3
+    assert control_func.retry._allowed_exception_types == (Exception,)
+
+    run_storage = Mock(spec=RunStorage)
+    schedule_set = ScheduleRunner(app=app, run_storage=run_storage)
+    schedule_set.add(
+        "control-task",
+        {
+            "task": "test:control_task",
+            "schedule": timedelta(minutes=5),
+        },
+    )
+
+    schedule_set.log_startup()
+
+    assert len(schedule_set._entries) == 1
+    entry = schedule_set._entries[0]
+    assert entry.fullname == "test:control_task"
+    assert entry.namespace == "test"
+    assert entry.taskname == "control_task"

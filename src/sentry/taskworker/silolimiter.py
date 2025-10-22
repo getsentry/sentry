@@ -39,6 +39,12 @@ class TaskSiloLimit(SiloLimit):
         # Cast as the super class type is just Callable, but we know here
         # we have Task instances.
         limited_func = cast(Task[P, R], self.create_override(decorated_task))
-        if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name
+
+        # Task attributes are copied by functools.update_wrapper
+        # Task properties (@property) are not, so we must explicitly copy them
+        # as attributes. These are accessed by the scheduler and other code.
+        limited_func.fullname = decorated_task.fullname
+        limited_func.namespace = decorated_task.namespace
+        limited_func.retry = decorated_task.retry
+
         return limited_func

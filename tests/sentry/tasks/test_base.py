@@ -84,6 +84,7 @@ def task_with_alias(param) -> str:
     name="tests.tasks.test_base.region_primary_task",
     namespace=test_tasks,
     alias="tests.tasks.test_base.region_alias_task",
+    retry=Retry(times=3, on=(Exception,)),
     silo_mode=SiloMode.REGION,
 )
 def region_task_with_alias(param) -> str:
