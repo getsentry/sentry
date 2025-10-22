@@ -54,6 +54,17 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
+  get_issue_details: (args, isLoading) => {
+    const issueId = args.issue_id || '';
+    const selectedEvent = args.selected_event;
+    if (selectedEvent && selectedEvent !== 'recommended') {
+      return isLoading
+        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
+        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+    }
+    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+  },
+
   code_search: (args, isLoading) => {
     const repoName = args.repo_name || 'repository';
     const mode = args.mode || 'search';
@@ -210,6 +221,11 @@ export function buildToolLinkUrl(
         pathname,
         query,
       };
+    }
+    case 'get_issue_details': {
+      const {event_id, issue_id} = toolLink.params;
+
+      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
     }
     default:
       return null;
