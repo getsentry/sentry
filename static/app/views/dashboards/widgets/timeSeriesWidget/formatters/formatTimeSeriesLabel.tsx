@@ -24,11 +24,13 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
           return JSON.stringify(groupBy.value);
         }
 
-        if (groupBy.key === 'release') {
+        if (groupBy.key === 'release' && groupBy.value) {
           return formatVersion(groupBy.value);
         }
 
-        return groupBy.value;
+        // String interpolation converts `null` to `"null"` and `undefined` to
+        // `"undefined"`, which is what we want, rather than an empty string
+        return `${groupBy.value}`;
       })
       .join(',')}`;
   }
