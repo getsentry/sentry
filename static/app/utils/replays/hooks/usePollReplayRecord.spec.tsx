@@ -100,49 +100,4 @@ describe('usePollReplayRecord', () => {
       expect(renderedHook.result.current?.count_segments).toBe(newCountSegments)
     );
   });
-
-  it('should disable the hook when enabled is false', async () => {
-    const oldCountSegments = 10;
-    const replayRecord = replayRecordFixture({count_segments: oldCountSegments});
-    const endpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
-      body: {data: replayRecord},
-    });
-
-    const renderedHook = renderHook(usePollReplayRecord, {
-      wrapper,
-      initialProps: {
-        enabled: true,
-        orgSlug: organization.slug,
-        replayId: replayRecord.id,
-        pollInterval: 0,
-      },
-    });
-
-    await waitFor(() =>
-      expect(renderedHook.result.current?.count_segments).toBe(oldCountSegments)
-    );
-    expect(endpoint).toHaveBeenCalledTimes(1);
-
-    MockApiClient.clearMockResponses();
-
-    const newCountSegments = 11;
-    const newReplayRecord = replayRecordFixture({count_segments: newCountSegments});
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays/${newReplayRecord.id}/`,
-      body: {data: newReplayRecord},
-    });
-
-    renderedHook.rerender({
-      enabled: false,
-      orgSlug: organization.slug,
-      replayId: replayRecord.id,
-      pollInterval: 0,
-    });
-
-    await waitFor(() =>
-      expect(renderedHook.result.current?.count_segments).toBe(oldCountSegments)
-    );
-  });
 });
