@@ -162,7 +162,7 @@ describe('AutomationNewSettings', () => {
     // Assert navigation to details page
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/automations/${created.id}/`
+        `/organizations/${organization.slug}/monitors/alerts/${created.id}/`
       )
     );
   });
