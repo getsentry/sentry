@@ -23,7 +23,7 @@ import {
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
-const MAX_METRICS_ALLOWED = 10;
+const MAX_METRICS_ALLOWED = 4;
 
 type MetricsTabProps = PickableDays;
 
