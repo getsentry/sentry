@@ -49,6 +49,7 @@ function SelectedMonitors({
         isError={isError}
         toggleConnected={toggleConnected}
         numSkeletons={connectedIds.length}
+        openInNewTab
         {...props}
       />
     </StyledSection>
@@ -100,6 +101,7 @@ function AllMonitors({
           toggleConnected={toggleConnected}
           emptyMessage={t('No monitors found')}
           numSkeletons={10}
+          openInNewTab
         />
         <Flex justify="between">
           <div>{footerContent}</div>
