@@ -359,6 +359,9 @@ class Project(Model):
         # This project has sent logs
         has_logs: bool
 
+        # This project has sent trace metrics
+        has_trace_metrics: bool
+
         bitfield_default = 10
 
     objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
