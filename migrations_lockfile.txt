@@ -29,7 +29,7 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0996_add_dashboard_field_link_model
+sentry: 0997_backfill_self_hosted_sentry_app_emails
 
 social_auth: 0003_social_auth_json_field
 
