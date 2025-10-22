@@ -561,15 +561,15 @@ function useTrackView({
     // Will be updated in Autofix if enabled
     autofix_status: 'none',
     // Will be updated in GroupSummary if AI summary is available
-    has_summary: false,
+    has_summary: null,
     // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
-    has_root_cause: false,
+    has_root_cause: null,
     // Will be updated in GroupSummaryWithAutofix if autofix solution is available
-    has_solution: false,
+    has_solution: null,
     // Will be updated in GroupSummaryWithAutofix if autofix code changes are available
-    has_coded_solution: false,
+    has_coded_solution: null,
     // Will be updated in GroupSummaryWithAutofix if autofix PR is available
-    has_pr: false,
+    has_pr: null,
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }
