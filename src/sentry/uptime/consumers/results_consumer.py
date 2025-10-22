@@ -30,6 +30,8 @@ from sentry.uptime.models import (
     load_regions_for_uptime_subscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
+    build_last_seen_interval_key,
+    build_last_update_key,
     check_and_update_regions,
     disable_uptime_detector,
     remove_uptime_subscription_if_unused,
@@ -57,14 +59,6 @@ ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSe
 
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
-
-
-def build_last_update_key(detector: Detector) -> str:
-    return f"project-sub-last-update:detector:{detector.id}"
-
-
-def build_last_seen_interval_key(detector: Detector) -> str:
-    return f"project-sub-last-seen-interval:detector:{detector.id}"
 
 
 def get_host_provider_if_valid(subscription: UptimeSubscription) -> str:
