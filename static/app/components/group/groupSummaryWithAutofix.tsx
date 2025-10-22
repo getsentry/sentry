@@ -13,6 +13,7 @@ import {
   getSolutionCopyText,
   getSolutionDescription,
   getSolutionIsLoading,
+  hasPullRequest,
 } from 'sentry/components/events/autofix/utils';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
@@ -24,6 +25,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -102,6 +104,14 @@ export function GroupSummaryWithAutofix({
     () => (autofixData ? getCodeChangesIsLoading(autofixData) : false),
     [autofixData]
   );
+
+  // Track autofix features analytics
+  useRouteAnalyticsParams({
+    has_root_cause: Boolean(rootCauseDescription),
+    has_solution: Boolean(solutionDescription),
+    has_coded_solution: Boolean(codeChangesDescription),
+    has_pr: hasPullRequest(autofixData),
+  });
 
   if (isPending && getAutofixRunExists(group)) {
     return <Placeholder height="130px" />;
