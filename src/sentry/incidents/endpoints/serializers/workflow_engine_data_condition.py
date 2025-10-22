@@ -27,6 +27,8 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
+OFFSET = 10**9
+
 
 class WorkflowEngineDataConditionSerializer(Serializer):
     def get_attrs(
@@ -89,13 +91,22 @@ class WorkflowEngineDataConditionSerializer(Serializer):
     ) -> dict[str, Any]:
         # XXX: we are assuming that the obj/DataCondition is a detector trigger
         detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
+        try:
+            alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
+                "alert_rule_trigger_id", flat=True
+            ).get(data_condition=obj)
+        except DataConditionAlertRuleTrigger.DoesNotExist:
+            # this data condition does not have an analog in the old system,
+            # but we need to return *something*
+            alert_rule_trigger_id = obj.id + OFFSET
+        try:
+            alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
+                detector=detector.id
+            )
+        except AlertRuleDetector.DoesNotExist:
+            # this detector does not have an analog in the old system
+            alert_rule_id = detector.id + OFFSET
 
-        alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
-            "alert_rule_trigger_id", flat=True
-        ).get(data_condition=obj)
-        alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
-            detector=detector.id
-        )
         if obj.type == Condition.ANOMALY_DETECTION:
             threshold_type = obj.comparison["threshold_type"]
             resolve_threshold = None
