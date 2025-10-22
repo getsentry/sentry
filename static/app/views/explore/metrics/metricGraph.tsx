@@ -15,6 +15,8 @@ import {
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
@@ -22,7 +24,10 @@ import {
   combineConfidenceForSeries,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricsGraphProps {
@@ -31,8 +36,15 @@ interface MetricsGraphProps {
 }
 
 export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) {
+  const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
+
+  useSynchronizeCharts(
+    metricQueries.length,
+    !timeseriesResult.isPending,
+    METRICS_CHART_GROUP
+  );
 
   function handleChartTypeChange(newChartType: ChartType) {
     setVisualize(visualize.replace({chartType: newChartType}));
