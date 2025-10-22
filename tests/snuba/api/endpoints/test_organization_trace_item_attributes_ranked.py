@@ -96,6 +96,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "cohort1Total" in response.data
         assert "cohort2Total" in response.data
 
+        # Verify filtering: no attributes should start with "tags[" or "sentry." (except sentry.normalized_description)
+        for attr in response.data["rankedAttributes"]:
+            assert not attr["attributeName"].startswith("tags[")
+            assert not (
+                attr["attributeName"].startswith("sentry.")
+                and attr["attributeName"] != "sentry.normalized_description"
+            )
+
         assert mock_compare_distributions.called
         call_args = mock_compare_distributions.call_args
         assert "baseline" in call_args.kwargs
@@ -235,12 +243,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_filters_out_internal_and_private_attributes(self, mock_compare_distributions) -> None:
-        """Test that public aliases starting with tags[ or sentry.* (except sentry.normalized_description) are filtered.
+        """Test that internal/private attributes and certain public aliases are filtered from the response.
 
-        The endpoint filters attributes based on their public alias:
-        - Filtered: public aliases starting with "tags["
-        - Filtered: public aliases starting with "sentry." (EXCEPT sentry.normalized_description)
-        - Not filtered: other public aliases
+        The endpoint filters:
+        - Public aliases starting with "tags["
+        - Public aliases starting with "sentry." (EXCEPT sentry.normalized_description)
+        - Internal attributes (sentry._internal.*, __sentry_internal*)
+        - Meta attributes (containing sentry._meta)
+        - Private attributes (marked with private=True in definitions)
         """
         # Mock the scoring algorithm to return arbitrary scores
         # The actual attributes will come from real span data
@@ -254,12 +264,24 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         assert response.status_code == 200, response.data
 
-        # Verify filtering: all returned attributes must NOT start with these prefixes
+        # Verify filtering: all returned attributes must NOT have these prefixes/patterns
         for attr in response.data["rankedAttributes"]:
             attr_name = attr["attributeName"]
+            # Public alias filtering
             assert not attr_name.startswith(
                 "tags["
             ), f"Attribute '{attr_name}' should be filtered (starts with tags[)"
             assert not (
                 attr_name.startswith("sentry.") and attr_name != "sentry.normalized_description"
             ), f"Attribute '{attr_name}' should be filtered (starts with sentry.* but is not sentry.normalized_description)"
+
+            # Internal/private attribute filtering
+            assert not attr_name.startswith(
+                "sentry._internal."
+            ), f"Attribute '{attr_name}' should be filtered (internal attribute with sentry._internal. prefix)"
+            assert not attr_name.startswith(
+                "__sentry_internal"
+            ), f"Attribute '{attr_name}' should be filtered (internal attribute with __sentry_internal prefix)"
+            assert (
+                "sentry._meta" not in attr_name
+            ), f"Attribute '{attr_name}' should be filtered (meta attribute)"
