@@ -4,6 +4,10 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
+import {
+  getAllDetectorTypes,
+  getDetectorTypeSearchAlias,
+} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 const DETECTOR_FILTER_KEYS: Record<
   string,
@@ -27,7 +31,7 @@ const DETECTOR_FILTER_KEYS: Record<
       kind: FieldKind.FIELD,
       valueType: FieldValueType.STRING,
       allowWildcard: false,
-      values: ['error', 'metric', 'cron', 'uptime'],
+      values: getAllDetectorTypes().map(type => getDetectorTypeSearchAlias(type)),
     },
   },
   assignee: {
