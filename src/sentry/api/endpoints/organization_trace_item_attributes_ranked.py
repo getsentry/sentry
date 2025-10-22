@@ -302,17 +302,14 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         for i, (attr, _) in enumerate(scored_attrs_rrf):
 
-            public_alias, _, _ = translate_internal_to_public_alias(
-                attr, "string", SupportedTraceItemType.SPANS
+            public_alias = (
+                translate_internal_to_public_alias(attr, "string", SupportedTraceItemType.SPANS)[0]
+                or attr
             )
 
-            if (
-                public_alias is not None
-                and not public_alias.startswith("tags[")
-                and (
-                    not public_alias.startswith("sentry.")
-                    or public_alias == "sentry.normalized_description"
-                )
+            if not public_alias.startswith("tags[") and (
+                not public_alias.startswith("sentry.")
+                or public_alias == "sentry.normalized_description"
             ):
                 distribution = {
                     "attributeName": public_alias,

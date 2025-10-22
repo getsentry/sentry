@@ -285,3 +285,68 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             assert (
                 "sentry._meta" not in attr_name
             ), f"Attribute '{attr_name}' should be filtered (meta attribute)"
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
+    @patch(
+        "sentry.api.endpoints.organization_trace_item_attributes_ranked.translate_internal_to_public_alias"
+    )
+    def test_includes_user_defined_attributes_when_translate_returns_none(
+        self, mock_translate, mock_keyed_rrf_score, mock_compare_distributions
+    ) -> None:
+        """Test that user-defined attributes are included when translate_internal_to_public_alias returns None.
+
+        When translate_internal_to_public_alias returns (None, None, None), it indicates a user-defined
+        attribute that should be kept as-is and included in the response (unless it starts with forbidden prefixes).
+        """
+
+        # Mock translate function to return None for user-defined attributes
+        def mock_translate_func(attr, *_):
+            if attr == "custom_user_attr":
+                return (None, None, None)  # User-defined attribute
+            elif attr == "tags[filtered_tag]":
+                return (None, None, None)  # Should be filtered due to tags[ prefix
+            else:
+                return (attr, None, None)  # Regular attributes
+
+        mock_translate.side_effect = mock_translate_func
+
+        # Mock primary scoring (keyed_rrf_score) to include our test attributes
+        mock_keyed_rrf_score.return_value = [
+            ("custom_user_attr", 0.9),
+            ("tags[filtered_tag]", 0.8),
+            ("regular_attr", 0.7),
+        ]
+
+        # Mock secondary scoring for RRR ordering
+        mock_compare_distributions.return_value = {
+            "results": [
+                ("custom_user_attr", 0.9),
+                ("tags[filtered_tag]", 0.8),
+                ("regular_attr", 0.7),
+            ]
+        }
+
+        # Store spans to generate some data
+        self._store_span(tags={"browser": "chrome"}, duration=100)
+        self._store_span(tags={"browser": "firefox"}, duration=200)
+
+        response = self.do_request(query={"query_1": "span.duration:<=150", "query_2": ""})
+
+        assert response.status_code == 200, response.data
+
+        # Extract attribute names from response
+        returned_attrs = [attr["attributeName"] for attr in response.data["rankedAttributes"]]
+
+        # User-defined attribute should be included with original name
+        assert (
+            "custom_user_attr" in returned_attrs
+        ), "User-defined attributes should be included when translate returns None"
+
+        # Filtered attribute should NOT be included even if translate returns None
+        assert (
+            "tags[filtered_tag]" not in returned_attrs
+        ), "Attributes with forbidden prefixes should be filtered even when translate returns None"
+
+        # Regular attribute should be included
+        assert "regular_attr" in returned_attrs, "Regular attributes should be included"
