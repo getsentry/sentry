@@ -148,48 +148,42 @@ function Branch({lastChild}: BranchProps) {
 function ComparisonTypeField() {
   const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
 
-  if (!subfilter.type) {
+  if ('attribute' in subfilter || 'key' in subfilter) {
     return (
-      <AutomationBuilderSelect
-        name={`${subfilter_id}.type`}
-        aria-label={t('Comparison type')}
-        value={subfilter.type ?? ''}
-        placeholder={t('Select value type')}
-        options={[
-          {
-            label: t('Attribute'),
-            value: DataConditionType.EVENT_ATTRIBUTE,
-          },
-          {
-            label: t('Tag'),
-            value: DataConditionType.TAGGED_EVENT,
-          },
-        ]}
-        onChange={(option: SelectValue<DataConditionType>) => {
-          onUpdate({
-            id: subfilter.id,
-            type: option.value,
-            match: MatchType.EQUAL,
-            value: '',
-            ...(option.value === DataConditionType.EVENT_ATTRIBUTE
-              ? {attribute: Attributes.MESSAGE}
-              : {}),
-          });
-        }}
-      />
+      <Fragment>
+        {'attribute' in subfilter ? <AttributeField /> : <KeyField />}
+        <MatchField />
+        <ValueField />
+      </Fragment>
     );
   }
-
   return (
-    <Fragment>
-      {subfilter.type === DataConditionType.EVENT_ATTRIBUTE ? (
-        <AttributeField />
-      ) : (
-        <KeyField />
-      )}
-      <MatchField />
-      <ValueField />
-    </Fragment>
+    <AutomationBuilderSelect
+      name={`${subfilter_id}.type`}
+      aria-label={t('Comparison type')}
+      value={subfilter.type ?? ''}
+      placeholder={t('Select value type')}
+      options={[
+        {
+          label: t('Attribute'),
+          value: DataConditionType.EVENT_ATTRIBUTE,
+        },
+        {
+          label: t('Tag'),
+          value: DataConditionType.TAGGED_EVENT,
+        },
+      ]}
+      onChange={(option: SelectValue<DataConditionType>) => {
+        onUpdate({
+          id: subfilter.id,
+          match: MatchType.EQUAL,
+          value: '',
+          ...(option.value === DataConditionType.EVENT_ATTRIBUTE
+            ? {attribute: Attributes.MESSAGE}
+            : {key: undefined}),
+        });
+      }}
+    />
   );
 }
 
