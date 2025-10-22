@@ -4,7 +4,7 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-export const quoteStyles = (theme: Theme) => css`
+const quoteStyles = (_theme: Theme) => css`
   /**
    * Reset any properties that might be set by the global CSS styles.
    */
