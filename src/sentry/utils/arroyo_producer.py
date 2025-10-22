@@ -38,7 +38,6 @@ class SingletonProducer:
     ) -> _ProducerFuture:
         future = self._get().produce(destination, payload)
         self._track_futures(future)
-
         return future
 
     def _get(self) -> KafkaProducer:
