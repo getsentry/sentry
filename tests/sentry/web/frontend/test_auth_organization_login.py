@@ -998,8 +998,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        invitation_link = "/" + member.get_invite_link().split("/", 3)[-1]
-        assert resp.redirect_chain == [(invitation_link, 302)]
+        # Users with 2FA should be redirected to 2FA dialog first, even with pending invites
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
     def test_correct_redirect_as_2fa_user_invited(self) -> None:
         user = self.create_user("foor@example.com")
@@ -1018,8 +1018,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        invitation_link = "/" + member.get_invite_link().split("/", 3)[-1]
-        assert resp.redirect_chain == [(invitation_link, 302)]
+        # Users with 2FA should be redirected to 2FA dialog first, even with pending invites
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
