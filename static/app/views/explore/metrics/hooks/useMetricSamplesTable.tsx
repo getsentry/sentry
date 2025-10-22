@@ -27,9 +27,6 @@ interface UseMetricSamplesTableOptions {
   limit: number;
   metricName: string;
   ingestionDelaySeconds?: number;
-  logQueries?: MutableSearch[];
-  metricQueries?: MutableSearch[];
-  spanQueries?: MutableSearch[];
 }
 
 interface MetricSamplesTableResult {
@@ -44,9 +41,6 @@ export function useMetricSamplesTable({
   metricName,
   fields,
   ingestionDelaySeconds,
-  spanQueries,
-  logQueries,
-  metricQueries,
 }: UseMetricSamplesTableOptions) {
   return useMetricSamplesTableImp({
     enabled,
@@ -54,9 +48,6 @@ export function useMetricSamplesTable({
     metricName,
     fields,
     ingestionDelaySeconds,
-    spanQueries,
-    logQueries,
-    metricQueries,
   });
 }
 
@@ -66,9 +57,6 @@ function useMetricSamplesTableImp({
   metricName,
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
-  spanQueries,
-  logQueries,
-  metricQueries,
 }: UseMetricSamplesTableOptions): MetricSamplesTableResult {
   const {selection} = usePageFilters();
   const searchQuery = useQueryParamsSearch();
@@ -123,24 +111,6 @@ function useMetricSamplesTableImp({
     });
   }, [fields, query, selection, adjustedDatetime, sortBys]);
 
-  const queryExtras = useMemo(() => {
-    const extras: Record<string, string[]> = {};
-
-    if (spanQueries?.length) {
-      extras.spanQueries = spanQueries.map(q => q.formatString());
-    }
-
-    if (logQueries?.length) {
-      extras.logQueries = logQueries.map(q => q.formatString());
-    }
-
-    if (metricQueries?.length) {
-      extras.metricQueries = metricQueries.map(q => q.formatString());
-    }
-
-    return extras;
-  }, [spanQueries, logQueries, metricQueries]);
-
   const result = useSpansQuery({
     enabled: enabled && Boolean(metricName),
     eventView,
@@ -148,7 +118,6 @@ function useMetricSamplesTableImp({
     limit,
     referrer: 'api.explore.metric-samples-table',
     trackResponseAnalytics: false,
-    queryExtras,
   });
 
   return useMemo(() => {
