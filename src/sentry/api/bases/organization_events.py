@@ -156,6 +156,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 if sampling_mode.upper() not in SAMPLING_MODE_MAP:
                     raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
+                sentry_sdk.set_tag("sampling_mode", sampling_mode)
 
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
