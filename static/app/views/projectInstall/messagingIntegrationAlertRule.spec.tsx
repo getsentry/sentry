@@ -250,7 +250,9 @@ describe('MessagingIntegrationAlertRule', () => {
       />
     );
 
-    expect(await screen.findByText('Invalid integration channel')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Channel not found or restricted')
+    ).toBeInTheDocument();
   });
 
   it('displays error when validation request fails', async () => {

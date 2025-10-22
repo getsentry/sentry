@@ -50,7 +50,7 @@ export function useValidateChannel({
       }),
     error:
       data?.valid === false
-        ? (data.detail ?? t('Invalid integration channel'))
+        ? (data.detail ?? t('Channel not found or restricted'))
         : error
           ? t('Unexpected integration channel validation error')
           : undefined,
