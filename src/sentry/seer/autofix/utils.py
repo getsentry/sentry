@@ -148,7 +148,9 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
         if len(repo_name_sections) > 1 and repo.provider:
             repo_dict = {
                 "organization_id": repo.organization_id,
-                "integration_id": str(repo.integration_id) if repo.integration_id else None,
+                "integration_id": (
+                    str(repo.integration_id) if repo.integration_id is not None else None
+                ),
                 "provider": repo.provider,
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
