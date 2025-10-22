@@ -17,6 +17,7 @@ from sentry.models.repository import Repository
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
@@ -297,13 +298,14 @@ def get_repository_definition(*, organization_id: int, repo_full_name: str) -> d
 
     owner, name = parts
 
-    try:
-        repo = Repository.objects.get(
-            organization_id=organization_id,
-            name=repo_full_name,
-            status=ObjectStatus.ACTIVE,
-        )
-    except Repository.DoesNotExist:
+    repo = Repository.objects.filter(
+        organization_id=organization_id,
+        name=repo_full_name,
+        status=ObjectStatus.ACTIVE,
+        provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+    ).first()
+
+    if not repo:
         logger.info(
             "seer.rpc.repository_not_found",
             extra={"organization_id": organization_id, "repo_full_name": repo_full_name},
