@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -53,6 +53,18 @@ export function AppSizeInsightsSidebar({
 
   // Constrain width to viewport (leave 50px margin from screen edge)
   const constrainedWidth = Math.min(width, window.innerWidth - 50);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, false);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, false);
+    };
+  }, [onClose]);
 
   return (
     <Fragment>
