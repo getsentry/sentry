@@ -137,7 +137,7 @@ function useLogsQueryKey({
       orderby,
       per_page: limit ? limit : undefined,
       referrer,
-      sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : undefined,
+      sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
       caseInsensitive,
     },
     pageFiltersReady,
@@ -453,10 +453,6 @@ export function useInfiniteLogsQuery({
       signal,
       meta,
     }): Promise<ApiResult<EventsLogsResult>> => {
-      endpointOptions = {
-        ...endpointOptions,
-        query: {...endpointOptions.query, sampling: SAMPLING_MODE.NORMAL},
-      };
       let response = await fetchDataQuery({
         queryKey: [
           url,
