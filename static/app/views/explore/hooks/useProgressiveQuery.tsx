@@ -3,6 +3,7 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
+  FLEX_TIME: 'HIGHEST_ACCURACY_FLEX_TIME',
 } as const;
 
 const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {
