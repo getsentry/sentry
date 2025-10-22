@@ -24,7 +24,7 @@ def create_link_to_workflow(organization_id: int, workflow_id: str) -> str:
     """
     Create a link to a workflow
     """
-    return f"/organizations/{organization_id}/monitors/alerts/{workflow_id}/"
+    return f"/organizations/{organization_id}/issues/automations/{workflow_id}/"
 
 
 def get_email_link_extra_params(
