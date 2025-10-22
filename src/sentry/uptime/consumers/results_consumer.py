@@ -60,6 +60,9 @@ ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSe
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
+# The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
+MAX_SYNTHETIC_MISSED_CHECKS = 100
+
 
 def get_host_provider_if_valid(subscription: UptimeSubscription) -> str:
     if subscription.host_provider_name in get_top_hosting_provider_names(
@@ -324,7 +327,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             last_interval_seen: str = cluster.get(last_interval_key) or "0"
 
             if int(last_interval_seen) == subscription_interval_ms:
-                num_missed_checks = int(num_intervals - 1)
+                # Bound the number of missed checks we generate--just in case.
+                num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
+
                 metrics.distribution(
                     "uptime.result_processer.num_missing_check",
                     num_missed_checks,
