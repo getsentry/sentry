@@ -124,10 +124,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             sampling_mode=None,
         )
 
-        conversation_ids = [
-            row.get("gen_ai.conversation.id")
+        conversation_ids: list[str] = [
+            conv_id
             for row in conversation_ids_results.get("data", [])
-            if row.get("gen_ai.conversation.id")
+            if (conv_id := row.get("gen_ai.conversation.id"))
         ]
 
         if not conversation_ids:
