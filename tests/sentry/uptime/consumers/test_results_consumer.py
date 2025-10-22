@@ -743,6 +743,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
             mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
+            mock.patch(
+                "sentry.uptime.autodetect.result_handler.send_auto_detected_notifications"
+            ) as mock_email_task,
             self.tasks(),
             self.feature(features),
         ):
@@ -775,6 +778,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                     ),
                 ]
             )
+            mock_email_task.delay.assert_called_once_with(self.detector.id)
         assert not redis.exists(key)
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")

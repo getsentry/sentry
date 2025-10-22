@@ -14,10 +14,13 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
@@ -31,13 +34,9 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const {slug: orgSlug} = organization;
   const replayId = readerResult.replayId;
-  const isLive = useIsLive({replayReader});
-  const replayUpdated = usePollReplayRecord({
-    isLive,
-    replayId,
-    orgSlug,
-    replayReader,
-  });
+
+  const queryClient = useQueryClient();
+
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
     if (!replayRecord?.user) {
@@ -57,10 +56,52 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const searchQuery = getUserSearchQuery();
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
+  const projectSlug = useReplayProjectSlug({replayRecord});
 
-  const handleRefresh = () => {
-    window.location.reload();
+  const {startSummaryRequest} = useReplaySummaryContext();
+
+  const handleRefresh = async () => {
+    trackAnalytics('replay.details-refresh-clicked', {organization});
+    if (organization.features.includes('replay-refresh-background')) {
+      await queryClient.refetchQueries({
+        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+        exact: true,
+        type: 'all',
+      });
+      await queryClient.invalidateQueries({
+        queryKey: [
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        ],
+        type: 'all',
+      });
+      startSummaryRequest();
+    } else {
+      window.location.reload();
+    }
   };
+
+  const ONE_HOUR_MS = 3_600_000;
+
+  // We poll for the replay record for 60 minutes after the replay started.
+  const REPLAY_EXPIRY_TIMESTAMP = replayReader
+    ? replayReader.getStartTimestampMs() + ONE_HOUR_MS
+    : 0;
+
+  const polledReplayRecord = usePollReplayRecord({
+    enabled: Date.now() < REPLAY_EXPIRY_TIMESTAMP,
+    replayId,
+    orgSlug,
+  });
+
+  const polledCountSegments = polledReplayRecord?.count_segments ?? 0;
+  const polledFinishedAt = polledReplayRecord?.finished_at?.getTime() ?? 0;
+
+  const prevSegments = replayRecord?.count_segments ?? 0;
+
+  const showRefreshButton = polledCountSegments > prevSegments;
+
+  const FIVE_MINUTE_MS = 300_000;
+  const showIsLive = Date.now() < polledFinishedAt + FIVE_MINUTE_MS;
 
   const badge = replayRecord ? (
     <UserBadge
@@ -94,7 +135,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {isLive ? (
+              {showIsLive ? (
                 <Tooltip
                   showUnderline
                   underlineColor="success"
@@ -103,14 +144,15 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   <Live />
                 </Tooltip>
               ) : null}
-              <RefreshButton
+              <Button
                 title={t('Replay is outdated. Refresh for latest activity.')}
+                data-test-id="refresh-button"
                 size="xs"
                 onClick={handleRefresh}
-                replayUpdated={replayUpdated}
+                style={{visibility: showRefreshButton ? 'visible' : 'hidden'}}
               >
                 <IconRefresh />
-              </RefreshButton>
+              </Button>
             </TimeContainer>
           ) : null}
         </DisplayHeader>
@@ -160,7 +202,9 @@ const DisplayHeader = styled('div')`
 function Live() {
   return (
     <Flex align="center">
-      <LiveText bold>{t('LIVE')}</LiveText>
+      <Text bold variant="success" data-test-id="live-badge">
+        {t('LIVE')}
+      </Text>
       <LiveIndicator />
     </Flex>
   );
@@ -178,12 +222,8 @@ const pulse = keyframes`
   }
 `;
 
-const LiveText = styled(Text)`
-  color: ${p => p.theme.success};
-`;
-
 const LiveIndicator = styled('div')`
-  background: ${p => p.theme.success};
+  background: ${p => p.theme.successText};
   height: 8px;
   width: 8px;
   position: relative;
@@ -200,7 +240,7 @@ const LiveIndicator = styled('div')`
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.success};
+    border: 6px solid ${p => p.theme.successText};
     position: absolute;
     border-radius: 50%;
     height: 20px;
@@ -208,8 +248,4 @@ const LiveIndicator = styled('div')`
     top: -6px;
     left: -6px;
   }
-`;
-
-const RefreshButton = styled(Button)<{replayUpdated: boolean}>`
-  visibility: ${p => (p.replayUpdated ? 'visible' : 'hidden')};
 `;
