@@ -308,3 +308,13 @@ class TestPartitionByMeasure(TestCase):
             assert SamplingMeasure.TRANSACTIONS in result
             assert result[SamplingMeasure.SPANS] == []
             assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
+
+    def test_partition_by_measure_with_span_feature_flag_disabled(self) -> None:
+        org = self.create_organization("test-org1")
+        with (
+            self.options({"dynamic-sampling.check_span_feature_flag": False}),
+            self.feature({"organizations:dynamic-sampling-spans": True}),
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
