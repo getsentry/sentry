@@ -1,6 +1,5 @@
 import datetime
 import logging
-import uuid
 from collections import defaultdict
 
 from drf_spectacular.utils import extend_schema
@@ -23,7 +22,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
@@ -67,22 +66,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 status=400,
             )
 
-        use_eap_results = features.has(
-            "organizations:uptime-eap-uptime-results-query", organization, actor=request.user
-        )
-
         try:
-            # XXX: We need to query these using hex, since we store them without dashes.
-            # We remove this once we remove the old uptime checks
-            if use_eap_results:
-                subscription_id_formatter = lambda sub_id: uuid.UUID(sub_id).hex
-            else:
-                subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
-
             subscription_id_to_id_mapping, subscription_ids = (
-                authorize_and_map_uptime_detector_subscription_ids(
-                    uptime_detector_ids, projects, subscription_id_formatter
-                )
+                authorize_and_map_uptime_detector_subscription_ids(uptime_detector_ids, projects)
             )
         except ValueError:
             return self.respond("Invalid uptime detector ids provided", status=400)
@@ -93,31 +79,14 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         try:
-            if use_eap_results:
-                eap_response = self._make_eap_request(
-                    organization,
-                    projects,
-                    subscription_ids,
-                    timerange_args,
-                    epoch_cutoff,
-                    TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
-                    "guid",
-                    "subscription_id",
-                    include_request_sequence_filter=True,
-                )
-                formatted_response = self._format_response(eap_response, "subscription_id")
-            else:
-                eap_response = self._make_eap_request(
-                    organization,
-                    projects,
-                    subscription_ids,
-                    timerange_args,
-                    epoch_cutoff,
-                    TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
-                    "uptime_check_id",
-                    "uptime_subscription_id",
-                )
-                formatted_response = self._format_response(eap_response, "uptime_subscription_id")
+            eap_response = self._make_eap_request(
+                organization,
+                projects,
+                subscription_ids,
+                timerange_args,
+                epoch_cutoff,
+            )
+            formatted_response = self._format_response(eap_response)
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
@@ -127,15 +96,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             subscription_id_to_id_mapping, formatted_response
         )
 
-        response_with_extra_buckets = add_extra_buckets_for_epoch_cutoff(
-            mapped_response,
-            epoch_cutoff,
-            timerange_args["rollup"],
-            timerange_args["start"],
-            timerange_args["end"],
-        )
-
-        return self.respond(response_with_extra_buckets)
+        return self.respond(mapped_response)
 
     def _make_eap_request(
         self,
@@ -144,10 +105,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
         epoch_cutoff: datetime.datetime | None,
-        trace_item_type: TraceItemType.ValueType,
-        aggregation_key: str,
-        subscription_key: str,
-        include_request_sequence_filter: bool = False,
     ) -> TimeSeriesResponse:
 
         eap_query_start = timerange_args["start"]
@@ -162,7 +119,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         subscription_filter = TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(
-                    name=subscription_key,
+                    name="subscription_id",
                     type=AttributeKey.Type.TYPE_STRING,
                 ),
                 op=ComparisonFilter.OP_IN,
@@ -170,28 +127,25 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             )
         )
 
-        if include_request_sequence_filter:
-            request_sequence_filter = TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(
-                        name="request_sequence",
-                        type=AttributeKey.Type.TYPE_INT,
-                    ),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_int=0),
-                )
+        request_sequence_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="request_sequence",
+                    type=AttributeKey.Type.TYPE_INT,
+                ),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_int=0),
             )
-            query_filter = TraceItemFilter(
-                and_filter=AndFilter(filters=[subscription_filter, request_sequence_filter])
-            )
-        else:
-            query_filter = subscription_filter
+        )
+        query_filter = TraceItemFilter(
+            and_filter=AndFilter(filters=[subscription_filter, request_sequence_filter])
+        )
 
         request = TimeSeriesRequest(
             meta=RequestMeta(
                 organization_id=organization.id,
                 project_ids=[project.id for project in projects],
-                trace_item_type=trace_item_type,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
                 downsampled_storage_config=DownsampledStorageConfig(
@@ -202,7 +156,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 AttributeAggregation(
                     aggregate=Function.FUNCTION_COUNT,
                     key=AttributeKey(
-                        name=aggregation_key,
+                        name="guid",
                         type=AttributeKey.Type.TYPE_STRING,
                     ),
                     label="count()",
@@ -210,7 +164,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             ],
             group_by=[
                 AttributeKey(
-                    name=subscription_key,
+                    name="subscription_id",
                     type=AttributeKey.Type.TYPE_STRING,
                 ),
                 AttributeKey(
@@ -230,7 +184,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         return responses[0]
 
     def _format_response(
-        self, response: TimeSeriesResponse, subscription_key: str
+        self, response: TimeSeriesResponse
     ) -> dict[str, list[tuple[int, dict[str, int]]]]:
         """
         Formats the response from the EAP RPC request into a dictionary of subscription ids to a list of tuples
@@ -244,7 +198,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         formatted_data: dict[str, dict[int, dict[str, int]]] = {}
 
         for timeseries in response.result_timeseries:
-            subscription_id = timeseries.group_by_attributes[subscription_key]
+            subscription_id = timeseries.group_by_attributes["subscription_id"]
             status = timeseries.group_by_attributes["check_status"]
             incident_status = timeseries.group_by_attributes["incident_status"]
 
@@ -284,47 +238,3 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
     def _get_date_cutoff_epoch_seconds(self) -> float | None:
         value = float(options.get("uptime.date_cutoff_epoch_seconds"))
         return None if value == 0 else value
-
-
-# TODO(jferg): remove after 90 days
-def add_extra_buckets_for_epoch_cutoff(
-    formatted_response: dict[int, list[tuple[int, dict[str, int]]]],
-    epoch_cutoff: datetime.datetime | None,
-    rollup: int,
-    start: datetime.datetime,
-    end: datetime.datetime | None,
-) -> dict[int, list[tuple[int, dict[str, int]]]]:
-    """
-    Add padding buckets to the response to account for the epoch cutoff.
-    this is because pre-GA we did not store data.
-    """
-    if not epoch_cutoff or not formatted_response or epoch_cutoff < start:
-        return formatted_response
-
-    end = end or datetime.datetime.now(tz=datetime.UTC)
-
-    # Calculate the number of padding buckets needed.
-    total_buckets = int((end.timestamp() - start.timestamp()) / rollup)
-
-    rollup_secs = rollup
-    result = {}
-
-    # check the first one and see if it has enough buckets if so return
-    # because all of them should have the same number of buckets
-    first_result = formatted_response[list(formatted_response.keys())[0]]
-    if len(first_result) >= total_buckets:
-        return formatted_response
-    num_missing = total_buckets - len(first_result)
-
-    # otherwise prepend empty buckets
-    for subscription_id, data in formatted_response.items():
-        missing_buckets = []
-        for i in range(num_missing):
-            ts = int(start.timestamp()) + (i * rollup_secs)
-            missing_buckets.append(
-                (ts, {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0})
-            )
-
-        result[subscription_id] = missing_buckets + data
-
-    return result

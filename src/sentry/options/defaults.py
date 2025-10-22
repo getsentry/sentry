@@ -338,7 +338,14 @@ register(
 # Deletions
 register(
     "deletions.group-hashes-batch-size",
-    default=10000,
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "deletions.group.delete_group_hashes_metadata_first",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -509,6 +516,20 @@ register(
 # Enables profiling for replay recording ingestion.
 register(
     "replay.consumer.recording.profiling.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable new msgspec-based recording parser.
+register(
+    "replay.consumer.msgspec_recording_parser",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable new database query caching.
+register(
+    "replay.consumer.enable_new_query_caching_system",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -802,6 +823,7 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("snuba.preprocess-group-redirects", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -899,13 +921,6 @@ register(
 # the effect on the overall error event processing backlog
 register(
     "processing.severity-backlog-test.error",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "auto_source_code_config.multi_module_java",
-    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2786,12 +2801,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "tracemetrics.sentry_sdk_metrics_backend_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -2860,13 +2869,6 @@ register(
     "spans.buffer.max-segment-bytes",
     type=Int,
     default=10 * 1024 * 1024,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Maximum number of spans in a segment. Larger segments drop the oldest spans.
-register(
-    "spans.buffer.max-segment-spans",
-    type=Int,
-    default=1001,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # TTL for keys in Redis. This is a downside protection in case of bugs.
@@ -3171,6 +3173,13 @@ register(
 )
 
 register(
+    "workflow_engine.sentry-app-actions-outbox",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "workflow_engine.num_cohorts",
     type=Int,
     default=1,
@@ -3181,6 +3190,12 @@ register(
     "workflow_engine.use_cohort_selection",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
+    type=Int,
+    default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3219,13 +3234,6 @@ register(
     "uptime.date_cutoff_epoch_seconds",
     type=Int,
     default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "uptime.snuba_uptime_results.enabled",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3557,4 +3565,39 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to forward events to eap_items. 1.0
+# means that 100% of projects will forward events to eap_items.
+register(
+    "eventstream.eap_forwarding_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswich for LLM issue detection
+register(
+    "issue-detection.llm-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with LLM issue detection enabled
+register(
+    "issue-detection.llm-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
+register(
+    "sentry-apps.webhook-logging.enabled",
+    type=Dict,
+    default={
+        "sentry_app_slug": [],
+        "installation_uuid": [],
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

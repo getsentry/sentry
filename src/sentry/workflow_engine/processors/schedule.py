@@ -88,16 +88,19 @@ class ProjectChooser:
     ProjectChooser assists in determining which projects to process based on the cohort updates.
     """
 
-    def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts: int):
+    def __init__(
+        self, buffer_client: DelayedWorkflowClient, num_cohorts: int, min_scheduling_age: timedelta
+    ):
         self.client = buffer_client
         assert num_cohorts > 0 and num_cohorts <= 255
         self.num_cohorts = num_cohorts
+        self.min_scheduling_age = min_scheduling_age
 
     def _project_id_to_cohort(self, project_id: int) -> int:
         return hashlib.sha256(project_id.to_bytes(8)).digest()[0] % self.num_cohorts
 
     def project_ids_to_process(
-        self, fetch_time: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
+        self, now: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
     ) -> list[int]:
         """
         Given the time, the cohort update history, and the list of project ids in need of processing,
@@ -105,19 +108,79 @@ class ProjectChooser:
         """
         must_process = set[int]()
         may_process = set[int]()
-        now = fetch_time
+        cohort_to_elapsed = dict[int, timedelta]()
         long_ago = now - 1000
+        target_max_age = timedelta(minutes=1)  # must run
+        min_scheduling_age = self.min_scheduling_age  # can run
+        # The cohort choice algorithm is essentially:
+        # 1. Any cohort that hasn't been run recently enough (based on target_max_age)
+        #   must be run.
+        # 2. If no cohort _must_ be run, pick the most stale cohort that hasn't
+        #  been run too recently (based on min_scheduling_age). To guarantee even distribution,
+        #  min_scheduling_age should be <= the scheduling interval.
+        #
+        # With this, we distribute cohorts across runs, but ensure we don't process them
+        # too frequently or too late, while not being too dependent on number of cohorts or
+        # frequency of scheduling.
+        if len(cohort_updates.values) != self.num_cohorts:
+            logger.info(
+                "%s cohort_updates.values, but num_cohorts is %s. Resetting.",
+                len(cohort_updates.values),
+                self.num_cohorts,
+                extra={"cohort_updates": cohort_updates.values},
+            )
+            # When cohort counts change, we accept that we'll be potentially running some
+            # projects a bit too early. Previous cohorts are no longer valid, so the timestamps
+            # associated with them are only accurate for setting bounds on the whole project space.
+            # But, we can still use that to avoid running projects too early by giving them all the
+            # eldest timestamp.
+            eldest = min(cohort_updates.values.values(), default=long_ago)
+            # This also ensures that if we downsize cohorts, we don't let data from now-dead cohorts
+            # linger.
+            cohort_updates.values = {co: eldest for co in range(self.num_cohorts)}
         for co in range(self.num_cohorts):
-            last_run = cohort_updates.values.get(co, long_ago)
+            last_run = cohort_updates.values.get(co)
+            if last_run is None:
+                last_run = long_ago
+                # It's a bug if the cohort doesn't exist at this point.
+                metrics.incr(
+                    "workflow_engine.schedule.cohort_not_found",
+                    tags={"cohort": co},
+                    sample_rate=1.0,
+                )
             elapsed = timedelta(seconds=now - last_run)
-            if elapsed >= timedelta(minutes=1):
+            if last_run != long_ago:
+                # Only track duration if we know the last run.
+                metrics.distribution(
+                    "workflow_engine.schedule.cohort_freshness",
+                    elapsed.total_seconds(),
+                    sample_rate=1.0,
+                )
+                cohort_to_elapsed[co] = elapsed
+            if elapsed >= target_max_age:
                 must_process.add(co)
-            elif elapsed >= timedelta(seconds=60 / self.num_cohorts):
+            elif elapsed >= min_scheduling_age:
                 may_process.add(co)
         if may_process and not must_process:
             choice = min(may_process, key=lambda c: (cohort_updates.values.get(c, long_ago), c))
             must_process.add(choice)
-        cohort_updates.values.update({cohort_id: fetch_time for cohort_id in must_process})
+        cohort_updates.values.update({cohort_id: now for cohort_id in must_process})
+        for cohort_id, elapsed in cohort_to_elapsed.items():
+            if cohort_id in must_process:
+                metrics.distribution(
+                    "workflow_engine.schedule.processed_cohort_freshness",
+                    elapsed.total_seconds(),
+                    sample_rate=1.0,
+                )
+                metrics.incr(
+                    "workflow_engine.schedule.scheduled_cohort",
+                    tags={"cohort": cohort_id},
+                    sample_rate=1.0,
+                )
+        logger.info(
+            "schedule.selected_cohorts",
+            extra={"selected": sorted(must_process), "may_process": sorted(may_process)},
+        )
         return [
             project_id
             for project_id in all_project_ids
@@ -166,7 +229,15 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         # Check if cohort-based selection is enabled (defaults to True for safety)
         use_cohort_selection = options.get("workflow_engine.use_cohort_selection", True)
         project_chooser = (
-            ProjectChooser(buffer_client, num_cohorts=options.get("workflow_engine.num_cohorts", 1))
+            ProjectChooser(
+                buffer_client,
+                num_cohorts=options.get("workflow_engine.num_cohorts", 1),
+                min_scheduling_age=timedelta(
+                    seconds=options.get(
+                        "workflow_engine.schedule.min_cohort_scheduling_age_seconds", 50
+                    )
+                ),
+            )
             if use_cohort_selection
             else None
         )
@@ -211,10 +282,10 @@ def mark_projects_processed(
                 deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
                 deleted_project_ids.update(deleted)
 
-                logger.info(
-                    "process_buffered_workflows.project_ids_deleted",
-                    extra={
-                        "deleted_project_ids": sorted(deleted_project_ids),
-                        "processed_project_ids": sorted(processed_project_ids),
-                    },
-                )
+        logger.info(
+            "process_buffered_workflows.project_ids_deleted",
+            extra={
+                "deleted_project_ids": sorted(deleted_project_ids),
+                "processed_project_ids": sorted(processed_project_ids),
+            },
+        )

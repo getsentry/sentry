@@ -26,6 +26,8 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
+import {unsetQueryCursors} from 'sentry/views/insights/agents/utils/unsetQueryCursors';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -116,6 +118,8 @@ function McpOverviewPage() {
   });
   const activeView = view ?? ViewType.TOOL;
 
+  useRemoveUrlCursorsOnSearch();
+
   useEffect(() => {
     trackAnalytics('mcp-monitoring.page-view', {
       organization,
@@ -136,8 +140,7 @@ function McpOverviewPage() {
           query: {
             ...location.query,
             view: newTable,
-            // Clear the tableCursor param when switching tables
-            tableCursor: undefined,
+            ...unsetQueryCursors(location.query),
           },
         },
         {replace: true}
@@ -196,7 +199,7 @@ function McpOverviewPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <ModuleFeature moduleName={ModuleName.MCP}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ToolRibbon>

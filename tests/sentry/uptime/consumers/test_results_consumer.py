@@ -20,6 +20,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUSREASONTYPE_TIMEOUT,
     CheckResult,
 )
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.kafka_definition import Topic as KafkaTopic
@@ -31,19 +32,19 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.uptime.autodetect.ranking import _get_cluster
+from sentry.uptime.autodetect.result_handler import (
+    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
+    ONBOARDING_MONITOR_PERIOD,
+    build_onboarding_failure_key,
+)
+from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import (
     UptimeResultsStrategyFactory,
     build_last_seen_interval_key,
     build_last_update_key,
 )
-from sentry.uptime.detectors.ranking import _get_cluster
-from sentry.uptime.detectors.result_handler import (
-    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
-    ONBOARDING_MONITOR_PERIOD,
-    build_onboarding_failure_key,
-)
-from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
@@ -51,7 +52,6 @@ from sentry.uptime.subscriptions.subscriptions import (
     build_detector_fingerprint_component,
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
-from sentry.utils import json
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -99,6 +99,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
             consumer.submit(message)
+
+    def decode_trace_item(self, payload_value: bytes) -> TraceItem:
+        """Helper to decode a TraceItem from the produced Kafka payload."""
+        codec = get_topic_codec(KafkaTopic.SNUBA_ITEMS)
+        return codec.decode(payload_value)
 
     def test(self) -> None:
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
@@ -326,7 +331,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={**result},
             )
 
-    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed_check_updated_interval(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
@@ -367,8 +371,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={"num_missed_checks": 1, **result},
             )
 
-    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
-    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
     def test_missed_check_true_positive(self, mock_produce: MagicMock) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
@@ -393,16 +396,22 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
             assert mock_produce.call_count == 3
 
-            synth_1 = json.loads(mock_produce.call_args_list[0].args[1].value)
-            synth_2 = json.loads(mock_produce.call_args_list[1].args[1].value)
-            synth_3 = json.loads(mock_produce.call_args_list[2].args[1].value)
+            synth_1 = self.decode_trace_item(mock_produce.call_args_list[0].args[1].value)
+            synth_2 = self.decode_trace_item(mock_produce.call_args_list[1].args[1].value)
+            synth_3 = self.decode_trace_item(mock_produce.call_args_list[2].args[1].value)
 
-            assert synth_1["status"] == "missed_window"
-            assert synth_2["status"] == "missed_window"
-            assert synth_3["status"] == "failure"
+            assert synth_1.attributes["check_status"].string_value == "missed_window"
+            assert synth_2.attributes["check_status"].string_value == "missed_window"
+            assert synth_3.attributes["check_status"].string_value == "failure"
 
-            assert synth_1["scheduled_check_time_ms"] == last_update_time + 300 * 1000
-            assert synth_2["scheduled_check_time_ms"] == last_update_time + 600 * 1000
+            assert (
+                synth_1.attributes["scheduled_check_time_us"].int_value
+                == (last_update_time + 300 * 1000) * 1000
+            )
+            assert (
+                synth_2.attributes["scheduled_check_time_us"].int_value
+                == (last_update_time + 600 * 1000) * 1000
+            )
 
             logger.info.assert_any_call(
                 "uptime.result_processor.num_missing_check",
@@ -490,7 +499,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed(self) -> None:
         features = [
             "organizations:uptime",
@@ -524,7 +532,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_disallowed(self) -> None:
         features = [
             "organizations:uptime",
@@ -604,9 +611,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
             mock.patch(
-                "sentry.uptime.detectors.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
+                "sentry.uptime.autodetect.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
             self.feature(features),
@@ -735,7 +742,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
+            mock.patch(
+                "sentry.uptime.autodetect.result_handler.send_auto_detected_notifications"
+            ) as mock_email_task,
             self.tasks(),
             self.feature(features),
         ):
@@ -768,6 +778,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                     ),
                 ]
             )
+            mock_email_task.delay.assert_called_once_with(self.detector.id)
         assert not redis.exists(key)
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
@@ -811,10 +822,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
-            mock.patch("sentry.uptime.detectors.result_handler.logger") as onboarding_logger,
+            mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.autodetect.result_handler.logger") as onboarding_logger,
             mock.patch(
-                "sentry.uptime.detectors.result_handler.update_uptime_detector",
+                "sentry.uptime.autodetect.result_handler.update_uptime_detector",
                 side_effect=UptimeMonitorNoSeatAvailable(None),
             ),
             self.tasks(),
@@ -970,7 +981,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
 
-    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_provider_stats(self) -> None:
         features = [
             "organizations:uptime",
@@ -1033,8 +1043,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
-    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
     def test_produces_snuba_uptime_results(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
@@ -1047,16 +1056,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.send_result(result)
         mock_produce.assert_called_once()
 
-        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
+        assert mock_produce.call_args.args[0].name == "snuba-items"
 
-        parsed_value = json.loads(mock_produce.call_args.args[1].value)
-        assert parsed_value["organization_id"] == self.project.organization_id
-        assert parsed_value["project_id"] == self.project.id
-        assert parsed_value["incident_status"] == 0
-        assert parsed_value["retention_days"] == 90
+        trace_item = self.decode_trace_item(mock_produce.call_args.args[1].value)
+        assert trace_item.organization_id == self.project.organization_id
+        assert trace_item.project_id == self.project.id
+        assert trace_item.attributes["incident_status"].int_value == 0
+        assert trace_item.retention_days == 90
 
-    @override_options({"uptime.snuba_uptime_results.enabled": True})
-    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
     def test_produces_snuba_uptime_results_in_incident(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
@@ -1071,10 +1079,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.send_result(result)
         mock_produce.assert_called_once()
 
-        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
+        assert mock_produce.call_args.args[0].name == "snuba-items"
 
-        parsed_value = json.loads(mock_produce.call_args.args[1].value)
-        assert parsed_value["incident_status"] == 1
+        trace_item = self.decode_trace_item(mock_produce.call_args.args[1].value)
+        assert trace_item.attributes["incident_status"].int_value == 1
 
     @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
     def test_produces_eap_uptime_results(self, mock_produce: MagicMock) -> None:

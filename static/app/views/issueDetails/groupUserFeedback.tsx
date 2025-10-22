@@ -59,7 +59,7 @@ function GroupUserFeedback() {
   if (isPending || isPendingGroup) {
     return (
       <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
       </StyledLayoutBody>
@@ -71,7 +71,7 @@ function GroupUserFeedback() {
 
   return (
     <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         {hasStreamlinedUI && hasUserFeedback && (
           <FilterMessage>
             {t('The feedback shown below is not subject to search filters.')}

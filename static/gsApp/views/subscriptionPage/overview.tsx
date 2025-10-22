@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -10,7 +9,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSupport} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -52,7 +50,6 @@ import ReservedUsageChart from './reservedUsageChart';
 import SubscriptionHeader from './subscriptionHeader';
 import UsageAlert from './usageAlert';
 import {CombinedUsageTotals, UsageTotals} from './usageTotals';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   location: Location;
@@ -134,12 +131,9 @@ function Overview({location, subscription, promotionData}: Props) {
       openCodecovModal({organization});
     }
 
-    // Open on-demand budget modal if hash fragment present and user has access
-    if (
-      window.location.hash === '#open-ondemand-modal' &&
-      subscription.supportsOnDemand &&
-      hasAccessToSubscriptionOverview(subscription, organization)
-    ) {
+    // Open on-demand budget modal if hash fragment present
+    // Modal logic handles checking perms
+    if (window.location.hash === '#open-ondemand-modal' && !isNewBillingUI) {
       openOnDemandBudgetEditModal({organization, subscription});
 
       // Clear hash to prevent modal reopening on refresh
@@ -149,12 +143,15 @@ function Overview({location, subscription, promotionData}: Props) {
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api, navigate]);
-
-  useEffect(
-    () => trackSubscriptionView(organization, subscription, 'overview'),
-    [subscription, organization]
-  );
+  }, [
+    organization,
+    location.query,
+    subscription,
+    promotionData,
+    api,
+    navigate,
+    isNewBillingUI,
+  ]);
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
@@ -195,7 +192,7 @@ function Overview({location, subscription, promotionData}: Props) {
         0 || false;
 
     return (
-      <TotalsWrapper>
+      <Fragment>
         {sortCategories(subscription.categories)
           .filter(
             categoryHistory =>
@@ -313,7 +310,7 @@ function Overview({location, subscription, promotionData}: Props) {
             />
           );
         })}
-      </TotalsWrapper>
+      </Fragment>
     );
   }
 
@@ -329,8 +326,6 @@ function Overview({location, subscription, promotionData}: Props) {
         background="primary"
         radius="md"
         border="primary"
-        // TODO(isabella): move spacing to the parent
-        marginTop="xl"
       >
         <Flex align="center" gap="sm">
           <IconSupport />
@@ -443,18 +438,14 @@ function Overview({location, subscription, promotionData}: Props) {
       ) : isError ? (
         <LoadingError onRetry={refetchUsage} />
       ) : (
-        <div>
+        <Flex direction="column" gap="xl">
           {hasBillingPerms
             ? contentWithBillingPerms(usage, subscription.planDetails)
             : contentWithoutBillingPerms(usage)}
-        </div>
+        </Flex>
       )}
     </SubscriptionPageContainer>
   );
 }
 
 export default withSubscription(withPromotions(Overview));
-
-const TotalsWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-`;

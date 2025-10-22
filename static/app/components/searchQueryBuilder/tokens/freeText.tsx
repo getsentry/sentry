@@ -8,6 +8,7 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
@@ -98,12 +99,13 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  hasWildcardOperators: boolean
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    getInitialFilterText(key, getFieldDefinition(key), hasWildcardOperators)
   );
 }
 
@@ -137,7 +139,16 @@ function calculateNextFocusForFilter(
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
 
-  let part: FocusOverride['part'] = hasInputChangeFlows ? 'op' : 'value';
+  const isNumericField =
+    definition?.kind === FieldKind.METRICS ||
+    definition?.kind === FieldKind.MEASUREMENT ||
+    definition?.kind === FieldKind.NUMERIC_METRICS;
+
+  let part: FocusOverride['part'] =
+    hasInputChangeFlows && (isNumericField || areWildcardOperatorsAllowed(definition))
+      ? 'op'
+      : 'value';
+
   if (
     definition &&
     definition.kind === FieldKind.FUNCTION &&
@@ -261,6 +272,9 @@ function SearchQueryBuilderInputInternal({
   const hasInputChangeFlows = organization.features.includes(
     'search-query-builder-input-flow-changes'
   );
+  const hasWildcardOperators =
+    organization.features.includes('search-query-builder-wildcard-operators') &&
+    organization.features.includes('search-query-builder-default-to-contains');
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -471,7 +485,8 @@ function SearchQueryBuilderInputInternal({
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition
+              getFieldDefinition,
+              hasWildcardOperators
             ),
             focusOverride: calculateNextFocusForFilter(
               state,
@@ -574,7 +589,8 @@ function SearchQueryBuilderInputInternal({
                     inputValue,
                     selectionIndex,
                     filterValue,
-                    getFieldDefinition
+                    getFieldDefinition,
+                    hasWildcardOperators
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
@@ -617,7 +633,8 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition
+                getFieldDefinition,
+                hasWildcardOperators
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,

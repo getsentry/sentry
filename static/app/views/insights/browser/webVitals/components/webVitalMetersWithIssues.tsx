@@ -224,7 +224,7 @@ function VitalContainer({
       onClick={() => webVitalExists && onClick?.(webVital)}
       clickable={webVitalExists}
     >
-      {webVitalExists && <InteractionStateLayer />}
+      {webVitalExists && <StyledInteractionStateLayer />}
       {webVitalExists && meterBody}
       {!webVitalExists && (
         <StyledTooltip
@@ -286,6 +286,10 @@ const StyledIssuesButton = styled(LinkButton)`
   }
 `;
 
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
 // This style explicitly hides InteractionStateLayer when the Issues button is hovered
 // This is to prevent hover styles displayed on multiple overlapping components simultaneously
 const MeterBarContainer = styled('div')<{clickable?: boolean}>`
@@ -296,7 +300,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
   cursor: ${p => (p.clickable ? 'pointer' : 'default')};
   min-width: 180px;
 
-  :has(${StyledIssuesButton}:hover) > ${InteractionStateLayer} {
+  :has(${StyledIssuesButton}:hover) > ${StyledInteractionStateLayer} {
     display: none;
   }
 `;

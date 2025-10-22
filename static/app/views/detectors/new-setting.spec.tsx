@@ -1,5 +1,9 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {MetricDetectorFixture, UptimeDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  CronDetectorFixture,
+  MetricDetectorFixture,
+  UptimeDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -346,6 +350,34 @@ describe('DetectorEdit', () => {
         })
       );
     });
+
+    it('hides transactions dataset when deprecateTransactionAlerts feature flag is enabled for new detectors', async () => {
+      const organizationWithDeprecation = OrganizationFixture({
+        features: [
+          'workflow-engine-ui',
+          'visibility-explore-view',
+          'discover-saved-queries-deprecation',
+        ],
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithDeprecation,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      // Open dataset dropdown
+      await userEvent.click(screen.getByText('Spans'));
+
+      // Verify transactions option is not available for new detectors
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Transactions'})
+      ).not.toBeInTheDocument();
+
+      // Verify other datasets are still available
+      expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+    });
   });
 
   describe('Uptime Detector', () => {
@@ -511,6 +543,59 @@ describe('DetectorEdit', () => {
       expect(
         screen.queryByText('Uptime check for different-site.com')
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Cron Detector', () => {
+    const cronRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {detectorType: 'monitor_check_in_failure', project: project.id},
+      },
+    };
+
+    it('submits default cron config with no changes', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: '999'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'monitor_check_in_failure',
+            name: 'New Monitor',
+            projectId: project.id,
+            workflowIds: [],
+            dataSource: expect.objectContaining({
+              name: 'New Monitor',
+              config: expect.objectContaining({
+                schedule: '0 0 * * *',
+                schedule_type: 'crontab',
+                timezone: 'UTC',
+                checkin_margin: 1,
+                failure_issue_threshold: 1,
+                max_runtime: 30,
+                recovery_threshold: 1,
+              }),
+            }),
+          }),
+        })
+      );
     });
   });
 });

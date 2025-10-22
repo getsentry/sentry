@@ -11,7 +11,7 @@ from tokenizers import Tokenizer
 from sentry import options
 from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
@@ -560,7 +560,9 @@ def get_token_count(
                 if not variants:
                     timer_tags["source"] = "no_variants"
                     return 0
-                stacktrace_text = get_stacktrace_string(get_grouping_info_from_variants(variants))
+                stacktrace_text = get_stacktrace_string(
+                    get_grouping_info_from_variants_legacy(variants)
+                )
 
             if stacktrace_text:
                 timer_tags["has_content"] = True

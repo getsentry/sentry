@@ -92,7 +92,7 @@ export default function BuildComparison() {
         </Layout.Header>
 
         <Layout.Body>
-          <Layout.Main fullWidth>{mainContent}</Layout.Main>
+          <Layout.Main width="full">{mainContent}</Layout.Main>
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>

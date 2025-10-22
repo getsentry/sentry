@@ -174,6 +174,7 @@ function normalizeFilename(filename: string) {
 export type StoryCategory =
   | 'foundations'
   | 'principles'
+  | 'patterns'
   | 'core'
   | 'product'
   | 'typography'
@@ -187,6 +188,10 @@ export function inferFileCategory(path: string): StoryCategory {
 
   if (isPrinciplesFile(path)) {
     return 'principles';
+  }
+
+  if (isPatternsFile(path)) {
+    return 'patterns';
   }
 
   if (isTypographyFile(path)) {
@@ -227,6 +232,10 @@ function isLayoutFile(file: string) {
 
 function isPrinciplesFile(file: string) {
   return file.includes('components/core/principles');
+}
+
+function isPatternsFile(file: string) {
+  return file.includes('components/core/patterns');
 }
 
 function isProductFile(path: string): boolean {
