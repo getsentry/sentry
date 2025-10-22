@@ -29,7 +29,7 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0996_add_dashboard_field_link_model
+sentry: 0997_add_prebuilt_id_to_dashboards
 
 social_auth: 0003_social_auth_json_field
 
