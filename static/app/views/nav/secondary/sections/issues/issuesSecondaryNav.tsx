@@ -109,7 +109,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
             to={`${baseUrl}/automations/`}
             activeTo={`${baseUrl}/automations`}
           >
-            {t('Automations')}
+            {t('Alerts')}
           </SecondaryNav.Item>
           <SecondaryNav.Item
             to={`${baseUrl}/alerts/rules/`}
