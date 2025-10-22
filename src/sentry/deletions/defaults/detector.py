@@ -27,4 +27,12 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
                 ModelRelation(DataConditionGroup, {"id": instance.workflow_condition_group.id})
             )
 
+        # When a detector is deleted, we want to invoke the life cycle for deletion
+        # This is helpful when cleaning up related models or billing chagnes
+        detector_handler_settings = instance.group_type.detector_settings
+        if detector_handler_settings:
+            hooks = detector_handler_settings.hooks
+            if hooks and hooks.on_delete:
+                hooks.on_delete(instance.id)
+
         return model_relations
