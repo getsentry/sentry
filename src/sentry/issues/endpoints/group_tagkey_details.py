@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -75,24 +75,38 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
+        include_empty_values = features.has(
+            "organizations:issue-tags-include-empty-values",
+            organization=group.project.organization,
+        )
+
         try:
             group_tag_key = tagstore.backend.get_group_tag_key(
                 group,
                 environment_id,
                 lookup_key,
                 tenant_ids=tenant_ids,
+                include_empty_values=include_empty_values,
             )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
         if group_tag_key.count is None:
             group_tag_key.count = tagstore.backend.get_group_tag_value_count(
-                group, environment_id, lookup_key, tenant_ids=tenant_ids
+                group,
+                environment_id,
+                lookup_key,
+                tenant_ids=tenant_ids,
+                include_empty_values=include_empty_values,
             )
 
         if group_tag_key.top_values is None:
             group_tag_key.top_values = tagstore.backend.get_top_group_tag_values(
-                group, environment_id, lookup_key, tenant_ids=tenant_ids
+                group,
+                environment_id,
+                lookup_key,
+                tenant_ids=tenant_ids,
+                include_empty_values=include_empty_values,
             )
 
         return Response(serialize(group_tag_key, request.user, serializer=TagKeySerializer()))
