@@ -286,13 +286,25 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
 class TestPartitionByMeasure(TestCase):
     def test_partition_by_measure_with_spans_feature(self) -> None:
-        org1 = self.create_organization("test-org1")
-        org2 = self.create_organization("test-org2")
-        org3 = self.create_organization("test-org3")
-        with self.options({"dynamic-sampling.check_span_feature_flag": True}):
-            with self.feature({"organizations:dynamic-sampling-spans": [org1, org2]}):
-                result = partition_by_measure([org1.id, org2.id, org3.id])
-                assert SamplingMeasure.SPANS in result
-                assert SamplingMeasure.TRANSACTIONS in result
-                assert set(result[SamplingMeasure.SPANS]) == {org1.id, org2.id}
-                assert result[SamplingMeasure.TRANSACTIONS] == [org3.id]
+        org = self.create_organization("test-org1")
+        with (
+            self.options({"dynamic-sampling.check_span_feature_flag": True}),
+            self.feature({"organizations:dynamic-sampling-spans": True}),
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.SPANS in result
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert result[SamplingMeasure.SPANS] == [org.id]
+            assert result[SamplingMeasure.TRANSACTIONS] == []
+
+    def test_partition_by_measure_without_spans_feature(self) -> None:
+        org = self.create_organization("test-org1")
+        with (
+            self.options({"dynamic-sampling.check_span_feature_flag": True}),
+            self.feature({"organizations:dynamic-sampling-spans": False}),
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.SPANS in result
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert result[SamplingMeasure.SPANS] == []
+            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
