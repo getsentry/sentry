@@ -54,6 +54,8 @@ def encode_attributes(
     for key, value in event_data.items():
         if key in ignore_fields:
             continue
+        if not value:
+            continue
         attributes[key] = _encode_value(value)
 
     if event.group_id:
