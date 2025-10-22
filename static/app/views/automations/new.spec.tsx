@@ -14,7 +14,7 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import AutomationNewSettings from 'sentry/views/automations/new-settings';
+import AutomationNewSettings from 'sentry/views/automations/new';
 
 describe('AutomationNewSettings', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
