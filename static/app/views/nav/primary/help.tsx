@@ -65,8 +65,8 @@ export function PrimaryNavigationHelp() {
     <SidebarMenu
       triggerWrap={StackedNavigationTourReminder}
       onOpen={() => {
-        chonkPrompt.dismissDotIndicatorPrompt();
-        chonkPrompt.dismissBannerPrompt();
+        chonkPrompt.snoozeDotIndicatorPrompt();
+        chonkPrompt.snoozeBannerPrompt();
       }}
       items={[
         {
