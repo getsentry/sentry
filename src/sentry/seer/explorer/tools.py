@@ -6,7 +6,7 @@ from sentry import eventstore
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -369,9 +369,10 @@ def get_issue_details(
         )
         return None
 
-    serialized_group: BaseGroupSerializerResponse = serialize(
-        group, user=None, serializer=GroupSerializer()
-    )
+    serialized_group: dict = serialize(group, user=None, serializer=GroupSerializer())
+
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
 
     event: Event | GroupEvent | None
     if selected_event == "oldest":
