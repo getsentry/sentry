@@ -160,7 +160,9 @@ const DisplayHeader = styled('div')`
 function Live() {
   return (
     <Flex align="center">
-      <LiveText bold>{t('LIVE')}</LiveText>
+      <Text bold variant="success">
+        {t('LIVE')}
+      </Text>
       <LiveIndicator />
     </Flex>
   );
@@ -178,12 +180,8 @@ const pulse = keyframes`
   }
 `;
 
-const LiveText = styled(Text)`
-  color: ${p => p.theme.success};
-`;
-
 const LiveIndicator = styled('div')`
-  background: ${p => p.theme.success};
+  background: ${p => p.theme.successText};
   height: 8px;
   width: 8px;
   position: relative;
