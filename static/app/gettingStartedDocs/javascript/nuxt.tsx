@@ -290,10 +290,10 @@ const docs: Docs = {
   featureFlagOnboarding,
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'nuxt',
-    sdkPackage: '@sentry/nuxt',
+    packageName: '@sentry/nuxt',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'nuxt',
+    packageName: '@sentry/nuxt',
     configFileName: 'sentry.server.config.ts',
   }),
 };

@@ -33,7 +33,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const Fastify = require('fastify')
 
 const app = Fastify();
@@ -198,7 +198,7 @@ const docs: Docs = {
   profilingOnboarding: getNodeProfilingOnboarding(),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'fastify',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),

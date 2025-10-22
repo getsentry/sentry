@@ -548,7 +548,7 @@ const crashReportOnboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding = getJavascriptFullStackOnboarding({
-  basePackage: '@sentry/astro',
+  packageName: '@sentry/astro',
   browserProfilingLink:
     'https://docs.sentry.io/platforms/javascript/guides/astro/profiling/browser-profiling/',
   nodeProfilingLink:
@@ -563,11 +563,11 @@ const docs: Docs = {
   featureFlagOnboarding,
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'astro',
-    sdkPackage: '@sentry/astro',
+    packageName: '@sentry/astro',
   }),
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'astro',
+    packageName: '@sentry/astro',
     configFileName: 'sentry.server.config.js',
   }),
 };

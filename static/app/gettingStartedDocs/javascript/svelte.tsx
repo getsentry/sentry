@@ -412,7 +412,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'svelte',
-  sdkPackage: '@sentry/svelte',
+  packageName: '@sentry/svelte',
 });
 
 const docs: Docs = {

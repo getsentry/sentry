@@ -434,7 +434,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'vue',
-  sdkPackage: '@sentry/vue',
+  packageName: '@sentry/vue',
 });
 
 const docs: Docs<PlatformOptions> = {

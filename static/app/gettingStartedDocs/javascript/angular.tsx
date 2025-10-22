@@ -557,7 +557,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'angular',
-  sdkPackage: '@sentry/angular',
+  packageName: '@sentry/angular',
 });
 
 const docs: Docs<PlatformOptions> = {
