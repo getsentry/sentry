@@ -239,7 +239,7 @@ interface VisualizeLabelProps {
   visualize: Visualize;
 }
 
-function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
   const label = visualize.visible ? (
     String.fromCharCode('A'.charCodeAt(0) + index)
   ) : (

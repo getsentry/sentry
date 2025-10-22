@@ -141,6 +141,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
           />
         )
       }
+      height={visualize.visible ? undefined : 0}
       revealActions="always"
       borderless
     />
