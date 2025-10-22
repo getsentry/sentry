@@ -779,12 +779,7 @@ class SnubaTagStorage(TagStorage):
         # Then supplement the key objects with the top values for each.
         for keyobj in keys_with_counts:
             key = keyobj.key
-            values = dict(values_by_key.get(key, dict()))
-
-            # Keep the highest-count values up to value_limit
-            # Sort values by count desc
-            sorted_items = sorted(values.items(), key=lambda kv: kv[1]["count"], reverse=True)
-            limited_items = sorted_items[:value_limit] if value_limit is not None else sorted_items
+            values = values_by_key.get(key, dict())
 
             keyobj.top_values = tuple(
                 GroupTagValue(
@@ -795,7 +790,7 @@ class SnubaTagStorage(TagStorage):
                     first_seen=parse_datetime(data["first_seen"]),
                     last_seen=parse_datetime(data["last_seen"]),
                 )
-                for value, data in limited_items
+                for value, data in values.items()
             )
 
         return keys_with_counts

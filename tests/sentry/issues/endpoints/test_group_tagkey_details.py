@@ -1,6 +1,7 @@
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 
 
 class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -74,6 +75,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert response.data["totalValues"] == 1
         assert "" not in {value["value"] for value in response.data["topValues"]}
 
+    @with_feature({"organizations:issue-tags-include-empty-values": True})
     def test_includes_empty_values_with_feature(self) -> None:
         for i in range(2):
             self.store_event(
@@ -98,8 +100,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{event.group.id}/tags/foo/"
-        with self.feature({"organizations:issue-tags-include-empty-values": True}):
-            response = self.client.get(url, format="json")
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["totalValues"] == 3
