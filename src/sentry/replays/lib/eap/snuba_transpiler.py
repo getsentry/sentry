@@ -187,15 +187,12 @@ TRACE_ITEM_TYPE_MAP = {
     "span": TraceItemType.TRACE_ITEM_TYPE_SPAN,
     "error": TraceItemType.TRACE_ITEM_TYPE_ERROR,
     "log": TraceItemType.TRACE_ITEM_TYPE_LOG,
-    "uptime_check": TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
     "uptime_result": TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
     "replay": TraceItemType.TRACE_ITEM_TYPE_REPLAY,
     "metric": TraceItemType.TRACE_ITEM_TYPE_METRIC,
 }
 
-TRACE_ITEM_TYPES = TLiteral[
-    "span", "error", "log", "uptime_check", "uptime_result", "replay", "metric"  # noqa
-]
+TRACE_ITEM_TYPES = TLiteral["span", "error", "log", "uptime_result", "replay", "metric"]  # noqa
 
 
 class RequestMeta(TypedDict):
@@ -240,7 +237,6 @@ class RequestMeta(TypedDict):
             - "span": Distributed tracing span data
             - "error": Error events
             - "log": Application log entries
-            - "uptime_check": Uptime monitoring check results
             - "uptime_result": Processed uptime monitoring outcomes
             - "replay": Session replay events
 
