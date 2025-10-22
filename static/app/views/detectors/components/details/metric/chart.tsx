@@ -309,9 +309,9 @@ function MetricDetectorChart({
     return (
       <Fragment>
         {errorMessage && (
-          <Alert system type="error">
+          <RoundedAlert system type="error">
             {errorMessage}
-          </Alert>
+          </RoundedAlert>
         )}
         <ChartContainerBody>
           <Flex justify="center" align="center">
@@ -378,9 +378,12 @@ export function MetricDetectorDetailsChart({
 const ChartContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 `;
 
 const ChartContainerBody = styled('div')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.xs};
+`;
+
+const RoundedAlert = styled(Alert)`
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
