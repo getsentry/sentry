@@ -60,7 +60,7 @@ describe('areWildcardOperatorsAllowed', () => {
   it('returns false when valueType is not string', () => {
     const fieldDefinition: FieldDefinition = {
       kind: FieldKind.FIELD,
-      valueType: FieldValueType.NUMBER,
+      valueType: FieldValueType.DATE,
     };
 
     expect(areWildcardOperatorsAllowed(fieldDefinition)).toBe(false);
