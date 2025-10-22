@@ -112,6 +112,9 @@ function useSpansQueryBase<T>({
     caseInsensitive: queryExtras?.caseInsensitive,
     samplingMode: queryExtras?.samplingMode,
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
+    spanQueries: queryExtras?.spanQueries,
+    logQueries: queryExtras?.logQueries,
+    metricQueries: queryExtras?.metricQueries,
   });
 
   if (trackResponseAnalytics) {
@@ -239,10 +242,13 @@ type WrappedDiscoverQueryProps<T> = {
   initialData?: T;
   keepPreviousData?: boolean;
   limit?: number;
+  logQueries?: string[];
+  metricQueries?: string[];
   noPagination?: boolean;
   referrer?: string;
   refetchInterval?: number;
   samplingMode?: SamplingMode;
+  spanQueries?: string[];
 };
 
 function useWrappedDiscoverQueryBase<T>({
@@ -256,6 +262,9 @@ function useWrappedDiscoverQueryBase<T>({
   noPagination,
   allowAggregateConditions,
   disableAggregateExtrapolation,
+  logQueries,
+  metricQueries,
+  spanQueries,
   samplingMode,
   pageFiltersReady,
   additionalQueryKey,
@@ -267,7 +276,7 @@ function useWrappedDiscoverQueryBase<T>({
   const location = useLocation();
   const organization = useOrganization();
 
-  const queryExtras: Record<string, string> = {};
+  const queryExtras: Record<string, string | string[]> = {};
   if (eventView.dataset === DiscoverDatasets.SPANS) {
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
@@ -280,6 +289,18 @@ function useWrappedDiscoverQueryBase<T>({
     if (disableAggregateExtrapolation) {
       queryExtras.disableAggregateExtrapolation = '1';
     }
+  }
+
+  if (logQueries) {
+    queryExtras.logQueries = logQueries;
+  }
+
+  if (metricQueries) {
+    queryExtras.metricQueries = metricQueries;
+  }
+
+  if (spanQueries) {
+    queryExtras.spanQueries = spanQueries;
   }
 
   if (allowAggregateConditions !== undefined) {
