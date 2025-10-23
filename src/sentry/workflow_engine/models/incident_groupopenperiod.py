@@ -248,8 +248,11 @@ def update_incident_activity_based_on_group_activity(
         # the priority change came before relationship creation. This isn't a problem—we create the
         # relationship with the new priority in create_from_occurrence() anyway.
 
-        # we could also hit this case if there are outstanding open incidents when switching to single
+        # We could also hit this case if there are outstanding open incidents when switching to single
         # processing. Again, create_from_occurrence() will handle any status changes we need.
+
+        # Finally, this can also happen if the incident was not created because a detector was single
+        # written in workflow engine. Just return in this case.
         logger.info(
             "No IncidentGroupOpenPeriod relationship found when updating IncidentActivity table",
             extra={
@@ -298,7 +301,8 @@ def update_incident_based_on_open_period_status_change(
         try:
             alert_rule_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
         except AlertRuleDetector.DoesNotExist:
-            logger.exception(
+            # Detector was not dual written.
+            logger.info(
                 "No AlertRuleDetector found for detector ID", extra={"detector_id": detector_id}
             )
             return
@@ -311,7 +315,7 @@ def update_incident_based_on_open_period_status_change(
             incident = open_incident
             IncidentGroupOpenPeriod.create_relationship(incident=incident, open_period=open_period)
         else:
-            logger.exception(
+            logger.info(
                 "No IncidentGroupOpenPeriod relationship and no outstanding incident",
                 extra={
                     "open_period_id": open_period.id,
