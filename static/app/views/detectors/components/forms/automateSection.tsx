@@ -201,7 +201,10 @@ export function AutomateSection() {
 
   return (
     <Container>
-      <Section title={t('Automate')} description={t('Set up alerts or notifications.')}>
+      <Section
+        title={t('Alert')}
+        description={t('Set up alerts to get notified on issues.')}
+      >
         <Button
           ref={ref}
           size="sm"

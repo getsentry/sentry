@@ -40,7 +40,7 @@ describe('AutomateSection', () => {
       </Form>
     );
 
-    expect(screen.getByText('Automate')).toBeInTheDocument();
+    expect(screen.getByText('Alert')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Connect an Alert'));
 
