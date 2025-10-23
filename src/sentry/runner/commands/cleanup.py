@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 import os
 import time
@@ -288,6 +289,36 @@ def _cleanup(
                 )
 
 
+def continue_on_error(log_message: str, metric_type: str) -> Callable[..., Any]:
+    """
+    Decorator that catches exceptions, logs them, tracks metrics, and continues execution.
+
+    Args:
+        log_message: The message to log when an exception occurs
+        metric_type: The type tag for the cleanup.error metric
+
+    Example:
+        @continue_on_error("Error removing expired passwords", "specialized_cleanup_lost_passwords")
+        def remove_expired_values_for_lost_passwords(is_filtered, models_attempted):
+            ...
+    """
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except Exception:
+                from sentry.utils import metrics
+
+                logger.exception("%s (Continuing...)", log_message)
+                metrics.incr("cleanup.error", tags={"type": metric_type}, sample_rate=1.0)
+
+        return wrapper
+
+    return decorator
+
+
 def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
     """Validate input parameters and set up environment variables."""
     if concurrency < 1:
@@ -303,39 +334,10 @@ def _run_specialized_cleanups(
     is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
 ) -> None:
     """Run specialized cleanup operations for specific models."""
-    from sentry.utils import metrics
-
-    try:
-        remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
-    except Exception:
-        logger.exception("Error removing expired values for lost passwords (Continuing...)")
-        metrics.incr(
-            "cleanup.error", tags={"type": "specialized_cleanup_lost_passwords"}, sample_rate=1.0
-        )
-
-    try:
-        remove_expired_values_for_org_members(is_filtered, days, models_attempted)
-    except Exception:
-        logger.exception("Error removing expired values for org members (Continuing...)")
-        metrics.incr(
-            "cleanup.error", tags={"type": "specialized_cleanup_org_members"}, sample_rate=1.0
-        )
-
-    try:
-        delete_api_models(is_filtered, models_attempted)
-    except Exception:
-        logger.exception("Error deleting API models (Continuing...)")
-        metrics.incr(
-            "cleanup.error", tags={"type": "specialized_cleanup_api_models"}, sample_rate=1.0
-        )
-
-    try:
-        exported_data(is_filtered, silent, models_attempted)
-    except Exception:
-        logger.exception("Error cleaning up exported data (Continuing...)")
-        metrics.incr(
-            "cleanup.error", tags={"type": "specialized_cleanup_exported_data"}, sample_rate=1.0
-        )
+    remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+    remove_expired_values_for_org_members(is_filtered, days, models_attempted)
+    delete_api_models(is_filtered, models_attempted)
+    exported_data(is_filtered, silent, models_attempted)
 
 
 def _handle_project_organization_cleanup(
@@ -400,6 +402,9 @@ def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
         p.join()
 
 
+@continue_on_error(
+    "Error removing expired values for lost passwords", "specialized_cleanup_lost_passwords"
+)
 def remove_expired_values_for_lost_passwords(
     is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
 ) -> None:
@@ -415,6 +420,9 @@ def remove_expired_values_for_lost_passwords(
         ).delete()
 
 
+@continue_on_error(
+    "Error removing expired values for org members", "specialized_cleanup_org_members"
+)
 def remove_expired_values_for_org_members(
     is_filtered: Callable[[type[Model]], bool], days: int, models_attempted: set[str]
 ) -> None:
@@ -429,6 +437,7 @@ def remove_expired_values_for_org_members(
         OrganizationMember.objects.delete_expired(expired_threshold)
 
 
+@continue_on_error("Error deleting API models", "specialized_cleanup_api_models")
 def delete_api_models(
     is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
 ) -> None:
@@ -456,6 +465,7 @@ def delete_api_models(
             queryset.delete()
 
 
+@continue_on_error("Error cleaning up exported data", "specialized_cleanup_exported_data")
 def exported_data(
     is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
@@ -842,11 +852,11 @@ def prepare_deletes_by_organization(
     return organization_deletion_query, to_delete_by_organization
 
 
+@continue_on_error("Error cleaning up unused FileBlob references", "fileblob_cleanup")
 def remove_file_blobs(
     is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
     from sentry.models.file import FileBlob
-    from sentry.utils import metrics
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
@@ -855,11 +865,7 @@ def remove_file_blobs(
         debug_output(">> Skipping FileBlob")
     else:
         models_attempted.add(FileBlob.__name__.lower())
-        try:
-            cleanup_unused_files(silent)
-        except Exception:
-            logger.exception("Error cleaning up unused FileBlob references (Continuing...)")
-            metrics.incr("cleanup.error", tags={"type": "fileblob_cleanup"}, sample_rate=1.0)
+        cleanup_unused_files(silent)
 
 
 def cleanup_unused_files(quiet: bool = False) -> None:
