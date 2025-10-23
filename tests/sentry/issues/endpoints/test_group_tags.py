@@ -304,6 +304,80 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[1]["value"] == "low"
         assert top_values[2]["value"] == "medium"
 
+    def test_include_empty_values_for_specific_key_with_feature(self) -> None:
+        event = self.store_event(
+            data={
+                "fingerprint": ["group-empty-all"],
+                "tags": {},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-empty-all"],
+                "tags": {"foo": "bar"},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event.group.id}/tags/?key=foo"
+
+        # Off by default: empty should be excluded from topValues
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        values = {v["value"] for v in response.data[0]["topValues"]}
+        assert values == {"bar"}
+
+        # With feature: empty should be included
+        with self.feature({"organizations:issue-tags-include-empty-values": True}):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        values = {v["value"] for v in response.data[0]["topValues"]}
+        assert values == {"", "bar"}
+
+    def test_include_empty_values_in_all_tags_with_feature(self) -> None:
+        event = self.store_event(
+            data={
+                "fingerprint": ["group-empty-all-tags"],
+                "tags": {"foo": ""},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-empty-all-tags"],
+                "tags": {"foo": "bar"},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{event.group.id}/tags/?limit=10"
+
+        # Off by default: empty should be excluded from the All Tags list
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        foo = next((t for t in response.data if t["key"] == "foo"), None)
+        assert foo is not None
+        assert {v["value"] for v in foo["topValues"]} == {"bar"}
+
+        # With feature: empty should be included in the All Tags list
+        with self.feature({"organizations:issue-tags-include-empty-values": True}):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        foo = next((t for t in response.data if t["key"] == "foo"), None)
+        assert foo is not None
+        assert {v["value"] for v in foo["topValues"]} == {"", "bar"}
+
     def test_flags(self) -> None:
         event1 = self.store_event(
             data={
