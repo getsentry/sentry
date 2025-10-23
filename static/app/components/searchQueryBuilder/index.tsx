@@ -135,7 +135,7 @@ export interface SearchQueryBuilderProps {
    * This query will not be displayed in the UI because it is stripped from the
    * API response results before rendering.
    */
-  namespaceFilterKey?: string;
+  namespace?: string;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * When passed, this will display the case sensitivity toggle, and will be called when

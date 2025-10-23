@@ -53,7 +53,7 @@ export function Filter({traceMetric}: FilterProps) {
         initialQuery: query,
         onSearch: setQuery,
         searchSource: 'tracemetrics',
-        namespaceFilterKey: traceMetric.name,
+        namespace: traceMetric.name,
       };
     }, [query, setQuery, numberTags, stringTags, traceMetric.name]);
 

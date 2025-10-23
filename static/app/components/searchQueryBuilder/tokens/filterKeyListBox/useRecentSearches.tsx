@@ -2,12 +2,12 @@ import {useFetchRecentSearches} from 'sentry/actionCreators/savedSearches';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 
 export function useRecentSearches() {
-  const {recentSearches, namespaceFilterKey} = useSearchQueryBuilder();
+  const {recentSearches, namespace} = useSearchQueryBuilder();
 
   return useFetchRecentSearches(
     {
       savedSearchType: recentSearches ?? null,
-      namespace: namespaceFilterKey,
+      namespace,
       limit: 10,
     },
     {

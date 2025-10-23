@@ -66,7 +66,7 @@ interface SearchQueryBuilderContextData {
   caseInsensitive?: CaseInsensitive;
   filterKeyAliases?: TagCollection;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
-  namespaceFilterKey?: string;
+  namespace?: string;
   onCaseInsensitiveClick?: SetCaseInsensitive;
   placeholder?: string;
   /**
@@ -109,7 +109,7 @@ export function SearchQueryBuilderProvider({
   onSearch,
   placeholder,
   recentSearches,
-  namespaceFilterKey,
+  namespace,
   searchSource,
   getFilterTokenWarning,
   portalTarget,
@@ -185,7 +185,7 @@ export function SearchQueryBuilderProvider({
   const handleSearch = useHandleSearch({
     parsedQuery,
     recentSearches,
-    namespaceFilterKey,
+    namespace,
     searchSource,
     onSearch,
   });
@@ -214,7 +214,7 @@ export function SearchQueryBuilderProvider({
       handleSearch,
       placeholder,
       recentSearches,
-      namespaceFilterKey,
+      namespace,
       searchSource,
       size,
       portalTarget,
@@ -256,7 +256,7 @@ export function SearchQueryBuilderProvider({
     placeholder,
     portalTarget,
     recentSearches,
-    namespaceFilterKey,
+    namespace,
     replaceRawSearchKeys,
     searchSource,
     setupAcknowledgement.orgHasAcknowledged,

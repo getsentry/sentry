@@ -25,7 +25,7 @@ export type TraceItemSearchQueryBuilderProps = {
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
-  namespaceFilterKey?: string;
+  namespace?: string;
   onCaseInsensitiveClick?: SetCaseInsensitive;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
@@ -76,7 +76,7 @@ export function useSearchQueryBuilderProps({
   portalTarget,
   projects,
   supportedAggregates = [],
-  namespaceFilterKey,
+  namespace,
   replaceRawSearchKeys,
   matchKeySuggestions,
   caseInsensitive,
@@ -113,7 +113,7 @@ export function useSearchQueryBuilderProps({
     getTagValues: getTraceItemAttributeValues,
     disallowUnsupportedFilters: true,
     recentSearches: itemTypeToRecentSearches(itemType),
-    namespaceFilterKey,
+    namespace,
     showUnsubmittedIndicator: true,
     portalTarget,
     replaceRawSearchKeys,

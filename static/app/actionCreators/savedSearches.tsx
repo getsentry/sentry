@@ -19,27 +19,24 @@ export const NAMESPACE_SYMBOL = '\uf00d';
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
 
-function getNamespacePrefix(namespaceFilterKey?: string): string {
-  return `${NAMESPACE_SYMBOL}namespace${NAMESPACE_SYMBOL}${namespaceFilterKey}${NAMESPACE_SYMBOL}`;
+function getNamespacePrefix(namespace?: string): string {
+  return `${NAMESPACE_SYMBOL}namespace${NAMESPACE_SYMBOL}${namespace}${NAMESPACE_SYMBOL}`;
 }
 
-function encodeNamespacedRecentSearch(namespaceFilterKey?: string, query = ''): string {
-  if (!namespaceFilterKey) {
+function encodeNamespacedRecentSearch(namespace?: string, query = ''): string {
+  if (!namespace) {
     return query;
   }
 
-  return getNamespacePrefix(namespaceFilterKey) + query;
+  return getNamespacePrefix(namespace) + query;
 }
 
-export function decodeNamespacedRecentSearch(
-  namespaceFilterKey?: string,
-  query = ''
-): string {
-  if (!namespaceFilterKey) {
+export function decodeNamespacedRecentSearch(namespace?: string, query = ''): string {
+  if (!namespace) {
     return query;
   }
 
-  const namespacePrefix = getNamespacePrefix(namespaceFilterKey);
+  const namespacePrefix = getNamespacePrefix(namespace);
 
   if (query && namespacePrefix && query.startsWith(namespacePrefix)) {
     return query.slice(namespacePrefix.length);
@@ -61,13 +58,13 @@ export function saveRecentSearch(
   orgSlug: string,
   type: SavedSearchType,
   query: string,
-  namespaceFilterKey?: string
+  namespace?: string
 ): Promise<SavedSearch> {
   const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
     method: 'POST',
     data: {
-      query: encodeNamespacedRecentSearch(namespaceFilterKey, query),
+      query: encodeNamespacedRecentSearch(namespace, query),
       type,
     },
   });

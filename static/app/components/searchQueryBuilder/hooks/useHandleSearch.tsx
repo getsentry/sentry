@@ -22,7 +22,7 @@ type UseHandleSearchProps = {
   parsedQuery: ParseResult | null;
   recentSearches: SavedSearchType | undefined;
   searchSource: string;
-  namespaceFilterKey?: string;
+  namespace?: string;
   onSearch?: (query: string, state: CallbackSearchState) => void;
 };
 
@@ -31,13 +31,13 @@ async function saveAsRecentSearch({
   query,
   api,
   organization,
-  namespaceFilterKey,
+  namespace,
 }: {
   api: Client;
   organization: Organization;
   query: string;
   recentSearches: SavedSearchType | undefined;
-  namespaceFilterKey?: string;
+  namespace?: string;
 }) {
   // Only save recent search query if there is a type provided.
   // Do not save empty string queries (i.e. if they clear search)
@@ -46,13 +46,7 @@ async function saveAsRecentSearch({
   }
 
   try {
-    await saveRecentSearch(
-      api,
-      organization.slug,
-      recentSearches,
-      query,
-      namespaceFilterKey
-    );
+    await saveRecentSearch(api, organization.slug, recentSearches, query, namespace);
   } catch (err) {
     // Silently capture errors if it fails to save
     Sentry.captureException(err);
@@ -104,7 +98,7 @@ export function useHandleSearch({
   recentSearches,
   searchSource,
   onSearch,
-  namespaceFilterKey,
+  namespace,
 }: UseHandleSearchProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -150,7 +144,7 @@ export function useHandleSearch({
         organization,
         query,
         recentSearches,
-        namespaceFilterKey,
+        namespace,
       });
     },
     [
@@ -160,7 +154,7 @@ export function useHandleSearch({
       organization,
       parsedQuery,
       recentSearches,
-      namespaceFilterKey,
+      namespace,
       searchSource,
     ]
   );
