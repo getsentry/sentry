@@ -40,6 +40,22 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["dsn"]["playstation"] == key.playstation_endpoint
 
+    def test_integration_endpoint(self) -> None:
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data[0]["dsn"]["integration"] == key.integration_endpoint
+        assert "integration/" in response.data[0]["dsn"]["integration"]
+
     def test_otlp_traces_endpoint(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
@@ -54,6 +70,7 @@ class ListProjectKeysTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data[0]["dsn"]["otlp_traces"] == key.otlp_traces_endpoint
+        assert "integration/otlp/v1/traces" in response.data[0]["dsn"]["otlp_traces"]
 
     def test_otlp_logs_endpoint(self) -> None:
         project = self.create_project()
