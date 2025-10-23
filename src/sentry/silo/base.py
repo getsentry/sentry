@@ -137,6 +137,7 @@ class SiloLimit(abc.ABC):
     def create_override(
         self,
         original_method: Callable[P, R],
+        update_attrs: list[str] | None = None,
     ) -> Callable[P, R]:
         """Create a method that conditionally overrides another method.
 
@@ -164,7 +165,10 @@ class SiloLimit(abc.ABC):
                 )
                 return handler(*args, **kwargs)
 
-        functools.update_wrapper(override, original_method)
+        assign: tuple[str, ...] = functools.WRAPPER_ASSIGNMENTS
+        if update_attrs:
+            assign = assign + tuple(update_attrs)
+        functools.update_wrapper(override, original_method, assigned=assign)
         return override
 
 
