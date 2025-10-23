@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry.conf.types.taskworker import crontab
 from sentry.silo.base import SiloMode
 from sentry.taskworker.app import TaskworkerApp
-from sentry.taskworker.retry import Retry
 from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -434,30 +433,31 @@ def test_schedulerunner_silo_limited_task_has_task_properties() -> None:
     namespace = app.taskregistry.create_namespace("test")
 
     @namespace.register(
-        name="control_task",
-        retry=Retry(times=3, on=(Exception,)),
-        silo_mode=SiloMode.CONTROL,
+        name="region_task",
+        at_most_once=True,
+        wait_for_delivery=True,
+        silo_mode=SiloMode.REGION,
     )
-    def control_func() -> None:
+    def region_task() -> None:
         pass
 
-    assert hasattr(control_func, "fullname")
-    assert control_func.fullname == "test:control_task"
-    assert hasattr(control_func, "namespace")
-    assert control_func.namespace == namespace
-    assert hasattr(control_func, "name")
-    assert control_func.name == "control_task"
-    assert hasattr(control_func, "retry")
-    assert control_func.retry is not None
-    assert control_func.retry._times == 3
-    assert control_func.retry._allowed_exception_types == (Exception,)
+    for attr in region_task.__dict__.keys():
+        if attr.startswith("_") and not attr.startswith("__"):
+            continue
+        assert hasattr(region_task, attr)
+
+    assert region_task.fullname == "test:region_task"
+    assert region_task.namespace.name == "test"
+    assert region_task.name == "region_task"
+    assert region_task.at_most_once is True
+    assert region_task.wait_for_delivery is True
 
     run_storage = Mock(spec=RunStorage)
     schedule_set = ScheduleRunner(app=app, run_storage=run_storage)
     schedule_set.add(
-        "control-task",
+        "region-task",
         {
-            "task": "test:control_task",
+            "task": "test:region_task",
             "schedule": timedelta(minutes=5),
         },
     )
@@ -466,6 +466,6 @@ def test_schedulerunner_silo_limited_task_has_task_properties() -> None:
 
     assert len(schedule_set._entries) == 1
     entry = schedule_set._entries[0]
-    assert entry.fullname == "test:control_task"
+    assert entry.fullname == "test:region_task"
     assert entry.namespace == "test"
-    assert entry.taskname == "control_task"
+    assert entry.taskname == "region_task"

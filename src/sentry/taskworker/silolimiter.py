@@ -36,17 +36,19 @@ class TaskSiloLimit(SiloLimit):
                 limited_attr = self.create_override(task_attr)
                 setattr(decorated_task, attr_name, limited_attr)
 
-        limited_func = self.create_override(decorated_task)
-
-        # Task attributes are copied by functools.update_wrapper
-        # Task properties (@property) are not, so we must explicitly copy them
-        # as attributes. These are accessed by the scheduler and other code.
-        limited_func.fullname = decorated_task.fullname  # type: ignore[attr-defined]
-        limited_func.namespace = decorated_task.namespace  # type: ignore[attr-defined]
-        limited_func.retry = decorated_task.retry  # type: ignore[attr-defined]
+        update_attrs = [
+            "fullname",
+            "namespace",
+            "retry",
+            "at_most_once",
+            "wait_for_delivery",
+            "compression_type",
+        ]
 
         # Cast limited_func as the super class type is just Callable, but we
         # know here we have Task instances.
-        limited_task = cast(Task[P, R], limited_func)
+        limited_func = cast(
+            Task[P, R], self.create_override(decorated_task, update_attrs=update_attrs)
+        )
 
-        return limited_task
+        return limited_func
