@@ -404,18 +404,18 @@ def _largest_attr(ti: TraceItem) -> tuple[str, int]:
 
 @sentry_sdk.trace
 def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
-    ranked = []
-    for ti in trace_items:
-        name, size = _largest_attr(ti)
-        ranked.append((ti, name, size))
+    largest_attribute = max(
+        ((ti, *_largest_attr(ti)) for ti in trace_items),
+        key=lambda t: t[2],
+        default=None,
+    )
 
-    ranked.sort(key=lambda t: t[2], reverse=True)
     with sentry_sdk.start_span(op="process", name="EAP Trace Items Details") as span:
-        span.set_data("trace_items_count", len(trace_items))
-        for i, (ti, name, size) in enumerate(ranked[:2], start=1):
-            span.set_data(f"top_item_{i}_trace_id", ti.trace_id)
-            span.set_data(f"top_item_{i}_largest_attr_name", name)
-            span.set_data(f"top_item_{i}_largest_attr_size_bytes", size)
+        if largest_attribute:
+            ti, name, size = largest_attribute
+            span.set_data("largest_attr_trace_id", ti.trace_id)
+            span.set_data("largest_attr_name", name)
+            span.set_data("largest_attr_size_bytes", size)
 
     write_trace_items(trace_items)
 
