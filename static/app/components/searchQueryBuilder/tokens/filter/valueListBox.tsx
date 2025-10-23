@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useLayoutEffect, useRef} from 'react';
+import {Fragment, useCallback, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {getItemId} from '@react-aria/listbox';
@@ -14,6 +14,7 @@ import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {type Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {isWildcardOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
+import usePrevious from 'sentry/utils/usePrevious';
 
 interface ConstrainAndAlignListBoxArgs {
   popoverRef: React.RefObject<HTMLElement | null>;
@@ -120,9 +121,6 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   token,
   wrapperRef,
 }: ValueListBoxProps<T>) {
-  // Track and restore focused option if react-aria clears it during multi-select updates
-  const lastFocusedKeyRef = useRef<Key | null>(null);
-
   const centerKeyInView = useCallback(
     (key: Key | null) => {
       if (key === null || !listBoxRef.current) return;
@@ -146,18 +144,17 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     [listBoxRef, state]
   );
 
-  useEffect(() => {
-    lastFocusedKeyRef.current = state.selectionManager.focusedKey;
-  }, [state.selectionManager.focusedKey]);
+  // Track and restore focused option if react-aria clears it during multi-select updates
+  const lastFocusedKey = usePrevious<Key | null>(state.selectionManager.focusedKey);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
-    if (!lastFocusedKeyRef.current) return;
+    if (!lastFocusedKey) return;
     if (state.selectionManager.focusedKey !== null) return;
 
-    state.selectionManager.setFocusedKey(lastFocusedKeyRef.current);
-    centerKeyInView(lastFocusedKeyRef.current);
-  }, [isOpen, state, centerKeyInView]);
+    state.selectionManager.setFocusedKey(lastFocusedKey);
+    centerKeyInView(lastFocusedKey);
+  }, [centerKeyInView, isOpen, lastFocusedKey, state.selectionManager]);
 
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
