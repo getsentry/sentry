@@ -15,10 +15,6 @@ export const automationRoutes: SentryRouteObject = {
           index: true,
           component: make(() => import('sentry/views/automations/new')),
         },
-        {
-          path: 'settings/',
-          component: make(() => import('sentry/views/automations/new-settings')),
-        },
       ],
     },
     {

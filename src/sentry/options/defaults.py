@@ -342,12 +342,6 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "deletions.group.delete_group_hashes_metadata_first",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
@@ -375,7 +369,11 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # New `objectstore` service configuration
-register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+register(
+    "objectstore.config",
+    default={"base_url": "http://127.0.0.1:8888"},
+    flags=FLAG_NOSTORE,
+)
 
 
 # Symbol server
