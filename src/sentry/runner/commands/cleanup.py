@@ -203,13 +203,13 @@ def _cleanup(
     if not settings.configured:
         configure()
 
+    from sentry.utils import metrics
+
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
     with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
         try:
-
-            from sentry.utils import metrics
 
             # list of models which this query is restricted to
             model_list = {m.lower() for m in model}
