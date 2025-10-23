@@ -75,7 +75,6 @@ def get_conduit_credentials(
 
     metrics.incr(
         "conduit.credentials.generated",
-        tags={"org_id": org_id},
         sample_rate=1.0,
     )
 
