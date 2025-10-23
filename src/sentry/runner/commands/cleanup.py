@@ -171,6 +171,10 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
+    from sentry.runner import configure
+
+    if not settings.configured:
+        configure()
     _cleanup(
         model=model,
         days=days,
@@ -202,10 +206,6 @@ def _cleanup(
     # main process tracks the overall cleanup operation performance.
     with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
         try:
-            from sentry.runner import configure
-
-            if not settings.configured:
-                configure()
 
             from sentry.utils import metrics
 
@@ -270,6 +270,7 @@ def _cleanup(
         except Exception:
             logger.exception("FATAL: We did not handle an error and aborted the execution.")
             metrics.incr("cleanup.error", tags={"type": "cleanup"}, sample_rate=1.0)
+            raise
 
         finally:
             # Shut down our pool
@@ -305,12 +306,35 @@ def _run_specialized_cleanups(
 
     try:
         remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+    except Exception:
+        logger.exception("Error removing expired values for lost passwords (Continuing...)")
+        metrics.incr(
+            "cleanup.error", tags={"type": "specialized_cleanup_lost_passwords"}, sample_rate=1.0
+        )
+
+    try:
         remove_expired_values_for_org_members(is_filtered, days, models_attempted)
+    except Exception:
+        logger.exception("Error removing expired values for org members (Continuing...)")
+        metrics.incr(
+            "cleanup.error", tags={"type": "specialized_cleanup_org_members"}, sample_rate=1.0
+        )
+
+    try:
         delete_api_models(is_filtered, models_attempted)
+    except Exception:
+        logger.exception("Error deleting API models (Continuing...)")
+        metrics.incr(
+            "cleanup.error", tags={"type": "specialized_cleanup_api_models"}, sample_rate=1.0
+        )
+
+    try:
         exported_data(is_filtered, silent, models_attempted)
     except Exception:
-        logger.exception("Error running specialized cleanup operations (Continuing...)")
-        metrics.incr("cleanup.error", tags={"type": "specialized_cleanup"}, sample_rate=1.0)
+        logger.exception("Error cleaning up exported data (Continuing...)")
+        metrics.incr(
+            "cleanup.error", tags={"type": "specialized_cleanup_exported_data"}, sample_rate=1.0
+        )
 
 
 def _handle_project_organization_cleanup(
