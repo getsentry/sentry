@@ -260,7 +260,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 config=SearchResolverConfig(
                     auto_fields=False,
                     use_aggregate_conditions=True,
-                    disable_aggregate_extrapolation="disableAggregateExtrapolation" in request.GET,
+                    disable_aggregate_extrapolation=request.GET.get(
+                        "disableAggregateExtrapolation", "0"
+                    )
+                    == "1",
                 ),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
