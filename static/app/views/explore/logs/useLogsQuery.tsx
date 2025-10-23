@@ -742,7 +742,7 @@ export function useLogsRawCounts(): RawLogCounts {
     {
       query: {
         ...baseQueryParams,
-        referrer: 'api.explore.log.raw-count.normal',
+        referrer: 'api.explore.logs.raw-count.normal',
         sampling: SAMPLING_MODE.NORMAL,
       },
     },
@@ -758,7 +758,7 @@ export function useLogsRawCounts(): RawLogCounts {
     {
       query: {
         ...baseQueryParams,
-        referrer: 'api.explore.log.raw-count.high-accuracy',
+        referrer: 'api.explore.logs.raw-count.high-accuracy',
         sampling: SAMPLING_MODE.HIGH_ACCURACY,
       },
     },
