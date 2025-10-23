@@ -170,7 +170,7 @@ class SnubaTagStorage(TagStorage):
         limit=3,
         raise_on_empty=True,
         tenant_ids=None,
-        include_empty_values: bool | None = None,
+        include_empty_values=False,
         **kwargs,
     ):
         tag = self.format_string.format(key)
@@ -508,7 +508,7 @@ class SnubaTagStorage(TagStorage):
         environment_id,
         key,
         tenant_ids=None,
-        include_empty_values: bool | None = None,
+        include_empty_values=None,
     ):
         return self.__get_tag_key_and_top_values(
             group.project_id,
@@ -667,7 +667,7 @@ class SnubaTagStorage(TagStorage):
         environment_id,
         key: str,
         tenant_ids=None,
-        include_empty_values: bool | None = None,
+        include_empty_values=False,
     ):
         tag = self.format_string.format(key)
         filters = {"project_id": get_project_list(group.project_id)}
@@ -695,7 +695,7 @@ class SnubaTagStorage(TagStorage):
         key: str,
         limit=TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values: bool | None = None,
+        include_empty_values=False,
     ):
         tag = self.__get_tag_key_and_top_values(
             group.project_id,
@@ -1400,7 +1400,7 @@ class SnubaTagStorage(TagStorage):
         limit: int = 1000,
         offset: int = 0,
         tenant_ids: dict[str, int | str] | None = None,
-        include_empty_values: bool | None = None,
+        include_empty_values=False,
     ) -> list[GroupTagValue]:
         filters: dict[str, list[Any]] = {
             "project_id": get_project_list(group.project_id),
@@ -1444,7 +1444,7 @@ class SnubaTagStorage(TagStorage):
         key: str,
         order_by="-id",
         tenant_ids=None,
-        include_empty_values: bool | None = None,
+        include_empty_values=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
