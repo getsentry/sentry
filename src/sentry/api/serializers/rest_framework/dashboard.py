@@ -957,7 +957,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     "Field links are only supported for table widgets"
                 )
 
-            if len(linked_dashboards) < 1
+            if len(linked_dashboards) < 1:
                 return
 
             for link_data in linked_dashboards:
