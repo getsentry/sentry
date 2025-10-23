@@ -171,10 +171,6 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
-    from sentry.runner import configure
-
-    if not settings.configured:
-        configure()
     _cleanup(
         model=model,
         days=days,
@@ -200,6 +196,11 @@ def _cleanup(
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     pool, task_queue = _start_pool(concurrency)
+
+    from sentry.runner import configure
+
+    if not settings.configured:
+        configure()
 
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
