@@ -145,14 +145,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 )
 @click.option("--model", "-m", multiple=True)
 @click.option("--router", "-r", default=None, help="Database router")
-@click.option(
-    "--timed",
-    "-t",
-    default=False,
-    is_flag=True,
-    hidden=True,
-    help="(deprecated) Send the duration of this command to internal metrics.",
-)
 @log_options()
 def cleanup(
     days: int,
@@ -162,7 +154,6 @@ def cleanup(
     silent: bool,
     model: tuple[str, ...],
     router: str | None,
-    timed: bool,
 ) -> None:
     """Delete a portion of trailing data based on creation date.
 
@@ -175,22 +166,23 @@ def cleanup(
     _cleanup(
         model=model,
         days=days,
-        project=project,
-        organization=organization,
         concurrency=concurrency,
         silent=silent,
         router=router,
+        project=project,
+        organization=organization,
     )
 
 
 def _cleanup(
     model: tuple[str, ...],
     days: int,
-    project: str | None,
-    organization: str | None,
     concurrency: int,
     silent: bool,
     router: str | None,
+    project: str | None = None,
+    organization: str | None = None,
+    start_from_project_id: int | None = None,
 ) -> None:
     start_time = time.time()
     _validate_and_setup_environment(concurrency, silent)
@@ -262,7 +254,9 @@ def _cleanup(
                 models_attempted,
             )
 
-            run_bulk_deletes_by_project(task_queue, project_id, is_filtered, days, models_attempted)
+            run_bulk_deletes_by_project(
+                task_queue, project_id, start_from_project_id, is_filtered, days, models_attempted
+            )
 
             run_bulk_deletes_by_organization(
                 task_queue, organization_id, is_filtered, days, models_attempted
@@ -673,6 +667,7 @@ def run_bulk_deletes_in_deletes(
 def run_bulk_deletes_by_project(
     task_queue: _WorkQueue,
     project_id: int | None,
+    start_from_project_id: int | None,
     is_filtered: Callable[[type[Model]], bool],
     days: int,
     models_attempted: set[str],
@@ -682,7 +677,7 @@ def run_bulk_deletes_by_project(
     from sentry.utils.query import RangeQuerySetWrapper
 
     project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
-        project_id, is_filtered
+        is_filtered, project_id, start_from_project_id
     )
 
     if project_deletion_query is not None and len(to_delete_by_project):
@@ -787,7 +782,9 @@ def run_bulk_deletes_by_organization(
 
 
 def prepare_deletes_by_project(
-    project_id: int | None, is_filtered: Callable[[type[Model]], bool]
+    is_filtered: Callable[[type[Model]], bool],
+    project_id: int | None = None,
+    start_from_project_id: int | None = None,
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
     from sentry.constants import ObjectStatus
     from sentry.models.debugfile import ProjectDebugFile
@@ -810,6 +807,11 @@ def prepare_deletes_by_project(
         project_deletion_query = Project.objects.filter(status=ObjectStatus.ACTIVE)
         if project_id is not None:
             project_deletion_query = Project.objects.filter(id=project_id)
+        elif start_from_project_id is not None:
+            # When no specific project is provided, but a starting project ID is given,
+            # filter to start from that project ID (inclusive)
+            project_deletion_query = project_deletion_query.filter(id__gte=start_from_project_id)
+            debug_output(f"Starting project iteration from project ID {start_from_project_id}")
 
         for model_tp_tup in DELETES_BY_PROJECT:
             if is_filtered(model_tp_tup[0]):
