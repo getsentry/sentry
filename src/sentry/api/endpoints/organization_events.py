@@ -513,8 +513,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                        in request.GET,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
