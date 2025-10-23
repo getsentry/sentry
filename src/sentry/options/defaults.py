@@ -342,12 +342,6 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "deletions.group.delete_group_hashes_metadata_first",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
