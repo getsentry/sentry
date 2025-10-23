@@ -267,6 +267,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value=None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ):
         if model in self.non_outcomes_snql_query_settings:
             # no way around having to explicitly map legacy condition format to SnQL since this function
@@ -304,6 +305,7 @@ class SnubaTSDB(BaseTSDB):
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
                 tenant_ids=tenant_ids,
                 referrer_suffix=referrer_suffix,
+                project_ids=project_ids,
             )
         else:
             return self.__get_data_legacy(
@@ -341,6 +343,7 @@ class SnubaTSDB(BaseTSDB):
         is_grouprelease: bool = False,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ):
         """
         Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
@@ -415,7 +418,9 @@ class SnubaTSDB(BaseTSDB):
             if model_query_settings.conditions is not None:
                 conditions += model_query_settings.conditions
 
-            project_ids = infer_project_ids_from_related_models(keys_map)
+            # Use provided project_ids if available, otherwise infer from related models
+            if project_ids is None:
+                project_ids = infer_project_ids_from_related_models(keys_map)
             keys_map["project_id"] = project_ids
             forward, reverse = get_snuba_translators(keys_map, is_grouprelease)
 
@@ -760,6 +765,7 @@ class SnubaTSDB(BaseTSDB):
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
+            project_ids=project_ids,
         )
         return result
 
@@ -823,6 +829,7 @@ class SnubaTSDB(BaseTSDB):
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
+            project_ids=project_ids,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -851,6 +858,7 @@ class SnubaTSDB(BaseTSDB):
             aggregation="uniq",
             group_on_time=True,
             tenant_ids=tenant_ids,
+            project_ids=project_ids,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -888,6 +896,7 @@ class SnubaTSDB(BaseTSDB):
             referrer_suffix=referrer_suffix,
             conditions=conditions,
             group_on_time=group_on_time,
+            project_ids=project_ids,
         )
 
     def get_frequency_series(
@@ -911,6 +920,7 @@ class SnubaTSDB(BaseTSDB):
             aggregation="count()",
             group_on_time=True,
             tenant_ids=tenant_ids,
+            project_ids=project_ids,
         )
         # convert
         #    {group:{timestamp:{agg:count}}}

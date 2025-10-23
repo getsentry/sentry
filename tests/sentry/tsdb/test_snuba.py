@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -483,3 +484,34 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         ]
         for model in models:
             assert model in SnubaTSDB.model_query_settings
+
+    def test_get_sums_with_project_ids_skips_inference(self) -> None:
+        group = self.create_group(project=self.project)
+        with patch("sentry.tsdb.snuba.infer_project_ids_from_related_models") as mock_infer:
+            self.db.get_sums(
+                model=TSDBModel.group,
+                keys=[group.id],
+                start=self.start_time,
+                end=self.now,
+                project_ids=[self.project.id],
+                tenant_ids={"organization_id": self.organization.id},
+            )
+
+            mock_infer.assert_not_called()
+
+    def test_get_sums_without_project_ids_calls_inference(self) -> None:
+        group = self.create_group(project=self.project)
+        with patch(
+            "sentry.tsdb.snuba.infer_project_ids_from_related_models",
+            return_value=[self.project.id],
+        ) as mock_infer:
+            self.db.get_sums(
+                model=TSDBModel.group,
+                keys=[group.id],
+                start=self.start_time,
+                end=self.now,
+                tenant_ids={"organization_id": self.organization.id},
+                # project_ids NOT provided
+            )
+
+            mock_infer.assert_called_once()
