@@ -9,8 +9,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from django.apps import apps
+from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Max, Min, Model
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -18,6 +20,10 @@ from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel, RegionOu
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
+
+
+def _get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
+    return redis.redis_clusters.get(settings.SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER)
 
 
 @dataclass
@@ -44,29 +50,29 @@ def get_backfill_key(table_name: str) -> str:
 
 def get_processing_state(table_name: str) -> tuple[int, int]:
     result: tuple[int, int]
-    with redis.clusters.get("default").get_local_client_for_key("backfill_outboxes") as client:
-        key = get_backfill_key(table_name)
-        v = client.get(key)
-        if v is None:
-            result = (0, 1)
-            client.set(key, json.dumps(result))
-        else:
-            lower, version = json.loads(v)
-            if not (isinstance(lower, int) and isinstance(version, int)):
-                raise TypeError("Expected processing data to be a tuple of (int, int)")
-            result = lower, version
-        metrics.gauge(
-            "backfill_outboxes.low_bound",
-            result[0],
-            tags=dict(table_name=table_name, version=result[1]),
-            sample_rate=1.0,
-        )
-        return result
+    client = _get_redis_client()
+    key = get_backfill_key(table_name)
+    v = client.get(key)
+    if v is None:
+        result = (0, 1)
+        client.set(key, json.dumps(result))
+    else:
+        lower, version = json.loads(v)
+        if not (isinstance(lower, int) and isinstance(version, int)):
+            raise TypeError("Expected processing data to be a tuple of (int, int)")
+        result = lower, version
+    metrics.gauge(
+        "backfill_outboxes.low_bound",
+        result[0],
+        tags=dict(table_name=table_name, version=result[1]),
+        sample_rate=1.0,
+    )
+    return result
 
 
 def set_processing_state(table_name: str, value: int, version: int) -> None:
-    with redis.clusters.get("default").get_local_client_for_key("backfill_outboxes") as client:
-        client.set(get_backfill_key(table_name), json.dumps((value, version)))
+    client = _get_redis_client()
+    client.set(get_backfill_key(table_name), json.dumps((value, version)))
     metrics.gauge(
         "backfill_outboxes.low_bound",
         value,
