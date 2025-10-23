@@ -3,7 +3,6 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {getItemId} from '@react-aria/listbox';
 import {isMac} from '@react-aria/utils';
-import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
