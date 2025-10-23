@@ -201,7 +201,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             # Sync prebuilt dashboards to the database
             try:
                 lock = locks.get(
-                    f"dashboards:sync_prebuilt_dashboards:{organization.id}:{request.user.id}",
+                    f"dashboards:sync_prebuilt_dashboards:{organization.id}",
                     duration=10,
                     name="sync_prebuilt_dashboards",
                 )

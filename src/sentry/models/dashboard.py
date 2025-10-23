@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 
 import sentry_sdk
 from django.db import models, router, transaction
-from django.db.models import Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
@@ -243,7 +243,12 @@ class Dashboard(Model):
                 fields=["organization", "prebuilt_id"],
                 condition=Q(prebuilt_id__isnull=False),
                 name="sentry_dashboard_organization_prebuilt_id_uniq",
-            )
+            ),
+            # prebuilt dashboards cannot have a created_by_id
+            CheckConstraint(
+                condition=Q(prebuilt_id__isnull=True) | Q(created_by_id__isnull=True),
+                name="sentry_dashboard_prebuilt_null_created_by",
+            ),
         ]
 
     __repr__ = sane_repr("organization", "title")
