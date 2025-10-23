@@ -159,7 +159,7 @@ describe('getReadableQueryParamsFromLocation', () => {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          fields: ['id', 'span.name', 'span.duration', 'timestamp'],
+          fields: ['id', 'span.name', 'span.duration', 'transaction', 'timestamp'],
         })
       )
     );
