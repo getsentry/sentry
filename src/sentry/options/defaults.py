@@ -349,6 +349,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
+register(
+    "cleanup.abort_execution",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)

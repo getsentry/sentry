@@ -24,6 +24,12 @@ from sentry.silo.base import SiloLimit, SiloMode
 logger = logging.getLogger(__name__)
 
 
+class CleanupExecutionAborted(Exception):
+    """
+    Exception raised when the cleanup process should be aborted.
+    """
+
+
 def get_project(value: str) -> int | None:
     from sentry.models.project import Project
 
@@ -78,7 +84,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     configure()
 
-    from sentry import deletions, models, similarity
+    from sentry import deletions, models, options, similarity
     from sentry.utils import metrics
 
     skip_child_relations_models = [
@@ -100,6 +106,10 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         model_name, chunk = j
+        if options.get("cleanup.abort_execution"):
+            logger.warning("Cleanup worker aborting due to cleanup.abort_execution flag")
+            task_queue.task_done()
+            return
 
         try:
             with sentry_sdk.start_transaction(
@@ -203,6 +213,7 @@ def _cleanup(
     if not settings.configured:
         configure()
 
+    from sentry import options
     from sentry.utils import metrics
 
     # Start transaction AFTER creating the multiprocessing pool to avoid
@@ -210,6 +221,9 @@ def _cleanup(
     # main process tracks the overall cleanup operation performance.
     with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
         try:
+            # Check if cleanup should be aborted before starting
+            if options.get("cleanup.abort_execution"):
+                raise CleanupExecutionAborted()
 
             # list of models which this query is restricted to
             model_list = {m.lower() for m in model}
@@ -269,6 +283,10 @@ def _cleanup(
             )
 
             remove_file_blobs(is_filtered, silent, models_attempted)
+        except CleanupExecutionAborted:
+            click.echo("Cleanup was aborted via cleanup.abort_execution option.")
+            metrics.incr("cleanup.aborted", instance=router, sample_rate=1.0)
+            # Don't re-raise - this is expected behavior, not an error
         except Exception:
             logger.exception("FATAL: We did not handle an error and aborted the execution.")
             metrics.incr("cleanup.error", tags={"type": "FATAL"}, sample_rate=1.0)
@@ -334,6 +352,11 @@ def _run_specialized_cleanups(
     is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
 ) -> None:
     """Run specialized cleanup operations for specific models."""
+    from sentry.options import options
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
+
     remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
     remove_expired_values_for_org_members(is_filtered, days, models_attempted)
     delete_api_models(is_filtered, models_attempted)
@@ -543,9 +566,12 @@ def get_organization_id_or_fail(organization: str) -> int:
 
 @continue_on_error("Error removing old nodestore values", "nodestore_cleanup")
 def remove_old_nodestore_values(days: int) -> None:
-    from sentry import nodestore
+    from sentry import nodestore, options
 
     debug_output("Removing old NodeStore values")
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
 
     cutoff = timezone.now() - timedelta(days=days)
     try:
@@ -583,8 +609,12 @@ def run_bulk_query_deletes(
     project_id: int | None,
     models_attempted: set[str],
 ) -> None:
+    from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.utils import metrics
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
 
     debug_output("Running bulk query deletes in bulk_query_deletes")
     bulk_query_deletes = generate_bulk_query_deletes()
@@ -629,8 +659,12 @@ def run_bulk_deletes_in_deletes(
     project_id: int | None,
     models_attempted: set[str],
 ) -> None:
+    from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.utils import metrics
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
 
     debug_output("Running bulk deletes in DELETES")
     for model_tp, dtfield, order_by in deletes:
@@ -677,9 +711,13 @@ def run_bulk_deletes_by_project(
     days: int,
     models_attempted: set[str],
 ) -> None:
+    from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.utils import metrics
     from sentry.utils.query import RangeQuerySetWrapper
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
 
     project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
         project_id, is_filtered
@@ -736,9 +774,13 @@ def run_bulk_deletes_by_organization(
     days: int,
     models_attempted: set[str],
 ) -> None:
+    from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.utils import metrics
     from sentry.utils.query import RangeQuerySetWrapper
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
 
     organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
         organization_id, is_filtered
@@ -853,7 +895,11 @@ def prepare_deletes_by_organization(
 def remove_file_blobs(
     is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
+    from sentry import options
     from sentry.models.file import FileBlob
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
