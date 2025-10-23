@@ -1,7 +1,4 @@
-import type {
-  AppleInsightResults,
-  OptimizableImageFile,
-} from 'sentry/views/preprod/types/appSizeTypes';
+import type {AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 export function ProcessedInsightFixture(
@@ -46,16 +43,17 @@ export function ProcessedInsightFixture(
           fileType: 'optimizable_image' as const,
           minifyPercentage: 0,
           conversionPercentage: 2.0,
+          isDuplicateVariant: false,
           originalFile: {
-            best_optimization_type: 'convert_to_heic',
-            conversion_savings: 128000,
-            current_size: 256000,
             file_path: 'src/assets/logo.png',
-            heic_size: 128000,
-            minified_size: null,
+            current_size: 256000,
             minify_savings: 0,
-            potential_savings: 128000,
-          } as OptimizableImageFile,
+            minified_size: null,
+            conversion_savings: 128000,
+            heic_size: 128000,
+            colorspace: null,
+            idiom: null,
+          },
         },
       },
     ],
