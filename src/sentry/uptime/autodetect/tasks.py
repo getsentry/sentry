@@ -253,6 +253,7 @@ def monitor_url_for_project(project: Project, url: str) -> Detector:
         url=url,
         interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
         timeout_ms=ONBOARDING_SUBSCRIPTION_TIMEOUT_MS,
+        name=f"Uptime Monitoring for {url}",
         mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
     )
 
