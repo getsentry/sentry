@@ -31,8 +31,11 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
 
   let theme: Theme | DO_NOT_USE_ChonkTheme =
     config.theme === 'dark' ? darkTheme : lightTheme;
-  // Check feature access and if chonk theme is enabled
-  if (organization?.features?.includes('chonk-ui') && user?.options?.prefersChonkUI) {
+
+  if (
+    organization?.features.includes('chonk-ui-enforce') ||
+    (organization?.features?.includes('chonk-ui') && user?.options?.prefersChonkUI)
+  ) {
     theme =
       config.theme === 'dark' ? DO_NOT_USE_darkChonkTheme : DO_NOT_USE_lightChonkTheme;
   }
