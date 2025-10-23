@@ -2433,6 +2433,19 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["elf_code", "elf_debug"]},
         "is_public": True,
     },
+    "nintendo-private": {
+        "type": "s3",
+        "id": "sentry:nintendo-private",
+        "name": "Nintendo Symbol Server",
+        "bucket": os.environ.get("NINTENDO_SYMBOL_SERVER_S3_BUCKET", ""),
+        "region": os.environ.get("NINTENDO_SYMBOL_SERVER_S3_REGION", ""),
+        "access_key": os.environ.get("NINTENDO_SYMBOL_SERVER_AWS_ACCESS_KEY_ID", ""),
+        "secret_key": os.environ.get("NINTENDO_SYMBOL_SERVER_AWS_SECRET_ACCESS_KEY", ""),
+        "layout": {"type": "native"},
+        "prefix": os.environ.get("NINTENDO_SYMBOL_SERVER_S3_PREFIX", ""),
+        "is_public": False,
+        "platforms": ["nintendo-switch"],
+    },
 }
 
 # Relay

@@ -7,6 +7,7 @@ DEFAULT_SYMBOL_SOURCES = {
     "unity": ["ios", "microsoft", "android", "nuget", "unity", "nvidia", "ubuntu"],
     "unreal": ["ios", "microsoft", "android", "nvidia", "ubuntu"],
     "godot": ["ios", "microsoft", "android", "nuget", "nvidia", "ubuntu"],
+    "nintendo-switch": ["nintendo-private"],
 }
 
 
