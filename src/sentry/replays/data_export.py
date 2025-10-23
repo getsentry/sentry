@@ -139,7 +139,7 @@ def create_transfer_job[T](
     source_bucket: str,
     source_prefix: str,
     destination_bucket: str,
-    destination_prefix: str | None,
+    destination_prefix: str,
     job_description: str,
     job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
