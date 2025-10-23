@@ -139,13 +139,12 @@ function calculateNextFocusForFilter(
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
 
-  const isNumericField =
-    definition?.kind === FieldKind.METRICS ||
-    definition?.kind === FieldKind.MEASUREMENT ||
-    definition?.kind === FieldKind.NUMERIC_METRICS;
+  const isNumericValueType =
+    definition?.valueType === FieldValueType.NUMBER ||
+    definition?.valueType === FieldValueType.INTEGER;
 
   let part: FocusOverride['part'] =
-    hasInputChangeFlows && (isNumericField || areWildcardOperatorsAllowed(definition))
+    hasInputChangeFlows && (isNumericValueType || areWildcardOperatorsAllowed(definition))
       ? 'op'
       : 'value';
 
