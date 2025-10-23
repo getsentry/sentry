@@ -451,6 +451,8 @@ class GitHubIntegration(
 
             # Strip the @ from the username
             github_username = external_actor.external_name.lstrip("@")
+            # lowercase the username
+            github_username = github_username.lower()
 
         # Only update GitHub if we have a username to assign or if we're explicitly deassigning
         if github_username or not assign:
