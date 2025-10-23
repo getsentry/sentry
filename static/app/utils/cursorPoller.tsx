@@ -48,15 +48,10 @@ class CursorPoller {
   }
 
   enable() {
-    this.active = true;
+    // Proactively cleanup to prevent intervals per class instance
+    this.disable();
 
-    // Proactively clear timeout and last request
-    if (this.timeoutId) {
-      window.clearTimeout(this.timeoutId);
-    }
-    if (this.lastRequest) {
-      this.lastRequest.cancel();
-    }
+    this.active = true;
     this.timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
   }
 
