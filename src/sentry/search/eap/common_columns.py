@@ -38,4 +38,10 @@ COMMON_COLUMNS = [
         search_type="string",
         processor=datetime_processor,
     ),
+    ResolvedAttribute(
+        public_alias="span.status",
+        internal_type=constants.STRING,
+        internal_name="span_status",
+        search_type="string",
+    ),
 ]
