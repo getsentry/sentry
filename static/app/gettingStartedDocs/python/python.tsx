@@ -650,26 +650,6 @@ sentry_sdk.init(
 )
 `,
         },
-        {
-          type: 'text',
-          text: t('TODO: Add description for manual MCP instrumentation setup.'),
-        },
-        {
-          type: 'code',
-          language: 'python',
-          code: `
-import json
-import sentry_sdk
-
-# Invoke Agent span
-with sentry_sdk.start_span(op="gen_ai.invoke_agent", name="invoke_agent Weather Agent") as span:
-    span.set_data("gen_ai.operation.name", "invoke_agent")
-    span.set_data("gen_ai.system", "openai")
-    span.set_data("gen_ai.request.model", "o3-mini")
-    span.set_data("gen_ai.agent.name", "Weather Agent")
-    span.set_data("gen_ai.response.text", json.dumps(["Hello World"]))
-`,
-        },
       ],
     };
 
@@ -685,7 +665,7 @@ with sentry_sdk.start_span(op="gen_ai.invoke_agent", name="invoke_agent Weather 
     }
     return [mcpLowLevelStep];
   },
-  verify: () => {
+  verify: (params: Params) => {
     const mcpVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
@@ -698,6 +678,40 @@ with sentry_sdk.start_span(op="gen_ai.invoke_agent", name="invoke_agent Weather 
       ],
     };
 
+    const manualVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that MCP monitoring is working correctly by running your manually instrumented code:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import json
+import sentry_sdk
+
+# Invoke Agent span
+with sentry_sdk.start_span(op="mcp.server", name="tools/call calculate_sum") as span:
+    span.set_data("mcp.method.name", "tools/call")
+    span.set_data("mcp.request.argument.a", "1")
+    span.set_data("mcp.request.argument.b", "2")
+    span.set_data("mcp.request.id", 123)
+    span.set_data("mcp.session.id", "c6d1c6a4c35843d5bdf0f9d88d11c183")
+    span.set_data("mcp.tool.name", "calculate_sum")
+    span.set_data("mcp.tool.result.content_count", 1)
+    span.set_data("mcp.transport", "stdio")
+`,
+        },
+      ],
+    };
+    const selected = (params.platformOptions as any)?.integration ?? 'mcp_fastmcp';
+    if (selected === 'manual') {
+      return [manualVerifyStep];
+    }
     return [mcpVerifyStep];
   },
   nextSteps: () => [],
