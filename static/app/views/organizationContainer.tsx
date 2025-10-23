@@ -4,7 +4,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
-import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
+import {ORGANIZATION_FETCH_ERROR_TYPES, ROOT_ELEMENT} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -24,7 +24,10 @@ function OrganizationLoadingIndicator() {
    * because the DOM is exactly the same and React doesn't have to reconcile
    * the fallback state.
    */
-  const ssrLoader = document.querySelector('#blk_router')?.innerHTML!;
+  const root = document.getElementById(ROOT_ELEMENT);
+  // There is no scenario in which this component is rendering,
+  // but the root element doesn't exist
+  const ssrLoader = root!.innerHTML;
 
   return <div dangerouslySetInnerHTML={{__html: ssrLoader}} />;
 }
