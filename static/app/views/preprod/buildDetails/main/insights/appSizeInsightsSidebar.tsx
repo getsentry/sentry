@@ -51,32 +51,6 @@ export function AppSizeInsightsSidebar({
     setExpandedInsights(newExpanded);
   };
 
-  const duplicateFilePathsByInsightType = new Map<string, Set<string>>();
-  const insightsByKey = new Map<string, ProcessedInsight[]>();
-
-  processedInsights.forEach(insight => {
-    const existing = insightsByKey.get(insight.key) || [];
-    existing.push(insight);
-    insightsByKey.set(insight.key, existing);
-  });
-
-  insightsByKey.forEach((insights, key) => {
-    const filePathCounts = new Map<string, number>();
-    insights.forEach(ins => {
-      ins.files.forEach(f => {
-        filePathCounts.set(f.path, (filePathCounts.get(f.path) || 0) + 1);
-      });
-    });
-
-    const duplicatePaths = new Set<string>();
-    filePathCounts.forEach((count, path) => {
-      if (count > 1) {
-        duplicatePaths.add(path);
-      }
-    });
-    duplicateFilePathsByInsightType.set(key, duplicatePaths);
-  });
-
   // Constrain width to viewport (leave 50px margin from screen edge)
   const constrainedWidth = Math.min(width, window.innerWidth - 50);
 
@@ -144,9 +118,6 @@ export function AppSizeInsightsSidebar({
                     isExpanded={expandedInsights.has(insight.key)}
                     onToggleExpanded={() => toggleExpanded(insight.key)}
                     platform={platform}
-                    duplicateFilePaths={
-                      duplicateFilePathsByInsightType.get(insight.key) || new Set()
-                    }
                   />
                 ))}
               </Flex>

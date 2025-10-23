@@ -41,9 +41,7 @@ export function AppSizeInsightsSidebarRow({
   isExpanded,
   onToggleExpanded,
   platform,
-  duplicateFilePaths,
 }: {
-  duplicateFilePaths: Set<string>;
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
@@ -128,11 +126,7 @@ export function AppSizeInsightsSidebarRow({
             })}
           >
             {insight.files.map((file, fileIndex) => (
-              <FileRow
-                key={`${file.path}-${fileIndex}`}
-                file={file}
-                filePathHasMultipleOfSameInsight={duplicateFilePaths.has(file.path)}
-              />
+              <FileRow key={`${file.path}-${fileIndex}`} file={file} />
             ))}
           </Container>
         )}
@@ -141,21 +135,9 @@ export function AppSizeInsightsSidebarRow({
   );
 }
 
-function FileRow({
-  file,
-  filePathHasMultipleOfSameInsight,
-}: {
-  file: ProcessedInsightFile;
-  filePathHasMultipleOfSameInsight: boolean;
-}) {
+function FileRow({file}: {file: ProcessedInsightFile}) {
   if (file.data.fileType === 'optimizable_image') {
-    return (
-      <OptimizableImageFileRow
-        file={file}
-        originalFile={file.data.originalFile}
-        filePathHasMultipleOfSameInsight={filePathHasMultipleOfSameInsight}
-      />
-    );
+    return <OptimizableImageFileRow file={file} originalFile={file.data.originalFile} />;
   }
 
   return (
@@ -189,10 +171,8 @@ function FileRow({
 function OptimizableImageFileRow({
   file,
   originalFile,
-  filePathHasMultipleOfSameInsight,
 }: {
   file: ProcessedInsightFile;
-  filePathHasMultipleOfSameInsight: boolean;
   originalFile: OptimizableImageFile;
 }) {
   if (file.data.fileType !== 'optimizable_image') {
@@ -210,13 +190,13 @@ function OptimizableImageFileRow({
   );
 
   const hasMetadata =
-    (originalFile.idiom || originalFile.colorspace) && filePathHasMultipleOfSameInsight;
+    (originalFile.idiom || originalFile.colorspace) && file.data.isDuplicateVariant;
   // TODO (EME-460): Add link to formal documentation about idiom/colorspaces in apple binaries as well as more info about app thinning
   const tooltipContent = hasMetadata && (
     <Flex direction="column" gap="lg" align="start">
       <Text size="xs" align="left">
         {t(
-          'This image shows up multiple times because this build likely did not have app thinning applied. That means your binary can include different copies of the same image meant for different device types.'
+          'This image shows up multiple times because this build likely did not have app thinning applied. That means your asset catalog can include different copies of the same image meant for different device types.'
         )}
       </Text>
       <Flex direction="column" gap="xs" align="start">
