@@ -3,11 +3,12 @@
 import logging
 
 from django.conf import settings
-from django.db import migrations
+from django.db import migrations, router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.silo.safety import unguarded_write
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,8 @@ def delete_never_active_users_without_emails(
 
     for user in target_users:
         logger.info("Deleting user %s", user.id)
-        user.delete()
+        with unguarded_write(using=router.db_for_write(User)):
+            user.delete()
 
 
 class Migration(CheckedMigration):
