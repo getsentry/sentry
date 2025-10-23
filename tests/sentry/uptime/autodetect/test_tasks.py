@@ -359,23 +359,27 @@ class TestMonitorUrlForProject(UptimeTestCase):
     def test(self) -> None:
         url = make_unique_test_url()
         assert not is_url_auto_monitored_for_project(self.project, url)
-        monitor_url_for_project(self.project, url)
+        detector = monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
+        assert detector.name == f"Uptime Monitoring for {url}"
 
     def test_existing(self) -> None:
         url = make_unique_test_url()
         with self.tasks():
-            monitor_url_for_project(self.project, url)
+            detector_1 = monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
+        assert detector_1.name == f"Uptime Monitoring for {url}"
+
         url_2 = make_unique_test_url()
         with self.tasks():
-            monitor_url_for_project(self.project, url_2)
+            detector_2 = monitor_url_for_project(self.project, url_2)
         # Execute scheduled deletions to ensure the first detector is cleaned
         # up when re-detecting
         with self.tasks():
             run_scheduled_deletions()
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url_2)
+        assert detector_2.name == f"Uptime Monitoring for {url_2}"
 
     def test_manual_existing(self) -> None:
         manual_url = make_unique_test_url()
