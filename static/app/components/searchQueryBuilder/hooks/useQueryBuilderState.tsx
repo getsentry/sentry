@@ -797,7 +797,7 @@ function updateFreeTextAndReplaceText(
     action,
     getFieldDefinition,
     replaceRawSearchKeys ?? [],
-    state.query
+    newState.query
   );
 
   const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
