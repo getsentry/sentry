@@ -660,7 +660,7 @@ sentry_sdk.init(
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'mcp_lowlevel';
+    const selected = (params.platformOptions as any)?.integration ?? 'mcp_fastmcp';
     if (selected === 'mcp_fastmcp') {
       return [mcpFastMcpStep];
     }

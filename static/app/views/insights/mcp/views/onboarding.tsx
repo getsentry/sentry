@@ -15,16 +15,15 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  DocsPageLocation,
-  ProductSolution,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
+import {mcpMonitoringPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -48,7 +47,7 @@ function useOnboardingProject() {
     projects
   );
   const mcpMonitoringProjects = selectedProject.filter(p =>
-    agentMonitoringPlatforms.has(p.platform as PlatformKey)
+    mcpMonitoringPlatforms.has(p.platform as PlatformKey)
   );
 
   if (mcpMonitoringProjects.length > 0) {
@@ -211,6 +210,24 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
+  // Local integration options for MCP monitoring only
+  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const integrationOptions = {
+    integration: {
+      label: t('Integration'),
+      items: isPythonPlatform
+        ? [
+            {label: 'FastMCP', value: 'mcp_fastmcp'},
+            {label: 'FastMCP (Standalone)', value: 'fastmcp_standalone'},
+            {label: 'Low-level', value: 'mcp_lowlevel'},
+            {label: 'Manual', value: 'manual'},
+          ]
+        : [{label: 'MCP SDK', value: 'mcp_sdk'}],
+    },
+  };
+
+  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
@@ -218,7 +235,7 @@ export function Onboarding() {
     return <div>{t('No project found')}</div>;
   }
 
-  if (!agentMonitoringPlatforms.has(project.platform as PlatformKey)) {
+  if (!mcpMonitoringPlatforms.has(project.platform as PlatformKey)) {
     return (
       <OnboardingPanel project={project}>
         <DescriptionWrapper>
@@ -282,7 +299,7 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     newOrg: false,
     urlPrefix,
@@ -300,6 +317,9 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <OptionsWrapper>
+        <PlatformOptionDropdown platformOptions={integrationOptions} />
+      </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps>
         {steps
@@ -458,4 +478,12 @@ const DescriptionWrapper = styled('div')`
       margin-bottom: ${CONTENT_SPACING};
     }
   }
+`;
+
+const OptionsWrapper = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: ${p => p.theme.space.md};
 `;

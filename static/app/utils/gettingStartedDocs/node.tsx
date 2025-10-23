@@ -717,18 +717,6 @@ export const getNodeMcpOnboarding = ({
 }: {
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
-  introduction: () => (
-    <Alert type="info" showIcon={false}>
-      {tct(
-        'MCP is currently in beta with support for [mcp:Model Context Protocol Typescript SDK].',
-        {
-          mcp: (
-            <ExternalLink href="https://www.npmjs.com/package/@modelcontextprotocol/sdk" />
-          ),
-        }
-      )}
-    </Alert>
-  ),
   install: params => [
     {
       type: StepType.INSTALL,

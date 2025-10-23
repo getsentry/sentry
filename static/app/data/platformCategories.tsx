@@ -722,3 +722,8 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);
+
+export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+]);
