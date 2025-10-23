@@ -1014,9 +1014,7 @@ export function SearchQueryBuilderValueCombobox({
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
-        onKeyDown={e => {
-          onKeyDown(e);
-        }}
+        onKeyDown={onKeyDown}
         onKeyUp={updateSelectionIndex}
         onClick={() => {
           updateSelectionIndex();
