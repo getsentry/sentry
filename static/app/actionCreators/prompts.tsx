@@ -398,15 +398,15 @@ export function usePrompt({
     );
   }, [api, feature, organization, projectId, queryClient]);
 
-  return {
-    isLoading: prompt.isPending,
-    isError: prompt.isError,
-    data: prompt.data?.data,
-    isPromptDismissed,
-    dismiss,
-    snooze,
-    show,
-  };
+  return [
+    {
+      isPromptDismissed,
+      dismiss,
+      snooze,
+      show,
+    },
+    prompt,
+  ] as const;
 }
 
 /**
