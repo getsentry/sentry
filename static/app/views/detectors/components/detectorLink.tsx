@@ -37,6 +37,7 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
+  openInNewTab?: boolean;
 };
 
 function formatConditionType(condition: MetricCondition) {
@@ -204,7 +205,7 @@ function Details({detector}: {detector: Detector}) {
   }
 }
 
-export function DetectorLink({detector, className}: DetectorLinkProps) {
+export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
   const {monitorsLinkPrefix} = useMonitorViewContext();
   const project = useProjectFromId({project_id: detector.projectId});
@@ -216,6 +217,7 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
       link={makeMonitorDetailsPathname(org.slug, detector.id, monitorsLinkPrefix)}
       systemCreated={!detectorTypeIsUserCreateable(detector.type)}
       disabled={!detector.enabled}
+      openInNewTab={openInNewTab}
       details={
         <Fragment>
           {project && (
