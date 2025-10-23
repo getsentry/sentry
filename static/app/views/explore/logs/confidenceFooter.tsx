@@ -76,48 +76,56 @@ function ConfidenceMessage({
   ) : (
     <Placeholder width={40} />
   );
+  const suffix = rawLogCounts.highAccuracy.count ? t('logs') : '';
 
   if (dataScanned === 'full') {
     // For logs, if the full data was scanned, we can assume that no
     // extrapolation happened and we should remove mentions of extrapolation.
     if (isTopN) {
       return tct(
-        '[matchingLogsCount] matching logs for top [topEvents] groups after scanning [allLogsCount] logs',
+        '[matchingLogsCount] matching logs for top [topEvents] groups after scanning [allLogsCount] [suffix]',
         {
           topEvents,
           matchingLogsCount,
           allLogsCount,
+          suffix,
         }
       );
     }
 
-    return tct('[matchingLogsCount] matching logs after scanning [allLogsCount] logs', {
-      matchingLogsCount,
-      allLogsCount,
-    });
+    return tct(
+      '[matchingLogsCount] matching logs after scanning [allLogsCount] [suffix]',
+      {
+        matchingLogsCount,
+        allLogsCount,
+        suffix,
+      }
+    );
   }
 
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
 
   if (isTopN) {
     return tct(
-      'Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] logs]',
+      'Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
       {
         topEvents,
         matchingLogsCount,
         downsampledLogsCount,
         allLogsCount,
+        suffix,
         tooltip: downsampledTooltip,
       }
     );
   }
 
   return tct(
-    'Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] logs]',
+    'Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
     {
       matchingLogsCount,
       downsampledLogsCount,
       allLogsCount,
+      suffix,
       tooltip: downsampledTooltip,
     }
   );
