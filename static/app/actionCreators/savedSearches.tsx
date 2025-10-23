@@ -11,8 +11,34 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
+// HACK: This prefix is used to prefix the recent searches query to isolate
+// search results among the same search type. It intentionally doesn't follow
+// typical search syntax because it is meant to be filtered out of the UI
+export const NAMESPACE_FILTER_KEY_PREFIX = '__namespace_filter__';
+
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
+
+function getNamespaceFilterKey(namespaceFilterKey: string): string {
+  return `${NAMESPACE_FILTER_KEY_PREFIX}:${namespaceFilterKey}`;
+}
+
+export function parseQueryFromRecentSearch(
+  recentSearchQuery: string,
+  namespaceFilterKey?: string
+): string {
+  if (!namespaceFilterKey) {
+    return recentSearchQuery;
+  }
+
+  const namespacePrefix = getNamespaceFilterKey(namespaceFilterKey);
+
+  if (recentSearchQuery.startsWith(namespacePrefix)) {
+    return recentSearchQuery.slice(namespacePrefix.length).trimStart();
+  }
+
+  return recentSearchQuery;
+}
 
 /**
  * Saves search term for `user` + `orgSlug`
@@ -26,13 +52,18 @@ export function saveRecentSearch(
   api: Client,
   orgSlug: string,
   type: SavedSearchType,
-  query: string
+  query: string,
+  namespaceFilterKey?: string
 ): Promise<SavedSearch> {
   const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
     method: 'POST',
     data: {
-      query,
+      // Inject the namespaceFilterKey as a prefix to the query, so that we can filter the results for specific use cases
+      // that have filters pre-defined.
+      query: namespaceFilterKey
+        ? `${getNamespaceFilterKey(namespaceFilterKey)} ${query}`
+        : query,
       type,
     },
   });

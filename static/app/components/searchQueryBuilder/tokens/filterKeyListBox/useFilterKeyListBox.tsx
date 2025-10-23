@@ -54,16 +54,18 @@ function makeRecentSearchQueryItems({
   recentSearches,
   filterKeys,
   getFieldDefinition,
+  namespaceFilterKey,
 }: {
   filterKeys: TagCollection;
   getFieldDefinition: FieldDefinitionGetter;
   recentSearches: RecentSearch[] | undefined;
+  namespaceFilterKey?: string;
 }): RecentQueryItem[] {
   if (!recentSearches) {
     return [];
   }
   return recentSearches.map(search =>
-    createRecentQueryItem({search, filterKeys, getFieldDefinition})
+    createRecentQueryItem({search, filterKeys, getFieldDefinition, namespaceFilterKey})
   );
 }
 
@@ -173,6 +175,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     enableAISearch,
     gaveSeerConsent,
     currentInputValueRef,
+    namespaceFilterKey,
   } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -208,6 +211,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
           recentSearches,
           filterKeys,
           getFieldDefinition,
+          namespaceFilterKey,
         }),
       ];
     }
@@ -234,6 +238,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     recentSearches,
     sectionedItems,
     selectedSection,
+    namespaceFilterKey,
   ]);
 
   const customMenu: CustomComboboxMenu<FilterKeyItem> = props => {

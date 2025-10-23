@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {parseQueryFromRecentSearch} from 'sentry/actionCreators/savedSearches';
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
@@ -203,19 +204,22 @@ export function createRecentQueryItem({
   search,
   getFieldDefinition,
   filterKeys,
+  namespaceFilterKey,
 }: {
   filterKeys: TagCollection;
   getFieldDefinition: FieldDefinitionGetter;
   search: RecentSearch;
+  namespaceFilterKey?: string;
 }): RecentQueryItem {
+  const value = parseQueryFromRecentSearch(search.query, namespaceFilterKey);
   return {
-    key: createRecentQueryOptionKey(search.query),
-    value: search.query,
-    textValue: search.query,
+    key: createRecentQueryOptionKey(value),
+    value,
+    textValue: value,
     type: 'recent-query' as const,
     label: (
       <FormattedQuery
-        query={search.query}
+        query={value}
         filterKeys={filterKeys}
         fieldDefinitionGetter={getFieldDefinition}
       />
