@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from enum import IntEnum
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -46,6 +47,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
+from sentry.locks import locks
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
@@ -53,8 +55,72 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.users.services.user.service import user_service
+from sentry.utils.locking import UnableToAcquireLock
 
 MAX_RETRIES = 2
+
+
+# Do not delete or modify existing entries. These enums are required to match ids in the frontend.
+class PrebuiltDashboardId(IntEnum):
+    FRONTEND_SESSION_HEALTH = 1
+
+
+class PrebuiltDashboard(TypedDict):
+    prebuilt_id: PrebuiltDashboardId
+    title: str
+
+
+# Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
+# coded in the frontend and we rely on matching prebuilt_id to populate the dashboard and widget display.
+# Prebuilt dashboard database records are purely for tracking things like starred status, last viewed, etc.
+#
+# Note A: This is stored differently from the `default-overview` prebuilt dashboard, which we should
+# deprecate once this feature is released.
+# Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
+# prebuilt_id on the frontend, if there are issues.
+PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        "title": "Frontend Session Health",
+    },
+]
+
+
+def sync_prebuilt_dashboards(organization: Organization) -> None:
+    """
+    Queries the database to check if prebuilt dashboards have a Dashboard record and
+    creates them if they don't, or deletes them if they should no longer exist.
+    """
+
+    with transaction.atomic(router.db_for_write(Dashboard)):
+        saved_prebuilt_dashboards = Dashboard.objects.filter(
+            organization=organization,
+            prebuilt_id__isnull=False,
+        )
+
+        saved_prebuilt_dashboard_ids = set(
+            saved_prebuilt_dashboards.values_list("prebuilt_id", flat=True)
+        )
+
+        # Create prebuilt dashboards if they don't exist
+        for prebuilt_dashboard in PREBUILT_DASHBOARDS:
+            prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
+
+            if prebuilt_id not in saved_prebuilt_dashboard_ids:
+                # Create new dashboard
+                Dashboard.objects.create(
+                    organization=organization,
+                    title=prebuilt_dashboard["title"],
+                    created_by_id=None,
+                    prebuilt_id=prebuilt_id,
+                )
+
+        # Delete old prebuilt dashboards if they should no longer exist
+        prebuilt_ids = [d["prebuilt_id"] for d in PREBUILT_DASHBOARDS]
+        Dashboard.objects.filter(
+            organization=organization,
+            prebuilt_id__isnull=False,
+        ).exclude(prebuilt_id__in=prebuilt_ids).delete()
 
 
 class OrganizationDashboardsPermission(OrganizationPermission):
@@ -126,6 +192,28 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
+
+        if features.has(
+            "organizations:dashboards-prebuilt-insights-dashboards",
+            organization,
+            actor=request.user,
+        ):
+            # Sync prebuilt dashboards to the database
+            try:
+                lock = locks.get(
+                    f"dashboards:sync_prebuilt_dashboards:{organization.id}",
+                    duration=10,
+                    name="sync_prebuilt_dashboards",
+                )
+                with lock.acquire():
+                    # Adds prebuilt dashboards to the database if they don't exist.
+                    # Deletes old prebuilt dashboards from the database if they should no longer exist.
+                    sync_prebuilt_dashboards(organization)
+            except UnableToAcquireLock:
+                # Another process is already syncing the prebuilt dashboards. We can skip syncing this time.
+                pass
+            except Exception as err:
+                sentry_sdk.capture_exception(err)
 
         filter_by = request.query_params.get("filter")
         if filter_by == "onlyFavorites":
@@ -202,7 +290,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             user_name_dict = {
                 user.id: user.name
                 for user in user_service.get_many_by_id(
-                    ids=list(dashboards.values_list("created_by_id", flat=True))
+                    ids=list(
+                        id
+                        for id in dashboards.values_list("created_by_id", flat=True).filter(
+                            created_by_id__isnull=False
+                        )
+                        if id is not None
+                    )
                 )
             }
             dashboards = dashboards.annotate(
