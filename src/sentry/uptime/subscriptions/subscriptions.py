@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 
+from django.conf import settings
 from django.db import router, transaction
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
@@ -39,6 +40,7 @@ from sentry.uptime.types import (
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
+from sentry.utils import redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
@@ -54,6 +56,14 @@ UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 MAX_MONITORS_PER_DOMAIN = 100
+
+
+def build_last_update_key(detector: Detector) -> str:
+    return f"project-sub-last-update:detector:{detector.id}"
+
+
+def build_last_seen_interval_key(detector: Detector) -> str:
+    return f"project-sub-last-seen-interval:detector:{detector.id}"
 
 
 def build_detector_fingerprint_component(detector: Detector) -> str:
@@ -463,6 +473,10 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
             # We set the status back to ok here so that if we re-enable we'll
             # start from a good state
             detector_state.update(state=DetectorPriorityLevel.OK, is_triggered=False)
+
+        cluster = redis.redis_clusters.get(settings.SENTRY_UPTIME_DETECTOR_CLUSTER)
+        last_update_key = build_last_update_key(detector)
+        cluster.delete(last_update_key)
 
         detector.update(enabled=False)
 
