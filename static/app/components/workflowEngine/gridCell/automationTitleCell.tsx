@@ -24,7 +24,6 @@ export default function AutomationTitleCell({automation, openInNewTab}: Props) {
         automation.id,
         automationsLinkPrefix
       )}
-      systemCreated={!automation.createdBy}
       disabled={!automation.enabled}
       warning={warning}
       openInNewTab={openInNewTab}
