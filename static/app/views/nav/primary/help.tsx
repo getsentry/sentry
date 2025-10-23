@@ -131,34 +131,36 @@ export function PrimaryNavigationHelp() {
                 startTour();
               },
             },
-            organization?.features?.includes('chonk-ui')
-              ? user.options.prefersChonkUI
-                ? {
-                    key: 'new-chonk-ui',
-                    label: t('Switch back to our old look'),
-                    onAction() {
-                      mutateUserOptions({prefersChonkUI: false});
-                      trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
-                        organization,
-                      });
-                    },
-                  }
-                : {
-                    key: 'new-chonk-ui',
-                    label: (
-                      <Fragment>
-                        {t('Try our new look')} <FeatureBadge type="beta" />
-                      </Fragment>
-                    ),
-                    textValue: 'Try our new look',
-                    onAction() {
-                      mutateUserOptions({prefersChonkUI: true});
-                      trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
-                        organization,
-                      });
-                    },
-                  }
-              : null,
+            organization?.features?.includes('chonk-ui-enforce')
+              ? null
+              : organization?.features?.includes('chonk-ui')
+                ? user.options.prefersChonkUI
+                  ? {
+                      key: 'new-chonk-ui',
+                      label: t('Switch back to our old look'),
+                      onAction() {
+                        mutateUserOptions({prefersChonkUI: false});
+                        trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                          organization,
+                        });
+                      },
+                    }
+                  : {
+                      key: 'new-chonk-ui',
+                      label: (
+                        <Fragment>
+                          {t('Try our new look')} <FeatureBadge type="beta" />
+                        </Fragment>
+                      ),
+                      textValue: 'Try our new look',
+                      onAction() {
+                        mutateUserOptions({prefersChonkUI: true});
+                        trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
+                          organization,
+                        });
+                      },
+                    }
+                : null,
           ].filter(n => !!n),
         },
       ]}
