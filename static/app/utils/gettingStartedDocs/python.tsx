@@ -263,6 +263,7 @@ sentry_sdk.init(
     profiles_sample_rate=1.0`
     }
 )${
+  params.profilingOptions?.defaultProfilingMode === 'continuous' &&
   traceLifecycle === 'manual'
     ? `
 
