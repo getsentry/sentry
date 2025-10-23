@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
+from typing import Literal
 from unittest.mock import patch
 
 import pytest
@@ -7,6 +8,7 @@ from pydantic import BaseModel
 
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
 from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
@@ -566,14 +568,23 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         assert result is None
 
 
-class _ExplorerIssueProject(BaseModel):
+class _Project(BaseModel):
     id: int
     slug: str
 
 
-class _ExplorerIssue(BaseModel):
+class _Actor(BaseModel):
+    """Output of ActorSerializer."""
+
+    type: Literal["user", "team"]
+    id: str
+    name: str
+    email: str | None = None
+
+
+class _IssueMetadata(BaseModel):
     """
-    A subset of BaseGroupSerializerResponse fields, required for Seer Explorer. In prod we send the full response.
+    A subset of BaseGroupSerializerResponse fields useful for Seer Explorer. In prod we send the full response.
     """
 
     id: int
@@ -588,9 +599,11 @@ class _ExplorerIssue(BaseModel):
     priority: str | None
     type: str
     issueType: str
+    issueTypeDescription: str  # Extra field added by get_issue_details.
     issueCategory: str
     hasSeen: bool
-    project: _ExplorerIssueProject
+    project: _Project
+    assignedTo: _Actor | None
 
     # Optionals
     isUnhandled: bool | None = None
@@ -620,6 +633,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         mock_get_recommended_event,
         use_short_id: bool,
     ):
+        """Test the queries and response format for a group of error events, and multiple event types."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         # Create events with shared stacktrace (should have same group)
@@ -659,7 +673,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             )
 
             # Short event IDs not supported.
-            if selected_event == events[1].event_id[:8]:
+            if len(selected_event) == 8:
                 assert result is None
                 continue
 
@@ -670,7 +684,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
             # Validate fields of the main issue payload.
             assert isinstance(result["issue"], dict)
-            _ExplorerIssue.parse_obj(result["issue"])
+            _IssueMetadata.parse_obj(result["issue"])
 
             # Validate fields of the selected event.
             event_dict = result["event"]
@@ -779,7 +793,67 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert "event_trace_id" in result
         assert isinstance(result.get("project_id"), int)
         assert isinstance(result.get("issue"), dict)
-        _ExplorerIssue.parse_obj(result.get("issue", {}))
+        _IssueMetadata.parse_obj(result.get("issue", {}))
+
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_with_assigned_user(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        data = load_data("python", timestamp=before_now(minutes=5))
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        mock_get_recommended_event.return_value = event
+        group = event.group
+        assert isinstance(group, Group)
+
+        # Create assignee.
+        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
+
+        result = get_issue_details(
+            issue_id=str(group.id),
+            organization_id=self.organization.id,
+            selected_event="recommended",
+        )
+
+        assert result is not None
+        md = _IssueMetadata.parse_obj(result["issue"])
+        assert md.assignedTo is not None
+        assert md.assignedTo.type == "user"
+        assert md.assignedTo.id == str(self.user.id)
+        assert md.assignedTo.email == self.user.email
+        assert md.assignedTo.name == self.user.get_display_name()
+
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_with_assigned_team(self, mock_get_tags, mock_get_recommended_event):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        data = load_data("python", timestamp=before_now(minutes=5))
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        mock_get_recommended_event.return_value = event
+        group = event.group
+        assert isinstance(group, Group)
+
+        # Create assignee.
+        GroupAssignee.objects.create(group=group, project=self.project, team=self.team)
+
+        result = get_issue_details(
+            issue_id=str(group.id),
+            organization_id=self.organization.id,
+            selected_event="recommended",
+        )
+
+        assert result is not None
+        md = _IssueMetadata.parse_obj(result["issue"])
+        assert md.assignedTo is not None
+        assert md.assignedTo.type == "team"
+        assert md.assignedTo.id == str(self.team.id)
+        assert md.assignedTo.name == self.team.slug
+        assert md.assignedTo.email is None
 
 
 @pytest.mark.django_db(databases=["default", "control"])
@@ -881,3 +955,108 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is not None
         assert result["integration_id"] is None
+
+    def test_get_repository_definition_unsupported_provider(self):
+        """Test that repositories with unsupported providers are filtered out"""
+        # Create a GitLab repo (unsupported provider)
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:gitlab",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        # Should return None since GitLab is not a supported provider
+        assert result is None
+
+    def test_get_repository_definition_github_enterprise(self):
+        """Test that GitHub Enterprise provider is supported"""
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github_enterprise",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        assert result["provider"] == "integrations:github_enterprise"
+
+    def test_get_repository_definition_multiple_providers(self):
+        """Test that when multiple repos with different supported providers exist, first one is returned"""
+        # Create two repos with same name but different providers
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github_enterprise",
+            external_id="87654321",
+            integration_id=456,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Should return one of them without raising MultipleObjectsReturned
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        assert result is not None
+        # Should return the first matching repo (in this case, GitHub)
+        assert result["provider"] in [
+            "integrations:github",
+            "integrations:github_enterprise",
+        ]
+        assert result["owner"] == "getsentry"
+        assert result["name"] == "seer"
+
+    def test_get_repository_definition_filters_unsupported_with_supported(self):
+        """Test that unsupported providers are ignored even when a supported one exists"""
+        # Create unsupported provider repo
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:gitlab",
+            external_id="99999999",
+            integration_id=999,
+            status=ObjectStatus.ACTIVE,
+        )
+        # Create supported provider repo
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/seer",
+            provider="integrations:github",
+            external_id="12345678",
+            integration_id=123,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/seer",
+        )
+
+        # Should return the GitHub repo, not GitLab
+        assert result is not None
+        assert result["provider"] == "integrations:github"
+        assert result["external_id"] == "12345678"

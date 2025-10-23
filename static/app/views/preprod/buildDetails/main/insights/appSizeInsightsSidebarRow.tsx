@@ -1,9 +1,9 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tn} from 'sentry/locale';
@@ -80,16 +80,16 @@ export function AppSizeInsightsSidebarRow({
         </Flex>
       </Flex>
 
-      <Flex direction="column" gap="xs">
+      <Stack gap="lg" align="start" paddingBottom="md">
         <Text variant="muted" size="sm">
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <LinkText onClick={handleOpenModal}>
-            {t('See how to fix this locally →')}
-          </LinkText>
+          <Button priority="link" onClick={handleOpenModal} size="xs">
+            {t('Fix this locally')}
+          </Button>
         )}
-      </Flex>
+      </Stack>
 
       <Container>
         <Button
@@ -139,7 +139,18 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
   }
 
   return (
-    <FlexAlternatingRow>
+    <Flex
+      align="center"
+      justify="between"
+      gap="lg"
+      padding="xs sm"
+      style={{
+        borderRadius: '4px',
+        minWidth: 0,
+        maxWidth: '100%',
+        overflow: 'hidden',
+      }}
+    >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
@@ -151,7 +162,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
           ({formatUpside(file.percentage / 100)})
         </Text>
       </Flex>
-    </FlexAlternatingRow>
+    </Flex>
   );
 }
 
@@ -177,8 +188,19 @@ function OptimizableImageFileRow({
   );
 
   return (
-    <Container>
-      <FlexAlternatingRow>
+    <Fragment key={file.path}>
+      <Flex
+        align="center"
+        justify="between"
+        gap="lg"
+        padding="xs sm"
+        style={{
+          borderRadius: '4px',
+          minWidth: 0,
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}
+      >
         <Text size="sm" ellipsis style={{flex: 1}}>
           {file.path}
         </Text>
@@ -190,7 +212,7 @@ function OptimizableImageFileRow({
             ({formatUpside(file.percentage / 100)})
           </Text>
         </Flex>
-      </FlexAlternatingRow>
+      </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
         {hasMinifySavings && (
           <Flex align="center" gap="sm">
@@ -239,31 +261,6 @@ function OptimizableImageFileRow({
           </Flex>
         )}
       </Flex>
-    </Container>
+    </Fragment>
   );
 }
-
-const FlexAlternatingRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-radius: ${({theme}) => theme.borderRadius};
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  gap: ${({theme}) => theme.space.lg};
-  padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
-`;
-
-const LinkText = styled('span')`
-  color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSize.sm};
-  cursor: pointer;
-  text-decoration: underline;
-  padding: ${p => p.theme.space.xs} 0;
-  display: inline-block;
-
-  &:hover {
-    color: ${p => p.theme.purple400};
-  }
-`;
