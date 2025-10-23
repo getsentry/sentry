@@ -191,13 +191,14 @@ def process_batch(
                 continue
 
             # Adding schema validation to avoid crashing the consumer downstream
-            validate_span(val)
+            segment_id = cast(str | None, attribute_value(val, "sentry.segment.id"))
+            validate_span_event(val, segment_id)
 
             span = Span(
                 trace_id=cast(str, val["trace_id"]),
                 span_id=cast(str, val["span_id"]),
                 parent_span_id=val.get("parent_span_id"),
-                segment_id=cast(str | None, attribute_value(val, "sentry.segment.id")),
+                segment_id=segment_id,
                 project_id=val["project_id"],
                 payload=payload.value,
                 end_timestamp=cast(float, val["end_timestamp"]),
@@ -230,7 +231,7 @@ def process_batch(
     return min_timestamp
 
 
-def validate_span(span: SpanEvent) -> None:
+def validate_span_event(span_event: SpanEvent, segment_id: str | None) -> None:
     """
     Checks whether the span is valid based on the ingest spans schema.
     All spans that do not conform to the schema validation rules are discarded.
@@ -238,10 +239,9 @@ def validate_span(span: SpanEvent) -> None:
     There are several other assertions to protect against downstream crashes, see also: INC-1453, INC-1458.
     """
     if in_random_rollout("spans.process-segments.schema-validation"):
-        SPANS_CODEC.validate(span)
-    assert isinstance(span["trace_id"], str), "trace_id must be a string"
-    assert isinstance(span["span_id"], str), "span_id must be a string"
-    assert isinstance(span["start_timestamp"], (int, float)), "start_timestamp must be a float"
-    assert isinstance(span["end_timestamp"], (int, float)), "end_timestamp must be a float"
-    segment_id = cast(str | None, attribute_value(span, "sentry.segment.id"))
-    assert segment_id is None or isinstance(segment_id, str), "segment_id must be a string or None"
+        SPANS_CODEC.validate(span_event)
+    assert isinstance(span_event["trace_id"], str), "trace_id must be str"
+    assert isinstance(span_event["span_id"], str), "span_id must be str"
+    assert isinstance(span_event["start_timestamp"], (int, float)), "start_timestamp must be float"
+    assert isinstance(span_event["end_timestamp"], (int, float)), "end_timestamp must be float"
+    assert segment_id is None or isinstance(segment_id, str), "segment_id must be str or None"
