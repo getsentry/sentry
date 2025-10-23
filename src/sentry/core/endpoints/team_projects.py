@@ -87,10 +87,9 @@ their own alerts to be notified of new issues.
 
         if value in CONSOLES:
             organization = self.context.get("organization")
-            enabled_console_platforms = (
-                organization.get_option("sentry:enabled_console_platforms", [])
-                if organization
-                else []
+            assert organization is not None
+            enabled_console_platforms = organization.get_option(
+                "sentry:enabled_console_platforms", []
             )
 
             if value not in enabled_console_platforms:
