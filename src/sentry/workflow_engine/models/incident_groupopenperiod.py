@@ -62,7 +62,11 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             # Extract alert_id from evidence_data using the detector_id
             detector_id = occurrence.evidence_data.get("detector_id")
             if detector_id:
-                alert_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+                try:
+                    alert_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+                except AlertRuleDetector.DoesNotExist:
+                    # detector does not have an analog in the old system, so we do not need to create an IGOP relationship
+                    return None
             else:
                 raise Exception("No detector_id found in evidence_data for metric issue")
 
