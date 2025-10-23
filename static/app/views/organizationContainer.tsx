@@ -3,7 +3,6 @@ import {useProfiler} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingTriangle from 'sentry/components/loadingTriangle';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -15,7 +14,19 @@ function OrganizationLoadingIndicator() {
   useProfiler('OrganizationLoadingIndicator', {
     hasRenderSpan: true,
   });
-  return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
+
+  /**
+   * This is the initial loader React will render as the app bootstraps.
+   * Rather than rendering a loader component, we can reuse the existing DOM
+   * provided by the server-rendered Django view!
+   *
+   * This ensures there are no layout shifts as the app initially boots up
+   * because the DOM is exactly the same and React doesn't have to reconcile
+   * the fallback state.
+   */
+  const ssrLoader = document.querySelector('#blk_router')?.innerHTML!;
+
+  return <div dangerouslySetInnerHTML={{__html: ssrLoader}} suppressHydrationWarning />;
 }
 
 interface Props {
