@@ -89,6 +89,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=lambda results: results,
+                default_per_page=10,
+                max_per_page=100,
             )
 
     def _get_conversations(
@@ -121,7 +123,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode=None,
+            sampling_mode="HIGHEST_ACCURACY",
         )
 
         conversation_ids: list[str] = [
@@ -159,7 +161,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             limit=len(conversation_ids),
             referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode=None,
+            sampling_mode="HIGHEST_ACCURACY",
         )
 
         # Create a map of conversation data by ID
@@ -211,6 +213,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
                 "gen_ai.conversation.id",
                 "span.op",
                 "span.description",
+                "gen_ai.agent.name",
                 "trace",
                 "precise.start_ts",
             ],
@@ -219,7 +222,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             limit=10000,
             referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode=None,
+            sampling_mode="HIGHEST_ACCURACY",
         )
 
         flows_by_conversation = defaultdict(list)
@@ -237,7 +240,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
 
             # Collect agent flow (only from invoke_agent spans)
             if row.get("span.op") == "gen_ai.invoke_agent":
-                agent_name = row.get("span.description", "")
+                agent_name = row.get("gen_ai.agent.name", "")
                 if agent_name:
                     flows_by_conversation[conv_id].append(agent_name)
 
