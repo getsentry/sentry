@@ -151,10 +151,11 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/uptime                                     @getsentry/crons
 ## End Uptime
 
-## Misc. Middleware
+## Issue Detection Lower Priority
 # Located here so they do not take precedence over rules below.
 /src/sentry/middleware/reporting_endpoint.py             @getsentry/issue-detection-backend
-## End Misc. Middleware
+/src/sentry/tasks/post_process.py                        @getsentry/issue-detection-backend
+## Issue Detection Lower Priority
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
@@ -572,7 +573,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
 /src/sentry/tasks/groupowner.py                             @getsentry/issue-detection-backend
 /src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
-/src/sentry/tasks/post_process.py                           @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
 /src/sentry/tasks/llm_issue_detection.py                    @getsentry/issue-detection-backend
