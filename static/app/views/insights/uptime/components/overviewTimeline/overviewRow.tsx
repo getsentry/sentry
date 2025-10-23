@@ -68,8 +68,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
   // XXX(epurkhiser): This is a hack, we're seeing some uptime detectors with
   // missing dataSources. That should never happen, but for now let's make sure
   // we're not totally blowing up customers views
-  // @ts-expect-error - See above
-  if (uptimeDetector.dataSources.length === 0) {
+  if (uptimeDetector.dataSources === null) {
     return null;
   }
 
