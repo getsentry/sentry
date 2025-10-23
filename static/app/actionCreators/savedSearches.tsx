@@ -19,25 +19,33 @@ export const NAMESPACE_SYMBOL = '\uf00d';
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
 
-function encodeNamespacedRecentSearch(namespaceFilterKey: string): string {
+function getNamespacePrefix(namespaceFilterKey?: string): string {
   return `${NAMESPACE_SYMBOL}namespace${NAMESPACE_SYMBOL}${namespaceFilterKey}${NAMESPACE_SYMBOL}`;
 }
 
+function encodeNamespacedRecentSearch(namespaceFilterKey?: string, query = ''): string {
+  if (!namespaceFilterKey) {
+    return query;
+  }
+
+  return getNamespacePrefix(namespaceFilterKey) + query;
+}
+
 export function decodeNamespacedRecentSearch(
-  recentSearchQuery: string,
-  namespaceFilterKey?: string
+  namespaceFilterKey?: string,
+  query = ''
 ): string {
   if (!namespaceFilterKey) {
-    return recentSearchQuery;
+    return query;
   }
 
-  const namespacePrefix = encodeNamespacedRecentSearch(namespaceFilterKey);
+  const namespacePrefix = getNamespacePrefix(namespaceFilterKey);
 
-  if (recentSearchQuery.startsWith(namespacePrefix)) {
-    return recentSearchQuery.slice(namespacePrefix.length).trimStart();
+  if (query && namespacePrefix && query.startsWith(namespacePrefix)) {
+    return query.slice(namespacePrefix.length);
   }
 
-  return recentSearchQuery;
+  return query;
 }
 
 /**
@@ -59,11 +67,7 @@ export function saveRecentSearch(
   const promise = api.requestPromise(url, {
     method: 'POST',
     data: {
-      // Inject the namespaceFilterKey as a prefix to the query, so that we can filter the results for specific use cases
-      // that have filters pre-defined.
-      query: namespaceFilterKey
-        ? `${encodeNamespacedRecentSearch(namespaceFilterKey)} ${query}`
-        : query,
+      query: encodeNamespacedRecentSearch(namespaceFilterKey, query),
       type,
     },
   });
@@ -118,7 +122,7 @@ export function useFetchRecentSearches(
     makeRecentSearchesQueryKey({
       limit,
       orgSlug: organization.slug,
-      query: namespace ? encodeNamespacedRecentSearch(namespace) : query,
+      query: encodeNamespacedRecentSearch(namespace, query),
       savedSearchType,
     }),
     {
@@ -132,7 +136,7 @@ export function useFetchRecentSearches(
     ...response,
     data: response.data?.map(search => ({
       ...search,
-      query: decodeNamespacedRecentSearch(search.query, namespace),
+      query: decodeNamespacedRecentSearch(namespace, search.query),
     })),
   };
 }

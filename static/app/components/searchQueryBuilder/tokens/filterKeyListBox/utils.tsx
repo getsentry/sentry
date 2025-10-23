@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {decodeNamespacedRecentSearch} from 'sentry/actionCreators/savedSearches';
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
@@ -209,15 +208,14 @@ export function createRecentQueryItem({
   getFieldDefinition: FieldDefinitionGetter;
   search: RecentSearch;
 }): RecentQueryItem {
-  const value = decodeNamespacedRecentSearch(search.query);
   return {
-    key: createRecentQueryOptionKey(value),
-    value,
-    textValue: value,
+    key: createRecentQueryOptionKey(search.query),
+    value: search.query,
+    textValue: search.query,
     type: 'recent-query' as const,
     label: (
       <FormattedQuery
-        query={value}
+        query={search.query}
         filterKeys={filterKeys}
         fieldDefinitionGetter={getFieldDefinition}
       />
