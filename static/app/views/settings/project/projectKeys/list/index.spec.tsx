@@ -70,22 +70,35 @@ describe('ProjectKeys', () => {
 
     const expandButton = screen.getByRole('button', {name: 'Expand'});
     const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
-    const minidumpEndpoint = screen.queryByRole('textbox', {
-      name: 'Minidump Endpoint URL',
-    });
-    const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
-    });
-    const securityHeaderEndpoint = screen.queryByRole('textbox', {
-      name: 'Security Header Endpoint URL',
-    });
 
     expect(expandButton).toBeInTheDocument();
     expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
+
+    // Verify tabs are present
+    expect(screen.getByRole('tab', {name: 'Security Header'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Minidump'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Unreal Engine'})).toBeInTheDocument();
+
+    // Security Header should be visible by default (first tab)
+    const securityHeaderEndpoint = screen.getByRole('textbox', {
+      name: 'Security Header Endpoint URL',
+    });
+    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
+
+    // Click on Minidump tab and verify endpoint
+    await userEvent.click(screen.getByRole('tab', {name: 'Minidump'}));
+    const minidumpEndpoint = await screen.findByRole('textbox', {
+      name: 'Minidump Endpoint URL',
+    });
     expect(minidumpEndpoint).toHaveValue(projectKeys[0]!.dsn.minidump);
+
+    // Click on Unreal Engine tab and verify endpoint
+    await userEvent.click(screen.getByRole('tab', {name: 'Unreal Engine'}));
+    const unrealEndpoint = await screen.findByRole('textbox', {
+      name: 'Unreal Engine Endpoint URL',
+    });
     // this is empty in the default ProjectKey
     expect(unrealEndpoint).toHaveValue('');
-    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
   });
 
   it('renders for javascript project', async () => {
