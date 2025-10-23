@@ -138,8 +138,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
         # This hook is used for _after_ a detector has been updated
         hooks = instance.settings.hooks
-        if hooks and hooks.on_create:
-            hooks.on_create(instance)
+        if hooks and hooks.on_update:
+            hooks.on_update(instance)
 
         return instance
 
@@ -215,6 +215,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             )
 
             hooks = detector.settings.hooks
+
             if hooks and hooks.on_create:
                 hooks.on_create(detector)
 
