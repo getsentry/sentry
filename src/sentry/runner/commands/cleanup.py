@@ -269,7 +269,7 @@ def _cleanup(
             remove_file_blobs(is_filtered, silent, models_attempted)
         except Exception:
             logger.exception("FATAL: We did not handle an error and aborted the execution.")
-            metrics.incr("cleanup.error", tags={"type": "cleanup"}, sample_rate=1.0)
+            metrics.incr("cleanup.error", tags={"type": "FATAL"}, sample_rate=1.0)
             raise
 
         finally:
