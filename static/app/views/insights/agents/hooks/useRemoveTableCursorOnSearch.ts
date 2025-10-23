@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useEffectEvent} from '@react-aria/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
@@ -11,7 +12,11 @@ export function useRemoveTableCursorOnSearch() {
   const location = useLocation();
   const {unsetCursor} = useTableCursor();
 
-  useEffect(() => {
+  const removeCursor = useEffectEvent(() => {
     unsetCursor();
-  }, [location.query.query, unsetCursor]);
+  });
+
+  useEffect(() => {
+    removeCursor();
+  }, [location.query.query]);
 }
