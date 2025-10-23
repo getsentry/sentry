@@ -6,7 +6,7 @@ import weakref
 from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models, router
@@ -68,7 +68,12 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -
     return f"{prefix}:{model.__name__}:{md5_text(kwargs_bits_str).hexdigest()}"
 
 
-_base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
+if TYPE_CHECKING:
+    # For type checkers, we want to use DjangoBaseManager directly. This preserves the
+    # generic type parameters.
+    _base_manager_base = DjangoBaseManager
+else:
+    _base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
 
 
 class BaseManager(_base_manager_base[M]):
