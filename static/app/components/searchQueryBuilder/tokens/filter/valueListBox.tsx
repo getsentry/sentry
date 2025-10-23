@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {getItemId} from '@react-aria/listbox';
 import {isMac} from '@react-aria/utils';
+import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
@@ -50,6 +51,53 @@ function constrainAndAlignListBox({
   } else {
     popoverRef.current.style.left = 'auto';
   }
+}
+
+interface UseRestoreFocusedItemArgs<T> {
+  isOpen: boolean;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
+  state: ValueListBoxProps<T>['state'];
+}
+
+function useRestoreFocusedItem<T>({
+  isOpen,
+  listBoxRef,
+  state,
+}: UseRestoreFocusedItemArgs<T>) {
+  const centerKeyInView = useCallback(
+    (key: Key | null) => {
+      if (key === null || !listBoxRef.current) return;
+
+      const el = document.getElementById(getItemId(state as any, key as any));
+      if (!el) return;
+
+      const elRect = el.getBoundingClientRect();
+      const containerRect = listBoxRef.current.getBoundingClientRect();
+
+      const offsetTopWithinContainer =
+        listBoxRef.current.scrollTop + (elRect.top - containerRect.top);
+
+      const targetScrollTop =
+        offsetTopWithinContainer -
+        listBoxRef.current.clientHeight / 2 +
+        elRect.height / 2;
+
+      listBoxRef.current.scrollTop = Math.max(0, targetScrollTop);
+    },
+    [listBoxRef, state]
+  );
+
+  // Track and restore focused option if react-aria clears it during multi-select updates
+  const lastFocusedKey = usePrevious<Key | null>(state.selectionManager.focusedKey);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    if (!lastFocusedKey) return;
+    if (state.selectionManager.focusedKey !== null) return;
+
+    state.selectionManager.setFocusedKey(lastFocusedKey);
+    centerKeyInView(lastFocusedKey);
+  }, [centerKeyInView, isOpen, lastFocusedKey, state.selectionManager]);
 }
 
 function WildcardFooter({
@@ -121,40 +169,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   token,
   wrapperRef,
 }: ValueListBoxProps<T>) {
-  const centerKeyInView = useCallback(
-    (key: Key | null) => {
-      if (key === null || !listBoxRef.current) return;
-
-      const el = document.getElementById(getItemId(state as any, key as any));
-      if (!el) return;
-
-      const elRect = el.getBoundingClientRect();
-      const containerRect = listBoxRef.current.getBoundingClientRect();
-
-      const offsetTopWithinContainer =
-        listBoxRef.current.scrollTop + (elRect.top - containerRect.top);
-
-      const targetScrollTop =
-        offsetTopWithinContainer -
-        listBoxRef.current.clientHeight / 2 +
-        elRect.height / 2;
-
-      listBoxRef.current.scrollTop = Math.max(0, targetScrollTop);
-    },
-    [listBoxRef, state]
-  );
-
-  // Track and restore focused option if react-aria clears it during multi-select updates
-  const lastFocusedKey = usePrevious<Key | null>(state.selectionManager.focusedKey);
-
-  useLayoutEffect(() => {
-    if (!isOpen) return;
-    if (!lastFocusedKey) return;
-    if (state.selectionManager.focusedKey !== null) return;
-
-    state.selectionManager.setFocusedKey(lastFocusedKey);
-    centerKeyInView(lastFocusedKey);
-  }, [centerKeyInView, isOpen, lastFocusedKey, state.selectionManager]);
+  useRestoreFocusedItem<T>({isOpen, listBoxRef, state});
 
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
