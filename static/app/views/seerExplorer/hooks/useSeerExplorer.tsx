@@ -100,6 +100,7 @@ export const useSeerExplorer = () => {
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
+  const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
@@ -217,6 +218,7 @@ export const useSeerExplorer = () => {
     setWaitingForResponse(false);
     setDeletedFromIndex(null);
     setOptimistic(null);
+    setInterruptRequested(false);
     if (orgSlug) {
       setApiQueryData<SeerExplorerResponse>(
         queryClient,
@@ -229,6 +231,31 @@ export const useSeerExplorer = () => {
   const deleteFromIndex = useCallback((index: number) => {
     setDeletedFromIndex(index);
   }, []);
+
+  const interruptRun = useCallback(async () => {
+    if (!orgSlug || !currentRunId) {
+      return;
+    }
+
+    setInterruptRequested(true);
+
+    try {
+      await api.requestPromise(
+        `/organizations/${orgSlug}/seer/explorer-update/${currentRunId}/`,
+        {
+          method: 'POST',
+          data: {
+            payload: {
+              type: 'interrupt',
+            },
+          },
+        }
+      );
+    } catch (e: any) {
+      // If the request fails, reset the interrupt state
+      setInterruptRequested(false);
+    }
+  }, [api, orgSlug, currentRunId]);
 
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
@@ -316,6 +343,7 @@ export const useSeerExplorer = () => {
 
     if (!hasLoadingMessage && filteredSessionData.status !== 'processing') {
       setWaitingForResponse(false);
+      setInterruptRequested(false);
       // Clear deleted index once response is complete
       setDeletedFromIndex(null);
     }
@@ -330,5 +358,7 @@ export const useSeerExplorer = () => {
     runId: currentRunId,
     deleteFromIndex,
     deletedFromIndex,
+    interruptRun,
+    interruptRequested,
   };
 };

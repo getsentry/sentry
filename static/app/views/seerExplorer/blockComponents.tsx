@@ -20,6 +20,7 @@ interface BlockProps {
   blockIndex: number;
   isFocused?: boolean;
   isLast?: boolean;
+  isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
   onNavigate?: () => void;
@@ -84,6 +85,7 @@ function BlockComponent({
   blockIndex: _blockIndex,
   isLast,
   isFocused,
+  isPolling,
   onClick,
   onDelete,
   onNavigate,
@@ -218,7 +220,7 @@ function BlockComponent({
     }
   };
 
-  const showActions = (isFocused || isHovered) && !block.loading;
+  const showActions = (isFocused || isHovered) && !block.loading && !isPolling;
 
   return (
     <Block
