@@ -102,4 +102,25 @@ describe('useChonkTheme', () => {
       expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
     });
   });
+
+  describe('enforce states', () => {
+    it('returns light chonk theme if the organization has chonk-ui-enforce feature and user prefers chonk theme', () => {
+      OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui-enforce']}));
+      const {result} = renderHookWithProviders(useThemeSwitcher);
+      expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
+    });
+
+    it('returns dark chonk theme if the organization has chonk-ui-enforce feature and user prefers chonk theme', () => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            options: {...UserFixture().options, theme: 'dark'},
+          }),
+        })
+      );
+      OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui-enforce']}));
+      const {result} = renderHookWithProviders(useThemeSwitcher);
+      expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
+    });
+  });
 });

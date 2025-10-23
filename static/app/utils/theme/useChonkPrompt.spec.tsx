@@ -42,6 +42,25 @@ describe('useChonkPrompt', () => {
     expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 
+  it('org with chonk-ui-enforce does not show prompts', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      method: 'PUT',
+    });
+
+    const {result} = renderHookWithProviders(() => useChonkPrompt(), {
+      organization: OrganizationFixture({features: ['chonk-ui-enforce']}),
+    });
+
+    expect(result.current.showBannerPrompt).toBe(false);
+    expect(result.current.showDotIndicatorPrompt).toBe(false);
+  });
+
   it('dismissing tooltip prompt shows dot indicator prompt', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
