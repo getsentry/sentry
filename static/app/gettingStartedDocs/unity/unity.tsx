@@ -39,20 +39,6 @@ const onboarding: OnboardingConfig = {
           language: 'url',
           code: 'https://github.com/getsentry/unity.git',
         },
-        {
-          type: 'alert',
-          alertType: 'info',
-          showIcon: false,
-          text: tct(
-            'The Unity SDK now supports line numbers for IL2CPP. The feature is currently in beta, but you can enable it at [code:Tools -> Sentry -> Advanced -> IL2CPP] line numbers. To learn more check out our [link:docs].',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/unity/configuration/il2cpp/" />
-              ),
-            }
-          ),
-        },
       ],
     },
   ],
