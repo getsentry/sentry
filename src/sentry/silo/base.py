@@ -165,7 +165,7 @@ class SiloLimit(abc.ABC):
                 )
                 return handler(*args, **kwargs)
 
-        assign = functools.WRAPPER_ASSIGNMENTS
+        assign: tuple[str, ...] = functools.WRAPPER_ASSIGNMENTS
         if update_attrs:
             assign = assign + tuple(update_attrs)
         functools.update_wrapper(override, original_method, assigned=assign)
