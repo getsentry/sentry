@@ -5,7 +5,7 @@ import {ErrorBoundary} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
@@ -42,9 +42,9 @@ function StoryLayout() {
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <StoryContent>
+          <Flex flexGrow={1}>
             <StoryTabPanels />
-          </StoryContent>
+          </Flex>
           <ErrorBoundary>
             <StorySourceLinks />
           </ErrorBoundary>
@@ -70,7 +70,13 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   }, [title]);
 
   return (
-    <StoryHeader>
+    <Container
+      as="header"
+      background="secondary"
+      padding="3xl 0 0 0"
+      borderBottom="primary"
+      area="story-head"
+    >
       <StoryGrid>
         <StoryContainer style={{gap: theme.space['2xl']}}>
           <Flex
@@ -111,7 +117,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
         </StoryContainer>
         <StoryTableOfContentsPlaceholder />
       </StoryGrid>
-    </StoryHeader>
+    </Container>
   );
 }
 
@@ -232,13 +238,6 @@ function StoryAPI() {
   );
 }
 
-const StoryHeader = styled('header')`
-  background: ${p => p.theme.tokens.background.secondary};
-  padding: ${p => p.theme.space['3xl']} 0 0 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  grid-area: story-head;
-`;
-
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {
   return (
     <Grid
@@ -261,8 +260,4 @@ const StoryContainer = styled('div')`
     max-width: 832px;
     margin-inline: auto;
   }
-`;
-
-const StoryContent = styled('main')`
-  flex-grow: 1;
 `;
