@@ -418,6 +418,7 @@ class DashboardListResponse(TypedDict):
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
     projects: list[int]
+    prebuiltId: int | None
 
 
 class _WidgetPreview(TypedDict):
@@ -589,6 +590,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             "environment": attrs.get("environment", []),
             "filters": attrs.get("filters", {}),
             "lastVisited": attrs.get("last_visited", None),
+            "prebuiltId": obj.prebuilt_id,
         }
 
 
@@ -611,12 +613,13 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
     dateCreated: str
-    createdBy: UserSerializerResponse
+    createdBy: UserSerializerResponse | None
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    prebuiltId: int | None
 
 
 @register(Dashboard)
@@ -653,13 +656,18 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0],
+            "createdBy": (
+                user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0]
+                if obj.created_by_id
+                else None
+            ),
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
             "isFavorited": user.id in obj.favorited_by,
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
+            "prebuiltId": obj.prebuilt_id,
             **page_filters,
         }
 
