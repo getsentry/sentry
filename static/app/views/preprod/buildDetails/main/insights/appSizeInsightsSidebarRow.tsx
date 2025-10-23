@@ -231,7 +231,7 @@ function OptimizableImageFileRow({
         }}
       >
         <Flex align="center" gap="xs" style={{minWidth: 0, overflow: 'hidden'}}>
-          <Text size="sm" ellipsis>
+          <Text size="sm" ellipsis style={{flex: 1}}>
             {file.path}
           </Text>
           {hasMetadata && (
