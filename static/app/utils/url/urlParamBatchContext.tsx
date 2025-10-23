@@ -1,7 +1,6 @@
-import {createContext, useCallback, useContext, useMemo, useRef} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import debounce from 'lodash/debounce';
 
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -16,8 +15,9 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Store the pending updates in a `ref` so that queuing updates doesn't cause a
-  // context re-render.
+  // Store the pending updates in a `ref`. This way, queuing more updates
+  // doesn't update any state, so the context doesn't re-render and cause a
+  // re-render of all its subscribers.
   const pendingUpdates = useRef<Record<string, string | string[] | undefined>>({});
 
   const flushUpdates = useCallback(() => {
@@ -47,7 +47,7 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
       debounce(() => {
         // Flush all current pending URL query parameter updates
         flushUpdates();
-      }, DEFAULT_DEBOUNCE_DURATION),
+      }, URL_UPDATE_DEBOUNCE),
     [flushUpdates]
   );
 
@@ -65,6 +65,18 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
     [updateURL]
   );
 
+  // Cancel pending changes during `useEffect` cleanup. All the dependencies are
+  // fairly stable, so this should _only_ happen on unmount. It's important to
+  // run this on unmount rather than on location change because this context
+  // might be mounted low in the tree, and might actually get unmounted during a
+  // location change it should be listening to.
+  useEffect(() => {
+    return () => {
+      updateURL.cancel();
+      pendingUpdates.current = {};
+    };
+  }, [updateURL]);
+
   return (
     <BatchContext value={{batchUrlParamUpdates, flushUpdates}}>{children}</BatchContext>
   );
@@ -77,3 +89,5 @@ export const useUrlBatchContext = () => {
   }
   return context;
 };
+
+const URL_UPDATE_DEBOUNCE = 300;
