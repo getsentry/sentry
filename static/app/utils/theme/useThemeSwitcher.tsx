@@ -59,6 +59,9 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       match: ['command+shift+2', 'ctrl+shift+2'],
       includeInputs: true,
       callback: () => {
+        if (organization?.features?.includes('chonk-ui-enforce')) {
+          return;
+        }
         if (user?.options?.prefersChonkUI) {
           ConfigStore.set('theme', config.theme);
           addMessage(`Using default theme`, 'success');
@@ -69,7 +72,12 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
         }
       },
     }),
-    [user?.options?.prefersChonkUI, config.theme, mutateUserOptions]
+    [
+      user?.options?.prefersChonkUI,
+      organization?.features,
+      config.theme,
+      mutateUserOptions,
+    ]
   );
 
   useHotkeys(
