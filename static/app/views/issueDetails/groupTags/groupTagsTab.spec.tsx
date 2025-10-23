@@ -1,27 +1,25 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GroupTagsTab} from './groupTagsTab';
 
 describe('GroupTagsTab', () => {
   const group = GroupFixture();
-  const {router, organization} = initializeOrg({
-    router: {
-      location: {
-        query: {
-          environment: 'dev',
-        },
-      },
-      params: {
-        orgId: 'org-slug',
-        groupId: group.id,
+  const organization = OrganizationFixture();
+  let tagsMock: jest.Mock;
+
+  const makeInitialRouterConfig = () => ({
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      query: {
+        environment: 'dev',
       },
     },
+    route: '/organizations/:orgId/issues/:groupId/tags/',
   });
-  let tagsMock: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -36,10 +34,9 @@ describe('GroupTagsTab', () => {
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
-    render(<GroupTagsTab />, {
-      router,
+    const {router} = render(<GroupTagsTab />, {
+      initialRouterConfig: makeInitialRouterConfig(),
       organization,
-      deprecatedRouterMocks: true,
     });
 
     const headers = await screen.findAllByTestId('tag-title');
@@ -61,10 +58,11 @@ describe('GroupTagsTab', () => {
 
     await userEvent.click(screen.getByText('david'));
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/1/events/',
-      query: {query: 'user.username:david', environment: 'dev'},
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/1/events/');
     });
+    expect(router.location.query.query).toBe('user.username:david');
+    expect(router.location.query.environment).toBe('dev');
   });
 
   it('shows an error message when the request fails', async () => {
@@ -74,9 +72,8 @@ describe('GroupTagsTab', () => {
     });
 
     render(<GroupTagsTab />, {
-      router,
+      initialRouterConfig: makeInitialRouterConfig(),
       organization,
-      deprecatedRouterMocks: true,
     });
 
     expect(
