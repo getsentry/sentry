@@ -24,7 +24,7 @@ describe('groupEvents', () => {
     route: '/organizations/:orgId/issues/:groupId/events/',
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/events/`,
-      query: {query: '', ...query},
+      query,
     },
   });
 
@@ -212,7 +212,7 @@ describe('groupEvents', () => {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            query: `issue.id:${group.id} `,
+            query: 'issue.id:1 ',
           }),
         })
       );
