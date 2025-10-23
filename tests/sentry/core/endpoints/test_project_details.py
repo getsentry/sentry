@@ -632,6 +632,7 @@ class ProjectUpdateTest(APITestCase):
             "filters:releases": "1.*\n2.1.*",
             "filters:error_messages": "TypeError*\n*: integer division by modulo or zero",
             "filters:log_messages": "Updated*\n*.sentry.io",
+            "filters:trace_metric_names": "counter.*\n*.duration",
             "mail:subject_prefix": "[Sentry]",
             "sentry:scrub_ip_address": False,
             "sentry:origins": "*",
@@ -649,7 +650,13 @@ class ProjectUpdateTest(APITestCase):
             "filters:chunk-load-error": True,
         }
         with (
-            self.feature(["projects:custom-inbound-filters", "organizations:ourlogs-ingestion"]),
+            self.feature(
+                [
+                    "projects:custom-inbound-filters",
+                    "organizations:ourlogs-ingestion",
+                    "organizations:tracemetrics-ingestion",
+                ]
+            ),
             outbox_runner(),
         ):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -708,6 +715,10 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:log_messages") == [
             "Updated*",
             "*.sentry.io",
+        ]
+        assert project.get_option("sentry:trace_metric_names") == [
+            "counter.*",
+            "*.duration",
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         with assume_test_silo_mode(SiloMode.CONTROL):

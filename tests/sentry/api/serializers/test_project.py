@@ -272,6 +272,15 @@ class ProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user)
         assert result["hasLogs"] is True
 
+    @mock.patch.object(settings, "SENTRY_MODE", SentryMode.SELF_HOSTED)
+    def test_has_trace_metrics_self_hosted_mode(self) -> None:
+        current_flags = self.project.flags
+        current_flags.has_trace_metrics = False
+        self.project.update(flags=current_flags)
+
+        result = serialize(self.project, self.user)
+        assert result["hasTraceMetrics"] is True
+
 
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self) -> None:

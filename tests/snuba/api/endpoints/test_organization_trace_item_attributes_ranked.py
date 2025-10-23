@@ -95,17 +95,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.status_code == 200, response.data
         assert "cohort1Total" in response.data
         assert "cohort2Total" in response.data
-        distributions = response.data["rankedAttributes"]
-        attribute = next(a for a in distributions if a["attributeName"] == "sentry.device")
-        assert attribute
-        assert attribute["cohort1"] == [
-            {"label": "mobile", "value": 3.0},
-            {"label": "desktop", "value": 1.0},
-        ]
-        assert attribute["cohort2"] == [{"label": "desktop", "value": 2.0}]
 
-        attribute = next(a for a in distributions if a["attributeName"] == "browser")
-        assert attribute["attributeName"] == "browser"
+        # Verify filtering: no attributes should start with "tags[" or "sentry." (except sentry.normalized_description)
+        for attr in response.data["rankedAttributes"]:
+            assert not attr["attributeName"].startswith("tags[")
+            assert not (
+                attr["attributeName"].startswith("sentry.")
+                and attr["attributeName"] != "sentry.normalized_description"
+            )
 
         assert mock_compare_distributions.called
         call_args = mock_compare_distributions.call_args
@@ -245,146 +242,111 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         ), "tablet count should be positive in baseline"
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.trace_item_stats_rpc")
-    def test_filters_out_internal_and_private_attributes(
-        self, mock_trace_item_stats_rpc, mock_compare_distributions
-    ) -> None:
-        """Test that internal and private attributes are filtered from the response.
+    def test_filters_out_internal_and_private_attributes(self, mock_compare_distributions) -> None:
+        """Test that internal/private attributes and certain public aliases are filtered from the response.
 
-        Attributes that should be filtered:
-        - Private attributes (marked with private=True, e.g., sentry.links)
-        - Meta attributes (prefixed with sentry._meta)
-        - Internal attributes (prefixed with __sentry_internal or sentry._internal.)
+        The endpoint filters:
+        - Public aliases starting with "tags["
+        - Public aliases starting with "sentry." (EXCEPT sentry.normalized_description)
+        - Internal attributes (sentry._internal.*, __sentry_internal*)
+        - Meta attributes (containing sentry._meta)
+        - Private attributes (marked with private=True in definitions)
         """
-        from unittest.mock import MagicMock
+        # Mock the scoring algorithm to return arbitrary scores
+        # The actual attributes will come from real span data
+        mock_compare_distributions.return_value = {"results": []}
 
-        from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
-            AttributeDistributions,
-            TraceItemStatsResponse,
-        )
+        # Store spans with tags to generate attribute data
+        self._store_span(tags={"custom_tag": "value1", "browser": "chrome"}, duration=100)
+        self._store_span(tags={"custom_tag": "value2", "browser": "firefox"}, duration=200)
 
-        # Create mock RPC responses with both public and private attributes
-        def create_mock_response():
-            mock_response = MagicMock(spec=TraceItemStatsResponse)
-            mock_result = MagicMock()
-
-            # Create attribute distributions with a mix of public and internal attributes
-            mock_attribute_distributions = MagicMock(spec=AttributeDistributions)
-
-            # Public attributes that should appear
-            # Using a known sentry attribute for simplicity
-            public_attr = MagicMock()
-            public_attr.attribute_name = "sentry.device"
-            public_bucket = MagicMock()
-            public_bucket.label = "desktop"
-            public_bucket.value = 10.0
-            public_attr.buckets = [public_bucket]
-
-            # Another public attribute (user-defined tag)
-            public_attr2 = MagicMock()
-            public_attr2.attribute_name = "browser"  # Custom tag
-            public_bucket2 = MagicMock()
-            public_bucket2.label = "chrome"
-            public_bucket2.value = 8.0
-            public_attr2.buckets = [public_bucket2]
-
-            # Private attribute (marked with private=True in definitions)
-            private_attr = MagicMock()
-            private_attr.attribute_name = "sentry.links"
-            private_bucket = MagicMock()
-            private_bucket.label = "link1"
-            private_bucket.value = 5.0
-            private_attr.buckets = [private_bucket]
-
-            # Meta attribute (starts with sentry._meta)
-            meta_attr = MagicMock()
-            meta_attr.attribute_name = "sentry._meta.fields.attributes.browser"
-            meta_bucket = MagicMock()
-            meta_bucket.label = "metadata"
-            meta_bucket.value = 3.0
-            meta_attr.buckets = [meta_bucket]
-
-            # Internal attribute (starts with sentry._internal.)
-            internal_attr = MagicMock()
-            internal_attr.attribute_name = "sentry._internal.some_metric"
-            internal_bucket = MagicMock()
-            internal_bucket.label = "internal"
-            internal_bucket.value = 7.0
-            internal_attr.buckets = [internal_bucket]
-
-            # Another internal attribute (starts with __sentry_internal)
-            internal_attr2 = MagicMock()
-            internal_attr2.attribute_name = "__sentry_internal.debug_info"
-            internal_bucket2 = MagicMock()
-            internal_bucket2.label = "debug"
-            internal_bucket2.value = 2.0
-            internal_attr2.buckets = [internal_bucket2]
-
-            mock_attribute_distributions.attributes = [
-                public_attr,
-                public_attr2,
-                private_attr,
-                meta_attr,
-                internal_attr,
-                internal_attr2,
-            ]
-
-            mock_result.attribute_distributions = mock_attribute_distributions
-            mock_response.results = [mock_result]
-            return mock_response
-
-        # Both cohorts return the same attributes
-        mock_trace_item_stats_rpc.return_value = create_mock_response()
-
-        mock_compare_distributions.return_value = {
-            "results": [
-                ("sentry.device", 0.9),
-                ("browser", 0.8),
-            ]
-        }
-
-        # Store a simple span
-        self._store_span(tags={"browser": "chrome"}, duration=100)
-
-        response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
+        response = self.do_request(query={"query_1": "span.duration:<=150", "query_2": ""})
 
         assert response.status_code == 200, response.data
 
-        # Get all attribute names from the response
-        attribute_names = [attr["attributeName"] for attr in response.data["rankedAttributes"]]
-
-        # Verify that public attributes appear
-        # Note: tags[browser,string] is the format for custom user tags
-        assert (
-            "tags[browser,string]" in attribute_names or "browser" in attribute_names
-        ), "Public attribute 'browser' should be in response"
-        # sentry.device gets mapped to its public alias
-        assert any(
-            "device" in name for name in attribute_names
-        ), "Public attribute 'device' should be in response"
-
-        # Verify that private/internal attributes are filtered out
-        assert (
-            "sentry.links" not in attribute_names
-        ), "Private attribute 'sentry.links' should be filtered out"
-        assert not any(
-            "sentry._meta" in name for name in attribute_names
-        ), "Meta attributes should be filtered out"
-        assert not any(
-            "sentry._internal" in name for name in attribute_names
-        ), "Internal attributes with 'sentry._internal.' prefix should be filtered out"
-        assert not any(
-            "__sentry_internal" in name for name in attribute_names
-        ), "Internal attributes with '__sentry_internal' prefix should be filtered out"
-
-        # Also verify the distribution maps don't contain these attributes
+        # Verify filtering: all returned attributes must NOT have these prefixes/patterns
         for attr in response.data["rankedAttributes"]:
-            assert not attr["attributeName"].startswith(
-                "sentry._meta"
-            ), f"Attribute {attr['attributeName']} should not start with sentry._meta"
-            assert not attr["attributeName"].startswith(
-                "sentry._internal"
-            ), f"Attribute {attr['attributeName']} should not start with sentry._internal"
-            assert not attr["attributeName"].startswith(
+            attr_name = attr["attributeName"]
+            # Public alias filtering
+            assert not attr_name.startswith(
+                "tags["
+            ), f"Attribute '{attr_name}' should be filtered (starts with tags[)"
+            assert not (
+                attr_name.startswith("sentry.") and attr_name != "sentry.normalized_description"
+            ), f"Attribute '{attr_name}' should be filtered (starts with sentry.* but is not sentry.normalized_description)"
+
+            # Internal/private attribute filtering
+            assert not attr_name.startswith(
+                "sentry._internal."
+            ), f"Attribute '{attr_name}' should be filtered (internal attribute with sentry._internal. prefix)"
+            assert not attr_name.startswith(
                 "__sentry_internal"
-            ), f"Attribute {attr['attributeName']} should not start with __sentry_internal"
+            ), f"Attribute '{attr_name}' should be filtered (internal attribute with __sentry_internal prefix)"
+            assert (
+                "sentry._meta" not in attr_name
+            ), f"Attribute '{attr_name}' should be filtered (meta attribute)"
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
+    @patch(
+        "sentry.api.endpoints.organization_trace_item_attributes_ranked.translate_internal_to_public_alias"
+    )
+    def test_includes_user_defined_attributes_when_translate_returns_none(
+        self, mock_translate, mock_keyed_rrf_score, mock_compare_distributions
+    ) -> None:
+        """Test that user-defined attributes are included when translate_internal_to_public_alias returns None.
+
+        When translate_internal_to_public_alias returns (None, None, None), it indicates a user-defined
+        attribute that should be kept as-is and included in the response (unless it starts with forbidden prefixes).
+        """
+
+        # Mock translate function to return None for user-defined attributes
+        def mock_translate_func(attr, *_):
+            if attr == "custom_user_attr":
+                return (None, None, None)  # User-defined attribute
+            elif attr == "tags[filtered_tag]":
+                return (None, None, None)  # Should be filtered due to tags[ prefix
+            else:
+                return (attr, None, None)  # Regular attributes
+
+        mock_translate.side_effect = mock_translate_func
+
+        # Mock primary scoring (keyed_rrf_score) to include our test attributes
+        mock_keyed_rrf_score.return_value = [
+            ("custom_user_attr", 0.9),
+            ("tags[filtered_tag]", 0.8),
+            ("regular_attr", 0.7),
+        ]
+
+        # Mock secondary scoring for RRR ordering
+        mock_compare_distributions.return_value = {
+            "results": [
+                ("custom_user_attr", 0.9),
+                ("tags[filtered_tag]", 0.8),
+                ("regular_attr", 0.7),
+            ]
+        }
+
+        # Store spans to generate some data
+        self._store_span(tags={"browser": "chrome"}, duration=100)
+        self._store_span(tags={"browser": "firefox"}, duration=200)
+
+        response = self.do_request(query={"query_1": "span.duration:<=150", "query_2": ""})
+
+        assert response.status_code == 200, response.data
+
+        # Extract attribute names from response
+        returned_attrs = [attr["attributeName"] for attr in response.data["rankedAttributes"]]
+
+        # User-defined attribute should be included with original name
+        assert (
+            "custom_user_attr" in returned_attrs
+        ), "User-defined attributes should be included when translate returns None"
+
+        # Filtered attribute should NOT be included even if translate returns None
+        assert (
+            "tags[filtered_tag]" not in returned_attrs
+        ), "Attributes with forbidden prefixes should be filtered even when translate returns None"
+
+        # Regular attribute should be included
+        assert "regular_attr" in returned_attrs, "Regular attributes should be included"
