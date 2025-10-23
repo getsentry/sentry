@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, tagstore
+from sentry import analytics, features, tagstore
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -81,12 +81,17 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
         tenant_ids = {"organization_id": group.project.organization_id}
+        include_empty_values = features.has(
+            "organizations:issue-tags-include-empty-values",
+            organization=group.project.organization,
+        )
         try:
             tagstore.backend.get_group_tag_key(
                 group,
                 None,
                 lookup_key,
                 tenant_ids=tenant_ids,
+                include_empty_values=include_empty_values,
             )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
@@ -106,7 +111,12 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             serializer_cls = None
 
         paginator = tagstore.backend.get_group_tag_value_paginator(
-            group, environment_ids, lookup_key, order_by=order_by, tenant_ids=tenant_ids
+            group,
+            environment_ids,
+            lookup_key,
+            order_by=order_by,
+            tenant_ids=tenant_ids,
+            include_empty_values=include_empty_values,
         )
 
         return self.paginate(

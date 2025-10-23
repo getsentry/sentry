@@ -1,6 +1,7 @@
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 
 
 class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -44,3 +45,65 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert response.status_code == 200, response.content
         assert response.data["key"] == "foo"
         assert response.data["totalValues"] == 2
+
+    def test_excludes_empty_values_by_default(self) -> None:
+        for i in range(2):
+            self.store_event(
+                data={
+                    "tags": {"foo": ""},
+                    "fingerprint": ["group-empty-default"],
+                    "timestamp": before_now(seconds=1 + i).isoformat(),
+                },
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+
+        event = self.store_event(
+            data={
+                "tags": {"foo": "baz"},
+                "fingerprint": ["group-empty-default"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event.group.id}/tags/foo/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["totalValues"] == 1
+        assert "" not in {value["value"] for value in response.data["topValues"]}
+
+    @with_feature({"organizations:issue-tags-include-empty-values": True})
+    def test_includes_empty_values_with_feature(self) -> None:
+        for i in range(2):
+            self.store_event(
+                data={
+                    "tags": {"foo": ""},
+                    "fingerprint": ["group-empty-flag"],
+                    "timestamp": before_now(seconds=1 + i).isoformat(),
+                },
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+
+        event = self.store_event(
+            data={
+                "tags": {"foo": "baz"},
+                "fingerprint": ["group-empty-flag"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event.group.id}/tags/foo/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["totalValues"] == 3
+        top_values = {value["value"]: value["count"] for value in response.data["topValues"]}
+        assert top_values.get("") == 2
+        assert top_values.get("baz") == 1
