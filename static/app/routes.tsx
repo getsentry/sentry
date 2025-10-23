@@ -358,7 +358,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/account/notifications/notificationSettingsController'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':fineTuneType/',
@@ -369,7 +368,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/account/accountNotificationFineTuningController'
               )
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1673,6 +1671,36 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
+  const monitorRoutes: SentryRouteObject = {
+    path: '/monitors/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/detectors/monitorViewContainer')),
+    children: [
+      ...detectorRoutes.children!,
+      automationRoutes,
+      {
+        path: 'my-monitors/',
+        component: make(() => import('sentry/views/detectors/list/myMonitors')),
+      },
+      {
+        path: 'errors/',
+        component: make(() => import('sentry/views/detectors/list/error')),
+      },
+      {
+        path: 'metrics/',
+        component: make(() => import('sentry/views/detectors/list/metric')),
+      },
+      {
+        path: 'crons/',
+        component: make(() => import('sentry/views/detectors/list/cron')),
+      },
+      {
+        path: 'uptime/',
+        component: make(() => import('sentry/views/detectors/list/uptime')),
+      },
+    ],
+  };
+
   const replayChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2208,12 +2236,10 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/profiling/content')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'summary/:projectId/',
       component: make(() => import('sentry/views/profiling/profileSummary')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'profile/:projectId/differential-flamegraph/',
@@ -2223,7 +2249,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'profile/:projectId/',
       component: make(() => import('sentry/views/profiling/continuousProfileProvider')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
@@ -2236,7 +2261,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'profile/:projectId/:eventId/',
       component: make(() => import('sentry/views/profiling/transactionProfileProvider')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
@@ -2250,7 +2274,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/profiling')),
     withOrgPath: true,
     children: profilingChildren,
-    deprecatedRouteProps: true,
   };
 
   const exploreChildren: SentryRouteObject[] = [
@@ -2931,6 +2954,7 @@ function buildRoutes(): RouteObject[] {
       feedbackv2Routes,
       issueRoutes,
       alertRoutes,
+      monitorRoutes,
       preventRoutes,
       preprodRoutes,
       pullRequestRoutes,
@@ -3116,7 +3140,6 @@ function buildRoutes(): RouteObject[] {
       {
         path: '/',
         component: errorHandler(App),
-        deprecatedRouteProps: true,
         children: [
           rootRoutes,
           authV2Routes,

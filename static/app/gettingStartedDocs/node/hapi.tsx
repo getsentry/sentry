@@ -16,7 +16,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -31,7 +31,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const Hapi = require('@hapi/hapi');
 
 const init = async () => {
@@ -80,10 +80,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Add the Sentry Node SDK as a dependency:'),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params)[0]!.code,
-        },
+        getInstallCodeBlock(params),
       ],
     },
   ],
@@ -247,7 +244,7 @@ const docs: Docs = {
   crashReportOnboarding,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'hapi',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   profilingOnboarding: getNodeProfilingOnboarding(),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),

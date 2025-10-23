@@ -138,31 +138,6 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.SPANS: {
-      crumbs.push({
-        label: t('Spans'),
-        to: getBreadCrumbTarget(
-          normalizeUrl(
-            `/organizations/${organization.slug}/${transactionSummaryUrl}/spans`
-          ),
-          location.query
-        ),
-      });
-
-      const {spanSlug} = location.query;
-      if (spanSlug) {
-        crumbs.push({
-          label: t('Span Summary'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(
-              `/organizations/${organization.slug}/${transactionSummaryUrl}/spans/${spanSlug}`
-            ),
-            location.query
-          ),
-        });
-      }
-      break;
-    }
     default:
       crumbs.push({
         label: t('Transaction Summary'),

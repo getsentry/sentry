@@ -1,14 +1,17 @@
 import {useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
@@ -17,10 +20,12 @@ type FilterSelectorProps = {
   globalFilter: GlobalFilter;
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
+  searchBarData: SearchBarData;
 };
 
 function FilterSelector({
   globalFilter,
+  searchBarData,
   onRemoveFilter,
   onUpdateFilter,
 }: FilterSelectorProps) {
@@ -37,10 +42,6 @@ function FilterSelector({
   }, [initialValues]);
 
   const {dataset, tag} = globalFilter;
-  const {selection} = usePageFilters();
-  const dataProvider = getDatasetConfig(dataset).useSearchBarDataProvider!({
-    pageFilters: selection,
-  });
 
   const baseQueryKey = useMemo(() => ['global-dashboard-filters-tag-values', tag], [tag]);
   const queryKey = useDebouncedValue(baseQueryKey);
@@ -50,7 +51,7 @@ function FilterSelector({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey,
     queryFn: async () => {
-      const result = await dataProvider?.getTagValues(tag, '');
+      const result = await searchBarData.getTagValues(tag, '');
       return result ?? [];
     },
     placeholderData: keepPreviousData,
@@ -98,28 +99,34 @@ function FilterSelector({
       onChange={handleChange}
       sizeLimit={10}
       sizeLimitMessage={t('Use search to find more filter values…')}
-      onReset={() => {
-        setActiveFilterValues([]);
-        onUpdateFilter({
-          ...globalFilter,
-          value: '',
-        });
-      }}
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
-      menuTitle={t('%s filter', getDatasetLabel(dataset))}
-      menuHeaderTrailingItems={
-        <Button
-          aria-label={t('Remove Filter')}
-          borderless
-          size="xs"
-          priority="link"
-          onClick={() => onRemoveFilter(globalFilter)}
-        >
-          {t('Remove')}
-        </Button>
-      }
+      menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+      menuHeaderTrailingItems={({closeOverlay}: any) => (
+        <Flex gap="md">
+          {activeFilterValues.length > 0 && (
+            <StyledButton
+              aria-label={t('Clear Selections')}
+              size="zero"
+              borderless
+              onClick={() => {
+                handleChange([]);
+                closeOverlay();
+              }}
+            >
+              {t('Clear')}
+            </StyledButton>
+          )}
+          <StyledButton
+            aria-label={t('Remove Filter')}
+            size="zero"
+            onClick={() => onRemoveFilter(globalFilter)}
+          >
+            {t('Remove Filter')}
+          </StyledButton>
+        </Flex>
+      )}
       triggerProps={{
         children: (
           <FilterSelectorTrigger
@@ -135,3 +142,14 @@ function FilterSelector({
 }
 
 export default FilterSelector;
+
+const StyledButton = styled(Button)`
+  font-size: inherit;
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
+`;

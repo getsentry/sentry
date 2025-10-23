@@ -258,27 +258,21 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
-            if options.get("deletions.group.delete_group_hashes_metadata_first"):
-                # If we delete the grouphash metadata rows first we will not need to update the references to the other grouphashes.
-                # If we try to delete the group hashes first, then it will require the updating of the columns first.
-                #
-                # To understand this, let's say we have the following relationships:
-                # gh A -> ghm A -> no reference to another grouphash
-                # gh B -> ghm B -> gh C
-                # gh C -> ghm C -> gh A
-                #
-                # Deleting group hashes A, B & C (since they all point to the same group) will require:
-                # * Updating columns ghmB & ghmC to point to None
-                # * Deleting the group hash metadata rows
-                # * Deleting the group hashes
-                #
-                # If we delete the metadata first, we will not need to update the columns before deleting them.
-                try:
-                    GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
-                except Exception:
-                    # XXX: Let's make sure that no issues are caused by this and then remove it
-                    logger.exception("Error deleting group hash metadata")
-
+            # If we delete the grouphash metadata rows first we will not need to update the references to the other grouphashes.
+            # If we try to delete the group hashes first, then it will require the updating of the columns first.
+            #
+            # To understand this, let's say we have the following relationships:
+            # gh A -> ghm A -> no reference to another grouphash
+            # gh B -> ghm B -> gh C
+            # gh C -> ghm C -> gh A
+            #
+            # Deleting group hashes A, B & C (since they all point to the same group) will require:
+            # * Updating columns ghmB & ghmC to point to None
+            # * Deleting the group hash metadata rows
+            # * Deleting the group hashes
+            #
+            # If we delete the metadata first, we will not need to update the columns before deleting them.
+            GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1

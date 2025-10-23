@@ -18,7 +18,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -33,7 +33,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const Fastify = require('fastify')
 
 const app = Fastify();
@@ -60,10 +60,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Add the Sentry Node SDK as a dependency:'),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params)[0]!.code,
-        },
+        getInstallCodeBlock(params),
       ],
     },
   ],
@@ -201,7 +198,7 @@ const docs: Docs = {
   profilingOnboarding: getNodeProfilingOnboarding(),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'fastify',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),

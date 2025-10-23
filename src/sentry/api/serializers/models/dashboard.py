@@ -37,6 +37,11 @@ class OnDemandResponse(TypedDict):
     dashboardWidgetQueryId: int
 
 
+class LinkedDashboardResponse(TypedDict):
+    field: str
+    dashboardId: int
+
+
 class DashboardWidgetQueryResponse(TypedDict):
     id: str
     name: str
@@ -50,6 +55,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     onDemand: list[OnDemandResponse]
     isHidden: bool
     selectedAggregate: int | None
+    linkedDashboards: list[LinkedDashboardResponse]
 
 
 class ThresholdType(TypedDict):
@@ -93,7 +99,7 @@ class DashboardWidgetSerializer(Serializer):
         data_sources = serialize(
             list(
                 DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
-                .prefetch_related("dashboardwidgetqueryondemand_set")
+                .prefetch_related("dashboardwidgetqueryondemand_set", "dashboardfieldlink_set")
                 .order_by("order")
             )
         )
@@ -358,7 +364,17 @@ class DashboardWidgetQuerySerializer(Serializer):
             widget_data_sources = [
                 d for d in data_sources if d["dashboardWidgetQueryId"] == widget_query.id
             ]
-            result[widget_query] = {"onDemand": widget_data_sources}
+
+            # Convert field links to response format
+            linked_dashboards = [
+                {"field": link.field, "dashboardId": link.dashboard_id}
+                for link in widget_query.dashboardfieldlink_set.all()
+            ]
+
+            result[widget_query] = {
+                "onDemand": widget_data_sources,
+                "linkedDashboards": linked_dashboards,
+            }
 
         return result
 
@@ -376,6 +392,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
             "selectedAggregate": obj.selected_aggregate,
+            "linkedDashboards": attrs["linkedDashboards"],
         }
 
 
@@ -401,6 +418,7 @@ class DashboardListResponse(TypedDict):
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
     projects: list[int]
+    prebuiltId: int | None
 
 
 class _WidgetPreview(TypedDict):
@@ -572,6 +590,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             "environment": attrs.get("environment", []),
             "filters": attrs.get("filters", {}),
             "lastVisited": attrs.get("last_visited", None),
+            "prebuiltId": obj.prebuilt_id,
         }
 
 
@@ -594,12 +613,13 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
     dateCreated: str
-    createdBy: UserSerializerResponse
+    createdBy: UserSerializerResponse | None
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    prebuiltId: int | None
 
 
 @register(Dashboard)
@@ -636,13 +656,18 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0],
+            "createdBy": (
+                user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0]
+                if obj.created_by_id
+                else None
+            ),
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
             "isFavorited": user.id in obj.favorited_by,
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
+            "prebuiltId": obj.prebuilt_id,
             **page_filters,
         }
 

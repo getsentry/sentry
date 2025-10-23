@@ -306,6 +306,8 @@ export interface SeerRepoDefinition {
   branch_name?: string;
   branch_overrides?: BranchOverride[];
   instructions?: string;
+  integration_id?: string;
+  organization_id?: number;
   provider_raw?: string;
 }
 

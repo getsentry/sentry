@@ -269,7 +269,7 @@ class ProjectKey(Model):
     def otlp_traces_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return f"{endpoint}/api/{self.project_id}/otlp/v1/traces"
+        return f"{endpoint}/api/{self.project_id}/integration/otlp/v1/traces"
 
     @property
     def otlp_logs_endpoint(self):

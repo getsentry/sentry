@@ -20,7 +20,7 @@ interface WorkflowEngineEditLayoutProps {
 }
 
 /**
- * Precomposed layout for Automations / Monitors edit pages with form handling.
+ * Precomposed layout for Monitors / Alerts edit pages with form handling.
  */
 function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
   return (
@@ -118,7 +118,7 @@ function HeaderFields({children}: RequiredChildren) {
 function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {
   return (
     <StyledBody maxWidth={maxWidth}>
-      <Layout.Main fullWidth>{children}</Layout.Main>
+      <Layout.Main width="full">{children}</Layout.Main>
     </StyledBody>
   );
 }

@@ -170,9 +170,9 @@ function AutomationListTable({
         />
       )}
       {isSuccess && automations.length === 0 && (
-        <SimpleTable.Empty>{t('No automations found')}</SimpleTable.Empty>
+        <SimpleTable.Empty>{t('No alerts found')}</SimpleTable.Empty>
       )}
-      {isError && <LoadingError message={t('Error loading automations')} />}
+      {isError && <LoadingError message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
       {isSuccess &&
         automations.map(automation => (
