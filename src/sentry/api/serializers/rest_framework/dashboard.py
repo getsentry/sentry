@@ -1,5 +1,5 @@
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
@@ -918,7 +918,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     def _update_or_create_field_links(
         self,
         query: DashboardWidgetQuery,
-        linked_dashboards: Iterable[LinkedDashboard],
+        linked_dashboards: list[LinkedDashboard],
         widget: DashboardWidget,
     ):
         """
@@ -932,12 +932,22 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         if not features.has("organizations:dashboards-drilldown-flow", organization):
             return
 
-        with sentry_sdk.start_span(op="function", name="dashboard.update_or_create_field_links"):
+        with sentry_sdk.start_span(
+            op="function", name="dashboard.update_or_create_field_links"
+        ) as span:
             # Get the set of fields that should exist
             new_fields = set()
             field_links_to_create = []
 
             widget_display_type = widget.display_type
+            span.set_data(
+                "linked_dashboards",
+                [
+                    {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                    for ld in linked_dashboards
+                ],
+            )
+            span.set_data("widget_display_type", widget_display_type)
 
             if (
                 widget_display_type is not DashboardWidgetDisplayTypes.TABLE
@@ -946,6 +956,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 raise serializers.ValidationError(
                     "Field links are only supported for table widgets"
                 )
+
+            if len(linked_dashboards) > 0:
+                return
 
             for link_data in linked_dashboards:
                 field = link_data.get("field")
