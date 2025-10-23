@@ -40,5 +40,5 @@ export function AssignSection() {
 }
 
 const StyledMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
-  padding-left: 0;
+  padding: 0;
 `;
