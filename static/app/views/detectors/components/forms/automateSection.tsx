@@ -38,6 +38,7 @@ function ConnectedAutomations({
         cursor={cursor}
         onCursor={setCursor}
         limit={null}
+        openInNewTab
       />
     </Section>
   );
@@ -69,6 +70,7 @@ function AllAutomations({
         cursor={cursor}
         onCursor={setCursor}
         query={searchQuery}
+        openInNewTab
       />
     </Section>
   );
@@ -181,6 +183,7 @@ export function AutomateSection() {
             cursor={undefined}
             onCursor={() => {}}
             limit={null}
+            openInNewTab
           />
         </Section>
         <ButtonWrapper justify="between">
