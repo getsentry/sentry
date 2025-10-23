@@ -48,7 +48,7 @@ class CursorPoller {
   }
 
   enable() {
-    // Proactively cleanup to prevent intervals per class instance
+    // Proactively cleanup to prevent multiple setTimeout per class instance
     this.disable();
 
     this.active = true;
