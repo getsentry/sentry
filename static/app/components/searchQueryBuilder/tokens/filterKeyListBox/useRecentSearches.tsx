@@ -7,7 +7,7 @@ export function useRecentSearches() {
   return useFetchRecentSearches(
     {
       savedSearchType: recentSearches ?? null,
-      query: namespaceFilterKey,
+      namespace: namespaceFilterKey,
       limit: 10,
     },
     {

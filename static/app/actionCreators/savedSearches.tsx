@@ -14,16 +14,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 // HACK: This prefix is used to prefix the recent searches query to isolate
 // search results among the same search type. It intentionally doesn't follow
 // typical search syntax because it is meant to be filtered out of the UI
-export const NAMESPACE_FILTER_KEY_PREFIX = '__namespace_filter__';
+export const NAMESPACE_SYMBOL = '\uf00d';
 
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
 
-function getNamespaceFilterKey(namespaceFilterKey: string): string {
-  return `${NAMESPACE_FILTER_KEY_PREFIX}:${namespaceFilterKey}`;
+function encodeNamespacedRecentSearch(namespaceFilterKey: string): string {
+  return `${NAMESPACE_SYMBOL}namespace${NAMESPACE_SYMBOL}${namespaceFilterKey}${NAMESPACE_SYMBOL}`;
 }
 
-export function parseQueryFromRecentSearch(
+export function decodeNamespacedRecentSearch(
   recentSearchQuery: string,
   namespaceFilterKey?: string
 ): string {
@@ -31,7 +31,7 @@ export function parseQueryFromRecentSearch(
     return recentSearchQuery;
   }
 
-  const namespacePrefix = getNamespaceFilterKey(namespaceFilterKey);
+  const namespacePrefix = encodeNamespacedRecentSearch(namespaceFilterKey);
 
   if (recentSearchQuery.startsWith(namespacePrefix)) {
     return recentSearchQuery.slice(namespacePrefix.length).trimStart();
@@ -62,7 +62,7 @@ export function saveRecentSearch(
       // Inject the namespaceFilterKey as a prefix to the query, so that we can filter the results for specific use cases
       // that have filters pre-defined.
       query: namespaceFilterKey
-        ? `${getNamespaceFilterKey(namespaceFilterKey)} ${query}`
+        ? `${encodeNamespacedRecentSearch(namespaceFilterKey)} ${query}`
         : query,
       type,
     },
@@ -103,20 +103,22 @@ export function useFetchRecentSearches(
     query,
     savedSearchType,
     limit = MAX_AUTOCOMPLETE_RECENT_SEARCHES,
+    namespace,
   }: {
     savedSearchType: SavedSearchType | null;
     limit?: number;
+    namespace?: string;
     query?: string;
   },
   options: Partial<UseApiQueryOptions<RecentSearch[]>> = {}
 ) {
   const organization = useOrganization();
 
-  return useApiQuery<RecentSearch[]>(
+  const response = useApiQuery<RecentSearch[]>(
     makeRecentSearchesQueryKey({
       limit,
       orgSlug: organization.slug,
-      query,
+      query: namespace ? encodeNamespacedRecentSearch(namespace) : query,
       savedSearchType,
     }),
     {
@@ -125,4 +127,12 @@ export function useFetchRecentSearches(
       ...options,
     }
   );
+
+  return {
+    ...response,
+    data: response.data?.map(search => ({
+      ...search,
+      query: decodeNamespacedRecentSearch(search.query, namespace),
+    })),
+  };
 }
