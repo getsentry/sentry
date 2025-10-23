@@ -13,17 +13,21 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
+from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import killswitches
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.options.rollout import in_random_rollout
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
-from sentry.spans.consumers.process.schema_validator import ProcessSpansSchemaValidator
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, SetJoinTimeout, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
+
+SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.INGEST_SPANS)
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -64,8 +68,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         if self.num_processes != 1:
             self.__pool = MultiprocessingPool(num_processes)
 
-        self.schema_validator = ProcessSpansSchemaValidator()
-
     def create_with_partitions(
         self,
         commit: Commit,
@@ -104,7 +106,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 function=partial(
                     process_batch,
                     buffer,
-                    self.schema_validator,
                 ),
                 next_step=flusher,
                 max_batch_size=self.max_batch_size,
@@ -118,7 +119,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 function=partial(
                     process_batch,
                     buffer,
-                    self.schema_validator,
                 ),
                 next_step=flusher,
             )
@@ -158,7 +158,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 @metrics.wraps("spans.buffer.process_batch")
 def process_batch(
     buffer: SpansBuffer,
-    schema_validator: ProcessSpansSchemaValidator,
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
     killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
@@ -192,7 +191,7 @@ def process_batch(
                 continue
 
             # Adding schema validation to avoid crashing the consumer downstream
-            schema_validator.validate(val)
+            validate_span(val)
 
             span = Span(
                 trace_id=cast(str, val["trace_id"]),
@@ -229,3 +228,20 @@ def process_batch(
     assert min_timestamp is not None
     buffer.process_spans(spans, now=min_timestamp)
     return min_timestamp
+
+
+def validate_span(span: SpanEvent) -> None:
+    """
+    Checks whether the span is valid based on the ingest spans schema.
+    All spans that do not conform to the schema validation rules are discarded.
+
+    There are several other assertions to protect against downstream crashes, see also: INC-1453, INC-1458.
+    """
+    if in_random_rollout("spans.process-segments.schema-validation"):
+        SPANS_CODEC.validate(span)
+    assert isinstance(span["trace_id"], str), "trace_id must be a string"
+    assert isinstance(span["span_id"], str), "span_id must be a string"
+    assert isinstance(span["start_timestamp"], (int, float)), "start_timestamp must be a float"
+    assert isinstance(span["end_timestamp"], (int, float)), "end_timestamp must be a float"
+    segment_id = cast(str | None, attribute_value(span, "sentry.segment.id"))
+    assert segment_id is None or isinstance(segment_id, str), "segment_id must be a string or None"
