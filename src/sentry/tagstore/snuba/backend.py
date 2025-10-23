@@ -177,7 +177,7 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
-        conditions = list(kwargs.get("conditions", []))
+        conditions = kwargs.get("conditions", [])
         aggregations = kwargs.get("aggregations", [])
 
         dataset, filters = self.apply_group_filters(group, filters)
