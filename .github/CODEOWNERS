@@ -383,10 +383,16 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
 
-
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
 /src/sentry/identity/                                                @getsentry/enterprise
+
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+/src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/issue-detection-backend
+/src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
+/src/sentry/integrations/coding_agent/                                      @getsentry/machine-learning-ai
+/src/sentry/integrations/utils/codecov.py                            @getsentry/codecov
+/src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/issue-detection-backend
+
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
 /src/sentry/notifications/models/                                    @getsentry/ecosystem
