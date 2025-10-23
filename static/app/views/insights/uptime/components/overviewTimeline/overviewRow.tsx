@@ -31,6 +31,7 @@ import {
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
+import {monitorName} from 'sentry/views/insights/uptime/utils/monitorName';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
 interface Props {
@@ -76,7 +77,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
 
   const ruleDetails = single ? null : (
     <DetailsLink to={{pathname: detailsPath, query}}>
-      <Name>{uptimeDetector.name}</Name>
+      <Name>{monitorName(uptimeDetector)}</Name>
       <Details>
         <DetailsLine>
           {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
