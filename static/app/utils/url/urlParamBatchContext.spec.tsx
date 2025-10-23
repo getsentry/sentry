@@ -1,7 +1,9 @@
+import debounce from 'lodash/debounce';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {testableDebounce} from 'sentry/utils/testableDebounce';
 import {
   UrlParamBatchProvider,
   useUrlBatchContext,
@@ -11,43 +13,22 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
-
-jest.mock('lodash/debounce', () =>
-  jest.fn().mockImplementation((callback, timeout) => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const debounced = jest.fn((...args) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => callback(...args), timeout);
-    });
-
-    const cancel = jest.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
-    });
-
-    const flush = jest.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
-      callback();
-    });
-
-    // @ts-expect-error mock lodash debounce
-    debounced.cancel = cancel;
-    // @ts-expect-error mock lodash debounce
-    debounced.flush = flush;
-    return debounced;
-  })
-);
+jest.mock('lodash/debounce');
 
 describe('UrlParamBatchProvider', () => {
   let mockNavigate: jest.Mock;
+
   beforeEach(() => {
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    jest.mocked(debounce).mockImplementation(testableDebounce);
     jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.clearAllTimers();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('should batch updates to the URL query params', () => {
@@ -57,14 +38,10 @@ describe('UrlParamBatchProvider', () => {
     });
     const {batchUrlParamUpdates} = result.current;
 
-    act(() => {
-      batchUrlParamUpdates({foo: 'bar'});
-      batchUrlParamUpdates({potato: 'test'});
-    });
+    batchUrlParamUpdates({foo: 'bar'});
+    batchUrlParamUpdates({potato: 'test'});
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    jest.runAllTimers();
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith(
