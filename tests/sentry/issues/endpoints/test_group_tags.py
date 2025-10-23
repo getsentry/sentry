@@ -308,7 +308,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={
                 "fingerprint": ["group-empty-all"],
-                "tags": {"foo": ""},
+                "tags": {},
                 "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,

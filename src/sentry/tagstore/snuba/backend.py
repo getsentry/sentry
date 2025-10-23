@@ -727,25 +727,6 @@ class SnubaTagStorage(TagStorage):
         keys_with_counts = self.get_group_tag_keys(
             group, environment_ids, keys=keys, tenant_ids=tenant_ids
         )
-
-        # If we need to include empty values, use the per-key path which reliably
-        # returns empty-string values for each key that will be displayed.
-        if include_empty_values:
-            for keyobj in keys_with_counts:
-                tag = self.__get_tag_key_and_top_values(
-                    group.project_id,
-                    group,
-                    environment_ids[0] if environment_ids else None,
-                    keyobj.key,
-                    limit=value_limit,
-                    tenant_ids=tenant_ids,
-                    include_empty_values=True,
-                )
-                keyobj.values_seen = tag.values_seen
-                keyobj.count = tag.count
-                keyobj.top_values = tag.top_values
-            return keys_with_counts
-
         # Then get the top values with first_seen/last_seen/count for each
         filters: dict[str, list[Any]] = {"project_id": get_project_list(group.project_id)}
         conditions = kwargs.get("conditions", [])
@@ -776,7 +757,29 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
-        # Then supplement the key objects with the top values for each.
+        if include_empty_values:
+            keys_to_check = list(values_by_key.keys()) or [k.key for k in keys_with_counts]
+            empty_stats_map = self.__get_empty_value_stats_map(
+                dataset=dataset,
+                filters=filters,
+                conditions=conditions,
+                keys_to_check=keys_to_check,
+                tenant_ids=tenant_ids,
+                start=kwargs.get("start"),
+                end=kwargs.get("end"),
+            )
+            for k, stats in empty_stats_map.items():
+                if not stats or stats.get("count", 0) <= 0:
+                    continue
+                vals = values_by_key.get(k, {})
+                vals[""] = stats
+                # Re-sort after adding empty count and trim to value_limit
+                sorted_items = sorted(vals.items(), key=lambda kv: (-kv[1]["count"], str(kv[0])))[
+                    :value_limit
+                ]
+                values_by_key[k] = {vk: vd for vk, vd in sorted_items}
+
+        # Then supplement the key objects with the top values for each, trimming to value_limit
         for keyobj in keys_with_counts:
             key = keyobj.key
             values = values_by_key.get(key, dict())
@@ -794,6 +797,61 @@ class SnubaTagStorage(TagStorage):
             )
 
         return keys_with_counts
+
+    def __get_empty_value_stats_map(
+        self,
+        dataset: Dataset,
+        filters: dict[str, list[Any]],
+        conditions: list,
+        keys_to_check: list[str],
+        tenant_ids: dict[str, int | str] | None,
+        start,
+        end,
+    ) -> dict[str, dict[str, Any]]:
+        if not keys_to_check:
+            return {}
+
+        empty_alias_map: dict[str, dict[str, str]] = {}
+        selected_columns_empty: list[list] = []
+        for i, k in enumerate(keys_to_check):
+            cnt_alias = f"empty_cnt_{i}"
+            min_alias = f"empty_min_{i}"
+            max_alias = f"empty_max_{i}"
+            empty_alias_map[k] = {"count": cnt_alias, "first": min_alias, "last": max_alias}
+            tag_expr = self.format_string.format(k)
+            empty_predicate = ["equals", [tag_expr, ""]]
+            selected_columns_empty.append(["countIf", [empty_predicate], cnt_alias])
+            selected_columns_empty.append(["minIf", [SEEN_COLUMN, empty_predicate], min_alias])
+            selected_columns_empty.append(["maxIf", [SEEN_COLUMN, empty_predicate], max_alias])
+
+        empty_filters = dict(filters)
+        if self.key_column in empty_filters:
+            # For empty-value stats, do not restrict by tags_key; events that
+            # store an empty value may omit the key entirely. Removing this
+            # filter ensures those events are counted.
+            del empty_filters[self.key_column]
+
+        empty_results = snuba.query(
+            dataset=dataset,
+            start=start,
+            end=end,
+            groupby=None,
+            conditions=conditions,
+            filter_keys=empty_filters,
+            aggregations=[],
+            selected_columns=selected_columns_empty,
+            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            tenant_ids=tenant_ids,
+        )
+        stats_map: dict[str, dict[str, Any]] = {}
+        for k in keys_to_check:
+            aliases = empty_alias_map[k]
+            stats_map[k] = {
+                "count": empty_results.get(aliases["count"], 0) or 0,
+                "first_seen": empty_results.get(aliases["first"]),
+                "last_seen": empty_results.get(aliases["last"]),
+            }
+        return stats_map
 
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
