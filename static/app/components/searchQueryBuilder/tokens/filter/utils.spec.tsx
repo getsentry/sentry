@@ -56,4 +56,13 @@ describe('areWildcardOperatorsAllowed', () => {
 
     expect(areWildcardOperatorsAllowed(fieldDefinition)).toBe(true);
   });
+
+  it('returns false when valueType is not string', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.DATE,
+    };
+
+    expect(areWildcardOperatorsAllowed(fieldDefinition)).toBe(false);
+  });
 });
