@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
@@ -31,6 +32,8 @@ type Props = {
  * It will never link to trace, so omit the row to avoid confusion.
  */
 const EMPTY_TRACE = '00000000000000000000000000000000';
+
+const emptyCell = '\u2014';
 
 /**
  * The number of system uptime spans that are always recorded for each uptime check.
@@ -117,6 +120,8 @@ function CheckInBodyCell({
     return <Cell />;
   }
 
+  const isMiss = checkStatus === CheckStatus.MISSED_WINDOW;
+
   switch (column.key) {
     case 'timestamp': {
       return (
@@ -132,12 +137,18 @@ function CheckInBodyCell({
       );
     }
     case 'durationMs':
+      if (isMiss) {
+        return <Cell>{emptyCell}</Cell>;
+      }
       return (
         <Cell>
           <Duration seconds={durationMs / 1000} abbreviation exact />
         </Cell>
       );
     case 'httpStatusCode': {
+      if (isMiss) {
+        return <Cell>{emptyCell}</Cell>;
+      }
       if (httpStatusCode === null) {
         return <Cell style={{color: theme.subText}}>{t('None')}</Cell>;
       }
@@ -156,8 +167,8 @@ function CheckInBodyCell({
       );
     }
     case 'traceId': {
-      if (traceId === EMPTY_TRACE) {
-        return <Cell />;
+      if (isMiss || traceId === EMPTY_TRACE) {
+        return <Cell>{emptyCell}</Cell>;
       }
 
       const learnMore = (
@@ -210,6 +221,8 @@ function CheckInBodyCell({
         </TraceCell>
       );
     }
+    case 'regionName':
+      return <Cell>{isMiss ? emptyCell : check.regionName}</Cell>;
     default:
       return <Cell>{check[column.key]}</Cell>;
   }
