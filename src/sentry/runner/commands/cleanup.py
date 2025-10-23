@@ -22,6 +22,13 @@ from sentry.silo.base import SiloLimit, SiloMode
 
 logger = logging.getLogger(__name__)
 
+if not settings.configured:
+    from sentry.runner import configure
+
+    configure()
+
+from sentry.utils import metrics
+
 
 def get_project(value: str) -> int | None:
     from sentry.models.project import Project
@@ -117,7 +124,12 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                     if not task.chunk(apply_filter=True):
                         break
         except Exception:
-            metrics.incr("cleanup.error", instance=model_name, sample_rate=1.0)
+            metrics.incr(
+                "cleanup.error",
+                instance=model_name,
+                tags={"type": "multiprocess_worker"},
+                sample_rate=1.0,
+            )
             logger.exception("Error in multiprocess_worker.")
         finally:
             task_queue.task_done()
@@ -295,10 +307,14 @@ def _run_specialized_cleanups(
     is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
 ) -> None:
     """Run specialized cleanup operations for specific models."""
-    remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
-    remove_expired_values_for_org_members(is_filtered, days, models_attempted)
-    delete_api_models(is_filtered, models_attempted)
-    exported_data(is_filtered, silent, models_attempted)
+    try:
+        remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+        remove_expired_values_for_org_members(is_filtered, days, models_attempted)
+        delete_api_models(is_filtered, models_attempted)
+        exported_data(is_filtered, silent, models_attempted)
+    except Exception:
+        logger.exception("Error running specialized cleanup operations (Continuing...)")
+        metrics.incr("cleanup.error", tags={"type": "specialized_cleanup"}, sample_rate=1.0)
 
 
 def _handle_project_organization_cleanup(
@@ -504,6 +520,9 @@ def remove_old_nodestore_values(days: int) -> None:
         nodestore.backend.cleanup(cutoff)
     except NotImplementedError:
         click.echo("NodeStore backend does not support cleanup operation", err=True)
+    except Exception:
+        logger.exception("Error removing old nodestore values")
+        metrics.incr("cleanup.error", tags={"type": "nodestore_cleanup"}, sample_rate=1.0)
 
 
 def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
@@ -547,13 +566,28 @@ def run_bulk_query_deletes(
             debug_output(">> Skipping %s" % model_tp.__name__)
         else:
             models_attempted.add(model_tp.__name__.lower())
-            BulkDeleteQuery(
-                model=model_tp,
-                dtfield=dtfield,
-                days=days,
-                project_id=project_id,
-                order_by=order_by,
-            ).execute(chunk_size=chunk_size)
+            try:
+                BulkDeleteQuery(
+                    model=model_tp,
+                    dtfield=dtfield,
+                    days=days,
+                    project_id=project_id,
+                    order_by=order_by,
+                ).execute(chunk_size=chunk_size)
+            except Exception:
+                logger.exception(
+                    "Error removing %(model)s for project=%(project_id)s (Continuing...)",
+                    extra={
+                        "model": model_tp.__name__,
+                        "project_id": project_id,
+                    },
+                )
+                metrics.incr(
+                    "cleanup.error",
+                    instance=model_tp.__name__,
+                    tags={"type": "bulk_delete_query"},
+                    sample_rate=1.0,
+                )
 
 
 def run_bulk_deletes_in_deletes(
@@ -575,18 +609,31 @@ def run_bulk_deletes_in_deletes(
             debug_output(">> Skipping %s" % model_tp.__name__)
         else:
             models_attempted.add(model_tp.__name__.lower())
-            imp = ".".join((model_tp.__module__, model_tp.__name__))
+            try:
+                imp = ".".join((model_tp.__module__, model_tp.__name__))
 
-            q = BulkDeleteQuery(
-                model=model_tp,
-                dtfield=dtfield,
-                days=days,
-                project_id=project_id,
-                order_by=order_by,
-            )
+                q = BulkDeleteQuery(
+                    model=model_tp,
+                    dtfield=dtfield,
+                    days=days,
+                    project_id=project_id,
+                    order_by=order_by,
+                )
 
-            for chunk in q.iterator(chunk_size=100):
-                task_queue.put((imp, chunk))
+                for chunk in q.iterator(chunk_size=100):
+                    task_queue.put((imp, chunk))
+
+            except Exception:
+                logger.exception(
+                    "Error removing %(model)s for project=%(project_id)s (Continuing...)",
+                    extra={"model": model_tp.__name__, "project_id": project_id or "*"},
+                )
+                metrics.incr(
+                    "cleanup.error",
+                    instance=model_tp.__name__,
+                    tags={"type": "bulk_delete_in_deletes"},
+                    sample_rate=1.0,
+                )
 
     # Ensure all tasks are completed before exiting
     task_queue.join()
@@ -619,18 +666,33 @@ def run_bulk_deletes_by_project(
                     f"Removing {model_tp.__name__} for days={days} project={project_id_for_deletion}"
                 )
 
-                imp = ".".join((model_tp.__module__, model_tp.__name__))
+                try:
+                    imp = ".".join((model_tp.__module__, model_tp.__name__))
 
-                q = BulkDeleteQuery(
-                    model=model_tp,
-                    dtfield=dtfield,
-                    days=days,
-                    project_id=project_id_for_deletion,
-                    order_by=order_by,
-                )
+                    q = BulkDeleteQuery(
+                        model=model_tp,
+                        dtfield=dtfield,
+                        days=days,
+                        project_id=project_id_for_deletion,
+                        order_by=order_by,
+                    )
 
-                for chunk in q.iterator(chunk_size=100):
-                    task_queue.put((imp, chunk))
+                    for chunk in q.iterator(chunk_size=100):
+                        task_queue.put((imp, chunk))
+                except Exception:
+                    logger.exception(
+                        "Error removing %(model)s for project=%(project_id)s (Continuing...)",
+                        extra={
+                            "model": model_tp.__name__,
+                            "project_id": project_id_for_deletion,
+                        },
+                    )
+                    metrics.incr(
+                        "cleanup.error",
+                        instance=model_tp.__name__,
+                        tags={"type": "bulk_delete_by_project"},
+                        sample_rate=1.0,
+                    )
 
     # Ensure all tasks are completed before exiting
     task_queue.join()
@@ -661,19 +723,32 @@ def run_bulk_deletes_by_organization(
                 debug_output(
                     f"Removing {model_tp.__name__} for days={days} organization={organization_id_for_deletion}"
                 )
+                try:
+                    imp = ".".join((model_tp.__module__, model_tp.__name__))
+                    q = BulkDeleteQuery(
+                        model=model_tp,
+                        dtfield=dtfield,
+                        days=days,
+                        organization_id=organization_id_for_deletion,
+                        order_by=order_by,
+                    )
 
-                imp = ".".join((model_tp.__module__, model_tp.__name__))
-
-                q = BulkDeleteQuery(
-                    model=model_tp,
-                    dtfield=dtfield,
-                    days=days,
-                    organization_id=organization_id_for_deletion,
-                    order_by=order_by,
-                )
-
-                for chunk in q.iterator(chunk_size=100):
-                    task_queue.put((imp, chunk))
+                    for chunk in q.iterator(chunk_size=100):
+                        task_queue.put((imp, chunk))
+                except Exception:
+                    logger.exception(
+                        "Error removing %(model)s for organization=%(organization_id)s (Continuing...)",
+                        extra={
+                            "model": model_tp.__name__,
+                            "organization_id": organization_id_for_deletion,
+                        },
+                    )
+                    metrics.incr(
+                        "cleanup.error",
+                        instance=model_tp.__name__,
+                        tags={"type": "bulk_delete_by_organization"},
+                        sample_rate=1.0,
+                    )
 
     # Ensure all tasks are completed before exiting
     task_queue.join()
@@ -754,7 +829,11 @@ def remove_file_blobs(
         debug_output(">> Skipping FileBlob")
     else:
         models_attempted.add(FileBlob.__name__.lower())
-        cleanup_unused_files(silent)
+        try:
+            cleanup_unused_files(silent)
+        except Exception:
+            logger.exception("Error cleaning up unused FileBlob references (Continuing...)")
+            metrics.incr("cleanup.error", tags={"type": "fileblob_cleanup"}, sample_rate=1.0)
 
 
 def cleanup_unused_files(quiet: bool = False) -> None:
