@@ -43,6 +43,10 @@ invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 // and slowest settings, and for pre-commit, where we want to run the linter
 // faster.
 // Some output is provided to help people toggle these settings locally.
+const IS_PRECOMMIT =
+  process.env.SENTRY_PRECOMMIT !== undefined &&
+  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
+const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
 const enableTypeAwareLinting = (function () {
   // If we ask for something specific, use that.
   if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
@@ -50,11 +54,8 @@ const enableTypeAwareLinting = (function () {
   }
 
   // If we're inside a pre-commit hook, defer to whether we're in CI.
-  if (
-    process.env.SENTRY_PRECOMMIT !== undefined &&
-    Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT))
-  ) {
-    return process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+  if (IS_PRECOMMIT) {
+    return IS_CI;
   }
 
   // By default, enable type-aware linting.
@@ -584,7 +585,27 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
-      '@typescript-eslint/no-unused-vars': 'off', // disabled in favor of "noUnusedLocals": true in tsconfig
+      '@typescript-eslint/no-unused-vars':
+        // Favor "noUnusedLocals": true in CI, but enable in pre-commit to catch unused imports without running tsc
+        IS_PRECOMMIT && !IS_CI
+          ? [
+              'error',
+              {
+                vars: 'all',
+                args: 'all',
+                caughtErrors: 'none',
+
+                // Ignore vars that start with an underscore
+                // e.g. if you want to omit a property using object spread:
+                //
+                //   const {name: _name, ...props} = this.props;
+                //
+                varsIgnorePattern: '^_',
+                argsIgnorePattern: '^_',
+                destructuredArrayIgnorePattern: '^_',
+              },
+            ]
+          : 'off',
     },
   },
   {
