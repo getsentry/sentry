@@ -375,7 +375,11 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # New `objectstore` service configuration
-register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+register(
+    "objectstore.config",
+    default={"base_url": "http://127.0.0.1:8888"},
+    flags=FLAG_NOSTORE,
+)
 
 
 # Symbol server
