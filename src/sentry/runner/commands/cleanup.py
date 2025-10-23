@@ -22,13 +22,6 @@ from sentry.silo.base import SiloLimit, SiloMode
 
 logger = logging.getLogger(__name__)
 
-if not settings.configured:
-    from sentry.runner import configure
-
-    configure()
-
-from sentry.utils import metrics
-
 
 def get_project(value: str) -> int | None:
     from sentry.models.project import Project
@@ -267,9 +260,7 @@ def _cleanup(
                 models_attempted,
             )
 
-            run_bulk_deletes_by_project(
-                task_queue, project, project_id, is_filtered, days, models_attempted
-            )
+            run_bulk_deletes_by_project(task_queue, project_id, is_filtered, days, models_attempted)
 
             run_bulk_deletes_by_organization(
                 task_queue, organization_id, is_filtered, days, models_attempted
@@ -310,6 +301,8 @@ def _run_specialized_cleanups(
     is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
 ) -> None:
     """Run specialized cleanup operations for specific models."""
+    from sentry.utils import metrics
+
     try:
         remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
         remove_expired_values_for_org_members(is_filtered, days, models_attempted)
@@ -515,6 +508,7 @@ def get_organization_id_or_fail(organization: str) -> int:
 
 def remove_old_nodestore_values(days: int) -> None:
     from sentry import nodestore
+    from sentry.utils import metrics
 
     debug_output("Removing old NodeStore values")
 
@@ -558,6 +552,7 @@ def run_bulk_query_deletes(
     models_attempted: set[str],
 ) -> None:
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.utils import metrics
 
     debug_output("Running bulk query deletes in bulk_query_deletes")
     bulk_query_deletes = generate_bulk_query_deletes()
@@ -603,6 +598,7 @@ def run_bulk_deletes_in_deletes(
     models_attempted: set[str],
 ) -> None:
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.utils import metrics
 
     debug_output("Running bulk deletes in DELETES")
     for model_tp, dtfield, order_by in deletes:
@@ -644,17 +640,17 @@ def run_bulk_deletes_in_deletes(
 
 def run_bulk_deletes_by_project(
     task_queue: _WorkQueue,
-    project: str | None,
     project_id: int | None,
     is_filtered: Callable[[type[Model]], bool],
     days: int,
     models_attempted: set[str],
 ) -> None:
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.utils import metrics
     from sentry.utils.query import RangeQuerySetWrapper
 
     project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
-        project, project_id, is_filtered
+        project_id, is_filtered
     )
 
     if project_deletion_query is not None and len(to_delete_by_project):
@@ -709,6 +705,7 @@ def run_bulk_deletes_by_organization(
     models_attempted: set[str],
 ) -> None:
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.utils import metrics
     from sentry.utils.query import RangeQuerySetWrapper
 
     organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
@@ -758,7 +755,7 @@ def run_bulk_deletes_by_organization(
 
 
 def prepare_deletes_by_project(
-    project: str | None, project_id: int | None, is_filtered: Callable[[type[Model]], bool]
+    project_id: int | None, is_filtered: Callable[[type[Model]], bool]
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
     from sentry.constants import ObjectStatus
     from sentry.models.debugfile import ProjectDebugFile
@@ -824,6 +821,7 @@ def remove_file_blobs(
     is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
     from sentry.models.file import FileBlob
+    from sentry.utils import metrics
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
