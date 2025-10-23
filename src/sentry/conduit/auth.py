@@ -16,12 +16,7 @@ class ConduitCredentials(NamedTuple):
 
 
 def generate_channel_id() -> str:
-    """
-    Generate a unique channel ID for a Conduit stream.
-
-    Returns:
-        UUID string
-    """
+    """Generate a unique channel ID for a Conduit stream."""
     return str(uuid.uuid4())
 
 
@@ -35,12 +30,7 @@ def generate_conduit_token(
     """
     Generate a JWT token for Conduit authentication.
 
-    Args:
-        org_id: Sentry organization ID
-        channel_id: The channel UUID for the conduit stream
-        issuer: JWT claim for the issuer of the token
-        audience: JWT claim for the audience of the token
-        conduit_private_key: RSA private key
+    Optional parameters default to settings values if not provided.
 
     Returns:
         JWT token string
@@ -76,7 +66,7 @@ def get_conduit_credentials(
     Generate all credentials needed to connect to Conduit.
 
     Returns:
-        ConduitCredentials with token, channel_id, algorithm, and url
+        ConduitCredentials containing authentication details
     """
     if gateway_url is None:
         gateway_url = settings.CONDUIT_GATEWAY_URL
