@@ -684,7 +684,7 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values: bool | None = None,
+        include_empty_values=False,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
