@@ -541,9 +541,9 @@ def get_organization_id_or_fail(organization: str) -> int:
     return organization_id
 
 
+@continue_on_error("Error removing old nodestore values", "nodestore_cleanup")
 def remove_old_nodestore_values(days: int) -> None:
     from sentry import nodestore
-    from sentry.utils import metrics
 
     debug_output("Removing old NodeStore values")
 
@@ -552,9 +552,6 @@ def remove_old_nodestore_values(days: int) -> None:
         nodestore.backend.cleanup(cutoff)
     except NotImplementedError:
         click.echo("NodeStore backend does not support cleanup operation", err=True)
-    except Exception:
-        logger.exception("Error removing old nodestore values")
-        metrics.incr("cleanup.error", tags={"type": "nodestore_cleanup"}, sample_rate=1.0)
 
 
 def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
