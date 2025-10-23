@@ -26,7 +26,7 @@ function OrganizationLoadingIndicator() {
    */
   const root = document.getElementById(ROOT_ELEMENT);
   // There is no scenario in which this component is rendering,
-  // but the root element doesn't exist
+  // but the root element where the app is mounted doesn't exist
   const ssrLoader = root!.innerHTML;
 
   return <div dangerouslySetInnerHTML={{__html: ssrLoader}} />;
