@@ -104,9 +104,14 @@ export function ToolbarVisualizeDropdown({
 interface ToolbarVisualizeAddProps {
   add: () => void;
   disabled: boolean;
+  label?: string;
 }
 
-export function ToolbarVisualizeAddChart({add, disabled}: ToolbarVisualizeAddProps) {
+export function ToolbarVisualizeAddChart({
+  add,
+  disabled,
+  label,
+}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
       borderless
@@ -114,10 +119,10 @@ export function ToolbarVisualizeAddChart({add, disabled}: ToolbarVisualizeAddPro
       icon={<IconAdd />}
       onClick={add}
       priority="link"
-      aria-label={t('Add Chart')}
+      aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >
-      {t('Add Chart')}
+      {label ?? t('Add Chart')}
     </ToolbarFooterButton>
   );
 }

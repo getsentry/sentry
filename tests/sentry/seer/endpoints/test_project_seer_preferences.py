@@ -100,6 +100,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         request_data = {
             "repositories": [
                 {
+                    "organization_id": self.org.id,
                     "integration_id": "111",
                     "provider": "github",
                     "owner": "getsentry",
@@ -175,7 +176,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         request_data = {
             "repositories": [
                 {
-                    # Missing required 'provider' field
+                    # Missing required 'provider' and 'integration_id' fields
                     "owner": "getsentry",
                     "name": "sentry",
                 }
@@ -185,11 +186,11 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Make the request
         response = self.client.post(self.url, data=request_data)
 
-        # Should fail with a 500 error according to actual behavior
-        assert response.status_code == 500
+        # Should fail with a 400 error for invalid request data
+        assert response.status_code == 400
 
-        # We don't assert mock_post.assert_not_called() here since the error happens
-        # during validation which triggers a 500 error rather than a 400
+        # The post to Seer should not be called since validation fails
+        mock_post.assert_not_called()
 
     @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_api_error_status_code(self, mock_post: MagicMock) -> None:

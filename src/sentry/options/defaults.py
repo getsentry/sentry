@@ -342,12 +342,6 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "deletions.group.delete_group_hashes_metadata_first",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
@@ -375,7 +369,11 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # New `objectstore` service configuration
-register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+register(
+    "objectstore.config",
+    default={"base_url": "http://127.0.0.1:8888"},
+    flags=FLAG_NOSTORE,
+)
 
 
 # Symbol server
@@ -2430,6 +2428,10 @@ register(
 # are listed in 'extended_widget_spec_orgs' option.
 register("on_demand.extended_max_widget_specs", default=750, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("on_demand.extended_widget_spec_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Some organizations can have more alert specs on a case-by-case basis. Widgets using this limit
+# are listed in 'extended_alert_spec_orgs' option.
+register("on_demand.extended_max_alert_specs", default=750, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("on_demand.extended_alert_spec_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "on_demand.max_widget_cardinality.count",
     default=10000,
@@ -2865,13 +2867,6 @@ register(
     "spans.buffer.max-segment-bytes",
     type=Int,
     default=10 * 1024 * 1024,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Maximum number of spans in a segment. Larger segments drop the oldest spans.
-register(
-    "spans.buffer.max-segment-spans",
-    type=Int,
-    default=1001,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # TTL for keys in Redis. This is a downside protection in case of bugs.

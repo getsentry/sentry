@@ -3039,6 +3039,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         with self.feature("organizations:dashboards-drilldown-flow"):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
+        assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
+            {
+                "field": "project",
+                "dashboardId": linked_dashboard.id,
+            }
+        ]
 
         widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == 1
