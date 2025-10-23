@@ -16,7 +16,7 @@ export function AutomationFeedbackButton() {
       size="sm"
       onClick={() =>
         openForm({
-          messagePlaceholder: t('How can we improve the automation experience?'),
+          messagePlaceholder: t('How can we improve the alerts experience?'),
           tags: {
             ['feedback.source']: 'automations',
             ['feedback.owner']: 'aci',

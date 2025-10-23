@@ -10,7 +10,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
-  useApiQuery,
   useInfiniteQuery,
   useQueryClient,
   type ApiQueryKey,
@@ -21,12 +20,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
   MAX_LOG_INGEST_DELAY,
   MAX_LOGS_INFINITE_QUERY_PAGES,
-  MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
@@ -39,7 +38,6 @@ import {
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
-  type LogsAggregatesResult,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
@@ -47,14 +45,11 @@ import {
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
 import {
-  useQueryParamsAggregateCursor,
-  useQueryParamsAggregateSortBys,
   useQueryParamsCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsSearch,
   useQueryParamsSortBys,
-  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
@@ -75,95 +70,6 @@ export function useExploreLogsTableRow(props: {
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
   });
-}
-
-function useLogsAggregatesQueryKey({
-  limit,
-  referrer,
-}: {
-  referrer: string;
-  limit?: number;
-}) {
-  const organization = useOrganization();
-  const _search = useQueryParamsSearch();
-  const baseSearch = useLogsFrozenSearch();
-  const {selection, isReady: pageFiltersReady} = usePageFilters();
-  const location = useLocation();
-  const projectIds = useLogsFrozenProjectIds();
-  const groupBys = useQueryParamsGroupBys();
-  const visualizes = useQueryParamsVisualizes();
-  const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const aggregateCursor = useQueryParamsAggregateCursor();
-  const [caseInsensitive] = useCaseInsensitivity();
-  const fields: string[] = [];
-  fields.push(...groupBys.filter(Boolean));
-  fields.push(...visualizes.map(visualize => visualize.yAxis));
-
-  const search = baseSearch ? _search.copy() : _search;
-  if (baseSearch) {
-    search.tokens.push(...baseSearch.tokens);
-  }
-  const pageFilters = selection;
-  const dataset = DiscoverDatasets.OURLOGS;
-
-  const eventView = getEventView(
-    search,
-    fields,
-    aggregateSortBys.slice(),
-    pageFilters,
-    dataset,
-    projectIds ?? pageFilters.projects
-  );
-  const params = {
-    query: {
-      ...eventView.getEventsAPIPayload(location),
-      per_page: limit ? limit : undefined,
-      cursor: aggregateCursor,
-      referrer,
-      caseInsensitive,
-    },
-    pageFiltersReady,
-    eventView,
-  };
-
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
-
-  return {
-    queryKey,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
-}
-
-/**
- * Requires LogsParamsContext to be provided.
- */
-export function useLogsAggregatesQuery({
-  disabled,
-  limit,
-  referrer,
-}: {
-  disabled?: boolean;
-  limit?: number;
-  referrer?: string;
-}) {
-  const _referrer = referrer ?? 'api.explore.logs-table-aggregates';
-  const {queryKey, other} = useLogsAggregatesQueryKey({limit, referrer: _referrer});
-
-  const queryResult = useApiQuery<LogsAggregatesResult>(queryKey, {
-    enabled: !disabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-
-  return {
-    ...queryResult,
-    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
-    eventView: other.eventView,
-  };
 }
 
 function useLogsQueryKey({
@@ -220,6 +126,9 @@ function useLogsQueryKey({
   const orderby = eventViewPayload.sort;
 
   const params = {
+    data: {
+      highFidelity,
+    },
     query: {
       ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
@@ -228,7 +137,7 @@ function useLogsQueryKey({
       orderby,
       per_page: limit ? limit : undefined,
       referrer,
-      sampling: highFidelity ? 'HIGHEST_ACCURACY_FLEX_TIME' : undefined,
+      sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
       caseInsensitive,
     },
     pageFiltersReady,
@@ -544,7 +453,7 @@ export function useInfiniteLogsQuery({
       signal,
       meta,
     }): Promise<ApiResult<EventsLogsResult>> => {
-      const result = await fetchDataQuery({
+      let response = await fetchDataQuery({
         queryKey: [
           url,
           {
@@ -557,15 +466,41 @@ export function useInfiniteLogsQuery({
         meta,
       });
 
-      const resultData = (result[0] as {data?: EventsLogsResult['data']})?.data;
-      if (pageParam?.querySortDirection && Array.isArray(resultData)) {
+      let result = response[0] as EventsLogsResult | undefined;
+
+      if (
+        !result?.data?.length && // no matches found
+        result?.meta?.dataScanned === 'partial' && // partial scan performed
+        !endpointOptions?.data?.highFidelity // not high fidelity mode
+      ) {
+        endpointOptions = {
+          ...endpointOptions,
+          query: {...endpointOptions.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+        };
+        response = await fetchDataQuery({
+          queryKey: [
+            url,
+            {
+              ...endpointOptions,
+              query: getParamBasedQuery(endpointOptions?.query, pageParam),
+            },
+          ],
+          client,
+          signal,
+          meta,
+        });
+
+        result = response[0] as EventsLogsResult | undefined;
+      }
+
+      if (pageParam?.querySortDirection && Array.isArray(result?.data)) {
         // We reverse the data if the query sort direction has been changed from the table sort direction.
-        result[0] = {
-          ...(result[0] as {data?: EventsLogsResult['data']}),
-          data: [...resultData].reverse(),
+        response[0] = {
+          ...(response[0] as {data?: EventsLogsResult['data']}),
+          data: [...result.data].reverse(),
         };
       }
-      return result as ApiResult<EventsLogsResult>;
+      return response as ApiResult<EventsLogsResult>;
     },
     getPreviousPageParam,
     getNextPageParam,
@@ -721,7 +656,7 @@ export function useInfiniteLogsQuery({
     const timeoutID = setTimeout(() => {
       setWaitingToAutoFetch(false);
       _fetchNextPage();
-    }, MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS);
+    }, 0);
 
     return () => clearTimeout(timeoutID);
   }, [shouldAutoFetchNextPage, _fetchNextPage]);
@@ -745,6 +680,7 @@ export function useInfiniteLogsQuery({
       !queryResult.isRefetching &&
       !isError &&
       _data.length === 0 &&
+      !waitingToAutoFetch &&
       !shouldAutoFetchNextPage,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
@@ -752,7 +688,7 @@ export function useInfiniteLogsQuery({
     hasNextPage,
     queryKey: queryKeyWithInfinite,
     hasPreviousPage,
-    isFetchingNextPage: _data.length > 0 && isFetchingNextPage,
+    isFetchingNextPage: _data.length > 0 && (waitingToAutoFetch || isFetchingNextPage),
     isFetchingPreviousPage,
     lastPageLength,
   };

@@ -42,17 +42,101 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_trace_waterfall: (args, isLoading) => {
-    const id = args.trace_id || '';
+    const traceId = args.trace_id || '';
+    const spanId = args.span_id;
+    if (spanId) {
+      return isLoading
+        ? `Digging into span ${spanId.slice(0, 8)}...`
+        : `Dug into span ${spanId.slice(0, 8)}`;
+    }
     return isLoading
-      ? `Viewing waterfall for trace ${id.slice(0, 8)}...`
-      : `Viewed waterfall for trace ${id.slice(0, 8)}`;
+      ? `Viewing waterfall for trace ${traceId.slice(0, 8)}...`
+      : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
-  get_span_details: (args, isLoading) => {
-    const spanId = args.span_id || '';
+  get_issue_details: (args, isLoading) => {
+    const issueId = args.issue_id || '';
+    const selectedEvent = args.selected_event;
+    if (selectedEvent && selectedEvent !== 'recommended') {
+      return isLoading
+        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
+        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+    }
+    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+  },
+
+  code_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const mode = args.mode || 'search';
+    const path = args.path;
+    const pattern = args.pattern;
+
+    switch (mode) {
+      case 'read_file':
+        if (path) {
+          const truncatedPath = path.length > 50 ? path.slice(0, 50) + '...' : path;
+          return isLoading
+            ? `Reading ${truncatedPath} from ${repoName}...`
+            : `Read ${truncatedPath} from ${repoName}`;
+        }
+        return isLoading
+          ? `Reading file from ${repoName}...`
+          : `Read file from ${repoName}`;
+
+      case 'find_files':
+        if (pattern) {
+          const truncatedPattern =
+            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
+          return isLoading
+            ? `Finding files matching '${truncatedPattern}' in ${repoName}...`
+            : `Found files matching '${truncatedPattern}' in ${repoName}`;
+        }
+        return isLoading
+          ? `Finding files in ${repoName}...`
+          : `Found files in ${repoName}`;
+
+      case 'search_content':
+        if (pattern) {
+          const truncatedPattern =
+            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
+          return isLoading
+            ? `Searching for '${truncatedPattern}' in ${repoName}...`
+            : `Searched for '${truncatedPattern}' in ${repoName}`;
+        }
+        return isLoading
+          ? `Searching code in ${repoName}...`
+          : `Searched code in ${repoName}`;
+
+      default:
+        return isLoading
+          ? `Searching code in ${repoName}...`
+          : `Searched code in ${repoName}`;
+    }
+  },
+
+  git_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const sha = args.sha;
+    const filePath = args.file_path;
+
+    if (sha) {
+      const shortSha = sha.slice(0, 7);
+      return isLoading
+        ? `Digging up commit ${shortSha} from ${repoName}...`
+        : `Dug up commit ${shortSha} from ${repoName}`;
+    }
+
+    if (filePath) {
+      const truncatedPath =
+        filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
+      return isLoading
+        ? `Excavating commits affecting '${truncatedPath}' in ${repoName}...`
+        : `Excavated commits affecting '${truncatedPath}' in ${repoName}`;
+    }
+
     return isLoading
-      ? `Digging into span ${spanId.slice(0, 8)}...`
-      : `Dug into span ${spanId.slice(0, 8)}`;
+      ? `Excavating commit history in ${repoName}...`
+      : `Excavated commit history in ${repoName}`;
   },
 };
 
@@ -142,13 +226,17 @@ export function buildToolLinkUrl(
       };
     }
     case 'get_trace_waterfall': {
-      const {trace_id, timestamp} = toolLink.params;
+      const {trace_id, span_id, timestamp} = toolLink.params;
       if (!trace_id) {
         return null;
       }
 
       const pathname = `/explore/traces/trace/${trace_id}/`;
       const query: Record<string, string> = {};
+
+      if (span_id) {
+        query.node = `span-${span_id}`;
+      }
 
       if (timestamp) {
         query.timestamp = timestamp;
@@ -159,25 +247,10 @@ export function buildToolLinkUrl(
         query,
       };
     }
-    case 'get_span_details': {
-      const {trace_id, span_id, timestamp} = toolLink.params;
-      if (!trace_id || !span_id) {
-        return null;
-      }
+    case 'get_issue_details': {
+      const {event_id, issue_id} = toolLink.params;
 
-      const pathname = `/explore/traces/trace/${trace_id}/`;
-      const query: Record<string, string> = {
-        node: `span-${span_id}`,
-      };
-
-      if (timestamp) {
-        query.timestamp = timestamp;
-      }
-
-      return {
-        pathname,
-        query,
-      };
+      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
     }
     default:
       return null;

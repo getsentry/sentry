@@ -151,10 +151,11 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/uptime                                     @getsentry/crons
 ## End Uptime
 
-## Misc. Middleware
+## Issue Detection Lower Priority
 # Located here so they do not take precedence over rules below.
 /src/sentry/middleware/reporting_endpoint.py             @getsentry/issue-detection-backend
-## End Misc. Middleware
+/src/sentry/tasks/post_process.py                        @getsentry/issue-detection-backend
+## Issue Detection Lower Priority
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
@@ -382,10 +383,16 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
 
-
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
 /src/sentry/identity/                                                @getsentry/enterprise
+
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+/src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/issue-detection-backend
+/src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
+/src/sentry/integrations/coding_agent/                                      @getsentry/machine-learning-ai
+/src/sentry/integrations/utils/codecov.py                            @getsentry/codecov
+/src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/issue-detection-backend
+
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
 /src/sentry/notifications/models/                                    @getsentry/ecosystem
@@ -572,9 +579,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
 /src/sentry/tasks/groupowner.py                             @getsentry/issue-detection-backend
 /src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
-/src/sentry/tasks/post_process.py                           @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
+/src/sentry/tasks/llm_issue_detection.py                    @getsentry/issue-detection-backend
 /static/app/components/events/contexts/                     @getsentry/issue-workflow
 /static/app/components/events/eventTags/                    @getsentry/issue-workflow
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
@@ -615,6 +622,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_llm_issue_detection.py             @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 

@@ -90,7 +90,8 @@ function DetectorListTable({
       setSelected(new Set<string>());
     }
   };
-  const pageSelected = !isPending && detectorIds.difference(selected).size === 0;
+  const pageSelected =
+    !isPending && detectorIds.size !== 0 && detectorIds.difference(selected).size === 0;
   const anySelected = selected.size > 0;
 
   const handleSelect = useCallback(
@@ -152,7 +153,7 @@ function DetectorListTable({
               sortKey="connectedWorkflows"
               sort={sort}
             >
-              {t('Automations')}
+              {t('Alerts')}
             </HeaderCell>
           </SimpleTable.Header>
         ) : (

@@ -19,6 +19,7 @@ import {
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -250,6 +251,68 @@ describe('useInfiniteLogsQuery', () => {
     expect(cachedData.pageParams).toHaveLength(1);
 
     expect(result.current.hasNextPage).toBe(true);
+  });
+
+  it('triggers the high accuracy request when there is no data and a partial scan', async () => {
+    const mockNormalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          dataScanned: 'partial',
+          fields: {},
+        },
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
+        },
+      ],
+    });
+
+    const mockHighAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          dataScanned: 'full',
+          fields: {},
+        },
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
+        },
+      ],
+    });
+
+    renderHookWithProviders(() => useInfiniteLogsQuery({}), {
+      additionalWrapper: createWrapper(),
+    });
+
+    expect(mockNormalRequest).toHaveBeenCalledTimes(1);
+    expect(mockNormalRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'ourlogs',
+          sampling: SAMPLING_MODE.NORMAL,
+        }),
+      })
+    );
+
+    await waitFor(() => expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1));
+    expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'ourlogs',
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+        }),
+      })
+    );
   });
 });
 

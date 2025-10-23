@@ -801,7 +801,7 @@ export class Results extends Component<Props, State> {
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
-              <Top fullWidth>
+              <Top width="full">
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 {this.renderTips()}
@@ -840,7 +840,7 @@ export class Results extends Component<Props, State> {
                   />
                 </MetricsCardinalityProvider>
               </Top>
-              <Layout.Main fullWidth={!showTags}>
+              <Layout.Main width={showTags ? 'twothirds' : 'full'}>
                 <Table
                   organization={organization}
                   eventView={eventView}

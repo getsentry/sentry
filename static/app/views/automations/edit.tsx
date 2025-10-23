@@ -43,22 +43,31 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
-  return <SentryDocumentTitle title={title ?? t('Edit Automation')} />;
+  return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
   const title = useFormField('name');
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automation'), to: makeAutomationBasePathname(organization.slug)},
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+        },
         {
           label: title,
-          to: makeAutomationDetailsPathname(organization.slug, automationId),
+          to: makeAutomationDetailsPathname(
+            organization.slug,
+            automationId,
+            automationsLinkPrefix
+          ),
         },
         {label: t('Configure')},
       ]}
@@ -92,6 +101,7 @@ export default function AutomationEdit() {
 function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
@@ -146,10 +156,23 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...formData,
         };
         const updatedAutomation = await updateAutomation(updatedData);
-        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+        navigate(
+          makeAutomationDetailsPathname(
+            organization.slug,
+            updatedAutomation.id,
+            automationsLinkPrefix
+          )
+        );
       }
     },
-    [automation.id, organization.slug, navigate, updateAutomation, state]
+    [
+      automation.id,
+      organization.slug,
+      navigate,
+      updateAutomation,
+      state,
+      automationsLinkPrefix,
+    ]
   );
 
   return (
@@ -175,7 +198,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </HeaderInner>
         </StyledLayoutHeader>
         <StyledBody maxWidth={maxWidth}>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,

@@ -24,7 +24,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -32,7 +32,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.models.project import Project
-from sentry.uptime.eap_utils import get_columns_for_uptime_trace_item_type
+from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.endpoints.serializers import EapCheckEntrySerializerResponse
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
@@ -66,34 +66,14 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
         def data_fn(offset: int, limit: int) -> Any:
             try:
-                if features.has(
-                    "organizations:uptime-eap-uptime-results-query",
-                    project.organization,
-                    actor=request.user,
-                ):
-                    return self._make_eap_request(
-                        project,
-                        uptime_subscription,
-                        offset,
-                        limit,
-                        start,
-                        end,
-                        TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
-                        "subscription_id",
-                        True,
-                    )
-                else:
-                    return self._make_eap_request(
-                        project,
-                        uptime_subscription,
-                        offset,
-                        limit,
-                        start,
-                        end,
-                        TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
-                        "uptime_subscription_id",
-                        False,
-                    )
+                return self._make_eap_request(
+                    project,
+                    uptime_subscription,
+                    offset,
+                    limit,
+                    start,
+                    end,
+                )
             except Exception:
                 logger.exception("Error making EAP RPC request for uptime alert checks")
                 return []
@@ -114,9 +94,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         limit: int,
         start: datetime,
         end: datetime,
-        trace_item_type: TraceItemType.ValueType,
-        subscription_key: str,
-        include_request_sequence_filter: bool,
     ) -> list[EapCheckEntrySerializerResponse]:
         maybe_cutoff = self._get_date_cutoff_epoch_seconds()
         epoch_cutoff = (
@@ -130,15 +107,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         end_timestamp = Timestamp()
         end_timestamp.FromDatetime(end)
 
-        if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK:
-            subscription_id = str(uuid.UUID(uptime_subscription.subscription_id))
-        else:
-            subscription_id = uuid.UUID(uptime_subscription.subscription_id).hex
+        subscription_id = uuid.UUID(uptime_subscription.subscription_id).hex
 
         subscription_filter = TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(
-                    name=subscription_key,
+                    name="subscription_id",
                     type=AttributeKey.Type.TYPE_STRING,
                 ),
                 op=ComparisonFilter.OP_EQUALS,
@@ -146,29 +120,26 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             )
         )
 
-        if include_request_sequence_filter:
-            request_sequence_filter = TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(
-                        name="request_sequence",
-                        type=AttributeKey.Type.TYPE_INT,
-                    ),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_int=0),
-                )
+        request_sequence_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="request_sequence",
+                    type=AttributeKey.Type.TYPE_INT,
+                ),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_int=0),
             )
-            query_filter = TraceItemFilter(
-                and_filter=AndFilter(filters=[subscription_filter, request_sequence_filter])
-            )
-        else:
-            query_filter = subscription_filter
+        )
+        query_filter = TraceItemFilter(
+            and_filter=AndFilter(filters=[subscription_filter, request_sequence_filter])
+        )
 
         rpc_request = TraceItemTableRequest(
             meta=RequestMeta(
                 referrer="uptime_alert_checks_index",
                 organization_id=project.organization.id,
                 project_ids=[project.id],
-                trace_item_type=trace_item_type,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
                 downsampled_storage_config=DownsampledStorageConfig(
@@ -176,21 +147,13 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 ),
             ),
             filter=query_filter,
-            columns=get_columns_for_uptime_trace_item_type(trace_item_type),
+            columns=get_columns_for_uptime_result(),
             order_by=[
                 TraceItemTableRequest.OrderBy(
                     column=Column(
-                        label=(
-                            "sentry.timestamp"
-                            if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT
-                            else "timestamp"
-                        ),
+                        label="sentry.timestamp",
                         key=AttributeKey(
-                            name=(
-                                "sentry.timestamp"
-                                if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT
-                                else "timestamp"
-                            ),
+                            name="sentry.timestamp",
                             type=AttributeKey.Type.TYPE_DOUBLE,
                         ),
                     ),
@@ -200,14 +163,10 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             limit=limit,
             page_token=PageToken(offset=offset),
         )
-
-        rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
-        return self._serialize_response(rpc_response, trace_item_type)
+        return self._serialize_response(snuba_rpc.table_rpc([rpc_request])[0])
 
     def _serialize_response(
-        self,
-        rpc_response: TraceItemTableResponse,
-        trace_item_type: TraceItemType.ValueType,
+        self, rpc_response: TraceItemTableResponse
     ) -> list[EapCheckEntrySerializerResponse]:
         """
         Serialize the response from the EAP into a list of items per each uptime check.
@@ -218,7 +177,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
         column_names = [cv.attribute_name for cv in column_values]
         entries: list[EapCheckEntry] = [
-            self._transform_row(row_idx, column_values, column_names, trace_item_type)
+            self._transform_row(row_idx, column_values, column_names)
             for row_idx in range(len(column_values[0].results))
         ]
 
@@ -229,41 +188,24 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         row_idx: int,
         column_values: Any,
         column_names: list[str],
-        trace_item_type: TraceItemType.ValueType,
     ) -> EapCheckEntry:
         row_dict: dict[str, AttributeValue] = {
             col_name: column_values[col_idx].results[row_idx]
             for col_idx, col_name in enumerate(column_names)
         }
-        if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT:
-            uptime_check_id = row_dict["check_id"].val_str
-            scheduled_check_time = datetime.fromtimestamp(
-                row_dict["scheduled_check_time_us"].val_int / 1_000_000
-            )
-            duration_val = row_dict.get("check_duration_us")
-            duration_ms = (
-                (duration_val.val_int // 1000) if duration_val and not duration_val.is_null else 0
-            )
-            trace_id = row_dict["sentry.trace_id"].val_str
-        else:
-            uptime_check_id = row_dict["uptime_check_id"].val_str
-            scheduled_check_time = datetime.fromtimestamp(
-                row_dict["scheduled_check_time"].val_double
-            )
-            duration_ms = row_dict["duration_ms"].val_int
-            trace_id = row_dict["trace_id"].val_str
+        uptime_check_id = row_dict["check_id"].val_str
+        scheduled_check_time = datetime.fromtimestamp(
+            row_dict["scheduled_check_time_us"].val_int / 1_000_000
+        )
+        duration_val = row_dict.get("check_duration_us")
+        duration_ms = (
+            (duration_val.val_int // 1000) if duration_val and not duration_val.is_null else 0
+        )
+        trace_id = row_dict["sentry.trace_id"].val_str
 
         return EapCheckEntry(
             uptime_check_id=uptime_check_id,
-            timestamp=datetime.fromtimestamp(
-                row_dict[
-                    (
-                        "sentry.timestamp"
-                        if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT
-                        else "timestamp"
-                    )
-                ].val_double
-            ),
+            timestamp=datetime.fromtimestamp(row_dict["sentry.timestamp"].val_double),
             scheduled_check_time=scheduled_check_time,
             check_status=cast(CheckStatus, row_dict["check_status"].val_str),
             check_status_reason=self._extract_check_status_reason(

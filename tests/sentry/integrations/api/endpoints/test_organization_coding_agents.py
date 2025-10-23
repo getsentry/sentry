@@ -135,6 +135,8 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
         if repos is None:
             repos = [
                 SeerRepoDefinition(
+                    organization_id=self.organization.id,
+                    integration_id=str(self.integration.id),
                     owner="test",
                     name="repo",
                     external_id="123",
@@ -702,12 +704,16 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
 
         multi_repo_list = [
             SeerRepoDefinition(
+                organization_id=self.organization.id,
+                integration_id=str(self.integration.id),
                 owner="owner1",
                 name="repo1",
                 external_id="123",
                 provider="github",
             ),
             SeerRepoDefinition(
+                organization_id=self.organization.id,
+                integration_id=str(self.integration.id),
                 owner="owner2",
                 name="repo2",
                 external_id="456",
@@ -779,12 +785,16 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
 
         multi_repo_list = [
             SeerRepoDefinition(
+                organization_id=self.organization.id,
+                integration_id=str(self.integration.id),
                 owner="owner1",
                 name="repo1",
                 external_id="123",
                 provider="github",
             ),
             SeerRepoDefinition(
+                organization_id=self.organization.id,
+                integration_id=str(self.integration.id),
                 owner="owner2",
                 name="repo2",
                 external_id="456",
@@ -848,8 +858,22 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
 
         # Create multi-repo autofix state
         multi_repo_list = [
-            SeerRepoDefinition(owner="owner1", name="repo1", external_id="123", provider="github"),
-            SeerRepoDefinition(owner="owner2", name="repo2", external_id="456", provider="github"),
+            SeerRepoDefinition(
+                organization_id=self.organization.id,
+                integration_id=str(self.integration.id),
+                owner="owner1",
+                name="repo1",
+                external_id="123",
+                provider="github",
+            ),
+            SeerRepoDefinition(
+                organization_id=self.organization.id,
+                integration_id=str(self.integration.id),
+                owner="owner2",
+                name="repo2",
+                external_id="456",
+                provider="github",
+            ),
         ]
         mock_autofix_state = self._create_mock_autofix_state(repos=multi_repo_list)
         mock_autofix_state.steps = [
@@ -988,10 +1012,20 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         mock_autofix_state = self._create_mock_autofix_state(
             repos=[
                 SeerRepoDefinition(
-                    owner="owner1", name="repo1", external_id="123", provider="github"
+                    organization_id=self.organization.id,
+                    integration_id=str(self.integration.id),
+                    owner="owner1",
+                    name="repo1",
+                    external_id="123",
+                    provider="github",
                 ),
                 SeerRepoDefinition(
-                    owner="owner2", name="repo2", external_id="456", provider="github"
+                    organization_id=self.organization.id,
+                    integration_id=str(self.integration.id),
+                    owner="owner2",
+                    name="repo2",
+                    external_id="456",
+                    provider="github",
                 ),
             ]
         )
@@ -1053,7 +1087,12 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         mock_autofix_state = self._create_mock_autofix_state(
             repos=[
                 SeerRepoDefinition(
-                    owner="owner1", name="repo1", external_id="123", provider="github"
+                    organization_id=self.organization.id,
+                    integration_id=str(self.integration.id),
+                    owner="owner1",
+                    name="repo1",
+                    external_id="123",
+                    provider="github",
                 ),
             ]
         )

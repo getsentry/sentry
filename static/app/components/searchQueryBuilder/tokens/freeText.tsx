@@ -8,6 +8,7 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
@@ -138,7 +139,15 @@ function calculateNextFocusForFilter(
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
 
-  let part: FocusOverride['part'] = hasInputChangeFlows ? 'op' : 'value';
+  const isNumericValueType =
+    definition?.valueType === FieldValueType.NUMBER ||
+    definition?.valueType === FieldValueType.INTEGER;
+
+  let part: FocusOverride['part'] =
+    hasInputChangeFlows && (isNumericValueType || areWildcardOperatorsAllowed(definition))
+      ? 'op'
+      : 'value';
+
   if (
     definition &&
     definition.kind === FieldKind.FUNCTION &&

@@ -237,3 +237,32 @@ class GithubRequestParserTest(TestCase):
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    @responses.activate
+    def test_issue_deleted_routing(self) -> None:
+        integration = self.get_integration()
+        request = self.factory.post(
+            reverse("sentry-integration-github-webhook"),
+            data={
+                "installation": {"id": "1"},
+                "issue": {"id": "1"},
+                "action": "deleted",
+                "repository": {"id": "1"},
+            },
+            content_type="application/json",
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.content == b""
+        assert len(responses.calls) == 0
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+            destination_types={DestinationType.SENTRY_REGION: 1},
+        )

@@ -136,7 +136,9 @@ function defaultFields(organization: Organization): string[] {
     return [
       SpanFields.ID,
       SpanFields.NAME,
+      SpanFields.SPAN_DESCRIPTION,
       SpanFields.SPAN_DURATION,
+      SpanFields.TRANSACTION,
       SpanFields.TIMESTAMP,
     ];
   }

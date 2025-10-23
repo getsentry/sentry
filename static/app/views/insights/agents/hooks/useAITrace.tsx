@@ -44,6 +44,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
       SpanFields.GEN_AI_USAGE_TOTAL_COST,
       SpanFields.GEN_AI_TOOL_NAME,
       SpanFields.SPAN_STATUS,
+      'status',
     ],
   });
 

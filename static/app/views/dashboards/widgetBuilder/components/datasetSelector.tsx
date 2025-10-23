@@ -73,7 +73,7 @@ function WidgetBuilderDatasetSelector() {
     datasetChoices.push([
       WidgetType.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key="dataset-choice-logs">
-        {t('Logs')} <FeatureBadge type="new" />
+        {t('Logs')}
       </FeatureBadgeAlignmentWrapper>,
     ]);
   }

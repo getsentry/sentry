@@ -1023,7 +1023,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'javascript',
-  sdkPackage: '@sentry/browser',
+  packageName: '@sentry/browser',
 });
 
 export const featureFlagOnboarding: OnboardingConfig = {

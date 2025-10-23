@@ -214,7 +214,7 @@ class DataForwarderSerializer(Serializer):
                     DataForwarderProject.objects.create(
                         data_forwarder=data_forwarder,
                         project_id=project_id,
-                        is_enabled=True,
+                        is_enabled=False,
                     )
         return data_forwarder
 
@@ -226,11 +226,6 @@ class DataForwarderSerializer(Serializer):
                 if attr != "project_ids":
                     setattr(instance, attr, value)
             instance.save()
-
-            # Unenroll all projects
-            if not project_ids:
-                DataForwarderProject.objects.filter(data_forwarder=instance).delete()
-                return instance
 
             # Enroll or update specified projects
             for project_id in project_ids:

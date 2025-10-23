@@ -119,7 +119,7 @@ function ResourceSummary() {
 
       <ModuleFeature moduleName={ModuleName.RESOURCE}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <HeaderContainer>

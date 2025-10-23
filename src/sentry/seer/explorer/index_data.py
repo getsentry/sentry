@@ -38,7 +38,9 @@ logger = logging.getLogger(__name__)
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
-def get_transactions_for_project(project_id: int) -> list[Transaction]:
+def get_transactions_for_project(
+    project_id: int, limit: int = 500, start_time_delta: dict[str, int] | None = None
+) -> list[Transaction]:
     """
     Get a list of transactions for a project using EAP, sorted by volume/traffic.
 
@@ -48,6 +50,9 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
     Returns:
         List of transactions with name and project id
     """
+    if start_time_delta is None:
+        start_time_delta = {"hours": 24}
+
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
@@ -57,7 +62,7 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
         return []
 
     end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(hours=24)
+    start_time = end_time - timedelta(**start_time_delta)
 
     snuba_params = SnubaParams(
         start=start_time,
@@ -79,7 +84,7 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
         ],
         orderby=["-count()"],  # Sort by count descending (highest volume first)
         offset=0,
-        limit=500,
+        limit=limit,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",

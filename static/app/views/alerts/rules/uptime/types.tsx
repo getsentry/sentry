@@ -47,10 +47,7 @@ export interface UptimeCheck {
 }
 
 export interface UptimeSummary {
-  // TODO(epurkhiser): In the future this will always be set once all customers
-  // are querying the EAP uptime results trace item set, and we can get rid of
-  // various conditionals when the null type is removed.
-  avgDurationUs: number | null;
+  avgDurationUs: number;
   downtimeChecks: number;
   failedChecks: number;
   missedWindowChecks: number;

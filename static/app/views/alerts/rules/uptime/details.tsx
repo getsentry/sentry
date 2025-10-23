@@ -30,6 +30,7 @@ import {
   makeDetectorDetailsQueryKey,
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
+import {monitorName} from 'sentry/views/insights/uptime/utils/monitorName';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
@@ -81,7 +82,7 @@ export default function UptimeAlertDetails() {
   if (isPending || loadingProject) {
     return (
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
       </Layout.Body>
@@ -122,7 +123,7 @@ export default function UptimeAlertDetails() {
 
   return (
     <Layout.Page>
-      <SentryDocumentTitle title={`${detector.name} — Alerts`} />
+      <SentryDocumentTitle title={`${monitorName(detector)} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -146,7 +147,7 @@ export default function UptimeAlertDetails() {
               hideName
               avatarProps={{hasTooltip: true, tooltip: project.slug}}
             />
-            {detector.name}
+            {monitorName(detector)}
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>

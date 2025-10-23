@@ -10,7 +10,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, similarity, tsdb
+from sentry import analytics, similarity, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
@@ -25,6 +25,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -258,7 +259,9 @@ def update_open_periods(source: Group, destination: Group) -> None:
     except GroupOpenPeriod.DoesNotExist:
         logger.exception("No open period found for group", extra={"group_id": destination.id})
 
-    source_open_period = GroupOpenPeriod.objects.filter(group=source).order_by("-datetime").first()
+    source_open_period = (
+        GroupOpenPeriod.objects.filter(group=source).order_by("-date_started").first()
+    )
     if not source_open_period:
         logger.error("No open period found for group", extra={"group_id": destination.id})
         return

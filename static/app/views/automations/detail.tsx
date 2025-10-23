@@ -44,11 +44,13 @@ import {
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 const AUTOMATION_DETECTORS_LIMIT = 10;
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -81,8 +83,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Automations'),
-                  to: makeAutomationBasePathname(organization.slug),
+                  label: t('Alerts'),
+                  to: makeAutomationBasePathname(
+                    organization.slug,
+                    automationsLinkPrefix
+                  ),
                 },
                 {label: automation.name},
               ]}
@@ -227,6 +232,7 @@ export default function AutomationDetail() {
 
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -239,9 +245,7 @@ function Actions({automation}: {automation: Automation}) {
       },
       {
         onSuccess: () => {
-          addSuccessMessage(
-            newEnabled ? t('Automation enabled') : t('Automation disabled')
-          );
+          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );
@@ -254,7 +258,11 @@ function Actions({automation}: {automation: Automation}) {
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
-        to={makeAutomationEditPathname(organization.slug, automation.id)}
+        to={makeAutomationEditPathname(
+          organization.slug,
+          automation.id,
+          automationsLinkPrefix
+        )}
         priority="primary"
         icon={<IconEdit />}
         size="sm"
@@ -270,7 +278,7 @@ function UserDisplayName({id}: {id: string | undefined}) {
     id: id ? Number(id) : undefined,
   });
   if (!id) {
-    return t('Sentry');
+    return '—';
   }
   if (isPending) {
     return <Placeholder height="20px" />;

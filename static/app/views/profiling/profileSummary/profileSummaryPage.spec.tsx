@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -62,23 +60,15 @@ describe('ProfileSummaryPage', () => {
       body: [],
     });
 
-    render(
-      <ProfileSummaryPage
-        view="flamegraph"
-        params={{}}
-        selection={GlobalSelectionFixture()}
-        location={
-          {
-            query: {transaction: 'fancyservice'},
-          } as unknown as Location
-        }
-      />,
-      {
-        organization: OrganizationFixture({
-          features: ['profiling-summary-redesign'],
-        }),
-      }
-    );
+    render(<ProfileSummaryPage />, {
+      organization: OrganizationFixture(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/profiling/summary/project-slug',
+          query: {transaction: 'fancyservice'},
+        },
+      },
+    });
 
     expect(await screen.findByTestId(/profile-summary-redesign/i)).toBeInTheDocument();
   });

@@ -316,11 +316,15 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "message_group_id" in str(response.data).lower()
 
-    def test_create_with_empty_project_ids_enrolls_no_projects(self) -> None:
-        # Create projects in the organization
-        self.create_project(organization=self.organization)
-        self.create_project(organization=self.organization)
-        self.create_project(organization=self.organization)
+    def test_create_auto_adds_all_organization_projects(self) -> None:
+        # should be enrolled
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        project3 = self.create_project(organization=self.organization)
+
+        # should not be enrolled
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
 
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
@@ -332,7 +336,12 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
 
         data_forwarder = DataForwarder.objects.get(id=response.data["id"])
 
-        # Empty project_ids list means no projects are enrolled
-        enrolled_count = DataForwarderProject.objects.filter(data_forwarder=data_forwarder).count()
+        enrolled_projects = DataForwarderProject.objects.filter(data_forwarder=data_forwarder)
 
-        assert enrolled_count == 0
+        enrolled_project_ids = set(enrolled_projects.values_list("project_id", flat=True))
+        assert enrolled_project_ids == {project1.id, project2.id, project3.id}
+        assert other_project.id not in enrolled_project_ids
+
+        # Verify all auto-added projects are disabled by default
+        for enrollment in enrolled_projects:
+            assert enrollment.is_enabled is False
