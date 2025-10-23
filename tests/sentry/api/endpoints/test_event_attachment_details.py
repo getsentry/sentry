@@ -91,13 +91,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_doublewrite_objectstore(self) -> None:
         self.login_as(user=self.user)
 
-        with override_options(
-            {
-                # TODO: we should make sure the default works for local tests
-                "objectstore.config": {"base_url": "http://localhost:8888/"},
-                "objectstore.double_write.attachments": 1,
-            }
-        ):
+        with override_options({"objectstore.double_write.attachments": 1}):
             attachment = self.create_attachment()
 
             assert attachment.blob_path is not None
@@ -122,13 +116,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_download_objectstore(self) -> None:
         self.login_as(user=self.user)
 
-        with override_options(
-            {
-                # TODO: we should make sure the default works for local tests
-                "objectstore.config": {"base_url": "http://localhost:8888/"},
-                "objectstore.enable_for.attachments": 1,
-            }
-        ):
+        with override_options({"objectstore.enable_for.attachments": 1}):
             attachment = self.create_attachment()
 
             assert attachment.blob_path is not None
