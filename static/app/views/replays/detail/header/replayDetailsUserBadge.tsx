@@ -101,7 +101,9 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const showRefreshButton = polledCountSegments > prevSegments;
 
   const FIVE_MINUTE_MS = 300_000;
-  const showIsLive = Date.now() < polledFinishedAt + FIVE_MINUTE_MS;
+  const showIsLive =
+    Date.now() < polledFinishedAt + FIVE_MINUTE_MS &&
+    Date.now() < REPLAY_EXPIRY_TIMESTAMP;
 
   const badge = replayRecord ? (
     <UserBadge

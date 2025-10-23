@@ -17,11 +17,7 @@ export function DetectorTypeForm() {
   return (
     <FormContainer>
       <Header>
-        <h3>{t('Monitor type')}</h3>
-        <p>
-          {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-          <a href="#">{t('Learn more about monitor types.')}</a>
-        </p>
+        <h3>{t('Select monitor type')}</h3>
       </Header>
       <MonitorTypeField />
     </FormContainer>

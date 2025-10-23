@@ -34,9 +34,9 @@ describe('DetectorEdit', () => {
   });
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
-    route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+    route: '/organizations/:orgId/monitors/:detectorId/edit/',
     location: {
-      pathname: '/organizations/org-slug/issues/monitors/1/edit/',
+      pathname: '/organizations/org-slug/monitors/1/edit/',
     },
   };
 
@@ -139,7 +139,7 @@ describe('DetectorEdit', () => {
 
       // Redirect to the monitors list
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/monitors/`
+        `/organizations/${organization.slug}/monitors/`
       );
     });
 
@@ -239,7 +239,7 @@ describe('DetectorEdit', () => {
       // Should navigate back to detector details page
       await waitFor(() => {
         expect(router.location.pathname).toBe(
-          `/organizations/${organization.slug}/issues/monitors/1/`
+          `/organizations/${organization.slug}/monitors/1/`
         );
       });
     });
@@ -329,7 +329,7 @@ describe('DetectorEdit', () => {
 
       // Should navigate back to detector details page
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/monitors/1/`
+        `/organizations/${organization.slug}/monitors/1/`
       );
     });
 
@@ -454,9 +454,9 @@ describe('DetectorEdit', () => {
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
-          route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
           location: {
-            pathname: `/organizations/${organization.slug}/issues/monitors/${mockDetector.id}/edit/`,
+            pathname: `/organizations/${organization.slug}/monitors/${mockDetector.id}/edit/`,
           },
         },
       });
@@ -528,9 +528,9 @@ describe('DetectorEdit', () => {
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
-          route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
           location: {
-            pathname: `/organizations/${organization.slug}/issues/monitors/${testDetector.id}/edit/`,
+            pathname: `/organizations/${organization.slug}/monitors/${testDetector.id}/edit/`,
           },
         },
       });
@@ -779,9 +779,9 @@ describe('DetectorEdit', () => {
       });
 
       const editRouterConfig = {
-        route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+        route: '/organizations/:orgId/monitors/:detectorId/edit/',
         location: {
-          pathname: `/organizations/${organizationWithDeprecation.slug}/issues/monitors/123/edit/`,
+          pathname: `/organizations/${organizationWithDeprecation.slug}/monitors/123/edit/`,
         },
       };
 
