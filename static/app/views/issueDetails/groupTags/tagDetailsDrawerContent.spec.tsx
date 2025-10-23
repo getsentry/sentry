@@ -4,7 +4,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -17,11 +16,6 @@ import type {TagValue, TagWithTopValues} from 'sentry/types/group';
 
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockNavigate,
-}));
-
 const group = GroupFixture();
 const tags = TagsFixture();
 
@@ -32,18 +26,6 @@ const makeInitialRouterConfig = (tagKey: string) => ({
   },
   route: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
 });
-
-function init(tagKey: string) {
-  return initializeOrg({
-    router: {
-      location: {
-        pathname: '/organizations/:orgId/issues/:groupId/',
-        query: {},
-      },
-      params: {orgId: 'org-slug', groupId: group.id, tagKey},
-    },
-  });
-}
 
 describe('TagDetailsDrawerContent', () => {
   beforeEach(() => {
@@ -66,15 +48,12 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('renders a list of tag values', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
     render(<TagDetailsDrawerContent group={group} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -102,8 +81,6 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('can page through tag values', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
@@ -113,9 +90,8 @@ describe('TagDetailsDrawerContent', () => {
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
-    render(<TagDetailsDrawerContent group={group} />, {
-      router,
-      deprecatedRouterMocks: true,
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -125,11 +101,7 @@ describe('TagDetailsDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({tagDrawerCursor: '0:100:0'}),
-        })
-      );
+      expect(router.location.query.tagDrawerCursor).toBe('0:100:0');
     });
   });
 
@@ -156,7 +128,6 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('navigates to discover with issue + tag query', async () => {
-    const {router} = init('user');
     const discoverOrganization = OrganizationFixture({
       features: ['discover-basic'],
     });
@@ -166,9 +137,8 @@ describe('TagDetailsDrawerContent', () => {
       body: TagValuesFixture(),
     });
     render(<TagDetailsDrawerContent group={group} />, {
-      router,
+      initialRouterConfig: makeInitialRouterConfig('user'),
       organization: discoverOrganization,
-      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -198,16 +168,13 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('renders an error message if tag values request fails', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       statusCode: 500,
     });
 
     render(<TagDetailsDrawerContent group={group} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
     expect(
@@ -216,8 +183,6 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('renders rounded percentages counts [996, 4], total 1000', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/',
       body: VariableTagFixture([996, 4], 1000),
@@ -229,8 +194,7 @@ describe('TagDetailsDrawerContent', () => {
     });
 
     render(<TagDetailsDrawerContent group={group} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -246,8 +210,6 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('renders rounded percentages counts [992, 7], total 1000', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/',
       body: VariableTagFixture([992, 7], 1000),
@@ -259,8 +221,7 @@ describe('TagDetailsDrawerContent', () => {
     });
 
     render(<TagDetailsDrawerContent group={group} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -276,8 +237,6 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('renders rounded percentages counts [995, 5], total 1000', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/',
       body: VariableTagFixture([995, 5], 1000),
@@ -289,8 +248,7 @@ describe('TagDetailsDrawerContent', () => {
     });
 
     render(<TagDetailsDrawerContent group={group} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -306,8 +264,6 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('never displays 100% when there are multiple tag values', async () => {
-    const {router} = init('user');
-
     // Create a case where first item would round to 100% (997/1000 = 99.7%)
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/',
@@ -320,8 +276,7 @@ describe('TagDetailsDrawerContent', () => {
     });
 
     render(<TagDetailsDrawerContent group={group} />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
