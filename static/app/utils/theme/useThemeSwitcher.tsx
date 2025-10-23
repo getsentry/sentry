@@ -33,7 +33,7 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
     config.theme === 'dark' ? darkTheme : lightTheme;
 
   if (
-    organization?.features.includes('chonk-ui-enforce') ||
+    organization?.features?.includes('chonk-ui-enforce') ||
     (organization?.features?.includes('chonk-ui') && user?.options?.prefersChonkUI)
   ) {
     theme =
