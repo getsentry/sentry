@@ -1,51 +1,95 @@
-import {useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text/text';
+import FormModel from 'sentry/components/forms/model';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  AutomationBuilderContext,
+  useAutomationBuilderReducer,
+} from 'sentry/views/automations/components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {ConnectMonitorsContent} from 'sentry/views/automations/components/editConnectedMonitors';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import AutomationForm from 'sentry/views/automations/components/automationForm';
+import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+import {
+  getNewAutomationData,
+  validateAutomationBuilderState,
+} from 'sentry/views/automations/components/automationFormData';
+import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
+import {useCreateAutomation} from 'sentry/views/automations/hooks';
+import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
 import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
-import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+
+function AutomationDocumentTitle() {
+  const title = useFormField('name');
+  return (
+    <SentryDocumentTitle title={title ? t('%s - New Alert', title) : t('New Alert')} />
+  );
+}
 
 function AutomationBreadcrumbs() {
+  const title = useFormField('name');
   const organization = useOrganization();
   const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
         {
-          label: t('Automations'),
+          label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
         },
-        {label: t('New Automation')},
+        {label: title ? title : t('New Alert')},
       ]}
     />
   );
 }
 
-export default function AutomationNew() {
+const initialData = {
+  name: 'New Alert',
+  environment: null,
+  frequency: 1440,
+  enabled: true,
+};
+
+export default function AutomationNewSettings() {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const {automationsLinkPrefix, monitorsLinkPrefix} = useMonitorViewContext();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
+  const model = useMemo(() => new FormModel(), []);
+  const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
 
-  const [connectedIds, setConnectedIds] = useState<Automation['detectorIds']>(() => {
+  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
+    Record<string, string>
+  >({});
+  const removeError = useCallback((errorId: string) => {
+    setAutomationBuilderErrors(prev => {
+      const {[errorId]: _removedError, ...remainingErrors} = prev;
+      return remainingErrors;
+    });
+  }, []);
+
+  const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
       | string
       | string[]
@@ -53,20 +97,51 @@ export default function AutomationNew() {
     if (!connectedIdsQuery) {
       return [];
     }
-    const connectedIdsArray = Array.isArray(connectedIdsQuery)
+    const connectedIds = Array.isArray(connectedIdsQuery)
       ? connectedIdsQuery
       : [connectedIdsQuery];
-    return connectedIdsArray;
-  });
+    return connectedIds;
+  }, [location.query.connectedIds]);
+
+  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+
+  const handleSubmit = useCallback<OnSubmitCallback>(
+    async (data, _, __, ___, ____) => {
+      const errors = validateAutomationBuilderState(state);
+      setAutomationBuilderErrors(errors);
+
+      if (Object.keys(errors).length === 0) {
+        const automation = await createAutomation(
+          getNewAutomationData(data as AutomationFormData, state)
+        );
+        navigate(
+          makeAutomationDetailsPathname(
+            organization.slug,
+            automation.id,
+            automationsLinkPrefix
+          )
+        );
+      }
+    },
+    [createAutomation, state, navigate, organization.slug, automationsLinkPrefix]
+  );
 
   return (
-    <SentryDocumentTitle title={t('New Automation')}>
-      <StyledLayoutPage>
+    <FullHeightForm
+      hideFooter
+      initialData={{...initialData, detectorIds: initialConnectedIds}}
+      onSubmit={handleSubmit}
+      model={model}
+    >
+      <AutomationDocumentTitle />
+      <Layout.Page>
         <StyledLayoutHeader>
           <HeaderInner maxWidth={maxWidth}>
             <Layout.HeaderContent>
               <AutomationBreadcrumbs />
-              <Layout.Title>{t('New Automation')}</Layout.Title>
+              <Layout.Title>
+                <EditableAutomationName />
+              </Layout.Title>
             </Layout.HeaderContent>
             <div>
               <AutomationFeedbackButton />
@@ -75,55 +150,37 @@ export default function AutomationNew() {
         </StyledLayoutHeader>
         <StyledBody maxWidth={maxWidth}>
           <Layout.Main width="full">
-            <ConnectMonitorsContent
-              initialIds={connectedIds}
-              saveConnectedIds={setConnectedIds}
-              footerContent={
-                <LinkButton
-                  icon={<IconAdd />}
-                  href={makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix)}
-                  external
-                >
-                  {t('Create New Monitor')}
-                </LinkButton>
-              }
-            />
-          </Layout.Main>
-        </StyledBody>
-      </StyledLayoutPage>
-      <StickyFooter>
-        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-          <Text variant="muted" size="md">
-            {t('Step 1 of 2')}
-          </Text>
-          <Flex gap="md">
-            <LinkButton
-              priority="default"
-              to={makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}
-            >
-              {t('Cancel')}
-            </LinkButton>
-            <LinkButton
-              priority="primary"
-              to={{
-                pathname: `${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/settings/`,
-                ...(connectedIds.length > 0 && {
-                  query: {connectedIds},
-                }),
+            <AutomationBuilderErrorContext.Provider
+              value={{
+                errors: automationBuilderErrors,
+                setErrors: setAutomationBuilderErrors,
+                removeError,
+                mutationErrors: error?.responseJSON,
               }}
             >
-              {t('Next')}
-            </LinkButton>
-          </Flex>
+              <AutomationBuilderContext.Provider
+                value={{
+                  state,
+                  actions,
+                  showTriggerLogicTypeSelector: false,
+                }}
+              >
+                <AutomationForm model={model} />
+              </AutomationBuilderContext.Provider>
+            </AutomationBuilderErrorContext.Provider>
+          </Layout.Main>
+        </StyledBody>
+      </Layout.Page>
+      <StickyFooter>
+        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <Button priority="primary" type="submit">
+            {t('Create Alert')}
+          </Button>
         </Flex>
       </StickyFooter>
-    </SentryDocumentTitle>
+    </FullHeightForm>
   );
 }
-
-const StyledLayoutPage = styled(Layout.Page)`
-  background-color: ${p => p.theme.background};
-`;
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
