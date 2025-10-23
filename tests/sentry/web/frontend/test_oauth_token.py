@@ -385,6 +385,38 @@ class OAuthTokenCodeTest(TestCase):
         assert "no-store" in resp["Cache-Control"]
         assert data["user"]["id"] == str(token.user_id)
 
+    def test_expires_in_value(self) -> None:
+        """
+        Verify that expires_in correctly represents seconds until expiry.
+        The old code incorrectly calculated (now - expires_at) instead of
+        (expires_at - now), producing negative values for valid tokens.
+        """
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+
+        # Default token expiration is 30 days (2,592,000 seconds)
+        # expires_in should be positive and close to 30 days
+        expires_in = data["expires_in"]
+        assert isinstance(expires_in, int)
+        assert expires_in > 0, "expires_in should be positive (seconds until expiry)"
+        # Allow for a few seconds of test execution time, but should be close to 30 days
+        expected_seconds = 30 * 24 * 60 * 60  # 2,592,000 seconds
+        assert expires_in >= expected_seconds - 60, "expires_in should be close to 30 days"
+        assert expires_in <= expected_seconds, "expires_in should not exceed 30 days"
+
     def test_valid_params_id_token(self) -> None:
         self.login_as(self.user)
         open_id_grant = ApiGrant.objects.create(

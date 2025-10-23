@@ -155,6 +155,25 @@ class OAuthTokenView(View):
                 status=401,
             )
 
+        # Defense-in-depth: verify the application's client_id matches the request.
+        # This should always be true given the query above, but protects against
+        # potential logic bugs or database inconsistencies.
+        if application.client_id != client_id:
+            logger.error(
+                "Application client_id mismatch",
+                extra={
+                    "requested_client_id": client_id,
+                    "application_client_id": application.client_id,
+                    "application_id": application.id,
+                },
+            )
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason="client_id mismatch",
+                status=401,
+            )
+
         if grant_type == GrantTypes.AUTHORIZATION:
             token_data = self.get_access_tokens(request=request, application=application)
         else:
@@ -227,7 +246,7 @@ class OAuthTokenView(View):
                     return (None, None), self.error(
                         request=request,
                         name="invalid_client",
-                        reason="invalid basic auth",
+                        reason="invalid basic auth (too long)",
                         status=401,
                     )
                 try:
@@ -333,8 +352,7 @@ class OAuthTokenView(View):
             token_information["id_token"] = id_token
         if token.scoping_organization_id:
             token_information["organization_id"] = str(token.scoping_organization_id)
-        resp = HttpResponse(
+        return HttpResponse(
             json.dumps(token_information),
             content_type="application/json",
         )
-        return resp
