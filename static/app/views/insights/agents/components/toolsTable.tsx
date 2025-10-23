@@ -1,6 +1,5 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 
-import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -10,9 +9,6 @@ import GridEditable, {
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -27,8 +23,10 @@ import {
   useTableSortParams,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -60,8 +58,6 @@ const rightAlignColumns = new Set([
 ]);
 
 export function ToolsTable() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
 
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
@@ -70,22 +66,9 @@ export function ToolsTable() {
 
   const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
 
-  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
-    navigate(
-      {
-        pathname,
-        query: {
-          ...previousQuery,
-          toolsCursor: cursor,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  };
+  const {cursor, setCursor} = useTableCursor();
 
   const {sortField, sortOrder} = useTableSortParams();
-
-  const cursor = decodeScalar(location.query?.toolsCursor);
 
   const toolsRequest = useSpans(
     {
@@ -137,7 +120,7 @@ export function ToolsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
-          cursorParamName="toolsCursor"
+          cursorParamName={TableUrlParams.CURSOR}
           forceCellGrow={column.key === 'tool'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}
@@ -174,7 +157,7 @@ export function ToolsTable() {
         />
         {toolsRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={toolsRequest.pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={toolsRequest.pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }

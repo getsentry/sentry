@@ -45,8 +45,9 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
+import {useRemoveTableCursorOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveTableCursorOnSearch';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -81,10 +82,9 @@ function AgentsOverviewPage() {
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
   useDefaultToAllProjects();
-  const location = useLocation();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
-  useRemoveUrlCursorsOnSearch();
+  useRemoveTableCursorOnSearch();
 
   useEffect(() => {
     trackAnalytics('agent-monitoring.page-view', {
@@ -162,11 +162,6 @@ function AgentsOverviewPage() {
     ? undefined
     : agentRunsRequest.data?.length > 0;
 
-  const resetParamsOnChange = useMemo(
-    () => Object.keys(location.query).filter(key => key.toLowerCase().includes('cursor')),
-    [location.query]
-  );
-
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <ModuleFeature moduleName={ModuleName.AGENTS}>
@@ -176,13 +171,15 @@ function AgentsOverviewPage() {
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <InsightsProjectSelector resetParamsOnChange={resetParamsOnChange} />
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
                     <InsightsEnvironmentSelector
-                      resetParamsOnChange={resetParamsOnChange}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
                     <DatePageFilter
                       {...datePageFilterProps}
-                      resetParamsOnChange={resetParamsOnChange}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
                   </PageFilterBar>
                   {!showOnboarding && (

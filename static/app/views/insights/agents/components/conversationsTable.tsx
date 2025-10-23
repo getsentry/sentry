@@ -1,7 +1,7 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -11,11 +11,11 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
@@ -68,23 +68,11 @@ const rightAlignColumns = new Set([
 ]);
 
 function ConversationsTableInner() {
-  const navigate = useNavigate();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
-  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
-    navigate(
-      {
-        pathname,
-        query: {
-          ...previousQuery,
-          tableCursor: cursor,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  };
+  const {setCursor} = useTableCursor();
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -120,7 +108,7 @@ function ConversationsTableInner() {
           }}
         />
       </GridEditableContainer>
-      <Pagination pageLinks={undefined} onCursor={handleCursor} />
+      <Pagination pageLinks={undefined} onCursor={setCursor} />
     </Fragment>
   );
 }
