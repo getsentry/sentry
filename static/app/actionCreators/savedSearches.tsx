@@ -11,14 +11,14 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// HACK: This prefix is used to prefix the recent searches query to isolate
-// search results among the same search type. It intentionally doesn't follow
-// typical search syntax because it is meant to be filtered out of the UI
 export const NAMESPACE_SYMBOL = '\uf00d';
 
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
 
+// HACK: This prefix is used to prefix the recent searches query to isolate
+// search results among the same search type. It intentionally doesn't follow
+// typical search syntax because it is meant to be filtered out of the UI
 function getNamespacePrefix(namespace?: string): string {
   return `${NAMESPACE_SYMBOL}namespace${NAMESPACE_SYMBOL}${namespace}${NAMESPACE_SYMBOL}`;
 }
@@ -52,6 +52,7 @@ export function decodeNamespacedRecentSearch(namespace?: string, query = ''): st
  * @param orgSlug Organization slug
  * @param type Context for where search happened, 0 for issue, 1 for event
  * @param query The search term that was used
+ * @param namespace The namespace to prefix the search term with
  */
 export function saveRecentSearch(
   api: Client,
