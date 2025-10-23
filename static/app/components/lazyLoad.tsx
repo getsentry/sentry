@@ -23,6 +23,20 @@ type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   loadingFallback?: React.ReactNode | undefined;
 };
 
+function DeferredLoader({children}: {children: React.ReactNode}) {
+  const [loaded, setLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoaded(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return loaded ? children : null;
+}
+
 /**
  * LazyLoad is used to dynamically load codesplit components via a `import`
  * call. This is primarily used in our routing tree.
@@ -41,11 +55,13 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
     <ErrorBoundary>
       <Suspense
         fallback={
-          loadingFallback ?? (
-            <Flex flex="1" align="center" column="1 / -1">
-              <LoadingIndicator />
-            </Flex>
-          )
+          <DeferredLoader>
+            {loadingFallback ?? (
+              <Flex flex="1" align="center" column="1 / -1">
+                <LoadingIndicator />
+              </Flex>
+            )}
+          </DeferredLoader>
         }
       >
         {/* Props are strongly typed when passed in, but seem to conflict with LazyExoticComponent */}
