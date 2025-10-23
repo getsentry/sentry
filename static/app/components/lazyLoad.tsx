@@ -1,5 +1,4 @@
-import type {ErrorInfo} from 'react';
-import {Component, Suspense} from 'react';
+import {Component, Suspense, useEffect, useState, type ErrorInfo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -24,9 +23,9 @@ type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
 };
 
 function DeferredLoader({children}: {children: React.ReactNode}) {
-  const [loaded, setLoaded] = React.useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setLoaded(true);
     }, 300);
