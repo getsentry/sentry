@@ -98,6 +98,10 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_errored',
       'anr_rate',
       'foreground_anr_rate',
+      'unhealthy_rate',
+      'abnormal_rate',
+      'errored_rate',
+      'unhandled_rate',
     ],
     type: 'integer',
   },
@@ -112,6 +116,9 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_crashed',
       'count_unhandled',
       'count_errored',
+      'abnormal_rate',
+      'errored_rate',
+      'unhandled_rate',
     ],
     type: 'string',
   },
@@ -237,7 +244,7 @@ export const SESSIONS_OPERATIONS: Readonly<
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'string'],
+        columnTypes: ['integer'], // Hack to prevent the user (string) column from being selected, since it's not supported
         defaultValue: SessionField.SESSION,
         required: true,
       },
