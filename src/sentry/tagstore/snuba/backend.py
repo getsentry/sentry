@@ -749,7 +749,6 @@ class SnubaTagStorage(TagStorage):
                 ]
                 values_by_key[k] = {vk: vd for vk, vd in sorted_items}
 
-        # Then supplement the key objects with the top values for each, trimming to value_limit
         for keyobj in keys_with_counts:
             key = keyobj.key
             values = values_by_key.get(key, dict())
