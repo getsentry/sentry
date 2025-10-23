@@ -1412,7 +1412,7 @@ class SnubaTagStorage(TagStorage):
         if environment_ids:
             filters["environment"] = environment_ids
         tag_expression = self.format_string.format(key)
-        safe_limit = limit if isinstance(limit, int) else 1000
+        safe_limit = limit
         results = snuba.query(
             dataset=dataset,
             groupby=[tag_expression],
