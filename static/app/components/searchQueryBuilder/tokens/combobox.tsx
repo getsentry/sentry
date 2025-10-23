@@ -509,7 +509,6 @@ export function SearchQueryBuilderCombobox<
     isOpen: incomingIsOpen,
   });
 
-  // Always notify parent of state so they can maintain up-to-date references
   useEffect(() => {
     onOpenChange?.(isOpen, state);
   }, [onOpenChange, isOpen, state]);
