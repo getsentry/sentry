@@ -54,12 +54,16 @@ def encode_attributes(
     for key, value in event_data.items():
         if key in ignore_fields:
             continue
+        if value is None:
+            continue
         attributes[key] = _encode_value(value)
 
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
 
     for key, value in event_data["tags"]:
+        if value is None:
+            continue
         attributes[f"tags[{key}]"] = _encode_value(value)
 
     return attributes

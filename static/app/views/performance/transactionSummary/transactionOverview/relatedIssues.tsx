@@ -17,7 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -37,7 +37,7 @@ function RelatedIssues({
   end,
   statsPeriod,
 }: Props) {
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   const getIssuesEndpointQueryParams = () => {
     const queryParams = {
