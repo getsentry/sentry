@@ -577,7 +577,7 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP("mcp-server")
 
 @mcp.tool()
-async def calculate_sum(a: int, b: int, ctx: Context) -> int:
+async def calculate_sum(a: int, b: int) -> int:
     """Add two numbers together."""
     return a + b
 `,
@@ -623,7 +623,7 @@ from fastmcp import FastMCP
 mcp = FastMCP("mcp-server")
 
 @mcp.tool()
-async def calculate_sum(a: int, b: int, ctx: Context) -> int:
+async def calculate_sum(a: int, b: int) -> int:
     """Add two numbers together."""
     return a + b
 `,
@@ -647,15 +647,28 @@ import sentry_sdk
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # Add data like inputs and responses to/from MCP servers;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
 )
 `,
         },
         {
           type: 'text',
           text: t('TODO: Add description for manual MCP instrumentation setup.'),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import json
+import sentry_sdk
+
+# Invoke Agent span
+with sentry_sdk.start_span(op="gen_ai.invoke_agent", name="invoke_agent Weather Agent") as span:
+    span.set_data("gen_ai.operation.name", "invoke_agent")
+    span.set_data("gen_ai.system", "openai")
+    span.set_data("gen_ai.request.model", "o3-mini")
+    span.set_data("gen_ai.agent.name", "Weather Agent")
+    span.set_data("gen_ai.response.text", json.dumps(["Hello World"]))
+`,
         },
       ],
     };
