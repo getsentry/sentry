@@ -2,38 +2,28 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PluginFixture} from 'sentry-fixture/plugin';
 import {PluginsFixture} from 'sentry-fixture/plugins';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
-import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization as TOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
-
-jest.mock('sentry/actionCreators/plugins', () => ({
-  fetchPlugins: jest.fn().mockResolvedValue([]),
-  enablePlugin: jest.fn(),
-  disablePlugin: jest.fn(),
-}));
+import ProjectPluginsContainer from 'sentry/views/settings/projectPlugins';
 
 describe('ProjectPluginsContainer', () => {
-  let org: TOrganization,
-    project: Project,
-    plugins: Plugin[],
-    params: {projectId: string};
+  let org: TOrganization, project: Project, plugins: Plugin[];
 
   function renderProjectPluginsContainer() {
-    render(
-      <ProjectPluginsContainer
-        {...RouteComponentPropsFixture()}
-        plugins={{plugins, loading: false, error: undefined}}
-        params={params}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectPluginsContainer />, {
+      organization: org,
+      outletContext: {project},
+    });
   }
 
   beforeEach(() => {
@@ -48,15 +38,7 @@ describe('ProjectPluginsContainer', () => {
         canDisable: true,
       }),
     ]);
-    params = {
-      projectId: project.slug,
-    };
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/`,
-      method: 'GET',
-      body: org,
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/`,
       method: 'GET',
@@ -67,55 +49,52 @@ describe('ProjectPluginsContainer', () => {
       method: 'GET',
       body: plugins,
     });
-    MockApiClient.addMockResponse({
+  });
+
+  it('fetches and renders plugins on mount', async () => {
+    renderProjectPluginsContainer();
+    expect(await screen.findByText('Amazon SQS')).toBeInTheDocument();
+    expect(screen.getByText('Disableable Plugin')).toBeInTheDocument();
+  });
+
+  it('enables a plugin when clicking the toggle', async () => {
+    const enableRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/amazon-sqs/`,
       method: 'POST',
     });
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/plugins/github/`,
-      method: 'DELETE',
-    });
-  });
 
-  it('calls `fetchPlugins` action creator after mount', () => {
-    renderProjectPluginsContainer();
-    expect(fetchPlugins).toHaveBeenCalled();
-  });
-
-  it('calls `enablePlugin` action creator when enabling plugin', async () => {
     renderProjectPluginsContainer();
     const amazonSQS = await screen.findByText('Amazon SQS');
 
     const pluginItem = amazonSQS.parentElement?.parentElement?.parentElement;
-
     if (!pluginItem) {
-      return;
+      throw new Error('Plugin item not found');
     }
     const button = within(pluginItem).getByRole('checkbox');
 
-    expect(enablePlugin).not.toHaveBeenCalled();
-
     await userEvent.click(button);
 
-    expect(enablePlugin).toHaveBeenCalled();
+    await waitFor(() => expect(enableRequest).toHaveBeenCalled());
   });
 
-  it('calls `disablePlugin` action creator when disabling plugin', async () => {
+  it('disables a plugin when clicking the toggle', async () => {
+    const disableRequest = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/plugins/disableable plugin/`,
+      method: 'DELETE',
+    });
+
     renderProjectPluginsContainer();
     const disabledPlugin = await screen.findByText('Disableable Plugin');
 
     const pluginItem = disabledPlugin.parentElement?.parentElement?.parentElement;
-
     if (!pluginItem) {
-      return;
+      throw new Error('Plugin item not found');
     }
 
     const button = within(pluginItem).getByRole('checkbox');
 
-    expect(disablePlugin).not.toHaveBeenCalled();
-
     await userEvent.click(button);
 
-    expect(disablePlugin).toHaveBeenCalled();
+    await waitFor(() => expect(disableRequest).toHaveBeenCalled());
   });
 });
