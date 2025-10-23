@@ -5,6 +5,7 @@ import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type FormModel from 'sentry/components/forms/model';
@@ -756,7 +757,9 @@ describe('Incident Rules Form', () => {
         },
       });
       const anomaly_option = await screen.findByText(
-        'Anomaly: whenever values are outside of expected bounds'
+        textWithMarkupMatcher(
+          'Anomaly: whenever values are outside of expected bounds (learn more)'
+        )
       );
       expect(anomaly_option).toBeInTheDocument();
     });
