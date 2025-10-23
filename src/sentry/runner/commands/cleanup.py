@@ -311,6 +311,9 @@ def continue_on_error(log_message: str, metric_type: str) -> Callable[..., Any]:
     """
     Decorator that catches exceptions, logs them, tracks metrics, and continues execution.
 
+    Does NOT catch CleanupExecutionAborted - that exception is allowed to propagate
+    so the cleanup can be properly aborted.
+
     Args:
         log_message: The message to log when an exception occurs
         metric_type: The type tag for the cleanup.error metric
@@ -326,6 +329,9 @@ def continue_on_error(log_message: str, metric_type: str) -> Callable[..., Any]:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
+            except CleanupExecutionAborted:
+                # Don't catch abort exceptions - let them propagate
+                raise
             except Exception:
                 from sentry.utils import metrics
 
@@ -352,7 +358,7 @@ def _run_specialized_cleanups(
     is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
 ) -> None:
     """Run specialized cleanup operations for specific models."""
-    from sentry.options import options
+    from sentry import options
 
     if options.get("cleanup.abort_execution"):
         raise CleanupExecutionAborted()
