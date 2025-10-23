@@ -26,7 +26,7 @@ function OrganizationLoadingIndicator() {
    */
   const ssrLoader = document.querySelector('#blk_router')?.innerHTML!;
 
-  return <div dangerouslySetInnerHTML={{__html: ssrLoader}} suppressHydrationWarning />;
+  return <div dangerouslySetInnerHTML={{__html: ssrLoader}} />;
 }
 
 interface Props {
