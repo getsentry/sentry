@@ -1,6 +1,5 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
@@ -17,19 +16,20 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import {useTogglePluginMutation} from 'sentry/views/settings/projectPlugins/useTogglePluginMutation';
+
+import {useTogglePluginMutation} from './useTogglePluginMutation';
 
 export default function ProjectPluginDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const {pluginId, projectId} = useParams<{pluginId: string; projectId: string}>();
-  const pluginsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/`;
-  const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
+  const {pluginId} = useParams<{pluginId: string; projectId: string}>();
+  const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
+  const pluginDetailsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/${pluginId}/`;
 
   const {
     data: plugins,
