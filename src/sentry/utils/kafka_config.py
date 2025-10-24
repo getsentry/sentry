@@ -11,6 +11,7 @@ SUPPORTED_KAFKA_CONFIGURATION = (
     # for the full list of available options
     "bootstrap.servers",
     "compression.type",
+    "max.poll.interval.ms",
     "message.max.bytes",
     "sasl.mechanism",
     "sasl.username",
