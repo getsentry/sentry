@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import PluginsStore from 'sentry/stores/pluginsStore';
 import type {Plugin} from 'sentry/types/integrations';
 
-const activeFetch: Record<string, Promise<any> | null> = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
 const api = new Client();
 
@@ -59,64 +58,7 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParam
   return request;
 }
 
-type FetchPluginsOptions = {
-  /**
-   * Reset will set loading state = true
-   */
-  resetLoading?: boolean;
-};
-
-/**
- * Fetches list of available plugins for a project
- */
-export function fetchPlugins(
-  {orgId, projectId}: Pick<Slugs, 'orgId' | 'projectId'>,
-  options?: FetchPluginsOptions
-): Promise<Plugin[]> {
-  const path = `/projects/${orgId}/${projectId}/plugins/`;
-
-  // Make sure we throttle fetches
-  if (activeFetch[path]) {
-    return activeFetch[path];
-  }
-
-  PluginsStore.onFetchAll(options);
-  const request = api.requestPromise(path, {
-    method: 'GET',
-    includeAllArgs: true,
-  });
-
-  activeFetch[path] = request;
-
-  // This is intentionally not chained because we want the unhandled promise to be returned
-  request
-    .then(([data, _, resp]) => {
-      PluginsStore.onFetchAllSuccess(data, {
-        pageLinks: resp?.getResponseHeader('Link') ?? undefined,
-      });
-
-      return data;
-    })
-    .catch(err => {
-      PluginsStore.onFetchAllError(err);
-      throw new Error('Unable to fetch plugins');
-    })
-    .then(() => (activeFetch[path] = null));
-
-  return request;
-}
-
 type EnableDisablePluginParams = Slugs;
-
-/**
- * Enables a plugin
- */
-export function enablePlugin(params: EnableDisablePluginParams) {
-  addLoadingMessage(t('Enabling...'));
-  return doUpdate({...params, update: {enabled: true}, method: 'POST'})
-    .then(() => addSuccessMessage(t('Plugin was enabled')))
-    .catch(() => addErrorMessage(t('Unable to enable plugin')));
-}
 
 /**
  * Disables a plugin
