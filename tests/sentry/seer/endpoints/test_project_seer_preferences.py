@@ -238,3 +238,40 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         # The actual behavior returns 200 instead of 500 even with invalid data
         assert response.status_code == 200
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
+    def test_post_with_blank_string_fields(self, mock_post: MagicMock) -> None:
+        """Test that optional fields accept blank strings (empty strings) not just null values"""
+        # Setup the mock
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        # Request data with blank strings for optional fields
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                    "branch_name": "",  # blank string
+                    "instructions": "",  # blank string
+                }
+            ]
+        }
+
+        # Make the request
+        response = self.client.post(self.url, data=request_data)
+
+        # Assert the response is successful
+        assert response.status_code == 204
+
+        # Assert that the mock was called
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+
+        # Verify the URL used
+        assert args[0] == f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/set"
