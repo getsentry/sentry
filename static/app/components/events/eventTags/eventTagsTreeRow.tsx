@@ -121,6 +121,15 @@ export default function EventTagsTreeRow({
   );
 }
 
+const escapeEventTagForQuery = (key: string) => {
+  // Reserved keywords that conflict with issue search query
+  if (['project.name', 'project_id'].includes(key)) {
+    return `tags[${key}]`;
+  }
+
+  return escapeIssueTagKey(key);
+};
+
 function EventTagsTreeRowDropdown({
   content,
   event,
@@ -151,7 +160,7 @@ function EventTagsTreeRowDropdown({
     {referrer},
     {
       ...originalTag,
-      key: escapeIssueTagKey(originalTag.key),
+      key: escapeEventTagForQuery(originalTag.key),
     }
   );
 
