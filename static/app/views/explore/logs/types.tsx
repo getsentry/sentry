@@ -58,6 +58,9 @@ export enum OurLogKnownFieldKey {
 
   // Replay integration
   REPLAY_ID = 'replay_id',
+
+  // INTERNAL only (these only appear for staff)
+  INTERNAL_ONLY_INGESTED_AT = 'tags[sentry._internal.ingested_at,number]',
 }
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
