@@ -960,7 +960,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 )
 
             if (
-                widget_display_type is DashboardWidgetDisplayTypes.TABLE
+                widget_display_type is not DashboardWidgetDisplayTypes.TABLE
                 and len(linked_dashboards) < 1
             ):
                 return
