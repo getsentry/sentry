@@ -241,4 +241,37 @@ describe('AppSizeInsightsSidebarRow', () => {
     expect(screen.getByText('Potential savings 5.24 GB')).toBeInTheDocument();
     expect(screen.getByText(/-2\.15\s*GB/i)).toBeInTheDocument();
   });
+
+  it('shows ~0% for very small percentage savings', () => {
+    const insightWithTinySavings = ProcessedInsightFixture({
+      totalSavings: 100, // 100 bytes
+      percentage: 0.05, // 0.05% - less than 0.1% threshold
+      files: [
+        {
+          path: 'tiny-file.js',
+          savings: 100,
+          percentage: 0.05,
+          data: {
+            fileType: 'regular' as const,
+            originalFile: {
+              file_path: 'tiny-file.js',
+              total_savings: 100,
+            },
+          },
+        },
+      ],
+    });
+
+    render(
+      <AppSizeInsightsSidebarRow
+        {...getDefaultProps()}
+        insight={insightWithTinySavings}
+        isExpanded
+      />
+    );
+
+    // Should show ~0% for percentages less than 0.1%
+    expect(screen.getByText('~0%')).toBeInTheDocument();
+    expect(screen.getByText('Potential savings 100 B')).toBeInTheDocument();
+  });
 });
