@@ -19,9 +19,7 @@ def normalize_symbol_source(key, source):
     }
 
 
-def organization_has_console_platform_access(
-    organization: Organization, platform: str
-) -> bool:
+def organization_has_console_platform_access(organization: Organization, platform: str) -> bool:
     """
     Check if an organization has access to a specific console platform.
 
@@ -57,9 +55,7 @@ class BuiltinSymbolSourcesEndpoint(Endpoint):
                 if str(organization_id_or_slug).isdecimal():
                     organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
                 else:
-                    organization = Organization.objects.get_from_cache(
-                        slug=organization_id_or_slug
-                    )
+                    organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
             except Organization.DoesNotExist:
                 pass
 
