@@ -24,23 +24,23 @@ class OverwatchWebhookPublisher:
     def enqueue_webhook(self, webhook_details: WebhookDetails):
         base_addr = self._get_request_address()
 
-        try:
-            body = webhook_details.to_json()
-            requests.post(
-                f"{base_addr}/webhooks/sentry",
-                data=webhook_details.to_json(),
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    "x-sentry-overwatch-signature": self._get_request_signature(body),
-                },
-            )
-        except Exception:
-            logger.exception("overwatch.webhook_publisher.submit_failed")
-            raise
+        body = webhook_details.to_json()
+        requests.post(
+            f"{base_addr}/webhooks/sentry",
+            data=webhook_details.to_json(),
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "x-sentry-overwatch-signature": self._get_request_signature(body),
+            },
+        )
 
     def _get_request_signature(self, body: str) -> str:
+
+        if not (webhook_secret := settings.OVERWATCH_WEBHOOK_SECRET):
+            raise ValueError("OVERWATCH_WEBHOOK_SECRET is not set")
+
         return hmac.new(
-            key=settings.OVERWATCH_WEBHOOK_SECRET.encode("utf-8"),
+            key=webhook_secret.encode("utf-8"),
             msg=body.encode("utf-8"),
             digestmod=hashlib.sha256,
         ).hexdigest()
