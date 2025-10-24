@@ -26,17 +26,39 @@ function extractModuleExports(
         exportSymbol: typescript.Symbol
       ) => {
         const declarations = exportSymbol.getDeclarations() || [];
+        const exportName = exportSymbol.getName();
+
+        if (!exportName) {
+          return acc;
+        }
+
+        if (!acc[module]) {
+          acc[module] = [];
+        }
 
         for (const decl of declarations) {
-          if (typescript.isExportSpecifier(decl)) {
-            if (!acc[module]) {
-              acc[module] = [];
-            }
-            acc[module].push({
-              name: decl.name.getText(),
-              typeOnly: decl.isTypeOnly,
-            });
+          let isTypeOnly = false;
+
+          // Check if this is a type-only export
+          if (typescript.isInterfaceDeclaration(decl)) {
+            isTypeOnly = true;
+          } else if (typescript.isTypeAliasDeclaration(decl)) {
+            isTypeOnly = true;
+          } else if (typescript.isExportSpecifier(decl)) {
+            isTypeOnly = decl.isTypeOnly;
+          } else if (typescript.isFunctionDeclaration(decl)) {
+            isTypeOnly = false;
+          } else if (typescript.isVariableDeclaration(decl)) {
+            isTypeOnly = false;
           }
+
+          acc[module].push({
+            name: exportName,
+            typeOnly: isTypeOnly,
+          });
+
+          // Only process the first declaration
+          break;
         }
         return acc;
       },
