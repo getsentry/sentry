@@ -21,7 +21,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore, eventtypes, options, tagstore
+from sentry import eventstore, eventtypes, features, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
@@ -370,38 +370,39 @@ class GroupManager(BaseManager["Group"]):
         )
         group_lookup: set[int] = {group.short_id for group in groups}
 
+        organization = Organization.objects.get_from_cache(id=organization_id)
+        has_insensitive_lookup = features.has(
+            "organizations:group-case-insensitive-short-id-lookup", organization
+        )
+
         # If any requested short_ids are missing after the exact slug match,
         # fallback to a case-insensitive slug lookup to handle legacy/mixed-case slugs.
-        missing_short_ids = [sid.short_id for sid in short_ids if sid.short_id not in group_lookup]
-        if missing_short_ids:
-            # Build a lookup only for the missing short_ids per slug
+        if has_insensitive_lookup:
             missing_by_slug = defaultdict(list)
             for sid in short_ids:
-                if sid.short_id in missing_short_ids:
+                if sid.short_id not in group_lookup:
                     missing_by_slug[sid.project_slug].append(sid.short_id)
 
-            ci_short_id_lookup = reduce(
-                or_,
-                [
-                    Q(project__slug__iexact=slug, short_id__in=sids)
-                    for slug, sids in missing_by_slug.items()
-                ],
-            )
+            if len(missing_by_slug) > 0:
+                ci_short_id_lookup = reduce(
+                    or_,
+                    [
+                        Q(project__slug__iexact=slug, short_id__in=sids)
+                        for slug, sids in missing_by_slug.items()
+                    ],
+                )
 
-            fallback_groups = list(
-                self.exclude(
-                    status__in=[
-                        GroupStatus.PENDING_DELETION,
-                        GroupStatus.DELETION_IN_PROGRESS,
-                        GroupStatus.PENDING_MERGE,
-                    ]
-                ).filter(ci_short_id_lookup, project__organization=organization_id)
-            )
+                fallback_groups = list(
+                    self.exclude(
+                        status__in=[
+                            GroupStatus.PENDING_DELETION,
+                            GroupStatus.DELETION_IN_PROGRESS,
+                            GroupStatus.PENDING_MERGE,
+                        ]
+                    ).filter(ci_short_id_lookup, project__organization=organization_id)
+                )
 
-            if fallback_groups:
-                # Merge unique groups from fallback
-                existing_ids = {g.id for g in groups}
-                groups.extend(g for g in fallback_groups if g.id not in existing_ids)
+                groups.extend(fallback_groups)
                 group_lookup = {group.short_id for group in groups}
 
         for short_id in short_ids:
