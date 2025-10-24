@@ -185,7 +185,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             args=[self.organization.slug, self.project.slug],
         )
 
-        self.feature_context = Feature("organizations:preprod-artifact-assemble")
+        self.feature_context = Feature("organizations:preprod-frontend-routes")
         self.feature_context.__enter__()
 
     def tearDown(self) -> None:
@@ -210,7 +210,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             )
             assert response.status_code == 403
         finally:
-            self.feature_context = Feature("organizations:preprod-artifact-assemble")
+            self.feature_context = Feature("organizations:preprod-frontend-routes")
             self.feature_context.__enter__()
 
     def test_assemble_json_schema_integration(self) -> None:

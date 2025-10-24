@@ -9,7 +9,6 @@ from sentry.testutils.cases import APITestCase
 @override_settings(
     SENTRY_FEATURES={
         "organizations:preprod-frontend-routes": True,
-        "organizations:preprod-artifact-assemble": True,
     }
 )
 class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
