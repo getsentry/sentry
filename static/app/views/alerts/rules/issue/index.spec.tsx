@@ -27,7 +27,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -88,25 +87,18 @@ const createWrapper = (props = {}) => {
   };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
-    <ProjectAlerts
-      {...RouteComponentPropsFixture()}
-      organization={organization}
-      project={project}
+    <IssueRuleEditor
+      route={RouteComponentPropsFixture().route}
+      routeParams={RouteComponentPropsFixture().routeParams}
       params={params}
-    >
-      <IssueRuleEditor
-        route={RouteComponentPropsFixture().route}
-        routeParams={RouteComponentPropsFixture().routeParams}
-        params={params}
-        location={router.location}
-        routes={projectAlertRuleDetailsRoutes}
-        router={router}
-        members={[]}
-        onChangeTitle={onChangeTitleMock}
-        project={project}
-        userTeamIds={[]}
-      />
-    </ProjectAlerts>,
+      location={router.location}
+      routes={projectAlertRuleDetailsRoutes}
+      router={router}
+      members={[]}
+      onChangeTitle={onChangeTitleMock}
+      project={project}
+      userTeamIds={[]}
+    />,
     {
       router,
       organization,
