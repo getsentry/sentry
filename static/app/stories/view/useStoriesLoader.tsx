@@ -24,9 +24,7 @@ export interface MDXStoryDescriptor {
       status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };
-    types?:
-      | TypeLoader.ComponentDocWithFilename
-      | Record<string, TypeLoader.ComponentDocWithFilename>;
+    types?: Record<string, TypeLoader.ComponentDocWithFilename>;
   };
   filename: string;
 }

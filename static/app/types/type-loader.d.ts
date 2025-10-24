@@ -1,6 +1,5 @@
 declare module '!!type-loader!*' {
   const content: Record<string, TypeLoader.ComponentDocWithFilename>;
-
   export default content;
 }
 

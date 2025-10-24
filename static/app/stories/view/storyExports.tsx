@@ -215,20 +215,9 @@ function StoryUsage() {
   );
 }
 
-function isSingleDefaultExport(
-  types: unknown
-): types is TypeLoader.ComponentDocWithFilename {
-  return typeof types === 'object' && types !== null && 'filename' in types;
-}
-
 function StoryAPI() {
   const {story} = useStory();
   if (!story.exports.types) return null;
-
-  if (isSingleDefaultExport(story.exports.types)) {
-    return <Storybook.APIReference types={story.exports.types} />;
-  }
-
   return (
     <Fragment>
       {Object.entries(story.exports.types).map(([key, value]) => {
@@ -249,17 +238,9 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
 }
 
 function StoryModuleExports(props: {
-  exports:
-    | TypeLoader.ComponentDocWithFilename
-    | Record<string, TypeLoader.ComponentDocWithFilename>
-    | undefined;
+  exports: Record<string, TypeLoader.ComponentDocWithFilename> | undefined;
 }) {
   if (!props.exports) return null;
-  if (isSingleDefaultExport(props.exports)) {
-    return (
-      <Storybook.ModuleExports exports={{[props.exports.filename]: props.exports}} />
-    );
-  }
   return <Storybook.ModuleExports exports={props.exports} />;
 }
 
