@@ -52,8 +52,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:anomaly-detection-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable anr frame analysis
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Rollout of the new API rate limits for organization events
-    manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Gate the changes to the ask seer consent flow
     manager.add("organizations:ask-seer-consent-flow-update", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the endpoint to merge user accounts with the same email address
