@@ -19,7 +19,7 @@ describe('AppSizeInsightsSidebarRow', () => {
       screen.getByText('You have files that are duplicated across your app')
     ).toBeInTheDocument();
     expect(screen.getByText('Potential savings 1.02 MB')).toBeInTheDocument();
-    expect(screen.getByText('15.5%')).toBeInTheDocument();
+    expect(screen.getByText('-15.5%')).toBeInTheDocument();
   });
 
   it('shows file count button', () => {
@@ -193,7 +193,7 @@ describe('AppSizeInsightsSidebarRow', () => {
     expect(screen.queryByText('Convert to HEIC:')).not.toBeInTheDocument();
   });
 
-  it('renders with no files', () => {
+  it('hides file count button when there are no files', () => {
     const insightWithNoFiles = ProcessedInsightFixture({
       files: [],
     });
@@ -206,7 +206,8 @@ describe('AppSizeInsightsSidebarRow', () => {
       />
     );
 
-    expect(screen.getByText('0 files')).toBeInTheDocument();
+    // Button should not be rendered when there are 0 files
+    expect(screen.queryByRole('button', {name: /files/i})).not.toBeInTheDocument();
     expect(screen.queryByText(/^src\//)).not.toBeInTheDocument();
   });
 
