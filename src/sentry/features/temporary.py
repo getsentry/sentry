@@ -110,6 +110,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-widget-builder-redesign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable drilldown flow for dashboards
     manager.add("organizations:dashboards-drilldown-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable prebuilt dashboards for insights modules
+    manager.add("organizations:dashboards-prebuilt-insights-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable new timeseries visualization for dashboard widgets
+    manager.add("organizations:dashboards-widget-timeseries-visualization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -289,8 +293,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-transaction-deprecation-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable preprod artifact assembly endpointAdd commentMore actions
-    manager.add("organizations:preprod-artifact-assemble", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod frontend routes
     manager.add("organizations:preprod-frontend-routes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables PR page
@@ -354,6 +356,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-coding-agent-integrations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable search query builder boolean operator select feature
+    manager.add("organizations:search-query-builder-add-boolean-operator-select", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder case insensitivity features
     manager.add("organizations:search-query-builder-case-insensitivity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new search query builder default to contains operator

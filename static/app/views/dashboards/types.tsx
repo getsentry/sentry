@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -201,6 +202,7 @@ export type DashboardDetails = {
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
   start?: string;
   utc?: boolean;
 };

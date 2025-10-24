@@ -113,6 +113,31 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
           : `Searched code in ${repoName}`;
     }
   },
+
+  git_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const sha = args.sha;
+    const filePath = args.file_path;
+
+    if (sha) {
+      const shortSha = sha.slice(0, 7);
+      return isLoading
+        ? `Digging up commit ${shortSha} from ${repoName}...`
+        : `Dug up commit ${shortSha} from ${repoName}`;
+    }
+
+    if (filePath) {
+      const truncatedPath =
+        filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
+      return isLoading
+        ? `Excavating commits affecting '${truncatedPath}' in ${repoName}...`
+        : `Excavated commits affecting '${truncatedPath}' in ${repoName}`;
+    }
+
+    return isLoading
+      ? `Excavating commit history in ${repoName}...`
+      : `Excavated commit history in ${repoName}`;
+  },
 };
 
 /**

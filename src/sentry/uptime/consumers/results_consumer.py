@@ -30,6 +30,8 @@ from sentry.uptime.models import (
     load_regions_for_uptime_subscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
+    build_last_seen_interval_key,
+    build_last_update_key,
     check_and_update_regions,
     disable_uptime_detector,
     remove_uptime_subscription_if_unused,
@@ -58,13 +60,8 @@ ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSe
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
-
-def build_last_update_key(detector: Detector) -> str:
-    return f"project-sub-last-update:detector:{detector.id}"
-
-
-def build_last_seen_interval_key(detector: Detector) -> str:
-    return f"project-sub-last-seen-interval:detector:{detector.id}"
+# The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
+MAX_SYNTHETIC_MISSED_CHECKS = 100
 
 
 def get_host_provider_if_valid(subscription: UptimeSubscription) -> str:
@@ -330,7 +327,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             last_interval_seen: str = cluster.get(last_interval_key) or "0"
 
             if int(last_interval_seen) == subscription_interval_ms:
-                num_missed_checks = int(num_intervals - 1)
+                # Bound the number of missed checks we generate--just in case.
+                num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
+
                 metrics.distribution(
                     "uptime.result_processer.num_missing_check",
                     num_missed_checks,

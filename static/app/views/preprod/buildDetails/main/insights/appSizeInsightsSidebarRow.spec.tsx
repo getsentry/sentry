@@ -74,6 +74,7 @@ describe('AppSizeInsightsSidebarRow', () => {
             fileType: 'optimizable_image' as const,
             minifyPercentage: 6.67, // 200000 / 3000000 * 100
             conversionPercentage: 10, // 300000 / 3000000 * 100
+            isDuplicateVariant: false,
             originalFile: {
               file_path: 'image.png',
               current_size: 1000000,
@@ -81,6 +82,8 @@ describe('AppSizeInsightsSidebarRow', () => {
               minified_size: 800000,
               conversion_savings: 300000,
               heic_size: 700000,
+              colorspace: null,
+              idiom: null,
             },
           },
         },
@@ -121,6 +124,7 @@ describe('AppSizeInsightsSidebarRow', () => {
             fileType: 'optimizable_image' as const,
             minifyPercentage: 0,
             conversionPercentage: 10,
+            isDuplicateVariant: false,
             originalFile: {
               file_path: 'already-optimized.png',
               current_size: 802388,
@@ -128,6 +132,8 @@ describe('AppSizeInsightsSidebarRow', () => {
               minified_size: null,
               conversion_savings: 472700,
               heic_size: 329688,
+              colorspace: null,
+              idiom: null,
             },
           },
         },
@@ -158,6 +164,7 @@ describe('AppSizeInsightsSidebarRow', () => {
             fileType: 'optimizable_image' as const,
             minifyPercentage: 5,
             conversionPercentage: 0,
+            isDuplicateVariant: false,
             originalFile: {
               file_path: 'no-heic.png',
               current_size: 505980,
@@ -165,6 +172,8 @@ describe('AppSizeInsightsSidebarRow', () => {
               minified_size: 485960,
               conversion_savings: 0,
               heic_size: null,
+              colorspace: null,
+              idiom: null,
             },
           },
         },

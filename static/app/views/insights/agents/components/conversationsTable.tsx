@@ -11,6 +11,7 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -27,12 +28,14 @@ interface TableData {
   conversationId: string;
   duration: number;
   errors: number;
-  flow: string;
+  flow: string[];
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
   totalCost: number | null;
   totalTokens: number;
+  traceCount: number;
+  traceIds: string[];
 }
 
 export function ConversationsTable() {
@@ -68,11 +71,26 @@ const rightAlignColumns = new Set([
 ]);
 
 function ConversationsTableInner() {
+  const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
-  const {setCursor} = useTableCursor();
+  const {cursor, setCursor} = useTableCursor();
+
+  const {
+    data = [],
+    isLoading,
+    error,
+    getResponseHeader,
+  } = useApiQuery<TableData[]>(
+    [`/organizations/${organization.slug}/ai-conversations/`, {query: {cursor}}],
+    {
+      staleTime: 0,
+    }
+  );
+
+  const pageLinks = getResponseHeader?.('Link');
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -95,9 +113,9 @@ function ConversationsTableInner() {
     <Fragment>
       <GridEditableContainer>
         <GridEditable
-          isLoading={false}
-          error={null}
-          data={[]}
+          isLoading={isLoading}
+          error={error}
+          data={data}
           columnOrder={columnOrder}
           columnSortBy={EMPTY_ARRAY}
           stickyHeader
@@ -108,7 +126,7 @@ function ConversationsTableInner() {
           }}
         />
       </GridEditableContainer>
-      <Pagination pageLinks={undefined} onCursor={setCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }
@@ -127,6 +145,8 @@ const BodyCell = memo(function BodyCell({
   switch (column.key) {
     case 'conversationId':
       return <span>{dataRow.conversationId}</span>;
+    case 'flow':
+      return <span>{dataRow.flow.join(' → ')}</span>;
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
@@ -134,7 +154,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            // query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
+            query: `span.status:internal_error trace:[${dataRow.traceIds.join(',')}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,

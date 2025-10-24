@@ -10,8 +10,8 @@ import {
 export const checkStatusPrecedent: CheckStatus[] = [
   CheckStatus.FAILURE_INCIDENT,
   CheckStatus.FAILURE,
-  CheckStatus.MISSED_WINDOW,
   CheckStatus.SUCCESS,
+  CheckStatus.MISSED_WINDOW,
 ];
 
 export const statusToText: Record<CheckStatus, string> = {
