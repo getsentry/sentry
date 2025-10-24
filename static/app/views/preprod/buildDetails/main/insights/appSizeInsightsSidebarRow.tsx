@@ -76,13 +76,13 @@ export function AppSizeInsightsSidebarRow({
           </Text>
           <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
             <Text size="sm" tabular variant="success">
-              {formatPercentage(insight.percentage / 100, 1)}
+              {formatUpside(insight.percentage / 100)}
             </Text>
           </Tag>
         </Flex>
       </Flex>
 
-      <Stack gap="lg" align="start" paddingBottom="md">
+      <Stack gap="lg" align="start">
         <Text variant="muted" size="sm">
           {insight.description}
         </Text>
@@ -93,44 +93,46 @@ export function AppSizeInsightsSidebarRow({
         )}
       </Stack>
 
-      <Container>
-        <Button
-          size="sm"
-          onClick={onToggleExpanded}
-          style={{marginBottom: isExpanded ? '16px' : '0'}}
-          icon={
-            <IconChevron
-              style={{
-                transition: 'transform 0.2s ease',
-                color: 'inherit',
-                transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)',
-              }}
-            />
-          }
-        >
-          <Text variant="primary" size="md" bold>
-            {tn('%s file', '%s files', insight.files.length)}
-          </Text>
-        </Button>
-
-        {isExpanded && (
-          <Container
-            display="flex"
-            css={() => ({
-              flexDirection: 'column',
-              width: '100%',
-              overflow: 'hidden',
-              '& > :nth-child(odd)': {
-                backgroundColor: theme.backgroundSecondary,
-              },
-            })}
+      {insight.files.length > 0 && (
+        <Container paddingTop="md">
+          <Button
+            size="sm"
+            onClick={onToggleExpanded}
+            style={{marginBottom: isExpanded ? '16px' : '0'}}
+            icon={
+              <IconChevron
+                style={{
+                  transition: 'transform 0.2s ease',
+                  color: 'inherit',
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)',
+                }}
+              />
+            }
           >
-            {insight.files.map((file, fileIndex) => (
-              <FileRow key={`${file.path}-${fileIndex}`} file={file} />
-            ))}
-          </Container>
-        )}
-      </Container>
+            <Text variant="primary" size="md" bold>
+              {tn('%s file', '%s files', insight.files.length)}
+            </Text>
+          </Button>
+
+          {isExpanded && (
+            <Container
+              display="flex"
+              css={() => ({
+                flexDirection: 'column',
+                width: '100%',
+                overflow: 'hidden',
+                '& > :nth-child(odd)': {
+                  backgroundColor: theme.backgroundSecondary,
+                },
+              })}
+            >
+              {insight.files.map((file, fileIndex) => (
+                <FileRow key={`${file.path}-${fileIndex}`} file={file} />
+              ))}
+            </Container>
+          )}
+        </Container>
+      )}
     </Flex>
   );
 }
