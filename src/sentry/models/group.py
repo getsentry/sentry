@@ -403,7 +403,7 @@ class GroupManager(BaseManager["Group"]):
                 )
 
                 groups.extend(fallback_groups)
-                group_lookup = {group.short_id for group in groups}
+                group_lookup.update(group.short_id for group in fallback_groups)
 
         for short_id in short_ids:
             if short_id.short_id not in group_lookup:
