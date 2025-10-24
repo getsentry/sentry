@@ -18,7 +18,10 @@ class PrepareDeletesByProjectTest(TestCase):
 
         assert query is not None
         project_ids = list(query.values_list("id", flat=True))
-        assert project_ids == [project1.id, project2.id, project3.id]
+        # We sort the project IDs since the query set is unordered.
+        # Adding an order would be useless since the query from prepare_deletes_by_project is used
+        # by RangeQuerySetWrapper, which ignores order_by.
+        assert sorted(project_ids) == [project1.id, project2.id, project3.id]
 
     def test_with_specific_project(self) -> None:
         """Test that when a specific project is provided, only that project is included."""
@@ -31,7 +34,7 @@ class PrepareDeletesByProjectTest(TestCase):
 
         assert query is not None
         project_ids = list(query.values_list("id", flat=True))
-        assert project_ids == [project1.id]
+        assert sorted(project_ids) == [project1.id]
 
     def test_with_start_from_id(self) -> None:
         """Test that when start_from_project_id is provided, projects >= that ID are included."""
@@ -47,7 +50,7 @@ class PrepareDeletesByProjectTest(TestCase):
 
         assert query is not None
         project_ids = list(query.values_list("id", flat=True))
-        assert project_ids == [project2.id, project3.id]
+        assert sorted(project_ids) == [project2.id, project3.id]
 
     def test_specific_project_overrides_start_from(self) -> None:
         """Test that specific project_id takes precedence over start_from_project_id."""
@@ -63,7 +66,7 @@ class PrepareDeletesByProjectTest(TestCase):
         assert query is not None
         project_ids = list(query.values_list("id", flat=True))
         # Only project1 should be included, start_from_project_id is ignored
-        assert project_ids == [project1.id]
+        assert sorted(project_ids) == [project1.id]
 
     def test_only_active_projects(self) -> None:
         """Test that only active projects are included."""
@@ -76,7 +79,7 @@ class PrepareDeletesByProjectTest(TestCase):
 
         assert query is not None
         project_ids = list(query.values_list("id", flat=True))
-        assert project_ids == [active_project.id]
+        assert sorted(project_ids) == [active_project.id]
 
     def test_control_silo_mode_returns_none(self) -> None:
         """Test that in CONTROL silo mode, the function returns None for query and empty list."""
@@ -98,6 +101,6 @@ class PrepareDeletesByProjectTest(TestCase):
 
         assert query is not None
         project_ids = list(query.values_list("id", flat=True))
-        assert project_ids == [project1.id, project2.id]
+        assert sorted(project_ids) == [project1.id, project2.id]
         # Should have model tuples to delete
         assert len(to_delete) > 0
