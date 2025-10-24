@@ -62,6 +62,7 @@ def validate_preprod_artifact_update_schema(
                 },
             },
             "dequeued_at": {"type": "string"},
+            "app_icon_id": {"type": "string", "maxLength": 255},
         },
         "additionalProperties": True,
     }
@@ -82,6 +83,7 @@ def validate_preprod_artifact_update_schema(
         "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
         "dequeued_at": "The dequeued_at field must be a string.",
+        "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
     }
 
     try:
@@ -263,6 +265,10 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
         if "app_name" in data:
             head_artifact.app_name = data["app_name"]
             updated_fields.append("app_name")
+
+        if "app_icon_id" in data:
+            head_artifact.app_icon_id = data["app_icon_id"]
+            updated_fields.append("app_icon_id")
 
         extras_updates = {}
 
