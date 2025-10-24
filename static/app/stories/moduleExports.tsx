@@ -4,28 +4,17 @@ import {Heading} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Stack} from 'sentry/components/core/layout';
 
-export function ModuleExports(props: {
-  exports: Record<string, TypeLoader.ComponentDocWithFilename>;
-}) {
-  const entries = Object.entries(props.exports);
-  if (entries.length === 0) return '';
-  // Assume all exports are from a single module, just take the first one's value.module
-  const modulePath = entries[0]?.[1]?.module;
-  const defaultExport = entries.find(([_key, value]) => value?.displayName === 'default');
-  const namedExports = entries.filter(
-    ([_key, value]) => value?.displayName !== 'default'
-  );
+export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
+  if (!props.exports || !props.exports.exports) return null;
 
   const lines = [];
-  if (defaultExport) {
-    const [key] = defaultExport;
-    lines.push(`import ${key} from '${modulePath}';`);
-  }
-  if (namedExports.length > 0) {
-    const namedList = namedExports.map(([_, value]) => value.displayName).join(', ');
-    lines.push(`import {${namedList}} from '${modulePath}';`);
-  }
 
+  if (Object.entries(props.exports.exports).length > 0) {
+    const namedList = Object.entries(props.exports.exports)
+      .map(([key, value]) => `${value.typeOnly ? `type ${value.name}` : value.name}`)
+      .join(', ');
+    lines.push(`import {${namedList}} from '${props.exports.module}';`);
+  }
   return (
     <Stack gap="md" paddingTop="xl">
       <Heading as="h3" size="lg">
