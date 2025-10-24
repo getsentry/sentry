@@ -9,7 +9,7 @@ import type {Node} from '@react-types/shared';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
@@ -86,6 +86,11 @@ function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
   );
 }
 
+const BOOLEAN_OPERATOR_OPTIONS = [
+  {value: 'AND', label: 'AND'},
+  {value: 'OR', label: 'OR'},
+];
+
 function SearchQueryBuilderBooleanSelect({
   item,
   state,
@@ -95,8 +100,8 @@ function SearchQueryBuilderBooleanSelect({
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const {disabled, dispatch} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
-
-  const isFocused = item.key === state.selectionManager.focusedKey;
+  const {focusWithinProps} = useFocusWithin({});
+  const filterButtonProps = useFilterButtonProps({state, item});
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -113,13 +118,12 @@ function SearchQueryBuilderBooleanSelect({
   };
 
   const modifiedRowProps = mergeProps(rowProps, {
-    tabIndex: isFocused ? 0 : -1,
+    tabIndex: item.key === state.selectionManager.focusedKey ? 0 : -1,
     onKeyDown,
   });
 
-  const filterButtonProps = useFilterButtonProps({state, item});
-  const {focusWithinProps} = useFocusWithin({});
-
+  // sending this to uppercase to match the options as `and` and `or` are also valid
+  // values for the boolean operator
   const tokenText = token.text.toUpperCase();
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
@@ -127,6 +131,12 @@ function SearchQueryBuilderBooleanSelect({
 
   return (
     <FilterWrapper
+      border="muted"
+      position="relative"
+      radius="sm"
+      height="24px"
+      /* Ensures that filters do not grow outside of the container */
+      minWidth="0"
       ref={ref}
       aria-label={token.text}
       aria-invalid={tokenHasError}
@@ -148,10 +158,7 @@ function SearchQueryBuilderBooleanSelect({
                 disabled={disabled}
                 size="sm"
                 value={tokenText}
-                options={[
-                  {value: 'AND', label: 'AND'},
-                  {value: 'OR', label: 'OR'},
-                ]}
+                options={BOOLEAN_OPERATOR_OPTIONS}
                 trigger={triggerProps => {
                   return (
                     <OpButton
@@ -180,16 +187,13 @@ function SearchQueryBuilderBooleanSelect({
   );
 }
 
-const OpButton = styled(UnstyledButton, {
-  shouldForwardProp: isPropValid,
-})<{onlyOperator?: boolean}>`
+const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
   padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.subText};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
-
-  border-radius: ${p => (p.onlyOperator ? '3px 0 0 3px' : 0)};
+  border-radius: 3px 0 0 3px;
 
   :focus {
     background-color: ${p => p.theme.translucentGray100};
@@ -198,14 +202,7 @@ const OpButton = styled(UnstyledButton, {
   }
 `;
 
-const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
-  position: relative;
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  height: 24px;
-  /* Ensures that filters do not grow outside of the container */
-  min-width: 0;
-
+const FilterWrapper = styled(Container)<{state: 'invalid' | 'warning' | 'valid'}>`
   :focus,
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
