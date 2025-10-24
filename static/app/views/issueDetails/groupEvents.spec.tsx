@@ -1,7 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -21,7 +19,14 @@ describe('groupEvents', () => {
   const requests: Record<string, jest.Mock> = {};
   let group!: Group;
   let organization: Organization;
-  let router: ReturnType<typeof RouterFixture>;
+
+  const getRouterConfig = (query: Record<string, string | number | string[]> = {}) => ({
+    route: '/organizations/:orgId/issues/:groupId/events/',
+    location: {
+      pathname: `/organizations/org-slug/issues/${group.id}/events/`,
+      query,
+    },
+  });
 
   beforeEach(() => {
     group = GroupFixture();
@@ -32,17 +37,6 @@ describe('groupEvents', () => {
     organization = OrganizationFixture({
       features: ['event-attachments'],
       streamlineOnly: false,
-    });
-    router = RouterFixture({
-      params: {orgId: 'org-slug', groupId: group.id},
-      location: LocationFixture({
-        pathname: '/organizations/org-slug/issues/123/events/',
-        action: 'REPLACE',
-        key: 'okjkey',
-        query: {
-          query: '',
-        },
-      }),
     });
 
     requests.discover = MockApiClient.addMockResponse({
@@ -128,9 +122,8 @@ describe('groupEvents', () => {
 
   it('fetches and renders a table of events', async () => {
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig(),
     });
 
     expect(await screen.findByText('id123')).toBeInTheDocument();
@@ -146,10 +139,9 @@ describe('groupEvents', () => {
   });
 
   it('pushes new query parameter when searching', async () => {
-    render(<GroupEvents />, {
+    const {router} = render(<GroupEvents />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig(),
     });
 
     const input = await screen.findByPlaceholderText('Search events\u2026');
@@ -159,11 +151,7 @@ describe('groupEvents', () => {
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {query: 'foo'},
-        })
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({query: 'foo'}));
     });
   });
 
@@ -175,8 +163,7 @@ describe('groupEvents', () => {
 
     render(<GroupEvents />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig(),
     });
 
     const input = await screen.findByPlaceholderText('Search events\u2026');
@@ -196,11 +183,9 @@ describe('groupEvents', () => {
   });
 
   it('handles environment filtering', async () => {
-    router.location.query.environment = ['prod', 'staging'];
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
 
     await waitFor(() => {
@@ -216,12 +201,10 @@ describe('groupEvents', () => {
 
   it('renders events table for performance issue', async () => {
     group.issueCategory = IssueCategory.PERFORMANCE;
-    router.location.query.environment = ['prod', 'staging'];
 
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
 
     await waitFor(() => {
@@ -239,12 +222,10 @@ describe('groupEvents', () => {
 
   it('renders event and trace link correctly', async () => {
     group.issueCategory = IssueCategory.PERFORMANCE;
-    router.location.query.environment = ['prod', 'staging'];
 
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
 
     const eventIdATag = (await screen.findByText('id123')).closest('a');
@@ -255,11 +236,9 @@ describe('groupEvents', () => {
   });
 
   it('does not make attachments request, async when feature not enabled', async () => {
-    router.location.query.environment = ['prod', 'staging'];
     render(<GroupEvents />, {
-      router,
       organization: {...organization, features: []},
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -269,11 +248,9 @@ describe('groupEvents', () => {
   });
 
   it('does not display attachments column with no attachments', async () => {
-    router.location.query.environment = ['prod', 'staging'];
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -283,11 +260,9 @@ describe('groupEvents', () => {
   });
 
   it('does not display minidump column with no minidumps', async () => {
-    router.location.query.environment = ['prod', 'staging'];
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -316,9 +291,8 @@ describe('groupEvents', () => {
     });
 
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig(),
     });
     const minidumpColumn = await screen.findByText('Minidump');
     expect(minidumpColumn).toBeInTheDocument();
@@ -343,12 +317,10 @@ describe('groupEvents', () => {
         },
       ],
     });
-    router.location.query.environment = ['prod', 'staging'];
 
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     const minidumpColumn = await screen.findByText('Minidump');
@@ -359,18 +331,16 @@ describe('groupEvents', () => {
   });
 
   it('renders events table for error', async () => {
-    router.location.query.environment = ['prod', 'staging'];
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
     await waitFor(() => {
       expect(requests.discover).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            query: 'issue.id:1 ',
+            query: `issue.id:${group.id} `,
             field: expect.not.arrayContaining(['attachments', 'minidump']),
           }),
         })
@@ -383,15 +353,12 @@ describe('groupEvents', () => {
   });
 
   it('removes sort if unsupported by the events table', async () => {
-    router.location.query = {
-      ...router.location.query,
-      environment: ['prod', 'staging'],
-      sort: 'user',
-    };
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({
+        environment: ['prod', 'staging'],
+        sort: 'user',
+      }),
     });
     await waitFor(() => {
       expect(requests.discover).toHaveBeenCalledWith(
@@ -405,16 +372,13 @@ describe('groupEvents', () => {
   });
 
   it('only request for a single projectId', async () => {
-    router.location.query = {
-      ...router.location.query,
-      environment: ['prod', 'staging'],
-      sort: 'user',
-      project: [group.project.id, '456'],
-    };
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({
+        environment: ['prod', 'staging'],
+        sort: 'user',
+        project: [group.project.id, '456'],
+      }),
     });
     await waitFor(() => {
       expect(requests.discover).toHaveBeenCalledWith(
@@ -438,12 +402,10 @@ describe('groupEvents', () => {
         errorId: '69ab396e73704cdba9342ff8dcd59795',
       },
     });
-    router.location.query.environment = ['prod', 'staging'];
 
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -453,11 +415,9 @@ describe('groupEvents', () => {
 
   it('requests for backend columns if backend project', async () => {
     group.project.platform = 'node-express';
-    router.location.query.environment = ['prod', 'staging'];
     render(<GroupEvents />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: getRouterConfig({environment: ['prod', 'staging']}),
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
