@@ -1,17 +1,8 @@
 import {Fragment} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-const quoteStyles = (_theme: Theme) => css`
-  /**
-   * Reset any properties that might be set by the global CSS styles.
-   */
-  margin: 0;
-  padding: 0;
-  border: none;
-`;
 
 interface QuoteProps extends React.HTMLProps<HTMLElementTagNameMap['blockquote']> {
   source?: {
@@ -21,10 +12,9 @@ interface QuoteProps extends React.HTMLProps<HTMLElementTagNameMap['blockquote']
   };
 }
 export function Quote(props: QuoteProps) {
-  const theme = useTheme();
   return (
     <Stack as="figure" paddingLeft="xl" marginLeft="lg" borderLeft="primary">
-      <blockquote css={quoteStyles(theme)} cite={props.source?.href} {...props} />
+      <Blockquote cite={props.source?.href} {...props} as="blockquote" />
       {props.source ? (
         <figcaption>
           <Text as="p">
@@ -40,3 +30,12 @@ export function Quote(props: QuoteProps) {
     </Stack>
   );
 }
+
+const Blockquote = styled('blockquote')`
+  /**
+   * Reset any properties that might be set by the global CSS styles.
+   */
+  margin: 0;
+  padding: 0;
+  border: none;
+`;
