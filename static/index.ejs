@@ -21,7 +21,7 @@
         const res = await fetch(BOOTSTRAP_URL);
         if (res.ok) {
           const data = await res.then(res => res.json());
-          const theme = data.user?.options.theme;
+          const theme = data.user?.options?.theme;
           if (theme) {
             document.body.classList.replace('theme-system', `theme-${theme}`);
           }
