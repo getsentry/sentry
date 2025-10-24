@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {CodeBlock} from 'sentry/components/core/code/codeBlock';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -8,9 +9,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = {
   data: ProjectKey;
@@ -302,9 +300,6 @@ function ProjectKeyCredentials({
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
   // Calculate available tabs based on props
   const availableTabs = useMemo<TabConfig[]>(() => {
     const tabs: TabConfig[] = [
@@ -346,29 +341,15 @@ function ProjectKeyCredentials({
     showProjectId,
   ]);
 
-  // Get showDeprecatedDsn from query params
-  const showDeprecatedDsn = decodeScalar(location?.query?.showDeprecated) === 'true';
+  const [showDeprecatedDsn, setShowDeprecatedDsn] = useQueryState(
+    'showDeprecated',
+    parseAsBoolean
+  );
 
-  // Get current tab from query params, defaulting to first available
-  const getCurrentTab = (): TabValue => {
-    const queryTab = decodeScalar(location?.query?.tab);
-    const validTabs = availableTabs.map(tab => tab.key);
-    return validTabs.includes(queryTab as TabValue)
-      ? (queryTab as TabValue)
-      : (availableTabs[0]?.key ?? 'otlp');
-  };
-
-  const activeTab = getCurrentTab();
-
-  const handleTabChange = (newTab: TabValue) => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        tab: newTab,
-      },
-    });
-  };
+  const [activeTab, setActiveTab] = useQueryState('tab', {
+    ...parseAsStringLiteral(availableTabs.map(tab => tab.key)),
+    defaultValue: availableTabs[0]?.key ?? 'otlp',
+  });
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -414,12 +395,10 @@ function ProjectKeyCredentials({
           help={tct('The DSN tells the SDK where to send the events to. [link]', {
             link: showDsn ? (
               <Link
-                to={{
-                  ...location,
-                  query: {
-                    ...location.query,
-                    showDeprecated: showDeprecatedDsn ? undefined : 'true',
-                  },
+                to=""
+                onClick={e => {
+                  e.preventDefault();
+                  setShowDeprecatedDsn(showDeprecatedDsn ? null : true);
                 }}
               >
                 {showDeprecatedDsn ? t('Hide deprecated DSN') : t('Show deprecated DSN')}
@@ -471,7 +450,7 @@ function ProjectKeyCredentials({
 
       {availableTabs.length > 0 && (
         <Fragment>
-          <Tabs value={activeTab} onChange={handleTabChange}>
+          <Tabs value={activeTab} onChange={setActiveTab}>
             <TabList>
               {availableTabs.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
