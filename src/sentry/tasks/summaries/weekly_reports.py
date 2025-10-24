@@ -14,7 +14,6 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import F
 from django.utils import dateformat, timezone
-from rb.clients import LocalClient
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry_sdk import set_tag
 
@@ -348,8 +347,8 @@ class _DuplicateDeliveryCheck:
         # Tracks state from `check_for_duplicate_delivery` to `record_delivery`
         self.count: int | None = None
 
-    def _get_redis_cluster(self) -> LocalClient:
-        return redis.clusters.get("default").get_local_client_for_key("weekly_reports")
+    def _get_redis_cluster(self) -> RedisCluster[str] | StrictRedis[str]:
+        return redis.redis_clusters.get(settings.SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER)
 
     @property
     def _redis_name(self) -> str:
