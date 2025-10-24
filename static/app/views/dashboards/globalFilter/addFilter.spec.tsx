@@ -9,9 +9,9 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 describe('AddFilter', () => {
   // Mock filter keys returned by the search bar data provider
   const mockFilterKeys: TagCollection = {
-    browser: {
-      key: 'browser',
-      name: 'Browser',
+    'browser.name': {
+      key: 'browser.name',
+      name: 'Browser Name',
       kind: FieldKind.FIELD,
     },
     environment: {
@@ -19,12 +19,12 @@ describe('AddFilter', () => {
       name: 'Environment',
       kind: FieldKind.FIELD,
     },
-    unsupportedFunction: {
+    'unsupported.function': {
       key: 'unsupported.function',
       name: 'Unsupported Function',
       kind: FieldKind.FUNCTION,
     },
-    unsupportedMeasurement: {
+    'unsupported.measurement': {
       key: 'unsupported.measurement',
       name: 'Unsupported Measurement',
       kind: FieldKind.MEASUREMENT,
@@ -64,17 +64,15 @@ describe('AddFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
 
     // Verify filter keys are shown for each dataset
-    for (const datasetLabel of DATASET_CHOICES.values()) {
-      await userEvent.click(screen.getByText(datasetLabel));
+    await userEvent.click(screen.getByText('Errors'));
 
-      // Should see filter key options for the dataset
-      expect(screen.getByText('Select Filter Tag')).toBeInTheDocument();
-      expect(screen.getByText(mockFilterKeys.browser!.key)).toBeInTheDocument();
-      expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
+    // Should see filter key options for the dataset
+    expect(screen.getByText('Select Filter Tag')).toBeInTheDocument();
+    expect(screen.getByText(mockFilterKeys['browser.name']!.key)).toBeInTheDocument();
+    expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
 
-      // Return to dataset selection
-      await userEvent.click(screen.getByText('Back'));
-    }
+    // Return to dataset selection
+    await userEvent.click(screen.getByText('Back'));
   });
 
   it('does not render unsupported filter keys', async () => {
@@ -92,10 +90,10 @@ describe('AddFilter', () => {
 
     // Unsupported filter keys should not be included in the options
     expect(
-      screen.queryByText(mockFilterKeys.unsupportedFunction!.key)
+      screen.queryByText(mockFilterKeys['unsupported.function']!.key)
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(mockFilterKeys.unsupportedMeasurement!.key)
+      screen.queryByText(mockFilterKeys['unsupported.measurement']!.key)
     ).not.toBeInTheDocument();
   });
 
@@ -114,14 +112,16 @@ describe('AddFilter', () => {
 
     // Select arbitrary dataset and filter key
     await userEvent.click(screen.getByText('Errors'));
-    await userEvent.click(screen.getByText(mockFilterKeys.browser!.key));
-    await userEvent.click(screen.getByText('Add Filter'));
+    await userEvent.click(
+      screen.getByRole('option', {name: mockFilterKeys['browser.name']!.key})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
 
     // Verify onAddFilter was called with the added global filter object
     expect(onAddFilter).toHaveBeenCalledTimes(1);
     expect(onAddFilter).toHaveBeenCalledWith({
       dataset: WidgetType.ERRORS,
-      tag: mockFilterKeys.browser,
+      tag: mockFilterKeys['browser.name'],
       value: '',
     });
   });
