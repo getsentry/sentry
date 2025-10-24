@@ -62,6 +62,7 @@ export enum SavedSearchType {
   ERROR = 6,
   TRANSACTION = 7,
   LOG = 8,
+  TRACEMETRIC = 9,
 }
 
 export enum IssueCategory {

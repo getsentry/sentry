@@ -25,7 +25,10 @@ describe('QueryFilterBuilder', () => {
       .mocked(useTraceItemTags)
       .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
-    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   it('renders a dataset-specific query filter bar', async () => {
