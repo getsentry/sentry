@@ -1068,7 +1068,7 @@ class GSBanner extends Component<Props, State> {
 
 export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true})));
 
-export function InvertedAlert(props: Omit<AlertProps, 'system' | 'type'>) {
+function InvertedAlert(props: Omit<AlertProps, 'system' | 'type'>) {
   const invertedTheme = useInvertedTheme();
 
   return (
