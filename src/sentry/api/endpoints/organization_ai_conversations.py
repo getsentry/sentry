@@ -1,4 +1,5 @@
 import json  # noqa: S003
+import logging
 from collections import defaultdict
 
 from rest_framework import serializers
@@ -16,7 +17,8 @@ from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils import logger
+
+logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
 
 class OrganizationAIConversationsSerializer(serializers.Serializer):
@@ -130,7 +132,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             sampling_mode=None,
         )
 
-        logger.info(f"[ai-conversations] Got Conversation IDs results: {conversation_ids_results}")
+        logger.info(
+            "[ai-conversations] Got Conversation IDs results",
+            extra={"conversation_ids_results": conversation_ids_results},
+        )
 
         conversation_ids: list[str] = [
             conv_id
