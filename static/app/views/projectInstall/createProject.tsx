@@ -45,6 +45,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
+  type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
   AlertRuleOptions,
@@ -53,6 +54,7 @@ import type {
 import IssueAlertOptions, {
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -82,7 +84,7 @@ function getMissingValues({
   isOrgMemberWithNoAccess: boolean;
   notificationProps: {
     actions?: string[];
-    channel?: string;
+    channel?: IntegrationChannel;
   };
   projectName: string;
   team: string | undefined;
@@ -130,6 +132,7 @@ function getSubmitTooltipText({
   if (isMissingPlatform) {
     return t('Please select a platform');
   }
+
   return t('Please select a team');
 }
 
@@ -141,6 +144,7 @@ export function CreateProject() {
   const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
+
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -162,6 +166,12 @@ export function CreateProject() {
   const {createNotificationAction, notificationProps} = useCreateNotificationAction(
     createNotificationActionParam
   );
+
+  const validateChannel = useValidateChannel({
+    channel: notificationProps.channel,
+    integrationId: notificationProps.integration?.id,
+    enabled: false,
+  });
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -204,18 +214,26 @@ export function CreateProject() {
     platform: formData.platform,
   });
 
+  const isNotifyingViaIntegration =
+    alertRuleConfig.shouldCreateRule &&
+    notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION);
+
   const formErrorCount = [
     missingValues.isMissingPlatform,
     missingValues.isMissingTeam,
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
+    isNotifyingViaIntegration && validateChannel.error,
   ].filter(value => value).length;
 
-  const submitTooltipText = getSubmitTooltipText({
-    ...missingValues,
-    formErrorCount,
-  });
+  const submitTooltipText =
+    isNotifyingViaIntegration && validateChannel.error
+      ? validateChannel.error
+      : getSubmitTooltipText({
+          ...missingValues,
+          formErrorCount,
+        });
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -557,16 +575,25 @@ export function CreateProject() {
               <Tooltip
                 title={
                   canUserCreateProject
-                    ? submitTooltipText
+                    ? isNotifyingViaIntegration && validateChannel.isFetching
+                      ? t('Validating integration channel\u2026')
+                      : submitTooltipText
                     : t('You do not have permission to create projects')
                 }
-                disabled={formErrorCount === 0 && canUserCreateProject}
+                disabled={
+                  formErrorCount === 0 &&
+                  canUserCreateProject &&
+                  !(isNotifyingViaIntegration && validateChannel.isFetching)
+                }
               >
                 <Button
                   data-test-id="create-project"
                   priority="primary"
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
-                  busy={createProjectAndRules.isPending}
+                  busy={
+                    createProjectAndRules.isPending ||
+                    (isNotifyingViaIntegration && validateChannel.isFetching)
+                  }
                   onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}
