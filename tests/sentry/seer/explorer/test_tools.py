@@ -711,6 +711,21 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             else:
                 assert result["event_trace_id"] is None
 
+            # Verify timeseries dict structure.
+            timeseries = result["event_timeseries"]
+            assert isinstance(timeseries, dict)
+            assert "count()" in timeseries
+            assert "data" in timeseries["count()"]
+            assert isinstance(timeseries["count()"]["data"], list)
+            for item in timeseries["count()"]["data"]:
+                assert len(item) == 2
+                assert isinstance(item[0], int)
+                assert isinstance(item[1], list)
+                assert len(item[1]) == 1
+                assert isinstance(item[1][0], dict)
+                assert "count" in item[1][0]
+                assert isinstance(item[1][0]["count"], int)
+
     def test_get_issue_details_success_int_id(self):
         self._test_get_issue_details_success(use_short_id=False)
 
