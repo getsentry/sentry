@@ -139,7 +139,7 @@ def sync_group_assignee_inbound_by_external_actor(
 
         external_actors = ExternalActor.objects.filter(
             provider=EXTERNAL_PROVIDERS_REVERSE[ExternalProviderEnum(integration.provider)].value,
-            external_name=external_user_name,
+            external_name__iexact=external_user_name,
             integration_id=integration.id,
             user_id__isnull=False,
         ).values_list("user_id", flat=True)
