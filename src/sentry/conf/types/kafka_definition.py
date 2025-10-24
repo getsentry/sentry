@@ -142,6 +142,15 @@ class ConsumerDefinition(TypedDict, total=False):
 
     stale_topic: Topic
 
+    # How long to wait for the consumer to shut down.
+    #
+    # By default, the join timeout of a consumer is 25 seconds. None means no
+    # timeout.
+    #
+    # Override this if the consumer is not idempotent and takes longer to shut
+    # down, at the risk of stability issues.
+    default_join_timeout: float | None
+
 
 def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> None:
     if "dlq_topic" not in consumer_definition and (

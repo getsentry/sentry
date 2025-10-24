@@ -248,14 +248,17 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
         "click_options": ingest_monitors_options(),
+        "default_join_timeout": None,  # XXX(markus): can this be removed?
     },
     "monitors-clock-tick": {
         "topic": Topic.MONITORS_CLOCK_TICK,
         "strategy_factory": "sentry.monitors.consumers.clock_tick_consumer.MonitorClockTickStrategyFactory",
+        "default_join_timeout": None,  # XXX(markus): can this be removed?
     },
     "monitors-clock-tasks": {
         "topic": Topic.MONITORS_CLOCK_TASKS,
         "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+        "default_join_timeout": None,  # XXX(markus): can this be removed?
     },
     "monitors-incident-occurrences": {
         "topic": Topic.MONITORS_INCIDENT_OCCURRENCES,
@@ -266,6 +269,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
         "click_options": uptime_options(),
         "pass_consumer_group": True,
+        "default_join_timeout": None,
     },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
@@ -278,6 +282,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
         "click_options": issue_occurrence_options(),
+        "default_join_timeout": None,  # XXX(markus): can this be removed?
     },
     "events-subscription-results": {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -496,6 +501,11 @@ def get_stream_processor(
 
     if cluster is None:
         cluster = cluster_from_config
+
+    if join_timeout is None:
+        join_timeout = consumer_definition.get("default_join_timeout", 25)
+    if join_timeout == 0:
+        join_timeout = None
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())

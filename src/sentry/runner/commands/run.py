@@ -477,7 +477,12 @@ def taskbroker_send_tasks(
     type=click.Choice(["earliest", "latest", "error"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
-@click.option("--join-timeout", type=float, help="Join timeout in seconds.", default=None)
+@click.option(
+    "--join-timeout",
+    type=float,
+    help="Join timeout in seconds, how long to wait for the consumer to shut down. Each consumer has its own default, but the default-default is 25 seconds.",
+    default=None,
+)
 @click.option(
     "--max-poll-interval-ms",
     type=int,
