@@ -40,16 +40,16 @@ from sentry.uptime.autodetect.result_handler import (
 )
 from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
-from sentry.uptime.consumers.results_consumer import (
-    UptimeResultsStrategyFactory,
-    build_last_seen_interval_key,
-    build_last_update_key,
-)
+from sentry.uptime.consumers.results_consumer import UptimeResultsStrategyFactory
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     build_detector_fingerprint_component,
+    build_last_seen_interval_key,
+    build_last_update_key,
+    disable_uptime_detector,
+    enable_uptime_detector,
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -370,6 +370,37 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "uptime.result_processor.num_missing_check",
                 extra={"num_missed_checks": 1, **result},
             )
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    def test_no_missed_check_for_disabled(self, mock_produce: MagicMock) -> None:
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        # Pretend we got a result 900 seconds ago; the subscription
+        # has an interval of 300 seconds.  We've missed two checks.
+        last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
+        _get_cluster().set(
+            build_last_update_key(self.detector),
+            last_update_time,
+        )
+
+        _get_cluster().set(
+            build_last_seen_interval_key(self.detector),
+            300 * 1000,
+        )
+
+        # Enabling and disabling should clear the last_update_time, and we
+        # will not produce any synthetic checks
+        disable_uptime_detector(self.detector)
+        enable_uptime_detector(self.detector)
+
+        with (self.feature("organizations:uptime"),):
+            self.send_result(result)
+
+            assert mock_produce.call_count == 1
+
+            check = self.decode_trace_item(mock_produce.call_args_list[0].args[1].value)
+
+            assert check.attributes["check_status"].string_value == "failure"
 
     @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
     def test_missed_check_true_positive(self, mock_produce: MagicMock) -> None:

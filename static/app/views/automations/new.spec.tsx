@@ -14,7 +14,7 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import AutomationNewSettings from 'sentry/views/automations/new-settings';
+import AutomationNewSettings from 'sentry/views/automations/new';
 
 describe('AutomationNewSettings', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
@@ -162,7 +162,7 @@ describe('AutomationNewSettings', () => {
     // Assert navigation to details page
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/automations/${created.id}/`
+        `/organizations/${organization.slug}/monitors/alerts/${created.id}/`
       )
     );
   });

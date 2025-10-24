@@ -2,8 +2,6 @@ import {Fragment, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
@@ -84,8 +82,6 @@ export function IssuesSecondaryNav() {
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const {layout} = useNavContext();
-  const hasWorkflowEngine = useWorkflowEngineFeatureGate();
-
   const isSticky = layout === NavLayout.SIDEBAR;
 
   return (
@@ -95,39 +91,13 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       collapsible={false}
       isSticky={isSticky}
     >
-      {hasWorkflowEngine ? (
-        <Fragment>
-          <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" />}
-            to={`${baseUrl}/monitors/`}
-            activeTo={`${baseUrl}/monitors`}
-          >
-            {t('Monitors')}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" />}
-            to={`${baseUrl}/automations/`}
-            activeTo={`${baseUrl}/automations`}
-          >
-            {t('Alerts')}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
-            to={`${baseUrl}/alerts/rules/`}
-            activeTo={`${baseUrl}/alerts/`}
-            analyticsItemName="issues_alerts"
-          >
-            {t('Alerts')}
-          </SecondaryNav.Item>
-        </Fragment>
-      ) : (
-        <SecondaryNav.Item
-          to={`${baseUrl}/alerts/rules/`}
-          activeTo={`${baseUrl}/alerts/`}
-          analyticsItemName="issues_alerts"
-        >
-          {t('Alerts')}
-        </SecondaryNav.Item>
-      )}
+      <SecondaryNav.Item
+        to={`${baseUrl}/alerts/rules/`}
+        activeTo={`${baseUrl}/alerts/`}
+        analyticsItemName="issues_alerts"
+      >
+        {t('Alerts')}
+      </SecondaryNav.Item>
     </StickyBottomSection>
   );
 }

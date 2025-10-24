@@ -93,6 +93,7 @@ function MetricsQueryBuilderSection() {
           <ToolbarVisualizeAddChart
             add={addMetricQuery}
             disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+            label={t('Add Metric')}
           />
         </div>
       </Flex>

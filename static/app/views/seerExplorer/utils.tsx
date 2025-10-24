@@ -54,6 +54,17 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
+  get_issue_details: (args, isLoading) => {
+    const issueId = args.issue_id || '';
+    const selectedEvent = args.selected_event;
+    if (selectedEvent && selectedEvent !== 'recommended') {
+      return isLoading
+        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
+        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+    }
+    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+  },
+
   code_search: (args, isLoading) => {
     const repoName = args.repo_name || 'repository';
     const mode = args.mode || 'search';
@@ -101,6 +112,45 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
           ? `Searching code in ${repoName}...`
           : `Searched code in ${repoName}`;
     }
+  },
+
+  git_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const sha = args.sha;
+    const filePath = args.file_path;
+    const startDate = args.start_date;
+    const endDate = args.end_date;
+
+    if (sha) {
+      const shortSha = sha.slice(0, 7);
+      return isLoading
+        ? `Digging up commit ${shortSha} from ${repoName}...`
+        : `Dug up commit ${shortSha} from ${repoName}`;
+    }
+
+    // Build date range string if dates are provided
+    let dateRangeStr = '';
+    if (startDate || endDate) {
+      if (startDate && endDate) {
+        dateRangeStr = ` from ${startDate} to ${endDate}`;
+      } else if (startDate) {
+        dateRangeStr = ` since ${startDate}`;
+      } else if (endDate) {
+        dateRangeStr = ` until ${endDate}`;
+      }
+    }
+
+    if (filePath) {
+      const truncatedPath =
+        filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
+      return isLoading
+        ? `Excavating commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}`;
+    }
+
+    return isLoading
+      ? `Excavating commit history${dateRangeStr} in ${repoName}...`
+      : `Excavated commit history${dateRangeStr} in ${repoName}`;
   },
 };
 
@@ -210,6 +260,11 @@ export function buildToolLinkUrl(
         pathname,
         query,
       };
+    }
+    case 'get_issue_details': {
+      const {event_id, issue_id} = toolLink.params;
+
+      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
     }
     default:
       return null;
