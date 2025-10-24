@@ -37,11 +37,11 @@ class ExtrapolationMode(Enum):
 
     @classmethod
     def as_choices(cls):
-        return tuple((source.value, source.name.lower()) for source in cls)
+        return tuple((mode.value, mode.name.lower()) for mode in cls)
 
     @classmethod
     def as_text_choices(cls):
-        return tuple((source.name.lower(), source.value) for source in cls)
+        return tuple((mode.name.lower(), mode.value) for mode in cls)
 
 
 @region_silo_model
