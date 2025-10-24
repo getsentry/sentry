@@ -1,5 +1,6 @@
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
@@ -10,6 +11,7 @@ import {
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 
 const defaultProps = {
+  enableAISearch: true,
   filterKeys: {},
   getTagValues: () => Promise.resolve([]),
   initialQuery: 'test',
@@ -28,6 +30,10 @@ const askSeerMutationOptions = mutationOptions({
       data: {},
     });
   },
+});
+
+const {organization} = initializeOrg({
+  organization: {features: ['gen-ai-features'], hideAiFeatures: false},
 });
 
 describe('AskSeerComboBox', () => {
@@ -52,6 +58,12 @@ describe('AskSeerComboBox', () => {
       method: 'POST',
       body: {status: 'ok', queries: [{query: 'span.duration:>30s'}]},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true}},
+    });
   });
 
   it('renders the search input', async () => {
@@ -61,8 +73,11 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
         />
-      </SearchQueryBuilderProvider>
+      </SearchQueryBuilderProvider>,
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -79,8 +94,11 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
         />
-      </SearchQueryBuilderProvider>
+      </SearchQueryBuilderProvider>,
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -96,8 +114,11 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
         />
-      </SearchQueryBuilderProvider>
+      </SearchQueryBuilderProvider>,
+      {organization}
     );
 
     const header = await screen.findByText(/Describe what you're looking for./);
@@ -112,6 +133,8 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
         />
       ) : (
         <div>
@@ -124,7 +147,8 @@ describe('AskSeerComboBox', () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <TestComponent />
-      </SearchQueryBuilderProvider>
+      </SearchQueryBuilderProvider>,
+      {organization}
     );
 
     const openSeerSearchButton = await screen.findByText('Open Seer Search');
@@ -146,8 +170,11 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
         />
-      </SearchQueryBuilderProvider>
+      </SearchQueryBuilderProvider>,
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -167,9 +194,12 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={applySeerSearchQuery}
+          analyticsSource="test"
+          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {
+        organization,
         initialRouterConfig: {location: {pathname: '/foo/'}},
       }
     );
@@ -202,8 +232,11 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
         />
-      </SearchQueryBuilderProvider>
+      </SearchQueryBuilderProvider>,
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -215,5 +248,36 @@ describe('AskSeerComboBox', () => {
       'An error occurred while fetching Seer queries'
     );
     expect(errorMessage).toBeInTheDocument();
+  });
+
+  it('does not render if the organization does not have the gen-ai-features feature', () => {
+    const {container} = render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
+        />
+      </SearchQueryBuilderProvider>
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('does not render if the organization has the hideAiFeatures feature', () => {
+    const {container} = render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+          analyticsSource="test"
+          feedbackSource="test"
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: {...organization, hideAiFeatures: true}}
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });
