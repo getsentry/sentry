@@ -25,6 +25,8 @@
           if (theme) {
             document.body.classList.replace('theme-system', `theme-${theme}`);
           }
+        } else {
+          document.body.classList.remove('theme-system');
         }
       }
       applySpaTheme();
