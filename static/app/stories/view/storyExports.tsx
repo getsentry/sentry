@@ -226,11 +226,7 @@ function StoryAPI() {
   if (!story.exports.types) return null;
 
   if (isSingleDefaultExport(story.exports.types)) {
-    return (
-      <Storybook.APIReference
-        types={story.exports.types as TypeLoader.ComponentDocWithFilename}
-      />
-    );
+    return <Storybook.APIReference types={story.exports.types} />;
   }
 
   return (
