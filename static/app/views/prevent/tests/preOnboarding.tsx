@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
-import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,8 +33,7 @@ const INSTRUCTIONS_TEXT = {
 export default function TestsPreOnboardingPage() {
   const organization = useOrganization();
   const regionData = getRegionDataFromOrganization(organization);
-  const isUSStorage =
-    regionData?.name?.toLowerCase() === 'us' || regionData?.name === '--monolith--';
+  const isUSStorage = regionData?.name?.toLowerCase() === 'us';
 
   const config = useLegacyStore(ConfigStore);
   const isDarkMode = config.theme === 'dark';
