@@ -7,7 +7,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -33,6 +33,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
+from sentry.preprod.permissions import has_preprod_access
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 
@@ -82,9 +83,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             )
         )
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
+        if not has_preprod_access(project.organization, request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 
         logger.info(
@@ -268,9 +267,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             )
         )
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
+        if not has_preprod_access(project.organization, request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 
         logger.info(

@@ -9,7 +9,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -19,6 +19,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
+from sentry.preprod.permissions import has_preprod_access
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -116,9 +117,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             )
         )
 
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
+        if not settings.IS_DEV and not has_preprod_access(project.organization, request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 
         with sentry_sdk.start_span(op="preprod_artifact.assemble"):

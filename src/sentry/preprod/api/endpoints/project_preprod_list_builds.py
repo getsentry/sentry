@@ -7,7 +7,7 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -20,6 +20,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 )
 from sentry.preprod.api.validators import PreprodListBuildsValidator
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.permissions import has_preprod_access
 from sentry.preprod.utils import parse_release_version
 
 logger = logging.getLogger(__name__)
@@ -63,9 +64,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
             )
         )
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
+        if not has_preprod_access(project.organization, request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 
         validator = PreprodListBuildsValidator(data=request.GET)

@@ -101,8 +101,12 @@ function ReleaseHeader({
     to: `builds/`,
   };
 
+  const hasPreprodAccess =
+    organization.isEarlyAdopter ||
+    organization.features?.includes('preprod-frontend-routes');
+
   if (
-    organization.features?.includes('preprod-frontend-routes') &&
+    hasPreprodAccess &&
     (numberOfMobileBuilds || MOBILE_PLATFORMS.includes(project.platform))
   ) {
     tabs.push(buildsTab);

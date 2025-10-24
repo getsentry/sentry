@@ -6,7 +6,7 @@ from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,6 +15,7 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiDeleteEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.permissions import has_preprod_access
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +36,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
     ) -> Response:
         """Delete a preprod artifact and all associated data"""
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
+        if not has_preprod_access(project.organization, request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 
         analytics.record(
