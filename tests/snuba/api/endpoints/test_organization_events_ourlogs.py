@@ -888,3 +888,17 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         response = self.do_request(request)
         assert response.status_code == 400
+
+    def test_bytes_scanned(self):
+        self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
+
+        request = {
+            "field": ["timestamp", "message"],
+            "orderby": "-timestamp",
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["meta"]["bytesScanned"] > 0

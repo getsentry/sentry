@@ -684,6 +684,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             )
             assert response.status_code == 200, response.content
             expected = {
+                "bytesScanned": mock.ANY,
                 "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
@@ -1902,6 +1903,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
         expected = {
+            "bytesScanned": mock.ANY,
             "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",

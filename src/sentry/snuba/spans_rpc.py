@@ -9,7 +9,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
@@ -91,10 +91,7 @@ class Spans(rpc_dataset_common.RPCBase):
         rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
         for resolved_field in aggregates + groupbys:
