@@ -118,6 +118,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const repoName = args.repo_name || 'repository';
     const sha = args.sha;
     const filePath = args.file_path;
+    const startDate = args.start_date;
+    const endDate = args.end_date;
 
     if (sha) {
       const shortSha = sha.slice(0, 7);
@@ -126,17 +128,29 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Dug up commit ${shortSha} from ${repoName}`;
     }
 
+    // Build date range string if dates are provided
+    let dateRangeStr = '';
+    if (startDate || endDate) {
+      if (startDate && endDate) {
+        dateRangeStr = ` from ${startDate} to ${endDate}`;
+      } else if (startDate) {
+        dateRangeStr = ` since ${startDate}`;
+      } else if (endDate) {
+        dateRangeStr = ` until ${endDate}`;
+      }
+    }
+
     if (filePath) {
       const truncatedPath =
         filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
       return isLoading
-        ? `Excavating commits affecting '${truncatedPath}' in ${repoName}...`
-        : `Excavated commits affecting '${truncatedPath}' in ${repoName}`;
+        ? `Excavating commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}`;
     }
 
     return isLoading
-      ? `Excavating commit history in ${repoName}...`
-      : `Excavated commit history in ${repoName}`;
+      ? `Excavating commit history${dateRangeStr} in ${repoName}...`
+      : `Excavated commit history${dateRangeStr} in ${repoName}`;
   },
 };
 
