@@ -13,6 +13,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -109,15 +110,21 @@ export default function DetectorsList() {
         <ListLayout actions={<Actions />} title={pageTitle}>
           <TableHeader />
           <div>
-            <DetectorListTable
-              detectors={detectors ?? []}
-              isPending={isLoading}
-              isError={isError}
-              isSuccess={isSuccess}
-              sort={sort}
-              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
-              allResultsVisible={allResultsVisible()}
-            />
+            <VisuallyCompleteWithData
+              hasData={(detectors?.length ?? 0) > 0}
+              id="MonitorsList-Table"
+              isLoading={isLoading}
+            >
+              <DetectorListTable
+                detectors={detectors ?? []}
+                isPending={isLoading}
+                isError={isError}
+                isSuccess={isSuccess}
+                sort={sort}
+                queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+                allResultsVisible={allResultsVisible()}
+              />
+            </VisuallyCompleteWithData>
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {
