@@ -1,9 +1,8 @@
-import {Fragment} from 'react';
-
 import {CodeBlock} from '@sentry/scraps/code';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Stack} from 'sentry/components/core/layout';
 
 export function ModuleExports(props: {
   exports: Record<string, TypeLoader.ComponentDocWithFilename>;
@@ -28,9 +27,9 @@ export function ModuleExports(props: {
   }
 
   return (
-    <Fragment>
+    <Stack gap="md" paddingTop="xl">
       <Heading as="h3" size="lg">
-        Import
+        Imports
       </Heading>
       <pre>
         <CodeBlock
@@ -40,6 +39,6 @@ export function ModuleExports(props: {
           {lines.join('\n')}
         </CodeBlock>
       </pre>
-    </Fragment>
+    </Stack>
   );
 }
