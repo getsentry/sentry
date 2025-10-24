@@ -165,7 +165,7 @@ class ProjectDebugFile(Model):
         if self.file_format == "breakpad":
             return ".sym"
         if self.file_format == "macho":
-            return ""
+            return ".debug" if self.file_type == "dbg" else ""
         if self.file_format == "proguard":
             return ".txt"
         if self.file_format == "elf":
