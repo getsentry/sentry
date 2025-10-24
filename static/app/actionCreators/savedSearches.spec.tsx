@@ -19,7 +19,7 @@ describe('useFetchRecentSearches', () => {
         {
           id: '1',
           organizationId: organization.id,
-          type: SavedSearchType.ISSUE,
+          type: SavedSearchType.TRACEMETRIC,
           query: `${namespacePrefix}browser.name:firefox`,
           dateCreated: '2021-01-01T00:00:00.000Z',
           lastSeen: '2021-01-01T00:00:00.000Z',
@@ -27,7 +27,7 @@ describe('useFetchRecentSearches', () => {
         {
           id: '2',
           organizationId: organization.id,
-          type: SavedSearchType.ISSUE,
+          type: SavedSearchType.TRACEMETRIC,
           query: `${namespacePrefix}browser.name:chrome`,
           dateCreated: '2021-01-01T00:00:00.000Z',
           lastSeen: '2021-01-01T00:00:00.000Z',
@@ -38,7 +38,7 @@ describe('useFetchRecentSearches', () => {
     const {result} = renderHookWithProviders(
       () =>
         useFetchRecentSearches({
-          savedSearchType: SavedSearchType.ISSUE,
+          savedSearchType: SavedSearchType.TRACEMETRIC,
           namespace,
         }),
       {organization}
