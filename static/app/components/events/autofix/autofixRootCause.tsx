@@ -6,6 +6,7 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {TextArea} from 'sentry/components/core/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
@@ -20,8 +21,10 @@ import {
   useLaunchCodingAgent,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -311,6 +314,9 @@ function AutofixRootCauseDisplay({
       return;
     }
 
+    // Show immediate loading toast
+    addLoadingMessage(t('Launching %s...', cursorIntegration.name));
+
     launchCodingAgent({
       integrationId: cursorIntegration.id,
       agentName: cursorIntegration.name,
@@ -451,7 +457,12 @@ function AutofixRootCauseDisplay({
                 items={[
                   {
                     key: 'cursor-agent',
-                    label: t('Send to Cursor Background Agent'),
+                    label: (
+                      <Flex gap="md" align="center">
+                        <PluginIcon pluginId="cursor" size={20} />
+                        <div>{t('Send to Cursor Background Agent')}</div>
+                      </Flex>
+                    ),
                     onAction: handleLaunchCodingAgent,
                     disabled: isLoadingAgents || isLaunchingAgent,
                   },
@@ -464,7 +475,13 @@ function AutofixRootCauseDisplay({
                     busy={isLaunchingAgent}
                     disabled={isLoadingAgents}
                     aria-label={t('More solution options')}
-                    icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                    icon={
+                      isLaunchingAgent ? (
+                        <LoadingIndicator size={12} />
+                      ) : (
+                        <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                      )
+                    }
                   />
                 )}
               />
