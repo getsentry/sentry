@@ -44,7 +44,7 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {useRemoveTableCursorOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveTableCursorOnSearch';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
@@ -83,7 +83,7 @@ function AgentsOverviewPage() {
   useDefaultToAllProjects();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
-  useRemoveTableCursorOnSearch();
+  const {unsetCursor} = useTableCursor();
 
   useEffect(() => {
     trackAnalytics('agent-monitoring.page-view', {
@@ -118,6 +118,7 @@ function AgentsOverviewPage() {
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'agent-monitoring',
       numberTags,
@@ -138,6 +139,7 @@ function AgentsOverviewPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 

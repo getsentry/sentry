@@ -26,7 +26,7 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {useRemoveTableCursorOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveTableCursorOnSearch';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -117,8 +117,7 @@ function McpOverviewPage() {
     },
   });
   const activeView = view ?? ViewType.TOOL;
-
-  useRemoveTableCursorOnSearch();
+  const {unsetCursor} = useTableCursor();
 
   useEffect(() => {
     trackAnalytics('mcp-monitoring.page-view', {
@@ -163,6 +162,7 @@ function McpOverviewPage() {
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'mcp-monitoring',
       numberTags,
@@ -183,6 +183,7 @@ function McpOverviewPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 

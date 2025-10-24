@@ -1,9 +1,7 @@
 import {useCallback} from 'react';
+import {useQueryState} from 'nuqs';
 
 import type {CursorHandler} from 'sentry/components/pagination';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 
 interface UseTableCursorResult {
@@ -22,39 +20,20 @@ interface UseTableCursorResult {
 }
 
 export function useTableCursor(): UseTableCursorResult {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const cursor = decodeScalar(location.query?.[TableUrlParams.CURSOR]);
+  const [cursor, setCursorState] = useQueryState(TableUrlParams.CURSOR, {
+    history: 'replace',
+  });
 
   const setCursor: CursorHandler = useCallback(
-    (newCursor, pathname, previousQuery) => {
-      navigate(
-        {
-          pathname,
-          query: {
-            ...previousQuery,
-            [TableUrlParams.CURSOR]: newCursor,
-          },
-        },
-        {replace: true, preventScrollReset: true}
-      );
+    newCursor => {
+      setCursorState(newCursor ?? null);
     },
-    [navigate]
+    [setCursorState]
   );
 
   const unsetCursor = useCallback(() => {
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [TableUrlParams.CURSOR]: undefined,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  }, [navigate, location]);
+    setCursorState(null);
+  }, [setCursorState]);
 
-  return {cursor, setCursor, unsetCursor};
+  return {cursor: cursor ?? undefined, setCursor, unsetCursor};
 }
