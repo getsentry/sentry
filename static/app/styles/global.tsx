@@ -146,7 +146,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     }
   }
 
-  body.theme-system {
+  body:not(.theme-dark):not(.theme-light) {
     @media (prefers-color-scheme: dark) {
       background: ${theme.tokens.background.primary};
     }
