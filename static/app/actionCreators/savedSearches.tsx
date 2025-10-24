@@ -31,7 +31,7 @@ function encodeNamespacedRecentSearch(namespace?: string, query = ''): string {
   return getNamespacePrefix(namespace) + query;
 }
 
-export function decodeNamespacedRecentSearch(namespace?: string, query = ''): string {
+function decodeNamespacedRecentSearch(namespace?: string, query = ''): string {
   if (!namespace) {
     return query;
   }
