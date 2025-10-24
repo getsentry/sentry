@@ -52,13 +52,11 @@ function extractModuleExports(
             isTypeOnly = false;
           }
 
-          acc[module].push({
+          // Respect the order of the exports
+          acc[module].unshift({
             name: exportName,
             typeOnly: isTypeOnly,
           });
-
-          // Only process the first declaration
-          break;
         }
         return acc;
       },
@@ -151,5 +149,11 @@ function extractRequest(module: LoaderContext<any>['_module']) {
   if (!module || !('rawRequest' in module) || typeof module.rawRequest !== 'string') {
     return '';
   }
-  return module.rawRequest.split('!')?.at(-1) ?? '';
+  const request = module.rawRequest.split('!')?.at(-1) ?? '';
+
+  if (request.endsWith('/index')) {
+    return request.replace(/\/index$/, '');
+  }
+
+  return request;
 }
