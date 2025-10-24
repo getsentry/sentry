@@ -18,10 +18,13 @@
       // Default to `.theme-system` and replace with user theme as soon as possible.
       const BOOTSTRAP_URL = '/api/client-config/';
       async function applySpaTheme() {
-        const data = await fetch(BOOTSTRAP_URL).then(res => res.json());
-        const theme = data.user?.options.theme;
-        if (theme) {
-          document.body.classList.replace('theme-system', `theme-${theme}`);
+        const res = await fetch(BOOTSTRAP_URL);
+        if (res.ok) {
+          const data = await res.then(res => res.json());
+          const theme = data.user?.options.theme;
+          if (theme) {
+            document.body.classList.replace('theme-system', `theme-${theme}`);
+          }
         }
       }
       applySpaTheme();
