@@ -10,7 +10,8 @@ interface UseTableCursorResult {
    */
   cursor: string | undefined;
   /**
-   * Handler function to update the cursor in the URL
+   * Handler function compatible with Pagination's onCursor prop.
+   * Only uses the cursor parameter, ignoring path, query, and delta.
    */
   setCursor: CursorHandler;
   /**
@@ -24,7 +25,7 @@ export function useTableCursor(): UseTableCursorResult {
     history: 'replace',
   });
 
-  const setCursor: CursorHandler = useCallback(
+  const setCursor = useCallback<CursorHandler>(
     newCursor => {
       setCursorState(newCursor ?? null);
     },

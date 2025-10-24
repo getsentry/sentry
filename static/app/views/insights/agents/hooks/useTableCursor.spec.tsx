@@ -1,93 +1,123 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-
 describe('useTableCursor', () => {
-  const mockNavigate = jest.fn();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
-  });
-
   it('should return undefined cursor when query param is not present', () => {
-    jest.mocked(useLocation).mockReturnValue(
-      LocationFixture({
-        query: {},
-      })
-    );
-
-    const {result} = renderHook(() => useTableCursor());
+    const {result} = renderHookWithProviders(() => useTableCursor(), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {},
+        },
+      },
+    });
 
     expect(result.current.cursor).toBeUndefined();
   });
 
-  it('should return cursor value from query params with default param name', () => {
-    jest.mocked(useLocation).mockReturnValue(
-      LocationFixture({
-        query: {tableCursor: 'abc123'},
-      })
-    );
-
-    const {result} = renderHook(() => useTableCursor());
+  it('should return cursor value from query params', () => {
+    const {result} = renderHookWithProviders(() => useTableCursor(), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {tableCursor: 'abc123'},
+        },
+      },
+    });
 
     expect(result.current.cursor).toBe('abc123');
   });
 
-  it('should call navigate with correct params when handleCursor is called', async () => {
-    jest.mocked(useLocation).mockReturnValue(
-      LocationFixture({
-        query: {},
-      })
-    );
+  it('should update cursor value when setCursor is called', async () => {
+    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {},
+        },
+      },
+    });
 
-    const {result} = renderHook(() => useTableCursor());
+    expect(result.current.cursor).toBeUndefined();
 
-    result.current.setCursor('newCursor', '/path', {existingParam: 'value'}, -1);
+    act(() => {
+      result.current.setCursor('newCursor', '/', {}, -1);
+    });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        {
-          pathname: '/path',
-          query: {
-            existingParam: 'value',
-            tableCursor: 'newCursor',
-          },
-        },
-        {replace: true, preventScrollReset: true}
-      );
+      expect(result.current.cursor).toBe('newCursor');
     });
+
+    expect(router.location.query.tableCursor).toBe('newCursor');
   });
 
   it('should replace old cursor with new cursor value', async () => {
-    jest.mocked(useLocation).mockReturnValue(
-      LocationFixture({
-        query: {tableCursor: 'oldCursor'},
-      })
-    );
+    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {tableCursor: 'oldCursor'},
+        },
+      },
+    });
 
-    const {result} = renderHook(() => useTableCursor());
+    expect(result.current.cursor).toBe('oldCursor');
 
-    result.current.setCursor('newCursor', '/path', {otherParam: 'value'}, -1);
+    act(() => {
+      result.current.setCursor('newCursor', '/', {}, -1);
+    });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        {
-          pathname: '/path',
-          query: {
-            otherParam: 'value',
-            tableCursor: 'newCursor',
-          },
-        },
-        {replace: true, preventScrollReset: true}
-      );
+      expect(result.current.cursor).toBe('newCursor');
     });
+
+    expect(router.location.query.tableCursor).toBe('newCursor');
+  });
+
+  it('should clear cursor when unsetCursor is called', async () => {
+    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {tableCursor: 'someCursor'},
+        },
+      },
+    });
+
+    expect(result.current.cursor).toBe('someCursor');
+
+    act(() => {
+      result.current.unsetCursor();
+    });
+
+    await waitFor(() => {
+      expect(result.current.cursor).toBeUndefined();
+    });
+
+    expect(router.location.query.tableCursor).toBeUndefined();
+  });
+
+  it('should handle undefined cursor in setCursor (e.g., navigating to first page)', async () => {
+    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {tableCursor: 'someCursor'},
+        },
+      },
+    });
+
+    expect(result.current.cursor).toBe('someCursor');
+
+    act(() => {
+      result.current.setCursor(undefined, '/', {}, -1);
+    });
+
+    await waitFor(() => {
+      expect(result.current.cursor).toBeUndefined();
+    });
+
+    expect(router.location.query.tableCursor).toBeUndefined();
   });
 });
