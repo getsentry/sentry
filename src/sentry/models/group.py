@@ -374,11 +374,17 @@ class GroupManager(BaseManager["Group"]):
         # fallback to a case-insensitive slug lookup to handle legacy/mixed-case slugs.
         missing_short_ids = [sid.short_id for sid in short_ids if sid.short_id not in group_lookup]
         if missing_short_ids:
+            # Build a lookup only for the missing short_ids per slug
+            missing_by_slug = defaultdict(list)
+            for sid in short_ids:
+                if sid.short_id in missing_short_ids:
+                    missing_by_slug[sid.project_slug].append(sid.short_id)
+
             ci_short_id_lookup = reduce(
                 or_,
                 [
-                    Q(project__slug__iexact=slug, short_id__in=short_ids)
-                    for slug, short_ids in project_short_id_lookup.items()
+                    Q(project__slug__iexact=slug, short_id__in=sids)
+                    for slug, sids in missing_by_slug.items()
                 ],
             )
 
