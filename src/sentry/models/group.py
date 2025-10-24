@@ -369,6 +369,35 @@ class GroupManager(BaseManager["Group"]):
             ).filter(short_id_lookup, project__organization=organization_id)
         )
         group_lookup: set[int] = {group.short_id for group in groups}
+
+        # If any requested short_ids are missing after the exact slug match,
+        # fallback to a case-insensitive slug lookup to handle legacy/mixed-case slugs.
+        missing_short_ids = [sid.short_id for sid in short_ids if sid.short_id not in group_lookup]
+        if missing_short_ids:
+            ci_short_id_lookup = reduce(
+                or_,
+                [
+                    Q(project__slug__iexact=slug, short_id__in=short_ids)
+                    for slug, short_ids in project_short_id_lookup.items()
+                ],
+            )
+
+            fallback_groups = list(
+                self.exclude(
+                    status__in=[
+                        GroupStatus.PENDING_DELETION,
+                        GroupStatus.DELETION_IN_PROGRESS,
+                        GroupStatus.PENDING_MERGE,
+                    ]
+                ).filter(ci_short_id_lookup, project__organization=organization_id)
+            )
+
+            if fallback_groups:
+                # Merge unique groups from fallback
+                existing_ids = {g.id for g in groups}
+                groups.extend(g for g in fallback_groups if g.id not in existing_ids)
+                group_lookup = {group.short_id for group in groups}
+
         for short_id in short_ids:
             if short_id.short_id not in group_lookup:
                 raise Group.DoesNotExist()
