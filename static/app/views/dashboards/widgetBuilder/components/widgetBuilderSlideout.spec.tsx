@@ -37,7 +37,10 @@ describe('WidgetBuilderSlideout', () => {
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
-    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',

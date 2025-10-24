@@ -53,8 +53,9 @@ export function Filter({traceMetric}: FilterProps) {
         initialQuery: query,
         onSearch: setQuery,
         searchSource: 'tracemetrics',
+        namespace: traceMetric.name,
       };
-    }, [query, setQuery, numberTags, stringTags]);
+    }, [query, setQuery, numberTags, stringTags, traceMetric.name]);
 
   const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
