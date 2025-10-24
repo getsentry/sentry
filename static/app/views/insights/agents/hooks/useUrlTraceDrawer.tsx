@@ -17,12 +17,12 @@ export function useUrlTraceDrawer() {
     parseAsString.withOptions({history: 'replace'})
   );
 
-  const removeQueryParams = useCallback(async () => {
-    await setSelectedTrace(null);
+  const removeQueryParams = useCallback(() => {
+    void setSelectedTrace(null);
   }, [setSelectedTrace]);
 
-  const closeDrawer = useCallback(async () => {
-    await removeQueryParams();
+  const closeDrawer = useCallback(() => {
+    removeQueryParams();
     return baseCloseDrawer();
   }, [baseCloseDrawer, removeQueryParams]);
 
@@ -43,8 +43,8 @@ export function useUrlTraceDrawer() {
         shouldCloseOnLocationChange: nextLocation => {
           return !nextLocation.query[DrawerUrlParams.SELECTED_TRACE];
         },
-        onClose: async () => {
-          await removeQueryParams();
+        onClose: () => {
+          removeQueryParams();
           onClose?.();
         },
       });
