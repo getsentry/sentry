@@ -395,9 +395,28 @@ def report_rage_click(
         )
 
 
+def _largest_attr(ti: TraceItem) -> tuple[str, int]:
+    if not ti.attributes:
+        return ("", 0)
+    name, anyv = max(ti.attributes.items(), key=lambda kv: kv[1].ByteSize())
+    return name, anyv.ByteSize()
+
+
 @sentry_sdk.trace
 def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
-    write_trace_items(trace_items)
+    largest_attribute = max(
+        ((ti, *_largest_attr(ti)) for ti in trace_items),
+        key=lambda t: t[2],
+        default=None,
+    )
+
+    with sentry_sdk.start_span(op="process", name="write_trace_items") as span:
+        if largest_attribute:
+            ti, name, size = largest_attribute
+            span.set_data("largest_attr_trace_id", ti.trace_id)
+            span.set_data("largest_attr_name", name)
+            span.set_data("largest_attr_size_bytes", size)
+        write_trace_items(trace_items)
 
 
 @sentry_sdk.trace
