@@ -3108,7 +3108,8 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
 
-OVERWATCH_REGION_URLS = {}
+OVERWATCH_REGION_URLS = os.getenv("OVERWATCH_REGION_URLS", {})
+OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

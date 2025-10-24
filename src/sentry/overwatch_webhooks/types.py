@@ -35,6 +35,22 @@ class OrganizationSummary:
         )
 
 
+GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
+    "installation",
+    "installation_repositories",
+    "issue_comment",
+    "pull_request",
+    "pull_request_review_comment",
+    "pull_request_review",
+}
+
+
+@dataclass(frozen=True)
+class OverwatchOrganizationContext:
+    organization_integration: OrganizationIntegration
+    organization_mapping: OrganizationMapping
+
+
 @dataclass
 class WebhookDetails:
     organizations: list[OrganizationSummary]
@@ -44,8 +60,5 @@ class WebhookDetails:
     region: str
     request_type: str = DEFAULT_REQUEST_TYPE
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
     def to_json(self) -> str:
-        return json.dumps(self.to_dict())
+        return json.dumps(asdict(self))

@@ -40,8 +40,8 @@ class OverwatchGithubWebhookForwarder:
     def __init__(self, integration: Integration):
         self.integration = integration
 
-    def should_forward_to_overwatch(self, event: Mapping[str, Any]) -> bool:
-        return event.get("action") in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
+    def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
+        return headers.get("HTTP_X_GITHUB_EVENT") in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
 
     def _get_org_summaries_by_region_for_integration(
         self, integration: Integration
@@ -81,7 +81,7 @@ class OverwatchGithubWebhookForwarder:
                 integration=self.integration
             )
 
-            if not orgs_by_region or not self.should_forward_to_overwatch(event):
+            if not orgs_by_region or not self.should_forward_to_overwatch(headers):
                 return
 
             # We can conditionally opt into forwarding on a per-region basis,
