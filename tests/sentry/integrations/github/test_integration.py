@@ -1792,6 +1792,31 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert orjson.loads(request.body) == {"assignees": ["octocat"]}
 
     @responses.activate
+    def test_sync_assignee_outbound_case_insensitive(self) -> None:
+        """Test assigning a GitHub issue to a user with linked GitHub account"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            external_name="@JohnDoe"
+        )
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": ["johndoe"]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == "https://api.github.com/repos/Test-Organization/foo/issues/123"
+        assert orjson.loads(request.body) == {"assignees": ["johndoe"]}
+
+    @responses.activate
     def test_sync_assignee_outbound_unassign(self) -> None:
         """Test unassigning a GitHub issue"""
 
