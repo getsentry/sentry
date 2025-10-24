@@ -1,12 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
-export enum MetricsAnalyticsPageSource {
-  EXPLORE_METRICS = 'explore',
-  ISSUE_DETAILS = 'issue details',
-  TRACE_DETAILS = 'trace details',
-}
-
 export type MetricsAnalyticsEventParameters = {
   'metrics.explorer.setup_button_clicked': {
     organization: Organization;
