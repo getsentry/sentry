@@ -121,17 +121,23 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const organization = useOrganization();
-
-  const enableAISearch = Boolean(enableAISearchProp) && !organization.hideAiFeatures;
-  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
-  const [displayAskSeer, setDisplayAskSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
   const currentInputValueRef = useRef<string>('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
+
+  const organization = useOrganization();
+  const enableAISearch =
+    Boolean(enableAISearchProp) &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features');
+
+  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
+
+  const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
+  const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -221,7 +227,7 @@ export function SearchQueryBuilderProvider({
       autoSubmitSeer,
       setAutoSubmitSeer,
       displayAskSeer,
-      setDisplayAskSeer,
+      setDisplayAskSeer: setDisplayAskSeerState,
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
