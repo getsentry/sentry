@@ -78,6 +78,8 @@ export function useVirtualStreaming({
   const queryKeyString = JSON.stringify(logsQueryKey);
   const previousQueryKeyString = usePrevious(queryKeyString);
 
+  const organizationRef = useRef(organization);
+
   useEffect(() => {
     if (previousQueryKeyString !== queryKeyString) {
       // We reset the virtual timestamp when the query key changes.
@@ -204,6 +206,12 @@ export function useVirtualStreaming({
 
         if (mostRecentPageDataTimestamp === null) {
           warnRef.current();
+          logger.info(
+            'No most recent page data timestamp found, setting auto-refresh to error',
+            {
+              organization: organizationRef.current.slug,
+            }
+          );
           setLogsAutoRefresh('error');
           return;
         }
