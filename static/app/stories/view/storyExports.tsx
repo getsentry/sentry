@@ -140,6 +140,7 @@ function StoryTabList() {
 
 function StoryTabPanels() {
   const {story} = useStory();
+
   if (!isMDXStory(story)) {
     return <StoryUsage />;
   }
@@ -152,6 +153,7 @@ function StoryTabPanels() {
   return (
     <TabPanels>
       <TabPanels.Item key="usage">
+        <StoryModuleExports exports={story.exports.types} />
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
@@ -213,15 +215,17 @@ function StoryUsage() {
   );
 }
 
+function isSingleDefaultExport(
+  types: unknown
+): types is TypeLoader.ComponentDocWithFilename {
+  return typeof types === 'object' && types !== null && 'filename' in types;
+}
+
 function StoryAPI() {
   const {story} = useStory();
   if (!story.exports.types) return null;
 
-  if (
-    typeof story.exports.types === 'object' &&
-    story.exports.types !== null &&
-    'filename' in story.exports.types
-  ) {
+  if (isSingleDefaultExport(story.exports.types)) {
     return (
       <Storybook.APIReference
         types={story.exports.types as TypeLoader.ComponentDocWithFilename}
@@ -246,6 +250,21 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
       height="100%"
     />
   );
+}
+
+function StoryModuleExports(props: {
+  exports:
+    | TypeLoader.ComponentDocWithFilename
+    | Record<string, TypeLoader.ComponentDocWithFilename>
+    | undefined;
+}) {
+  if (!props.exports) return null;
+  if (isSingleDefaultExport(props.exports)) {
+    return (
+      <Storybook.ModuleExports exports={{[props.exports.filename]: props.exports}} />
+    );
+  }
+  return <Storybook.ModuleExports exports={props.exports} />;
 }
 
 const StoryContainer = styled('div')`
