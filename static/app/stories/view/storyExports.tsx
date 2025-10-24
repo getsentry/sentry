@@ -232,12 +232,7 @@ function StoryAPI() {
           TypeLoader.ComponentDocWithFilename
         >
       ).map(([key, value]) => {
-        return (
-          <Storybook.APIReference
-            key={key}
-            componentProps={value as TypeLoader.ComponentDocWithFilename}
-          />
-        );
+        return <Storybook.APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );
