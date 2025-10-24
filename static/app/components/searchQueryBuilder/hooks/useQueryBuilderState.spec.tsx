@@ -217,8 +217,8 @@ describe('replaceFreeTextTokens', () => {
           currentQuery: `span.description:${WildcardOperators.CONTAINS}test`,
         },
         expected: {
-          query: `span.description:${WildcardOperators.CONTAINS}[test,test2]`,
-          focusOverride: {itemKey: 'freeText:1'},
+          query: `span.description:${WildcardOperators.CONTAINS}test span.description:${WildcardOperators.CONTAINS}test2`,
+          focusOverride: {itemKey: 'freeText:2'},
         },
       },
       {
@@ -235,8 +235,8 @@ describe('replaceFreeTextTokens', () => {
           currentQuery: `span.description:${WildcardOperators.CONTAINS}test`,
         },
         expected: {
-          query: `span.description:${WildcardOperators.CONTAINS}[test,"other value"]`,
-          focusOverride: {itemKey: 'freeText:1'},
+          query: `span.description:${WildcardOperators.CONTAINS}test span.description:${WildcardOperators.CONTAINS}"other value"`,
+          focusOverride: {itemKey: 'freeText:2'},
         },
       },
       {

@@ -4344,7 +4344,12 @@ describe('SearchQueryBuilder', () => {
           // Should have tokenized the pasted text
           expect(
             screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}[test,randomValue]`,
+              name: `span.description:${WildcardOperators.CONTAINS}test`,
+            })
+          ).toBeInTheDocument();
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
             })
           ).toBeInTheDocument();
           // Focus should be at the end of the pasted text
