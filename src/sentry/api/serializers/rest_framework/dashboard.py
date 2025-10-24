@@ -929,7 +929,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         """
 
         organization = self.context["organization"]
-        if not features.has("organizations:dashboards-drilldown-flow", organization):
+        user = self.context["request"].user
+        if not features.has("organizations:dashboards-drilldown-flow", organization, actor=user):
             return
 
         with sentry_sdk.start_span(
