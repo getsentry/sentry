@@ -74,6 +74,7 @@ class EventsMeta(TypedDict):
     # only returned when debug=True
     debug_info: NotRequired[dict[str, Any]]
     full_scan: NotRequired[bool]
+    bytes_scanned: NotRequired[int | None]
 
 
 class EventsResponse(TypedDict):

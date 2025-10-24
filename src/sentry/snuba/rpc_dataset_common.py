@@ -47,7 +47,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.types import (
     CONFIDENCES,
     AdditionalQueries,
@@ -364,10 +364,7 @@ class RPCBase:
         """Process the results"""
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         # Mapping from public alias to resolved column so we know type etc.
         columns_by_name = {col.public_alias: col for col in table_request.columns}
 
@@ -767,10 +764,7 @@ class RPCBase:
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)
 
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
 
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
