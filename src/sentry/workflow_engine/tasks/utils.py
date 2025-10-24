@@ -10,6 +10,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
@@ -38,7 +39,8 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     fetch_retry_policy = ConditionalRetryPolicy(
         _should_retry_nodestore_fetch, exponential_delay(1.00)
     )
-    data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
+    with metrics.timer("workflow_engine.process_workflows.fetch_from_nodestore"):
+        data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
     if data is None:
         return None
     evt = Event(
