@@ -59,7 +59,10 @@ import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregate
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  getMaxIngestDelayTimestamp,
+  useLogsRawCounts,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
@@ -123,6 +126,8 @@ export function LogsTabContent({
       setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     }
   }, [autorefreshEnabled]);
+
+  const rawLogCounts = useLogsRawCounts();
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
@@ -355,7 +360,10 @@ export function LogsTabContent({
               <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             )}
             <LogsGraphContainer>
-              <LogsGraph timeseriesResult={timeseriesResult} />
+              <LogsGraph
+                rawLogCounts={rawLogCounts}
+                timeseriesResult={timeseriesResult}
+              />
             </LogsGraphContainer>
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
