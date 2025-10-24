@@ -88,7 +88,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
   const setSorts = useSetQueryParamsSortBys();
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef, {
+  const {initialTableStyles} = useTableStyles(METRIC_SAMPLE_COLUMNS, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
