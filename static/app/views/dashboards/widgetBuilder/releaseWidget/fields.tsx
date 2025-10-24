@@ -33,6 +33,13 @@ enum SessionMetric {
   USER_ERRORED = 'session.errored_user',
   SESSION_UNHANDLED = 'session.unhandled',
   USER_UNHANDLED = 'session.unhandled_user',
+  SESSION_UNHEALTHY = 'session.unhealthy',
+  SESSION_ABNORMAL_RATE = 'session.abnormal_rate',
+  USER_ABNORMAL_RATE = 'session.abnormal_user_rate',
+  SESSION_ERRORED_RATE = 'session.errored_rate',
+  USER_ERRORED_RATE = 'session.errored_user_rate',
+  SESSION_UNHANDLED_RATE = 'session.unhandled_rate',
+  USER_UNHANDLED_RATE = 'session.unhandled_user_rate',
 }
 
 export const DERIVED_STATUS_METRICS_PATTERN =
@@ -70,6 +77,13 @@ export const FIELD_TO_METRICS_EXPRESSION = {
   'crash_free_rate(user)': SessionMetric.USER_CRASH_FREE_RATE,
   'crash_rate(session)': SessionMetric.SESSION_CRASH_RATE,
   'crash_rate(user)': SessionMetric.USER_CRASH_RATE,
+  'unhealthy_rate(session)': SessionMetric.SESSION_UNHEALTHY,
+  'abnormal_rate(session)': SessionMetric.SESSION_ABNORMAL_RATE,
+  'abnormal_rate(user)': SessionMetric.USER_ABNORMAL_RATE,
+  'errored_rate(session)': SessionMetric.SESSION_ERRORED_RATE,
+  'errored_rate(user)': SessionMetric.USER_ERRORED_RATE,
+  'unhandled_rate(session)': SessionMetric.SESSION_UNHANDLED_RATE,
+  'unhandled_rate(user)': SessionMetric.USER_UNHANDLED_RATE,
 };
 
 export const METRICS_EXPRESSION_TO_FIELD = invert(FIELD_TO_METRICS_EXPRESSION);
@@ -98,6 +112,10 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_errored',
       'anr_rate',
       'foreground_anr_rate',
+      'unhealthy_rate',
+      'abnormal_rate',
+      'errored_rate',
+      'unhandled_rate',
     ],
     type: 'integer',
   },
@@ -112,6 +130,9 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_crashed',
       'count_unhandled',
       'count_errored',
+      'abnormal_rate',
+      'errored_rate',
+      'unhandled_rate',
     ],
     type: 'string',
   },
@@ -237,7 +258,7 @@ export const SESSIONS_OPERATIONS: Readonly<
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'string'],
+        columnTypes: ['integer'], // Hack to prevent the user (string) column from being selected, since it's not supported
         defaultValue: SessionField.SESSION,
         required: true,
       },
