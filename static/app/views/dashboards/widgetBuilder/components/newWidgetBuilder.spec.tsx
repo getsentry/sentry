@@ -91,6 +91,7 @@ describe('NewWidgetBuilder', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
     });
   });
 

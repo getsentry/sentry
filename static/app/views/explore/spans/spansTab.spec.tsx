@@ -93,7 +93,7 @@ describe('SpansTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'GET',
-      body: {},
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
@@ -417,6 +417,24 @@ describe('SpansTabContent', () => {
             userHasAcknowledged: true,
           },
         }),
+      });
+    });
+
+    describe('when the AI features are disabled', () => {
+      it('does not display the Ask Seer combobox', async () => {
+        render(
+          <Wrapper>
+            <SpansTabContent datePageFilterProps={datePageFilterProps} />
+          </Wrapper>,
+          {organization: {...organization, features: []}}
+        );
+
+        const input = screen.getByRole('combobox');
+        await userEvent.click(input);
+
+        expect(
+          screen.queryByText(/Ask Seer to build your query/)
+        ).not.toBeInTheDocument();
       });
     });
 
