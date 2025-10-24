@@ -149,15 +149,15 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
         else:
             return default_batch_has_for_organizations(_feature_name, organizations, **kwargs)
 
-    with patch("sentry.features.has") as features_has:
+    with (
+        patch("sentry.features.has") as features_has,
+        patch("sentry.features.batch_has") as features_batch_has,
+        patch("sentry.features.batch_has_for_organizations") as features_batch_has_for_orgs,
+    ):
         features_has.side_effect = features_override
-        with patch("sentry.features.batch_has") as features_batch_has:
-            features_batch_has.side_effect = batch_features_override
-            with patch(
-                "sentry.features.batch_has_for_organizations"
-            ) as features_batch_has_for_orgs:
-                features_batch_has_for_orgs.side_effect = batch_features_override_for_organizations
-                yield
+        features_batch_has.side_effect = batch_features_override
+        features_batch_has_for_orgs.side_effect = batch_features_override_for_organizations
+        yield
 
 
 class FeatureContextManagerOrDecorator:
