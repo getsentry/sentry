@@ -63,7 +63,6 @@ describe('useMetricTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.NORMAL,
-          yAxis: 'sum(test.metric)',
         }),
       })
     );
@@ -76,7 +75,51 @@ describe('useMetricTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
-          yAxis: 'sum(test.metric)',
+        }),
+      })
+    );
+  });
+
+  it('disables extrapolation', async () => {
+    const mockNonExtrapolatedRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return (
+            options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY &&
+            options.query.disableAggregateExtrapolation === '1'
+          );
+        },
+      ],
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useMetricTimeseries({
+          traceMetric: {name: 'test metric', type: 'counter'},
+          enabled: true,
+        }),
+      {
+        additionalWrapper: MockQueryParamsContextWrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              extrapolate: '0',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
+    expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          disableAggregateExtrapolation: '1',
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
         }),
       })
     );

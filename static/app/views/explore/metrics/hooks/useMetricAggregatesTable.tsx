@@ -14,6 +14,7 @@ import {
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsExtrapolate,
   useQueryParamsGroupBys,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
@@ -38,6 +39,7 @@ export function useMetricAggregatesTable({
   metricName,
   queryExtras,
 }: UseMetricAggregatesTableOptions) {
+  const extrapolate = useQueryParamsExtrapolate();
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricAggregatesTableImp>['result']) => {
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
@@ -51,6 +53,7 @@ export function useMetricAggregatesTable({
     queryHookArgs: {enabled, limit, metricName, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 }

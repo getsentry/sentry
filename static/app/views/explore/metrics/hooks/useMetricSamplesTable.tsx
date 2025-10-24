@@ -13,6 +13,7 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
+  useQueryParamsExtrapolate,
   useQueryParamsSearch,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
@@ -47,6 +48,7 @@ export function useMetricSamplesTable({
   ingestionDelaySeconds,
   queryExtras,
 }: UseMetricSamplesTableOptions) {
+  const extrapolate = useQueryParamsExtrapolate();
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricSamplesTableImpl>['result']) => {
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
@@ -68,6 +70,7 @@ export function useMetricSamplesTable({
     },
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 }

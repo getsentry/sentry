@@ -14,6 +14,7 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsExtrapolate,
   useQueryParamsGroupBys,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
@@ -31,6 +32,7 @@ export function useMetricTimeseries({
   enabled,
 }: UseMetricTimeseriesOptions) {
   const visualize = useMetricVisualize();
+  const extrapolate = useQueryParamsExtrapolate();
   const topEvents = useTopEvents();
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricTimeseriesImpl>['result']) => {
@@ -43,6 +45,7 @@ export function useMetricTimeseries({
     queryHookArgs: {traceMetric, queryExtras, enabled},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 }

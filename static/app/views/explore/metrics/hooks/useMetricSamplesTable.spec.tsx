@@ -77,4 +77,51 @@ describe('useMetricTimeseries', () => {
       })
     );
   });
+
+  it('disables extrapolation', async () => {
+    const mockNonExtrapolatedRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return (
+            options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY &&
+            options.query.disableAggregateExtrapolation === '1'
+          );
+        },
+      ],
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useMetricSamplesTable({
+          metricName: 'test metric',
+          fields: [],
+          limit: 100,
+          enabled: true,
+        }),
+      {
+        additionalWrapper: MockQueryParamsContextWrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              extrapolate: '0',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
+    expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          disableAggregateExtrapolation: '1',
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+        }),
+      })
+    );
+  });
 });
