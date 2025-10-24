@@ -134,26 +134,16 @@ const styles = (theme: Theme, isDark: boolean) => css`
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
 
+    .loading .loading-indicator {
+      background: ${theme.tokens.background.primary};
+    }
+
+    .loading.triangle .loading-indicator {
+      background: ${theme.tokens.background.secondary};
+    }
+
     color: ${theme.textColor};
-    background: ${theme.backgroundSecondary};
-  }
-
-  body.theme-dark {
     background: ${theme.tokens.background.primary};
-
-    .loading .loading-indicator {
-      background: ${theme.tokens.background.primary};
-    }
-  }
-
-  body:not(.theme-dark):not(.theme-light) {
-    @media (prefers-color-scheme: dark) {
-      background: ${theme.tokens.background.primary};
-    }
-
-    .loading .loading-indicator {
-      background: ${theme.tokens.background.primary};
-    }
   }
 
   abbr {
