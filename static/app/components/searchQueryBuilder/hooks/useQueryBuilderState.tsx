@@ -671,72 +671,59 @@ function updateFilterKey(
  * description:[*test*,"*some text*"]`
  */
 export function replaceFreeTextTokens(
-  action:
-    | ReplaceTokensWithTextOnPasteAction
-    | UpdateFreeTextActionOnCommit
-    | UpdateFreeTextActionOnBlur
-    | UpdateFreeTextActionOnExit,
+  currentQuery: string,
   getFieldDefinition: FieldDefinitionGetter,
-  replaceRawSearchKeys: string[],
-  currentQuery: string
+  replaceRawSearchKeys: string[]
 ) {
   if (
-    !action.text ||
-    action.text === '' ||
+    currentQuery.trim().length === 0 ||
     replaceRawSearchKeys.length === 0 ||
     (replaceRawSearchKeys.length !== 0 && replaceRawSearchKeys[0] === '')
   ) {
     return undefined;
   }
 
-  // TS doesn't know that replaceRawSearchKeys is always defined and non-empty
-  const primarySearchKey = replaceRawSearchKeys[0] ?? '';
-  const actionTokens =
-    parseQueryBuilderValue(action.text.trim(), getFieldDefinition) ?? [];
-
-  let foundFreeTextTokenWithContent = false;
-  const actionQuery = actionTokens.map(token => {
-    if (
-      token.type !== Token.FREE_TEXT ||
-      (token.type === Token.FREE_TEXT && token.value.trim().length === 0)
-    ) {
-      return token.text;
-    }
-
-    if (!foundFreeTextTokenWithContent) {
-      foundFreeTextTokenWithContent = true;
-    }
-
-    let value = token.text;
-    if (value.includes(' ')) {
-      value = escapeTagValue(value);
-    }
-
-    return `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`;
-  });
-
-  const freeTextTokens: string[] = [];
-  const filteredTokensArray: string[] = [];
   const currentQueryTokens =
     parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
 
-  for (const token of currentQueryTokens) {
-    if (token.type !== Token.FREE_TEXT) {
-      filteredTokensArray.push(stringifyToken(token));
-    } else if (token.text.trim().length > 0) {
-      freeTextTokens.push(token.text);
-    }
-  }
+  const foundFreeTextToken = currentQueryTokens.some(
+    token => token.type === Token.FREE_TEXT && token.text.trim().length > 0
+  );
 
-  // there are no free text tokens to be replaced so we return undefined - saves a
-  // parsing step
-  if (!foundFreeTextTokenWithContent && freeTextTokens.length === 0) {
+  if (!foundFreeTextToken) {
     return undefined;
   }
 
-  const finalQuery =
-    `${filteredTokensArray.join(' ').trim()} ${actionQuery.join(' ').trim()}`.trim();
+  const primarySearchKey = replaceRawSearchKeys[0] ?? '';
+  const replacedQuery: string[] = [];
+  for (const token of currentQueryTokens) {
+    if (token.type === Token.L_PAREN) {
+      replacedQuery.push('(');
+      continue;
+    }
 
+    if (token.type === Token.R_PAREN) {
+      replacedQuery.push(')');
+      continue;
+    }
+
+    if (token.type !== Token.FREE_TEXT) {
+      const stringifiedToken = stringifyToken(token);
+      if (stringifiedToken.length > 0) {
+        replacedQuery.push(stringifiedToken);
+      }
+      continue;
+    }
+
+    if (token.text.trim().length === 0) {
+      continue;
+    }
+
+    const value = escapeTagValue(token.text.trim());
+    replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
+  }
+
+  const finalQuery = replacedQuery.join(' ').trim();
   const newParsedQuery = parseQueryBuilderValue(finalQuery, getFieldDefinition) ?? [];
   const focusedToken = newParsedQuery?.findLast(token => token.type === Token.FREE_TEXT);
   const focusOverride = focusedToken
@@ -767,10 +754,9 @@ function updateFreeTextAndReplaceText(
   }
 
   const replacedState = replaceFreeTextTokens(
-    action,
+    newState.query,
     getFieldDefinition,
-    replaceRawSearchKeys ?? [],
-    newState.query
+    replaceRawSearchKeys ?? []
   );
 
   const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
@@ -930,10 +916,9 @@ export function useQueryBuilderState({
           }
 
           const replacedState = replaceFreeTextTokens(
-            action,
+            newState.query,
             getFieldDefinition,
-            replaceRawSearchKeys ?? [],
-            state.query
+            replaceRawSearchKeys ?? []
           );
 
           const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
