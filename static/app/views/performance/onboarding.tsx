@@ -535,6 +535,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     project,
     isLogsSelected: false,
     isFeedbackSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,

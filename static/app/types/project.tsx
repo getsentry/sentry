@@ -46,6 +46,7 @@ export type Project = {
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
+  hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
   isInternal: boolean;
