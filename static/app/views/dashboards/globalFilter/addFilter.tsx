@@ -69,13 +69,21 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
   // Get filter keys for the selected dataset
   const filterKeyOptions = selectedDataset
     ? Object.entries(filterKeys).flatMap(([_, tag]) => {
-        const fieldType =
-          selectedDataset === WidgetType.SPANS
-            ? 'span'
-            : selectedDataset === WidgetType.LOGS
-              ? 'log'
-              : 'event';
-        const fieldDefinition = getFieldDefinition(tag.key, fieldType, tag.kind);
+        const fieldType = (datasetType: WidgetType) => {
+          switch (datasetType) {
+            case WidgetType.SPANS:
+              return 'span';
+            case WidgetType.LOGS:
+              return 'log';
+            default:
+              return 'event';
+          }
+        };
+        const fieldDefinition = getFieldDefinition(
+          tag.key,
+          fieldType(selectedDataset),
+          tag.kind
+        );
         const valueType = fieldDefinition?.valueType;
 
         if (!valueType || !SUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
