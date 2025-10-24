@@ -538,7 +538,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (PullRequest, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
-        (File, "timestamp", "timestamp"),
+        (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
     ]
 
@@ -551,7 +551,7 @@ def remove_cross_project_models(
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
-    deletes.remove((File, "timestamp", "timestamp"))
+    deletes.remove((File, "timestamp", "id"))
     return deletes
 
 

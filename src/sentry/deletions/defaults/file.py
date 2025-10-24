@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry.deletions.base import BaseRelation, ModelDeletionTask
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.models.files.file import File
 
 
@@ -37,8 +37,5 @@ class FileDeletionTask(ModelDeletionTask[File]):
         from sentry.models.files.fileblobindex import FileBlobIndex
 
         return [
-            BaseRelation(
-                params={"model": FileBlobIndex, "query": {"file_id": instance.id}},
-                task=None,  # Use BulkModelDeletionTask
-            ),
+            ModelRelation(FileBlobIndex, {"file_id": instance.id}),
         ]
