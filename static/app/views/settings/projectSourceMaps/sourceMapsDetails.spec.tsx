@@ -92,7 +92,7 @@ describe('SourceMapsDetails', () => {
 
   describe('Release Bundles', () => {
     it('renders default state', async () => {
-      const {organization, project, routerProps} = initializeOrg({
+      const {organization, project} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser'],
         }),
@@ -114,15 +114,7 @@ describe('SourceMapsDetails', () => {
       });
 
       render(
-        <SourceMapsDetails
-          {...routerProps}
-          project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: 'bea7335dfaebc0ca6e65a057',
-          }}
-        />,
+        <SourceMapsDetails project={project} bundleId="bea7335dfaebc0ca6e65a057" />,
         {
           organization,
         }
@@ -153,7 +145,7 @@ describe('SourceMapsDetails', () => {
     });
 
     it('renders empty state', async () => {
-      const {organization, routerProps, project} = initializeOrg({
+      const {organization, project} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -169,15 +161,7 @@ describe('SourceMapsDetails', () => {
       });
 
       render(
-        <SourceMapsDetails
-          {...routerProps}
-          project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: 'bea7335dfaebc0ca6e65a057',
-          }}
-        />,
+        <SourceMapsDetails project={project} bundleId="bea7335dfaebc0ca6e65a057" />,
         {
           organization,
         }
@@ -191,7 +175,7 @@ describe('SourceMapsDetails', () => {
 
   describe('Artifact Bundles', () => {
     it('renders default state', async () => {
-      const {organization, project, routerProps} = initializeOrg({
+      const {organization, project} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser', 'project:releases'],
         }),
@@ -217,13 +201,8 @@ describe('SourceMapsDetails', () => {
 
       render(
         <SourceMapsDetails
-          {...routerProps}
           project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
-          }}
+          bundleId="7227e105-744e-4066-8c69-3e5e344723fc"
         />,
         {
           organization,
@@ -295,7 +274,7 @@ describe('SourceMapsDetails', () => {
     });
 
     it('renders empty state', async () => {
-      const {organization, project, routerProps} = initializeOrg({
+      const {organization, project} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -315,13 +294,8 @@ describe('SourceMapsDetails', () => {
 
       render(
         <SourceMapsDetails
-          {...routerProps}
           project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
-          }}
+          bundleId="7227e105-744e-4066-8c69-3e5e344723fc"
         />,
         {
           organization,
