@@ -344,10 +344,16 @@ function ProjectKeyCredentials({
   ]);
 
   const [showDeprecatedDsn] = useQueryState('showDeprecated', parseAsBoolean);
-  const [activeTab, setActiveTab] = useQueryState('tab', {
-    ...parseAsStringLiteral(availableTabs.map(tab => tab.key)),
-    defaultValue: availableTabs[0]?.key ?? 'otlp',
-  });
+
+  const tabParser = useMemo(
+    () => ({
+      ...parseAsStringLiteral(availableTabs.map(tab => tab.key)),
+      defaultValue: availableTabs[0]?.key ?? 'otlp',
+    }),
+    [availableTabs]
+  );
+
+  const [activeTab, setActiveTab] = useQueryState('tab', tabParser);
 
   const renderTabContent = () => {
     switch (activeTab) {
