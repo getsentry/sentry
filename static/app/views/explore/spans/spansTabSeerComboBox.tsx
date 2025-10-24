@@ -52,8 +52,13 @@ export function SpansTabSeerComboBox() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
-  const {currentInputValueRef, query, committedQuery, askSeerSuggestedQueryRef} =
-    useSearchQueryBuilder();
+  const {
+    currentInputValueRef,
+    query,
+    committedQuery,
+    askSeerSuggestedQueryRef,
+    enableAISearch,
+  } = useSearchQueryBuilder();
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
@@ -191,7 +196,9 @@ export function SpansTabSeerComboBox() {
   );
 
   const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+    enableAISearch &&
+    !organization?.hideAiFeatures &&
+    organization.features.includes('gen-ai-features');
 
   useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
 
