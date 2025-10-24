@@ -220,7 +220,7 @@ function BlockComponent({
     }
   };
 
-  const showActions = (isFocused || isHovered) && !block.loading && !isPolling;
+  const showActions = (isFocused || isHovered) && !block.loading;
 
   return (
     <Block
@@ -279,9 +279,11 @@ function BlockComponent({
                 transition={{duration: 0.1}}
               >
                 <ActionButtonBar gap="sm">
-                  <Button size="xs" priority="default" onClick={handleDeleteClick}>
-                    Rethink from here ⌫
-                  </Button>
+                  {!isPolling && (
+                    <Button size="xs" priority="default" onClick={handleDeleteClick}>
+                      Rethink from here ⌫
+                    </Button>
+                  )}
                   {hasValidLinks && (
                     <ButtonBar merged gap="0">
                       {validToolLinks.map((_, idx) => (
