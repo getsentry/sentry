@@ -659,21 +659,6 @@ function updateFilterKey(
 }
 
 /**
- * Check to see if the provided token details match the primary search key and operator.
- * If so, we want to replace this token, with the merged filter value.
- */
-function isTokenToBeReplaced(
-  token: TokenResult<Token>,
-  primarySearchKey: string
-): token is TokenResult<Token.FILTER> {
-  return (
-    token.type === Token.FILTER &&
-    getKeyName(token.key) === primarySearchKey &&
-    token.operator === TermOperator.CONTAINS
-  );
-}
-
-/**
  * This function is used to replace free text tokens with the specified
  * `replaceRawSearchKeys` prop from `SearchQueryBuilder`. This function also handles
  * escaping values, as well as merging the previously created filter.
@@ -704,73 +689,61 @@ export function replaceFreeTextTokens(
     return undefined;
   }
 
-  const actionTokens = parseQueryBuilderValue(action.text, getFieldDefinition) ?? [];
-  if (actionTokens.every(token => token.type !== Token.FREE_TEXT)) {
-    return undefined;
-  }
-
-  const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
-
   // TS doesn't know that replaceRawSearchKeys is always defined and non-empty
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
-  let tokenToBeReplaced: TokenResult<Token.FILTER> | undefined;
-  const freeTextToken = actionTokens.find(
-    token => token.type === Token.FREE_TEXT && /\w/.test(token.value)
-  );
+  const actionTokens =
+    parseQueryBuilderValue(action.text.trim(), getFieldDefinition) ?? [];
 
-  for (const token of tokens) {
-    if (isTokenToBeReplaced(token, primarySearchKey)) {
-      tokenToBeReplaced = token;
-      break;
+  let foundFreeTextTokenWithContent = false;
+  const actionQuery = actionTokens.map(token => {
+    if (
+      token.type !== Token.FREE_TEXT ||
+      (token.type === Token.FREE_TEXT && token.value.trim().length === 0)
+    ) {
+      return token.text;
+    }
+
+    if (!foundFreeTextTokenWithContent) {
+      foundFreeTextTokenWithContent = true;
+    }
+
+    let value = token.text;
+    if (value.includes(' ')) {
+      value = escapeTagValue(value);
+    }
+
+    return `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`;
+  });
+
+  const freeTextTokens: string[] = [];
+  const filteredTokensArray: string[] = [];
+  const currentQueryTokens =
+    parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
+
+  for (const token of currentQueryTokens) {
+    if (token.type !== Token.FREE_TEXT) {
+      filteredTokensArray.push(stringifyToken(token));
+    } else if (token.text.trim().length > 0) {
+      freeTextTokens.push(token.text);
     }
   }
 
-  const valueText = freeTextToken?.text.trim();
-  if (!valueText) {
+  // there are no free text tokens to be replaced so we return undefined - saves a
+  // parsing step
+  if (!foundFreeTextTokenWithContent && freeTextTokens.length === 0) {
     return undefined;
   }
-  const values = escapeTagValue(valueText);
 
-  const filteredTokens = new Set<string>();
-  actionTokens.forEach(token => {
-    const isNotFreeText = token.type !== Token.FREE_TEXT;
+  const finalQuery =
+    `${filteredTokensArray.join(' ').trim()} ${actionQuery.join(' ').trim()}`.trim();
 
-    if (isNotFreeText && !isTokenToBeReplaced(token, primarySearchKey)) {
-      filteredTokens.add(token.text);
-    }
-  });
-
-  tokens.forEach(token => {
-    const isNotFreeText = token.type !== Token.FREE_TEXT;
-    if (isNotFreeText && !isTokenToBeReplaced(token, primarySearchKey)) {
-      filteredTokens.add(token.text);
-    }
-  });
-
-  // case when there is a replace key and value present
-  if (tokenToBeReplaced) {
-    const previousValue =
-      tokenToBeReplaced.value.type === Token.VALUE_TEXT_LIST
-        ? tokenToBeReplaced.value.text.slice(1, -1)
-        : tokenToBeReplaced.value.text;
-
-    filteredTokens.add(
-      `${primarySearchKey}:${WildcardOperators.CONTAINS}[${previousValue},${values}]`
-    );
-  } else {
-    filteredTokens.add(`${primarySearchKey}:${WildcardOperators.CONTAINS}${values}`);
-  }
-
-  const newQuery = Array.from(filteredTokens).join(' ');
-
-  const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition) ?? [];
+  const newParsedQuery = parseQueryBuilderValue(finalQuery, getFieldDefinition) ?? [];
   const focusedToken = newParsedQuery?.findLast(token => token.type === Token.FREE_TEXT);
-
   const focusOverride = focusedToken
     ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
     : null;
 
-  return {newQuery, focusOverride};
+  return {newQuery: finalQuery, focusOverride};
 }
 
 function updateFreeTextAndReplaceText(
