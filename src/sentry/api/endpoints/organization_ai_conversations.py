@@ -112,10 +112,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             _sort: Sort field and direction (currently only supports timestamp sorting, unused for now)
             _query: Search query (not yet implemented)
         """
-        logger.info(
-            "[ai-conversations] Getting conversations",
-            extra={"snuba_params": snuba_params.to_dict()},
-        )
+
         # Step 1: Find conversation IDs with spans in the time range
         conversation_ids_results = Spans.run_table_query(
             params=snuba_params,
