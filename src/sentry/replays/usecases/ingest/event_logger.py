@@ -410,14 +410,13 @@ def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
         default=None,
     )
 
-    with sentry_sdk.start_span(op="process", name="EAP Trace Items Details") as span:
+    with sentry_sdk.start_span(op="process", name="write_trace_items") as span:
         if largest_attribute:
             ti, name, size = largest_attribute
             span.set_data("largest_attr_trace_id", ti.trace_id)
             span.set_data("largest_attr_name", name)
             span.set_data("largest_attr_size_bytes", size)
-
-    write_trace_items(trace_items)
+        write_trace_items(trace_items)
 
 
 @sentry_sdk.trace
