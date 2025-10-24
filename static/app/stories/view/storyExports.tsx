@@ -129,7 +129,9 @@ function StoryTabList() {
   return (
     <TabList>
       <TabList.Item key="usage">{t('Usage')}</TabList.Item>
-      {story.exports.types ? <TabList.Item key="api">{t('API')}</TabList.Item> : null}
+      {story.exports.documentation ? (
+        <TabList.Item key="api">{t('API')}</TabList.Item>
+      ) : null}
 
       {isMDXStory(story) && story.exports.frontmatter?.resources ? (
         <TabList.Item key="resources">{t('Resources')}</TabList.Item>
@@ -153,7 +155,7 @@ function StoryTabPanels() {
   return (
     <TabPanels>
       <TabPanels.Item key="usage">
-        <StoryModuleExports exports={story.exports.types} />
+        <StoryModuleExports exports={story.exports.documentation?.props} />
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
@@ -165,7 +167,10 @@ function StoryTabPanels() {
     </TabPanels>
   );
 }
-const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>(['frontmatter', 'types']);
+const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
+  'frontmatter',
+  'documentation',
+]);
 
 function StoryUsage() {
   const {
@@ -217,14 +222,27 @@ function StoryUsage() {
 
 function StoryAPI() {
   const {story} = useStory();
-  if (!story.exports.types) return null;
+  if (!story.exports.documentation && typeof story.exports.documentation !== 'object')
+    return null;
   return (
     <Fragment>
-      {Object.entries(story.exports.types).map(([key, value]) => {
-        return <Storybook.APIReference key={key} types={value} />;
+      {Object.entries(
+        (story.exports.documentation as TypeLoader.TypeLoaderResult).props as Record<
+          string,
+          TypeLoader.ComponentDocWithFilename
+        >
+      ).map(([key, value]) => {
+        return (
+          <Storybook.APIReference
+            key={key}
+            componentProps={value as TypeLoader.ComponentDocWithFilename}
+          />
+        );
       })}
     </Fragment>
   );
+
+  return null;
 }
 
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {

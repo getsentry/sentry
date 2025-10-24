@@ -46,7 +46,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={i} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <Storybook.APIReference key={i} types={documentation} />
+          <Storybook.APIReference key={i} componentProps={documentation} />
         ))}
       </Fragment>
     );

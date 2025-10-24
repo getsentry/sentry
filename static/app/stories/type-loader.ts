@@ -1,16 +1,50 @@
 import * as docgen from 'react-docgen-typescript';
 import type {LoaderContext} from '@rspack/core';
+import * as typescript from 'typescript';
 
-/**
- * Extracts documentation from the modules by running the TS compiler and serializing the types
- *
- * @param {LoaderContext<any>} this loader context
- * @param {string} source source file as string
- * @returns {void}
- */
-function prodTypeloader(this: LoaderContext<any>, _source: string) {
-  const callback = this.async();
-  const entries = docgen.parse(this.resourcePath, {
+function extractModuleExports(
+  program: typescript.Program,
+  sourceFile: typescript.SourceFile | undefined
+): Record<string, {name: string; typeOnly: boolean}> {
+  if (!sourceFile) {
+    return {};
+  }
+
+  const typeChecker = program.getTypeChecker();
+  const moduleSymbol = typeChecker.getSymbolAtLocation(sourceFile);
+
+  if (!moduleSymbol) {
+    return {};
+  }
+
+  return typeChecker
+    .getExportsOfModule(moduleSymbol)
+    .reduce(
+      (
+        acc: Record<string, {name: string; typeOnly: boolean}>,
+        exportSymbol: typescript.Symbol
+      ) => {
+        const declarations = exportSymbol.getDeclarations() || [];
+
+        for (const decl of declarations) {
+          if (typescript.isExportSpecifier(decl)) {
+            acc[decl.name.getText()] = {
+              name: decl.name.getText(),
+              typeOnly: decl.isTypeOnly,
+            };
+          }
+        }
+        return acc;
+      },
+      {}
+    );
+}
+
+function extractComponentProps(
+  moduleContext: LoaderContext<any>['_module'],
+  resourcePath: string
+): Record<string, TypeLoader.ComponentDocWithFilename> {
+  const componentProps = docgen.parse(resourcePath, {
     shouldExtractLiteralValuesFromEnum: true,
     // componentNameResolver?: ComponentNameResolver;
     // shouldRemoveUndefinedFromOptional?: boolean;
@@ -24,28 +58,55 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
     // customComponentTypes?: string[];
   });
 
-  if (!entries) {
-    return callback(null, 'export default {}');
-  }
-
-  const typeIndex = Object.fromEntries(
-    entries
+  return Object.fromEntries(
+    componentProps
       .filter(entry => entry.displayName && typeof entry.displayName === 'string')
       .map(entry => {
-        const module = extractRequest(this._module);
+        const module = extractRequest(moduleContext);
         return [
           entry.displayName,
           {
             ...entry,
-            filename: this.resourcePath,
+            filename: resourcePath,
             module,
-            importPath: `import { ${entry.displayName} } from '${module}'`,
           },
         ];
       })
   );
+}
 
-  return callback(null, `export default ${JSON.stringify(typeIndex)}`);
+/**
+ * Extracts documentation from the modules by running the TS compiler and serializing the types
+ *
+ * @param {LoaderContext<any>} this loader context
+ * @param {string} source source file as string
+ * @returns {void}
+ */
+function prodTypeloader(this: LoaderContext<any>, _source: string) {
+  const callback = this.async();
+
+  const program = typescript.createProgram([this.resourcePath], {});
+  const sourceFile = program.getSourceFile(this.resourcePath);
+
+  const module = extractRequest(this._module);
+
+  Promise.all([
+    extractComponentProps(this._module, this.resourcePath),
+    extractModuleExports(program, sourceFile),
+  ])
+    .then(([moduleProps, moduleExports]) => {
+      const typeLoaderResult: TypeLoader.TypeLoaderResult = {
+        props: moduleProps,
+        exports: {
+          module,
+          exports: moduleExports,
+        },
+      };
+      return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
+    })
+    .catch(error => {
+      return callback(error);
+    });
 }
 
 function noopTypeLoader(this: LoaderContext<any>, _source: string) {

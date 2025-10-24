@@ -33,9 +33,16 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/button/index';
+import ButtonDocumentation from '!!type-loader!@sentry/scraps/button/index';
 
-export const types = {Button: APIReference.Button};
+export const documentation = {
+  // We are going to omit some exports like StyledButton and ButtonLabel, because we
+  // don't want to encourage their usage.
+  ...ButtonDocumentation,
+  props: {
+    Button: ButtonDocumentation.props.Button,
+  },
+};
 
 To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
 
