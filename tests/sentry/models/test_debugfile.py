@@ -147,6 +147,26 @@ class DebugFileTest(TestCase):
         # Verify that file_extension returns .json
         assert dif.file_extension == ".json"
 
+    def test_file_extension_macho(self) -> None:
+        """Test that macho files return empty file extension."""
+        file = File.objects.create(
+            name="foo",
+            type="project.dif",
+            headers={"Content-Type": "application/x-mach-binary"},
+        )
+
+        dif = ProjectDebugFile.objects.create(
+            file=file,
+            checksum="test-checksum",
+            object_name="foo",
+            cpu_name="x86_64",
+            project_id=self.project.id,
+            debug_id="b8e43a-f242-3d73-a453-aeb6a777ef75",
+            data={"type": "dbg"},
+        )
+
+        assert dif.file_extension == ""
+
 
 class CreateDebugFileTest(APITestCase):
     @property
