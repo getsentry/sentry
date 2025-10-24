@@ -23,7 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -327,6 +327,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
             return self.respond(status=exc.code)
+        elif isinstance(exc, ApiError):
+            logger.info("hybrid_cloud.integration_proxy.api_error", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
+            return self.respond(status=exc.code or 500)
 
         self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
