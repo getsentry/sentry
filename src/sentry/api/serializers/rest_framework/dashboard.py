@@ -948,6 +948,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 ],
             )
             span.set_data("widget_display_type", widget_display_type)
+            span.set_data("query_id", query.id)
+            span.set_data("widget_id", widget.id)
 
             if (
                 widget_display_type is not DashboardWidgetDisplayTypes.TABLE
