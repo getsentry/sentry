@@ -38,9 +38,13 @@ class RepositorySerializer(CamelSnakeSerializer):
     owner = serializers.CharField(required=True)
     name = serializers.CharField(required=True)
     external_id = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=False, allow_null=True)
-    branch_overrides = BranchOverrideSerializer(many=True, required=False)
-    instructions = serializers.CharField(required=False, allow_null=True)
+    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    branch_overrides = BranchOverrideSerializer(
+        many=True,
+        required=False,
+        allow_null=True,
+    )
+    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     base_commit_sha = serializers.CharField(required=False, allow_null=True)
     provider_raw = serializers.CharField(required=False, allow_null=True)
 

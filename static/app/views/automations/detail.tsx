@@ -278,7 +278,7 @@ function UserDisplayName({id}: {id: string | undefined}) {
     id: id ? Number(id) : undefined,
   });
   if (!id) {
-    return t('Sentry');
+    return '—';
   }
   if (isPending) {
     return <Placeholder height="20px" />;
