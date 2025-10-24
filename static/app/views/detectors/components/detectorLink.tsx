@@ -215,7 +215,11 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
       className={className}
       name={detector.name}
       link={makeMonitorDetailsPathname(org.slug, detector.id, monitorsLinkPrefix)}
-      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      systemCreated={
+        detectorTypeIsUserCreateable(detector.type)
+          ? undefined
+          : t('This monitor is managed by Sentry')
+      }
       disabled={!detector.enabled}
       openInNewTab={openInNewTab}
       details={
