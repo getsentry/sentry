@@ -813,6 +813,7 @@ module = [
     "tests.sentry.rules.filters.*",
     "tests.sentry.rules.history.endpoints.*",
     "tests.sentry.runner.commands.presenters.*",
+    "tests.sentry.runner.commands.test_cleanup",
     "tests.sentry.security.*",
     "tests.sentry.seer.anomaly_detection.*",
     "tests.sentry.seer.workflows.*",
