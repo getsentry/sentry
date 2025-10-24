@@ -93,7 +93,7 @@ describe('SpansTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'GET',
-      body: {},
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
