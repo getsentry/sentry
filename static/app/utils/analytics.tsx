@@ -23,6 +23,10 @@ import {
   logsAnalyticsEventMap,
   type LogsAnalyticsEventParameters,
 } from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {
+  metricsAnalyticsEventMap,
+  type MetricsAnalyticsEventParameters,
+} from 'sentry/utils/analytics/metricsAnalyticsEvent';
 import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
 import {
@@ -120,6 +124,7 @@ interface EventParameters
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
     LogsAnalyticsEventParameters,
+    MetricsAnalyticsEventParameters,
     TracingEventParameters,
     StatsEventParameters,
     ExploreAnalyticsEventParameters,
@@ -146,6 +151,7 @@ const allEventMap: Record<string, string | null> = {
   ...profilingEventMap,
   ...exploreAnalyticsEventMap,
   ...logsAnalyticsEventMap,
+  ...metricsAnalyticsEventMap,
   ...releasesEventMap,
   ...replayEventMap,
   ...searchEventMap,

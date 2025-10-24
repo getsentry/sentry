@@ -22,7 +22,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
-import {withoutLoggingSupport} from 'sentry/data/platformCategories';
+import {withoutMetricsSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -39,7 +39,7 @@ import {
   FilterBarContainer,
   StyledPageFilterBar,
   TopSectionBody,
-} from 'sentry/views/explore/logs/styles';
+} from 'sentry/views/explore/metrics/styles';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
 type OnboardingProps = {
@@ -61,18 +61,28 @@ function OnboardingPanel({
           <div>
             <HeaderWrapper>
               <HeaderText>
-                <Title>{t('Your Source for Log-ical Data')}</Title>
+                <Title>{t('Measure What Matters with Metrics')}</Title>
                 <SubTitle>
                   {t(
-                    "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
+                    'Track custom business metrics and monitor application performance with powerful aggregation and visualization capabilities.'
                   )}
                 </SubTitle>
                 <BulletList>
-                  <li>{t('Access logs in real time and query them by any attribute')}</li>
                   <li>
-                    {t('Correlate your logs with errors and traces for full context')}
+                    {t(
+                      'Send custom metrics to track business KPIs and technical indicators'
+                    )}
                   </li>
-                  <li>{t('Build alerts and dashboard widgets based on log queries')}</li>
+                  <li>
+                    {t(
+                      'Create dashboards and alerts based on metric queries and aggregations'
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'Analyze metrics alongside errors, traces, and logs for full context'
+                    )}
+                  </li>
                 </BulletList>
               </HeaderText>
               <Image src={connectDotsImg} />
@@ -81,7 +91,7 @@ function OnboardingPanel({
             <Body>
               <Setup>{children}</Setup>
               <Preview>
-                <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
+                <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
                 <Arcade
                   src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
                   loading="lazy"
@@ -115,14 +125,14 @@ function Onboarding({organization, project}: OnboardingProps) {
     platform: currentPlatform || otherPlatform,
     orgSlug: organization.slug,
     projSlug: project.slug,
-    productType: 'logs',
+    productType: 'metrics',
   });
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const doesNotSupportLogging = project.platform
-    ? withoutLoggingSupport.has(project.platform)
+  const doesNotSupportMetrics = project.platform
+    ? withoutMetricsSupport.has(project.platform)
     : false;
 
   const analyticsPlatform = currentPlatform?.id ?? project.platform ?? 'unknown';
@@ -132,10 +142,10 @@ function Onboarding({organization, project}: OnboardingProps) {
       return;
     }
 
-    trackAnalytics('logs.onboarding', {
+    trackAnalytics('metrics.onboarding', {
       organization,
       platform: analyticsPlatform,
-      supports_onboarding_checklist: !doesNotSupportLogging,
+      supports_onboarding_checklist: !doesNotSupportMetrics,
     });
   }, [
     currentPlatform,
@@ -143,22 +153,22 @@ function Onboarding({organization, project}: OnboardingProps) {
     dsn,
     projectKeyId,
     organization,
-    doesNotSupportLogging,
+    doesNotSupportMetrics,
     analyticsPlatform,
   ]);
 
-  const logsDocs = docs?.logsOnboarding ?? docs?.onboarding;
+  const metricsDocs = docs?.metricsOnboarding ?? docs?.onboarding;
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (doesNotSupportLogging) {
+  if (doesNotSupportMetrics) {
     return (
       <OnboardingPanel project={project}>
         <div>
           {tct(
-            'Fiddlesticks. Application Logging isn’t available for your [platform] project yet, but we’re definitely still working on it. Stay tuned.',
+            "Fiddlesticks. Metrics isn't available for your [platform] project yet, but we're definitely still working on it. Stay tuned.",
             {platform: currentPlatform?.name || project.slug}
           )}
         </div>
@@ -169,7 +179,7 @@ function Onboarding({organization, project}: OnboardingProps) {
             href="https://docs.sentry.io/platforms/"
             external
             onClick={() => {
-              trackAnalytics('logs.onboarding_platform_docs_viewed', {
+              trackAnalytics('metrics.onboarding_platform_docs_viewed', {
                 organization,
                 platform: analyticsPlatform,
               });
@@ -182,12 +192,12 @@ function Onboarding({organization, project}: OnboardingProps) {
     );
   }
 
-  if (!currentPlatform || !logsDocs || !dsn || !projectKeyId) {
+  if (!currentPlatform || !metricsDocs || !dsn || !projectKeyId) {
     return (
       <OnboardingPanel project={project}>
         <div>
           {tct(
-            'Fiddlesticks. The logging onboarding checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
+            "Fiddlesticks. The metrics onboarding checklist isn't available for your [project] project yet, but for now, go to Sentry docs for installation details.",
             {project: project.slug}
           )}
         </div>
@@ -195,10 +205,10 @@ function Onboarding({organization, project}: OnboardingProps) {
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/explore/logs/getting-started/"
+            href="https://docs.sentry.io/product/metrics/"
             external
             onClick={() => {
-              trackAnalytics('logs.onboarding_platform_docs_viewed', {
+              trackAnalytics('metrics.onboarding_platform_docs_viewed', {
                 organization,
                 platform: analyticsPlatform,
               });
@@ -218,8 +228,8 @@ function Onboarding({organization, project}: OnboardingProps) {
     organization,
     platformKey: project.platform || 'other',
     project,
-    isLogsSelected: true,
-    isMetricsSelected: false,
+    isLogsSelected: false,
+    isMetricsSelected: true,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,
@@ -228,16 +238,16 @@ function Onboarding({organization, project}: OnboardingProps) {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: [ProductSolution.LOGS],
+    platformOptions: [ProductSolution.METRICS],
     newOrg: false,
     feedbackOptions: {},
     urlPrefix,
     isSelfHosted,
   };
 
-  const installSteps = logsDocs.install(docParams);
-  const configureSteps = logsDocs.configure(docParams);
-  const verifySteps = logsDocs.verify(docParams);
+  const installSteps = metricsDocs.install(docParams);
+  const configureSteps = metricsDocs.configure(docParams);
+  const verifySteps = metricsDocs.verify(docParams);
 
   const steps = [...installSteps, ...configureSteps, ...verifySteps];
 
@@ -370,18 +380,18 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-type LogsTabOnboardingProps = {
+type MetricsTabOnboardingProps = {
   organization: Organization;
   project: Project;
 } & PickableDays;
 
-export function LogsTabOnboarding({
+export function MetricsTabOnboarding({
   organization,
   project,
   defaultPeriod,
   maxPickableDays,
   relativeOptions,
-}: LogsTabOnboardingProps) {
+}: MetricsTabOnboardingProps) {
   return (
     <TopSectionBody noRowGap>
       <Layout.Main width="full">
