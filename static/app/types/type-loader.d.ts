@@ -8,10 +8,7 @@ declare namespace TypeLoader {
 
   interface TypeLoaderResult {
     props?: Record<string, TypeLoader.ComponentDocWithFilename>;
-    exports?: {
-      module: string;
-      exports: Record<string, {name: string; typeOnly: boolean}>;
-    };
+    exports?: Record<string, {name: string; typeOnly: boolean}[]>;
   }
 }
 

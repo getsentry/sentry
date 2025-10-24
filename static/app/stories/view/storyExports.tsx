@@ -155,7 +155,7 @@ function StoryTabPanels() {
   return (
     <TabPanels>
       <TabPanels.Item key="usage">
-        <StoryModuleExports exports={story.exports.documentation?.exports} />
+        <Storybook.ModuleExports exports={story.exports.documentation?.exports ?? {}} />
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
@@ -227,17 +227,9 @@ function StoryAPI() {
   return (
     <Fragment>
       {Object.entries(
-        (story.exports.documentation as TypeLoader.TypeLoaderResult).props as Record<
-          string,
-          TypeLoader.ComponentDocWithFilename
-        >
+        (story.exports.documentation as TypeLoader.TypeLoaderResult).props ?? {}
       ).map(([key, value]) => {
-        return (
-          <Storybook.APIReference
-            key={key}
-            componentProps={value as TypeLoader.ComponentDocWithFilename}
-          />
-        );
+        return <Storybook.APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );
@@ -253,13 +245,6 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
       height="100%"
     />
   );
-}
-
-function StoryModuleExports(props: {
-  exports: TypeLoader.TypeLoaderResult['exports'] | undefined;
-}) {
-  if (!props.exports) return null;
-  return <Storybook.ModuleExports exports={props.exports} />;
 }
 
 const StoryContainer = styled('div')`

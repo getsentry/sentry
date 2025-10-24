@@ -3,9 +3,10 @@ import type {LoaderContext} from '@rspack/core';
 import * as typescript from 'typescript';
 
 function extractModuleExports(
+  module: string,
   program: typescript.Program,
   sourceFile: typescript.SourceFile | undefined
-): Record<string, {name: string; typeOnly: boolean}> {
+): Record<string, Array<{name: string; typeOnly: boolean}>> {
   if (!sourceFile) {
     return {};
   }
@@ -21,17 +22,20 @@ function extractModuleExports(
     .getExportsOfModule(moduleSymbol)
     .reduce(
       (
-        acc: Record<string, {name: string; typeOnly: boolean}>,
+        acc: Record<string, Array<{name: string; typeOnly: boolean}>>,
         exportSymbol: typescript.Symbol
       ) => {
         const declarations = exportSymbol.getDeclarations() || [];
 
         for (const decl of declarations) {
           if (typescript.isExportSpecifier(decl)) {
-            acc[decl.name.getText()] = {
+            if (!acc[module]) {
+              acc[module] = [];
+            }
+            acc[module].push({
               name: decl.name.getText(),
               typeOnly: decl.isTypeOnly,
-            };
+            });
           }
         }
         return acc;
@@ -92,15 +96,12 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
 
   Promise.all([
     extractComponentProps(this._module, this.resourcePath),
-    extractModuleExports(program, sourceFile),
+    extractModuleExports(module, program, sourceFile),
   ])
     .then(([moduleProps, moduleExports]) => {
       const typeLoaderResult: TypeLoader.TypeLoaderResult = {
         props: moduleProps,
-        exports: {
-          module,
-          exports: moduleExports,
-        },
+        exports: moduleExports,
       };
       return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
     })

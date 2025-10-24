@@ -26,8 +26,6 @@ import ProjectAvatarDocumentation from '!!type-loader!@sentry/scraps/avatar/proj
 import UserAvatarDocumentation from '!!type-loader!@sentry/scraps/avatar/userAvatar';
 
 export const documentation = {
-  ...UserAvatarDocumentation,
-  ...ProjectAvatarDocumentation,
   props: {
     ...ProjectAvatarDocumentation.props,
     ...UserAvatarDocumentation.props,
@@ -37,6 +35,13 @@ export const documentation = {
     ...UserAvatarDocumentation.exports,
   },
 };
+
+export function LogDocumentation() {
+  console.log(documentation);
+  return null;
+}
+
+<LogDocumentation />
 
 export const PREVIEW_SIZE = 40;
 
