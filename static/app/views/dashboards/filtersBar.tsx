@@ -19,11 +19,11 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
+import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 
-import FilterSelector from './globalFilter/filterSelector';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
@@ -146,8 +146,8 @@ export default function FiltersBar({
       {organization.features.includes('dashboards-global-filters') && (
         <Fragment>
           {activeGlobalFilters.map(filter => (
-            <FilterSelector
-              key={filter.tag.key}
+            <GenericFilterSelector
+              key={filter.tag.key + filter.value}
               globalFilter={filter}
               searchBarData={getSearchBarData(filter.dataset)}
               onUpdateFilter={updatedFilter => {
