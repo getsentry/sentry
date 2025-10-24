@@ -5,6 +5,7 @@ from django.test import RequestFactory, override_settings
 from django.urls.base import resolve
 from rest_framework.permissions import AllowAny
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.middleware.stats import RequestTimingMiddleware
@@ -20,6 +21,14 @@ class RateLimitedEndpoint(Endpoint):
     rate_limits = RateLimitConfig(
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=0, window=10)}}
     )
+
+    def get(self):
+        raise NotImplementedError
+
+
+class OwnedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    owner = ApiOwner.ISSUES
 
     def get(self):
         raise NotImplementedError
@@ -50,6 +59,7 @@ class RequestTimingMiddlewareTest(TestCase):
                 "ui_request": False,
                 "rate_limit_type": None,
                 "url_name": "sentry",
+                "owner": "unknown",
             },
             skip_internal=False,
         )
@@ -61,7 +71,9 @@ class RequestTimingMiddlewareTest(TestCase):
         test_endpoint = RateLimitedEndpoint.as_view()
         request = self.factory.get("/")
         request._view_path = "/"
-        request.resolver_match = resolve("/")
+        request.resolver_match = Mock()
+        request.resolver_match.func = test_endpoint
+        request.resolver_match.url_name = "sentry"
         response = Mock(status_code=429)
 
         rate_limit_middleware.process_view(request, test_endpoint, [], {})
@@ -76,6 +88,7 @@ class RequestTimingMiddlewareTest(TestCase):
                 "ui_request": False,
                 "rate_limit_type": "fixed_window",
                 "url_name": "sentry",
+                "owner": "unowned",
             },
             skip_internal=False,
         )
@@ -101,6 +114,33 @@ class RequestTimingMiddlewareTest(TestCase):
                 "ui_request": True,
                 "rate_limit_type": None,
                 "url_name": "unreachable-unknown",
+                "owner": "unknown",
+            },
+            skip_internal=False,
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_records_endpoint_owner(self, incr: MagicMock) -> None:
+        test_endpoint = OwnedEndpoint.as_view()
+        request = self.factory.get("/")
+        request._view_path = "/"
+        request.resolver_match = Mock()
+        request.resolver_match.func = test_endpoint
+        request.resolver_match.url_name = "test-endpoint"
+        response = Mock(status_code=200)
+
+        self.middleware.process_response(request, response)
+
+        incr.assert_called_with(
+            "view.response",
+            instance=request._view_path,
+            tags={
+                "method": "GET",
+                "status_code": 200,
+                "ui_request": False,
+                "rate_limit_type": None,
+                "url_name": "test-endpoint",
+                "owner": "issue-workflow",
             },
             skip_internal=False,
         )
