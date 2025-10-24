@@ -30,6 +30,7 @@ class DSN(TypedDict):
     playstation: str
     otlp_traces: str
     otlp_logs: str
+    endpoint: str
 
 
 class BrowserSDK(TypedDict):
@@ -100,6 +101,7 @@ class ProjectKeySerializer(Serializer):
                 "playstation": obj.playstation_endpoint,
                 "otlp_traces": obj.otlp_traces_endpoint,
                 "otlp_logs": obj.otlp_logs_endpoint,
+                "endpoint": obj.get_endpoint(),
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": get_browser_sdk_version_choices(obj.project)},
