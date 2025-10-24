@@ -135,7 +135,7 @@ type UpdateFreeTextActionOnColon = {
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextOnPasteAction = {
+type ReplaceTokensWithTextOnPasteAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
