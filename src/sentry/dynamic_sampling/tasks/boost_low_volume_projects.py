@@ -146,6 +146,11 @@ def partition_by_measure(
     feature_results = features.batch_has_for_organizations(
         "organizations:dynamic-sampling-spans", orgs
     )
+    if feature_results is None:
+        metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(orgs))
+        logger.error("dynamic_sampling.partition_by_measure.features_none", extra={"orgs": orgs})
+        return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
+
     for org in orgs:
         if feature_results.get(f"organization:{org.id}"):
             spans.append(org.id)
