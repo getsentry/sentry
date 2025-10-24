@@ -9,6 +9,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 
 type Props = {
   data: ProjectKey;
@@ -300,7 +301,8 @@ function ProjectKeyCredentials({
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
-  // Calculate available tabs based on props
+  const location = useLocation();
+
   const availableTabs = useMemo<TabConfig[]>(() => {
     const tabs: TabConfig[] = [
       {
@@ -341,11 +343,7 @@ function ProjectKeyCredentials({
     showProjectId,
   ]);
 
-  const [showDeprecatedDsn, setShowDeprecatedDsn] = useQueryState(
-    'showDeprecated',
-    parseAsBoolean
-  );
-
+  const [showDeprecatedDsn] = useQueryState('showDeprecated', parseAsBoolean);
   const [activeTab, setActiveTab] = useQueryState('tab', {
     ...parseAsStringLiteral(availableTabs.map(tab => tab.key)),
     defaultValue: availableTabs[0]?.key ?? 'otlp',
@@ -395,10 +393,11 @@ function ProjectKeyCredentials({
           help={tct('The DSN tells the SDK where to send the events to. [link]', {
             link: showDsn ? (
               <Link
-                to=""
-                onClick={e => {
-                  e.preventDefault();
-                  setShowDeprecatedDsn(showDeprecatedDsn ? null : true);
+                to={{
+                  query: {
+                    ...location.query,
+                    showDeprecated: showDeprecatedDsn ? undefined : 'true',
+                  },
                 }}
               >
                 {showDeprecatedDsn ? t('Hide deprecated DSN') : t('Show deprecated DSN')}
