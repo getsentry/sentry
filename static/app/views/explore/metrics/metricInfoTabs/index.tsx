@@ -27,35 +27,33 @@ export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
         setAggregatesMode(mode);
       }}
     >
-      <HeaderWrapper>
-        <TabList>
-          <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-          <TabList.Item key={Mode.SAMPLES}>{t('Samples')}</TabList.Item>
-        </TabList>
-      </HeaderWrapper>
+      <TabList>
+        <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+        <TabList.Item key={Mode.SAMPLES}>{t('Samples')}</TabList.Item>
+      </TabList>
 
       {visualize.visible && (
         <BodyContainer>
-          <TabPanels>
+          <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
               <AggregatesTab metricName={traceMetric.name} />
             </TabPanels.Item>
             <TabPanels.Item key={Mode.SAMPLES}>
               <SamplesTab metricName={traceMetric.name} />
             </TabPanels.Item>
-          </TabPanels>
+          </StyledTabPanels>
         </BodyContainer>
       )}
     </TabStateProvider>
   );
 }
 
-const HeaderWrapper = styled('div')`
-  padding-bottom: ${p => p.theme.space.sm};
-`;
-
 const BodyContainer = styled('div')`
   padding: ${p => p.theme.space.md};
   padding-top: 0;
-  height: 250px;
+  height: 320px;
+`;
+
+const StyledTabPanels = styled(TabPanels)`
+  overflow: auto;
 `;
