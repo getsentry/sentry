@@ -6,6 +6,7 @@ import type {
   InfiniteData,
   InfiniteQueryObserverRefetchErrorResult,
 } from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS,
   CONSECUTIVE_PAGES_WITH_MORE_DATA,
@@ -35,7 +36,8 @@ export function useLogsAutoRefreshInterval({
 }) {
   const {autoRefresh, refreshInterval} = useLogsAutoRefresh();
   const setAutoRefresh = useSetLogsAutoRefresh();
-
+  const organization = useOrganization();
+  const organizationRef = useRef(organization);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const consecutivePagesWithMoreDataRef = useRef<number>(0);
@@ -93,6 +95,7 @@ export function useLogsAutoRefreshInterval({
           error: isError,
           status: 'error',
           isError: true,
+          organization: organizationRef.current.slug,
         });
         setAutoRefresh('error');
         return;
@@ -111,6 +114,7 @@ export function useLogsAutoRefreshInterval({
           error: pageResult.error,
           status: pageResult.status,
           isError: pageResult.isError,
+          organization: organizationRef.current.slug,
         });
         setAutoRefresh('error');
         return;
@@ -122,7 +126,11 @@ export function useLogsAutoRefreshInterval({
       }
     } catch (error) {
       Sentry.withScope(scope => {
-        scope.setTags({endpoint: 'api.explore.logs-table', errorReason: 'auto-refresh'});
+        scope.setTags({
+          endpoint: 'api.explore.logs-table',
+          errorReason: 'auto-refresh',
+          organization: organizationRef.current.slug,
+        });
         Sentry.captureException(error);
       });
       setAutoRefresh('error');
