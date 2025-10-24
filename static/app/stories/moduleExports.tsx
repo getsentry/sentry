@@ -11,10 +11,13 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
 
   if (Object.entries(props.exports.exports).length > 0) {
     const namedList = Object.entries(props.exports.exports)
-      .map(([key, value]) => `${value.typeOnly ? `type ${value.name}` : value.name}`)
+      .map(([_key, value]) => `${value.typeOnly ? `type ${value.name}` : value.name}`)
       .join(', ');
     lines.push(`import {${namedList}} from '${props.exports.module}';`);
   }
+
+  if (!lines.length) return null;
+
   return (
     <Stack gap="md" paddingTop="xl">
       <Heading as="h3" size="lg">
