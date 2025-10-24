@@ -204,6 +204,9 @@ export function useVirtualStreaming({
 
         if (mostRecentPageDataTimestamp === null) {
           warnRef.current();
+          logger.info(
+            'No most recent page data timestamp found, setting auto-refresh to error'
+          );
           setLogsAutoRefresh('error');
           return;
         }

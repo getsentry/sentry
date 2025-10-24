@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef} from 'react';
+import * as Sentry from '@sentry/react';
 
 import type {ApiResult} from 'sentry/api';
 import type {
@@ -88,6 +89,11 @@ export function useLogsAutoRefreshInterval({
       }
 
       if (isError) {
+        Sentry.logger.info('Auto-refresh error due to isError', {
+          error: isError,
+          status: 'error',
+          isError: true,
+        });
         setAutoRefresh('error');
         return;
       }
@@ -101,6 +107,11 @@ export function useLogsAutoRefreshInterval({
 
       const pageResult = previousPage;
       if (pageResult.status === 'error' || pageResult.isError) {
+        Sentry.logger.info('Error fetching previous page', {
+          error: pageResult.error,
+          status: pageResult.status,
+          isError: pageResult.isError,
+        });
         setAutoRefresh('error');
         return;
       }
@@ -110,6 +121,10 @@ export function useLogsAutoRefreshInterval({
         return;
       }
     } catch (error) {
+      Sentry.withScope(scope => {
+        scope.setTags({endpoint: 'api.explore.logs-table', errorReason: 'auto-refresh'});
+        Sentry.captureException(error);
+      });
       setAutoRefresh('error');
     } finally {
       isRefreshRunningRef.current = false;
