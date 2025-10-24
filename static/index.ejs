@@ -24,10 +24,10 @@
           const theme = data.user?.options?.theme;
           if (theme) {
             document.body.classList.replace('theme-system', `theme-${theme}`);
+            return;
           }
-        } else {
-          document.body.classList.remove('theme-system');
         }
+        document.body.classList.remove('theme-system');
       }
       applySpaTheme();
     </script>
