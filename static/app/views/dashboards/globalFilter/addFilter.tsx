@@ -11,7 +11,12 @@ import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
-import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
@@ -25,17 +30,10 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
 ]);
 
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
+const SUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
 
 export function getDatasetLabel(dataset: WidgetType) {
   return DATASET_CHOICES.get(dataset) ?? '';
-}
-
-function getTagType(tag: Tag, dataset: WidgetType) {
-  const fieldType =
-    dataset === WidgetType.SPANS ? 'span' : dataset === WidgetType.LOGS ? 'log' : 'event';
-  const fieldDefinition = getFieldDefinition(tag.key, fieldType, tag.kind);
-
-  return <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />;
 }
 
 type AddFilterProps = {
@@ -70,12 +68,39 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
 
   // Get filter keys for the selected dataset
   const filterKeyOptions = selectedDataset
-    ? Object.entries(filterKeys).map(([_, tag]) => {
+    ? Object.entries(filterKeys).flatMap(([_, tag]) => {
+        const fieldType = (datasetType: WidgetType) => {
+          switch (datasetType) {
+            case WidgetType.SPANS:
+              return 'span';
+            case WidgetType.LOGS:
+              return 'log';
+            default:
+              return 'event';
+          }
+        };
+        const fieldDefinition = getFieldDefinition(
+          tag.key,
+          fieldType(selectedDataset),
+          tag.kind
+        );
+        const valueType = fieldDefinition?.valueType;
+
+        if (!valueType || !SUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
+          return [];
+        }
+
         return {
           value: tag.key,
           label: prettifyTagKey(tag.key),
-          trailingItems: <TagBadge>{getTagType(tag, selectedDataset)}</TagBadge>,
-          disabled: globalFilters.some(filter => filter.tag.key === tag.key),
+          trailingItems: (
+            <TagBadge>
+              <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
+            </TagBadge>
+          ),
+          disabled: globalFilters.some(
+            filter => filter.tag.key === tag.key && filter.dataset === selectedDataset
+          ),
         };
       })
     : [];

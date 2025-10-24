@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
@@ -42,8 +43,12 @@ function FilterSelector({
   }, [initialValues]);
 
   const {dataset, tag} = globalFilter;
+  const pageFilters = usePageFilters();
 
-  const baseQueryKey = useMemo(() => ['global-dashboard-filters-tag-values', tag], [tag]);
+  const baseQueryKey = useMemo(
+    () => ['global-dashboard-filters-tag-values', tag, pageFilters.selection],
+    [tag, pageFilters.selection]
+  );
   const queryKey = useDebouncedValue(baseQueryKey);
 
   const queryResult = useQuery<string[]>({
@@ -59,13 +64,24 @@ function FilterSelector({
   });
 
   const {data, isFetching} = queryResult;
-  const options = useMemo(() => {
+  const fetchedOptions = useMemo(() => {
     if (!data) return [];
     return data.map(value => ({
       label: value,
       value,
     }));
   }, [data]);
+
+  const savedFilterValueOptions = useMemo(() => {
+    return activeFilterValues
+      .map(value => ({
+        label: value,
+        value,
+      }))
+      .filter(option => !fetchedOptions.some(o => o.value === option.value));
+  }, [activeFilterValues, fetchedOptions]);
+
+  const options = [...savedFilterValueOptions, ...fetchedOptions];
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues)) {
