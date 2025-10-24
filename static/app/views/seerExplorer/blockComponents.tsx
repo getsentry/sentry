@@ -20,6 +20,7 @@ interface BlockProps {
   blockIndex: number;
   isFocused?: boolean;
   isLast?: boolean;
+  isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
   onNavigate?: () => void;
@@ -84,6 +85,7 @@ function BlockComponent({
   blockIndex: _blockIndex,
   isLast,
   isFocused,
+  isPolling,
   onClick,
   onDelete,
   onNavigate,
@@ -277,9 +279,11 @@ function BlockComponent({
                 transition={{duration: 0.1}}
               >
                 <ActionButtonBar gap="sm">
-                  <Button size="xs" priority="default" onClick={handleDeleteClick}>
-                    Rethink from here ⌫
-                  </Button>
+                  {!isPolling && (
+                    <Button size="xs" priority="default" onClick={handleDeleteClick}>
+                      Rethink from here ⌫
+                    </Button>
+                  )}
                   {hasValidLinks && (
                     <ButtonBar merged gap="0">
                       {validToolLinks.map((_, idx) => (
