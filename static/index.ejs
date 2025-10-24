@@ -20,7 +20,7 @@
       async function applySpaTheme() {
         const res = await fetch(BOOTSTRAP_URL);
         if (res.ok) {
-          const data = await res.then(res => res.json());
+          const data = await res.json();
           const theme = data.user?.options?.theme;
           if (theme) {
             document.body.classList.replace('theme-system', `theme-${theme}`);
