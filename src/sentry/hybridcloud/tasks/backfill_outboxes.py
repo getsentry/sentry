@@ -22,7 +22,7 @@ from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
 
 
-def _get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER)
 
 
