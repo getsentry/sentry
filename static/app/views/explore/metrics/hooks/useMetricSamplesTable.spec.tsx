@@ -9,7 +9,7 @@ import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetri
 
 jest.mock('sentry/utils/usePageFilters');
 
-describe('useMetricTimeseries', () => {
+describe('useMetricSamplesTable', () => {
   beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     jest.clearAllMocks();
