@@ -21,7 +21,10 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
-  const {result: timeseriesResult} = useMetricTimeseries({traceMetric});
+  const {result: timeseriesResult} = useMetricTimeseries({
+    traceMetric,
+    enabled: Boolean(traceMetric.name),
+  });
 
   const hasSize = width > 0;
 

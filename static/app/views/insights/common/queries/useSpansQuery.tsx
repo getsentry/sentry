@@ -175,7 +175,11 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
       interval: eventView.interval,
       cursor,
       sampling:
-        eventView.dataset === DiscoverDatasets.SPANS && samplingMode
+        [
+          DiscoverDatasets.SPANS,
+          DiscoverDatasets.OURLOGS,
+          DiscoverDatasets.TRACEMETRICS,
+        ].includes(eventView.dataset as DiscoverDatasets) && samplingMode
           ? samplingMode
           : undefined,
       caseInsensitive,
@@ -268,7 +272,13 @@ function useWrappedDiscoverQueryBase<T>({
   const organization = useOrganization();
 
   const queryExtras: Record<string, string> = {};
-  if (eventView.dataset === DiscoverDatasets.SPANS) {
+  if (
+    [
+      DiscoverDatasets.SPANS,
+      DiscoverDatasets.OURLOGS,
+      DiscoverDatasets.TRACEMETRICS,
+    ].includes(eventView.dataset as DiscoverDatasets)
+  ) {
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
     }

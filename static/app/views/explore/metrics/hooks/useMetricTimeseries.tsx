@@ -5,7 +5,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
-import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  useProgressiveQuery,
+  type RPCQueryExtras,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -17,10 +20,16 @@ import {
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseMetricTimeseriesOptions {
+  enabled: boolean;
   traceMetric: TraceMetric;
+  queryExtras?: RPCQueryExtras;
 }
 
-export function useMetricTimeseries({traceMetric}: UseMetricTimeseriesOptions) {
+export function useMetricTimeseries({
+  traceMetric,
+  queryExtras,
+  enabled,
+}: UseMetricTimeseriesOptions) {
   const visualize = useMetricVisualize();
   const topEvents = useTopEvents();
   const canTriggerHighAccuracy = useCallback(
@@ -31,14 +40,18 @@ export function useMetricTimeseries({traceMetric}: UseMetricTimeseriesOptions) {
   );
   return useProgressiveQuery<typeof useMetricTimeseriesImpl>({
     queryHookImplementation: useMetricTimeseriesImpl,
-    queryHookArgs: {traceMetric},
+    queryHookArgs: {traceMetric, queryExtras, enabled},
     queryOptions: {
       canTriggerHighAccuracy,
     },
   });
 }
 
-function useMetricTimeseriesImpl({traceMetric}: UseMetricTimeseriesOptions) {
+function useMetricTimeseriesImpl({
+  traceMetric,
+  queryExtras,
+  enabled,
+}: UseMetricTimeseriesOptions) {
   const visualize = useMetricVisualize();
   const groupBys = useQueryParamsGroupBys();
   const [interval] = useChartInterval();
@@ -60,9 +73,10 @@ function useMetricTimeseriesImpl({traceMetric}: UseMetricTimeseriesOptions) {
       yAxis: [visualize.yAxis],
       interval,
       fields: [...groupBys, visualize.yAxis],
-      enabled: Boolean(traceMetric.name),
+      enabled: enabled && Boolean(traceMetric.name),
       topEvents,
       orderby: sortBys.map(formatSort),
+      ...queryExtras,
     },
     'api.explore.metrics-stats',
     DiscoverDatasets.TRACEMETRICS
