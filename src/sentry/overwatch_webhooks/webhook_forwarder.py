@@ -9,7 +9,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
+from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
@@ -70,7 +70,7 @@ class OverwatchGithubWebhookForwarder:
 
         return org_contexts_by_region
 
-    def forward_if_applicable(self, event: Mapping[str, Any]):
+    def forward_if_applicable(self, event: Mapping[str, Any], headers: Mapping[str, str]):
         try:
             enabled_regions = options.get("overwatch.enabled-regions")
             if not enabled_regions:
@@ -93,6 +93,7 @@ class OverwatchGithubWebhookForwarder:
                 webhook_detail = WebhookDetails(
                     organizations=org_summaries,
                     webhook_body=dict(event),
+                    webhook_headers=headers,
                     integration_provider=self.integration.provider,
                     region=region_name,
                 )

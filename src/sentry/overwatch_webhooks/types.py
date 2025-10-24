@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -38,9 +39,13 @@ class OrganizationSummary:
 class WebhookDetails:
     organizations: list[OrganizationSummary]
     webhook_body: dict[str, Any]
+    webhook_headers: Mapping[str, str]
     integration_provider: str
     region: str
     request_type: str = DEFAULT_REQUEST_TYPE
 
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
     def to_json(self) -> str:
-        return json.dumps(asdict(self))
+        return json.dumps(self.to_dict())

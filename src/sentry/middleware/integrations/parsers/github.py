@@ -92,7 +92,9 @@ class GithubRequestParser(BaseRequestParser):
                 self.try_forward_to_codecov(event=event)
 
         # The overwatch forwarder implements its own region-based checks
-        OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(event=event)
+        OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
+            event=event, headers=self.request.headers
+        )
 
         return self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id

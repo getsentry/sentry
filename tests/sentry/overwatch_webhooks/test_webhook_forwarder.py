@@ -1,10 +1,13 @@
 from unittest.mock import patch
 
+import orjson
+import responses
 from django.db import router, transaction
+from django.test.utils import override_settings
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.overwatch_webhooks.models import (
+from sentry.overwatch_webhooks.types import (
     DEFAULT_REQUEST_TYPE,
     OrganizationSummary,
     WebhookDetails,
@@ -125,7 +128,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         event = {"action": "push", "data": "test"}
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(event)
+            self.forwarder.forward_if_applicable(event, headers={})
             mock_enqueue.assert_not_called()
 
     @override_options({"overwatch.enabled-regions": ["us"]})
@@ -139,7 +142,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         event = {"action": "invalid_action", "data": "test"}
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(event)
+            self.forwarder.forward_if_applicable(event, headers={})
             mock_enqueue.assert_not_called()
 
     @override_options({"overwatch.enabled-regions": ["us"]})
@@ -153,7 +156,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         event = {"action": "pull_request", "repository": "test-repo", "commits": []}
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(event)
+            self.forwarder.forward_if_applicable(event, headers={})
 
             mock_enqueue.assert_called_once()
             call_args = mock_enqueue.call_args[0][0]
@@ -175,7 +178,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         event = {"action": "pull_request", "number": 123}
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(event)
+            self.forwarder.forward_if_applicable(event, headers={})
 
             mock_enqueue.assert_called_once()
             call_args = mock_enqueue.call_args[0][0]
@@ -198,7 +201,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             event = {"action": action, "test_data": f"data_for_{action}"}
 
             with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-                self.forwarder.forward_if_applicable(event)
+                self.forwarder.forward_if_applicable(event, headers={})
                 mock_enqueue.assert_called_once()
 
                 call_args = mock_enqueue.call_args[0][0]
@@ -229,7 +232,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         }
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(complex_event)
+            self.forwarder.forward_if_applicable(complex_event, headers={})
 
             mock_enqueue.assert_called_once()
             call_args = mock_enqueue.call_args[0][0]
@@ -240,10 +243,25 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             assert len(call_args.webhook_body["commits"]) == 1
             assert call_args.webhook_body["commits"][0]["id"] == "abc123"
 
-    @patch("sentry.overwatch_webhooks.webhook_publisher.PublisherClient")
+    @responses.activate
     @override_options({"overwatch.enabled-regions": ["us", "de"]})
-    def test_forwards_to_correct_regions(self, mock_publisher_client_class):
-        mock_publisher_instance = mock_publisher_client_class.return_value
+    @override_settings(
+        OVERWATCH_REGION_URLS={
+            "us": "https://us.example.com/api",
+            "de": "https://de.example.com/api",
+        }
+    )
+    def test_forwards_to_correct_regions(self):
+        responses.add(
+            responses.POST,
+            "https://us.example.com/api/webhooks/sentry",
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            "https://de.example.com/api/webhooks/sentry",
+            status=200,
+        )
 
         organization = self.create_organization(name="Test Org", slug="test-org", region="us")
         org_integration1 = self.create_organization_integration(
@@ -257,57 +275,66 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         )
         event = {"action": "pull_request", "repository": "test-repo", "commits": []}
 
-        self.forwarder.forward_if_applicable(event)
+        self.forwarder.forward_if_applicable(event, headers={})
 
-        assert mock_publisher_instance.publish.call_count == 2
-        mock_publisher_instance.publish.assert_any_call(
-            "overwatch.us.github.webhooks",
-            WebhookDetails(
-                organizations=[
-                    OrganizationSummary(
-                        name="Test Org",
-                        slug="test-org",
-                        id=organization.id,
-                        region="us",
-                        github_integration_id=self.integration.id,
-                        organization_integration_id=org_integration1.id,
-                    )
-                ],
-                webhook_body=event,
-                integration_provider="github",
-                region="us",
-                request_type=DEFAULT_REQUEST_TYPE,
-            )
-            .to_json()
-            .encode("utf-8"),
-        )
-        mock_publisher_instance.publish.assert_any_call(
-            "overwatch.de.github.webhooks",
-            WebhookDetails(
-                organizations=[
-                    OrganizationSummary(
-                        name="Test Org 2",
-                        slug="test-org-2",
-                        id=organization2.id,
-                        region="de",
-                        github_integration_id=self.integration.id,
-                        organization_integration_id=org_integration2.id,
-                    )
-                ],
-                webhook_body=event,
-                integration_provider="github",
-                region="de",
-                request_type=DEFAULT_REQUEST_TYPE,
-            )
-            .to_json()
-            .encode("utf-8"),
-        )
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.url == "https://us.example.com/api/webhooks/sentry"
+        assert responses.calls[1].request.url == "https://de.example.com/api/webhooks/sentry"
+        assert responses.calls[0].request.method == "POST"
+        assert responses.calls[1].request.method == "POST"
+        json_body = orjson.loads(responses.calls[0].request.body)
 
-    @patch("sentry.overwatch_webhooks.webhook_publisher.PublisherClient")
+        assert json_body == {
+            "organizations": [
+                {
+                    "name": "Test Org",
+                    "slug": "test-org",
+                    "id": organization.id,
+                    "region": "us",
+                    "github_integration_id": self.integration.id,
+                    "organization_integration_id": org_integration1.id,
+                }
+            ],
+            "webhook_body": event,
+            "webhook_headers": {},
+            "integration_provider": "github",
+            "region": "us",
+            "request_type": DEFAULT_REQUEST_TYPE,
+        }
+        json_body = orjson.loads(responses.calls[1].request.body)
+        assert json_body == {
+            "organizations": [
+                {
+                    "name": "Test Org 2",
+                    "slug": "test-org-2",
+                    "id": organization2.id,
+                    "region": "de",
+                    "github_integration_id": self.integration.id,
+                    "organization_integration_id": org_integration2.id,
+                }
+            ],
+            "webhook_body": event,
+            "webhook_headers": {},
+            "integration_provider": "github",
+            "region": "de",
+            "request_type": DEFAULT_REQUEST_TYPE,
+        }
+
+    @responses.activate
     @override_options({"overwatch.enabled-regions": ["us"]})
-    def test_forwards_conditionally_to_some_regions(self, mock_publisher_client_class):
-        mock_publisher_instance = mock_publisher_client_class.return_value
+    @override_settings(OVERWATCH_REGION_URLS={"us": "https://us.example.com/api"})
+    def test_forwards_conditionally_to_some_regions(self):
+        responses.add(
+            responses.POST,
+            "https://us.example.com/api/webhooks/sentry",
+            status=200,
+        )
 
+        responses.add(
+            responses.POST,
+            "https://de.example.com/api/webhooks/sentry",
+            status=200,
+        )
         organization = self.create_organization(name="Test Org", slug="test-org", region="us")
         org_integration1 = self.create_organization_integration(
             integration=self.integration,
@@ -320,27 +347,26 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         )
         event = {"action": "pull_request", "repository": "test-repo", "commits": []}
 
-        self.forwarder.forward_if_applicable(event)
+        self.forwarder.forward_if_applicable(event, headers={})
 
-        assert mock_publisher_instance.publish.call_count == 1
-        mock_publisher_instance.publish.assert_any_call(
-            "overwatch.us.github.webhooks",
-            WebhookDetails(
-                organizations=[
-                    OrganizationSummary(
-                        name="Test Org",
-                        slug="test-org",
-                        id=organization.id,
-                        region="us",
-                        github_integration_id=self.integration.id,
-                        organization_integration_id=org_integration1.id,
-                    )
-                ],
-                webhook_body=event,
-                integration_provider="github",
-                region="us",
-                request_type=DEFAULT_REQUEST_TYPE,
-            )
-            .to_json()
-            .encode("utf-8"),
-        )
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://us.example.com/api/webhooks/sentry"
+        assert responses.calls[0].request.method == "POST"
+        json_body = orjson.loads(responses.calls[0].request.body)
+        assert json_body == {
+            "organizations": [
+                {
+                    "name": "Test Org",
+                    "slug": "test-org",
+                    "id": organization.id,
+                    "region": "us",
+                    "github_integration_id": self.integration.id,
+                    "organization_integration_id": org_integration1.id,
+                }
+            ],
+            "webhook_body": event,
+            "webhook_headers": {},
+            "integration_provider": "github",
+            "region": "us",
+            "request_type": DEFAULT_REQUEST_TYPE,
+        }

@@ -1,9 +1,12 @@
+import hashlib
+import hmac
 import logging
 
-from google.auth.exceptions import GoogleAuthError
+import requests
+from django.conf import settings
 from google.cloud.pubsub import PublisherClient
 
-from sentry.overwatch_webhooks.models import WebhookDetails
+from sentry.overwatch_webhooks.types import WebhookDetails
 from sentry.types.region import Region
 
 logger = logging.getLogger("sentry.overwatch_webhooks")
@@ -15,31 +18,35 @@ class OverwatchWebhookPublisher:
     _integration_provider: str
 
     def __init__(self, integration_provider: str, region: Region):
-        """
-        This is pulled from our analytics pubsub logic. This ensures we noop
-        if we don't have a valid configuration for pubsub.
-        """
         self._integration_provider = integration_provider
         self._region = region
-        try:
-            # TODO: Validate that the publisher client version is correct.
-
-            # TODO: Enable per-region publisher client initialization. Ideally,
-            # we should have a publisher client for each region for data isolation.
-            self._publisher_client = PublisherClient()
-        except GoogleAuthError:
-            logger.warning("webhook_dispatcher.publisher_client.missing_auth")
-            self._publisher_client = None
 
     def enqueue_webhook(self, webhook_details: WebhookDetails):
-        if self._publisher_client is None:
-            logger.warning("webhook_dispatcher.publisher_client.noop")
-            return
+        base_addr = self._get_request_address()
 
-        # TODO: Validate that this data is in the format overwatch requires.
-        # TODO: Validate the topic name, and maybe add integration scoping for future expansion.
-        json_bytes = webhook_details.to_json().encode("utf-8")
-        self._publisher_client.publish(self._get_topic_name(), json_bytes)
+        try:
+            body = webhook_details.to_json()
+            requests.post(
+                f"{base_addr}/webhooks/sentry",
+                data=webhook_details.to_json(),
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    "x-sentry-overwatch-signature": self._get_request_signature(body),
+                },
+            )
+        except Exception:
+            logger.exception("overwatch.webhook_publisher.submit_failed")
+            raise
 
-    def _get_topic_name(self) -> str:
-        return f"overwatch.{self._region.name}.{self._integration_provider}.webhooks"
+    def _get_request_signature(self, body: str) -> str:
+        return hmac.new(
+            key=settings.OVERWATCH_WEBHOOK_SECRET.encode("utf-8"),
+            msg=body.encode("utf-8"),
+            digestmod=hashlib.sha256,
+        ).hexdigest()
+
+    def _get_request_address(self) -> str:
+        addr = settings.OVERWATCH_REGION_URLS.get(self._region.name)
+        if not addr:
+            raise ValueError(f"Missing overwatch request address for region {self._region.name}")
+        return addr
