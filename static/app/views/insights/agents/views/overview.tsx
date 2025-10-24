@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {Flex, Stack} from 'sentry/components/core/layout';
@@ -16,7 +17,6 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -44,7 +44,6 @@ import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
@@ -79,7 +78,10 @@ function AgentsOverviewPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
   useDefaultToAllProjects();
   const location = useLocation();
 

@@ -1,8 +1,7 @@
 import {useCallback} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import useDrawer from 'sentry/components/globalDrawer';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {DrawerUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 
 export function useUrlTraceDrawer() {
@@ -13,17 +12,17 @@ export function useUrlTraceDrawer() {
     panelRef,
   } = useDrawer();
 
-  const [selectedTrace, setSelectedTrace, removeTraceParam] = useLocationSyncedState(
+  const [selectedTrace, setSelectedTrace] = useQueryState(
     DrawerUrlParams.SELECTED_TRACE,
-    decodeScalar
+    parseAsString.withOptions({history: 'replace'})
   );
 
-  const removeQueryParams = useCallback(() => {
-    removeTraceParam();
-  }, [removeTraceParam]);
+  const removeQueryParams = useCallback(async () => {
+    await setSelectedTrace(null);
+  }, [setSelectedTrace]);
 
-  const closeDrawer = useCallback(() => {
-    removeQueryParams();
+  const closeDrawer = useCallback(async () => {
+    await removeQueryParams();
     return baseCloseDrawer();
   }, [baseCloseDrawer, removeQueryParams]);
 
@@ -44,8 +43,8 @@ export function useUrlTraceDrawer() {
         shouldCloseOnLocationChange: nextLocation => {
           return !nextLocation.query[DrawerUrlParams.SELECTED_TRACE];
         },
-        onClose: () => {
-          removeQueryParams();
+        onClose: async () => {
+          await removeQueryParams();
           onClose?.();
         },
       });

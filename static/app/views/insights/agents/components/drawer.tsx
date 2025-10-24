@@ -1,5 +1,6 @@
-import {memo, useCallback, useEffect} from 'react';
+import {memo, useCallback, useEffect, useEffectEvent} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -7,11 +8,9 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agents/hooks/useAITrace';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {useNodeDetailsLink} from 'sentry/views/insights/agents/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/agents/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/agents/utils/getDefaultSelectedNode';
@@ -40,14 +39,19 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
 }) {
   const organization = useOrganization();
   const {nodes, isLoading, error} = useAITrace(traceSlug);
-  const [selectedNodeKey, setSelectedNodeKey, removeSelectedNodeParam] =
-    useLocationSyncedState(DrawerUrlParams.SELECTED_SPAN, decodeScalar);
+  const [selectedNodeKey, setSelectedNodeKey] = useQueryState(
+    DrawerUrlParams.SELECTED_SPAN,
+    parseAsString.withOptions({history: 'replace'})
+  );
+
+  const clearSelectedNodeKey = useEffectEvent(() => {
+    void setSelectedNodeKey(null);
+  });
 
   useEffect(() => {
     return () => {
-      removeSelectedNodeParam();
+      clearSelectedNodeKey();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
 
   const handleSelectNode = useCallback(
