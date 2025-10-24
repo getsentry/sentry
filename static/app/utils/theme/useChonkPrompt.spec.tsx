@@ -42,7 +42,7 @@ describe('useChonkPrompt', () => {
     expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 
-  it('org with chonk-ui-enforce does not show prompts', async () => {
+  it('org with chonk-ui-enforce does not show prompts', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},
