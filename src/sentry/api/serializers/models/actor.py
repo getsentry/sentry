@@ -13,15 +13,12 @@ class ActorSerializerResponse(TypedDict):
 class ActorSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> ActorSerializerResponse:
         if obj.class_name() == "User":
-            actor_type = "user"
             name = obj.get_display_name()
-            context = {"email": obj.email}
-        elif obj.class_name() == "Team":
-            actor_type = "team"
-            name = obj.slug
-            context = {}
-        else:
-            raise AssertionError("Invalid type to assign to: %r" % type(obj))
+            return ActorSerializerResponse(type="user", id=str(obj.id), name=name, email=obj.email)
 
-        context.update({"type": actor_type, "id": str(obj.id), "name": name})
-        return ActorSerializerResponse(**context)
+        elif obj.class_name() == "Team":
+            name = obj.slug
+            return ActorSerializerResponse(type="team", id=str(obj.id), name=name, email=None)
+
+        else:
+            raise AssertionError(f"Invalid type to assign to: {type(obj)}")
