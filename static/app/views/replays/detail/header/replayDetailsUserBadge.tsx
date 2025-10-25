@@ -1,15 +1,14 @@
-import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import ReplayLiveIndicator, {
+  liveDuration,
+} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -94,14 +93,9 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   });
 
   const polledCountSegments = polledReplayRecord?.count_segments ?? 0;
-  const polledFinishedAt = polledReplayRecord?.finished_at?.getTime() ?? 0;
-
   const prevSegments = replayRecord?.count_segments ?? 0;
 
   const showRefreshButton = polledCountSegments > prevSegments;
-
-  const FIVE_MINUTE_MS = 300_000;
-  const showIsLive = Date.now() < polledFinishedAt + FIVE_MINUTE_MS;
 
   const badge = replayRecord ? (
     <UserBadge
@@ -135,14 +129,8 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {showIsLive ? (
-                <Tooltip
-                  showUnderline
-                  underlineColor="success"
-                  title={t('This replay is still in progress.')}
-                >
-                  <Live />
-                </Tooltip>
+              {liveDuration(replayRecord.finished_at) > 0 ? (
+                <ReplayLiveIndicator />
               ) : null}
               <Button
                 title={t('Replay is outdated. Refresh for latest activity.')}
@@ -197,55 +185,4 @@ const TimeContainer = styled('div')`
 const DisplayHeader = styled('div')`
   display: flex;
   flex-direction: column;
-`;
-
-function Live() {
-  return (
-    <Flex align="center">
-      <Text bold variant="success" data-test-id="live-badge">
-        {t('LIVE')}
-      </Text>
-      <LiveIndicator />
-    </Flex>
-  );
-}
-
-const pulse = keyframes`
-  0% {
-    transform: scale(0.1);
-    opacity: 1
-  }
-
-  40%, 100% {
-    transform: scale(1);
-    opacity: 0;
-  }
-`;
-
-const LiveIndicator = styled('div')`
-  background: ${p => p.theme.successText};
-  height: 8px;
-  width: 8px;
-  position: relative;
-  border-radius: 50%;
-  margin-left: ${p => p.theme.space.sm};
-  margin-right: ${p => p.theme.space.sm};
-
-  @media (prefers-reduced-motion: reduce) {
-    &:before {
-      display: none;
-    }
-  }
-
-  &:before {
-    content: '';
-    animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.successText};
-    position: absolute;
-    border-radius: 50%;
-    height: 20px;
-    width: 20px;
-    top: -6px;
-    left: -6px;
-  }
 `;
