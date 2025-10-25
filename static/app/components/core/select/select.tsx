@@ -534,7 +534,7 @@ function SelectPicker<OptionType extends OptionTypeBase>({
     Component = ReactSelect;
   }
 
-  return <Component ref={ref as any} {...props} />;
+  return <Component ref={ref as any} {...props} menuPlacement="auto" />;
 }
 
 // XXX (tkdodo): this type assertion is a leftover from when we had forwardRef
