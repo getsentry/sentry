@@ -13,6 +13,7 @@ resources:
 ---
 
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
@@ -114,6 +115,26 @@ Text components support various typography options including bold, italic, under
 <Text strikethrough>Strikethrough text</Text>
 <Text bold italic underline>
   Bold italic underlined text
+</Text>
+```
+
+### Links
+
+Both `<Link>` and `<ExternalLink>` components can be used inline in `<Text>` components to give a styled link.
+
+<Storybook.Demo>
+  <Container padding="md">
+    <Text>
+      This is a paragraph with an{' '}
+      <Link to="/organizations/sentry/issues/">inline link</Link> that inherits text
+      styling.
+    </Text>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Text>
+  This is a paragraph with an <Link to="/organizations/sentry/issues/">inline link</Link>{' '}
+  that inherits text styling.
 </Text>
 ```
 

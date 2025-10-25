@@ -291,7 +291,7 @@ export function GroupTagValues() {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <TitleWrapper>
           <Title>{t('Tag Details')}</Title>
           <ButtonBar>

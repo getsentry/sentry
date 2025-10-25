@@ -59,7 +59,15 @@ export function rc<T>(
   `;
 }
 
-const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
+const BREAKPOINT_ORDER: readonly Breakpoint[] = [
+  '2xs',
+  'xs',
+  'sm',
+  'md',
+  'lg',
+  'xl',
+  '2xl',
+];
 
 // We alias None -> 0 to make it slighly more terse and easier to read.
 export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
@@ -305,5 +313,5 @@ function findLargestBreakpoint(
 
   // Since we use min width, the only remaining breakpoint that we might have missed is <xs,
   // in which case we return xs, which is in line with behavior of rc() function.
-  return 'xs';
+  return '2xs';
 }

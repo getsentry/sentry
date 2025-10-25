@@ -47,6 +47,15 @@ backend_build_changes: &backend_build_changes
   - 'Makefile'
   - 'pyproject.toml'
 
+# Files that impact the list of URLS served by the API.
+# The main entry file is `src/sentry/api/urls.py`
+# But that module imports from some other places too, which are also named
+# `urls.py` by convention, it's not enforced anywhere.
+# Examples:
+#   - src/sentry/workflow_engine/endpoints/urls.py
+#   - src/sentry/notifications/platform/api/endpoints/urls.py
+#   - src/sentry/preprod/api/endpoints/urls.py
+#   - and maybe more in the future.
 backend_api_urls: &backend_api_urls
   - '**/urls.py'
 

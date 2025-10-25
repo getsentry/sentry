@@ -78,6 +78,6 @@ export function useStoriesLoader(
     queryFn: (): Promise<StoryDescriptor[]> => {
       return Promise.all(options.files.map(importStory));
     },
-    enabled: !!options.files,
+    enabled: options.files.length > 0,
   });
 }

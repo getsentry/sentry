@@ -262,5 +262,9 @@ export function areWildcardOperatorsAllowed(
     return false;
   }
 
-  return fieldDefinition.allowWildcard ?? true;
+  if (fieldDefinition.valueType === FieldValueType.STRING) {
+    return fieldDefinition.allowWildcard ?? true;
+  }
+
+  return false;
 }

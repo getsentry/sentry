@@ -508,32 +508,40 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
+                disable_aggregate_extrapolation = (
+                    request.GET.get("disableAggregateExtrapolation", "0") == "1"
+                )
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                        in request.GET,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
                         use_aggregate_conditions=False,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
-                        use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":

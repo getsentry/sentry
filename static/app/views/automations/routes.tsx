@@ -2,7 +2,7 @@ import type {SentryRouteObject} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 
 export const automationRoutes: SentryRouteObject = {
-  path: 'automations/',
+  path: 'alerts/',
   children: [
     {
       index: true,
@@ -14,10 +14,6 @@ export const automationRoutes: SentryRouteObject = {
         {
           index: true,
           component: make(() => import('sentry/views/automations/new')),
-        },
-        {
-          path: 'settings/',
-          component: make(() => import('sentry/views/automations/new-settings')),
         },
       ],
     },

@@ -72,7 +72,7 @@ export default function TeamStatsHealth() {
 
         {isLoading && <LoadingIndicator />}
         {!isLoading && (
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <DescriptionCard
               title={t('Crash Free Sessions')}
               description={t(

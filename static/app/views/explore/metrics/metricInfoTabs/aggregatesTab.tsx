@@ -18,7 +18,6 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {
   TableBody,
@@ -30,6 +29,7 @@ import {
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
+import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
 import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import {
   useQueryParamsAggregateSortBys,
@@ -58,9 +58,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
   const sorts = useQueryParamsAggregateSortBys();
   const setSorts = useSetQueryParamsAggregateSortBys();
 
-  const metricNameFilter = metricName
-    ? MutableSearch.fromQueryObject({['metric.name']: [metricName]}).formatString()
-    : undefined;
+  const metricNameFilter = createMetricNameFilter(metricName);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,

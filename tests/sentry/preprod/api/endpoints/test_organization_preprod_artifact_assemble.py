@@ -185,7 +185,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             args=[self.organization.slug, self.project.slug],
         )
 
-        self.feature_context = Feature("organizations:preprod-artifact-assemble")
+        self.feature_context = Feature("organizations:preprod-frontend-routes")
         self.feature_context.__enter__()
 
     def tearDown(self) -> None:
@@ -210,7 +210,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             )
             assert response.status_code == 403
         finally:
-            self.feature_context = Feature("organizations:preprod-artifact-assemble")
+            self.feature_context = Feature("organizations:preprod-frontend-routes")
             self.feature_context.__enter__()
 
     def test_assemble_json_schema_integration(self) -> None:
@@ -388,7 +388,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
-            build_configuration=None,
+            build_configuration_name=None,
             release_notes=None,
             head_sha=None,
             base_sha=None,
@@ -464,7 +464,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
-            build_configuration="release",
+            build_configuration_name="release",
             release_notes=None,
             head_sha="e" * 40,
             base_sha="f" * 40,
@@ -750,7 +750,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
-            build_configuration=None,
+            build_configuration_name=None,
             release_notes=None,
             head_sha=None,
             base_sha=None,

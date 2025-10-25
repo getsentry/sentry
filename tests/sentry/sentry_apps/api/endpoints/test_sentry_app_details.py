@@ -8,10 +8,11 @@ from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
 )
-from sentry.constants import SentryAppStatus
+from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -23,6 +24,8 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -846,3 +849,23 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         self.login_as(self.user_manager)
 
         self.get_error_response(self.internal_integration.slug, status_code=403)
+
+    @override_options({"workflow_engine.sentry-app-actions-outbox": True})
+    def test_disables_actions(self) -> None:
+        action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(self.internal_integration.id),
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+        self.get_success_response(
+            self.internal_integration.slug,
+            status_code=204,
+        )
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.DISABLED
