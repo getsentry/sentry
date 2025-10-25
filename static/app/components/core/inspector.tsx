@@ -24,6 +24,7 @@ import {
   isMDXStory,
   useStoriesLoader,
   useStoryBookFiles,
+  type MDXStoryDescriptor,
 } from 'sentry/stories/view/useStoriesLoader';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
@@ -535,6 +536,12 @@ function MenuItem(props: {
     };
   }, [props.subMenuPortalRef, setIsOpen]);
 
+  const importStatement = story
+    ? isMDXStory(story)
+      ? getImportStatement(story, props.componentName)
+      : undefined
+    : undefined;
+
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
@@ -592,17 +599,35 @@ function MenuItem(props: {
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
               {props.storybook ? (
-                <ProfilingContextMenuItemButton
-                  {...props.contextMenu.getMenuItemProps({
-                    onClick: () => {
-                      window.open(`/stories/?name=${props.storybook}`, '_blank');
-                      props.onAction();
-                    },
-                  })}
-                  icon={<IconLink size="xs" />}
-                >
-                  {t('View Storybook')}
-                </ProfilingContextMenuItemButton>
+                <Fragment>
+                  <ProfilingContextMenuItemButton
+                    {...props.contextMenu.getMenuItemProps({
+                      onClick: () => {
+                        if (!importStatement) return;
+                        // We expect story to be present if props.storybook is truthy:
+                        props.copyToClipboard(importStatement);
+                        addSuccessMessage(t('Import statement copied to clipboard'));
+                        props.onAction();
+                      },
+                    })}
+                    disabled={!importStatement}
+                    icon={<IconCopy size="xs" />}
+                  >
+                    {t('Copy Import Statement')}
+                  </ProfilingContextMenuItemButton>
+
+                  <ProfilingContextMenuItemButton
+                    {...props.contextMenu.getMenuItemProps({
+                      onClick: () => {
+                        window.open(`/stories/?name=${props.storybook}`, '_blank');
+                        props.onAction();
+                      },
+                    })}
+                    icon={<IconLink size="xs" />}
+                  >
+                    {t('View Storybook')}
+                  </ProfilingContextMenuItemButton>
+                </Fragment>
               ) : null}
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
@@ -774,6 +799,34 @@ function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
   }
 
   return trace;
+}
+
+function getImportStatement(
+  story: MDXStoryDescriptor,
+  componentName: string
+): string | undefined {
+  if (!story?.exports?.documentation?.exports) {
+    return undefined;
+  }
+
+  const names: string[] = [];
+  let importPath: string | undefined = undefined;
+
+  for (const moduleName in story.exports.documentation.exports) {
+    if (importPath) break;
+    for (const decl of story.exports.documentation.exports[moduleName] ?? []) {
+      if (decl.name === componentName || decl.name === `${componentName}Props`) {
+        names.push(decl.typeOnly ? `type ${decl.name}` : decl.name);
+        importPath = moduleName;
+      }
+    }
+  }
+
+  if (!names.length || !importPath) {
+    return undefined;
+  }
+
+  return `import { ${names.join(', ')} } from '${importPath}';`;
 }
 
 function isCoreComponent(el: unknown): boolean {
