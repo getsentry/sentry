@@ -357,7 +357,7 @@ def _get_issue_event_timeseries(
         logger.warning(
             "Failed to get event counts for issue",
             extra={
-                "organization_id": organization.slug,
+                "organization_slug": organization.slug,
                 "project_id": project_id,
                 "issue_id": issue_short_id,
             },
