@@ -219,6 +219,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     platformKey: project.platform || 'other',
     project,
     isLogsSelected: true,
+    isMetricsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,

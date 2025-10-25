@@ -19,7 +19,7 @@ describe('AppSizeInsightsSidebarRow', () => {
       screen.getByText('You have files that are duplicated across your app')
     ).toBeInTheDocument();
     expect(screen.getByText('Potential savings 1.02 MB')).toBeInTheDocument();
-    expect(screen.getByText('15.5%')).toBeInTheDocument();
+    expect(screen.getByText('-15.5%')).toBeInTheDocument();
   });
 
   it('shows file count button', () => {
@@ -74,6 +74,7 @@ describe('AppSizeInsightsSidebarRow', () => {
             fileType: 'optimizable_image' as const,
             minifyPercentage: 6.67, // 200000 / 3000000 * 100
             conversionPercentage: 10, // 300000 / 3000000 * 100
+            isDuplicateVariant: false,
             originalFile: {
               file_path: 'image.png',
               current_size: 1000000,
@@ -81,6 +82,8 @@ describe('AppSizeInsightsSidebarRow', () => {
               minified_size: 800000,
               conversion_savings: 300000,
               heic_size: 700000,
+              colorspace: null,
+              idiom: null,
             },
           },
         },
@@ -121,6 +124,7 @@ describe('AppSizeInsightsSidebarRow', () => {
             fileType: 'optimizable_image' as const,
             minifyPercentage: 0,
             conversionPercentage: 10,
+            isDuplicateVariant: false,
             originalFile: {
               file_path: 'already-optimized.png',
               current_size: 802388,
@@ -128,6 +132,8 @@ describe('AppSizeInsightsSidebarRow', () => {
               minified_size: null,
               conversion_savings: 472700,
               heic_size: 329688,
+              colorspace: null,
+              idiom: null,
             },
           },
         },
@@ -158,6 +164,7 @@ describe('AppSizeInsightsSidebarRow', () => {
             fileType: 'optimizable_image' as const,
             minifyPercentage: 5,
             conversionPercentage: 0,
+            isDuplicateVariant: false,
             originalFile: {
               file_path: 'no-heic.png',
               current_size: 505980,
@@ -165,6 +172,8 @@ describe('AppSizeInsightsSidebarRow', () => {
               minified_size: 485960,
               conversion_savings: 0,
               heic_size: null,
+              colorspace: null,
+              idiom: null,
             },
           },
         },
@@ -184,7 +193,7 @@ describe('AppSizeInsightsSidebarRow', () => {
     expect(screen.queryByText('Convert to HEIC:')).not.toBeInTheDocument();
   });
 
-  it('renders with no files', () => {
+  it('hides file count button when there are no files', () => {
     const insightWithNoFiles = ProcessedInsightFixture({
       files: [],
     });
@@ -197,7 +206,8 @@ describe('AppSizeInsightsSidebarRow', () => {
       />
     );
 
-    expect(screen.getByText('0 files')).toBeInTheDocument();
+    // Button should not be rendered when there are 0 files
+    expect(screen.queryByRole('button', {name: /files/i})).not.toBeInTheDocument();
     expect(screen.queryByText(/^src\//)).not.toBeInTheDocument();
   });
 
@@ -230,5 +240,38 @@ describe('AppSizeInsightsSidebarRow', () => {
 
     expect(screen.getByText('Potential savings 5.24 GB')).toBeInTheDocument();
     expect(screen.getByText(/-2\.15\s*GB/i)).toBeInTheDocument();
+  });
+
+  it('shows ~0% for very small percentage savings', () => {
+    const insightWithTinySavings = ProcessedInsightFixture({
+      totalSavings: 100, // 100 bytes
+      percentage: 0.05, // 0.05% - less than 0.1% threshold
+      files: [
+        {
+          path: 'tiny-file.js',
+          savings: 100,
+          percentage: 0.05,
+          data: {
+            fileType: 'regular' as const,
+            originalFile: {
+              file_path: 'tiny-file.js',
+              total_savings: 100,
+            },
+          },
+        },
+      ],
+    });
+
+    render(
+      <AppSizeInsightsSidebarRow
+        {...getDefaultProps()}
+        insight={insightWithTinySavings}
+        isExpanded
+      />
+    );
+
+    // Should show ~0% for percentages less than 0.1%
+    expect(screen.getByText('~0%')).toBeInTheDocument();
+    expect(screen.getByText('Potential savings 100 B')).toBeInTheDocument();
   });
 });

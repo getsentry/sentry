@@ -71,7 +71,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
         headers = self._get_authenticated_request_headers(url)
 
-        with self.feature("organizations:preprod-artifact-assemble"):
+        with self.feature("organizations:preprod-frontend-routes"):
             response = self.client.get(url, **headers)
 
         assert response.status_code == 404

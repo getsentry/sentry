@@ -130,6 +130,12 @@ export interface SearchQueryBuilderProps {
    * ```
    */
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  /**
+   * If provided, filters recent searches by this query string on the backend.
+   * This query will not be displayed in the UI because it is stripped from the
+   * API response results before rendering.
+   */
+  namespace?: string;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * When passed, this will display the case sensitivity toggle, and will be called when

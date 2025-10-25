@@ -97,6 +97,10 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const showRefreshButton = polledCountSegments > prevSegments;
 
+  const showLiveIndicator =
+    replayRecord &&
+    liveDuration(replayRecord?.finished_at) > 0 &&
+    Date.now() < REPLAY_EXPIRY_TIMESTAMP;
   const badge = replayRecord ? (
     <UserBadge
       avatarSize={24}
@@ -129,9 +133,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {liveDuration(replayRecord.finished_at) > 0 ? (
-                <ReplayLiveIndicator />
-              ) : null}
+              {showLiveIndicator ? <ReplayLiveIndicator /> : null}
               <Button
                 title={t('Replay is outdated. Refresh for latest activity.')}
                 data-test-id="refresh-button"
