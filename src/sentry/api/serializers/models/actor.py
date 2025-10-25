@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer
 
@@ -7,7 +7,7 @@ class ActorSerializerResponse(TypedDict):
     type: Literal["user", "team"]
     id: str
     name: str
-    email: str | None
+    email: NotRequired[str]
 
 
 class ActorSerializer(Serializer):
@@ -18,7 +18,7 @@ class ActorSerializer(Serializer):
 
         elif obj.class_name() == "Team":
             name = obj.slug
-            return ActorSerializerResponse(type="team", id=str(obj.id), name=name, email=None)
+            return ActorSerializerResponse(type="team", id=str(obj.id), name=name)
 
         else:
             raise AssertionError(f"Invalid type to assign to: {type(obj)}")
