@@ -43,3 +43,31 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert [bucket for _, bucket in response.data["data"]] == [
             [{"count": value}] for value in metric_values
         ]
+
+    def test_rate_function(self) -> None:
+        for i in range(6):
+            for _ in range(2):
+                self.store_trace_metrics(
+                    [
+                        self.create_trace_metric(
+                            "test_metric", 1.0, timestamp=self.start + timedelta(hours=i)
+                        )
+                    ]
+                )
+
+        response = self.do_request(
+            {
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "rate(3600)",  # 3600 seconds = 1 hour
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 6
+        # Each bucket should have 2 events / 3600 seconds = 0.000555... events per second
+        for _, bucket in response.data["data"]:
+            assert abs(bucket[0]["count"] - (2 / 3600)) < 0.0001
