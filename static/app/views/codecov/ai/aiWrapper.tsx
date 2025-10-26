@@ -2,8 +2,6 @@ import React, {useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
-import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -11,14 +9,16 @@ import {Switch} from 'sentry/components/core/switch';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose, IconSettings} from 'sentry/icons';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AI_PAGE_TITLE} from 'sentry/views/codecov/settings';
+import {AI_PAGE_TITLE} from 'sentry/views/prevent/settings';
 
 function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}) {
-  const {repository} = useCodecovContext();
+  const {repository} = usePreventContext();
 
   // Settings state
   const [enableTestGeneration, setEnableTestGeneration] = useState(true);
@@ -244,12 +244,12 @@ export default function AIPageWrapper() {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <CodecovQueryParamsProvider>
+        <PreventQueryParamsProvider>
           <Layout.Main fullWidth>
             <Outlet />
           </Layout.Main>
           <SettingsPanel isOpen={isSettingsPanelOpen} onClose={handleCloseSettings} />
-        </CodecovQueryParamsProvider>
+        </PreventQueryParamsProvider>
       </Layout.Body>
     </SentryDocumentTitle>
   );

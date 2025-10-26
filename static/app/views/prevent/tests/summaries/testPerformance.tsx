@@ -3,10 +3,10 @@ import {Fragment} from 'react';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import {SummaryCard, SummaryCardGroup} from 'sentry/components/prevent/summary';
 import {t} from 'sentry/locale';
 import {formatPercentRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {SummaryCard, SummaryCardGroup} from 'sentry/views/prevent/summary';
 
 function FlakyTestsTooltip() {
   return (

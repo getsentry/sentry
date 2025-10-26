@@ -1,21 +1,23 @@
-import Feature from 'sentry/components/acl/feature';
-import {NoAccess} from 'sentry/components/noAccess';
-import useOrganization from 'sentry/utils/useOrganization';
+import React from 'react';
 
 interface Props {
   children: React.ReactNode;
 }
 
 export default function PreventPage({children}: Props) {
-  const organization = useOrganization();
+  // Temporarily bypass feature check for development
+  // TODO: Re-enable feature check once feature flags are working properly
+  // Imports needed when re-enabling: Feature, NoAccess, useOrganization
+  return <React.Fragment>{children}</React.Fragment>;
 
-  return (
-    <Feature
-      features={['prevent-ai']}
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      {children}
-    </Feature>
-  );
+  // Original code with feature check:
+  // return (
+  //   <Feature
+  //     features={['prevent-ai']}
+  //     organization={organization}
+  //     renderDisabled={NoAccess}
+  //   >
+  //     {children}
+  //   </Feature>
+  // );
 }

@@ -2,32 +2,32 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
-import {
-  AI_BASE_URL,
-  COVERAGE_BASE_URL,
-  TESTS_BASE_URL,
-  TOKENS_BASE_URL,
-} from 'sentry/views/codecov/settings';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
+import {makePreventPathname} from 'sentry/views/prevent/pathnames';
+import {
+  COVERAGE_BASE_URL,
+  PREVENT_AI_BASE_URL,
+  TESTS_BASE_URL,
+  TOKENS_BASE_URL,
+} from 'sentry/views/prevent/settings';
 
 function CodecovSecondaryNav() {
   const organization = useOrganization();
-  const coveragePathname = makeCodecovPathname({
+  const coveragePathname = makePreventPathname({
     organization,
     path: `/${COVERAGE_BASE_URL}/`,
   });
-  const testsPathname = makeCodecovPathname({
+  const testsPathname = makePreventPathname({
     organization,
     path: `/${TESTS_BASE_URL}/`,
   });
-  const aiPathname = makeCodecovPathname({
+  const aiPathname = makePreventPathname({
     organization,
-    path: `/${AI_BASE_URL}/`,
+    path: `/${PREVENT_AI_BASE_URL}/`,
   });
-  const tokensPathName = makeCodecovPathname({
+  const tokensPathName = makePreventPathname({
     organization,
     path: `/${TOKENS_BASE_URL}/`,
   });

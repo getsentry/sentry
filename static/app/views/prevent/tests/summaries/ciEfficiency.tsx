@@ -4,9 +4,9 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
-import {SummaryCard, SummaryCardGroup} from 'sentry/components/prevent/summary';
 import {t, tct} from 'sentry/locale';
 import {formatPercentRate, formatTimeDuration} from 'sentry/utils/formatters';
+import {SummaryCard, SummaryCardGroup} from 'sentry/views/prevent/summary';
 
 function TotalTestsRunTimeTooltip() {
   const {preventPeriod} = usePreventContext();

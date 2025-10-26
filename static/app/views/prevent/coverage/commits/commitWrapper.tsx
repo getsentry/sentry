@@ -14,7 +14,7 @@ import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makePreventPathname} from 'sentry/views/prevent/pathnames';
-import {PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {COVERAGE_BASE_URL} from 'sentry/views/prevent/settings';
 
 // This is the page header for the commit detail page.
 // Mock data - would come from props/API in real implementation
@@ -43,14 +43,14 @@ export default function CommitDetailWrapper() {
       label: 'Code Coverage',
       to: makePreventPathname({
         organization,
-        path: `/${PREVENT_BASE_URL}/commits/`,
+        path: `/${COVERAGE_BASE_URL}/commits/`,
       }),
     },
     {
       label: 'Commits',
       to: makePreventPathname({
         organization,
-        path: `/${PREVENT_BASE_URL}/commits/`,
+        path: `/${COVERAGE_BASE_URL}/commits/`,
       }),
     },
     {
@@ -139,7 +139,7 @@ function CommitTabNavigation({commitHash}: CommitTabNavigationProps) {
       label: t('Coverage details'),
       path: makePreventPathname({
         organization,
-        path: `/${PREVENT_BASE_URL}/commits/${commitHash}/`,
+        path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/`,
       }),
       isActive: location.pathname.endsWith(`/commits/${commitHash}/`),
     },
@@ -147,7 +147,7 @@ function CommitTabNavigation({commitHash}: CommitTabNavigationProps) {
       label: t('History'),
       path: makePreventPathname({
         organization,
-        path: `/${PREVENT_BASE_URL}/commits/${commitHash}/history/`,
+        path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
       }),
       isActive: location.pathname.includes('/history'),
     },
@@ -155,7 +155,7 @@ function CommitTabNavigation({commitHash}: CommitTabNavigationProps) {
       label: t('YAML'),
       path: makePreventPathname({
         organization,
-        path: `/${PREVENT_BASE_URL}/commits/${commitHash}/yaml/`,
+        path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/yaml/`,
       }),
       isActive: location.pathname.includes('/yaml'),
     },

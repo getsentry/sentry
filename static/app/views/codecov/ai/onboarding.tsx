@@ -4,17 +4,17 @@ import preventAiComment1 from 'sentry-images/codecov/prevent-ai-comment-1.png';
 import preventAiCommentLight from 'sentry-images/codecov/Prevent-AI-img-light-mode.png';
 import preventAiIllustration from 'sentry-images/features/preventai.svg';
 
-import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AI_PAGE_TITLE} from 'sentry/views/codecov/settings';
+import {AI_PAGE_TITLE} from 'sentry/views/prevent/settings';
 
 const HeaderContentBar = styled('div')`
   display: flex;
@@ -45,7 +45,7 @@ export default function AIOnboardingPage() {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <CodecovQueryParamsProvider>
+        <PreventQueryParamsProvider>
           <Layout.Main fullWidth>
             <BodyContainer>
               <OnboardingPanel>
@@ -214,7 +214,7 @@ export default function AIOnboardingPage() {
               </SetupGuidePanel>
             </BodyContainer>
           </Layout.Main>
-        </CodecovQueryParamsProvider>
+        </PreventQueryParamsProvider>
       </Layout.Body>
     </SentryDocumentTitle>
   );

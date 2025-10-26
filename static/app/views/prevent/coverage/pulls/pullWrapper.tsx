@@ -19,7 +19,7 @@ import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makePreventPathname} from 'sentry/views/prevent/pathnames';
-import {PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {COVERAGE_BASE_URL} from 'sentry/views/prevent/settings';
 import {
   SummaryContainer,
   SummaryEntries,
@@ -160,6 +160,23 @@ type DiffSection = {
   lines: LineData[];
 };
 
+// Helper component to create commit links with proper organization context
+function CommitLink({
+  commitSha,
+  children,
+}: {
+  children: React.ReactNode;
+  commitSha: string;
+}) {
+  const organization = useOrganization();
+  const commitPath = makePreventPathname({
+    organization,
+    path: `/${COVERAGE_BASE_URL}/commits/${commitSha}/`,
+  });
+
+  return <Link to={commitPath}>{children}</Link>;
+}
+
 export default function PullDetailWrapper() {
   const organization = useOrganization();
   const params = useParams<{pullId: string}>();
@@ -170,7 +187,7 @@ export default function PullDetailWrapper() {
       label: 'Code Coverage',
       to: makePreventPathname({
         organization,
-        path: `/${PREVENT_BASE_URL}/commits/`,
+        path: `/${COVERAGE_BASE_URL}/commits/`,
       }),
     },
     {
@@ -178,7 +195,7 @@ export default function PullDetailWrapper() {
       to: {
         pathname: makePreventPathname({
           organization,
-          path: `/${PREVENT_BASE_URL}/commits/`,
+          path: `/${COVERAGE_BASE_URL}/commits/`,
         }),
         query: {tab: 'pulls'},
       },
@@ -271,9 +288,9 @@ export default function PullDetailWrapper() {
                       </SummaryValueContainer>
                       <StyledSubText>
                         {t('Head commit')}{' '}
-                        <Link to={`/codecov/coverage/commits/${headCommit.sha}`}>
+                        <CommitLink commitSha={headCommit.sha}>
                           {headCommit.shortSha}
-                        </Link>
+                        </CommitLink>
                       </StyledSubText>
                     </SummaryEntry>
                     <SummaryEntry>
@@ -344,13 +361,13 @@ export default function PullDetailWrapper() {
                       </SummaryEntryLabel>
                       <SourceText>
                         {t('The change% is based on head')}{' '}
-                        <Link to={`/codecov/coverage/commits/${headCommit.sha}`}>
+                        <CommitLink commitSha={headCommit.sha}>
                           10d8629(2 uploads)
-                        </Link>{' '}
+                        </CommitLink>{' '}
                         {t('compared to base')}{' '}
-                        <Link to={`/codecov/coverage/commits/${baseCommit.sha}`}>
+                        <CommitLink commitSha={baseCommit.sha}>
                           3d59704(1 uploads)
-                        </Link>
+                        </CommitLink>
                       </SourceText>
                     </SourceEntry>
                   </SummaryEntries>

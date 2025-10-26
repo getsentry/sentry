@@ -42,7 +42,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import CoverageTrendPage from 'sentry/views/prevent/coverage/coverageTrend';
 import {makePreventPathname} from 'sentry/views/prevent/pathnames';
-import {PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {COVERAGE_BASE_URL} from 'sentry/views/prevent/settings';
 import {
   SummaryContainer,
   SummaryEntries,
@@ -1496,7 +1496,7 @@ function CommitCellLink({hash, children}: {children: React.ReactNode; hash: stri
   const organization = useOrganization();
   const commitUrl = makePreventPathname({
     organization,
-    path: `/${PREVENT_BASE_URL}/commits/${hash}/`,
+    path: `/${COVERAGE_BASE_URL}/commits/${hash}/`,
   });
 
   return <StyledLink to={commitUrl}>{children}</StyledLink>;
@@ -1513,7 +1513,7 @@ function PullRequestCellLink({
   const organization = useOrganization();
   const pullUrl = makePreventPathname({
     organization,
-    path: `/${PREVENT_BASE_URL}/pulls/${pullId}/`,
+    path: `/${COVERAGE_BASE_URL}/pulls/${pullId}/`,
   });
 
   return <StyledLink to={pullUrl}>{children}</StyledLink>;
@@ -2818,9 +2818,9 @@ export default function CommitsListPage() {
                     </SummaryValueContainer>
                     <StyledSubText>
                       {t('Head commit')}{' '}
-                      <Link to={`/codecov/coverage/commits/${headCommit.sha}`}>
+                      <CommitCellLink hash={headCommit.sha}>
                         {headCommit.shortSha}
-                      </Link>
+                      </CommitCellLink>
                     </StyledSubText>
                   </SummaryEntry>
                   <SummaryEntry>
@@ -4830,7 +4830,7 @@ function UploadsCountLink({children}: {children: React.ReactNode}) {
   // Use a default commit hash since this is a mock component
   const commitHash = headCommit.shortSha;
 
-  const historyPath = makeCodecovPathname({
+  const historyPath = makePreventPathname({
     organization,
     path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
   });
