@@ -957,7 +957,10 @@ class AMCheckout extends Component<Props, State> {
               </TextOverflow>
             </SupportPrompt>
           </OverviewContainer>
-          <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
+          {/* temporarily hiding this until we have a better way to display it in new checkout */}
+          {!isNewCheckout && (
+            <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
+          )}
           {subscription.canCancel && (
             <CancelSubscription>
               <LinkButton
