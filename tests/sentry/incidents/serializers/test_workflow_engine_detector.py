@@ -16,23 +16,28 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
+from sentry.workflow_engine.models import AlertRuleDetector, DataConditionAlertRuleTrigger
+from sentry.workflow_engine.models.action_alertruletriggeraction import ActionAlertRuleTriggerAction
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
+
+OFFSET = 10**9
 
 
 class TestDetectorSerializer(TestWorkflowEngineSerializer):
     def setUp(self) -> None:
         super().setUp()
-        self.add_warning_trigger()
 
     def test_simple(self) -> None:
+        self.add_warning_trigger()
         serialized_detector = serialize(
             self.detector, self.user, WorkflowEngineDetectorSerializer()
         )
         assert serialized_detector == self.expected
 
     def test_latest_incident(self) -> None:
+        self.add_warning_trigger()
         # add some other workflow engine objects to ensure that our filtering is working properly
         other_alert_rule = self.create_alert_rule()
         critical_trigger = self.create_alert_rule_trigger(
@@ -67,6 +72,7 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app(self, mock_sentry_app_components_preparer: Any) -> None:
+        self.add_warning_trigger()
         sentry_app = self.create_sentry_app(
             organization=self.organization,
             published=True,
@@ -177,3 +183,34 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
             WorkflowEngineDetectorSerializer(prepare_component_fields=True),
         )
         assert serialized_detector == sentry_app_expected
+
+    def test_new_models_only(self) -> None:
+        # test that we can still serialize if objects do not have lookup table entries
+        # this is required for firing actions
+        ard = AlertRuleDetector.objects.filter(detector_id=self.detector.id)
+        dcart = DataConditionAlertRuleTrigger.objects.filter(
+            data_condition_id=self.critical_detector_trigger.id
+        )
+        aarta = ActionAlertRuleTriggerAction.objects.filter(action_id=self.critical_action.id)
+
+        ard.delete()
+        dcart.delete()
+        aarta.delete()
+
+        serialized_detector = serialize(
+            self.detector, self.user, WorkflowEngineDetectorSerializer()
+        )
+        self.expected.update({"id": str(self.detector.id + OFFSET)})
+        self.expected["triggers"][0].update(
+            {
+                "id": str(self.critical_detector_trigger.id + OFFSET),
+                "alertRuleId": str(self.detector.id + OFFSET),
+            }
+        )
+        self.expected["triggers"][0]["actions"][0].update(
+            {
+                "id": str(self.critical_action.id + OFFSET),
+                "alertRuleTriggerId": str(self.critical_detector_trigger.id + OFFSET),
+            }
+        )
+        assert serialized_detector == self.expected
