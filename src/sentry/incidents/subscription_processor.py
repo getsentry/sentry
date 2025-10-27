@@ -158,15 +158,19 @@ class SubscriptionProcessor:
             )
             results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
-        logger.info(
-            "workflow_engine.results",
-            extra={
-                "results": results,
-                "num_results": len(results),
-                "value": aggregation_value,
-                "detector_id": detector.id,
-            },
-        )
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            self.subscription.project.organization,
+        ):
+            logger.info(
+                "workflow_engine.results",
+                extra={
+                    "results": results,
+                    "num_results": len(results),
+                    "value": aggregation_value,
+                    "detector_id": detector.id,
+                },
+            )
         return results
 
     def has_downgraded(self, dataset: str, organization: Organization) -> bool:
@@ -191,7 +195,7 @@ class SubscriptionProcessor:
 
         return False
 
-    def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
+    def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
         """
@@ -201,19 +205,19 @@ class SubscriptionProcessor:
             self.subscription.project
         except Project.DoesNotExist:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
-            return
+            return False
         if self.subscription.project.status != ObjectStatus.ACTIVE:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
-            return
+            return False
 
         organization = self.subscription.project.organization
 
         if self.has_downgraded(dataset, organization):
-            return
+            return False
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
-            return
+            return False
 
         self.last_update = subscription_update["timestamp"]
 
@@ -245,14 +249,14 @@ class SubscriptionProcessor:
                         "project_id": self.subscription.project.id,
                     },
                 )
-                return
+                return False
 
             comparison_delta = self.get_comparison_delta(self.detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
             if aggregation_value is None:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
-                return
+                return False
 
             self.process_results_workflow_engine(
                 self.detector, subscription_update, aggregation_value
@@ -261,6 +265,7 @@ class SubscriptionProcessor:
             store_detector_last_update(
                 self.detector, self.subscription.project.id, self.last_update
             )
+            return True
 
 
 def build_detector_last_update_key(detector: Detector, project_id: int) -> str:
