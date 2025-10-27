@@ -1,0 +1,81 @@
+---
+title: Motion
+layout: document
+description: Guidelines for using animation in Sentry's user interface.
+---
+
+import {MotionPlayground} from 'sentry/stories/playground/motion';
+
+Motion in the UI, when used thoughtfully, can bring interfaces to life and guide users through tasks. Effective animations provide feedback, reduce user frustration, and give a sense of direct manipulation of on-screen elements. They also make our product feel snappy and modern by conveying responsiveness. The following guidelines outline our motion design principles, best practices for using animation in common scenarios, and accessibility considerations.
+
+<MotionPlayground />
+
+# Principles
+
+## Intentional
+
+Use animation intentionally to enhance interactions (e.g. state change) or emphasize communication (e.g. feedback). Animations should not exist purely for decoration. Applying animation treatments carelessly leads to user frustration.
+
+## Performant
+
+Keep animations fast and efficient so the interface feels snappy. Most UI animations should complete in under 600ms. Very short durations (around 100ms) are perceived as instantaneous—use these for simple micro-interactions so users never feel slowed down. Strike a balance: slow enough to be noticed and understood, but never so slow that the user is waiting on the animation.
+
+## Natural
+
+Animations should feel intuitive and natural, often by mimicking real-world behavior. Objects on screen should accelerate and decelerate smoothly (nothing jerky or purely linear) to suggest physical realism. Incorporate techniques like easing (speeding up then slowing down) and arcs in movement paths to emulate how things move in life. The goal is for animations to be so fitting that they almost go unnoticed.
+
+## Accessible
+
+Design animations to include everyone. No essential information should ever be conveyed by motion alone. Ensure there are accompanying cues (like text or icons). Always consider users who experience motion sensitivity or other disabilities—we should provide a way to reduce or disable motion and avoid effects that can cause discomfort (details in the Accessibility section below).
+
+# Usage
+
+Motion is a useful tool for emulating _tactility_, which can bring an otherwise static interface to life. Motion is often applied as a result of **direct user interaction**, such as pressing a button. These subtle micro-interactions should be fast. Wherever possible, refer to satisfying physical motion as inspiration—think clacking keyboards, satisfying switches, and tactile toggles.
+
+Motion is also useful for communication, and true to Sentry’s tone, we make room for some tongue-in-cheek playfulness in our product. Playful motion can draw attention and add character, which is appropriate for tasks like onboarding, toasts, and other interruptions. These typically provide a bit of emphasis or levity and should be slower. See our [Voice and Tone](/stories/principles/voice-and-tone) guide for more information on **humor**.
+
+## When not to use animations
+
+Overuse of animation can lead to user frustration over sluggish interactions. Before applying motion, consider the amount of friction an interaction calls for. Emil Kowalski's [You don't need animations](https://emilkowal.ski/ui/you-dont-need-animations) provides a great framework for deciding when animation might be appropriate. **Frequent interactions**, such as keyboard interactions and repetitive daily workflows, should avoid animation all together. Likewise, when the **speed** of an interaction is critical, motion should be applied carefully to maintain the perceived performance of Sentry.
+
+# Accessibility
+
+## Respect motion preferences
+
+Motion requires careful consideration for users with perceptual sensitivities or cognitive challenges, who may have indicated to their operating system that they prefer reduced motion. By default, avoid strong motion and only use it as an enhancement if the user has not indicated a preference for reduced motion. _Reduced motion_ still allows for meaningful motion, so if motion provides useful interaction feedback, consider providing a subdued alternative.
+
+## Be mindful of focus
+
+On an otherwise static page, any motion will draw user attention. For this reason, motion should be employed strategically, respecting the existing information hierarchy of a page. Motion in multiple places disrupts user focus, so avoid competing motion at all costs.
+
+# Token Reference
+
+Motion tokens for CSS are exposed under the `theme.motion` namespace as pairs of easing and duration values.
+
+```js
+const theme = useTheme();
+
+// motion[easing][duration]
+theme.motion.smooth.moderate;
+```
+
+## Easing
+
+The easing curve of an animation drastically changes our perception of it. These easing tokens have been chosen to provide snappy, natural motion to interactions.
+
+| **Name** | **Description**                                                            | **Value**                         |
+| -------- | -------------------------------------------------------------------------- | --------------------------------- |
+| `smooth` | similar to `ease-in-out`, natural acceleration and deceleration            | `cubic-bezier(0.72, 0, 0.16, 1)`  |
+| `snap`   | an expressive snap, with slight anticipation and overshoot before settling | `cubic-bezier(0.8, -0.4, 0.5, 1)` |
+| `enter`  | similar to `ease-out`, starts fast and slows into place smoothly           | `cubic-bezier(0.24, 1, 0.32, 1)`  |
+| `exit`   | similar to `ease-in`, starts slowly and accelerates away quickly           | `cubic-bezier(0.64, 0, 0.8, 0)`   |
+
+## Duration
+
+The duration of an animation is proportional to its impact on the visual hierarchy of the page. Subtle changes like hover states or interactions should use quick durations, small changes like surface expansions or overlay entrances should use moderate durations, and significant changes like a slideout entrance or onboarding should use longer durations.
+
+| **Name**   | **Description**                                                                                            | **Value** |
+| ---------- | ---------------------------------------------------------------------------------------------------------- | --------- |
+| `fast`     | stateful micro-interactions like movement (button press, switch toggle), color and opacity changes (links) | `120ms`   |
+| `moderate` | stateful changes like size changes, element exits                                                          | `160ms`   |
+| `slow`     | emphatic, expressive movement like entrances, modals, toasts                                               | `240ms`   |

@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from rest_framework import status
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
@@ -12,8 +11,10 @@ from sentry.models.groupopenperiod import (
     get_open_periods_for_group,
     update_group_open_period,
 )
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
@@ -27,13 +28,19 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.login_as(user=self.user)
 
         self.detector = self.create_detector()
-        self.group = self.create_group()
-        # Metric issue is the only type (currently) that has open periods
-        self.group.type = MetricIssue.type_id
-        self.group.save()
+        self.group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.LOW)
 
         # Link detector to group
         DetectorGroup.objects.create(detector=self.detector, group=self.group)
+
+        self.group_open_period = GroupOpenPeriod.objects.get(group=self.group)
+
+        self.opened_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=self.group_open_period.date_added,
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=self.group.priority,
+        )
 
     def get_url_args(self):
         return [self.organization.slug]
@@ -41,12 +48,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def test_no_group_link(self) -> None:
         # Create a new detector with no linked group
         detector = self.create_detector()
-        resp = self.get_error_response(
+        resp = self.get_success_response(
             self.organization.slug,
             qs_params={"detectorId": detector.id},
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=200,
         )
-        assert resp.data["detail"] == "Group not found. Could not query open periods."
+        assert resp.data == []
 
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(
@@ -58,6 +65,13 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["end"] is None
         assert open_period["duration"] is None
         assert open_period["isOpen"] is True
+        assert len(open_period["activities"]) == 1
+        assert open_period["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": OpenPeriodActivityType.OPENED.to_str(),
+            "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
+        }
 
     def test_open_periods_group_id(self) -> None:
         response = self.get_success_response(
@@ -82,13 +96,18 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         resp = response.data[0]
-        open_period = GroupOpenPeriod.objects.get(group=self.group)
-        assert resp["id"] == str(open_period.id)
+        assert resp["id"] == str(self.group_open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] is None
         assert resp["duration"] is None
         assert resp["isOpen"] is True
         assert resp["lastChecked"] >= last_checked
+        assert resp["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": OpenPeriodActivityType.OPENED.to_str(),
+            "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
+        }
 
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
@@ -114,6 +133,9 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert response.status_code == 200, response.content
         resp = response.data[0]
         open_period = GroupOpenPeriod.objects.get(group=self.group, date_ended=resolved_time)
+        closed_gopa = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
+        )
         assert resp["id"] == str(open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] == resolved_time
@@ -122,6 +144,19 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["lastChecked"].replace(second=0, microsecond=0) == activity.datetime.replace(
             second=0, microsecond=0
         )
+        assert len(resp["activities"]) == 2
+        assert resp["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": OpenPeriodActivityType.OPENED.to_str(),
+            "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
+        }
+        assert resp["activities"][1] == {
+            "id": str(closed_gopa.id),
+            "type": OpenPeriodActivityType.CLOSED.to_str(),
+            "value": None,
+            "dateCreated": closed_gopa.date_added,
+        }
 
     def test_open_periods_unresolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
@@ -140,6 +175,9 @@ class OrganizationOpenPeriodsTest(APITestCase):
             resolution_activity=resolve_activity,
         )
         open_period = GroupOpenPeriod.objects.get(group=self.group, date_ended=resolved_time)
+        closed_gopa = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
+        )
 
         unresolved_time = timezone.now()
         self.group.status = GroupStatus.UNRESOLVED
@@ -170,6 +208,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
         open_period2 = GroupOpenPeriod.objects.get(
             group=self.group, date_ended=second_resolved_time
         )
+        opened_gopa2 = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period2, type=OpenPeriodActivityType.OPENED
+        )
+        closed_gopa2 = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period2, type=OpenPeriodActivityType.CLOSED
+        )
 
         response = self.get_success_response(
             *self.get_url_args(), qs_params={"groupId": self.group.id}
@@ -186,6 +230,19 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["lastChecked"].replace(second=0, microsecond=0) == second_resolved_time.replace(
             second=0, microsecond=0
         )
+        assert len(resp["activities"]) == 2
+        assert resp["activities"][0] == {
+            "id": str(opened_gopa2.id),
+            "type": OpenPeriodActivityType.OPENED.to_str(),
+            "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": opened_gopa2.date_added,
+        }
+        assert resp["activities"][1] == {
+            "id": str(closed_gopa2.id),
+            "type": OpenPeriodActivityType.CLOSED.to_str(),
+            "value": None,
+            "dateCreated": closed_gopa2.date_added,
+        }
 
         assert resp2["id"] == str(open_period.id)
         assert resp2["start"] == self.group.first_seen
@@ -195,6 +252,19 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["lastChecked"].replace(second=0, microsecond=0) == resolved_time.replace(
             second=0, microsecond=0
         )
+        assert len(resp2["activities"]) == 2
+        assert resp2["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": OpenPeriodActivityType.OPENED.to_str(),
+            "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": self.opened_gopa.date_added,
+        }
+        assert resp2["activities"][1] == {
+            "id": str(closed_gopa.id),
+            "type": OpenPeriodActivityType.CLOSED.to_str(),
+            "value": None,
+            "dateCreated": closed_gopa.date_added,
+        }
 
     def test_open_periods_limit(self) -> None:
         self.group.status = GroupStatus.RESOLVED

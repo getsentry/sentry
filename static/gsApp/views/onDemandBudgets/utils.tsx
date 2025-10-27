@@ -20,7 +20,6 @@ import {
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import {hasNewCheckout} from 'getsentry/views/amCheckout/utils';
 
 export function parseOnDemandBudgetsFromSubscription(
   subscription: Subscription
@@ -69,6 +68,17 @@ export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
   }
 
   return onDemandBudgets.sharedMaxBudget ?? 0;
+}
+
+export function getTotalSpend(onDemandBudgets: SubscriptionOnDemandBudgets): number {
+  if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return Object.values(onDemandBudgets.usedSpends).reduce(
+      (sum, spend) => sum + (spend ?? 0),
+      0
+    );
+  }
+
+  return onDemandBudgets.onDemandSpendUsed ?? 0;
 }
 
 export function isOnDemandBudgetsEqual(
@@ -172,7 +182,10 @@ export function trackOnDemandBudgetAnalytics(
   organization: Organization,
   previousBudget: OnDemandBudgets,
   newBudget: OnDemandBudgets,
-  prefix: 'ondemand_budget_modal' | 'checkout' = 'ondemand_budget_modal'
+  prefix:
+    | 'ondemand_budget_modal'
+    | 'checkout'
+    | 'payg_inline_form' = 'ondemand_budget_modal'
 ) {
   const previousTotalBudget = getTotalBudget(previousBudget);
   const totalBudget = getTotalBudget(newBudget);
@@ -180,10 +193,6 @@ export function trackOnDemandBudgetAnalytics(
   const newBudgetMode = newBudget.budgetMode;
 
   const analyticsParams: Record<string, any> = {};
-  if (prefix === 'checkout') {
-    const isNewCheckout = hasNewCheckout(organization);
-    analyticsParams.isNewCheckout = isNewCheckout;
-  }
 
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
     const newBudgets: Partial<Record<`${DataCategoryExact}_budget`, number>> = {};

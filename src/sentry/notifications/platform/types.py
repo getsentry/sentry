@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -27,7 +27,7 @@ NOTIFICATION_SOURCE_MAP = {
         "test",
         "error-alert-service",
         "deployment-service",
-        "security-monitoring",
+        "slow-load-metric-alert",
         "performance-monitoring",
         "team-communication",
     ],
@@ -65,6 +65,11 @@ class NotificationTarget(Protocol):
     resource_type: NotificationTargetResourceType
     resource_id: str
     specific_data: dict[str, Any] | None
+
+    def to_dict(self) -> dict[str, Any]: ...
+
+    @classmethod
+    def from_dict(self, data: dict[str, Any]) -> Self: ...
 
 
 class NotificationStrategy(Protocol):
@@ -173,20 +178,16 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     The category that a notification belongs to. This will be used to determine which settings a
     user needs to modify to manage receipt of these notifications (if applicable).
     """
+    example_data: T
+    """
+    The example data for this notification.
+    """
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:
         """
         Produce a rendered template given the notification data. Usually, this will involve
         formatting the data into user-friendly strings of text.
-        """
-        ...
-
-    @property
-    @abc.abstractmethod
-    def example_data(self) -> T:
-        """
-        The example data for this notification.
         """
         ...
 

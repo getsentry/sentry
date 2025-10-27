@@ -26,7 +26,6 @@ from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 
@@ -35,13 +34,10 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_status_check",
-    queue="integrations",
-    silo_mode=SiloMode.REGION,
+    namespace=integrations_tasks,
+    processing_deadline_duration=30,
     retry=Retry(times=3),
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        processing_deadline_duration=30,
-    ),
+    silo_mode=SiloMode.REGION,
 )
 def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     try:
@@ -131,7 +127,10 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     if check_id is None:
         logger.error(
             "preprod.status_checks.create.failed",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "organization_id": preprod_artifact.project.organization_id,
+            },
         )
         return
 
@@ -141,6 +140,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             "artifact_id": preprod_artifact.id,
             "status": status.value,
             "check_id": check_id,
+            "organization_id": preprod_artifact.project.organization_id,
         },
     )
 
@@ -270,7 +270,7 @@ class _StatusCheckProvider(ABC):
         self.organization_id = organization_id
         self.integration_id = integration_id
 
-    def _create_scm_interaction_event(self):
+    def _create_scm_interaction_event(self) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.CREATE_STATUS_CHECK,
             provider_key=self.provider_key,

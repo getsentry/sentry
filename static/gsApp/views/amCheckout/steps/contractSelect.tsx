@@ -109,7 +109,7 @@ class ContractSelect extends Component<Props> {
           const priceAfterDiscount = getReservedPriceCents({
             plan,
             reserved: formData.reserved,
-            selectedProducts: formData.selectedProducts,
+            addOns: formData.addOns,
             ...discountData,
           });
           const formattedPriceAfterDiscount = formatPrice({cents: priceAfterDiscount});

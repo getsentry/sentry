@@ -9,7 +9,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import {useCustomMeasurementsConfig} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -26,9 +26,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -72,23 +70,15 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-function EventsSearchBarDataProviderWrapper({children}: {children: React.ReactNode}) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  return (
-    <CustomMeasurementsProvider organization={organization} selection={selection}>
-      {children}
-    </CustomMeasurementsProvider>
-  );
-}
-
 function useEventsSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
-  const {customMeasurements} = useCustomMeasurements();
+  const {customMeasurements} = useCustomMeasurementsConfig({
+    organization,
+    selection: pageFilters,
+  });
   const eventView = eventViewFromWidget(
     '',
     widgetQuery ?? DEFAULT_WIDGET_QUERY,
@@ -116,7 +106,6 @@ export const ErrorsConfig: DatasetConfig<
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
   useSearchBarDataProvider: useEventsSearchBarDataProvider,
-  SearchBarDataProviderWrapper: EventsSearchBarDataProviderWrapper,
   filterSeriesSortOptions,
   filterYAxisAggregateParams,
   filterYAxisOptions,
@@ -228,7 +217,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );

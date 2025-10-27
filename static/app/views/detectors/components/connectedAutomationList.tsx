@@ -29,6 +29,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   connectedAutomationIds?: Set<string>;
   emptyMessage?: string;
   limit?: number | null;
+  openInNewTab?: boolean;
   query?: string;
   toggleConnected?: (params: {automation: Automation}) => void;
 };
@@ -62,11 +63,12 @@ export function ConnectedAutomationsList({
   automationIds,
   connectedAutomationIds,
   toggleConnected,
-  emptyMessage = t('No automations connected'),
+  emptyMessage = t('No alerts connected'),
   cursor,
   onCursor,
   limit = DEFAULT_AUTOMATIONS_PER_PAGE,
   query,
+  openInNewTab,
   ...props
 }: Props) {
   const canEdit = Boolean(
@@ -126,7 +128,10 @@ export function ConnectedAutomationsList({
               variant={automation.enabled ? 'default' : 'faded'}
             >
               <SimpleTable.RowCell>
-                <AutomationTitleCell automation={automation} />
+                <AutomationTitleCell
+                  automation={automation}
+                  openInNewTab={openInNewTab}
+                />
               </SimpleTable.RowCell>
               <SimpleTable.RowCell data-column-name="last-triggered">
                 <TimeAgoCell date={automation.lastTriggered} />

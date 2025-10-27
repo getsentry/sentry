@@ -77,6 +77,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
+from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
@@ -129,7 +130,7 @@ class Span(NamedTuple):
     segment_id: str | None
     project_id: int
     payload: bytes
-    end_timestamp_precise: float
+    end_timestamp: float
     is_segment_span: bool = False
 
     def effective_parent_id(self):
@@ -339,7 +340,7 @@ class SpansBuffer:
 
     def _prepare_payloads(self, spans: list[Span]) -> dict[str | bytes, float]:
         if self._zstd_compressor is None:
-            return {span.payload: span.end_timestamp_precise for span in spans}
+            return {span.payload: span.end_timestamp for span in spans}
 
         combined = b"\x00".join(span.payload for span in spans)
         original_size = len(combined)
@@ -354,7 +355,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        min_timestamp = min(span.end_timestamp_precise for span in spans)
+        min_timestamp = min(span.end_timestamp for span in spans)
         return {compressed: min_timestamp}
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
@@ -428,17 +429,23 @@ class SpansBuffer:
             has_root_span = False
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
-                val = orjson.loads(payload)
+                span = orjson.loads(payload)
 
-                if not val.get("segment_id"):
-                    val["segment_id"] = segment_span_id
+                if not attribute_value(span, "sentry.segment.id"):
+                    span.setdefault("attributes", {})["sentry.segment.id"] = {
+                        "type": "string",
+                        "value": segment_span_id,
+                    }
 
-                is_segment = segment_span_id == val["span_id"]
-                val["is_segment"] = is_segment
+                is_segment = segment_span_id == span["span_id"]
+                span.setdefault("attributes", {})["sentry.is_segment"] = {
+                    "type": "boolean",
+                    "value": is_segment,
+                }
                 if is_segment:
                     has_root_span = True
 
-                output_spans.append(OutputSpan(payload=val))
+                output_spans.append(OutputSpan(payload=span))
 
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}

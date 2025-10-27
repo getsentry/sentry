@@ -69,6 +69,7 @@ const COLUMN_ORDER: Column[] = [
     key: 'epm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
     key: 'p75(measurements.frames_slow_rate)',
@@ -138,7 +139,6 @@ export function MobileOverviewTable({response, sort}: Props) {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (

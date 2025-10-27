@@ -1,19 +1,22 @@
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 
 interface WorkflowEngineListLayoutProps {
   actions: React.ReactNode;
   /** The main content for this page */
   children: React.ReactNode;
+  title: string;
 }
 
 /**
  * Precomposed full-width layout for Automations / Monitors index pages.
  * The `children` are rendered as the main body content.
  */
-function WorkflowEngineListLayout({children, actions}: WorkflowEngineListLayoutProps) {
-  const title = useDocumentTitle();
+function WorkflowEngineListLayout({
+  children,
+  actions,
+  title,
+}: WorkflowEngineListLayoutProps) {
   return (
     <Layout.Page>
       <Layout.Header unified>
@@ -23,7 +26,7 @@ function WorkflowEngineListLayout({children, actions}: WorkflowEngineListLayoutP
         <Layout.HeaderActions>{actions}</Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <Flex direction="column" gap="lg">
             {children}
           </Flex>

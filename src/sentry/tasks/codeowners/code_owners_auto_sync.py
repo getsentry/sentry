@@ -10,25 +10,16 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.tasks.code_owners_auto_sync",
-    queue="code_owners",
-    default_retry_delay=60 * 5,
-    max_retries=1,
+    namespace=issues_tasks,
+    retry=Retry(times=1, delay=60 * 5),
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        retry=Retry(
-            times=1,
-            delay=60 * 5,
-        ),
-        processing_deadline_duration=60,
-    ),
 )
 @retry(on=(Commit.DoesNotExist,))
 def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:

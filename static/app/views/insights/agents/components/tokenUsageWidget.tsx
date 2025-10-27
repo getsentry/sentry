@@ -62,7 +62,7 @@ export default function TokenUsageWidget() {
     Referrer.TOKEN_USAGE_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
+  const timeSeries = timeSeriesRequest?.data?.timeSeries || [];
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;

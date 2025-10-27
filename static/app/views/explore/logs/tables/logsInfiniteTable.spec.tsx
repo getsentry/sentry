@@ -21,7 +21,6 @@ import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageD
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
-  LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
@@ -141,19 +140,16 @@ describe('LogsInfiniteTable', () => {
     ProjectsStore.loadInitialData([project]);
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     mockUseLocation.mockReturnValue(
       LocationFixture({
@@ -204,11 +200,7 @@ describe('LogsInfiniteTable', () => {
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           source="location"
         >
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <LogsPageDataProvider>{children}</LogsPageDataProvider>
-          </LogsPageParamsProvider>
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
         </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );

@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
 )
@@ -57,7 +57,6 @@ def should_call_seer_for_grouping(
 
     if (
         _has_custom_fingerprint(event, variants)
-        or _has_too_many_contributing_frames(event, variants)
         or _is_race_condition_skipped_event(event, event_grouphash)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
@@ -65,6 +64,8 @@ def should_call_seer_for_grouping(
         # because it calculates the stacktrace string, which we only want to spend the time to do if we already
         # know the other checks have passed.
         or _has_empty_stacktrace_string(event, variants)
+        # do this after the empty stacktrace string check because it calculates the stacktrace string
+        or _has_too_many_contributing_frames(event, variants)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
         # the checks.
         #
@@ -240,7 +241,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 
 def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
     if not stacktrace_string:
         if stacktrace_string == "":
             record_did_call_seer_metric(event, call_made=False, blocker="empty-stacktrace-string")
@@ -268,7 +269,7 @@ def get_seer_similar_issues(
 
     stacktrace_string = event.data.get(
         "stacktrace_string",
-        get_stacktrace_string(get_grouping_info_from_variants(variants)),
+        get_stacktrace_string(get_grouping_info_from_variants_legacy(variants)),
     )
 
     request_data: SimilarIssuesEmbeddingsRequest = {

@@ -11,10 +11,10 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {
+  AddOnCategory,
   BillingConfig,
   Plan,
   Promotion,
-  ReservedBudgetCategoryType,
   Subscription,
 } from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
@@ -74,34 +74,34 @@ class CheckoutOverview extends Component<Props> {
   renderProducts = () => {
     const {formData, activePlan} = this.props;
 
-    return Object.entries(formData.selectedProducts ?? {}).map(([apiName, product]) => {
-      const productInfo =
-        activePlan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
-      if (!productInfo || !product.enabled) {
-        return null;
-      }
-      const price = utils.displayPrice({
-        cents: utils.getReservedPriceForReservedBudgetCategory({
-          plan: activePlan,
-          reservedBudgetCategory: productInfo.apiName,
-        }),
+    return Object.entries(formData.addOns ?? {})
+      .filter(([_, addOn]) => addOn.enabled)
+      .map(([apiName, _]) => {
+        const addOnInfo = activePlan.addOnCategories[apiName as AddOnCategory];
+
+        if (!addOnInfo) {
+          return null;
+        }
+        const price = utils.displayPrice({
+          cents: utils.getPrepaidPriceForAddOn({
+            plan: activePlan,
+            addOnCategory: apiName as AddOnCategory,
+          }),
+        });
+        const productName = addOnInfo.productName;
+        return (
+          <DetailItem key={apiName} data-test-id={`${apiName}-reserved`}>
+            <DetailTitle>
+              {toTitleCase(productName, {
+                allowInnerUpperCase: true,
+              })}
+            </DetailTitle>
+            <DetailPrice>
+              {price}/{this.shortInterval}
+            </DetailPrice>
+          </DetailItem>
+        );
       });
-      return (
-        <DetailItem
-          key={productInfo.apiName}
-          data-test-id={`${productInfo.apiName}-reserved`}
-        >
-          <DetailTitle>
-            {toTitleCase(productInfo.productCheckoutName, {
-              allowInnerUpperCase: true,
-            })}
-          </DetailTitle>
-          <DetailPrice>
-            {price}/{this.shortInterval}
-          </DetailPrice>
-        </DetailItem>
-      );
-    });
   };
 
   renderDataOptions = () => {

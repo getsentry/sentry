@@ -153,7 +153,7 @@ export function useCreateAutomation() {
       });
     },
     onError: _ => {
-      addErrorMessage(t('Unable to create automation'));
+      addErrorMessage(t('Unable to create alert'));
     },
   });
 }
@@ -172,10 +172,10 @@ export function useDeleteAutomationMutation() {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
-      addSuccessMessage(t('Automation deleted'));
+      addSuccessMessage(t('Alert deleted'));
     },
     onError: error => {
-      addErrorMessage(t('Unable to delete automation: %s', error.message));
+      addErrorMessage(t('Unable to delete alert: %s', error.message));
     },
   });
 }
@@ -205,10 +205,10 @@ export function useDeleteAutomationsMutation() {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
-      addSuccessMessage(t('Automations deleted'));
+      addSuccessMessage(t('Alerts deleted'));
     },
     onError: error => {
-      addErrorMessage(t('Unable to delete automations: %s', error.message));
+      addErrorMessage(t('Unable to delete alerts: %s', error.message));
     },
   });
 }
@@ -241,7 +241,7 @@ export function useUpdateAutomation() {
       });
     },
     onError: _ => {
-      addErrorMessage(t('Unable to update automation'));
+      addErrorMessage(t('Unable to update alert'));
     },
   });
 }
@@ -272,14 +272,12 @@ export function useUpdateAutomationsMutation() {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
-      addSuccessMessage(
-        variables.enabled ? t('Automations enabled') : t('Automations disabled')
-      );
+      addSuccessMessage(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
     onError: (error, variables) => {
       addErrorMessage(
         t(
-          'Unable to %s automations: %2$s',
+          'Unable to %s alerts: %2$s',
           variables.enabled ? t('enable') : t('disable'),
           error.message
         )

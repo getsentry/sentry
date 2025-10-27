@@ -13,25 +13,25 @@ import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerC
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
-import {
-  useApplySeerSearchQuery,
-  useAskSeerSearch,
-  type AskSeerSearchItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/hooks';
 import QueryTokens from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import type {
+  AskSeerSearchItems,
+  QueryTokensProps,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatQueryToNaturalLanguage,
   generateQueryTokensString,
+  isNoneOfTheseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useMutation, type MutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
-import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
@@ -81,37 +81,52 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-interface SeerComboBoxProps extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+interface AskSeerComboBoxProps<T extends QueryTokensProps>
+  extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+  /**
+   * The source of the analytics event, must be a dot-separated identifier like "trace.
+   * explorer" or "issue.list"
+   * @example 'trace.explorer'
+   *
+   * The combobox has the following analytic events, that will need to be tracked with your provided analyticsSource:
+   * - `<analyticsSource>.ai_query_rejected`
+   * - `<analyticsSource>.ai_query_interface`
+   * - `<analyticsSource>.ai_query_submitted`
+   */
+  analyticsSource: string;
+  applySeerSearchQuery: (item: T) => void;
+  askSeerMutationOptions: MutationOptions<
+    {
+      queries: T[];
+      status: string;
+      unsupported_reason: string | null;
+    },
+    Error,
+    string
+  >;
+  /**
+   * The owner of the feedback form, must be an underscore-separated identifier like
+   * "trace_explorer_ai_query" or "issue_list_ai_query"
+   *
+   * @example 'trace_explorer_ai_query'
+   */
+  feedbackSource: string;
   initialQuery: string;
 }
 
-interface NoneOfTheseItem {
-  key: 'none-of-these';
-  label: string;
-}
-
-function isNoneOfTheseItem(item: AskSeerSearchItems): item is NoneOfTheseItem {
-  return item.key === 'none-of-these';
-}
-
-interface ExampleItem {
-  key: `example-query-${number}`;
-  query: string;
-}
-
-function isExampleItem(item: AskSeerSearchItems): item is ExampleItem {
-  return item.key.startsWith('example-query-');
-}
-
-type AskSeerSearchItems = AskSeerSearchItem<string> | NoneOfTheseItem | ExampleItem;
-
-export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
+export function AskSeerComboBox<T extends QueryTokensProps>({
+  initialQuery,
+  feedbackSource,
+  analyticsSource,
+  ...props
+}: AskSeerComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const organization = useOrganization();
 
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
@@ -125,46 +140,32 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     askSeerNLQueryRef,
     autoSubmitSeer,
     setAutoSubmitSeer,
+    enableAISearch,
   } = useSearchQueryBuilder();
 
-  // TODO(nsdeschenes): break this out in some similar fashion so that we can extend this
-  // component and make it generic for other use cases
-  // Something like this, but for mutations:
-  // const baseQueryKey = useMemo(
-  //   () => ['search-query-builder-tag-values', queryParams],
-  //   [queryParams]
-  // );
-  // const queryKey = useDebouncedValue(baseQueryKey);
-  // const isDebouncing = baseQueryKey !== queryKey;
-  //
-  // const {data, isFetching} = useQuery<string[]>({
-  //   // disable exhaustive deps because we want to debounce the query key above
-  //   // eslint-disable-next-line @tanstack/query/exhaustive-deps
-  //   queryKey,
-  //   queryFn: () => getTagValues(...queryParams),
-  //   placeholderData: keepPreviousData,
-  //   enabled: shouldFetchValues,
-  // });
-  // Also need to investigate why projects are not being included in the query
-
-  const {rawResult, submitQuery, isPending, isError, unsupportedReason} =
-    useAskSeerSearch();
-
-  const applySeerSearchQuery = useApplySeerSearchQuery();
-  const organization = useOrganization();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const {
+    mutate: submitQuery,
+    data,
+    isPending,
+    isError,
+  } = useMutation({
+    ...props.askSeerMutationOptions,
+    onError: (error, variables, context) => {
+      props.askSeerMutationOptions.onError?.(error, variables, context);
+      addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+    },
+  });
 
   const handleNoneOfTheseClick = () => {
     if (openForm) {
       openForm({
         messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
-          ['feedback.source']: 'trace_explorer_ai_query',
+          ['feedback.source']: feedbackSource,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
-          ['feedback.raw_result']: JSON.stringify(rawResult).replace(/\n/g, ''),
-          ['feedback.num_queries_returned']: rawResult?.length ?? 0,
+          ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
+          ['feedback.num_queries_returned']: data?.queries?.length ?? 0,
         },
       });
     } else {
@@ -172,9 +173,9 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     }
   };
 
-  const items: AskSeerSearchItems[] = useMemo(() => {
-    if (rawResult && rawResult.length > 0) {
-      const results: AskSeerSearchItems[] = rawResult.map((query, index) => ({
+  const items: Array<AskSeerSearchItems<T>> = useMemo(() => {
+    if (data?.queries && data?.queries.length > 0) {
+      const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
         ...query,
         key: `${index}-${query.query}`,
       }));
@@ -188,7 +189,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     }
 
     return [];
-  }, [rawResult]);
+  }, [data?.queries]);
 
   const state = useComboBoxState({
     ...props,
@@ -205,23 +206,23 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
       if (typeof key !== 'string') return;
 
       if (key === 'none-of-these') {
-        trackAnalytics('trace.explorer.ai_query_rejected', {
+        trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
           organization,
           natural_language_query: searchQuery,
-          num_queries_returned: rawResult?.length ?? 0,
+          num_queries_returned: data?.queries?.length ?? 0,
         });
         handleNoneOfTheseClick();
         return;
       }
 
       const item = items.find(i => i.key === key);
-      if (!item || isNoneOfTheseItem(item) || isExampleItem(item)) {
+      if (!item || isNoneOfTheseItem(item)) {
         addErrorMessage(t('Failed to find AI query to apply'));
         return;
       }
 
       askSeerNLQueryRef.current = searchQuery.trim();
-      applySeerSearchQuery(item);
+      props.applySeerSearchQuery(item);
       setDisplayAskSeerFeedback(true);
       setDisplayAskSeer(false);
       state.close();
@@ -235,21 +236,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         );
       }
 
-      if (isExampleItem(item)) {
-        return (
-          <Item key={item.key} textValue={item.query} data-is-example>
-            <Text>{item.query}</Text>
-          </Item>
-        );
-      }
-
-      const readableQuery = generateQueryTokensString({
-        groupBys: item.groupBys,
-        query: item.query,
-        sort: item.sort,
-        statsPeriod: item.statsPeriod,
-        visualizations: item.visualizations,
-      });
+      const readableQuery = generateQueryTokensString(item);
 
       return (
         <Item
@@ -258,18 +245,16 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           aria-label={`Query parameters: ${readableQuery}`}
         >
           <QueryTokens
-            groupBys={item.groupBys}
-            query={item.query}
-            sort={item.sort}
-            statsPeriod={item.statsPeriod}
-            visualizations={item.visualizations}
+            sort={item?.sort}
+            query={item?.query}
+            groupBys={item?.groupBys}
+            statsPeriod={item?.statsPeriod}
+            visualizations={item?.visualizations}
           />
         </Item>
       );
     },
   });
-
-  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && state.isOpen});
 
   const {inputProps, listBoxProps} = useSearchTokenCombobox(
     {
@@ -289,7 +274,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
-              trackAnalytics('trace.explorer.ai_query_interface', {
+              trackAnalytics(`${analyticsSource}.ai_query_interface`, {
                 organization,
                 action: 'closed',
               });
@@ -301,10 +286,10 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics('trace.explorer.ai_query_rejected', {
+              trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
                 organization,
                 natural_language_query: searchQuery,
-                num_queries_returned: rawResult?.length ?? 0,
+                num_queries_returned: data?.queries?.length ?? 0,
               });
               handleNoneOfTheseClick();
               state.open();
@@ -313,13 +298,13 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
 
             if (state.isOpen && state.selectionManager.focusedKey) {
               const item = items.find(i => i.key === state.selectionManager.focusedKey);
-              if (!item || isNoneOfTheseItem(item) || isExampleItem(item)) {
+              if (!item || isNoneOfTheseItem(item)) {
                 addErrorMessage(t('Failed to find AI query to apply'));
                 return;
               }
 
               askSeerNLQueryRef.current = searchQuery.trim();
-              applySeerSearchQuery(item);
+              props.applySeerSearchQuery(item);
               setDisplayAskSeerFeedback(true);
               setDisplayAskSeer(false);
               state.close();
@@ -331,7 +316,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
-              trackAnalytics('trace.explorer.ai_query_submitted', {
+              trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
                 organization,
                 natural_language_query: searchQuery.trim(),
               });
@@ -395,18 +380,29 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
 
   useLayoutEffect(() => {
     if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics('trace.explorer.ai_query_submitted', {
+      trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
         organization,
         natural_language_query: searchQuery.trim(),
       });
       submitQuery(searchQuery.trim());
       setAutoSubmitSeer(false);
     }
-  }, [autoSubmitSeer, searchQuery, organization, submitQuery, setAutoSubmitSeer]);
+  }, [
+    analyticsSource,
+    autoSubmitSeer,
+    organization,
+    searchQuery,
+    setAutoSubmitSeer,
+    submitQuery,
+  ]);
 
   const onMouseLeave = () => {
     state.selectionManager.setFocusedKey(null);
   };
+
+  if (!enableAISearch) {
+    return null;
+  }
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -428,7 +424,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
-            trackAnalytics('trace.explorer.ai_query_interface', {
+            trackAnalytics(`${analyticsSource}.ai_query_interface`, {
               organization,
               action: 'closed',
             });
@@ -459,7 +455,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 title={t('An error occurred while fetching Seer queries')}
               />
             </SeerContent>
-          ) : rawResult && (rawResult?.length ?? 0) > 0 ? (
+          ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
             <SeerContent onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
               <AskSeerSearchListBox
@@ -468,10 +464,10 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 state={state}
               />
             </SeerContent>
-          ) : unsupportedReason ? (
+          ) : data?.unsupported_reason ? (
             <SeerContent>
               <AskSeerSearchHeader
-                title={unsupportedReason || 'This query is not supported'}
+                title={data?.unsupported_reason || 'This query is not supported'}
               />
             </SeerContent>
           ) : (
@@ -488,7 +484,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: 'seer_trace_explorer_search',
+                      ['feedback.source']: feedbackSource,
                       ['feedback.owner']: 'ml-ai',
                     },
                   })

@@ -22,10 +22,7 @@ class MockNotification(NotificationData):
 @template_registry.register(MockNotification.source)
 class MockNotificationTemplate(NotificationTemplate[MockNotification]):
     category = NotificationCategory.DEBUG
-
-    @property
-    def example_data(self) -> MockNotification:
-        return MockNotification(message="This is a mock notification")
+    example_data = MockNotification(message="This is a mock notification")
 
     def render(self, data: MockNotification) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(

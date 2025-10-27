@@ -1,7 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
@@ -28,7 +28,6 @@ import {
   IconWifi,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
@@ -517,7 +516,7 @@ function WebVitalTitle(frame: WebVitalFrame) {
     }
   };
   return (
-    <Title>
+    <Flex align="center" gap="xs">
       {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
       <QuestionTooltip
         isHoverable
@@ -531,12 +530,6 @@ function WebVitalTitle(frame: WebVitalFrame) {
           </Fragment>
         }
       />
-    </Title>
+    </Flex>
   );
 }
-
-const Title = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;

@@ -26,15 +26,13 @@ class FilterSpan(NamedTuple):
         )
 
     @classmethod
-    def from_span_data(cls, data: dict[str, Any]) -> "FilterSpan":
-        """Get relevant fields from `span.data`.
-
-        This will later be replaced by `from_span_attributes` or `from_span_v2`."""
+    def from_span_attributes(cls, attributes: dict[str, Any]) -> "FilterSpan":
+        """Get relevant fields from `span.attributes`."""
         return cls(
-            op=data.get("sentry.op"),
-            category=data.get("sentry.category"),
-            description=data.get("sentry.description"),
-            transaction_op=data.get("sentry.transaction_op"),
+            op=(attributes.get("sentry.op") or {}).get("value"),
+            category=(attributes.get("sentry.category") or {}).get("value"),
+            description=(attributes.get("sentry.description") or {}).get("value"),
+            transaction_op=(attributes.get("sentry.transaction_op") or {}).get("value"),
         )
 
 

@@ -4,6 +4,7 @@ import io
 import logging
 import zlib
 from base64 import b64decode, b64encode
+from collections.abc import Generator
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -17,8 +18,11 @@ import vroomrs
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
+from google.protobuf.timestamp_pb2 import Timestamp
 from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
@@ -53,7 +57,6 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
@@ -73,6 +76,9 @@ MAX_DURATION_SAMPLE_V2 = 66000
 UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
 
 UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
+
+CLIENT_SAMPLE_RATE = 1.0
+SERVER_SAMPLE_RATE = 1.0
 
 
 def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
@@ -103,6 +109,11 @@ profile_occurrences_producer = SingletonProducer(
     max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
 )
 
+eap_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS),
+    max_futures=settings.SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -117,24 +128,11 @@ def encode_payload(message: dict[str, Any]) -> str:
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
-    retry_backoff=True,
-    retry_backoff_max=20,
-    retry_jitter=True,
-    default_retry_delay=5,  # retries after 5s
-    max_retries=2,
-    acks_late=True,
-    task_time_limit=60,
-    task_acks_on_failure_or_timeout=False,
+    namespace=ingest_profiling_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_profiling_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=2,
-            delay=5,
-        ),
-        compression_type=CompressionType.ZSTD,
-    ),
 )
 def process_profile_task(
     profile: Profile | None = None,
@@ -1360,16 +1358,16 @@ def is_sdk_rejected(
 @metrics.wraps("process_profile.process_vroomrs_profile")
 def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
     if "profiler_id" in profile:
-        if _process_vroomrs_chunk_profile(profile):
+        if _process_vroomrs_chunk_profile(profile, project):
             return True
     elif "event_id" in profile or "profile_id" in profile:
-        if _process_vroomrs_transaction_profile(profile):
+        if _process_vroomrs_transaction_profile(profile, project):
             return True
     _track_failed_outcome(profile, project, "profiling_failed_vroomrs_processing")
     return False
 
 
-def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
+def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> bool:
     with sentry_sdk.start_span(op="task.profiling.process_vroomrs_transaction_profile"):
         try:
             # todo (improvement): check the feasibility of passing the profile
@@ -1421,6 +1419,28 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
                     profile_functions_producer.produce(topic, payload)
+            if features.has("projects:profile-functions-metrics-eap-ingestion", project):
+                with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
+                    eap_functions = prof.extract_functions_metrics(
+                        min_depth=1,
+                        filter_system_frames=True,
+                        max_unique_functions=100,
+                        generate_stack_fingerprints=True,
+                    )
+                    if eap_functions is not None and len(eap_functions) > 0:
+                        topic = ArroyoTopic(
+                            get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+                        )
+                        tot = 0
+                        for payload in build_profile_functions_eap_trace_items(prof, eap_functions):
+                            eap_producer.produce(topic, payload)
+                            tot += 1
+                        metrics.incr(
+                            "process_profile.eap_functions_metrics.ingested.count",
+                            tot,
+                            tags={"type": "profile", "platform": profile["platform"]},
+                            sample_rate=1.0,
+                        )
             if prof.is_sampled():
                 # Send profile metadata to Kafka
                 with sentry_sdk.start_span(op="processing", name="send profile kafka message"):
@@ -1429,22 +1449,6 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
                     )
                     processed_profiles_producer.produce(topic, payload)
-            # temporary: collect metrics about rate of functions metrics to be written into EAP
-            # should we loosen the constraints on the number and type of functions to be extracted.
-            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
-                eap_functions = prof.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
-                )
-                if eap_functions is not None and len(eap_functions) > 0:
-                    tot = 0
-                    for f in eap_functions:
-                        tot += len(f.get_self_times_ns())
-                    metrics.incr(
-                        "process_profile.eap_functions_metrics.all_frames.count",
-                        tot,
-                        tags={"type": "profile"},
-                        sample_rate=1.0,
-                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1456,7 +1460,7 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             return False
 
 
-def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
+def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
     with sentry_sdk.start_span(op="task.profiling.process_vroomrs_chunk_profile"):
         try:
             # todo (improvement): check the feasibility of passing the profile
@@ -1493,22 +1497,28 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
                     profile_functions_producer.produce(topic, payload)
-            # temporary: collect metrics about rate of functions metrics to be written into EAP
-            # should we loosen the constraints on the number and type of functions to be extracted.
-            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
-                eap_functions = chunk.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
-                )
-                if eap_functions is not None and len(eap_functions) > 0:
-                    tot = 0
-                    for f in eap_functions:
-                        tot += len(f.get_self_times_ns())
-                    metrics.incr(
-                        "process_profile.eap_functions_metrics.all_frames.count",
-                        tot,
-                        tags={"type": "chunk"},
-                        sample_rate=1.0,
+            if features.has("projects:profile-functions-metrics-eap-ingestion", project):
+                with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
+                    eap_functions = chunk.extract_functions_metrics(
+                        min_depth=1,
+                        filter_system_frames=True,
+                        max_unique_functions=100,
+                        generate_stack_fingerprints=True,
                     )
+                    if eap_functions is not None and len(eap_functions) > 0:
+                        topic = ArroyoTopic(
+                            get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+                        )
+                        tot = 0
+                        for payload in build_chunk_functions_eap_trace_items(chunk, eap_functions):
+                            eap_producer.produce(topic, payload)
+                            tot += 1
+                        metrics.incr(
+                            "process_profile.eap_functions_metrics.ingested.count",
+                            tot,
+                            tags={"type": "chunk", "platform": profile["platform"]},
+                            sample_rate=1.0,
+                        )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1637,3 +1647,164 @@ def build_profile_kafka_message(profile: vroomrs.Profile) -> KafkaPayload:
     if (sdk_version := m.sdk_version) is not None:
         data["sdk_version"] = sdk_version
     return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])
+
+
+def _timestamp(value: float) -> Timestamp:
+    return Timestamp(
+        seconds=int(value),
+        nanos=round((value % 1) * 1_000_000) * 1000,
+    )
+
+
+def build_chunk_functions_eap_trace_items(
+    chunk: vroomrs.ProfileChunk, functions: list[vroomrs.CallTreeFunction]
+) -> Generator[KafkaPayload]:
+    for f in functions:
+        timestamp = AnyValue(int_value=int(chunk.start_timestamp()))
+        fingerprint = AnyValue(int_value=f.get_fingerprint())
+        name = AnyValue(string_value=f.get_function())
+        package = AnyValue(string_value=f.get_package())
+        is_application = AnyValue(bool_value=f.get_in_app())
+        platform = AnyValue(string_value=chunk.get_platform())
+        profile_id = AnyValue(string_value=chunk.get_profiler_id())
+        start_timestamp = AnyValue(double_value=chunk.start_timestamp())
+        end_timestamp = AnyValue(double_value=chunk.end_timestamp())
+        thread_id = AnyValue(string_value=f.get_thread_id())
+        profiling_type = AnyValue(string_value="continuous")
+
+        depth: int | None = f.get_depth()
+        stack_fingerprint: int | None = f.get_stack_fingerprint()
+        parent_fingerprint: int | None = f.get_parent_fingerprint()
+        environment: str | None = chunk.get_environment()
+        release: str | None = chunk.get_release()
+
+        for i in range(len(f.get_total_times_ns())):
+            attributes: dict[str, AnyValue] = {
+                "timestamp": timestamp,
+                "fingerprint": fingerprint,
+                "name": name,
+                "package": package,
+                "is_application": is_application,
+                "platform": platform,
+                "profile_id": profile_id,
+                "start_timestamp": start_timestamp,
+                "end_timestamp": end_timestamp,
+                "thread_id": thread_id,
+                "profiling_type": profiling_type,
+            }
+            if depth is not None:
+                attributes["depth"] = AnyValue(int_value=depth)
+
+            if stack_fingerprint is not None:
+                attributes["stack_fingerprint"] = AnyValue(int_value=stack_fingerprint)
+
+            if parent_fingerprint is not None:
+                attributes["parent_fingerprint"] = AnyValue(int_value=parent_fingerprint)
+
+            if environment is not None:
+                attributes["environment"] = AnyValue(string_value=environment)
+
+            if release is not None:
+                attributes["release"] = AnyValue(string_value=release)
+
+            attributes["self_time_ns"] = AnyValue(int_value=f.get_self_times_ns()[i])
+            attributes["total_time_ns"] = AnyValue(int_value=f.get_total_times_ns()[i])
+
+            item = TraceItem(
+                organization_id=chunk.get_organization_id(),
+                project_id=chunk.get_project_id(),
+                trace_id=chunk.get_profiler_id(),  # until we actually get a trace_id from the SDKs
+                item_id=int(chunk.get_profiler_id(), 16).to_bytes(16, "little"),
+                item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+                timestamp=_timestamp(chunk.start_timestamp()),
+                attributes=attributes,
+                client_sample_rate=CLIENT_SAMPLE_RATE,
+                server_sample_rate=SERVER_SAMPLE_RATE,
+                retention_days=chunk.get_retention_days(),
+                downsampled_retention_days=0,
+                received=_timestamp(chunk.get_received()),
+            )
+            yield KafkaPayload(
+                key=None,
+                value=item.SerializeToString(),
+                headers=[
+                    ("item_type", str(item.item_type).encode("ascii")),
+                    ("project_id", str(chunk.get_project_id()).encode("ascii")),
+                ],
+            )
+
+
+def build_profile_functions_eap_trace_items(
+    profile: vroomrs.Profile, functions: list[vroomrs.CallTreeFunction]
+) -> Generator[KafkaPayload]:
+    for f in functions:
+        timestamp = AnyValue(int_value=int(profile.get_timestamp()))
+        fingerprint = AnyValue(int_value=f.get_fingerprint())
+        name = AnyValue(string_value=f.get_function())
+        package = AnyValue(string_value=f.get_package())
+        is_application = AnyValue(bool_value=f.get_in_app())
+        platform = AnyValue(string_value=profile.get_platform())
+        profile_id = AnyValue(string_value=profile.get_profile_id())
+        thread_id = AnyValue(string_value=f.get_thread_id())
+        profiling_type = AnyValue(string_value="transaction")
+        transaction_name = AnyValue(string_value=profile.get_transaction().name)
+
+        depth: int | None = f.get_depth()
+        stack_fingerprint: int | None = f.get_stack_fingerprint()
+        parent_fingerprint: int | None = f.get_parent_fingerprint()
+        environment: str | None = profile.get_environment()
+        release: str | None = profile.get_release()
+
+        for i in range(len(f.get_total_times_ns())):
+            attributes: dict[str, AnyValue] = {
+                "timestamp": timestamp,
+                "fingerprint": fingerprint,
+                "name": name,
+                "package": package,
+                "is_application": is_application,
+                "platform": platform,
+                "profile_id": profile_id,
+                "thread_id": thread_id,
+                "profiling_type": profiling_type,
+                "transaction_name": transaction_name,
+            }
+            if depth is not None:
+                attributes["depth"] = AnyValue(int_value=depth)
+
+            if stack_fingerprint is not None:
+                attributes["stack_fingerprint"] = AnyValue(int_value=stack_fingerprint)
+
+            if parent_fingerprint is not None:
+                attributes["parent_fingerprint"] = AnyValue(int_value=parent_fingerprint)
+
+            if environment is not None:
+                attributes["environment"] = AnyValue(string_value=environment)
+
+            if release is not None:
+                attributes["release"] = AnyValue(string_value=release)
+
+            attributes["self_time_ns"] = AnyValue(int_value=f.get_self_times_ns()[i])
+            attributes["total_time_ns"] = AnyValue(int_value=f.get_total_times_ns()[i])
+
+            item = TraceItem(
+                organization_id=profile.get_organization_id(),
+                project_id=profile.get_project_id(),
+                trace_id=profile.get_profile_id(),  # until we actually get a trace_id from the SDKs
+                item_id=int(profile.get_profile_id(), 16).to_bytes(16, "little"),
+                item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+                timestamp=_timestamp(profile.get_timestamp()),
+                attributes=attributes,
+                client_sample_rate=CLIENT_SAMPLE_RATE,
+                server_sample_rate=SERVER_SAMPLE_RATE,
+                retention_days=profile.get_retention_days(),
+                downsampled_retention_days=0,
+                received=_timestamp(profile.get_received()),
+            )
+            yield KafkaPayload(
+                key=None,
+                value=item.SerializeToString(),
+                headers=[
+                    ("item_type", str(item.item_type).encode("ascii")),
+                    ("project_id", str(profile.get_project_id()).encode("ascii")),
+                ],
+            )

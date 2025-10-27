@@ -75,13 +75,15 @@ export function useLocationSyncedState<T extends Decoder>(key: string, decoder: 
   const handleUpdate = useCallback(
     (value: typeof urlParam) => {
       setState(value);
-      updateLocation(prevLocation => ({
-        ...prevLocation,
-        query: {
-          ...prevLocation.query,
-          [key]: value,
-        },
-      }));
+      updateLocation(prevLocation => {
+        return {
+          ...prevLocation,
+          query: {
+            ...prevLocation.query,
+            [key]: value,
+          },
+        };
+      });
     },
     [updateLocation, key]
   );

@@ -15,13 +15,17 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
-import {formatReservedWithUnits, isBizPlanFamily} from 'getsentry/utils/billing';
+import {
+  formatReservedWithUnits,
+  getReservedBudgetCategoryForAddOn,
+  isBizPlanFamily,
+} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
   listDisplayNames,
 } from 'getsentry/utils/dataCategory';
-import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 type Props = {
@@ -114,15 +118,13 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
   };
 
   const renderProductBreakdown = () => {
-    const hasAtLeastOneSelectedProduct = Object.values(
-      activePlan.availableReservedBudgetTypes
-    ).some(budgetTypeInfo => {
-      return formData.selectedProducts?.[
-        budgetTypeInfo.apiName as string as SelectableProduct
-      ]?.enabled;
-    });
+    const hasAtLeastOneAddOn = Object.values(activePlan.addOnCategories).some(
+      addOnInfo => {
+        return formData.addOns?.[addOnInfo.apiName]?.enabled;
+      }
+    );
 
-    if (!hasAtLeastOneSelectedProduct) {
+    if (!hasAtLeastOneAddOn) {
       return null;
     }
 
@@ -131,61 +133,62 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
         <Separator />
         <Section>
           <ReservedVolumes>
-            {Object.values(activePlan.availableReservedBudgetTypes).map(
-              budgetTypeInfo => {
-                const formDataForProduct =
-                  formData.selectedProducts?.[
-                    budgetTypeInfo.apiName as string as SelectableProduct
-                  ];
-                if (!formDataForProduct) {
-                  return null;
-                }
+            {Object.values(activePlan.addOnCategories).map(addOnInfo => {
+              const apiName = addOnInfo.apiName;
+              const formDataForProduct = formData.addOns?.[apiName];
+              if (!formDataForProduct) {
+                return null;
+              }
 
-                if (formDataForProduct.enabled) {
-                  return (
-                    <SpaceBetweenRow
-                      key={budgetTypeInfo.apiName}
-                      data-test-id={`${budgetTypeInfo.apiName}-reserved`}
-                    >
-                      <ReservedItem isIndividualProduct>
-                        <span>
-                          {toTitleCase(budgetTypeInfo.productCheckoutName, {
-                            allowInnerUpperCase: true,
-                          })}
-                        </span>
+              const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+              const budgetInfo = reservedBudgetCategory
+                ? activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
+                : null;
+              const defaultBudget = budgetInfo?.defaultBudget ?? 0;
+
+              if (formDataForProduct.enabled) {
+                return (
+                  <SpaceBetweenRow key={apiName} data-test-id={`${apiName}-reserved`}>
+                    <ReservedItem isIndividualProduct>
+                      <span>
+                        {toTitleCase(addOnInfo.productName, {
+                          allowInnerUpperCase: true,
+                        })}
+                      </span>
+                      {reservedBudgetCategory && (
                         <QuestionTooltip
                           size="xs"
                           title={tct(
                             'Your [productName] subscription includes [budgetAmount] in monthly credits for [categories]; additional usage will draw from your PAYG budget.',
                             {
-                              productName: toTitleCase(budgetTypeInfo.productName),
+                              productName: toTitleCase(addOnInfo.productName),
                               budgetAmount: utils.displayPrice({
-                                cents: budgetTypeInfo.defaultBudget ?? 0,
+                                cents: defaultBudget,
                               }),
                               categories: listDisplayNames({
                                 plan: activePlan,
-                                categories: budgetTypeInfo.dataCategories,
+                                categories: addOnInfo.dataCategories,
                                 shouldTitleCase: true,
                               }),
                             }
                           )}
                         />
-                      </ReservedItem>
-                      <Title>
-                        {utils.displayPrice({
-                          cents: utils.getReservedPriceForReservedBudgetCategory({
-                            plan: activePlan,
-                            reservedBudgetCategory: budgetTypeInfo.apiName,
-                          }),
-                        })}
-                        /{shortInterval}
-                      </Title>
-                    </SpaceBetweenRow>
-                  );
-                }
-                return null;
+                      )}
+                    </ReservedItem>
+                    <Title>
+                      {utils.displayPrice({
+                        cents: utils.getPrepaidPriceForAddOn({
+                          plan: activePlan,
+                          addOnCategory: apiName,
+                        }),
+                      })}
+                      /{shortInterval}
+                    </Title>
+                  </SpaceBetweenRow>
+                );
               }
-            )}
+              return null;
+            })}
           </ReservedVolumes>
         </Section>
       </Fragment>
@@ -197,18 +200,15 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
       category => activePlan.planCategories[category]?.length === 1
     );
 
-    const budgetCategories = Object.values(
-      activePlan.availableReservedBudgetTypes
-    ).reduce((acc, type) => {
-      acc.push(...type.dataCategories);
-      return acc;
-    }, [] as DataCategory[]);
+    const addOnCategories = Object.values(activePlan.addOnCategories).flatMap(
+      addOnInfo => addOnInfo.dataCategories
+    );
 
     return (
       <Section>
         <ReservedVolumes>
           {activePlan.categories
-            .filter(category => !budgetCategories.includes(category))
+            .filter(category => !addOnCategories.includes(category))
             .map(category => {
               const eventBucket =
                 activePlan.planCategories[category] &&

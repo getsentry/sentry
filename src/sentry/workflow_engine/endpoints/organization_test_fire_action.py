@@ -18,6 +18,9 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.workflow_engine.endpoints.organization_workflow_index import (
+    OrganizationWorkflowPermission,
+)
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
 from sentry.workflow_engine.models import Action, Detector
@@ -30,9 +33,15 @@ class TestActionsValidator(CamelSnakeSerializer):
     actions = serializers.ListField(required=True)
 
     def validate_actions(self, value):
+        validated_actions = []
         for action in value:
-            BaseActionValidator(data=action, context=self.context).is_valid(raise_exception=True)
-        return value
+            action_validator = BaseActionValidator(data=action, context=self.context)
+            action_validator.is_valid(raise_exception=True)
+
+            action.update(action_validator.validated_data)
+            validated_actions.append(action)
+
+        return validated_actions
 
 
 class TestFireActionErrorsResponse(TypedDict):
@@ -45,6 +54,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ECOSYSTEM
+    permission_classes = (OrganizationWorkflowPermission,)
 
     @extend_schema(
         operation_id="Test Fire Actions",

@@ -11,6 +11,7 @@ import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/pr
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
+import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
@@ -278,6 +279,17 @@ export async function openAddToDashboardModal(options: AddToDashboardModalProps)
   });
 }
 
+export async function openLinkToDashboardModal(options: LinkToDashboardModalProps) {
+  const {LinkToDashboardModal, modalCss} = await import(
+    'sentry/components/modals/widgetBuilder/linkToDashboardModal'
+  );
+
+  openModal(deps => <LinkToDashboardModal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
+}
+
 export async function openImportDashboardFromFileModal(
   options: ImportDashboardFromFileModalProps
 ) {
@@ -417,11 +429,15 @@ export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOpti
 }
 
 export async function openInsightChartModal(options: InsightChartModalOptions) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/insightChartModal'
-  );
+  const {
+    default: Modal,
+    modalCss,
+    fullscreenModalCss,
+  } = await import('sentry/components/modals/insightChartModal');
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalCss: options.fullscreen ? fullscreenModalCss : modalCss,
+  });
 }
 
 export async function openAddTempestCredentialsModal(options: {
@@ -462,4 +478,17 @@ export async function openPrivateGamingSdkAccessModal(
   );
 
   openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
+}
+
+export type InsightInfoModalOptions = {
+  children: React.ReactNode;
+  title: string;
+};
+
+export async function openInsightInfoModal(options: InsightInfoModalOptions) {
+  const {InsightInfoModal} = await import(
+    'sentry/views/preprod/buildDetails/main/insights/insightInfoModal'
+  );
+
+  openModal(deps => <InsightInfoModal {...deps} {...options} />);
 }

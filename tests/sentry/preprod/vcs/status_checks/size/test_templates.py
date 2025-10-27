@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
@@ -48,13 +50,13 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 )
 
                 assert title == "Size Analysis"
-                assert subtitle == "1 build processing"
+                assert subtitle == "1 app processing"
                 assert "Processing..." in summary
                 assert "com.example.app" in summary
                 assert "1.0.0 (1)" in summary
 
     def test_processed_state_without_metrics(self):
-        """Test formatting for processed state without size metrics."""
+        """Test that processed state without size metrics raises an error."""
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -63,13 +65,8 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             build_number=1,
         )
 
-        title, subtitle, summary = format_status_check_messages(
-            [artifact], {}, StatusCheckStatus.FAILURE
-        )
-
-        assert title == "Size Analysis"
-        assert subtitle == "1 build processing"  # Processed but no metrics = still processing
-        assert "Processing..." in summary
+        with pytest.raises(ValueError, match="No metrics exist for VCS size status check"):
+            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS)
 
     def test_processed_state_with_metrics_no_previous(self):
         """Test formatting for processed state with metrics but no previous build."""
@@ -98,7 +95,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "1 app analyzed"
         assert "1.0 MB" in summary
         assert "2.1 MB" in summary
         assert "N/A" in summary
@@ -153,7 +150,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 builds processing"
+        assert subtitle == "2 apps processing"
         assert "Processing..." in summary
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
@@ -197,10 +194,10 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build processing"  # Still processing because watch is not complete
+        assert subtitle == "1 app analyzed, 1 app processing"
         # Should have two rows - main app shows sizes, watch shows processing
-        assert "`com.example.app`" in summary
-        assert "`com.example.app (Watch)`" in summary
+        assert "com.example.app" in summary
+        assert "`-- (Watch)`" in summary
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
 
@@ -231,10 +228,10 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build processing"
+        assert subtitle == "1 app processing"
 
         # Verify processing state is shown in table
-        assert "`com.example.processing`" in summary
+        assert "com.example.processing" in summary
         assert "2.1.0 (15)" in summary
         assert "Processing..." in summary
 
@@ -265,7 +262,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build errored"
+        assert subtitle == "1 app errored"
         assert "Build timeout" in summary
         assert "com.example.app" in summary
         assert "1.0.0 (1)" in summary
@@ -343,7 +340,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed, 1 build processing, 1 build errored"
+        assert subtitle == "1 app analyzed, 1 app processing, 1 app errored"
         assert "Processing..." in summary  # Non-failed artifacts show as processing
         assert "Upload timeout" in summary  # Failed artifact error
         assert "com.example.processed" in summary
@@ -386,7 +383,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 builds analyzed"
+        assert subtitle == "2 apps analyzed"
         assert "1.0 MB" in summary  # First artifact download size
         assert "2.1 MB" in summary  # Second artifact download size
         assert "com.example.app0" in summary
@@ -429,10 +426,10 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and watch app
-        assert "`com.example.app`" in summary  # Main app
-        assert "`com.example.app (Watch)`" in summary  # Watch app
+        assert "com.example.app" in summary  # Both main and watch show app_id
+        assert "`-- (Watch)`" in summary  # Watch app label
         assert "1.0 MB" in summary  # Main app download
         assert "524.3 KB" in summary  # Watch app download
         assert "2.1 MB" in summary  # Main app install
@@ -441,9 +438,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         main_row_idx = None
         watch_row_idx = None
         for i, line in enumerate(lines):
-            if "`com.example.app`" in line and "(Watch)" not in line:
+            if "com.example.app" in line and "(Watch)" not in line:
                 main_row_idx = i
-            elif "`com.example.app (Watch)`" in line:
+            elif "`-- (Watch)`" in line:
                 watch_row_idx = i
         assert main_row_idx is not None
         assert watch_row_idx is not None
@@ -487,14 +484,14 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and dynamic feature
-        assert "`com.example.android`" in summary  # Main app
-        assert "`com.example.android (Dynamic Feature)`" in summary  # Dynamic feature
-        assert "4.2 MB" in summary  # Main app download
+        assert "com.example.android" in summary  # Main app and dynamic feature both show app_id
+        assert "`-- (Dynamic Feature)`" in summary  # Dynamic feature label
+        assert "4.2 MB" in summary  # Main app download (note: rounds to 4.2 not 4.0)
         assert "1.0 MB" in summary  # Dynamic feature download
         assert "8.4 MB" in summary  # Main app install
-        assert "2.1 MB" in summary  # Dynamic feature install
+        assert "2.1 MB" in summary  # Dynamic feature install (note: rounds to 2.1 not 2.0)
 
     def test_size_changes_with_base_artifacts(self):
         """Test size change calculations when base artifacts exist for comparison."""
@@ -557,7 +554,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "1 app analyzed"
 
         # Verify that size changes are calculated and displayed
         assert "4.2 MB" in summary  # Current download size
@@ -599,7 +596,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "1 app analyzed"
         assert "1.0 MB" in summary
         assert "2.1 MB" in summary
         # Should show N/A for changes when no base exists
@@ -687,7 +684,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         # Watch artifact should show N/A (no matching base watch metrics)
         lines = summary.split("\n")
-        watch_line = next(line for line in lines if "com.example.ios (Watch)" in line)
+        watch_line = next(line for line in lines if "(Watch)" in line)
         # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
         na_count = watch_line.count("N/A")
         assert na_count >= 2  # At least 2 N/A for the change columns

@@ -10,7 +10,6 @@ from sentry import eventstream, similarity, tsdb
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
@@ -21,16 +20,9 @@ delete_logger = logging.getLogger("sentry.deletions.async")
 
 @instrumented_task(
     name="sentry.tasks.merge.merge_groups",
-    queue="merge",
-    default_retry_delay=60 * 5,
-    max_retries=None,
+    namespace=issues_tasks,
+    retry=Retry(delay=60 * 5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        retry=Retry(
-            delay=60 * 5,
-        ),
-    ),
 )
 @track_group_async_operation
 def merge_groups(

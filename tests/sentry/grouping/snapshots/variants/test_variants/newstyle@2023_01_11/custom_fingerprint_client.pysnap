@@ -1,11 +1,12 @@
 ---
-created: '2025-09-24T20:27:05.943655+00:00'
+created: '2025-10-07T20:41:46.824362+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: exception
+  hint: ignored because custom client fingerprint takes precedence
   root_component:
     app (ignored because custom client fingerprint takes precedence)
       exception*
@@ -176,6 +177,7 @@ custom_fingerprint:
 system:
   hash: null
   contributing component: exception
+  hint: ignored because custom client fingerprint takes precedence
   root_component:
     system (ignored because custom client fingerprint takes precedence)
       exception*

@@ -56,7 +56,7 @@ class OrganizationMonitorsTest(AcceptanceTestCase):
     def test_create_cron_monitor(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.click_when_visible("a[aria-label='Add Monitor']")
+        self.browser.click_when_visible("a[aria-label='Add Cron Monitor']")
 
         self.browser.wait_until('[name="name"]')
         name_input = self.browser.find_element_by_name("name")

@@ -18,13 +18,13 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationFormError,
+    IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
@@ -184,13 +184,12 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 IntegrationFormError,
                 InvalidIdentity,
                 ApiUnauthorized,
+                IntegrationResourceNotFoundError,
             ) as e:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.
-                # We only want to raise if the rule_id is -1 because that means we're testing the action
                 lifecycle.record_halt(e)
-                if rule_id == TEST_NOTIFICATION_ID:
-                    raise
+                raise
             # If we successfully created the issue, we want to create the link
             else:
                 create_link(integration, installation, event, response)

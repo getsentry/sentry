@@ -18,7 +18,7 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
         response = self.get_response()
         assert response.status_code == 401
 
-    def test_get_registered_templates(self) -> None:
+    def test_get_all_registered_templates(self) -> None:
         self.login_as(self.user)
         response = self.get_response()
         assert response.status_code == 200
@@ -30,40 +30,48 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
                 in response.data[template.category.value]
             )
 
+    def test_valid_template_serialization(self) -> None:
+        self.login_as(self.user)
+        response = self.get_response()
+        for templates_by_category in response.data.values():
+            for template in templates_by_category:
+                assert "source" in template
+                assert "category" in template
+                # The template registry should reflect the same source and category
+                template_cls = template_registry.get(template["source"])
+                assert template_cls.category.value == template["category"]
+                # The response should be nested in the proper category
+                assert response.data[template["category"]] == templates_by_category
+                assert "example" in template
+                assert "previews" in template
+                assert "email" in template["previews"]
+                assert "slack" in template["previews"]
 
-class SerializeTemplateTest(TestCase):
-    def test_serialize_template_form(self) -> None:
-        """Test that serialize_template returns the correct structure"""
-        template = MockNotificationTemplate()
-        source = "test-source"
+    def test_email_preview(self) -> None:
+        self.login_as(self.user)
+        response = self.get_response()
+        for templates_by_category in response.data.values():
+            for template in templates_by_category:
+                assert "email" in template["previews"]
+                assert isinstance(template["previews"]["email"]["subject"], str)
+                assert isinstance(template["previews"]["email"]["text_content"], str)
+                assert isinstance(template["previews"]["email"]["html_content"], str)
 
-        result = serialize_template(template=template, source=source)
-
-        # Verify top-level structure
-        assert isinstance(result, dict)
-        assert "source" in result
-        assert "category" in result
-        assert "example" in result
-        assert "previews" in result
-
-        # Verify values
-        assert result["source"] == source
-        assert result["category"] == template.category
-
-        # Verify example structure
-        example = result["example"]
-        assert "subject" in example
-        assert "body" in example
-        assert "actions" in example
-        assert isinstance(example["actions"], list)
-
-        previews = result["previews"]
-
-        # validate slack preview in payload
-        assert "slack" in previews
-        slack_preview = previews["slack"]
-        assert "blocks" in slack_preview
-        assert isinstance(slack_preview["blocks"], list)
+    def test_discord_preview(self) -> None:
+        self.login_as(self.user)
+        response = self.get_response()
+        for templates_by_category in response.data.values():
+            for template in templates_by_category:
+                assert "discord" in template["previews"]
+                if template["example"]["actions"]:
+                    num_actions = len(template["example"]["actions"])
+                    # The first component is an action row, the contents of the row are the buttons
+                    assert (
+                        len(template["previews"]["discord"]["components"][0]["components"])
+                        == num_actions
+                    )
+                assert template["previews"]["discord"]["content"] == ""
+                assert len(template["previews"]["discord"]["embeds"]) == 1
 
 
 def find_block_by_type(blocks: list[dict[str, Any]], block_type: str) -> dict[str, Any] | None:
@@ -144,7 +152,7 @@ class SerializeSlackPreviewTest(TestCase):
         assert_button_element(actions_block["elements"][0], "Visit Sentry", "https://www.sentry.io")
 
         # Check footer block exists
-        footer_block = find_section_block_by_text(blocks, "This is a mock footer")
+        footer_block = find_block_by_type(blocks, "context")
         assert footer_block is not None
 
         # Check image block exists

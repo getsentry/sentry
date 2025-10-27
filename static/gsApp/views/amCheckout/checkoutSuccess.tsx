@@ -27,7 +27,13 @@ import {
   type PreviewInvoiceItem,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
+  formatOnDemandDescription,
   formatReservedWithUnits,
+  getCreditApplied,
+  getCredits,
+  getFees,
+  getOnDemandItems,
   getPlanIcon,
   getProductIcon,
 } from 'getsentry/utils/billing';
@@ -63,6 +69,7 @@ interface ScheduledChangesProps extends ChangesProps {
 interface ReceiptProps extends ChangesProps {
   charges: Charge[];
   dateCreated: string;
+  onDemandItems: Array<InvoiceItem | PreviewInvoiceItem>;
   planItem: InvoiceItem;
 }
 
@@ -185,8 +192,8 @@ function ScheduledChanges({
         </Flex>
       )}
       {products.map(item => {
-        const selectableProduct = utils.invoiceItemTypeToProduct(item.type);
-        if (!selectableProduct) {
+        const addOn = utils.invoiceItemTypeToAddOn(item.type);
+        if (!addOn) {
           return null;
         }
 
@@ -195,7 +202,7 @@ function ScheduledChanges({
             <ScheduledChangeItem
               firstItem={
                 <Flex align="center" gap="sm">
-                  {getProductIcon(selectableProduct)}
+                  {getProductIcon(addOn)}
                   <Text as="div" bold>
                     {item.description}
                   </Text>
@@ -296,6 +303,7 @@ function Receipt({
   creditApplied,
   credits,
   fees,
+  onDemandItems,
   products,
   reservedVolume,
   total,
@@ -304,7 +312,6 @@ function Receipt({
   dateCreated,
 }: ReceiptProps) {
   const renewalDate = moment(planItem?.periodEnd).add(1, 'day').format('MMM DD YYYY');
-  // TODO(checkout v3): This needs to be updated for non-budget products
   const successfulCharge = charges.find(charge => charge.isPaid);
 
   return (
@@ -365,12 +372,10 @@ function Receipt({
                         ? getSingularCategoryName({
                             plan,
                             category,
-                            title: true,
                           })
                         : getPlanCategoryName({
                             plan,
                             category,
-                            title: true,
                           });
                     return (
                       <ReceiptItem
@@ -396,6 +401,35 @@ function Receipt({
                         key={item.type}
                         rowItems={[
                           item.description,
+                          utils.displayPrice({cents: item.amount}),
+                        ]}
+                      />
+                    );
+                  })}
+                </ReceiptSection>
+              )}
+              {onDemandItems.length > 0 && (
+                <ReceiptSection>
+                  <ReceiptItem
+                    rowItems={[
+                      tct('[budgetTerm] usage', {
+                        budgetTerm: displayBudgetName(plan, {title: true}),
+                      }),
+                      null,
+                    ]}
+                  />
+                  {onDemandItems.map(item => {
+                    const cleanDescription = formatOnDemandDescription(
+                      item.description,
+                      plan
+                    );
+
+                    return (
+                      <ReceiptItem
+                        key={item.type}
+                        isSubItem={false}
+                        rowItems={[
+                          cleanDescription,
                           utils.displayPrice({cents: item.amount}),
                         ]}
                       />
@@ -482,16 +516,17 @@ function CheckoutSuccess({
   const reservedVolume = invoiceItems.filter(
     item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
   );
-  // TODO(checkout v3): This needs to be updated for non-budget products
+  // TODO(prevent): This needs to be updated once we determine how to display Prevent enablement and PAYG changes on this page
   const products = invoiceItems.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );
-  const fees = utils.getFees({invoiceItems});
-  const credits = utils.getCredits({invoiceItems});
+  const onDemandItems = getOnDemandItems({invoiceItems});
+  const fees = getFees({invoiceItems});
+  const credits = getCredits({invoiceItems});
   // TODO(isabella): PreviewData never has the InvoiceItemType.BALANCE_CHANGE type
   // and instead populates creditApplied with the value of the InvoiceItemType.CREDIT_APPLIED type
   // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
-  const creditApplied = utils.getCreditApplied({
+  const creditApplied = getCreditApplied({
     creditApplied: data?.creditApplied ?? 0,
     invoiceItems,
   });
@@ -602,6 +637,7 @@ function CheckoutSuccess({
           {...commonChangesProps}
           charges={invoice.charges}
           planItem={planItem as InvoiceItem}
+          onDemandItems={onDemandItems}
           dateCreated={invoice.dateCreated}
         />
       ) : effectiveToday ? null : (

@@ -395,7 +395,7 @@ export function computeChartTooltip(
       const [tipWidth, tipHeight] = size.contentSize;
 
       let parentNode: Element = document.body;
-      if (dom.parentNode instanceof Element) {
+      if (dom?.parentNode instanceof Element) {
         parentNode = dom.parentNode;
       }
 
@@ -428,7 +428,7 @@ export function computeChartTooltip(
         arrowPosition = '50%';
       }
 
-      const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
+      const arrow = dom?.querySelector<HTMLDivElement>('.tooltip-arrow');
       if (arrow) {
         arrow.style.left = arrowPosition;
       }

@@ -249,28 +249,6 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
-export function useExploreFields(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.fields;
-}
-
-export function useExploreQuery(): string {
-  const pageParams = useExplorePageParams();
-  return pageParams.query;
-}
-
-export function useExploreSortBys(): Sort[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode === Mode.AGGREGATE
-    ? pageParams.aggregateSortBys
-    : pageParams.sortBys;
-}
-
-export function useExploreAggregateSortBys(): Sort[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.aggregateSortBys;
-}
-
 export function useExploreTitle(): string | undefined {
   const pageParams = useExplorePageParams();
   return pageParams.title;
@@ -505,69 +483,5 @@ export function useSetExplorePageParams(): (
       navigate(target);
     },
     [location, navigate, readablePageParams, managedFields, setManagedFields]
-  );
-}
-
-export function useSetExploreFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (fields: string[]) => {
-      setPageParams({fields});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreMode() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-
-  return useCallback(
-    (mode: Mode) => {
-      if (mode === Mode.SAMPLES && pageParams.groupBys.some(groupBy => groupBy !== '')) {
-        // When switching from the aggregates to samples mode, carry
-        // over any group bys as they are helpful context when looking
-        // for examples.
-        const fields = [...pageParams.fields];
-        for (const groupBy of pageParams.groupBys) {
-          if (groupBy !== '' && !fields.includes(groupBy)) {
-            fields.push(groupBy);
-          }
-        }
-
-        setPageParams({
-          mode,
-          fields,
-        });
-      } else {
-        setPageParams({mode});
-      }
-    },
-    [pageParams, setPageParams]
-  );
-}
-
-export function useSetExploreQuery() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (query: string) => {
-      setPageParams({query});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreSortBys() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (sortBys: Sort[]) => {
-      setPageParams(
-        pageParams.mode === Mode.AGGREGATE
-          ? {aggregateSortBys: sortBys}
-          : {sampleSortBys: sortBys}
-      );
-    },
-    [pageParams, setPageParams]
   );
 }

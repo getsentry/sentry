@@ -15,7 +15,11 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 describe('ChooseYourBillingCycle', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
-  const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
+  const subscription = SubscriptionFixture({
+    organization,
+    plan: 'am3_f',
+    contractPeriodEnd: '2025-08-28',
+  });
 
   beforeEach(() => {
     api.clear();
@@ -115,10 +119,26 @@ describe('ChooseYourBillingCycle', () => {
     );
   }
 
-  it('renders for coterm upgrade', async () => {
+  it('renders for upgrade from developer', async () => {
     renderCheckout(true);
     await assertCycleText({
+      // org is on monthly cycle, but is on developer plan, so upgrade should apply immediately and create a new period
       monthlyInfo: /Billed on the 13th of each month/,
+      yearlyInfo: /Billed annually/,
+    });
+  });
+
+  it('renders for coterm upgrade', async () => {
+    const monthlySub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      contractPeriodEnd: '2025-08-28',
+    });
+    SubscriptionStore.set(organization.slug, monthlySub);
+    renderCheckout(true);
+    await assertCycleText({
+      // org is on monthly cycle and is paid plan, so upgrade should apply immediately to the current period
+      monthlyInfo: /Billed on the 29th of each month/,
       yearlyInfo: /Billed annually/,
     });
   });

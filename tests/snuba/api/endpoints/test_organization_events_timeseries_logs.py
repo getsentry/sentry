@@ -77,7 +77,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             3_600_000,
             event_counts,
             sample_count=event_counts,
-            sample_rate=[1 if val else 0 for val in event_counts],
+            sample_rate=[1 if val else None for val in event_counts],
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {

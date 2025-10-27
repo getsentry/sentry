@@ -14,7 +14,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -37,18 +36,19 @@ const EventNavOrder = [
 interface IssueDetailsEventNavigationProps {
   event: Event | undefined;
   group: Group;
+  isSmallNav?: boolean;
 }
 
 export function IssueDetailsEventNavigation({
   event,
   group,
+  isSmallNav,
 }: IssueDetailsEventNavigationProps) {
   const organization = useOrganization();
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
 
   // Reset shouldPreload when the groupId changes
@@ -92,7 +92,7 @@ export function IssueDetailsEventNavigation({
   }, [params.eventId, defaultIssueEvent]);
 
   const EventNavLabels = {
-    [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
+    [EventNavOptions.RECOMMENDED]: isSmallNav ? t('Rec.') : t('Recommended'),
     [EventNavOptions.OLDEST]: t('First'),
     [EventNavOptions.LATEST]: t('Latest'),
     [EventNavOptions.CUSTOM]: t('Custom'),

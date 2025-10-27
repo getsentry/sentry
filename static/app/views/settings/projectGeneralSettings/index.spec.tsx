@@ -87,7 +87,7 @@ describe('projectGeneralSettings', () => {
       }
     );
 
-    expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(
+    expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
       'Project Name'
     );
     expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
@@ -305,7 +305,7 @@ describe('projectGeneralSettings', () => {
     );
 
     await userEvent.type(
-      await screen.findByRole('textbox', {name: 'Name'}),
+      await screen.findByRole('textbox', {name: 'Slug'}),
       'New Project'
     );
 
@@ -429,9 +429,8 @@ describe('projectGeneralSettings', () => {
       jest.spyOn(console, 'error').mockImplementation();
     });
 
-    it('shows all platform options when organization has gaming feature and all console platforms enabled', async () => {
+    it('shows all platform options when all console platforms enabled', async () => {
       const orgWithGamingAccess = OrganizationFixture({
-        features: ['project-creation-games-tab'],
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
       });
 
@@ -468,46 +467,8 @@ describe('projectGeneralSettings', () => {
       expect(screen.getByText('Nintendo Switch')).toBeInTheDocument();
     });
 
-    it('hides console platforms when organization lacks gaming feature', async () => {
+    it('shows only enabled console platforms', async () => {
       const orgWithoutGamingFeature = OrganizationFixture({
-        features: [], // No gaming feature
-        enabledConsolePlatforms: ['nintendo-switch'],
-      });
-      const baseProject = ProjectFixture();
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithoutGamingFeature.slug}/${baseProject.slug}/`,
-        method: 'GET',
-        body: baseProject,
-      });
-
-      const routerConfig = {
-        location: {
-          pathname: `/settings/${orgWithoutGamingFeature.slug}/projects/${baseProject.slug}/`,
-        },
-        route: '/settings/:orgId/projects/:projectId/',
-      };
-
-      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-        organization: orgWithoutGamingFeature,
-        initialRouterConfig: routerConfig,
-      });
-
-      const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
-      await userEvent.click(platformSelect);
-
-      // Should not show console platforms
-      expect(screen.queryByText('Nintendo Switch')).not.toBeInTheDocument();
-      expect(screen.queryByText('PlayStation')).not.toBeInTheDocument();
-      expect(screen.queryByText('Xbox')).not.toBeInTheDocument();
-
-      // Should still show non-console platforms
-      expect(screen.getByText('React')).toBeInTheDocument();
-    });
-
-    it('hides only the available console platforms when organization has limited access', async () => {
-      const orgWithoutGamingFeature = OrganizationFixture({
-        features: ['project-creation-games-tab'],
         enabledConsolePlatforms: ['nintendo-switch'], // only has nintendo access
       });
       const baseProject = ProjectFixture();

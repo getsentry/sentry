@@ -62,7 +62,7 @@ describe('InvoiceDetails > Payment Form', () => {
     );
 
     await waitFor(() => expect(mockget).toHaveBeenCalled());
-    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
@@ -91,7 +91,7 @@ describe('InvoiceDetails > Payment Form', () => {
     );
 
     await waitFor(() => expect(mockget).toHaveBeenCalled());
-    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
@@ -122,7 +122,7 @@ describe('InvoiceDetails > Payment Form', () => {
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(mockget).toHaveBeenCalled();
 
-    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
 
     let error = screen.getByText(/Unable to initialize payment/);
     expect(error).toBeInTheDocument();
@@ -156,7 +156,7 @@ describe('InvoiceDetails > Payment Form', () => {
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(mockget).toHaveBeenCalled();
 
-    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
 
     const button = screen.getByRole('button', {name: 'Pay Now'});
     await userEvent.click(button);

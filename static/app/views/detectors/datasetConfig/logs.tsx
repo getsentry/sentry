@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
@@ -26,6 +27,7 @@ type LogsSeriesRepsonse = EventsStats;
 const DEFAULT_EVENT_TYPES = [EventTypes.TRACE_ITEM_LOG];
 
 export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
+  name: t('Logs'),
   SearchBar: TraceSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: LogsConfig.defaultField,

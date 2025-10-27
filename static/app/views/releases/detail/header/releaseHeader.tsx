@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -66,6 +67,7 @@ function ReleaseHeader({
           </NavTabsBadge>
         ),
       }),
+      textValue: t('Commits %s', formatAbbreviatedNumber(commitCount)),
       to: `commits/`,
     },
     {
@@ -76,27 +78,40 @@ function ReleaseHeader({
           </NavTabsBadge>
         ),
       }),
+      textValue: t('Files Changed %s', formatAbbreviatedNumber(commitFilesChanged)),
       to: `files-changed/`,
     },
   ];
 
   const numberOfMobileBuilds = releaseMeta.preprodBuildCount;
-  if (numberOfMobileBuilds || MOBILE_PLATFORMS.includes(project.platform)) {
-    tabs.push({
-      title: tct('Builds [count]', {
-        count:
-          numberOfMobileBuilds === 0 ? (
-            <BadgeWrapper>
-              <FeatureBadge type="new" />
-            </BadgeWrapper>
-          ) : (
+
+  const buildsTab = {
+    title: tct('Builds [count]', {
+      count:
+        numberOfMobileBuilds === 0 ? (
+          <BadgeWrapper>
+            <FeatureBadge type="new" />
+          </BadgeWrapper>
+        ) : (
+          <React.Fragment>
             <NavTabsBadge type="default">
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
-          ),
-      }),
-      to: `builds/`,
-    });
+            <BadgeWrapper>
+              <FeatureBadge type="beta" />
+            </BadgeWrapper>
+          </React.Fragment>
+        ),
+    }),
+    textValue: t('Builds %s', numberOfMobileBuilds),
+    to: `builds/`,
+  };
+
+  if (
+    organization.features?.includes('preprod-frontend-routes') &&
+    (numberOfMobileBuilds || MOBILE_PLATFORMS.includes(project.platform))
+  ) {
+    tabs.push(buildsTab);
   }
 
   const getTabUrl = (path: string) =>
@@ -170,7 +185,7 @@ function ReleaseHeader({
       <Layout.HeaderTabs value={getActiveTabTo()}>
         <TabList hideBorder>
           {tabs.map(tab => (
-            <TabList.Item key={tab.to} to={getTabUrl(tab.to)}>
+            <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
               {tab.title}
             </TabList.Item>
           ))}

@@ -15,7 +15,6 @@ from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_uptime_subscription,
@@ -44,6 +43,7 @@ from sentry.uptime.types import (
 )
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [requires_kafka]
 
@@ -310,6 +310,154 @@ class CreateUptimeDetectorTest(UptimeTestCase):
                 mode=UptimeMonitorMode.MANUAL,
                 override_manual_org_limit=True,
             )
+
+    def test_disabled_monitors_dont_count_toward_limit(self) -> None:
+        """
+        Verify that disabled monitors do not count towards the organization's manual monitor limit.
+
+        Disabled monitors (enabled=False, status=ACTIVE) should not prevent creating new monitors.
+        The limit check should only count enabled monitors, allowing users to create new monitors
+        up to MAX_MANUAL_SUBSCRIPTIONS_PER_ORG enabled monitors regardless of how many are disabled.
+        """
+        with mock.patch(
+            "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=2
+        ):
+            # Create and then disable a monitor
+            detector1 = create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://example1.com",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+            disable_uptime_detector(detector1)
+
+            # Verify the detector is disabled but still ACTIVE status
+            detector1.refresh_from_db()
+            assert detector1.enabled is False
+            assert detector1.status == ObjectStatus.ACTIVE
+
+            # Should be able to create 2 more monitors (disabled one shouldn't count)
+            detector2 = create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://example2.com",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+            assert detector2.enabled is True
+
+            detector3 = create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://example3.com",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+            assert detector3.enabled is True
+
+            # Verify we have 2 enabled and 1 disabled
+            enabled_count = Detector.objects.filter(
+                project__organization_id=self.organization.id,
+                status=ObjectStatus.ACTIVE,
+                enabled=True,
+                type=UptimeDomainCheckFailure.slug,
+                config__mode=UptimeMonitorMode.MANUAL.value,
+            ).count()
+            assert enabled_count == 2
+
+            total_active_count = Detector.objects.filter(
+                project__organization_id=self.organization.id,
+                status=ObjectStatus.ACTIVE,
+                type=UptimeDomainCheckFailure.slug,
+                config__mode=UptimeMonitorMode.MANUAL.value,
+            ).count()
+            assert total_active_count == 3  # 2 enabled + 1 disabled
+
+            # Creating a 3rd enabled monitor should fail (at limit of enabled)
+            with pytest.raises(MaxManualUptimeSubscriptionsReached):
+                create_uptime_detector(
+                    self.project,
+                    self.environment,
+                    url="https://example4.com",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=UptimeMonitorMode.MANUAL,
+                )
+
+    def test_deleted_monitor_frees_slot_immediately(self) -> None:
+        """
+        Verify that deleting a monitor immediately frees up a slot for creating a new one.
+
+        Deleted monitors have status=PENDING_DELETION rather than status=ACTIVE, so they
+        should not be counted by check_uptime_subscription_limit(), allowing immediate
+        reuse of their quota slot.
+        """
+        with mock.patch(
+            "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=2
+        ):
+            # Create 2 monitors (at limit)
+            detector1 = create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://example1.com",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+            create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://example2.com",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+
+            # Verify at limit
+            with pytest.raises(MaxManualUptimeSubscriptionsReached):
+                create_uptime_detector(
+                    self.project,
+                    self.environment,
+                    url="https://should-fail.com",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=UptimeMonitorMode.MANUAL,
+                )
+
+            # Delete one monitor
+            with self.tasks():
+                delete_uptime_detector(detector1)
+                run_scheduled_deletions()
+
+            # Verify detector is deleted
+            with pytest.raises(Detector.DoesNotExist):
+                detector1.refresh_from_db()
+
+            # Should be able to create a new monitor immediately
+            detector3 = create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://example3.com",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+            assert detector3.enabled is True
+
+            # Verify we're at limit again (2 enabled monitors)
+            with pytest.raises(MaxManualUptimeSubscriptionsReached):
+                create_uptime_detector(
+                    self.project,
+                    self.environment,
+                    url="https://should-fail-again.com",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=UptimeMonitorMode.MANUAL,
+                )
 
     def test_auto_associates_active_regions(self) -> None:
         regions = [
@@ -808,14 +956,24 @@ class DisableUptimeDetectorTest(UptimeTestCase):
             )
             uptime_subscription = get_uptime_subscription(detector)
 
-            # XXX(epurkhiser): This should actually be looking at the detector state
-            uptime_subscription.update(uptime_status=UptimeStatus.FAILED)
+            # Set detector state to HIGH to simulate a failed state
+            self.create_detector_state(
+                detector=detector,
+                detector_group_key=None,
+                state=DetectorPriorityLevel.HIGH,
+                is_triggered=True,
+            )
 
             disable_uptime_detector(detector)
             mock_resolve_uptime_issue.assert_called_with(detector)
 
+        detector.refresh_from_db()
         uptime_subscription.refresh_from_db()
-        assert uptime_subscription.uptime_status == UptimeStatus.OK
+        # After disabling, the detector state should be OK and not triggered (we reset it)
+        detector_state = detector.detectorstate_set.first()
+        assert detector_state is not None
+        assert not detector_state.is_triggered
+        assert detector_state.priority_level == DetectorPriorityLevel.OK
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
         mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
 
@@ -1023,6 +1181,88 @@ class EnableUptimeDetectorTest(UptimeTestCase):
 
         detector.refresh_from_db()
         assert detector.enabled
+
+    @mock.patch(
+        "sentry.quotas.backend.assign_seat",
+        return_value=Outcome.ACCEPTED,
+    )
+    @mock.patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=True),
+    )
+    def test_enable_with_other_disabled_monitors_present(
+        self, mock_assign_seat: mock.MagicMock, mock_check_assign_seat: mock.MagicMock
+    ) -> None:
+        """
+        Verify that enabling a monitor works regardless of disabled monitors in the organization.
+
+        The ENABLE path (via update_uptime_detector) uses billing seat quota checks only,
+        not the organization-level monitor count limit. This allows enabling monitors even
+        when other disabled monitors exist, as long as billing quota is available.
+        """
+        with mock.patch(
+            "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=2
+        ):
+            # Create two monitors
+            with mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector"):
+                detector1 = create_uptime_detector(
+                    self.project,
+                    self.environment,
+                    url="https://example1.com",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=UptimeMonitorMode.MANUAL,
+                )
+                detector2 = create_uptime_detector(
+                    self.project,
+                    self.environment,
+                    url="https://example2.com",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=UptimeMonitorMode.MANUAL,
+                )
+
+            # Disable first monitor
+            disable_uptime_detector(detector1)
+            detector1.refresh_from_db()
+            assert detector1.enabled is False
+            assert detector1.status == ObjectStatus.ACTIVE
+
+            # Mark second monitor as disabled
+            detector2.update(enabled=False)
+            uptime_sub2 = get_uptime_subscription(detector2)
+            uptime_sub2.update(status=UptimeSubscription.Status.DISABLED.value)
+
+            # Should be able to enable the second monitor even though first is disabled
+            # This bypasses check_uptime_subscription_limit() and only checks billing quota
+            with self.tasks():
+                enable_uptime_detector(detector2)
+
+            detector2.refresh_from_db()
+            assert detector2.enabled is True
+
+            # Verify quota backend was called for seat assignment
+            mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector2)
+            mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector2)
+
+            # Verify we still have 1 enabled and 1 disabled
+            enabled_count = Detector.objects.filter(
+                project__organization_id=self.organization.id,
+                status=ObjectStatus.ACTIVE,
+                enabled=True,
+                type=UptimeDomainCheckFailure.slug,
+                config__mode=UptimeMonitorMode.MANUAL.value,
+            ).count()
+            assert enabled_count == 1
+
+            disabled_count = Detector.objects.filter(
+                project__organization_id=self.organization.id,
+                status=ObjectStatus.ACTIVE,
+                enabled=False,
+                type=UptimeDomainCheckFailure.slug,
+                config__mode=UptimeMonitorMode.MANUAL.value,
+            ).count()
+            assert disabled_count == 1
 
 
 class CheckAndUpdateRegionsTest(UptimeTestCase):

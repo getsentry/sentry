@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:02.632861+00:00'
+created: '2025-10-06T21:57:33.120005+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_ns_error": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -821,13 +821,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception",
+    "contributes": true,
+    "description": "NSError",
     "hash": "029f3b967068b1539f96957b7c0451d7",
     "hint": null,
-    "key": "app",
+    "key": "app_ns_error",
     "type": "component"
   },
-  "system": {
+  "system_thread_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because app exception takes precedence",
@@ -1585,10 +1586,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "system",
+    "contributes": false,
+    "description": "thread stacktrace — all frames",
     "hash": null,
     "hint": "ignored because app exception takes precedence",
-    "key": "system",
+    "key": "system_thread_stacktrace",
     "type": "component"
   }
 }

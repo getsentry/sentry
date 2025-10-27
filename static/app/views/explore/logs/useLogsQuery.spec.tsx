@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
@@ -18,8 +18,8 @@ import {
   LOGS_REFRESH_INTERVAL_KEY,
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -30,7 +30,6 @@ import {
   useInfiniteLogsQuery,
   type LogPageParam,
 } from 'sentry/views/explore/logs/useLogsQuery';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
@@ -60,13 +59,7 @@ describe('useInfiniteLogsQuery', () => {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
           >
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            </LogsPageParamsProvider>
+            {children}
           </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
@@ -94,10 +87,14 @@ describe('useInfiniteLogsQuery', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(({disabled}) => useInfiniteLogsQuery({disabled}), {
-      wrapper: createWrapper(),
-      initialProps: {disabled: true},
-    });
+    const {result} = renderHookWithProviders(
+      ({disabled}) => useInfiniteLogsQuery({disabled}),
+      {
+        additionalWrapper: createWrapper(),
+        initialProps: {disabled: true},
+        organization,
+      }
+    );
 
     expect(result.current.isPending).toBe(true);
     expect(result.current.data).toHaveLength(0);
@@ -118,8 +115,9 @@ describe('useInfiniteLogsQuery', () => {
       );
     }
 
-    const {result, rerender} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper(),
+    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
     });
 
     await waitFor(() => {
@@ -207,8 +205,9 @@ describe('useInfiniteLogsQuery', () => {
       headers: linkHeaders,
     });
 
-    const {result, rerender} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper(),
+    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
     });
 
     await waitFor(() => {
@@ -252,6 +251,68 @@ describe('useInfiniteLogsQuery', () => {
     expect(cachedData.pageParams).toHaveLength(1);
 
     expect(result.current.hasNextPage).toBe(true);
+  });
+
+  it('triggers the high accuracy request when there is no data and a partial scan', async () => {
+    const mockNormalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          dataScanned: 'partial',
+          fields: {},
+        },
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
+        },
+      ],
+    });
+
+    const mockHighAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          dataScanned: 'full',
+          fields: {},
+        },
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
+        },
+      ],
+    });
+
+    renderHookWithProviders(() => useInfiniteLogsQuery({}), {
+      additionalWrapper: createWrapper(),
+    });
+
+    expect(mockNormalRequest).toHaveBeenCalledTimes(1);
+    expect(mockNormalRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'ourlogs',
+          sampling: SAMPLING_MODE.NORMAL,
+        }),
+      })
+    );
+
+    await waitFor(() => expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1));
+    expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'ourlogs',
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+        }),
+      })
+    );
   });
 });
 
@@ -447,13 +508,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
           >
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            </LogsPageParamsProvider>
+            {children}
           </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
@@ -489,8 +544,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'enabled'}),
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      organization,
     });
 
     await waitFor(() => {
@@ -516,8 +572,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'idle'}),
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'idle'}),
+      organization,
     });
 
     await waitFor(() => {
@@ -572,8 +629,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'enabled'}),
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      organization,
     });
 
     await waitFor(() => {
@@ -633,8 +691,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
+      organization,
     });
 
     await waitFor(() => {

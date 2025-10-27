@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import Panel from 'sentry/components/panels/panel';
+import {Container} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -41,7 +41,12 @@ function TrialAlert({organization, subscription}: Props) {
     : 'business plan';
 
   return (
-    <Panel data-test-id="trial-alert">
+    <Container
+      data-test-id="trial-alert"
+      background="primary"
+      border="primary"
+      radius="md"
+    >
       <SubscriptionBody withPadding>
         <TrialInfo>
           <TrialHeader>
@@ -67,7 +72,7 @@ function TrialAlert({organization, subscription}: Props) {
           </ButtonWrapper>
         )}
       </SubscriptionBody>
-    </Panel>
+    </Container>
   );
 }
 

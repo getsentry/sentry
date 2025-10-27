@@ -4,6 +4,7 @@ import logging
 
 from django import forms
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponse, HttpResponseBadRequest, HttpResponseBase
 from django.urls import reverse
@@ -14,6 +15,7 @@ from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.auth.services.auth import RpcAuthProvider, auth_service
 from sentry.auth.store import FLOW_SETUP_PROVIDER
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
@@ -34,6 +36,19 @@ logger = logging.getLogger("sentry.saml_setup_error")
 
 
 def auth_provider_settings_form(provider, auth_provider, organization, request):
+    # Determine the default role choices the current user is allowed to assign
+    if is_active_superuser(request):
+        role_choices = roles.get_choices()
+    else:
+        org_member = organization_service.check_membership_by_id(
+            organization_id=organization.id, user_id=request.user.id
+        )
+        if org_member is None:
+            raise PermissionDenied("User is not a member of the organization")
+
+        member_role = roles.get(org_member.role)
+        role_choices = [(r.id, r.name) for r in roles.get_all() if member_role.can_manage(r)]
+
     class AuthProviderSettingsForm(forms.Form):
         disabled = provider.is_partner
         require_link = forms.BooleanField(
@@ -58,7 +73,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
 
         default_role = forms.ChoiceField(
             label=_("Default Role"),
-            choices=roles.get_choices(),
+            choices=role_choices,
             help_text=_(
                 "The default role new members will receive when logging in for the first time."
             ),
@@ -139,6 +154,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 next_uri = f"/settings/{organization.slug}/auth/"
                 return self.redirect(next_uri)
             elif op == "reinvite":
+                assert request.user.is_authenticated
                 email_missing_links_control.delay(organization.id, request.user.id, provider.key)
 
                 messages.add_message(request, messages.SUCCESS, OK_REMINDERS_SENT)

@@ -20,7 +20,6 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {
   setApiQueryData,
   useApiQuery,
@@ -31,20 +30,19 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type Props = RouteComponentProps<{projectId: string}>;
-
 type DeleteTagResponse = unknown;
 type DeleteTagVariables = {key: TagWithTopValues['key']};
 
-function ProjectTags(props: Props) {
+export default function ProjectTags() {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {projectId} = props.params;
+  const {projectId} = useParams<{projectId: string}>();
 
   const project = projects.find(p => p.slug === projectId);
 
@@ -152,8 +150,6 @@ function ProjectTags(props: Props) {
     </Fragment>
   );
 }
-
-export default ProjectTags;
 
 const TagPanelItem = styled(PanelItem)`
   padding: 0;

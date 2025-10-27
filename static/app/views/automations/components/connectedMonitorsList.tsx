@@ -23,6 +23,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   connectedDetectorIds?: Automation['detectorIds'];
   emptyMessage?: string;
   numSkeletons?: number;
+  openInNewTab?: boolean;
   toggleConnected?: (params: {detector: Detector}) => void;
 };
 
@@ -65,6 +66,7 @@ export default function ConnectedMonitorsList({
   toggleConnected,
   emptyMessage = t('No monitors connected'),
   numSkeletons = 10,
+  openInNewTab,
   ...props
 }: Props) {
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
@@ -93,7 +95,7 @@ export default function ConnectedMonitorsList({
         {detectors.map(detector => (
           <SimpleTable.Row key={detector.id}>
             <SimpleTable.RowCell>
-              <DetectorLink detector={detector} />
+              <DetectorLink detector={detector} openInNewTab={openInNewTab} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="type">
               <DetectorTypeCell type={detector.type} />
@@ -125,7 +127,7 @@ const Container = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 100px auto auto auto;
+  grid-template-columns: 1fr 100px minmax(0, 0.8fr) auto auto;
 
   /*
     The connected column can be added/removed depending on props, so in order to

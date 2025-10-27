@@ -28,9 +28,11 @@ function generatePerformanceGroupInfo({
   return group
     ? {
         [group.issueType]: {
+          contributes: true,
           description: t('performance problem'),
           hash: event.occurrence?.fingerprint[0] || '',
           hashMismatch: false,
+          hint: null,
           key: group.issueType,
           type: EventGroupVariantType.PERFORMANCE_PROBLEM,
           evidence: {

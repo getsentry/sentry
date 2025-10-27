@@ -77,7 +77,7 @@ describe('useTimeout', () => {
     expect(result.current.start).not.toBe(firstRender.start);
   });
 
-  it('should return a new start() and end() method when onTimeout changes', () => {
+  it('should not return a new start() and end() method when onTimeout changes', () => {
     const {result, rerender} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
@@ -88,8 +88,8 @@ describe('useTimeout', () => {
 
     expect(result.current.cancel).toBe(firstRender.cancel);
 
-    expect(result.current.start).not.toBe(firstRender.start);
-    expect(result.current.end).not.toBe(firstRender.end);
+    expect(result.current.start).toBe(firstRender.start);
+    expect(result.current.end).toBe(firstRender.end);
   });
 
   it('should not exec the callback after unmount', () => {

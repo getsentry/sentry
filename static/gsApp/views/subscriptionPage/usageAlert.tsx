@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import Panel from 'sentry/components/panels/panel';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -116,7 +117,12 @@ function UsageAlert({subscription, usage}: Props) {
     }
 
     return (
-      <Panel data-test-id="projected-overage-alert">
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        data-test-id="projected-overage-alert"
+      >
         <SubscriptionBody withPadding>
           <UsageInfo>
             <IconStats size="md" color="blue300" />
@@ -133,13 +139,18 @@ function UsageAlert({subscription, usage}: Props) {
           </UsageInfo>
           {renderPrimaryCTA('projected-overage')}
         </SubscriptionBody>
-      </Panel>
+      </Container>
     );
   }
 
   function renderGracePeriodInfo() {
     return (
-      <Panel data-test-id="grace-period-alert">
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        data-test-id="grace-period-alert"
+      >
         <SubscriptionBody withPadding>
           <UsageInfo>
             <IconWarning size="md" color="yellow300" />
@@ -158,7 +169,7 @@ function UsageAlert({subscription, usage}: Props) {
           </UsageInfo>
           {renderPrimaryCTA('grace-period')}
         </SubscriptionBody>
-      </Panel>
+      </Container>
     );
   }
 
@@ -193,7 +204,12 @@ function UsageAlert({subscription, usage}: Props) {
           });
 
     return (
-      <Panel data-test-id="usage-exceeded-alert">
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        data-test-id="usage-exceeded-alert"
+      >
         <SubscriptionBody withPadding>
           <UsageInfo>
             <IconFire size="md" color="red300" />
@@ -210,7 +226,7 @@ function UsageAlert({subscription, usage}: Props) {
           </UsageInfo>
           {renderPrimaryCTA('exceded-quota')}
         </SubscriptionBody>
-      </Panel>
+      </Container>
     );
   }
 
@@ -275,11 +291,11 @@ function UsageAlert({subscription, usage}: Props) {
   const showProjected = !hasExceeded && !subscription.isGracePeriod;
 
   return (
-    <div data-test-id="usage-alert">
+    <Flex direction="column" gap="xl" data-test-id="usage-alert">
       {hasExceeded && renderExceededInfo()}
       {subscription.isGracePeriod && renderGracePeriodInfo()}
       {showProjected && renderProjectedInfo(projectedOverages)}
-    </div>
+    </Flex>
   );
 }
 

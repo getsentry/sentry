@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -6,14 +5,31 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
-import {useLocation} from 'sentry/utils/useLocation';
+import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
 
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
+const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
+  return render(<TransactionSummaryLayout />, {
+    organization: data.organization,
+    initialRouterConfig: {
+      location: {
+        pathname: '/performance/summary/events/',
+        query: data.routerProps.location.query,
+      },
+      route: '/performance/summary/',
+      children: [
+        {
+          path: 'events',
+          handle: {tab: TransactionSummaryTab.EVENTS},
+          element: <TransactionEvents />,
+        },
+      ],
+    },
+  });
+};
 
 type Data = {
   features?: string[];
@@ -45,10 +61,6 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 
 describe('Performance > TransactionSummary', () => {
   beforeEach(() => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
-    );
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -172,11 +184,11 @@ describe('Performance > TransactionSummary', () => {
   });
 
   it('renders basic UI elements', async () => {
-    const {organization, projects, router} = initializeData();
+    const data = initializeData();
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData(data.projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />);
+    renderWithLayout(data);
 
     // Breadcrumb
     expect((await screen.findAllByTestId('breadcrumb-item'))[0]).toHaveTextContent(
@@ -203,11 +215,11 @@ describe('Performance > TransactionSummary', () => {
   });
 
   it('renders relative span breakdown header when no filter selected', async () => {
-    const {organization, projects, router} = initializeData();
+    const data = initializeData();
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData(data.projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />);
+    renderWithLayout(data);
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
@@ -216,11 +228,11 @@ describe('Performance > TransactionSummary', () => {
   });
 
   it('renders event column results correctly', async () => {
-    const {organization, projects, router} = initializeData();
+    const data = initializeData();
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData(data.projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />);
+    renderWithLayout(data);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(6);
@@ -243,13 +255,13 @@ describe('Performance > TransactionSummary', () => {
   });
 
   it('renders additional Web Vital column', async () => {
-    const {organization, projects, router} = initializeData({
+    const data = initializeData({
       query: {webVital: WebVital.LCP},
     });
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData(data.projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />);
+    renderWithLayout(data);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(7);

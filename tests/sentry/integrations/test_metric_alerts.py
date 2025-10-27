@@ -4,6 +4,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
@@ -30,6 +31,10 @@ def incident_attachment_info_with_metric_value(incident, new_status, metric_valu
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(type=MetricIssue.type_id)
+
     def test_returns_correct_info(self) -> None:
         alert_rule = self.create_alert_rule()
         date_started = self.now

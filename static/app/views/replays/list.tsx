@@ -67,7 +67,7 @@ export default function ReplaysListContainer() {
         </StyledLayoutHeader>
         <PageFiltersContainer>
           <Layout.Body>
-            <Layout.Main fullWidth>
+            <Layout.Main width="full">
               <Grid gap="xl" columns="100%">
                 <ReplayListPageHeaderHook />
                 {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (

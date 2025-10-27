@@ -15,6 +15,7 @@ import type {
   LegendSelection,
   TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -53,6 +54,10 @@ export interface InsightsTimeSeriesWidgetProps
   isLoading: boolean;
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
+  /**
+   * Optional color palette that will be used inplace of COMMON_COLORS.
+   */
+  colorPalette?: readonly string[];
   description?: React.ReactNode;
   extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
@@ -128,16 +133,22 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         alias: aliases?.[delayedTimeSeries.yAxis],
       });
     }),
-    ...(props.timeSeries?.filter(Boolean) ?? []).map(timeSeries => {
+    ...(props.timeSeries?.filter(Boolean) ?? []).map((timeSeries, idx) => {
       // TODO: After merge of ENG-5375 we don't need to run `markDelayedData` on output of `/events-timeseries/`
       const delayedTimeSeries = markDelayedData(timeSeries, INGESTION_DELAY);
 
       yAxes.add(timeSeries.yAxis);
 
+      let alias = aliases?.[delayedTimeSeries.yAxis];
+      const plottableName = formatTimeSeriesName(delayedTimeSeries);
+      if (aliases?.[plottableName]) {
+        alias = aliases?.[plottableName];
+      }
+
       return new PlottableDataConstructor(delayedTimeSeries, {
-        color: COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
+        color: props.colorPalette?.[idx] ?? COMMON_COLORS(theme)[plottableName],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: aliases?.[delayedTimeSeries.yAxis],
+        alias,
       });
     }),
     ...(props.extraPlottables ?? []),
@@ -288,5 +299,7 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'performance_score(measurements.score.inp)': vitalColors[2],
     'performance_score(measurements.score.cls)': vitalColors[3],
     'performance_score(measurements.score.ttfb)': vitalColors[4],
+    'epm() : span.op : queue.publish': colors[1],
+    'epm() : span.op : queue.process': colors[2],
   };
 };

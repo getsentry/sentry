@@ -15,6 +15,7 @@ from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
@@ -248,7 +249,7 @@ class ProjectTest(APITestCase, TestCase):
             integration_id=integration.id,
         )
 
-        RepositoryProjectPathConfig.objects.create(
+        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
             repository=repository,
             project=project,
             organization_integration_id=org_integration.id,
@@ -259,12 +260,20 @@ class ProjectTest(APITestCase, TestCase):
             default_branch="main",
         )
 
+        ProjectCodeOwners.objects.create(
+            project=project,
+            repository_project_path_config=repository_project_path_config,
+            raw="*.py @getsentry/test-team",
+        )
+
         project.transfer_to(organization=to_org)
 
         assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
         assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 0
+
+        assert ProjectCodeOwners.objects.filter(project_id=project.id).count() == 0
 
     def test_transfer_to_organization_alert_rules(self) -> None:
         from_org = self.create_organization()

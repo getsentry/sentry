@@ -36,7 +36,6 @@ from sentry.tasks.summaries.utils import (
     project_key_performance_issues,
     user_project_ownership,
 )
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
@@ -57,11 +56,9 @@ HOUR_TO_SEND_REPORT = 16
 # The entry point. This task is scheduled to run every day at 4pm PST.
 @instrumented_task(
     name="sentry.tasks.summaries.daily_summary.schedule_organizations",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    retry=Retry(times=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
 )
 @retry
 def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
@@ -120,14 +117,9 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
 
 @instrumented_task(
     name="sentry.tasks.summaries.daily_summary.prepare_summary_data",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    retry=Retry(times=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        retry=Retry(times=5),
-    ),
 )
 @retry
 def prepare_summary_data(

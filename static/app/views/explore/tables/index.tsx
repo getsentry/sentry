@@ -10,10 +10,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  useExploreFields,
-  useSetExploreFields,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -22,7 +18,9 @@ import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTrace
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsFields,
   useSetQueryParamsAggregateFields,
+  useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
@@ -48,8 +46,8 @@ export function ExploreTables(props: ExploreTablesProps) {
   const aggregateFields = useQueryParamsAggregateFields();
   const setAggregateFields = useSetQueryParamsAggregateFields();
 
-  const fields = useExploreFields();
-  const setFields = useSetExploreFields();
+  const fields = useQueryParamsFields();
+  const setFields = useSetQueryParamsFields();
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');

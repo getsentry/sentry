@@ -133,6 +133,9 @@ class ComparatorFindingKind(FindingKind):
     # present or `None`.
     UserPasswordObfuscatingComparatorExistenceCheck = auto()
 
+    # Option values
+    OptionValueComparator = auto()
+
 
 @dataclass(frozen=True)
 class Finding(ABC):

@@ -13,7 +13,7 @@ from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -418,7 +418,7 @@ def get_events_from_nodestore(
                 invalid_event_reasons["excess_frames"] += 1
                 continue
 
-            grouping_info = get_grouping_info_from_variants(variants)
+            grouping_info = get_grouping_info_from_variants_legacy(variants)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
             if not stacktrace_string:

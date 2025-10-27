@@ -145,11 +145,11 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-function TimestampRenderer(props: LogFieldRendererProps) {
+export function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
-    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
     : props.item.value;
 
   return (
@@ -165,12 +165,18 @@ function TimestampRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function InternalIngestedAtRenderer(props: LogFieldRendererProps) {
+  const ingestedAt =
+    props.extra.attributes[OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT];
+  return <DateTime seconds milliseconds date={new Date(Number(ingestedAt))} />;
+}
+
 function RelativeTimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
   const startTimestampMs = props.extra.timestampRelativeTo!;
 
   const timestampToUse = preciseTimestamp
-    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
     : props.item.value;
 
   const timestampMs = timestampToUse ? new Date(timestampToUse).getTime() : 0;
@@ -637,6 +643,7 @@ export const LogAttributesRendererMap: Record<
     }
     return TimestampRenderer(props);
   },
+  [OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT]: InternalIngestedAtRenderer,
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,

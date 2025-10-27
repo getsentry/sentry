@@ -1,4 +1,5 @@
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -7,6 +8,8 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 import EditConnectedMonitors from './editConnectedMonitors';
 
@@ -26,6 +29,7 @@ describe('EditConnectedMonitors', () => {
       method: 'GET',
       body: [detector1],
     });
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
   it('can connect an existing monitor', async () => {

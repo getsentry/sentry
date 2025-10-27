@@ -26,12 +26,11 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -40,8 +39,6 @@ import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
-  organization: Organization;
-  project: Project;
   handleDelete?: () => void;
   rule?: UptimeRule;
 }
@@ -86,15 +83,20 @@ function getFormDataFromRule(rule: UptimeRule) {
   };
 }
 
-export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+export function UptimeAlertForm({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {projects} = useProjects();
   const queryClient = useQueryClient();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const project =
+    projects.find(p => selection.projects[0]?.toString() === p.id) ??
+    (projects.length === 1 ? projects[0] : null);
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: 'GET', headers: []};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -446,7 +448,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            menuPlacement="auto"
             inline={false}
             flexibleControlStateSize
             stacked

@@ -88,6 +88,7 @@ class EventStream(Service):
                     "project_id": project_id,
                     "eventstream_type": eventstream_type,
                 },
+                headers={"sentry-propagate-traces": False},
             )
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:

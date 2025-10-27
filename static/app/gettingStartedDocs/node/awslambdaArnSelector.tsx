@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import Select from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -86,9 +86,9 @@ export function AwsLambdaArnSelector({
 
       <ArnWrapper>
         <ArnLabel>ARN</ArnLabel>
-        <CodeSnippet dark language="bash">
+        <CodeBlock dark language="bash">
           {arn || `# ${t('Select a region')}`}
-        </CodeSnippet>
+        </CodeBlock>
       </ArnWrapper>
     </div>
   );

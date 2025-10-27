@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase
 
 
 class BulkDeleteQueryTest(TestCase):
@@ -42,7 +42,7 @@ class BulkDeleteQueryTest(TestCase):
         assert Group.objects.filter(id=group1_3.id).exists()
 
 
-class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
+class BulkDeleteQueryIteratorTestCase(TestCase):
     def test_iteration(self) -> None:
         target_project = self.project
         expected_group_ids = {self.create_group().id for i in range(2)}
@@ -65,7 +65,7 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
 
         assert results == expected_group_ids
 
-    def test_iteration_with_range_wrapper(self) -> None:
+    def test_iteration_descending(self) -> None:
         target_project = self.project
         expected_group_ids = {self.create_group().id for i in range(2)}
 
@@ -77,32 +77,9 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
             model=Group,
             project_id=target_project.id,
             dtfield="last_seen",
-            order_by="last_seen",
+            order_by="-last_seen",
             days=0,
-        ).iterator(chunk_size=1, use_range_wrapper=True)
-
-        results: set[int] = set()
-        for chunk in iterator:
-            results.update(chunk)
-
-        assert results == expected_group_ids
-
-    def test_iteration_with_range_wrapper_descending(self) -> None:
-        target_project = self.project
-        expected_group_ids = {self.create_group().id for i in range(2)}
-
-        other_project = self.create_project()
-        self.create_group(other_project)
-        self.create_group(other_project)
-
-        # Test with descending order
-        iterator = BulkDeleteQuery(
-            model=Group,
-            project_id=target_project.id,
-            dtfield="last_seen",
-            order_by="-last_seen",  # Descending order
-            days=0,
-        ).iterator(chunk_size=1, use_range_wrapper=True)
+        ).iterator(chunk_size=1)
 
         results: set[int] = set()
         for chunk in iterator:

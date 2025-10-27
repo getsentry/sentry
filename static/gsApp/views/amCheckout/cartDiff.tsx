@@ -1,17 +1,21 @@
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import Color from 'color';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {
+  AddOnCategory,
   OnDemandBudgetMode,
   type Plan,
   type SharedOnDemandBudget,
@@ -19,7 +23,7 @@ import {
 } from 'getsentry/types';
 import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
-import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
@@ -41,7 +45,7 @@ type PlanChange = CheckoutChange<'plan', string>;
 
 type CycleChange = CheckoutChange<'contractInterval', string>;
 
-type ProductChange = CheckoutChange<SelectableProduct, boolean>;
+type ProductChange = CheckoutChange<AddOnCategory, boolean>;
 
 type ReservedChange = CheckoutChange<DataCategory, number>;
 
@@ -50,16 +54,18 @@ type SharedOnDemandChange = CheckoutChange<'sharedMaxBudget', number>;
 type PerCategoryOnDemandChange = CheckoutChange<DataCategory, number | null>;
 
 function AddedHighlight({value}: {value: string}) {
+  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
   return (
-    <Added>
+    <Added prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>
     </Added>
   );
 }
 
 function RemovedHighlight({value}: {value: string}) {
+  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
   return (
-    <Removed>
+    <Removed prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>
     </Removed>
   );
@@ -161,7 +167,6 @@ function ReservedDiff({
                   {getPlanCategoryName({
                     category: key,
                     plan: newValue === null ? currentPlan : newPlan,
-                    title: true,
                   })}
                 </ChangedCategory>
               }
@@ -232,7 +237,7 @@ function OnDemandDiff({
       {perCategoryOnDemandChanges.length > 0 && (
         <ChangeSection data-test-id="per-category-spend-limit-diff">
           <ChangeSectionTitle hasBottomMargin>
-            {t('Per-category spend limits')}
+            {t('Per-product spend limits')}
           </ChangeSectionTitle>
           <ChangeGrid>
             {perCategoryOnDemandChanges.map(({key, currentValue, newValue}) => {
@@ -244,7 +249,6 @@ function OnDemandDiff({
                       {getPlanCategoryName({
                         category: key,
                         plan: newValue === null ? currentPlan : newPlan,
-                        title: true,
                       })}
                     </ChangedCategory>
                   }
@@ -314,15 +318,14 @@ function CartDiff({
   }, [activePlan, currentPlan]);
 
   const getProductChanges = useCallback((): ProductChange[] => {
-    // TODO(checkout v3): This will need to be updated to handle non-budget products
     const currentProducts =
-      subscription.reservedBudgets
-        ?.filter(budget => budget.reservedBudget > 0)
-        .map(budget => budget.apiName as unknown as SelectableProduct) ?? [];
+      Object.values(subscription.addOns ?? {})
+        .filter(addOnInfo => addOnInfo.enabled)
+        .map(addOnInfo => addOnInfo.apiName) ?? [];
 
-    const newProducts = Object.entries(formData.selectedProducts ?? {})
+    const newProducts = Object.entries(formData.addOns ?? {})
       .filter(([_, value]) => value.enabled)
-      .map(([key, _]) => key as unknown as SelectableProduct);
+      .map(([key, _]) => key as AddOnCategory);
 
     // we need to iterate over both in case either state has more products
     // than the other
@@ -347,7 +350,7 @@ function CartDiff({
     });
 
     return changes;
-  }, [formData.selectedProducts, subscription.reservedBudgets]);
+  }, [formData.addOns, subscription.addOns]);
 
   const getCategoryChanges = ({
     currentValues,
@@ -455,10 +458,18 @@ function CartDiff({
     ) {
       changes.push({
         key: 'sharedMaxBudget',
-        currentValue: currentOnDemandBudget.sharedMaxBudget,
+        currentValue:
+          // only show $0 PAYG changes if the budget is being changed to $0
+          currentOnDemandBudget.sharedMaxBudget === 0
+            ? null
+            : currentOnDemandBudget.sharedMaxBudget,
         newValue: newOnDemandBudget.sharedMaxBudget,
       });
-    } else if (currentBudgetMode === OnDemandBudgetMode.SHARED) {
+    } else if (
+      currentBudgetMode === OnDemandBudgetMode.SHARED &&
+      // only show $0 PAYG changes if the budget is being changed to $0
+      currentOnDemandBudget.sharedMaxBudget !== 0
+    ) {
       changes.push({
         key: 'sharedMaxBudget',
         currentValue: currentOnDemandBudget.sharedMaxBudget,
@@ -559,19 +570,19 @@ function CartDiff({
               cycleChanges={cycleChanges}
             />
           )}
-          {reservedChanges.length > 0 && (
-            <ReservedDiff
-              currentPlan={currentPlan}
-              newPlan={activePlan}
-              reservedChanges={reservedChanges}
-            />
-          )}
           {sharedOnDemandChanges.length + perCategoryOnDemandChanges.length > 0 && (
             <OnDemandDiff
               currentPlan={currentPlan}
               newPlan={activePlan}
               perCategoryOnDemandChanges={perCategoryOnDemandChanges}
               sharedOnDemandChanges={sharedOnDemandChanges}
+            />
+          )}
+          {reservedChanges.length > 0 && (
+            <ReservedDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              reservedChanges={reservedChanges}
             />
           )}
         </ChangesContainer>
@@ -587,7 +598,7 @@ const ChangesContainer = styled('div')`
     border-bottom: 1px solid ${p => p.theme.border};
   }
   max-height: 300px;
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 const Title = styled('h1')`
@@ -609,23 +620,26 @@ const Change = styled('div')`
   }
 `;
 
-const Added = styled(Change)`
-  background: #e0ffe3;
+const Added = styled(Change)<{prefersDarkMode?: boolean}>`
+  background: ${p => p.theme.green200};
 
   &::before {
     content: '+';
   }
 
   span {
-    background: #a8ecaa;
+    background: ${p =>
+      p.prefersDarkMode
+        ? Color(p.theme.green400).lighten(0.08).alpha(0.5).string()
+        : '#a8ecaa'};
   }
 `;
 
-const Removed = styled(Change)`
+const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
   background: ${p => p.theme.red100};
 
   span {
-    background: #f7d4d3;
+    background: ${p => (p.prefersDarkMode ? p.theme.red400 : '#f7d4d3')};
   }
 `;
 

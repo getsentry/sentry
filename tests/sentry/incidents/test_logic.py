@@ -97,6 +97,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
+from sentry.utils import json
 from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -663,6 +664,12 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         assert mock_seer_request.call_count == 1
+        call_args_str = mock_seer_request.call_args_list[0].kwargs["body"].decode("utf-8")
+        assert json.loads(call_args_str)["alert"] == {
+            "id": alert_rule.id,
+            "source_id": alert_rule.snuba_query.subscriptions.get().id,
+            "source_type": 1,
+        }
         assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
@@ -2193,7 +2200,6 @@ class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
     def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_enable(self) -> None:
         with self.tasks():
             disable_alert_rule(self.alert_rule)
@@ -2208,7 +2214,6 @@ class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_disable(self) -> None:
         with self.tasks():
             disable_alert_rule(self.alert_rule)
@@ -2261,7 +2266,6 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         for qs in query_subscriptions:
             assert qs.status == query_subscription_status
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_enable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
@@ -2273,14 +2277,12 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
 
         self.assert_detector_enabled_disabled(detector=self.detector, enabled=True)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_disable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
         self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_multiple_data_sources_enable_disable(self) -> None:
         with self.tasks():
             self.snuba_query = create_snuba_query(

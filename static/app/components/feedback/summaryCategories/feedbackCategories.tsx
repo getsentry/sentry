@@ -5,14 +5,15 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function getSearchTermForLabel(label: string) {
+function getSearchTermForLabel(label: string, hasWildcardOps: boolean) {
   /**
    * Return exactly what we have to pass to the search API
    * The search API uses a very similar (almost exactly the same, except wildcards) escape logic to JSON.stringify, so doing it twice just "makes it work"
@@ -22,19 +23,17 @@ function getSearchTermForLabel(label: string) {
    * Special case: if the label has a literal * (asterisk) in it, we have to escape it to indicate that we want to match the literal *
    * - The asterisk escape is added after both JSON conversions, since otherwise, the \* would be escaped to \\* and would match the wildcard instead of the literal *
    */
-
-  const exactMatchString = JSON.stringify(label);
-  let toPassToSearch = JSON.stringify(exactMatchString);
-  toPassToSearch = escapeFilterValue(toPassToSearch);
+  const toPassToSearch = escapeFilterValue(JSON.stringify(JSON.stringify(label)));
   // Now, add the wildcards to the string (second spot and second-last spot, since we want them inside the second pair of quotes)
   // The first and last quotes are added by the second JSON.stringify, we just manually add them back
-  toPassToSearch = `"*${toPassToSearch.slice(1, -1)}*"`;
-  return toPassToSearch;
+  return hasWildcardOps
+    ? `"${toPassToSearch.slice(1, -1)}"`
+    : `"*${toPassToSearch.slice(1, -1)}*"`;
 }
 
-function getSearchTermForLabelList(labels: string[]) {
+function getSearchTermForLabelList(labels: string[], hasWildcardOps: boolean) {
   labels.sort();
-  const searchTerms = labels.map(label => getSearchTermForLabel(label));
+  const searchTerms = labels.map(label => getSearchTermForLabel(label, hasWildcardOps));
   return `[${searchTerms.join(',')}]`;
 }
 
@@ -50,9 +49,13 @@ export default function FeedbackCategories() {
   const navigate = useNavigate();
   const organization = useOrganization();
 
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
   useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
-    if (isPending || isOrgSeerSetupPending) {
+    if (isPending || isOrgSeerSetupPending || !setupAcknowledgement.orgHasAcknowledged) {
       return;
     }
     if (isError) {
@@ -67,7 +70,7 @@ export default function FeedbackCategories() {
       trackAnalytics('feedback.summary.categories-empty', {
         organization,
       });
-    } else if (setupAcknowledgement.orgHasAcknowledged) {
+    } else {
       trackAnalytics('feedback.summary.categories-rendered', {
         organization,
         num_categories: categories.length,
@@ -105,29 +108,50 @@ export default function FeedbackCategories() {
     return null;
   }
 
+  const isCategorySelected = (category: {
+    associatedLabels: string[];
+    primaryLabel: string;
+  }) => {
+    // Create search terms for primary label and all associated labels
+    const allLabels = [category.primaryLabel, ...category.associatedLabels];
+    const exactSearchTerm = getSearchTermForLabelList(allLabels, hasWildcardOperators);
+    const currentFilters = searchConditions.getFilterValues('ai_categorization.labels');
+
+    // Only show a tag as selected if it is the only filter, and the search term matches exactly
+    return `[${currentFilters.map(c => `"${c}"`).join(',')}]` === exactSearchTerm;
+  };
+
   const handleTagClick = (category: {
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
     const allLabels = [category.primaryLabel, ...category.associatedLabels];
 
-    const exactSearchTerm = getSearchTermForLabelList(allLabels);
+    const exactSearchTerm = getSearchTermForLabelList(allLabels, hasWildcardOperators);
 
     const isSelected = isCategorySelected(category);
 
     const newSearchConditions = new MutableSearch(currentQuery);
 
     if (isSelected) {
-      newSearchConditions.removeFilterValue('ai_categorization.labels', exactSearchTerm);
+      newSearchConditions.removeFilter('ai_categorization.labels');
     } else {
       newSearchConditions.removeFilter('ai_categorization.labels');
 
       // Don't escape the search term, since we want wildcards to work; escape the string ourselves before adding the wildcards
-      newSearchConditions.addFilterValue(
-        'ai_categorization.labels',
-        exactSearchTerm,
-        false
-      );
+      if (hasWildcardOperators) {
+        newSearchConditions.addContainsFilterValue(
+          'ai_categorization.labels',
+          exactSearchTerm,
+          false
+        );
+      } else {
+        newSearchConditions.addFilterValue(
+          'ai_categorization.labels',
+          exactSearchTerm,
+          false
+        );
+      }
 
       trackAnalytics('feedback.summary.category-selected', {
         organization,
@@ -143,19 +167,6 @@ export default function FeedbackCategories() {
         query: newSearchConditions.formatString(),
       },
     });
-  };
-
-  const isCategorySelected = (category: {
-    associatedLabels: string[];
-    primaryLabel: string;
-  }) => {
-    // Create search terms for primary label and all associated labels
-    const allLabels = [category.primaryLabel, ...category.associatedLabels];
-    const exactSearchTerm = getSearchTermForLabelList(allLabels);
-    const currentFilters = searchConditions.getFilterValues('ai_categorization.labels');
-
-    // Only show a tag as selected if it is the only filter, and the search term matches exactly
-    return currentFilters.length === 1 && currentFilters[0] === exactSearchTerm;
   };
 
   // TODO: after all feedbacks have the .labels tag, uncomment the feedback count

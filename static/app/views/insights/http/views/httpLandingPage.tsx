@@ -28,20 +28,12 @@ import {
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const {view} = useDomainViewFilters();
 
   const query = useLocationQuery({
     fields: {
@@ -99,19 +91,11 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  const headerProps = {
-    module: ModuleName.HTTP,
-  };
-
   return (
     <React.Fragment>
-      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
-      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
-      {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
-
       <ModuleFeature moduleName={ModuleName.HTTP}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ToolRibbon>

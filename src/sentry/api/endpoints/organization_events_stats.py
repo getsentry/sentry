@@ -36,6 +36,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
@@ -191,6 +192,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        TraceMetrics,
                         errors,
                         transactions,
                     ]
@@ -248,8 +250,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         config=SearchResolverConfig(
                             auto_fields=False,
                             use_aggregate_conditions=True,
-                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                            in request.GET,
+                            disable_aggregate_extrapolation=request.GET.get(
+                                "disableAggregateExtrapolation", "0"
+                            )
+                            == "1",
                         ),
                         sampling_mode=snuba_params.sampling_mode,
                         equations=self.get_equation_list(organization, request),
@@ -284,8 +288,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     config=SearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
-                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                        in request.GET,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
                     ),
                     sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,

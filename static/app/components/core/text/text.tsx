@@ -85,6 +85,12 @@ export interface BaseTextProps {
   variant?: keyof Theme['tokens']['content'];
 
   /**
+   * Determines where line breaks appear when wrapping the text.
+   * @default undefined
+   */
+  wordBreak?: 'normal' | 'break-all' | 'keep-all' | 'break-word';
+
+  /**
    * Determines text wrapping.
    */
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
@@ -132,6 +138,7 @@ export const Text = styled(
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   text-wrap: ${p => p.textWrap ?? undefined};
+  word-break: ${p => p.wordBreak ?? undefined};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
   display: ${p =>
     p.as === 'div'

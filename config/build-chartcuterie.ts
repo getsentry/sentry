@@ -95,6 +95,7 @@ async function runEsbuild(commitHash: string): Promise<void> {
       '.eot': 'file',
       '.pegjs': 'text',
     },
+    external: ['*.css'],
   });
 }
 

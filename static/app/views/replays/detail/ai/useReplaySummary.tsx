@@ -108,8 +108,8 @@ export function useReplaySummary(
     },
   });
 
-  // Start initial timeouts in case auto-start request is not made.
-  // The callbacks are stable so this should only run on mount.
+  // Start initial timeouts in case auto-start request is not made. startSummaryRequest will cancel and restart them.
+  // Should only run on mount since the callbacks are stable.
   useEffect(() => {
     startStartTimeout();
     startTotalTimeout();
@@ -118,7 +118,7 @@ export function useReplaySummary(
       cancelTotalTimeout();
       cancelStartTimeout();
     };
-  }, [startStartTimeout, startTotalTimeout, cancelStartTimeout, cancelTotalTimeout]);
+  }, [startStartTimeout, startTotalTimeout, cancelTotalTimeout, cancelStartTimeout]);
 
   const {
     mutate: startSummaryRequestMutate,
@@ -223,8 +223,10 @@ export function useReplaySummary(
       summaryData &&
       summaryData.status !== ReplaySummaryStatus.NOT_STARTED &&
       (!summaryData.created_at || // note created_at should exist for started statuses
-        new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current)
+        new Date(summaryData.created_at).getTime() >
+          startSummaryRequestTime.current - TOTAL_TIMEOUT_MS)
     ) {
+      // Date condition is loose because a previously started task may be in-progress.
       cancelStartTimeout();
     }
   }, [cancelStartTimeout, summaryData]);

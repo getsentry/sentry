@@ -60,8 +60,11 @@ make develop
 # Or use the newer devenv command
 devenv sync
 
+# Start dev dependencies
+devservices up
+
 # Start the development server
-pnpm run dev
+devservices serve
 ```
 
 ### Testing
@@ -89,7 +92,56 @@ isort --check
 flake8
 ```
 
-### On Commenting
+### Database Operations
+
+```bash
+# Run migrations
+sentry django migrate
+
+# Create new migration
+sentry django makemigrations
+
+# Reset database
+make reset-db
+```
+
+## Development Services
+
+Sentry uses `devservices` to manage local development dependencies:
+
+- **PostgreSQL**: Primary database
+- **Redis**: Caching and queuing
+- **Snuba**: ClickHouse-based event storage
+- **Relay**: Event ingestion service
+- **Symbolicator**: Debug symbol processing
+- **Taskbroker**: Asynchronous task processing
+- **Spotlight**: Local debugging tool
+
+📖 Full devservices documentation: https://develop.sentry.dev/development-infrastructure/devservices.md
+
+## AI Assistant Quick Decision Trees
+
+### "User wants to add an API endpoint"
+
+1. Check if endpoint already exists: `grep -r "endpoint_name" src/sentry/api/`
+2. Inherit from appropriate base:
+   - Organization-scoped: `OrganizationEndpoint`
+   - Project-scoped: `ProjectEndpoint`
+   - Region silo: `RegionSiloEndpoint`
+3. File locations:
+   - Endpoint: `src/sentry/api/endpoints/{resource}.py`
+   - URL: `src/sentry/api/urls.py`
+   - Test: `tests/sentry/api/endpoints/test_{resource}.py`
+   - Serializer: `src/sentry/api/serializers/models/{model}.py`
+
+### "User wants to add a Celery task"
+
+1. Location: `src/sentry/tasks/{category}.py`
+2. Use `@instrumented_task` decorator
+3. Set appropriate `queue` and `max_retries`
+4. Test location: `tests/sentry/tasks/test_{category}.py`
+
+## On Commenting
 
 Comments should not repeat what the code is saying. Instead, reserve comments
 for explaining **why** something is being done, or to provide context that is not
@@ -128,53 +180,6 @@ uses X format”). If compatibility code or legacy behavior is deleted, comments
 about it should also be deleted. The comment should describe the code that
 exists now, not what used to be there. Historic details belong in commit
 messages or documentation, not in-line comments.
-
-### Database Operations
-
-```bash
-# Run migrations
-sentry django migrate
-
-# Create new migration
-sentry django makemigrations
-
-# Reset database
-make reset-db
-```
-
-## Development Services
-
-Sentry uses `devservices` to manage local development dependencies:
-
-- **PostgreSQL**: Primary database
-- **Redis**: Caching and queuing
-- **Snuba**: ClickHouse-based event storage
-- **Relay**: Event ingestion service
-- **Symbolicator**: Debug symbol processing
-- **Taskbroker**: Asynchronous task processing
-- **Spotlight**: Local debugging tool
-
-## AI Assistant Quick Decision Trees
-
-### "User wants to add an API endpoint"
-
-1. Check if endpoint already exists: `grep -r "endpoint_name" src/sentry/api/`
-2. Inherit from appropriate base:
-   - Organization-scoped: `OrganizationEndpoint`
-   - Project-scoped: `ProjectEndpoint`
-   - Region silo: `RegionSiloEndpoint`
-3. File locations:
-   - Endpoint: `src/sentry/api/endpoints/{resource}.py`
-   - URL: `src/sentry/api/urls.py`
-   - Test: `tests/sentry/api/endpoints/test_{resource}.py`
-   - Serializer: `src/sentry/api/serializers/models/{model}.py`
-
-### "User wants to add a Celery task"
-
-1. Location: `src/sentry/tasks/{category}.py`
-2. Use `@instrumented_task` decorator
-3. Set appropriate `queue` and `max_retries`
-4. Test location: `tests/sentry/tasks/test_{category}.py`
 
 ## Critical Patterns (Copy-Paste Ready)
 
@@ -416,6 +421,12 @@ x: str | None = "hello"
 if isinstance(x, str):
     x = x.replace("e", "a")
 
+# WRONG: Importing inside function bodies.
+# RIGHT: Import at the top of python modules. ONLY import in a function body if
+# to avoid a circular import (very rare)
+def my_function():
+    from sentry.models.project import Project # NO!
+    ...
 ```
 
 ## Performance Considerations
@@ -436,7 +447,7 @@ if isinstance(x, str):
 
 ## Debugging Tips
 
-1. Use `sentry devserver` for full stack debugging
+1. Use `devservices serve` for full stack debugging
 2. Access Django shell: `sentry django shell`
 3. View Celery tasks: monitor RabbitMQ management UI
 4. Database queries: use Django Debug Toolbar
@@ -546,6 +557,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
 ## Useful Resources
 
 - Development Setup Guide: https://develop.sentry.dev/getting-started/
+- Devservices Documentation: https://develop.sentry.dev/development-infrastructure/devservices
 - Main Documentation: https://docs.sentry.io/
 - Internal Contributing Guide: https://docs.sentry.io/internal/contributing/
 - GitHub Discussions: https://github.com/getsentry/sentry/discussions

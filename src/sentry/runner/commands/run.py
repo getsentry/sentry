@@ -573,6 +573,7 @@ def basic_consumer(
     """
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
+    from sentry.options import get
 
     log_level = options.pop("log_level", None)
     if log_level is not None:
@@ -594,7 +595,11 @@ def basic_consumer(
     if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
         quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
 
-    run_processor_with_signals(processor, quantized_rebalance_delay_secs)
+    dump_stacktrace_on_shutdown = consumer_name in get("consumer.dump_stacktrace_on_shutdown", [])
+
+    run_processor_with_signals(
+        processor, quantized_rebalance_delay_secs, dump_stacktrace_on_shutdown
+    )
 
 
 @run.command("dev-consumer")

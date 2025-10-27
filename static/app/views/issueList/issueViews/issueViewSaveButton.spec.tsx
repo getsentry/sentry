@@ -52,7 +52,7 @@ const initialRouterConfigView = {
 };
 
 describe('IssueViewSaveButton', () => {
-  PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+  PageFiltersStore.onInitializeUrlState(defaultPageFilters);
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -68,7 +68,7 @@ describe('IssueViewSaveButton', () => {
       body: mockGroupSearchView,
     });
 
-    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters);
 
     const {router} = render(
       <Fragment>
@@ -120,7 +120,7 @@ describe('IssueViewSaveButton', () => {
       body: mockGroupSearchView,
     });
 
-    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters);
 
     const {router} = render(
       <Fragment>
@@ -228,7 +228,7 @@ describe('IssueViewSaveButton', () => {
       body: mockGroupSearchView,
     });
 
-    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters);
 
     const {router} = render(
       <Fragment>
@@ -279,7 +279,7 @@ describe('IssueViewSaveButton', () => {
   });
 
   it('can discard unsaved changes', async () => {
-    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters);
 
     const {router} = render(<IssueViewSaveButton {...defaultProps} />, {
       initialRouterConfig: {

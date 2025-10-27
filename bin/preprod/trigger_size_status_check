@@ -29,6 +29,7 @@ COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
 # Build configurations - set to None to disable a build
 BUILD_1 = {
     "app_id": "com.emerge.hackernews.android",
+    "app_name": "HackerNews",
     "platform": "Android",
     "build_version": "1.0.3",
     "build_number": 42,
@@ -42,6 +43,7 @@ BUILD_1 = {
 
 BUILD_2 = {
     "app_id": "com.emerge.hackernews.ios",
+    "app_name": "HackerNews",
     "platform": "iOS",
     "build_version": "1.0.3",
     "build_number": 15,
@@ -255,6 +257,7 @@ def create_base_artifacts_for_comparison(
         base_artifact = PreprodArtifact.objects.create(
             project=project,
             app_id=build_config["app_id"],
+            app_name=build_config["app_name"],
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             build_version=build_config["build_version"],
@@ -473,6 +476,7 @@ def main() -> None:
             artifact_data = {
                 "project": project,
                 "app_id": build_config["app_id"],
+                "app_name": build_config["app_name"],
                 "commit_comparison": commit_comparison,
                 "state": artifact_state,
                 "build_version": build_config["build_version"],

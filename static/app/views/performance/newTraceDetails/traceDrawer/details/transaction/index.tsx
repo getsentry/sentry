@@ -26,6 +26,7 @@ import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIIOAlert} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
 import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
@@ -166,6 +167,7 @@ export function TransactionNodeDetails({
           hideNodeActions={hideNodeActions}
         />
 
+        <AIIOAlert node={node} event={event} />
         <AIInputSection node={node} event={event} />
         <AIOutputSection node={node} event={event} />
         <MCPInputSection node={node} event={event} />

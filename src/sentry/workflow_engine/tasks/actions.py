@@ -7,16 +7,17 @@ from sentry.models.activity import Activity
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker import config, namespaces
+from sentry.taskworker import namespaces
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
+from sentry.utils.exceptions import timeout_grouping_context
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context, timeout_grouping_context
+from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
 
@@ -58,21 +59,10 @@ def build_trigger_action_task_params(
 
 @instrumented_task(
     name="sentry.workflow_engine.tasks.trigger_action",
-    queue="workflow_engine.trigger_action",
-    acks_late=True,
-    default_retry_delay=5,
-    max_retries=3,
-    soft_time_limit=25,
-    time_limit=30,
+    namespace=namespaces.workflow_engine_tasks,
+    processing_deadline_duration=30,
+    retry=Retry(times=3, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=config.TaskworkerConfig(
-        namespace=namespaces.workflow_engine_tasks,
-        processing_deadline_duration=30,
-        retry=Retry(
-            times=3,
-            delay=5,
-        ),
-    ),
 )
 @retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
 def trigger_action(

@@ -1,10 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ResponseMeta} from 'sentry/api';
 import {ExternalLink} from 'sentry/components/core/link';
-import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -54,7 +55,12 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
       },
       success: data => {
         SubscriptionStore.set(data.slug, data);
-        addSuccessMessage(t('%s max spend updated', subscription.planDetails.budgetTerm));
+        addSuccessMessage(
+          t(
+            '%s max spend updated',
+            displayBudgetName(subscription.planDetails, {title: true})
+          )
+        );
       },
     });
   }
@@ -68,7 +74,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
     Boolean(subscription.onDemandBudgets);
 
   return (
-    <Panel>
+    <Container background="primary" border="primary" radius="md">
       <PanelHeader
         // Displays the edit button when user has budgets enabled
         hasButtons={
@@ -130,7 +136,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
           showSave
         />
       )}
-    </Panel>
+    </Container>
   );
 }
 

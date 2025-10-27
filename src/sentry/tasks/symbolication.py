@@ -18,7 +18,6 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import symbolication_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -279,15 +278,9 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 
     @instrumented_task(
         name=name,
-        queue=queue,
-        time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
-        soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
-        acks_late=True,
+        namespace=symbolication_tasks,
+        processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
         silo_mode=SiloMode.REGION,
-        taskworker_config=TaskworkerConfig(
-            namespace=symbolication_tasks,
-            processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
-        ),
     )
     def symbolication_fn(
         cache_key: str,
@@ -325,7 +318,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         )
 
     fn_name = name.split(".")[-1]
-    symbolication_fn.__name__ = fn_name
+    setattr(symbolication_fn, "__name__", fn_name)
     TASK_FNS[task_kind] = fn_name
 
     return symbolication_fn

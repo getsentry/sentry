@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -39,17 +39,16 @@ describe('FrontendOverviewPage', () => {
     it('fetches correct data with unknown + frontend platform', async () => {
       render(<FrontendOverviewPage />, {organization});
 
-      expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent(
-        'Frontend'
-      );
-      expect(mainTableApiCall).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query:
-              '( ( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) OR project.id:[1] ) !transaction.op:http.server event.type:transaction',
-          }),
-        })
+      await waitFor(() =>
+        expect(mainTableApiCall).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query:
+                '( ( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) OR project.id:[1] ) !transaction.op:http.server event.type:transaction',
+            }),
+          })
+        )
       );
     });
 
@@ -65,17 +64,16 @@ describe('FrontendOverviewPage', () => {
       );
       render(<FrontendOverviewPage />, {organization});
 
-      expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent(
-        'Frontend'
-      );
-      expect(mainTableApiCall).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query:
-              '( ( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) ) !transaction.op:http.server event.type:transaction',
-          }),
-        })
+      await waitFor(() =>
+        expect(mainTableApiCall).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query:
+                '( ( transaction.op:pageload OR transaction.op:navigation OR transaction.op:ui.render OR transaction.op:interaction ) ) !transaction.op:http.server event.type:transaction',
+            }),
+          })
+        )
       );
     });
   });

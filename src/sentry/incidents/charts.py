@@ -140,10 +140,12 @@ def fetch_metric_issue_open_periods(
             organization,  # Metric issue single processing
         ):
             # temporarily fetch the alert rule ID from the detector ID
-            alert_rule_id = AlertRuleDetector.objects.get(
-                detector_id=open_period_identifier
-            ).alert_rule_id
-            open_period_identifier = alert_rule_id
+            alert_rule_detector = AlertRuleDetector.objects.filter(
+                detector_id=open_period_identifier, alert_rule_id__isnull=False
+            ).first()
+            if alert_rule_detector is not None:
+                # open_period_identifier is a metric detector ID -> get the alert rule ID
+                open_period_identifier = alert_rule_detector.alert_rule_id
 
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -235,7 +237,12 @@ def build_metric_alert_chart(
         organization,
         actor=user,
     )
-    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
+    aggregate = translate_aggregate_field(
+        snuba_query.aggregate,
+        reverse=True,
+        allow_mri=allow_mri,
+        allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+    )
     # If we allow alerts to be across multiple orgs this will break
     # TODO: determine whether this validation is necessary
     first_subscription_or_none = snuba_query.subscriptions.first()

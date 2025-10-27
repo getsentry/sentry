@@ -16,14 +16,18 @@ export const getGoLogsOnboarding = <
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install our Go SDK using [code:go get]. The minimum version of the SDK that supports logs is [code:0.33.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Install our Go SDK using [code:go get]. The minimum version of the SDK that supports logs is [code:0.33.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'bash',
           code: 'go get github.com/getsentry/sentry-go',
         },

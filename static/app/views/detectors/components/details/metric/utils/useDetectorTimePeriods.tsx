@@ -97,28 +97,3 @@ export function useDetectorResolvedStatsPeriod(params: {
     });
   }, [dataset, intervalSeconds, urlStatsPeriod]);
 }
-
-export function useDetectorDateParams(params: {
-  dataset: DetectorDataset | undefined;
-  intervalSeconds: number | undefined;
-  end?: string;
-  start?: string;
-  urlStatsPeriod?: string;
-}): {end?: string; start?: string; statsPeriod?: MetricDetectorTimePeriod} {
-  const {dataset, intervalSeconds, start, end, urlStatsPeriod} = params;
-
-  return useMemo(() => {
-    if (start && end) {
-      return {start, end};
-    }
-    if (!dataset) {
-      return {};
-    }
-    const resolved = resolveStatsPeriodForDetector({
-      dataset,
-      intervalSeconds,
-      urlStatsPeriod,
-    });
-    return {statsPeriod: resolved};
-  }, [dataset, intervalSeconds, start, end, urlStatsPeriod]);
-}

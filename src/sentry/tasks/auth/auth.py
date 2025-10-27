@@ -15,7 +15,6 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import auth_control_tasks, auth_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.region import RegionMappingNotFound
@@ -29,11 +28,9 @@ logger = logging.getLogger("sentry.auth")
 
 @instrumented_task(
     name="sentry.tasks.send_sso_link_emails_control",
-    queue="auth.control",
+    namespace=auth_control_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=auth_control_tasks, processing_deadline_duration=30
-    ),
 )
 def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, **kwargs):
     # This seems dumb as the region method is the same, but we need to keep
@@ -43,8 +40,7 @@ def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, *
 
 @instrumented_task(
     name="sentry.tasks.send_sso_link_emails",
-    queue="auth",
-    taskworker_config=TaskworkerConfig(namespace=auth_tasks),
+    namespace=auth_tasks,
 )
 def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
     _email_missing_links(org_id=org_id, sending_user_id=actor_id, provider_key=provider_key)
@@ -68,9 +64,9 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
 
 @instrumented_task(
     name="sentry.tasks.email_unlink_notifications",
-    queue="auth",
+    namespace=auth_tasks,
+    processing_deadline_duration=90,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=auth_tasks, processing_deadline_duration=90),
 )
 def email_unlink_notifications(
     org_id: int, sending_user_email: str, provider_key: str, actor_id: int | None = None
@@ -200,16 +196,11 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
 
 @instrumented_task(
     name="sentry.tasks.remove_2fa_non_compliant_members",
-    queue="auth",
-    default_retry_delay=60 * 5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=auth_tasks,
-        retry=Retry(
-            delay=60 * 5,
-        ),
+    namespace=auth_tasks,
+    retry=Retry(
+        delay=60 * 5,
     ),
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):

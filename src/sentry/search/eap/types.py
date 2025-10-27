@@ -44,6 +44,7 @@ class SupportedTraceItemType(str, Enum):
     LOGS = "logs"
     SPANS = "spans"
     UPTIME_RESULTS = "uptime_results"
+    TRACEMETRICS = "tracemetrics"
 
 
 class AttributeSourceType(str, Enum):
@@ -65,3 +66,10 @@ class TraceItemAttribute(TypedDict):
 class EAPResponse(EventsResponse):
     confidence: ConfidenceData
     page_token: NotRequired[PageToken]
+
+
+@dataclass()
+class AdditionalQueries:
+    span: list[str] | None
+    log: list[str] | None
+    metric: list[str] | None

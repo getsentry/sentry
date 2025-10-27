@@ -1,9 +1,8 @@
 from sentry import analytics
-from sentry.analytics import Event, eventclass
 
 
-@eventclass("release.created")
-class ReleaseCreatedEvent(Event):
+@analytics.eventclass("release.created")
+class ReleaseCreatedEvent(analytics.Event):
     user_id: int | None = None
     organization_id: int
     project_ids: list[int]

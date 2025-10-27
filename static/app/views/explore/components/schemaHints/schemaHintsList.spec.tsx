@@ -4,10 +4,9 @@ import type {TagCollection} from 'sentry/types/group';
 import {AggregationKey, FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {
-  PageParamsProvider,
-  useExploreQuery,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -43,13 +42,15 @@ function Subject(
   >
 ) {
   function Content() {
-    const query = useExploreQuery();
+    const query = useQueryParamsQuery();
     return <SchemaHintsList {...props} exploreQuery={query} />;
   }
   return (
-    <PageParamsProvider>
-      <Content />
-    </PageParamsProvider>
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>
+        <Content />
+      </PageParamsProvider>
+    </SpansQueryParamsProvider>
   );
 }
 

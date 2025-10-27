@@ -13,7 +13,6 @@ from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
@@ -23,12 +22,9 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.feedback.tasks.update_user_reports",
-    queue="update",
+    namespace=issues_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def update_user_reports(
     start_datetime: str | None = None,

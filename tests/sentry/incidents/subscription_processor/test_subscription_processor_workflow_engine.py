@@ -330,11 +330,13 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
         mock_metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.process_update.start"),
                 call(
                     "incidents.alert_rules.threshold.alert",
                     tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call("incidents.alert_rules.process_update.start"),
                 call(
                     "incidents.alert_rules.threshold.resolve",
                     tags={"detection_type": "static"},
@@ -393,8 +395,8 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         data_source.detectors.set([detector])
 
         processor = self.send_update(rule, trigger.alert_threshold + 1)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
+        # We're single processing; 'triggers' should not be set.
+        assert not hasattr(processor, "triggers")
 
         assert mock_process_data_packet.call_count == 1
         assert (
@@ -456,6 +458,25 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 "metric_alert_triggered": True,
             },
         )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_process_update__dual_processing__missing_detector(self, mock_logger: MagicMock):
+        """
+        Test case where dual processing is enabled but the Detector doesn't exist.
+
+        This represents malformed data observed in production where an AlertRule exists
+        with the workflow engine dual processing feature flag enabled, but the
+        corresponding Detector model does not exist.
+
+        We want to log an error but not raise any exceptions.
+        """
+        rule = self.rule
+        trigger = self.trigger
+
+        self.send_update(rule, trigger.alert_threshold + 1)
+
+        assert mock_logger.error.called, "Expected an error to be logged when Detector is missing"
 
 
 @freeze_time()

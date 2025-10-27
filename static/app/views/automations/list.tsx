@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -11,17 +11,20 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 export default function AutomationsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -77,20 +80,26 @@ export default function AutomationsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Automations')} noSuffix>
+    <SentryDocumentTitle title={t('Alerts')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />}>
+        <ListLayout actions={<Actions />} title={t('Alerts')}>
           <TableHeader />
           <div>
-            <AutomationListTable
-              automations={automations ?? []}
-              isPending={isLoading}
-              isError={isError}
-              isSuccess={isSuccess}
-              sort={sort}
-              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
-              allResultsVisible={allResultsVisible()}
-            />
+            <VisuallyCompleteWithData
+              hasData={(automations?.length ?? 0) > 0}
+              id="AutomationsList-Table"
+              isLoading={isLoading}
+            >
+              <AutomationListTable
+                automations={automations ?? []}
+                isPending={isLoading}
+                isError={isError}
+                isSuccess={isSuccess}
+                sort={sort}
+                queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+                allResultsVisible={allResultsVisible()}
+              />
+            </VisuallyCompleteWithData>
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {
@@ -135,16 +144,18 @@ function TableHeader() {
 
 function Actions() {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
-    <Fragment>
+    <Flex gap="sm">
+      <AutomationFeedbackButton />
       <LinkButton
-        to={`${makeAutomationBasePathname(organization.slug)}new/`}
+        to={`${makeAutomationBasePathname(organization.slug, automationsLinkPrefix)}new/`}
         priority="primary"
         icon={<IconAdd />}
         size="sm"
       >
-        {t('Create Automation')}
+        {t('Create Alert')}
       </LinkButton>
-    </Fragment>
+    </Flex>
   );
 }

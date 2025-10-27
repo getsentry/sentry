@@ -1114,7 +1114,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -1128,7 +1128,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -1168,7 +1168,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -1213,7 +1213,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1245,7 +1245,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1268,7 +1268,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1297,7 +1297,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1342,7 +1342,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1394,7 +1394,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1421,7 +1421,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1454,7 +1454,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1502,7 +1502,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${noNotificationsOrg.slug}`,
+          location: {pathname: `/customers/${noNotificationsOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: noNotificationsOrg,
@@ -1544,7 +1544,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${pendingChangesOrg.slug}`,
+          location: {pathname: `/customers/${pendingChangesOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: pendingChangesOrg,
@@ -1566,7 +1566,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1592,7 +1592,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cannotTrialOrg.slug}`,
+          location: {pathname: `/customers/${cannotTrialOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cannotTrialOrg,
@@ -1614,7 +1614,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1636,7 +1636,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1664,7 +1664,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cannotTrialOrg.slug}`,
+          location: {pathname: `/customers/${cannotTrialOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cannotTrialOrg,
@@ -1706,7 +1706,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${gracePeriodOrg.slug}`,
+          location: {pathname: `/customers/${gracePeriodOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: gracePeriodOrg,
@@ -1728,7 +1728,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1764,7 +1764,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${gracePeriodOrg.slug}`,
+          location: {pathname: `/customers/${gracePeriodOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: gracePeriodOrg,
@@ -1812,7 +1812,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${terminateOrg.slug}`,
+          location: {pathname: `/customers/${terminateOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: terminateOrg,
@@ -1855,7 +1855,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${terminateOrg.slug}`,
+          location: {pathname: `/customers/${terminateOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: terminateOrg,
@@ -1893,7 +1893,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${terminateOrg.slug}`,
+          location: {pathname: `/customers/${terminateOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: terminateOrg,
@@ -1938,7 +1938,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1999,7 +1999,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2068,7 +2068,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2107,7 +2107,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2180,7 +2180,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2229,7 +2229,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cancelSubOrg.slug}`,
+          location: {pathname: `/customers/${cancelSubOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cancelSubOrg,
@@ -2256,7 +2256,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cancelSubOrg.slug}`,
+          location: {pathname: `/customers/${cancelSubOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cancelSubOrg,
@@ -2330,7 +2330,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2378,7 +2378,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2416,7 +2416,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2447,7 +2447,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${trialOrg.slug}`,
+          location: {pathname: `/customers/${trialOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: trialOrg,
@@ -2485,7 +2485,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2534,7 +2534,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2569,7 +2569,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2604,7 +2604,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2644,7 +2644,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${invoicedOrg.slug}`,
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: invoicedOrg,
@@ -2700,7 +2700,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2746,7 +2746,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2812,7 +2812,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2861,7 +2861,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2888,7 +2888,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2923,7 +2923,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2979,7 +2979,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3037,7 +3037,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3094,7 +3094,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3150,7 +3150,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3175,7 +3175,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3201,7 +3201,7 @@ describe('Customer Details', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3266,7 +3266,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${invoicedOrg.slug}`,
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: invoicedOrg,
@@ -3292,7 +3292,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${invoicedOrg.slug}`,
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: invoicedOrg,
@@ -3324,7 +3324,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${suspendedOrg.slug}`,
+          location: {pathname: `/customers/${suspendedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: suspendedOrg,
@@ -3352,7 +3352,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${suspendedOrg.slug}`,
+          location: {pathname: `/customers/${suspendedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: suspendedOrg,
@@ -3396,7 +3396,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3452,7 +3452,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3475,7 +3475,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3504,7 +3504,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3564,7 +3564,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${orgWithDeleteFeature.slug}`,
+          location: {pathname: `/customers/${orgWithDeleteFeature.slug}`},
           route: `/customers/:orgId`,
         },
         organization: orgWithDeleteFeature,
@@ -3591,7 +3591,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${orgWithoutDeleteFeature.slug}`,
+          location: {pathname: `/customers/${orgWithoutDeleteFeature.slug}`},
           route: `/customers/:orgId`,
         },
         organization: orgWithoutDeleteFeature,
@@ -3617,7 +3617,7 @@ describe('Customer Details', () => {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${org.slug}`,
+          location: {pathname: `/customers/${org.slug}`},
           route: `/customers/:orgId`,
         },
         organization: org,
@@ -3705,7 +3705,7 @@ describe('Gift Categories Availability', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3731,7 +3731,7 @@ describe('Gift Categories Availability', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3757,7 +3757,7 @@ describe('Gift Categories Availability', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3783,7 +3783,7 @@ describe('Gift Categories Availability', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3810,7 +3810,7 @@ describe('Gift Categories Availability', () => {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3835,7 +3835,7 @@ describe('Gift Categories Availability', () => {
     setUpMocks(organization, customSubscription);
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,

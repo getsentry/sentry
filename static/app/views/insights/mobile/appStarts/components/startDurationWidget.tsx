@@ -1,12 +1,12 @@
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 // TODO(release-drawer): Only used in mobile/appStarts/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
@@ -58,31 +58,30 @@ function StartDurationWidget({additionalFilters}: Props) {
     data,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
       yAxis: [yAxis],
-      fields: [groupBy, 'avg(span.duration)'],
-      topN: 2,
-      search,
+      groupBy: [groupBy],
+      topEvents: 2,
+      query: search,
       enabled: !isReleasesLoading,
     },
     referrer
   );
 
+  const timeSeries = data?.timeSeries || [];
+
   // Only transform the data is we know there's at least one release
-  const sortedSeries = data
-    .sort((releaseA, _releaseB) => (releaseA.seriesName === primaryRelease ? -1 : 1))
-    .map(serie => ({
-      ...serie,
-      seriesName: `${yAxis} ${serie.seriesName}`,
-    }));
+  const sortedSeries = timeSeries.sort((releaseA, _releaseB) =>
+    releaseA.groupBy?.[0]?.value === primaryRelease ? -1 : 1
+  );
 
   return (
     <InsightsLineChartWidget
       title={
         startType === COLD_START_TYPE ? t('Average Cold Start') : t('Average Warm Start')
       }
-      series={sortedSeries}
+      timeSeries={sortedSeries}
       isLoading={isSeriesLoading}
       error={seriesError}
       queryInfo={{search, groupBy: [groupBy], referrer}}

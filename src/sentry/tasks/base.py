@@ -1,63 +1,25 @@
 from __future__ import annotations
 
+import datetime
 import functools
 import logging
-from collections.abc import Callable, Iterable
-from typing import Any, ParamSpec, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import sentry_sdk
 from django.db.models import Model
 
-from sentry.silo.base import SiloLimit, SiloMode
-from sentry.taskworker.config import TaskworkerConfig  # noqa (used in getsentry)
-from sentry.taskworker.retry import RetryError, retry_task
+from sentry.taskworker.constants import CompressionType
+from sentry.taskworker.registry import TaskNamespace
+from sentry.taskworker.retry import Retry, RetryError, retry_task
 from sentry.taskworker.state import current_task
+from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 
 ModelT = TypeVar("ModelT", bound=Model)
 
-P = ParamSpec("P")
-R = TypeVar("R")
-
 logger = logging.getLogger(__name__)
-
-
-class TaskSiloLimit(SiloLimit):
-    """
-    Silo limiter for tasks
-
-    We don't want tasks to be spawned in the incorrect silo.
-    We can't reliably cause tasks to fail as not all tasks use
-    the ORM (which also has silo bound safety).
-    """
-
-    def handle_when_unavailable(
-        self,
-        original_method: Callable[..., Any],
-        current_mode: SiloMode,
-        available_modes: Iterable[SiloMode],
-    ) -> Callable[..., Any]:
-        def handle(*args: Any, **kwargs: Any) -> Any:
-            name = original_method.__name__
-            message = f"Cannot call or spawn {name} in {current_mode},"
-            raise self.AvailabilityError(message)
-
-        return handle
-
-    def __call__(self, decorated_task: Any) -> Any:
-        # Replace the sentry.taskworker.Task interface used to schedule tasks.
-        replacements = {"delay", "apply_async"}
-        for attr_name in replacements:
-            task_attr = getattr(decorated_task, attr_name)
-            if callable(task_attr):
-                limited_attr = self.create_override(task_attr)
-                setattr(decorated_task, attr_name, limited_attr)
-
-        limited_func = self.create_override(decorated_task)
-        if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name  # type: ignore[attr-defined]
-        return limited_func
 
 
 def load_model_from_db(
@@ -72,11 +34,19 @@ def load_model_from_db(
 
 
 def instrumented_task(
-    name,
+    name: str,
+    namespace: TaskNamespace,
+    alias: str | None = None,
+    alias_namespace: TaskNamespace | None = None,
+    retry: Retry | None = None,
+    expires: int | datetime.timedelta | None = None,
+    processing_deadline_duration: int | datetime.timedelta | None = None,
+    at_most_once: bool = False,
+    wait_for_delivery: bool = False,
+    compression_type: CompressionType = CompressionType.PLAINTEXT,
     silo_mode=None,
-    taskworker_config=None,
     **kwargs,
-):
+) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
     Decorator for defining tasks.
 
@@ -85,24 +55,54 @@ def instrumented_task(
     - statsd metrics for duration and memory usage.
     - sentry sdk tagging.
     - hybrid cloud silo restrictions
-    - disabling of result collection.
+    - alias and alias namespace for renaming a task or moving it to a different namespace
+
+    Basic task definition:
+        @instrumented_task(
+            name="sentry.tasks.some_task",
+            namespace=some_namespace,
+        )
+        def func():
+            ...
+
+    Renaming a task and/or moving task to a different namespace:
+        @instrumented_task(
+            name="sentry.tasks.new_task_name",
+            namespace=new_namespace,
+            alias="sentry.tasks.previous_task_name",
+            alias_namespace=previous_namespace,
+        )
+        def func():
+            ...
     """
 
-    def wrapped(func):
-        assert taskworker_config, "The `taskworker_config` parameter is required to define a task"
-        task = taskworker_config.namespace.register(
+    def wrapped(func: Callable[P, R]) -> Task[P, R]:
+        task = namespace.register(
             name=name,
-            retry=taskworker_config.retry,
-            expires=taskworker_config.expires,
-            processing_deadline_duration=taskworker_config.processing_deadline_duration,
-            at_most_once=taskworker_config.at_most_once,
-            wait_for_delivery=taskworker_config.wait_for_delivery,
-            compression_type=taskworker_config.compression_type,
+            retry=retry,
+            expires=expires,
+            processing_deadline_duration=processing_deadline_duration,
+            at_most_once=at_most_once,
+            wait_for_delivery=wait_for_delivery,
+            compression_type=compression_type,
+            silo_mode=silo_mode,
         )(func)
-
-        if silo_mode:
-            silo_limiter = TaskSiloLimit(silo_mode)
-            return silo_limiter(task)
+        # If an alias is provided, register the task for both "name" and "alias" under namespace
+        # If an alias namespace is provided, register the task in both namespace and alias_namespace
+        # When both are provided, register tasks namespace."name" and alias_namespace."alias"
+        if alias or alias_namespace:
+            target_alias = alias if alias else name
+            target_alias_namespace = alias_namespace if alias_namespace else namespace
+            target_alias_namespace.register(
+                name=target_alias,
+                retry=retry,
+                expires=expires,
+                processing_deadline_duration=processing_deadline_duration,
+                at_most_once=at_most_once,
+                wait_for_delivery=wait_for_delivery,
+                compression_type=compression_type,
+                silo_mode=silo_mode,
+            )(func)
         return task
 
     return wrapped
@@ -143,8 +143,13 @@ def retry(
             except ignore:
                 return
             except RetryError:
-                # We shouldn't interfere with exceptions that exist to communicate
-                # retry state.
+                if (
+                    not raise_on_no_retries
+                    and (task_state := current_task())
+                    and not task_state.retries_remaining
+                ):
+                    return
+                # If we haven't been asked to ignore no-retries, pass along the RetryError.
                 raise
             except timeout_exceptions:
                 if timeouts:

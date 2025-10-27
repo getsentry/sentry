@@ -63,6 +63,13 @@ interface MetricDetectorConditionFormData {
    * Both kind=threshold and kind=change
    */
   conditionValue?: string;
+  /**
+   * Strategy for how an issue should be resolved
+   * - default: resolves based on the primary condition value
+   * - custom: resolves based on a custom resolution value
+   */
+  resolutionStrategy?: 'default' | 'custom';
+  resolutionValue?: string;
 }
 
 interface MetricDetectorDynamicFormData {
@@ -120,6 +127,8 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   conditionComparisonAgo: 'conditionComparisonAgo',
   conditionType: 'conditionType',
   conditionValue: 'conditionValue',
+  resolutionStrategy: 'resolutionStrategy',
+  resolutionValue: 'resolutionValue',
 
   // Dynamic fields
   sensitivity: 'sensitivity',
@@ -134,6 +143,8 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   initialPriorityLevel: DetectorPriorityLevel.HIGH,
   conditionType: DataConditionType.GREATER,
   conditionValue: '',
+  resolutionStrategy: 'default',
+  resolutionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
 
   // Default dynamic fields
@@ -177,7 +188,12 @@ interface NewDataSource {
 export function createConditions(
   data: Pick<
     MetricDetectorFormData,
-    'conditionType' | 'conditionValue' | 'initialPriorityLevel' | 'highThreshold'
+    | 'conditionType'
+    | 'conditionValue'
+    | 'initialPriorityLevel'
+    | 'highThreshold'
+    | 'resolutionStrategy'
+    | 'resolutionValue'
   >
 ): NewConditionGroup['conditions'] {
   if (!defined(data.conditionType) || !defined(data.conditionValue)) {
@@ -203,6 +219,24 @@ export function createConditions(
       type: data.conditionType,
       comparison: parseFloat(data.highThreshold) || 0,
       conditionResult: DetectorPriorityLevel.HIGH,
+    });
+  }
+
+  // Optionally add explicit resolution (OK) condition when manual strategy is chosen
+  if (
+    data.resolutionStrategy === 'custom' &&
+    defined(data.resolutionValue) &&
+    data.resolutionValue !== ''
+  ) {
+    const resolutionConditionType =
+      data.conditionType === DataConditionType.GREATER
+        ? DataConditionType.LESS
+        : DataConditionType.GREATER;
+
+    conditions.push({
+      type: resolutionConditionType,
+      comparison: parseFloat(data.resolutionValue) || 0,
+      conditionResult: DetectorPriorityLevel.OK,
     });
   }
 
@@ -319,7 +353,10 @@ export function metricDetectorFormDataToEndpointPayload(
 function processDetectorConditions(
   detector: MetricDetector
 ): PrioritizeLevelFormData &
-  Pick<MetricDetectorFormData, 'conditionValue' | 'conditionType'> {
+  Pick<
+    MetricDetectorFormData,
+    'conditionValue' | 'conditionType' | 'resolutionStrategy' | 'resolutionValue'
+  > {
   // Get conditions from the condition group
   const conditions = detector.conditionGroup?.conditions || [];
   // Sort by priority level, lowest first
@@ -335,6 +372,11 @@ function processDetectorConditions(
   // Find high priority escalation condition
   const highCondition = conditions.find(
     condition => condition.conditionResult === DetectorPriorityLevel.HIGH
+  );
+
+  // Find explicit resolution (OK) condition, if present
+  const okCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.OK
   );
 
   // Determine initial priority level, ensuring it's valid for the form
@@ -357,6 +399,14 @@ function processDetectorConditions(
     conditionType = mainCondition.type;
   }
 
+  // Determine resolution strategy: automatic if OK threshold matches warning or critical
+  const resolutionValue = okCondition?.comparison ?? undefined;
+  const computedResolutionStrategy: 'default' | 'custom' =
+    defined(resolutionValue) &&
+    ![mainCondition?.comparison, highCondition?.comparison].includes(resolutionValue)
+      ? 'custom'
+      : 'default';
+
   return {
     initialPriorityLevel,
     conditionValue:
@@ -367,6 +417,11 @@ function processDetectorConditions(
     highThreshold:
       typeof highCondition?.comparison === 'number'
         ? highCondition.comparison.toString()
+        : '',
+    resolutionStrategy: computedResolutionStrategy,
+    resolutionValue:
+      typeof okCondition?.comparison === 'number'
+        ? okCondition.comparison.toString()
         : '',
   };
 }

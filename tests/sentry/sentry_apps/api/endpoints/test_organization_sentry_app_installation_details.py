@@ -9,7 +9,9 @@ from sentry.analytics.events.sentry_app_installation_updated import (
 )
 from sentry.analytics.events.sentry_app_uninstalled import SentryAppUninstalledEvent
 from sentry.constants import SentryAppInstallationStatus
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -119,6 +121,11 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
                 sentry_app=self.installation2.sentry_app.slug,
             ),
         )
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        assert not SentryAppInstallation.objects.filter(id=self.installation2.id).exists()
 
         response_body = json.loads(responses.calls[0].request.body)
 

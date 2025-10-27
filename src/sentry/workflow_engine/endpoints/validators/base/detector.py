@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import router, transaction
+from jsonschema import ValidationError as JSONSchemaValidationError
 from rest_framework import serializers
 
 from sentry import audit_log
@@ -27,6 +28,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models.detector import enforce_config_schema
 from sentry.workflow_engine.types import DataConditionType
 
 
@@ -65,7 +67,15 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return type
 
     @property
-    def data_source(self) -> BaseDataSourceValidator:
+    def data_source(self) -> BaseDataSourceValidator | None:
+        # Moving this field to optional
+        return None
+
+    @property
+    def data_sources(self) -> serializers.ListField:
+        # TODO - improve typing here to enforce that the child is the correct type
+        # otherwise, can look at creating a custom field.
+        # This should be a list of `BaseDataSourceValidator`s
         raise NotImplementedError
 
     @property
@@ -133,6 +143,17 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         )
         return instance
 
+    def _create_data_source(self, validated_data_source, detector: Detector):
+        data_source_creator = validated_data_source["_creator"]
+        data_source = data_source_creator.create()
+
+        detector_data_source = DataSource.objects.create(
+            organization_id=self.context["project"].organization_id,
+            source_id=data_source.id,
+            type=validated_data_source["data_source_type"],
+        )
+        DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
+
     def create(self, validated_data):
         # If quotas are exceeded, we will prevent creation of new detectors.
         # Do not disable or prevent the users from updating existing detectors.
@@ -143,13 +164,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 logic_type=DataConditionGroup.Type.ANY,
                 organization_id=self.context["organization"].id,
             )
-            data_source_creator = validated_data["data_source"]["_creator"]
-            data_source = data_source_creator.create()
-            detector_data_source = DataSource.objects.create(
-                organization_id=self.context["project"].organization_id,
-                source_id=data_source.id,
-                type=validated_data["data_source"]["data_source_type"],
-            )
+
             if "condition_group" in validated_data:
                 for condition in validated_data["condition_group"]["conditions"]:
                     DataCondition.objects.create(
@@ -168,7 +183,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 elif owner.is_team:
                     owner_team_id = owner.id
 
-            detector = Detector.objects.create(
+            detector = Detector(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
                 workflow_condition_group=condition_group,
@@ -178,7 +193,22 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 owner_team_id=owner_team_id,
                 created_by_id=self.context["request"].user.id,
             )
-            DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
+
+            try:
+                enforce_config_schema(detector)
+            except JSONSchemaValidationError as error:
+                # Surface schema errors as a user-facing validation error
+                raise serializers.ValidationError({"config": [str(error)]})
+
+            detector.save()
+
+            if "data_source" in validated_data:
+                validated_data_source = validated_data["data_source"]
+                self._create_data_source(validated_data_source, detector)
+
+            if "data_sources" in validated_data:
+                for validated_data_source in validated_data["data_sources"]:
+                    self._create_data_source(validated_data_source, detector)
 
             create_audit_entry(
                 request=self.context["request"],

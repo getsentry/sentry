@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {BuildDetailsSidebarContent} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -35,19 +34,23 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
   },
 };
 
-function TestComponent({artifactId, projectId}: {artifactId: string; projectId: string}) {
-  const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
-    [`/projects/${projectId}/preprodartifacts/${artifactId}/build-details/`],
-    {
-      staleTime: 0,
-    }
-  );
-
+function TestComponent({
+  artifactId,
+  projectId,
+  buildDetailsData,
+  isBuildDetailsPending,
+}: {
+  artifactId: string;
+  projectId: string;
+  buildDetailsData?: BuildDetailsApiResponse | null;
+  isBuildDetailsPending?: boolean;
+}) {
   return (
     <BuildDetailsSidebarContent
       artifactId={artifactId}
       projectId={projectId}
-      buildDetailsQuery={buildDetailsQuery}
+      buildDetailsData={buildDetailsData}
+      isBuildDetailsPending={isBuildDetailsPending}
     />
   );
 }
@@ -67,13 +70,7 @@ describe('BuildDetailsSidebarContent', () => {
   });
 
   it('renders loading skeleton when data is pending', () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${defaultProps.projectId}/preprodartifacts/${defaultProps.artifactId}/build-details/`,
-      method: 'GET',
-      body: new Promise(() => {}), // Never resolves
-    });
-
-    render(<TestComponent {...defaultProps} />, {
+    render(<TestComponent {...defaultProps} isBuildDetailsPending />, {
       organization,
     });
 
@@ -81,16 +78,12 @@ describe('BuildDetailsSidebarContent', () => {
   });
 
   it('renders app info section when artifact state is PROCESSED', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${defaultProps.projectId}/preprodartifacts/${defaultProps.artifactId}/build-details/`,
-      method: 'GET',
-      body: {
-        ...mockBuildDetailsData,
-        state: BuildDetailsState.PROCESSED,
-      },
-    });
+    const buildDetailsData = {
+      ...mockBuildDetailsData,
+      state: BuildDetailsState.PROCESSED,
+    };
 
-    render(<TestComponent {...defaultProps} />, {
+    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
       organization,
     });
 
@@ -110,16 +103,12 @@ describe('BuildDetailsSidebarContent', () => {
   });
 
   it('hides app info section when artifact state is UPLOADED', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${defaultProps.projectId}/preprodartifacts/${defaultProps.artifactId}/build-details/`,
-      method: 'GET',
-      body: {
-        ...mockBuildDetailsData,
-        state: BuildDetailsState.UPLOADED,
-      },
-    });
+    const buildDetailsData = {
+      ...mockBuildDetailsData,
+      state: BuildDetailsState.UPLOADED,
+    };
 
-    render(<TestComponent {...defaultProps} />, {
+    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
       organization,
     });
 
@@ -139,16 +128,12 @@ describe('BuildDetailsSidebarContent', () => {
   });
 
   it('hides app info section when artifact state is UPLOADING', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${defaultProps.projectId}/preprodartifacts/${defaultProps.artifactId}/build-details/`,
-      method: 'GET',
-      body: {
-        ...mockBuildDetailsData,
-        state: BuildDetailsState.UPLOADING,
-      },
-    });
+    const buildDetailsData = {
+      ...mockBuildDetailsData,
+      state: BuildDetailsState.UPLOADING,
+    };
 
-    render(<TestComponent {...defaultProps} />, {
+    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
       organization,
     });
 
@@ -168,16 +153,12 @@ describe('BuildDetailsSidebarContent', () => {
   });
 
   it('hides app info section when artifact state is FAILED', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${defaultProps.projectId}/preprodartifacts/${defaultProps.artifactId}/build-details/`,
-      method: 'GET',
-      body: {
-        ...mockBuildDetailsData,
-        state: BuildDetailsState.FAILED,
-      },
-    });
+    const buildDetailsData = {
+      ...mockBuildDetailsData,
+      state: BuildDetailsState.FAILED,
+    };
 
-    render(<TestComponent {...defaultProps} />, {
+    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
       organization,
     });
 

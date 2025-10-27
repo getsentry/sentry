@@ -96,7 +96,6 @@ jest.mocked(usePageFilters)
 // ✅ Update the corresponding data store with your data
 PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({ projects: [1]}),
-    new Set()
 )
 ```
 

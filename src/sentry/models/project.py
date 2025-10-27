@@ -317,7 +317,7 @@ class Project(Model):
         # This Project has custom metrics
         has_custom_metrics: bool
 
-        # This Project has enough issue volume to use high priority alerts
+        # `has_high_priority_alerts` is DEPRECATED
         has_high_priority_alerts: bool
 
         # This Project has sent insight request spans
@@ -358,6 +358,9 @@ class Project(Model):
 
         # This project has sent logs
         has_logs: bool
+
+        # This project has sent trace metrics
+        has_trace_metrics: bool
 
         bitfield_default = 10
 
@@ -504,6 +507,7 @@ class Project(Model):
             RepositoryProjectPathConfig,
         )
         from sentry.models.environment import Environment, EnvironmentProject
+        from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
@@ -638,7 +642,8 @@ class Project(Model):
             "linked_id", flat=True
         )
 
-        # Delete code mappings to prevent them from being stuck on the old org
+        # Delete issue ownership objects to prevent them from being stuck on the old org
+        ProjectCodeOwners.objects.filter(project_id=self.id).delete()
         RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
 
         for external_issues in chunked(

@@ -1,7 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 import sortBy from 'lodash/sortBy';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -56,28 +55,19 @@ export function TestSuiteDropdown() {
     return sorted.slice(0, MAX_RECORD_LENGTH);
   }, [testSuites, dropdownSearch, urlSearchParams]);
 
-  const handleOnSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        setDropdownSearch(value);
-      }, 500),
-    [setDropdownSearch]
-  );
+  const handleOnSearch = (value: string) => {
+    setDropdownSearch(value);
+  };
 
   function getEmptyMessage() {
-    if (testSuites.length) {
-      return '';
+    if (!options.length) {
+      if (dropdownSearch?.length) {
+        return t('No test suites found. Please enter a different search term.');
+      }
+      return t('No test suites found');
     }
-
-    return t('No test suites found');
+    return undefined;
   }
-
-  useEffect(() => {
-    // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
-    return () => {
-      handleOnSearch.cancel();
-    };
-  }, [handleOnSearch]);
 
   /**
    * Validated values that only includes the currently available test suites

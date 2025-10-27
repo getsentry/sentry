@@ -10,6 +10,7 @@ import type {
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface UseEditDetectorFormSubmitOptions<TDetector, TFormData> {
@@ -32,6 +33,7 @@ export function useEditDetectorFormSubmit<
   onError,
 }: UseEditDetectorFormSubmitOptions<TDetector, TFormData>): OnSubmitCallback {
   const organization = useOrganization();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
   const navigate = useNavigate();
   const {mutateAsync: updateDetector} = useUpdateDetector();
 
@@ -57,7 +59,13 @@ export function useEditDetectorFormSubmit<
         if (onSuccess) {
           onSuccess(resultDetector as TDetector);
         } else {
-          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
+          navigate(
+            makeMonitorDetailsPathname(
+              organization.slug,
+              resultDetector.id,
+              monitorsLinkPrefix
+            )
+          );
         }
 
         onSubmitSuccess?.(resultDetector);
@@ -76,6 +84,7 @@ export function useEditDetectorFormSubmit<
       formDataToEndpointPayload,
       updateDetector,
       organization.slug,
+      monitorsLinkPrefix,
       navigate,
       onSuccess,
       onError,

@@ -24,7 +24,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
@@ -129,7 +128,6 @@ const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
 function DiscoverLanding() {
   const organization = useOrganization();
   const location = useLocation();
-  const router = useRouter();
   const activeSort = useActiveSort();
   const savedSearchQuery = useSavedSearchQuery();
 
@@ -217,7 +215,7 @@ function DiscoverLanding() {
             </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main fullWidth>
+            <Layout.Main width="full">
               <StyledActions>
                 <StyledSearchBar
                   defaultQuery=""
@@ -254,7 +252,6 @@ function DiscoverLanding() {
                   renderPrebuilt={renderPrebuilt}
                   location={location}
                   organization={organization}
-                  router={router}
                   refetchSavedQueries={refreshSavedQueries}
                 />
               )}

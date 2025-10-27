@@ -17,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields import JSONField
 
 ON_DEMAND_ENABLED_KEY = "enabled"
@@ -118,6 +119,10 @@ class DatasetSourcesTypes(Enum):
      Dataset modified by using the widget snapshot to restore the original transaction query
     """
     RESTORED_SPAN_MIGRATION_VERSION_1 = 7
+    """
+     Dataset modified by the transaction -> span migration version 2
+    """
+    SPAN_MIGRATION_VERSION_2 = 8
 
     @classmethod
     def as_choices(cls):
@@ -196,6 +201,23 @@ class DashboardWidgetQuery(Model):
         unique_together = (("widget", "order"),)
 
     __repr__ = sane_repr("widget", "type", "name")
+
+
+@region_silo_model
+class DashboardFieldLink(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard_widget_query = FlexibleForeignKey(
+        "sentry.DashboardWidgetQuery", on_delete=models.CASCADE
+    )
+    field = models.TextField()
+    # The dashboard that the field is linked to
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardfieldlink"
+        unique_together = (("dashboard_widget_query", "field"),)
 
 
 @region_silo_model

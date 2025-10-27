@@ -9,6 +9,7 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -28,7 +29,6 @@ import {
   useTableSortParams,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/agents/utils/formatLLMCosts';
@@ -58,7 +58,7 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
+  {key: 'count_if(span.status,equals,internal_error)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
   {key: 'sum(gen_ai.usage.total_cost)', name: t('Cost'), width: 100},
@@ -81,7 +81,7 @@ const rightAlignColumns = new Set([
   'sum(gen_ai.usage.output_tokens.reasoning)',
   'sum(gen_ai.usage.input_tokens.cached)',
   'sum(gen_ai.usage.total_cost)',
-  'count_if(span.status,equals,unknown)',
+  'count_if(span.status,equals,internal_error)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -90,7 +90,9 @@ export function ModelsTable() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
 
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
@@ -123,7 +125,7 @@ export function ModelsTable() {
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,internal_error)',
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -145,7 +147,7 @@ export function ModelsTable() {
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
       cost: span['sum(gen_ai.usage.total_cost)'],
-      errors: span['count_if(span.status,equals,unknown)'] ?? 0,
+      errors: span['count_if(span.status,equals,internal_error)'] ?? 0,
       inputTokens: Number(span['sum(gen_ai.usage.input_tokens)']),
       inputCachedTokens: Number(span['sum(gen_ai.usage.input_tokens.cached)']),
       outputTokens: Number(span['sum(gen_ai.usage.output_tokens)']),
@@ -202,7 +204,7 @@ export function ModelsTable() {
           grid={{
             renderBodyCell,
             renderHeadCell,
-            onResizeColumn,
+            onResizeColumn: handleResizeColumn,
           }}
         />
         {modelsRequest.isPlaceholderData && <LoadingOverlay />}
@@ -277,12 +279,12 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.p95} />;
     case 'sum(gen_ai.usage.total_cost)':
       return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
-    case 'count_if(span.status,equals,unknown)':
+    case 'count_if(span.status,equals,internal_error)':
       return (
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:unknown gen_ai.request.model:${dataRow.model}`,
+            query: `${query} span.status:internal_error gen_ai.request.model:"${dataRow.model}"`,
             organization,
             selection,
             referrer: Referrer.MODELS_TABLE,

@@ -24,6 +24,7 @@ export interface DetectorSearchBarProps {
   onSearch: (query: string) => void;
   projectIds: number[];
   dataset?: DiscoverDatasets;
+  disabled?: boolean;
 }
 
 interface DetectorSeriesQueryOptions {
@@ -107,6 +108,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   getTimePeriods: (
     interval: MetricDetectorInterval
   ) => readonly MetricDetectorTimePeriod[];
+  name: string;
   /**
    * Extracts event types from the query string
    */

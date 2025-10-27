@@ -23,18 +23,20 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0017_break_commit_fks
+preprod: 0018_add_preprod_artifact_app_icon_id_field
+
+prevent: 0001_create_prevent_ai_configuration
 
 releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0994_add_groupreaction_table
+sentry: 0999_add_extrapolation_mode_to_snuba_query
 
 social_auth: 0003_social_auth_json_field
 
 tempest: 0001_squashed_0002_make_message_type_nullable
 
-uptime: 0046_delete_project_uptime_subscription_table
+uptime: 0048_delete_uptime_status_columns
 
-workflow_engine: 0091_fix_email_notification_names
+workflow_engine: 0093_add_action_config_index

@@ -61,7 +61,7 @@ export default function ToolCallsWidget() {
     Referrer.TOOL_CALLS_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
+  const timeSeries = timeSeriesRequest?.data?.timeSeries ?? [];
 
   const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
   const error = timeSeriesRequest.error || toolsRequest.error;

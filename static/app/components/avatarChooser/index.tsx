@@ -8,6 +8,7 @@ import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
@@ -278,7 +279,7 @@ function AvatarChooser({
     ) : null;
 
   const cropper = (
-    <CropperContainer>
+    <Stack gap="xl">
       <AvatarCropper
         minDimension={MIN_DIMENSION}
         maxDimension={MAX_DIMENSION}
@@ -293,7 +294,7 @@ function AvatarChooser({
           setCroppedAvatar(dataUrl ?? null);
         }}
       />
-      <CropperActions>
+      <Flex justify="end" gap="md">
         <Button
           size="xs"
           priority="danger"
@@ -315,8 +316,8 @@ function AvatarChooser({
         >
           {t('Looks good')}
         </Button>
-      </CropperActions>
-    </CropperContainer>
+      </Flex>
+    </Stack>
   );
 
   return (
@@ -396,18 +397,6 @@ const AvatarChooserBody = styled('div')`
 
 const CropperHovercard = styled(Hovercard)`
   width: 300px;
-`;
-
-const CropperContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const CropperActions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  gap: ${space(1)};
 `;
 
 const AvatarHelp = styled('p')`

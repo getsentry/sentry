@@ -5,14 +5,14 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 
-from sentry import eventstore, eventstream, nodestore
+from sentry import eventstream, nodestore
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
@@ -22,14 +22,9 @@ from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_group",
-    queue="events.reprocessing.process_event",
-    time_limit=120,
-    soft_time_limit=110,
+    namespace=issues_tasks,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=120,
-    ),
 )
 def reprocess_group(
     project_id: int,
@@ -142,17 +137,10 @@ def reprocess_group(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.handle_remaining_events",
-    queue="events.reprocessing.process_event",
-    time_limit=60 * 5,
-    max_retries=5,
+    namespace=issues_tasks,
+    processing_deadline_duration=60 * 5,
+    retry=Retry(times=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60 * 5,
-        retry=Retry(
-            times=5,
-        ),
-    ),
 )
 @retry
 def handle_remaining_events(
@@ -234,13 +222,8 @@ def handle_remaining_events(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.finish_reprocessing",
-    queue="events.reprocessing.process_event",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=(60 * 5) + 5,
-    ),
+    namespace=issues_tasks,
+    processing_deadline_duration=(60 * 5) + 5,
 )
 def finish_reprocessing(project_id: int, group_id: int) -> None:
     from sentry.models.activity import Activity

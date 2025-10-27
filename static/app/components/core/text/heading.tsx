@@ -10,7 +10,7 @@ import {
   type TextProps,
 } from './text';
 
-type BaseHeadingProps = Omit<BaseTextProps, 'bold'>;
+type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase'>;
 
 export type HeadingProps = BaseHeadingProps & {
   /**
@@ -60,7 +60,6 @@ export const Heading = styled(
     ]
       .filter(Boolean)
       .join(' ')};
-  text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
   text-box-edge: text text;
   text-box-trim: trim-both;

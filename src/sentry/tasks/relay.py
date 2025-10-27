@@ -8,9 +8,9 @@ from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
+from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
@@ -20,15 +20,9 @@ logger = logging.getLogger(__name__)
 # service.
 @instrumented_task(
     name="sentry.tasks.relay.build_project_config",
-    queue="relay_config",
-    soft_time_limit=25,
-    time_limit=30,  # Extra 5 seconds to remove the debounce key.
-    expires=30,  # Relay query timeout (https://github.com/getsentry/relay/blob/eba85e3130adb43208ce4547807c0aeb92e1cde2/relay-config/src/config.rs#L599)
-    taskworker_config=TaskworkerConfig(
-        namespace=relay_tasks,
-        expires=30,
-        processing_deadline_duration=30,
-    ),
+    namespace=relay_tasks,
+    expires=30,
+    processing_deadline_duration=30,
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
@@ -201,14 +195,9 @@ def compute_projectkey_config(key):
 
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
-    queue="relay_config_bulk",
-    soft_time_limit=25 * 60,  # 25mins
-    time_limit=25 * 60 + 5,
+    namespace=relay_tasks,
+    processing_deadline_duration=25 * 60 + 5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=relay_tasks,
-        processing_deadline_duration=25 * 60 + 5,
-    ),
 )
 def invalidate_project_config(
     organization_id=None,
@@ -378,35 +367,36 @@ def _schedule_invalidate_project_config(
         else:
             check_debounce_keys["organization_id"] = org_id
 
-    if projectconfig_debounce_cache.invalidation.is_debounced(**check_debounce_keys):
-        # If this task is already in the queue, do not schedule another task.
+    with quiet_redis_noise():
+        if projectconfig_debounce_cache.invalidation.is_debounced(**check_debounce_keys):
+            # If this task is already in the queue, do not schedule another task.
+            metrics.incr(
+                "relay.projectconfig_cache.skipped",
+                tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
+            )
+            return
+
         metrics.incr(
-            "relay.projectconfig_cache.skipped",
-            tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
+            "relay.projectconfig_cache.scheduled",
+            tags={
+                "update_reason": trigger,
+                "update_reason_details": trigger_details,
+                "task": "invalidation",
+            },
         )
-        return
 
-    metrics.incr(
-        "relay.projectconfig_cache.scheduled",
-        tags={
-            "update_reason": trigger,
-            "update_reason_details": trigger_details,
-            "task": "invalidation",
-        },
-    )
+        invalidate_project_config.apply_async(
+            countdown=countdown,
+            kwargs={
+                "project_id": project_id,
+                "organization_id": organization_id,
+                "public_key": public_key,
+                "trigger": trigger,
+                "trigger_details": trigger_details,
+            },
+        )
 
-    invalidate_project_config.apply_async(
-        countdown=countdown,
-        kwargs={
-            "project_id": project_id,
-            "organization_id": organization_id,
-            "public_key": public_key,
-            "trigger": trigger,
-            "trigger_details": trigger_details,
-        },
-    )
-
-    # Use the original arguments to this function to set the debounce key.
-    projectconfig_debounce_cache.invalidation.debounce(
-        organization_id=organization_id, project_id=project_id, public_key=public_key
-    )
+        # Use the original arguments to this function to set the debounce key.
+        projectconfig_debounce_cache.invalidation.debounce(
+            organization_id=organization_id, project_id=project_id, public_key=public_key
+        )

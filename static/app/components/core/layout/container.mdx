@@ -4,6 +4,7 @@ description: A foundational layout component that provides responsive CSS proper
 source: 'sentry/components/core/layout/container'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/container.tsx
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
 ---
 
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -165,6 +166,21 @@ Set positioning for absolute/relative layouts:
   radius={{xs: '0', sm: 'md'}}
 >
   <div>Responsive layout content</div>
+</Container>
+```
+
+#### 2xs breakpoint
+
+The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined breakpoint size.
+
+<Storybook.Demo>
+  <Container display={{'2xs': 'none', sm: 'block'}}>
+    This content is hidden below the sm breakpoint
+  </Container>
+</Storybook.Demo>
+```jsx
+<Container display={{'2xs': 'none', sm: 'block'}}>
+  This content is hidden below the sm breakpoint
 </Container>
 ```
 

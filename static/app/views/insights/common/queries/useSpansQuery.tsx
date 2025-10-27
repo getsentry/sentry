@@ -1,10 +1,11 @@
 import moment from 'moment-timezone';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -15,8 +16,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
+  RPCQueryExtras,
   SamplingMode,
-  SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   getRetryDelay,
@@ -24,7 +25,7 @@ import {
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
+export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
@@ -38,7 +39,7 @@ type SpansQueryProps<T = any[]> = {
   eventView?: EventView;
   initialData?: T;
   limit?: number;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
   referrer?: string;
   trackResponseAnalytics?: boolean;
 };
@@ -108,6 +109,7 @@ function useSpansQueryBase<T>({
     referrer,
     cursor,
     allowAggregateConditions,
+    caseInsensitive: queryExtras?.caseInsensitive,
     samplingMode: queryExtras?.samplingMode,
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
   });
@@ -121,6 +123,7 @@ function useSpansQueryBase<T>({
 
 type WrappedDiscoverTimeseriesQueryProps = {
   eventView: EventView;
+  caseInsensitive?: CaseInsensitive;
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
@@ -137,6 +140,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   cursor,
   overriddenRoute,
   samplingMode,
+  caseInsensitive,
 }: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -174,6 +178,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
         eventView.dataset === DiscoverDatasets.SPANS && samplingMode
           ? samplingMode
           : undefined,
+      caseInsensitive,
     }),
     options: {
       enabled,
@@ -227,6 +232,7 @@ type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
   additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
+  caseInsensitive?: CaseInsensitive;
   cursor?: string;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
@@ -254,6 +260,7 @@ function useWrappedDiscoverQueryBase<T>({
   pageFiltersReady,
   additionalQueryKey,
   refetchInterval,
+  caseInsensitive,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -264,6 +271,10 @@ function useWrappedDiscoverQueryBase<T>({
   if (eventView.dataset === DiscoverDatasets.SPANS) {
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
+    }
+
+    if (typeof caseInsensitive === 'number') {
+      queryExtras.caseInsensitive = caseInsensitive.toString();
     }
 
     if (disableAggregateExtrapolation) {

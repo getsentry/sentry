@@ -7,7 +7,6 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {IconThumb} from 'sentry/icons';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,11 +53,10 @@ export default function FeedbackSummaryCategories() {
 
   return (
     <SummaryIconContainer>
-      <IconSeer size="xs" />
       <SummaryContainer>
         <Flex justify="between" align="center">
           <SummaryHeader>
-            {t('Summary')} <FeatureBadge type="experimental" />
+            {t('Summary')} <FeatureBadge type="beta" />
           </SummaryHeader>
           <Flex gap="xs">
             {feedbackButton({type: 'positive'})}

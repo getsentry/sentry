@@ -12,7 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -91,7 +91,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             if not has_too_many_contributing_frames(
                 latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
             ):
-                grouping_info = get_grouping_info_from_variants(variants)
+                grouping_info = get_grouping_info_from_variants_legacy(variants)
                 try:
                     stacktrace_string = get_stacktrace_string(grouping_info)
                 except Exception:

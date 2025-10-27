@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import jsonschema
 import orjson
 import sentry_sdk
@@ -18,7 +22,9 @@ from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.assemble import ChunkFileState
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 SUPPORTED_VCS_PROVIDERS = [
     IntegrationProviderSlug.GITHUB,
@@ -29,7 +35,7 @@ SUPPORTED_VCS_PROVIDERS = [
 ]
 
 
-def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
+def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact assembly requests.
 
@@ -99,6 +105,14 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
+        }
+    )
+
     def post(self, request: Request, project: Project) -> Response:
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
@@ -113,7 +127,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         )
 
         if not settings.IS_DEV and not features.has(
-            "organizations:preprod-artifact-assemble", project.organization, actor=request.user
+            "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 
@@ -127,8 +141,25 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if provider is not None and provider not in SUPPORTED_VCS_PROVIDERS:
                 return Response({"error": "Unsupported provider"}, status=400)
 
-            checksum = data.get("checksum")
+            checksum = str(data.get("checksum", ""))
             chunks = data.get("chunks", [])
+
+            # Validate VCS parameters - if any are provided, all required ones must be present
+            vcs_params = {
+                "head_sha": data.get("head_sha"),
+                "head_repo_name": data.get("head_repo_name"),
+                "provider": data.get("provider"),
+                "head_ref": data.get("head_ref"),
+            }
+
+            if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
+                missing_params = [k for k, v in vcs_params.items() if not v]
+                return Response(
+                    {
+                        "error": f"All required VCS parameters must be provided when using VCS features. Missing parameters: {', '.join(missing_params)}"
+                    },
+                    status=400,
+                )
 
             # Check if all requested chunks have been uploaded
             missing_chunks = find_missing_chunks(project.organization_id, set(chunks))
@@ -150,7 +181,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 org_id=project.organization_id,
                 project_id=project.id,
                 checksum=checksum,
-                build_configuration=data.get("build_configuration"),
+                build_configuration_name=data.get("build_configuration"),
                 release_notes=data.get("release_notes"),
                 head_sha=data.get("head_sha"),
                 base_sha=data.get("base_sha"),
@@ -167,7 +198,8 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     {
                         "state": ChunkFileState.ERROR,
                         "detail": "Failed to create preprod artifact row.",
-                    }
+                    },
+                    status=500,
                 )
 
             create_preprod_status_check_task.apply_async(

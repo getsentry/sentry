@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:02.075150+00:00'
+created: '2025-10-06T21:57:32.694439+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -1092,13 +1092,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames",
     "hash": "228c649a3aa0901622c0a0e66ab0522c",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "default": {
+  "message": {
     "component": {
       "contributes": false,
       "hint": "ignored because app/system exception takes precedence",
@@ -1136,13 +1137,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "default",
+    "contributes": false,
+    "description": "message",
     "hash": null,
     "hint": "ignored because app/system exception takes precedence",
-    "key": "default",
+    "key": "message",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -2230,10 +2232,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "4ccd0f1953483581ba360c7518f90332",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

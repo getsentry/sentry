@@ -30,20 +30,17 @@ class ErrorAlertData(NotificationData):
 @template_registry.register(ErrorAlertData.source)
 class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
     category = NotificationCategory.DEBUG
-
-    @property
-    def example_data(self) -> ErrorAlertData:
-        return ErrorAlertData(
-            error_type="ValueError",
-            error_message="'NoneType' object has no attribute 'get'",
-            project_name="my-app",
-            issue_id="12345",
-            error_count=15,
-            first_seen="2024-01-15 14:30:22 UTC",
-            chart_url="https://example.com/chart",
-            issue_url="https://example.com/issues",
-            assign_url="https://example.com/assign",
-        )
+    example_data = ErrorAlertData(
+        error_type="ValueError",
+        error_message="'NoneType' object has no attribute 'get'",
+        project_name="my-app",
+        issue_id="12345",
+        error_count=15,
+        first_seen="2024-01-15 14:30:22 UTC",
+        chart_url="https://example.com/chart",
+        issue_url="https://example.com/issues",
+        assign_url="https://example.com/assign",
+    )
 
     def render(self, data: ErrorAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
@@ -82,18 +79,16 @@ class DeploymentData(NotificationData):
 class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
     category = NotificationCategory.DEBUG
 
-    @property
-    def example_data(self) -> DeploymentData:
-        return DeploymentData(
-            project_name="my-app",
-            version="v2.1.3",
-            environment="production",
-            deployer="john.doe@acme.com",
-            commit_sha="a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
-            commit_message="Fix user authentication bug",
-            deployment_url="https://example.com/deployment",
-            rollback_url="https://example.com/rollback",
-        )
+    example_data = DeploymentData(
+        project_name="my-app",
+        version="v2.1.3",
+        environment="production",
+        deployer="john.doe@acme.com",
+        commit_sha="a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
+        commit_message="Fix user authentication bug",
+        deployment_url="https://example.com/deployment",
+        rollback_url="https://example.com/rollback",
+    )
 
     def render(self, data: DeploymentData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
@@ -114,55 +109,51 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
 
 
 @dataclass(frozen=True)
-class SecurityAlertData(NotificationData):
-    source = "security-monitoring"
+class SlowLoadMetricAlertData(NotificationData):
+    source = "slow-load-metric-alert"
     alert_type: str
     severity: str
     project_name: str
-    description: str
-    affected_users: int
     alert_url: str
     acknowledge_url: str
     escalate_url: str
+    measurement: str
+    threshold: str
+    start_time: str
+    chart_url: str
 
 
-@template_registry.register(SecurityAlertData.source)
-class SecurityAlertNotificationTemplate(NotificationTemplate[SecurityAlertData]):
+@template_registry.register(SlowLoadMetricAlertData.source)
+class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetricAlertData]):
     category = NotificationCategory.DEBUG
+    example_data = SlowLoadMetricAlertData(
+        alert_type="Slow Product Load",
+        severity="critical",
+        project_name="example-app",
+        measurement="5152.0 p50(measurements.lc)",
+        threshold="static",
+        start_time="2024-01-15 14:30:22 UTC",
+        chart_url="https://storage.googleapis.com/sentryio-chartcuterie-bucket/b8c05163a9474cf0ae0c6e8797e768ee.png",
+        acknowledge_url="https://example.com/acknowledge",
+        escalate_url="https://example.com/escalate",
+        alert_url="https://example.com/alert",
+    )
 
-    @property
-    def example_data(self) -> SecurityAlertData:
-        return SecurityAlertData(
-            alert_type="Suspicious login pattern",
-            severity="critical",
-            project_name="my-app",
-            description="Multiple failed login attempts detected from unusual locations.",
-            affected_users=23,
-            alert_url="https://example.com/security-alert",
-            acknowledge_url="https://example.com/acknowledge",
-            escalate_url="https://example.com/escalate",
-        )
-
-    def render(self, data: SecurityAlertData) -> NotificationRenderedTemplate:
+    def render(self, data: SlowLoadMetricAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=f"SECURITY ALERT: {data.alert_type} in {data.project_name}",
-            body=(
-                f"A {data.severity.upper()} security alert of type {data.alert_type} has been triggered for project {data.project_name}. "
-                f"The alert description: {data.description}. "
-                f"This security incident has affected {data.affected_users} users and requires immediate investigation and response."
+            subject=f"{data.severity.upper()}: {data.alert_type} in {data.project_name}",
+            body=(f"{data.measurement} since {data.start_time}"),
+            chart=NotificationRenderedImage(
+                url=data.chart_url,
+                alt_text="Metric alert chart",
             ),
             actions=[
                 NotificationRenderedAction(
-                    label="View Alert Details", link="https://example.com/security-alert"
-                ),
-                NotificationRenderedAction(
                     label="Acknowledge", link="https://example.com/acknowledge"
                 ),
-                NotificationRenderedAction(
-                    label="Escalate to Security Team", link="https://example.com/escalate"
-                ),
+                NotificationRenderedAction(label="Escalate", link="https://example.com/escalate"),
             ],
-            footer="This is a security alert requiring immediate attention.",
+            footer=f"Threshold: {data.threshold} | Triggered alert: {data.alert_url}",
         )
 
 
@@ -180,17 +171,14 @@ class PerformanceAlertData(NotificationData):
 @template_registry.register(PerformanceAlertData.source)
 class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlertData]):
     category = NotificationCategory.DEBUG
-
-    @property
-    def example_data(self) -> PerformanceAlertData:
-        return PerformanceAlertData(
-            metric_name="API response time",
-            threshold="500ms",
-            current_value="1.2s",
-            project_name="my-app",
-            chart_url="https://example.com/chart",
-            investigation_url="https://example.com/investigate",
-        )
+    example_data = PerformanceAlertData(
+        metric_name="API response time",
+        threshold="500ms",
+        current_value="1.2s",
+        project_name="my-app",
+        chart_url="https://example.com/chart",
+        investigation_url="https://example.com/investigate",
+    )
 
     def render(self, data: PerformanceAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
@@ -225,16 +213,13 @@ class TeamUpdateData(NotificationData):
 @template_registry.register(TeamUpdateData.source)
 class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
     category = NotificationCategory.DEBUG
-
-    @property
-    def example_data(self) -> TeamUpdateData:
-        return TeamUpdateData(
-            team_name="Engineering",
-            update_type="Weekly Standup Reminder",
-            message="Don't forget about our weekly standup meeting tomorrow at 10 AM. Please prepare your updates on current sprint progress.",
-            author="jane.smith@acme.com",
-            timestamp="2024-01-15 16:45:00 UTC",
-        )
+    example_data = TeamUpdateData(
+        team_name="Engineering",
+        update_type="Weekly Standup Reminder",
+        message="Don't forget about our weekly standup meeting tomorrow at 10 AM. Please prepare your updates on current sprint progress.",
+        author="jane.smith@acme.com",
+        timestamp="2024-01-15 16:45:00 UTC",
+    )
 
     def render(self, data: TeamUpdateData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(

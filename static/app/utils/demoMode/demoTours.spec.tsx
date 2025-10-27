@@ -26,7 +26,6 @@ jest.mock('sentry/utils/useLocalStorageState', () => ({
 }));
 
 interface MockToursState {
-  [DemoTour.SIDEBAR]: TourState<DemoTourStep>;
   [DemoTour.ISSUES]: TourState<DemoTourStep>;
   [DemoTour.RELEASES]: TourState<DemoTourStep>;
   [DemoTour.PERFORMANCE]: TourState<DemoTourStep>;
@@ -46,13 +45,6 @@ describe('DemoTours', () => {
 
   beforeEach(() => {
     mockState = {
-      [DemoTour.SIDEBAR]: {
-        currentStepId: null,
-        isCompleted: false,
-        orderedStepIds: [DemoTourStep.SIDEBAR_PROJECTS, DemoTourStep.SIDEBAR_ISSUES],
-        isRegistered: true,
-        tourKey: DemoTour.SIDEBAR,
-      },
       [DemoTour.ISSUES]: {
         currentStepId: null,
         isCompleted: false,
@@ -63,7 +55,7 @@ describe('DemoTours', () => {
       [DemoTour.RELEASES]: {
         currentStepId: null,
         isCompleted: false,
-        orderedStepIds: [],
+        orderedStepIds: [DemoTourStep.RELEASES_LIST, DemoTourStep.RELEASES_CHART],
         isRegistered: true,
         tourKey: DemoTour.RELEASES,
       },
@@ -113,7 +105,7 @@ describe('DemoTours', () => {
     it('returns null when used outside provider', () => {
       jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR));
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES));
 
       expect(result.current).toBeNull();
 
@@ -121,7 +113,7 @@ describe('DemoTours', () => {
     });
 
     it('provides tour context when used inside provider', () => {
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR), {
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES), {
         additionalWrapper: createWrapper(),
       });
 
@@ -130,45 +122,45 @@ describe('DemoTours', () => {
       expect(tour?.currentStepId).toBeNull();
       expect(tour?.isCompleted).toBe(false);
       expect(tour?.orderedStepIds).toEqual([
-        DemoTourStep.SIDEBAR_PROJECTS,
-        DemoTourStep.SIDEBAR_ISSUES,
+        DemoTourStep.RELEASES_LIST,
+        DemoTourStep.RELEASES_CHART,
       ]);
     });
 
     it('handles tour actions', () => {
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR), {
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES), {
         additionalWrapper: createWrapper(),
       });
 
       const tour = result.current;
 
       act(() => {
-        tour?.startTour(DemoTourStep.SIDEBAR_PROJECTS);
+        tour?.startTour(DemoTourStep.RELEASES_LIST);
       });
 
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(
-        DemoTourStep.SIDEBAR_PROJECTS
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
 
       act(() => {
-        tour?.setStep(DemoTourStep.SIDEBAR_ISSUES);
+        tour?.setStep(DemoTourStep.RELEASES_CHART);
       });
 
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(DemoTourStep.SIDEBAR_ISSUES);
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
+        DemoTourStep.RELEASES_CHART
+      );
 
       act(() => {
         tour?.endTour();
       });
 
-      expect(mockState[DemoTour.SIDEBAR].isCompleted).toBe(true);
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBeUndefined();
+      expect(mockState[DemoTour.RELEASES].isCompleted).toBe(true);
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBeUndefined();
 
-      expect(recordFinish).toHaveBeenCalledWith(DemoTour.SIDEBAR, null);
+      expect(recordFinish).toHaveBeenCalledWith(DemoTour.RELEASES, null);
     });
 
     it('maintains separate state for different tours', () => {
       const {result: sideBarResult} = renderHookWithProviders(
-        () => useDemoTour(DemoTour.SIDEBAR),
+        () => useDemoTour(DemoTour.RELEASES),
         {
           additionalWrapper: createWrapper(),
         }
@@ -186,66 +178,64 @@ describe('DemoTours', () => {
       const issuesTour = issuesResult.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.SIDEBAR_PROJECTS);
+        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
       });
 
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(
-        DemoTourStep.SIDEBAR_PROJECTS
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
       expect(mockState[DemoTour.ISSUES].currentStepId).toBeNull();
 
       act(() => {
         issuesTour?.startTour(DemoTourStep.ISSUES_STREAM);
       });
 
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(
-        DemoTourStep.SIDEBAR_PROJECTS
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
       expect(mockState[DemoTour.ISSUES].currentStepId).toBe(DemoTourStep.ISSUES_STREAM);
 
       act(() => {
-        sidebarTour?.setStep(DemoTourStep.SIDEBAR_ISSUES);
+        sidebarTour?.setStep(DemoTourStep.RELEASES_CHART);
       });
 
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(DemoTourStep.SIDEBAR_ISSUES);
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
+        DemoTourStep.RELEASES_CHART
+      );
       expect(mockState[DemoTour.ISSUES].currentStepId).toBe(DemoTourStep.ISSUES_STREAM);
 
       act(() => {
         sidebarTour?.endTour();
       });
 
-      expect(mockState[DemoTour.SIDEBAR].isCompleted).toBe(true);
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBeUndefined();
+      expect(mockState[DemoTour.RELEASES].isCompleted).toBe(true);
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBeUndefined();
       expect(mockState[DemoTour.ISSUES].isCompleted).toBe(false);
       expect(mockState[DemoTour.ISSUES].currentStepId).toBe(DemoTourStep.ISSUES_STREAM);
 
-      expect(recordFinish).toHaveBeenCalledWith(DemoTour.SIDEBAR, null);
+      expect(recordFinish).toHaveBeenCalledWith(DemoTour.RELEASES, null);
     });
 
     it('correctly advances through tour steps', () => {
-      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR), {
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES), {
         additionalWrapper: createWrapper(),
       });
 
       const sidebarTour = result.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.SIDEBAR_PROJECTS);
+        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
       });
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(
-        DemoTourStep.SIDEBAR_PROJECTS
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
 
       act(() => {
-        sidebarTour?.setStep(DemoTourStep.SIDEBAR_ISSUES);
+        sidebarTour?.setStep(DemoTourStep.RELEASES_CHART);
       });
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(DemoTourStep.SIDEBAR_ISSUES);
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
+        DemoTourStep.RELEASES_CHART
+      );
 
       act(() => {
         sidebarTour?.endTour();
       });
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBeUndefined();
-      expect(mockState[DemoTour.SIDEBAR].isCompleted).toBe(true);
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBeUndefined();
+      expect(mockState[DemoTour.RELEASES].isCompleted).toBe(true);
     });
   });
 
@@ -254,7 +244,7 @@ describe('DemoTours', () => {
       render(
         <DemoToursProvider>
           <DemoTourElement
-            id={DemoTourStep.SIDEBAR_PROJECTS}
+            id={DemoTourStep.RELEASES_LIST}
             title="Test Title"
             description="Test Description"
           >
