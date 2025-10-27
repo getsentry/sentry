@@ -98,6 +98,7 @@ class ProjectKeySerializer(Serializer):
                 "crons": obj.crons_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
                 "playstation": obj.playstation_endpoint,
+                "integration": obj.integration_endpoint,
                 "otlp_traces": obj.otlp_traces_endpoint,
                 "otlp_logs": obj.otlp_logs_endpoint,
             },
