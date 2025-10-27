@@ -9,14 +9,14 @@ import type {Node} from '@react-types/shared';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {DeletableToken} from 'sentry/components/searchQueryBuilder/tokens/deletableToken';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import type {
   ParseResultToken,
   Token,
@@ -143,46 +143,41 @@ function SearchQueryBuilderBooleanSelect({
       state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
       {...modifiedRowProps}
     >
-      <Grid align="stretch" height="22px" columns="auto auto auto auto">
-        {props => (
-          <InvalidTokenTooltip
-            token={token}
-            state={state}
-            item={item}
-            containerDisplayMode="grid"
-            forceVisible={filterMenuOpen ? false : undefined}
-            {...props}
-          >
-            <Flex align="stretch" position="relative" {...gridCellProps}>
-              <CompactSelect
-                disabled={disabled}
-                size="sm"
-                value={tokenText}
-                options={BOOLEAN_OPERATOR_OPTIONS}
-                trigger={triggerProps => {
-                  return (
-                    <OpButton
-                      disabled={disabled}
-                      aria-label={t('Edit boolean operator: %s', tokenText)}
-                      {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
-                    >
-                      <InteractionStateLayer />
-                      {tokenText}
-                    </OpButton>
-                  );
-                }}
-                onOpenChange={setFilterMenuOpen}
-                onChange={option => {
-                  dispatch({type: 'UPDATE_BOOLEAN_OPERATOR', token, value: option.value});
-                }}
-              />
-            </Flex>
-            <Flex align="stretch" position="relative" {...gridCellProps}>
-              <FilterDelete token={token} state={state} item={item} />
-            </Flex>
-          </InvalidTokenTooltip>
-        )}
-      </Grid>
+      <GridInvalidTokenTooltip
+        token={token}
+        state={state}
+        item={item}
+        containerDisplayMode="grid"
+        forceVisible={filterMenuOpen ? false : undefined}
+      >
+        <Flex align="stretch" position="relative" {...gridCellProps}>
+          <CompactSelect
+            disabled={disabled}
+            size="sm"
+            value={tokenText}
+            options={BOOLEAN_OPERATOR_OPTIONS}
+            trigger={triggerProps => {
+              return (
+                <OpButton
+                  disabled={disabled}
+                  aria-label={t('Edit boolean operator: %s', tokenText)}
+                  {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
+                >
+                  <InteractionStateLayer />
+                  {tokenText}
+                </OpButton>
+              );
+            }}
+            onOpenChange={setFilterMenuOpen}
+            onChange={option => {
+              dispatch({type: 'UPDATE_BOOLEAN_OPERATOR', token, value: option.value});
+            }}
+          />
+        </Flex>
+        <Flex align="stretch" position="relative" {...gridCellProps}>
+          <FilterDelete token={token} state={state} item={item} />
+        </Flex>
+      </GridInvalidTokenTooltip>
     </FilterWrapper>
   );
 }

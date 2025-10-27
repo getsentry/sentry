@@ -20,7 +20,7 @@ import {
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
-import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   FilterType,
   Token,
@@ -309,13 +309,6 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
             background-color: ${p.theme.gray100};
           `
         : ''}
-`;
-
-const GridInvalidTokenTooltip = styled(InvalidTokenTooltip)`
-  display: grid;
-  grid-template-columns: auto auto auto auto;
-  align-items: stretch;
-  height: 22px;
 `;
 
 const BaseGridCell = styled('div')`
