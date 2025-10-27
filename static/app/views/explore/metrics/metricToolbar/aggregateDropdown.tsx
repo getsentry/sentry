@@ -65,6 +65,14 @@ const OPTIONS_BY_TYPE: Record<string, Array<{label: string; value: string}>> = {
       label: 'count',
       value: 'count',
     },
+    {
+      label: 'per_second',
+      value: 'per_second',
+    },
+    {
+      label: 'per_minute',
+      value: 'per_minute',
+    },
   ],
   gauge: [
     {
@@ -83,11 +91,19 @@ const OPTIONS_BY_TYPE: Record<string, Array<{label: string; value: string}>> = {
       label: 'last',
       value: 'last',
     },
+    {
+      label: 'per_second',
+      value: 'per_second',
+    },
+    {
+      label: 'per_minute',
+      value: 'per_minute',
+    },
   ],
 };
 
 const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
-  counter: 'sum',
+  counter: 'per_second',
   distribution: 'p75',
   gauge: 'avg',
 };
