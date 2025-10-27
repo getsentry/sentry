@@ -23,6 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper, maybe_build_dlq_producer
+from sentry.consumers.profiler import JoinProfiler
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
@@ -674,3 +675,12 @@ class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
     def create_with_partitions(self, commit, partitions):
         rv = self.inner.create_with_partitions(commit, partitions)
         return Healthcheck(self.healthcheck_file_path, rv)
+
+
+class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory):
+    def __init__(self, inner: ProcessingStrategyFactory):
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        rv = self.inner.create_with_partitions(commit, partitions)
+        return JoinProfiler(rv)
