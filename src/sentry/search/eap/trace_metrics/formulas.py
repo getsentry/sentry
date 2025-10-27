@@ -39,7 +39,7 @@ def rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFo
         else settings["snuba_params"].interval
     )
 
-    divisor = cast(int, args[0]) if args else 1
+    divisor = int(cast(str, args[0])) if args else 1
 
     if divisor > time_interval:
         raise InvalidSearchQuery(
