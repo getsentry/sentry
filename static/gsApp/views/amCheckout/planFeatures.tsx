@@ -427,7 +427,7 @@ function PlanFeatures({
         gap="xl"
         direction="column"
       >
-        <Grid columns={{xs: '1fr', sm: `repeat(2, 1fr)`}} gap="md xl">
+        <Grid columns={{xs: '1fr', sm: `repeat(2, 1fr)`}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>
@@ -464,7 +464,7 @@ function PlanFeatures({
                 planName,
               })}
             >
-              <Flex align="center" gap="sm">
+              <Flex gap="sm">
                 <IconWarning size="sm" color="disabled" />
                 <Text size="sm" variant="muted">
                   {tct('Excess usage for [categories] costs more on [planName]', {
