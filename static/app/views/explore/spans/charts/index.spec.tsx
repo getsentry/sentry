@@ -22,6 +22,7 @@ describe('ExploreCharts', () => {
         <PageParamsProvider>
           <ExploreCharts
             extrapolate
+            setTab={() => {}}
             confidences={[]}
             query=""
             timeseriesResult={mockTimeseriesResult}
