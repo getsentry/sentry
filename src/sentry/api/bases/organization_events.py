@@ -338,6 +338,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 return "1/second", field_type
             elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
                 return "1/minute", field_type
+            elif field in ["per_second()"]:
+                return "1/second", field_type
+            elif field in ["per_minute()"]:
+                return "1/minute", field_type
             else:
                 logger.warning(
                     "sentry.api.bases.organization_events.get_unit_and_type encountered an unknown rate type",
