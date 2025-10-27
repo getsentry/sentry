@@ -584,6 +584,27 @@ export function useInfiniteLogsQuery({
 
   const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
 
+  // Due to the way we prune empty pages, we cannot simply compute the sum of bytes scanned
+  // for all pages as most empty pages would have been evicted already.
+  //
+  // Instead, we watch the last page loaded, and keep a running sum that is reset when
+  // the last page is falsey which corresponds to a query change.
+  const [totalBytesScanned, setTotalBytesScanned] = useState(0);
+  const lastPage = data?.pages?.[data?.pages?.length - 1];
+  useEffect(() => {
+    if (!lastPage) {
+      setTotalBytesScanned(0);
+      return;
+    }
+
+    const bytesScanned = lastPage[0].meta?.bytesScanned;
+    if (!defined(bytesScanned)) {
+      return;
+    }
+
+    setTotalBytesScanned(previousBytesScanned => previousBytesScanned + bytesScanned);
+  }, [lastPage]);
+
   const _data = useMemo(() => {
     const usedRowIds = new Set();
     const filteredData =
@@ -694,6 +715,7 @@ export function useInfiniteLogsQuery({
     isFetchingNextPage: _data.length > 0 && (waitingToAutoFetch || isFetchingNextPage),
     isFetchingPreviousPage,
     lastPageLength,
+    bytesScanned: totalBytesScanned,
   };
 }
 
