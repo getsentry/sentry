@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconClose, IconFilter} from 'sentry/icons';
+import {IconClose, IconFilter, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {SummaryFilterKey} from 'sentry/views/prevent/tests/config';
@@ -52,15 +52,27 @@ interface SummaryCardProps {
   tooltip: ReactNode;
   extra?: ReactNode;
   filterBy?: SummaryFilterKey;
-  value?: string | number;
+  footer?: ReactNode;
+  openInNewTab?: string;
+  value?: string | number | ReactNode;
 }
 
-export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCardProps) {
+export function SummaryCard({
+  label,
+  tooltip,
+  value,
+  filterBy,
+  extra,
+  footer,
+  openInNewTab,
+}: SummaryCardProps) {
   const {filterLink, isFiltered} = useCreateSummaryFilterLink(filterBy);
 
   const filterLabel = isFiltered
     ? t('Clear filter')
     : t('Filter the table to these tests');
+
+  const openLabel = t('Open in a new tab');
 
   const content = (
     <Fragment>
@@ -72,7 +84,7 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
       </Flex>
       <Flex justify="between" align="center">
         <Flex align="center" gap="sm">
-          <Text size="2xl" bold variant={filterBy ? 'accent' : undefined}>
+          <Text size="2xl" bold variant={filterBy || openInNewTab ? 'accent' : undefined}>
             {value ?? '-'}
           </Text>
           {extra}
@@ -86,7 +98,17 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
             aria-label={filterLabel}
           />
         )}
+        {openInNewTab && (
+          <Button
+            size="zero"
+            borderless
+            icon={<IconOpen />}
+            title={openLabel}
+            aria-label={openLabel}
+          />
+        )}
       </Flex>
+      {footer && <Flex>{footer}</Flex>}
     </Fragment>
   );
 
@@ -96,7 +118,7 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
       padding="md"
       gap="sm"
       isFiltered={isFiltered}
-      isClickable={!!filterBy}
+      isClickable={!!filterBy || !!openInNewTab}
     >
       {props =>
         filterBy ? (
@@ -104,6 +126,12 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
             <Link to={filterLink} {...props}>
               {content}
             </Link>
+          </li>
+        ) : openInNewTab ? (
+          <li>
+            <ExternalLink href={openInNewTab} openInNewTab {...props}>
+              {content}
+            </ExternalLink>
           </li>
         ) : (
           <li {...props}> {content}</li>
@@ -158,7 +186,7 @@ export function SummaryCardGroup({
         {trailingHeaderItems}
       </Flex>
       <SummaryListGrid
-        columns="repeat(auto-fit, minmax(200px, 1fr))"
+        columns="repeat(auto-fit, minmax(150px, 1fr))"
         align="start"
         gap="md"
         as="ul"

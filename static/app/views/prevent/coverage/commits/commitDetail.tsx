@@ -6,7 +6,7 @@ export default function CommitDetailPage() {
   return (
     <ContentContainer>
       <CommitDetailSummary />
-      <p>Commit Detail Page hello</p>
+      <p />
     </ContentContainer>
   );
 }

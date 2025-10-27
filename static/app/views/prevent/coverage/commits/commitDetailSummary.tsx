@@ -3,7 +3,7 @@ import {useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Grid} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import {IconArrow, IconChevron, IconGithub, IconOpen} from 'sentry/icons';
@@ -112,54 +112,6 @@ const uncoveredLinesData = [
   },
 ];
 
-const UploadsCountContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const StyledUploadsCountLink = styled('span')`
-  font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.linkColor};
-  font-size: 2.25rem;
-
-  /* This stops the text from jumping when becoming bold */
-  &::after {
-    content: attr(data-text);
-    height: 0;
-    visibility: hidden;
-    overflow: hidden;
-    pointer-events: none;
-    font-weight: ${p => p.theme.fontWeight.bold};
-    display: block;
-  }
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-// Custom component for uploads count link that opens history page in new tab
-function UploadsCountLink({children}: {children: React.ReactNode}) {
-  const organization = useOrganization();
-  const params = useParams<{sha: string}>();
-  const commitHash = params.sha || headCommit.shortSha;
-
-  const historyPath = makePreventPathname({
-    organization,
-    path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
-  });
-
-  return (
-    <UploadsCountContainer>
-      <IconOpen />
-      <a href={historyPath} target="_blank" rel="noopener noreferrer">
-        <StyledUploadsCountLink>{children}</StyledUploadsCountLink>
-      </a>
-    </UploadsCountContainer>
-  );
-}
-
 // Helper component to create commit links with proper organization context
 function CommitLink({
   commitSha,
@@ -178,6 +130,15 @@ function CommitLink({
 }
 
 export function CommitDetailSummary() {
+  const organization = useOrganization();
+  const params = useParams<{sha: string}>();
+  const commitHash = params.sha || headCommit.shortSha;
+
+  const historyPath = makePreventPathname({
+    organization,
+    path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
+  });
+
   return (
     <div>
       <Grid columns="4fr max-content" gap="xl">
@@ -187,34 +148,28 @@ export function CommitDetailSummary() {
           placeholderCount={5}
           trailingHeaderItems={
             <Text size="sm" variant="muted">
-              {t('This commit %s compared to', headCommit.shortSha)}{' '}
+              {t('Source: This commit %s compared to', headCommit.shortSha)}{' '}
               <CommitLink commitSha={baseCommit.sha}>{baseCommit.shortSha}</CommitLink>
             </Text>
           }
         >
           <Fragment>
-            <SummaryCard
-              label={t('Repository coverage')}
-              tooltip={
-                <p>
-                  {t(
-                    'The percentage of lines covered by tests across the entire repository.'
-                  )}
-                </p>
-              }
-              value="98.98%"
-              extra={
-                <Fragment>
-                  <Tag type="success">+4.25%</Tag>
-                  <Text size="sm" variant="muted">
-                    {t('Head commit')}{' '}
-                    <CommitLink commitSha={headCommit.sha}>
-                      {headCommit.shortSha}
-                    </CommitLink>
-                  </Text>
-                </Fragment>
-              }
-            />
+            <RepositoryCoverageCard>
+              <SummaryCard
+                label={t('Repository coverage')}
+                tooltip={
+                  <p>
+                    {t(
+                      'The percentage of lines covered by tests across the entire repository.'
+                    )}
+                    <hr />
+                    {t('Head commit: d677638')}{' '}
+                  </p>
+                }
+                value="98.98%"
+                extra={<Tag type="success">+4.25%</Tag>}
+              />
+            </RepositoryCoverageCard>
             <SummaryCard
               label={t('Patch coverage')}
               tooltip={
@@ -265,32 +220,30 @@ export function CommitDetailSummary() {
           </Fragment>
         </SummaryCardGroup>
         <SummaryCardGroup
-          title={t('Coverage Uploads - %s', headCommit.shortSha)}
+          title={t('Coverage Uploads')}
           isLoading={false}
           placeholderCount={1}
         >
           <SummaryCard
             label={t('Uploads count')}
             tooltip={<p>{t('Uploads count tooltip')}</p>}
-            value={65}
-            extra={
-              <Flex direction="column" gap="sm">
-                <UploadsCountLink>65</UploadsCountLink>
-                <StatusIndicatorContainer>
-                  <StatusItem>
-                    <StatusDot $variant="success" />
-                    <StatusText>65 Processed</StatusText>
-                  </StatusItem>
-                  <StatusItem>
-                    <StatusDot $variant="warning" />
-                    <StatusText>15 Pending</StatusText>
-                  </StatusItem>
-                  <StatusItem>
-                    <StatusDot $variant="error" />
-                    <StatusText>1 Failed</StatusText>
-                  </StatusItem>
-                </StatusIndicatorContainer>
-              </Flex>
+            value={650}
+            openInNewTab={historyPath}
+            footer={
+              <StatusIndicatorContainer>
+                <StatusItem>
+                  <StatusDot $variant="success" />
+                  <StatusText>650 Processed</StatusText>
+                </StatusItem>
+                <StatusItem>
+                  <StatusDot $variant="warning" />
+                  <StatusText>15 Pending</StatusText>
+                </StatusItem>
+                <StatusItem>
+                  <StatusDot $variant="error" />
+                  <StatusText>1 Failed</StatusText>
+                </StatusItem>
+              </StatusIndicatorContainer>
             }
           />
         </SummaryCardGroup>
@@ -607,6 +560,7 @@ const TableTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
   gap: ${p => p.theme.space.lg};
 
@@ -992,4 +946,10 @@ const LegendLabel = styled('span')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
+`;
+
+const RepositoryCoverageCard = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
 `;
