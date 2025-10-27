@@ -268,7 +268,11 @@ function useWrappedDiscoverQueryBase<T>({
   const organization = useOrganization();
 
   const queryExtras: Record<string, string> = {};
-  if (eventView.dataset === DiscoverDatasets.SPANS) {
+  if (
+    [DiscoverDatasets.SPANS, DiscoverDatasets.TRACEMETRICS].includes(
+      eventView.dataset as DiscoverDatasets
+    )
+  ) {
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
     }
