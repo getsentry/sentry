@@ -21,8 +21,8 @@ from sentry.constants import (
 )
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 from sentry.silo.base import SiloMode
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 
 logger = logging.getLogger(__name__)
 

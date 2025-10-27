@@ -5,8 +5,8 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 from sentry.testutils.cases import APITestCase
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 
 
 class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
