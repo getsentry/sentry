@@ -1,23 +1,25 @@
 import type React from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconCheckmark, IconClose, IconLightning, IconWarning} from 'sentry/icons';
+import {
+  IconAdd,
+  IconCheckmark,
+  IconClose,
+  IconLightning,
+  IconWarning,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
-import {
-  formatReservedWithUnits,
-  getAmPlanTier,
-  isDeveloperPlan,
-  isTeamPlanFamily,
-} from 'getsentry/utils/billing';
+import {formatReservedWithUnits, getAmPlanTier} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
@@ -26,212 +28,353 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
-interface PlanFeatureInfo {
-  features: React.ReactNode[];
-  perUnitPriceDiffs: Partial<Record<DataCategory, number>>;
-  plan: Plan;
-}
+type PlanType = 'developer' | 'team' | 'business';
 
-type PlanTierName = 'developer' | 'team' | 'business';
+type FeatureKey =
+  | 'users'
+  | 'sso'
+  | 'retention'
+  | 'integrations'
+  | 'insights'
+  | 'codeowners'
+  | 'baa'
+  | 'alerts'
+  | 'dashboards'
+  | DataCategory;
 
-const COMMON_FEATURES: Partial<Record<PlanTierName, string[]>> = {
-  team: [
-    t('Can add event volume to subscription'),
-    t('Third-party integrations'),
-    t('Seer: AI debugging agent (subscription required)'),
-    t('Single Sign-On'),
-    t('Up to 90 day retention'),
-  ],
-  business: [t('Code Owners support'), t('SAML + SCIM support'), t('BAA')],
+type FeatureInfo = {
+  /**
+   * A mapping where the key is the minimum plan type needed to
+   * display the feature, and the value is the display string.
+   */
+  displayStringMap: Partial<Record<PlanType, string>>;
+  key: FeatureKey;
+  displayStringPrefix?: string;
+  displayStringSuffix?: string;
+  excludedTiers?: PlanTier[];
 };
 
-const FEATURES_BY_TIER: Partial<
-  Record<PlanTier, Partial<Record<PlanTierName, string[]>>>
-> = {
-  [PlanTier.AM2]: {
-    team: [t('Access to UI and Continuous Profiling')],
-    business: [t('Insights (90 day lookback)')],
+const ORDERED_PLAN_TYPES = ['developer', 'team', 'business'];
+
+// TODO: this will need to be updated when Developer is surfaced in checkout
+const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
+  {
+    key: 'users',
+    displayStringMap: {
+      team: t('Unlimited users'),
+    },
   },
-
-  [PlanTier.AM3]: {
-    team: [t('Access to UI and Continuous Profiling')],
-    business: [t('Insights (90 day lookback)')],
+  {
+    key: 'sso',
+    displayStringPrefix: t('SSO w/ '),
+    displayStringMap: {
+      team: t('GitHub and Google'),
+      business: t('SAML + SCIM support'),
+    },
   },
-};
+  {
+    key: 'retention',
+    displayStringMap: {
+      team: t('Up to 90 day retention'),
+    },
+  },
+  {
+    key: 'integrations',
+    displayStringMap: {
+      developer: t('Third-party integrations'),
+    },
+  },
+  {
+    key: 'insights',
+    displayStringMap: {
+      business: t('Insights (90 day lookback)'),
+    },
+    excludedTiers: [PlanTier.AM1],
+  },
+  {
+    key: 'codeowners',
+    displayStringMap: {
+      business: t('Code Owners support'),
+    },
+  },
+  {
+    key: 'baa',
+    displayStringMap: {
+      business: t('BAA'),
+    },
+  },
+];
 
-function getUserFeatureForPlan(plan: Plan) {
-  // TODO(isabella): Add 1 user feature for developer plan
-  if (isTeamPlanFamily(plan)) {
-    return t('Unlimited users');
-  }
-
-  return '';
-}
-
-function getNonBilledLimitsForPlans(
-  planOptions: Plan[],
-  field: 'dashboardLimit' | 'metricDetectorLimit',
-  limitName: string
-) {
-  const planToLimits: Record<PlanTierName, number> = {
-    developer: 0,
-    team: 0,
-    business: 0,
-  };
-  const planToFeatures: Record<PlanTierName, React.ReactNode> = {
-    developer: '',
-    team: '',
-    business: '',
-  };
-
-  let lastLimit = 0;
-  planOptions.forEach(plan => {
-    // TODO(isabella): Remove this once Developer is surfaced
-    if (isDeveloperPlan(plan)) {
-      return;
-    }
-    const planName = plan.name.toLowerCase() as PlanTierName;
-    const limit = plan[field];
-
-    if (limit !== lastLimit) {
-      lastLimit = limit;
-      planToLimits[planName] = limit;
-      planToFeatures[planName] =
-        limit === UNLIMITED_RESERVED
-          ? tct('Unlimited [limitName]', {limitName})
-          : tct('[limit] [limitName]', {limitName, limit});
-    }
-  });
-
-  return planToFeatures;
-}
-
-function getIncludedQuotaForPlans(planOptions: Plan[]) {
-  const planToQuotaFeatures: Record<PlanTierName, string[]> = {
-    developer: [],
-    team: [],
-    business: [],
-  };
-  const lastCategoryQuotaIncluded: Partial<Record<DataCategory, number>> = {};
-
-  planOptions.forEach((plan, planIndex) => {
-    const addOnCategories = Object.values(plan.addOnCategories).flatMap(
-      addOnCategory => addOnCategory.dataCategories
-    );
-    const planName = plan.name.toLowerCase();
-    Object.entries(plan.planCategories)
-      .filter(([category, _]) => !addOnCategories.includes(category as DataCategory))
-      .forEach(([category, eventBuckets]) => {
-        const includedBucket = eventBuckets.find(bucket => bucket.events > 0);
-        if (includedBucket) {
-          let reserved = includedBucket.events;
-          if (isDeveloperPlan(plan)) {
-            // XXX: This is a hack to override dev plan volumes for non-default tiers
-            // if those volumes are lower than the volume for the next plan (Team)
-            const nextPlan = planOptions[planIndex + 1];
-            if (nextPlan) {
-              const nextPlanBucket = nextPlan.planCategories[
-                category as DataCategory
-              ]?.find(bucket => bucket.events > 0);
-              if (nextPlanBucket) {
-                if (nextPlanBucket.events > reserved) {
-                  reserved = nextPlanBucket.events;
-                }
-              } else {
-                reserved = 0;
-              }
-            } else {
-              reserved = 0;
-            }
-          }
-          if (reserved > (lastCategoryQuotaIncluded[category as DataCategory] ?? 0)) {
-            lastCategoryQuotaIncluded[category as DataCategory] = reserved;
-            const formattedReserved = formatReservedWithUnits(
-              reserved,
-              category as DataCategory,
-              {
-                isAbbreviated: true,
-              }
-            );
-            const pluralCategoryName = getPlanCategoryName({
-              plan,
-              category: category as DataCategory,
-              capitalize: false,
-            });
-            const singularCategoryName = getSingularCategoryName({
-              plan,
-              category: category as DataCategory,
-              capitalize: false,
-            });
-            const formattedCategory = isByteCategory(category as DataCategory)
-              ? `of ${pluralCategoryName}`
-              : reserved === 1
-                ? singularCategoryName
-                : pluralCategoryName;
-            planToQuotaFeatures[planName as keyof typeof planToQuotaFeatures].push(
-              `${formattedReserved} ${formattedCategory}`
-            );
-          }
-        }
-      });
-  });
-
-  return planToQuotaFeatures;
-}
-
-function getFeaturesForPlan({
-  plan,
-  quotaFeatures,
-  dashboardsFeatures,
-  metricAlertsFeatures,
+function MonitoringAndDataFeatures({
+  planOptions,
+  activePlan,
 }: {
-  dashboardsFeatures: Record<PlanTierName, React.ReactNode>;
-  metricAlertsFeatures: Record<PlanTierName, React.ReactNode>;
-  plan: Plan;
-  quotaFeatures: Record<PlanTierName, string[]>;
+  activePlan: Plan;
+  planOptions: Plan[];
 }) {
-  const planName = plan.name.toLowerCase() as PlanTierName;
-  const userFeature = getUserFeatureForPlan(plan);
-  const dashboardFeature = dashboardsFeatures[planName];
-  const metricAlertFeature = metricAlertsFeatures[planName];
-  const tier = getAmPlanTier(plan.id);
-  const tierSpecificFeatures = tier ? (FEATURES_BY_TIER[tier]?.[planName] ?? []) : [];
-  const commonFeatures = COMMON_FEATURES[planName] ?? [];
-  const result: React.ReactNode[] = [];
+  const featureKeyToInfo: Partial<
+    Record<FeatureKey | DataCategory, Omit<FeatureInfo, 'key'>>
+  > = {
+    alerts: {
+      displayStringSuffix: t(' metric alerts'),
+      displayStringMap: {},
+    },
+    dashboards: {
+      displayStringSuffix: t(' custom dashboards'),
+      displayStringMap: {},
+    },
+  };
+  const orderedKeys: FeatureKey[] = [];
 
-  if (userFeature) {
-    result.push(userFeature);
-  }
+  const previousIncluded: Partial<Record<FeatureKey, number>> = {};
+  planOptions.forEach(plan => {
+    const planType: PlanType = plan.name.toLowerCase() as PlanType;
 
-  result.push(...quotaFeatures[planName]);
+    Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
+      if (!orderedKeys.includes(category as DataCategory)) {
+        orderedKeys.push(category as DataCategory);
+      }
+      const minimumReserved = eventBuckets.find(bucket => bucket.events >= 0)?.events;
 
-  if (dashboardFeature) {
-    result.push(dashboardFeature);
-  }
-  if (metricAlertFeature) {
-    result.push(metricAlertFeature);
-  }
-  result.push(...tierSpecificFeatures, ...commonFeatures);
-  return result;
+      if (
+        minimumReserved &&
+        minimumReserved !== previousIncluded[category as DataCategory]
+      ) {
+        const displayUnits =
+          minimumReserved > 1 || isByteCategory(category)
+            ? getPlanCategoryName({
+                plan,
+                category: category as DataCategory,
+                capitalize: false,
+              })
+            : getSingularCategoryName({
+                plan,
+                category: category as DataCategory,
+                capitalize: false,
+              });
+        const formattedReserved = formatReservedWithUnits(
+          minimumReserved,
+          category as DataCategory,
+          {
+            isAbbreviated: true,
+          }
+        );
+        const displayString = `${formattedReserved} ${displayUnits}`;
+        featureKeyToInfo[category as DataCategory] = {
+          displayStringMap: {
+            ...featureKeyToInfo[category as DataCategory]?.displayStringMap,
+            [planType]: displayString,
+          },
+        };
+      }
+
+      previousIncluded[category as DataCategory] = minimumReserved;
+    });
+
+    const {metricDetectorLimit, dashboardLimit} = plan;
+    const formattedMetricDetectorLimit =
+      metricDetectorLimit === UNLIMITED_RESERVED
+        ? t('Unlimited')
+        : metricDetectorLimit.toString();
+    const formattedDashboardLimit =
+      dashboardLimit === UNLIMITED_RESERVED ? t('Unlimited') : dashboardLimit.toString();
+
+    featureKeyToInfo.alerts = {
+      ...featureKeyToInfo.alerts,
+      displayStringMap: {
+        ...featureKeyToInfo.alerts?.displayStringMap,
+        [planType]: formattedMetricDetectorLimit,
+      },
+    };
+    featureKeyToInfo.dashboards = {
+      ...featureKeyToInfo.dashboards,
+      displayStringMap: {
+        ...featureKeyToInfo.dashboards?.displayStringMap,
+        [planType]: formattedDashboardLimit,
+      },
+    };
+  });
+  orderedKeys.push('alerts', 'dashboards');
+
+  const activePlanType = activePlan.name.toLowerCase() as PlanType;
+
+  return (
+    <Flex direction="column" gap="lg">
+      <Heading as="h4" size="xs" variant="muted">
+        {t('MONITORING & DATA')}
+      </Heading>
+      {orderedKeys.map(key => {
+        const info = featureKeyToInfo[key];
+        if (!info) {
+          return null;
+        }
+
+        return (
+          <FeatureItem
+            key={key}
+            isIncluded
+            isOnlyOnBusiness={
+              Object.keys(info.displayStringMap).length === 1 &&
+              Object.keys(info.displayStringMap)[0] === 'business'
+            }
+          >
+            <Flex direction="column" gap="sm">
+              {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
+                const isActivePlanType = planType === activePlanType;
+                const hasFeature =
+                  isActivePlanType || !(activePlanType in info.displayStringMap);
+                const isBusinessFeature = planType === 'business';
+                const commonProps = {
+                  as: 'span' as const,
+                  variant: hasFeature ? ('primary' as const) : ('muted' as const),
+                  size:
+                    isBusinessFeature && !hasFeature ? ('xs' as const) : ('md' as const),
+                };
+
+                return (
+                  <Text
+                    key={planType + displayString}
+                    as="div"
+                    strikethrough={!hasFeature && !isBusinessFeature}
+                  >
+                    <Text {...commonProps}>{info.displayStringPrefix}</Text>
+                    <Text
+                      {...commonProps}
+                      variant={
+                        hasFeature
+                          ? isBusinessFeature && isActivePlanType
+                            ? 'accent'
+                            : 'primary'
+                          : 'muted'
+                      }
+                    >
+                      {displayString}
+                    </Text>
+                    <Text {...commonProps}>{info.displayStringSuffix}</Text>
+                    {key === 'alerts' && planType === 'business' && (
+                      <Text
+                        {...commonProps}
+                        variant={isBusinessFeature && hasFeature ? 'accent' : 'muted'}
+                      >
+                        {t(' + anomaly detection')}
+                      </Text>
+                    )}
+                    {isBusinessFeature && !hasFeature && (
+                      <Text {...commonProps} variant="muted">
+                        {t(' on Business only')}
+                      </Text>
+                    )}
+                  </Text>
+                );
+              })}
+            </Flex>
+          </FeatureItem>
+        );
+      })}
+    </Flex>
+  );
+}
+
+function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
+  const activePlanType = activePlan.name.toLowerCase() as PlanType;
+  const activePlanTypeIndex = ORDERED_PLAN_TYPES.indexOf(activePlanType);
+  return (
+    <Flex direction="column" gap="lg">
+      <Heading as="h4" size="xs" variant="muted">
+        {t('EXPANSION PACK')}
+      </Heading>
+      {EXPANSION_PACK_FEATURES.map(info => {
+        const {key} = info;
+        const minPlanType = Object.keys(info.displayStringMap).sort(
+          (a, b) => ORDERED_PLAN_TYPES.indexOf(a) - ORDERED_PLAN_TYPES.indexOf(b)
+        )[0];
+
+        // feature is only available on Business plan
+        const isOnlyOnBusiness = minPlanType === 'business';
+
+        // active plan has the feature at some level
+        const hasFeature =
+          !minPlanType || activePlanTypeIndex >= ORDERED_PLAN_TYPES.indexOf(minPlanType);
+
+        return (
+          <FeatureItem
+            key={key}
+            isOnlyOnBusiness={isOnlyOnBusiness}
+            isIncluded={hasFeature}
+          >
+            <Flex direction="column" gap="sm">
+              {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
+                const planTypeIndex = ORDERED_PLAN_TYPES.indexOf(planType);
+
+                // active plan has this specific version of the feature
+                const hasPlanTypeFeature = activePlanTypeIndex >= planTypeIndex;
+
+                const isBusinessFeature = planType === 'business';
+                const commonProps = {
+                  as: 'span' as const,
+                  variant: hasPlanTypeFeature ? ('primary' as const) : ('muted' as const),
+                  size:
+                    (isBusinessFeature && !hasPlanTypeFeature) ||
+                    (isOnlyOnBusiness && !hasFeature)
+                      ? ('xs' as const)
+                      : ('md' as const),
+                };
+
+                return (
+                  <Text key={planType + displayString} as="div">
+                    <Text {...commonProps}>{info.displayStringPrefix}</Text>
+                    <Text
+                      {...commonProps}
+                      variant={
+                        hasPlanTypeFeature
+                          ? isBusinessFeature && !isOnlyOnBusiness
+                            ? 'accent'
+                            : 'primary'
+                          : 'muted'
+                      }
+                    >
+                      {displayString}
+                    </Text>
+                    <Text {...commonProps}>{info.displayStringSuffix}</Text>
+                    {isBusinessFeature && !isOnlyOnBusiness && !hasPlanTypeFeature && (
+                      <Text {...commonProps} variant="muted">
+                        {t(' on Business only')}
+                      </Text>
+                    )}
+                  </Text>
+                );
+              })}
+            </Flex>
+          </FeatureItem>
+        );
+      })}
+    </Flex>
+  );
 }
 
 function FeatureItem({
-  feature,
+  children,
+  isOnlyOnBusiness,
   isIncluded,
 }: {
-  feature: React.ReactNode;
+  children: React.ReactNode;
   isIncluded: boolean;
+  isOnlyOnBusiness: boolean;
 }) {
   return (
-    <FeatureItemContainer isIncluded={isIncluded} align="start" gap="md">
+    <FeatureItemContainer align="start" gap="md">
       <Container padding="0">
         {isIncluded ? (
-          <IconCheckmark size="sm" color="success" />
+          isOnlyOnBusiness ? (
+            <IconAdd size="sm" color="active" />
+          ) : (
+            <IconCheckmark size="sm" color="success" />
+          )
         ) : (
-          <IconClose size="sm" color="gray300" />
+          <IconClose size="xs" color="disabled" />
         )}
       </Container>
-      <Text variant={isIncluded ? 'primary' : 'muted'}>{feature}</Text>
+      {children}
     </FeatureItemContainer>
   );
 }
@@ -243,36 +386,18 @@ function PlanFeatures({
   activePlan: Plan;
   planOptions: Plan[];
 }) {
-  const planToFeatures: PlanFeatureInfo[] = [];
-  let activePlanIndex = 0;
-
-  const quotaFeatures = getIncludedQuotaForPlans(planOptions);
-  const dashboardsFeatures = getNonBilledLimitsForPlans(
-    planOptions,
-    'dashboardLimit',
-    t('custom dashboards')
-  );
-  const metricAlertsFeatures = getNonBilledLimitsForPlans(
-    planOptions,
-    'metricDetectorLimit',
-    t('metric alerts')
-  );
-
   const currentTier = getAmPlanTier(activePlan.id);
-
-  planOptions.forEach((planOption, index) => {
-    const priorPlan = index > 0 ? planOptions[index - 1] : null;
-    const featureList = getFeaturesForPlan({
-      plan: planOption,
-      quotaFeatures,
-      dashboardsFeatures,
-      metricAlertsFeatures,
-    });
-
-    const perUnitPriceDiffs =
-      !priorPlan || priorPlan?.basePrice === 0
-        ? {}
-        : Object.entries(planOption.planCategories ?? {}).reduce(
+  const perPlanPriceDiffs = useMemo(() => {
+    const priceDiffs: Record<
+      Plan['id'],
+      Partial<Record<DataCategory, number>> & {plan: Plan}
+    > = {};
+    planOptions.forEach((planOption, index) => {
+      const priorPlan = index > 0 ? planOptions[index - 1] : null;
+      if (priorPlan && priorPlan?.basePrice > 0) {
+        priceDiffs[planOption.id] = {
+          plan: planOption,
+          ...Object.entries(planOption.planCategories ?? {}).reduce(
             (acc, [category, eventBuckets]) => {
               const priorPlanEventBuckets =
                 priorPlan?.planCategories[category as DataCategory];
@@ -285,120 +410,83 @@ function PlanFeatures({
               return acc;
             },
             {} as Partial<Record<DataCategory, number>>
-          );
-    planToFeatures.push({plan: planOption, features: featureList, perUnitPriceDiffs});
-    if (planOption.name.toLowerCase() === activePlan.name.toLowerCase()) {
-      activePlanIndex = index;
-    }
-  });
+          ),
+        };
+      }
+    });
+    return priceDiffs;
+  }, [planOptions]);
 
   return (
-    <Flex
-      background="primary"
-      padding="xl"
-      radius="lg"
-      border="primary"
-      gap="xl"
-      direction="column"
-    >
-      <Heading as="h3">
-        {tct('What you get on the [planName] plan:', {
-          planName: <Text underline>{activePlan.name}</Text>,
-        })}
-      </Heading>
-      <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="md xl">
-        {planToFeatures.map(({plan, features, perUnitPriceDiffs}, planIndex) => {
-          const planName = plan.name;
-          const lowerCasePlanName = planName.toLowerCase();
-          const isIncluded = activePlanIndex >= planIndex;
-          const dataTestId = `${lowerCasePlanName}-features-${isIncluded ? 'included' : 'excluded'}`;
-          return (
-            <Flex
-              data-test-id={dataTestId}
-              key={lowerCasePlanName}
-              direction="column"
-              gap="md"
+    <Flex direction="column">
+      <Flex
+        background="secondary"
+        padding="xl"
+        radius="lg"
+        border="primary"
+        gap="xl"
+        direction="column"
+      >
+        <Grid columns={{xs: '1fr', sm: `repeat(2, 1fr)`}} gap="md xl">
+          <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
+          <ExpansionPackFeatures activePlan={activePlan} />
+        </Grid>
+        {currentTier !== DEFAULT_TIER && (
+          <Flex gap="sm">
+            <Container paddingTop="xs">
+              <IconLightning size="sm" color="active" />
+            </Container>
+            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40444678490651-How-can-I-update-to-an-account-with-Logs">
+              {t('Want the latest features? Learn more here')}
+            </ExternalLink>
+          </Flex>
+        )}
+      </Flex>
+      {Object.entries(perPlanPriceDiffs).map(([planId, info]) => {
+        const {plan, ...priceDiffs} = info;
+        const planName = plan.name;
+
+        return (
+          <Container padding="xl" key={planId}>
+            <Tooltip
+              title={tct('Starting at [priceDiffs] more on [planName]', {
+                priceDiffs: oxfordizeArray(
+                  Object.entries(priceDiffs).map(([category, diff]) => {
+                    const formattedDiff = displayUnitPrice({cents: diff});
+                    const formattedCategory = getSingularCategoryName({
+                      plan,
+                      category: category as DataCategory,
+                      capitalize: false,
+                    });
+                    return `+${formattedDiff} / ${formattedCategory}`;
+                  })
+                ),
+                planName,
+              })}
             >
-              {features.map((feature, featureIndex) => (
-                <FeatureItem
-                  key={featureIndex}
-                  feature={feature}
-                  isIncluded={isIncluded}
-                />
-              ))}
-              {Object.keys(perUnitPriceDiffs).length > 0 && (
-                <EventPriceWarning isIncluded={isIncluded} align="start" gap="sm">
-                  <Container paddingTop="xs">
-                    <IconWarning size="sm" color="yellow300" />
-                  </Container>
-                  <Tooltip
-                    title={tct('Starting at [priceDiffs] more on [planName].', {
-                      priceDiffs: oxfordizeArray(
-                        Object.entries(perUnitPriceDiffs).map(([category, diff]) => {
-                          const formattedDiff = displayUnitPrice({cents: diff});
-                          const formattedCategory = getSingularCategoryName({
-                            plan,
-                            category: category as DataCategory,
-                            capitalize: false,
-                          });
-                          return `+${formattedDiff} / ${formattedCategory}`;
-                        })
-                      ),
-                      planName,
-                    })}
-                  >
-                    <Text as="span" size="md" variant="muted">
-                      {tct('Excess usage for [categories] costs more on [planName]', {
-                        categories: listDisplayNames({
-                          plan,
-                          categories: Object.keys(perUnitPriceDiffs) as DataCategory[],
-                          shouldTitleCase: true,
-                        }),
-                        planName,
-                      })}
-                    </Text>
-                  </Tooltip>
-                </EventPriceWarning>
-              )}
-            </Flex>
-          );
-        })}
-      </Grid>
-      {currentTier !== DEFAULT_TIER && (
-        <Flex gap="sm">
-          <Container paddingTop="xs">
-            <IconLightning size="sm" color="active" />
+              <Flex align="center" gap="sm">
+                <IconWarning size="sm" color="disabled" />
+                <Text size="sm" variant="muted">
+                  {tct('Excess usage for [categories] costs more on [planName]', {
+                    categories: listDisplayNames({
+                      plan,
+                      categories: Object.keys(priceDiffs) as DataCategory[],
+                      shouldTitleCase: true,
+                    }),
+                    planName,
+                  })}
+                </Text>
+              </Flex>
+            </Tooltip>
           </Container>
-          <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40444678490651-How-can-I-update-to-an-account-with-Logs">
-            {t('Want the latest features? Learn more here')}
-          </ExternalLink>
-        </Flex>
-      )}
+        );
+      })}
     </Flex>
   );
 }
 
 export default PlanFeatures;
 
-const EventPriceWarning = styled(Flex)<{isIncluded: boolean}>`
-  opacity: ${p => (p.isIncluded ? 1 : 0.5)};
-  > span {
-    text-decoration: underline dotted;
-    text-decoration-color: ${p => p.theme.subText};
-  }
-`;
-
-const FeatureItemContainer = styled(Flex)<{isIncluded: boolean}>`
+const FeatureItemContainer = styled(Flex)`
   color: ${p => p.theme.textColor};
-  opacity: ${p => (p.isIncluded ? 1 : 0.5)};
-
-  &:after {
-    content: '';
-    display: inline;
-    min-width: ${p => p.theme.space['2xl']};
-    flex: 1;
-    height: 1px;
-    border-top: 1px dashed ${p => p.theme.border};
-    transform: translateY(${p => p.theme.space.md});
-  }
 `;
