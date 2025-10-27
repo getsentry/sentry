@@ -39,7 +39,7 @@ export default function ReplayBadge({replay}: Props) {
   );
 
   const {start: startTimeout} = useTimeout({
-    timeMs: liveDuration(replay.finished_at) > 0 ? liveDuration(replay.finished_at) : 0,
+    timeMs: liveDuration(replay.finished_at),
     onTimeout: () => {
       setIsLive(false);
     },

@@ -33,7 +33,7 @@ export function liveDuration(finishedAt: ReplayRecord['finished_at']) {
     return 0;
   }
   const FIVE_MINUTE_MS = 300_000;
-  return finishedAt.getTime() + FIVE_MINUTE_MS - Date.now();
+  return Math.max(finishedAt.getTime() + FIVE_MINUTE_MS - Date.now(), 0);
 }
 
 export function LiveIndicatorWithToolTip() {
