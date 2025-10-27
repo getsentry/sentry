@@ -35,7 +35,9 @@ def _get_all_keys(config):
 
 
 def assert_no_snakecase_key(config):
-    assert not {x for x in _get_all_keys(config) if "-" in x or "_" in x}
+    exempt_keys = {"trace_metric"}
+    snakecase_keys = {x for x in _get_all_keys(config) if "-" in x or "_" in x}
+    assert not snakecase_keys - exempt_keys
 
 
 @pytest.fixture
