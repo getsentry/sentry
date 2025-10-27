@@ -34,11 +34,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.plugins.providers.repository import RepositoryProvider
-from sentry.releases.commits import (
-    bulk_create_commit_file_changes,
-    get_or_create_commit,
-    update_commit,
-)
+from sentry.releases.commits import bulk_create_commit_file_changes, get_or_create_commit
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -138,7 +134,7 @@ def set_commit(idx, data, release):
         date_added=commit_data.get("date_added"),  # type: ignore[arg-type]
     )
     if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
-        update_commit(commit, new_commit, **commit_data)
+        commit.update(**commit_data)
 
     if author is None:
         author = commit.author

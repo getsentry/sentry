@@ -128,18 +128,6 @@ def get_or_create_commit(
     return old_commit, new_commit, created
 
 
-def update_commit(old_commit: OldCommit, new_commit: Commit, **fields) -> None:
-    """Update a commit in both tables if dual write is enabled."""
-    with atomic_transaction(
-        using=(
-            router.db_for_write(OldCommit),
-            router.db_for_write(Commit),
-        )
-    ):
-        old_commit.update(**fields)
-        new_commit.update(**fields)
-
-
 def bulk_create_commit_file_changes(
     file_changes: list[OldCommitFileChange],
 ) -> tuple[list[OldCommitFileChange], list[CommitFileChange]]:
