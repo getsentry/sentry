@@ -5,16 +5,13 @@ import {TreeCoverageSunburstChart} from 'sentry/components/charts/treeCoverageSu
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SplitPanel from 'sentry/components/splitPanel';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
@@ -43,14 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CoverageTrendPage from 'sentry/views/prevent/coverage/coverageTrend';
 import {makePreventPathname} from 'sentry/views/prevent/pathnames';
 import {COVERAGE_BASE_URL} from 'sentry/views/prevent/settings';
-import {
-  SummaryContainer,
-  SummaryEntries,
-  SummaryEntry,
-  SummaryEntryLabel,
-  SummaryEntryValue,
-  SummaryEntryValueLink,
-} from 'sentry/views/summary';
+import {SummaryCard, SummaryCardGroup} from 'sentry/views/prevent/summary';
 
 // Mock data for demonstration - replace with actual data
 const organizationOptions = [
@@ -2111,7 +2101,13 @@ export default function CommitsListPage() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const organization = useOrganization();
   const isMobile = useMedia('(max-width: 768px)');
+
+  const historyPath = makePreventPathname({
+    organization,
+    path: `/${COVERAGE_BASE_URL}/commits/${headCommit.shortSha}/history/`,
+  });
 
   // Sort handlers
   const handleCommitsSortChange = useCallback((field: string, order: 'asc' | 'desc') => {
@@ -2793,143 +2789,113 @@ export default function CommitsListPage() {
             </ViewCommitButton>
           </FileExplorerHeader>
 
-          <SummaryContainer columns={12}>
-            <SelectedCommitPanel>
-              <PanelHeader>{t('Coverage On The Selected Commit')}</PanelHeader>
-              <PanelBody>
-                <SummaryEntries largeColumnSpan={2} smallColumnSpan={2}>
-                  <SummaryEntry>
-                    <SummaryEntryLabel
-                      showUnderline
-                      body={
-                        // repo coverage tooltip
-                        <p>
-                          {t(
-                            'The percentage of lines covered by tests across the entire repository.'
-                          )}
-                        </p>
-                      }
-                    >
-                      {t('Repository coverage')}
-                    </SummaryEntryLabel>
-                    <SummaryValueContainer>
-                      <SummaryEntryValue>98.98%</SummaryEntryValue>
-                      <Tag type="success">+4.25%</Tag>
-                    </SummaryValueContainer>
-                    <StyledSubText>
-                      {t('Head commit')}{' '}
-                      <CommitCellLink hash={headCommit.sha}>
-                        {headCommit.shortSha}
-                      </CommitCellLink>
-                    </StyledSubText>
-                  </SummaryEntry>
-                  <SummaryEntry>
-                    <SummaryEntryLabel
-                      showUnderline
-                      // patch coverage tooltip
-                      body={
-                        <p>
-                          {t(
-                            'The test coverage for lines changed in a pull request or commit, ensuring new code is tested before merging.'
-                          )}
-                        </p>
-                      }
-                    >
-                      {t('Patch coverage')}
-                    </SummaryEntryLabel>
-                    <SummaryEntryValue>100%</SummaryEntryValue>
-                  </SummaryEntry>
-                </SummaryEntries>
-              </PanelBody>
-            </SelectedCommitPanel>
-            <SecondSelectedCommitPanel>
-              <PanelHeader>{t('View the 1.02% of uncovered lines')}</PanelHeader>
-              <PanelBody>
-                <SummaryEntries largeColumnSpan={3} smallColumnSpan={2}>
-                  <SummaryEntry>
-                    <SummaryEntryLabel
-                      showUnderline
-                      // uncovered lines tooltip
-                      body={<p>{t('Uncovered lines tooltip')}</p>}
-                    >
-                      {t('Uncovered lines')}
-                    </SummaryEntryLabel>
-                    <SummaryEntryValueLink filterBy="uncoveredLines">
-                      204
-                    </SummaryEntryValueLink>
-                  </SummaryEntry>
-                  <SummaryEntry>
-                    <SummaryEntryLabel
-                      showUnderline
-                      // Covered lines tooltip
-                      body={
-                        <p>
-                          {t(
-                            'Files that were directly modified in a pull request or commit—these are the files where actual code changes were made.'
-                          )}
-                        </p>
-                      }
-                    >
-                      {t('Covered Lines')}
-                    </SummaryEntryLabel>
-                    <SummaryEntryValue>19,796</SummaryEntryValue>
-                  </SummaryEntry>
-                  <SummaryEntry>
-                    <SummaryEntryLabel
-                      showUnderline
-                      // Total Lines tooltip
-                      body={
-                        <p>
-                          {t(
-                            'Changes that originated from other files in the same commit—these files did not have changes in this PR.'
-                          )}
-                          <ExternalLink
-                            href="https://docs.codecov.com/docs/coverage-on-indirect-changes"
-                            style={{marginLeft: '4px'}}
-                          >
-                            {t('View list of indirect changes.')}
-                          </ExternalLink>
-                        </p>
-                      }
-                    >
-                      {t('Total Lines')}
-                    </SummaryEntryLabel>
-                    <SummaryEntryValue>20,000</SummaryEntryValue>
-                  </SummaryEntry>
-                </SummaryEntries>
-              </PanelBody>
-            </SecondSelectedCommitPanel>
-            <UploadsPanel>
-              <PanelHeader>{t('Coverage Uploads - %s', headCommit.shortSha)}</PanelHeader>
-              <PanelBody>
-                <SummaryEntries largeColumnSpan={1} smallColumnSpan={1}>
-                  <SummaryEntry>
-                    <SummaryEntryLabel
-                      showUnderline
-                      body={<p>{t('Uploads count tooltip')}</p>}
-                    >
-                      {t('Uploads count')}
-                    </SummaryEntryLabel>
-                    <UploadsCountLink>65</UploadsCountLink>
-                    <StatusIndicatorContainer>
-                      <StatusItem>
-                        <StatusDot $variant="success" />
-                        <StatusText>65 Processed</StatusText>
-                      </StatusItem>
-                      <StatusItem>
-                        <StatusDot $variant="warning" />
-                        <StatusText>15 Pending</StatusText>
-                      </StatusItem>
-                      <StatusItem>
-                        <StatusDot $variant="error" />
-                        <StatusText>1 Failed</StatusText>
-                      </StatusItem>
-                    </StatusIndicatorContainer>
-                  </SummaryEntry>
-                </SummaryEntries>
-              </PanelBody>
-            </UploadsPanel>
-          </SummaryContainer>
+          <Grid columns="4fr 5fr 3fr" gap="xl">
+            <SummaryCardGroup
+              title={t('Coverage On The Selected Commit')}
+              isLoading={false}
+              placeholderCount={2}
+            >
+              <Fragment>
+                <RepositoryCoverageCard>
+                  <SummaryCard
+                    label={t('Repository coverage')}
+                    tooltip={
+                      <p>
+                        {t(
+                          'The percentage of lines covered by tests across the entire repository.'
+                        )}
+                        <hr />
+                        {t('Head commit: %s', headCommit.shortSha)}
+                      </p>
+                    }
+                    value="98.98%"
+                    extra={<Tag type="success">+4.25%</Tag>}
+                  />
+                </RepositoryCoverageCard>
+                <SummaryCard
+                  label={t('Patch coverage')}
+                  tooltip={
+                    <p>
+                      {t(
+                        'The test coverage for lines changed in a pull request or commit, ensuring new code is tested before merging.'
+                      )}
+                    </p>
+                  }
+                  value="100%"
+                />
+              </Fragment>
+            </SummaryCardGroup>
+            <SummaryCardGroup
+              title={t('View the 1.02% of uncovered lines')}
+              isLoading={false}
+              placeholderCount={3}
+            >
+              <Fragment>
+                <SummaryCard
+                  label={t('Uncovered lines')}
+                  tooltip={<p>{t('Uncovered lines tooltip')}</p>}
+                  value={204}
+                  filterBy="uncoveredLines"
+                />
+                <SummaryCard
+                  label={t('Covered Lines')}
+                  tooltip={
+                    <p>
+                      {t(
+                        'Files that were directly modified in a pull request or commit—these are the files where actual code changes were made.'
+                      )}
+                    </p>
+                  }
+                  value="19,796"
+                />
+                <SummaryCard
+                  label={t('Total Lines')}
+                  tooltip={
+                    <p>
+                      {t(
+                        'Changes that originated from other files in the same commit—these files did not have changes in this PR.'
+                      )}
+                      <ExternalLink
+                        href="https://docs.codecov.com/docs/coverage-on-indirect-changes"
+                        style={{marginLeft: '4px'}}
+                      >
+                        {t('View list of indirect changes.')}
+                      </ExternalLink>
+                    </p>
+                  }
+                  value="20,000"
+                />
+              </Fragment>
+            </SummaryCardGroup>
+            <SummaryCardGroup
+              title={t('Coverage Uploads - %s', headCommit.shortSha)}
+              isLoading={false}
+              placeholderCount={1}
+            >
+              <SummaryCard
+                label={t('Uploads count')}
+                tooltip={<p>{t('Uploads count tooltip')}</p>}
+                value={65}
+                openInNewTab={historyPath}
+                footer={
+                  <StatusIndicatorContainer>
+                    <StatusItem>
+                      <StatusDot $variant="success" />
+                      <StatusText>65 Processed</StatusText>
+                    </StatusItem>
+                    <StatusItem>
+                      <StatusDot $variant="warning" />
+                      <StatusText>15 Pending</StatusText>
+                    </StatusItem>
+                    <StatusItem>
+                      <StatusDot $variant="error" />
+                      <StatusText>1 Failed</StatusText>
+                    </StatusItem>
+                  </StatusIndicatorContainer>
+                }
+              />
+            </SummaryCardGroup>
+          </Grid>
 
           <SunburstChartContainer>
             <SunburstChartHeader>
@@ -4409,17 +4375,17 @@ const LegendLabel = styled('span')`
 `;
 
 // Summary Container styled components
-const SummaryValueContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
 const StatusIndicatorContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+`;
+
+const RepositoryCoverageCard = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
 `;
 
 const StatusItem = styled('div')`
@@ -4453,35 +4419,6 @@ const StatusText = styled('span')`
   font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 1.2;
   color: ${p => p.theme.subText};
-`;
-
-const StyledSubText = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const SelectedCommitPanel = styled(Panel)`
-  grid-column: span 12;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 4;
-  }
-`;
-
-const SecondSelectedCommitPanel = styled(Panel)`
-  grid-column: span 12;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 5;
-  }
-`;
-
-const UploadsPanel = styled(Panel)`
-  grid-column: span 12;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 3;
-  }
 `;
 
 // Path Filter styled components
@@ -4749,6 +4686,7 @@ const SunburstChartContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+  margin-top: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
@@ -4822,54 +4760,6 @@ const SunburstChartHeaderRight = styled('div')`
   display: flex;
   align-items: center;
   margin-top: 2px;
-`;
-
-// Custom component for uploads count link that opens history page in new tab
-function UploadsCountLink({children}: {children: React.ReactNode}) {
-  const organization = useOrganization();
-  // Use a default commit hash since this is a mock component
-  const commitHash = headCommit.shortSha;
-
-  const historyPath = makePreventPathname({
-    organization,
-    path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
-  });
-
-  return (
-    <UploadsCountContainer>
-      <IconOpen />
-      <a href={historyPath} target="_blank" rel="noopener noreferrer">
-        <StyledUploadsCountLink>{children}</StyledUploadsCountLink>
-      </a>
-    </UploadsCountContainer>
-  );
-}
-
-const UploadsCountContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const StyledUploadsCountLink = styled('span')`
-  font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.linkColor};
-  font-size: 2.25rem;
-
-  /* This stops the text from jumping when becoming bold */
-  &::after {
-    content: attr(data-text);
-    height: 0;
-    visibility: hidden;
-    overflow: hidden;
-    pointer-events: none;
-    font-weight: ${p => p.theme.fontWeight.bold};
-    display: block;
-  }
-
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 const SunburstLabelToggle = styled('div')`

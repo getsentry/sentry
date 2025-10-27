@@ -8,11 +8,9 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow, IconCheckmark, IconChevron, IconGithub, IconOpen} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
@@ -20,14 +18,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makePreventPathname} from 'sentry/views/prevent/pathnames';
 import {COVERAGE_BASE_URL} from 'sentry/views/prevent/settings';
-import {
-  SummaryContainer,
-  SummaryEntries,
-  SummaryEntry,
-  SummaryEntryLabel,
-  SummaryEntryValue,
-  SummaryEntryValueLink,
-} from 'sentry/views/summary';
+import {SummaryCard, SummaryCardGroup} from 'sentry/views/prevent/summary';
 
 // This is the page header for the pull request detail page.
 // Mock data - would come from props/API in real implementation
@@ -263,117 +254,79 @@ export default function PullDetailWrapper() {
 
         <Layout.Body>
           <Layout.Main fullWidth>
-            <SummaryContainer columns={12}>
-              <SelectedCommitPanel>
-                <PanelHeader>{t('Coverage On Selected Pull Request')}</PanelHeader>
-                <PanelBody>
-                  <SummaryEntries largeColumnSpan={5} smallColumnSpan={2}>
-                    <SummaryEntry>
-                      <SummaryEntryLabel
-                        showUnderline
-                        body={
-                          // repo coverage tooltip
-                          <p>
-                            {t(
-                              'The percentage of lines covered by tests across the entire repository.'
-                            )}
-                          </p>
-                        }
+            <SummaryCardGroup
+              title={t('Coverage On Selected Pull Request')}
+              isLoading={false}
+              placeholderCount={5}
+              trailingHeaderItems={
+                <Text size="sm" variant="muted">
+                  {t('Source: The change% is based on head')}{' '}
+                  <CommitLink commitSha={headCommit.sha}>10d8629(2 uploads)</CommitLink>{' '}
+                  {t('compared to base')}{' '}
+                  <CommitLink commitSha={baseCommit.sha}>3d59704(1 uploads)</CommitLink>
+                </Text>
+              }
+            >
+              <Fragment>
+                <RepositoryCoverageCard>
+                  <SummaryCard
+                    label={t('Repository coverage')}
+                    tooltip={
+                      <p>
+                        {t(
+                          'The percentage of lines covered by tests across the entire repository.'
+                        )}
+                        <hr />
+                        {t('Head commit: %s', headCommit.shortSha)}
+                      </p>
+                    }
+                    value="97.83%"
+                    extra={<Tag type="success">+4.25%</Tag>}
+                  />
+                </RepositoryCoverageCard>
+                <SummaryCard
+                  label={t('Patch coverage')}
+                  tooltip={
+                    <p>
+                      {t(
+                        'The test coverage for lines changed in a pull request or commit, ensuring new code is tested before merging.'
+                      )}
+                    </p>
+                  }
+                  value="87.50%"
+                />
+                <SummaryCard
+                  label={t('Files changed')}
+                  tooltip={
+                    <p>
+                      {t(
+                        'Files that were directly modified in a pull request or commit—these are the files where actual code changes were made.'
+                      )}
+                    </p>
+                  }
+                  value={2}
+                  filterBy="filesChanged"
+                />
+                <SummaryCard
+                  label={t('Indirect changes')}
+                  tooltip={
+                    <p>
+                      {t(
+                        'Changes that originated from other files in the same commit—these files did not have changes in this PR.'
+                      )}
+                      <ExternalLink
+                        href="https://docs.codecov.com/docs/coverage-on-indirect-changes"
+                        style={{marginLeft: '4px'}}
                       >
-                        {t('Repository coverage')}
-                      </SummaryEntryLabel>
-                      <SummaryValueContainer>
-                        <SummaryEntryValue>97.83%</SummaryEntryValue>
-                        <Tag type="success">+4.25%</Tag>
-                      </SummaryValueContainer>
-                      <StyledSubText>
-                        {t('Head commit')}{' '}
-                        <CommitLink commitSha={headCommit.sha}>
-                          {headCommit.shortSha}
-                        </CommitLink>
-                      </StyledSubText>
-                    </SummaryEntry>
-                    <SummaryEntry>
-                      <SummaryEntryLabel
-                        showUnderline
-                        // patch coverage tooltip
-                        body={
-                          <p>
-                            {t(
-                              'The test coverage for lines changed in a pull request or commit, ensuring new code is tested before merging.'
-                            )}
-                          </p>
-                        }
-                      >
-                        {t('Patch coverage')}
-                      </SummaryEntryLabel>
-                      <SummaryEntryValue>87.50%</SummaryEntryValue>
-                    </SummaryEntry>
-
-                    <SummaryEntry>
-                      <SummaryEntryLabel
-                        showUnderline
-                        // Files changed tooltip
-                        body={
-                          <p>
-                            {t(
-                              'Files that were directly modified in a pull request or commit—these are the files where actual code changes were made.'
-                            )}
-                          </p>
-                        }
-                      >
-                        {t('Files changed')}
-                      </SummaryEntryLabel>
-                      <SummaryEntryValueLink filterBy="filesChanged">
-                        2
-                      </SummaryEntryValueLink>
-                    </SummaryEntry>
-                    <SummaryEntry>
-                      <SummaryEntryLabel
-                        showUnderline
-                        // Indirect changes tooltip
-                        body={
-                          <p>
-                            {t(
-                              'Changes that originated from other files in the same commit—these files did not have changes in this PR.'
-                            )}
-                            <ExternalLink
-                              href="https://docs.codecov.com/docs/coverage-on-indirect-changes"
-                              style={{marginLeft: '4px'}}
-                            >
-                              {t('View list of indirect changes.')}
-                            </ExternalLink>
-                          </p>
-                        }
-                      >
-                        {t('Indirect changes')}
-                      </SummaryEntryLabel>
-                      <SummaryEntryValueLink filterBy="indirectChanges">
-                        0
-                      </SummaryEntryValueLink>
-                    </SummaryEntry>
-                    <SourceEntry>
-                      <SummaryEntryLabel
-                        showUnderline
-                        body={<p>{t('Source tooltip')}</p>}
-                      >
-                        {t('Source')}
-                      </SummaryEntryLabel>
-                      <SourceText>
-                        {t('The change% is based on head')}{' '}
-                        <CommitLink commitSha={headCommit.sha}>
-                          10d8629(2 uploads)
-                        </CommitLink>{' '}
-                        {t('compared to base')}{' '}
-                        <CommitLink commitSha={baseCommit.sha}>
-                          3d59704(1 uploads)
-                        </CommitLink>
-                      </SourceText>
-                    </SourceEntry>
-                  </SummaryEntries>
-                </PanelBody>
-              </SelectedCommitPanel>
-            </SummaryContainer>
+                        {t('View list of indirect changes.')}
+                      </ExternalLink>
+                    </p>
+                  }
+                  value={0}
+                  filterBy="indirectChanges"
+                />
+              </Fragment>
+            </SummaryCardGroup>
             <UncoveredLinesTable />
             <Outlet />
           </Layout.Main>
@@ -719,33 +672,10 @@ const BranchInfo = styled('div')`
   gap: ${p => p.theme.space.xs};
 `;
 
-const SummaryValueContainer = styled('div')`
+const RepositoryCoverageCard = styled('div')`
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const StyledSubText = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const SourceText = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const SourceEntry = styled(SummaryEntry)`
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-width: 85%;
-`;
-
-const SelectedCommitPanel = styled(Panel)`
-  grid-column: span 12;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 12;
-  }
+  flex-direction: column;
 `;
 
 const UncoveredLinesPanel = styled('div')`
@@ -1072,6 +1002,7 @@ const TableTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
   gap: ${p => p.theme.space.lg};
 
