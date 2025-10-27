@@ -28,6 +28,7 @@ class DSN(TypedDict):
     crons: str
     cdn: str
     playstation: str
+    integration: str
     otlp_traces: str
     otlp_logs: str
 
