@@ -34,8 +34,7 @@ export default function ReplayBadge({replay}: Props) {
   const timestampType = prefs.timestampType;
 
   const [isLive, setIsLive] = useState(
-    liveDuration(replay.finished_at) > 0 &&
-      Date.now() < getReplayExpiryTimestamp(replay.started_at)
+    Date.now() < getReplayExpiryTimestamp(replay.started_at)
   );
 
   const {start: startTimeout} = useTimeout({

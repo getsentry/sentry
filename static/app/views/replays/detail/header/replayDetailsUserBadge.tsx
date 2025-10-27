@@ -79,12 +79,12 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     }
   };
 
-  const REPLAY_EXPIRY_TIMESTAMP = getReplayExpiryTimestamp(
-    replayRecord?.started_at ? replayRecord.started_at : null
-  );
+  const pollingEnabled =
+    Date.now() <
+    getReplayExpiryTimestamp(replayRecord?.started_at ? replayRecord.started_at : null);
 
   const polledReplayRecord = usePollReplayRecord({
-    enabled: Date.now() < REPLAY_EXPIRY_TIMESTAMP,
+    enabled: pollingEnabled,
     replayId,
     orgSlug,
   });
@@ -95,9 +95,8 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const showRefreshButton = polledCountSegments > prevSegments;
 
   const showLiveIndicator =
-    replayRecord &&
-    liveDuration(replayRecord.finished_at) > 0 &&
-    Date.now() < REPLAY_EXPIRY_TIMESTAMP;
+    pollingEnabled && replayRecord && liveDuration(replayRecord.finished_at) > 0;
+
   const badge = replayRecord ? (
     <UserBadge
       avatarSize={24}
