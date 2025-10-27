@@ -11,7 +11,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import audit_log
 from sentry.uptime.autodetect.notifications import send_auto_detected_notifications
-from sentry.uptime.autodetect.ranking import _get_cluster
 from sentry.uptime.autodetect.tasks import set_failed_url
 from sentry.uptime.models import UptimeSubscription, get_audit_log_data
 from sentry.uptime.subscriptions.subscriptions import (
@@ -20,6 +19,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
 )
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.utils import get_cluster
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.workflow_engine.models.detector import Detector
@@ -52,7 +52,7 @@ def handle_onboarding_result(
     metric_tags: dict[str, str],
 ) -> None:
     if result["status"] == CHECKSTATUS_FAILURE:
-        redis = _get_cluster()
+        redis = get_cluster()
         key = build_onboarding_failure_key(detector)
         pipeline = redis.pipeline()
         pipeline.incr(key)

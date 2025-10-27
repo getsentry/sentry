@@ -4,10 +4,6 @@ import random
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
-from django.conf import settings
-from redis.client import StrictRedis
-from rediscluster import RedisCluster
-
 from sentry.constants import UPTIME_AUTODETECTION
 from sentry.uptime.models import get_active_auto_monitor_count_for_org
 from sentry.uptime.subscriptions.subscriptions import (
@@ -15,7 +11,8 @@ from sentry.uptime.subscriptions.subscriptions import (
     MaxUrlsForDomainReachedException,
     check_url_limits,
 )
-from sentry.utils import metrics, redis
+from sentry.uptime.utils import get_cluster
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -37,10 +34,6 @@ RANKED_MAX_SIZE = 20
 KEY_EXPIRY = ORGANIZATION_FLUSH_FREQUENCY * 2
 
 
-def _get_cluster() -> RedisCluster | StrictRedis:
-    return redis.redis_clusters.get(settings.SENTRY_UPTIME_DETECTOR_CLUSTER)
-
-
 def add_base_url_to_rank(project: Project, base_url: str):
     """
     Takes a project and valid base url and stores ranking information about it in Redis.
@@ -59,7 +52,7 @@ def add_base_url_to_rank(project: Project, base_url: str):
     larger than `RANKED_MAX_SIZE`. That shouldn't cause us problems, and is preferable to
     trimming it on every call.
     """
-    cluster = _get_cluster()
+    cluster = get_cluster()
     org_projects_key = build_org_projects_key(project.organization)
     pipeline = cluster.pipeline()
     pipeline.zincrby(org_projects_key, 1, str(project.id))
@@ -91,7 +84,7 @@ def get_candidate_projects_for_org(org: Organization) -> list[tuple[int, int]]:
     Project ids are sorted by `total_urls_seen` desc.
     """
     key = build_org_projects_key(org)
-    cluster = _get_cluster()
+    cluster = get_cluster()
     return [
         (int(project_id), count)
         for project_id, count in cluster.zrange(
@@ -105,7 +98,7 @@ def delete_candidate_projects_for_org(org: Organization) -> None:
     Deletes candidate projects related to the organization that have seen urls.
     """
     key = build_org_projects_key(org)
-    cluster = _get_cluster()
+    cluster = get_cluster()
     cluster.delete(key)
 
 
@@ -115,7 +108,7 @@ def get_candidate_urls_for_project(project: Project, limit=5) -> list[tuple[str,
     `times_url_seen` desc.
     """
     key = get_project_base_url_rank_key(project)
-    cluster = _get_cluster()
+    cluster = get_cluster()
     candidate_urls = cluster.zrange(key, 0, -1, desc=True, withscores=True, score_cast_func=int)
     urls = []
     for candidate_url, url_count in candidate_urls:
@@ -134,7 +127,7 @@ def delete_candidate_urls_for_project(project: Project) -> None:
     Deletes all current candidate rules for a project.
     """
     key = get_project_base_url_rank_key(project)
-    cluster = _get_cluster()
+    cluster = get_cluster()
     cluster.delete(key)
 
 
@@ -166,7 +159,7 @@ def get_organization_bucket(bucket: datetime) -> set[int]:
     that have projects that have seen urls.
     """
     key = get_organization_bucket_key_for_datetime(bucket)
-    cluster = _get_cluster()
+    cluster = get_cluster()
     return {int(organization_id) for organization_id in cluster.smembers(key)}
 
 
@@ -175,7 +168,7 @@ def delete_organization_bucket(bucket: datetime) -> None:
     Delete all organizations from a specific datetime bucket.
     """
     key = get_organization_bucket_key_for_datetime(bucket)
-    cluster = _get_cluster()
+    cluster = get_cluster()
     cluster.delete(key)
 
 
