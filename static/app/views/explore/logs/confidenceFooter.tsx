@@ -14,12 +14,14 @@ import type {RawLogCounts} from 'sentry/views/explore/logs/useLogsQuery';
 
 interface ConfidenceFooterProps {
   chartInfo: ChartInfo;
+  hasUserQuery: boolean;
   isLoading: boolean;
   rawLogCounts: RawLogCounts;
 }
 
 export function ConfidenceFooter({
   chartInfo: currentChartInfo,
+  hasUserQuery,
   isLoading,
   rawLogCounts,
 }: ConfidenceFooterProps) {
@@ -28,6 +30,7 @@ export function ConfidenceFooter({
     <Container>
       <ConfidenceMessage
         isLoading={isLoading}
+        hasUserQuery={hasUserQuery}
         rawLogCounts={rawLogCounts}
         confidence={chartInfo.confidence}
         dataScanned={chartInfo.dataScanned}
@@ -40,6 +43,7 @@ export function ConfidenceFooter({
 }
 
 interface ConfidenceMessageProps {
+  hasUserQuery: boolean;
   isLoading: boolean;
   rawLogCounts: RawLogCounts;
   confidence?: Confidence;
@@ -55,6 +59,7 @@ function ConfidenceMessage({
   dataScanned,
   confidence: _confidence,
   topEvents,
+  hasUserQuery,
   isLoading,
   isSampled,
 }: ConfidenceMessageProps) {
@@ -79,6 +84,19 @@ function ConfidenceMessage({
   const suffix = rawLogCounts.highAccuracy.count ? t('logs') : '';
 
   if (dataScanned === 'full') {
+    if (!hasUserQuery) {
+      if (isTopN) {
+        return tct('Log count for top [topEvents] groups: [matchingLogsCount]', {
+          topEvents,
+          matchingLogsCount,
+        });
+      }
+
+      return tct('Log count: [matchingLogsCount]', {
+        matchingLogsCount,
+      });
+    }
+
     // For logs, if the full data was scanned, we can assume that no
     // extrapolation happened and we should remove mentions of extrapolation.
     if (isTopN) {
