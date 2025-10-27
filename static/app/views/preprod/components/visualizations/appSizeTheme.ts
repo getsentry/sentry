@@ -11,7 +11,7 @@ export function getAppSizeCategoryInfo(
     return color(baseColor).alpha(0.6).string();
   };
 
-  const colorPalette = theme.chart.getColorPalette(6);
+  const colorPalette = theme.chart.getColorPalette(7);
 
   const neutralColor = 'hsla(270, 20%, 50%, 0.5)';
   const groupColor1 = colorPalette[0];
@@ -20,6 +20,7 @@ export function getAppSizeCategoryInfo(
   const groupColor4 = colorPalette[3];
   const groupColor5 = colorPalette[4];
   const groupColor6 = colorPalette[5];
+  const groupColor7 = colorPalette[6];
 
   return {
     [TreemapType.FILES]: {
@@ -156,6 +157,11 @@ export function getAppSizeCategoryInfo(
       color: groupColor1,
       headerColor: createHeaderColor(groupColor1),
       displayName: t('Code Signature'),
+    },
+    [TreemapType.AUDIO]: {
+      color: groupColor7,
+      headerColor: createHeaderColor(groupColor7),
+      displayName: t('Audio'),
     },
   };
 }
