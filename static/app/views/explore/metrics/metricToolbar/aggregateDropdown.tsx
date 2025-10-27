@@ -106,6 +106,7 @@ export function AggregateDropdown({type}: {type: string}) {
       setVisualize(
         visualize.replace({
           yAxis: `${DEFAULT_YAXIS_BY_TYPE[type]}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
+          chartType: undefined, // Reset chart type to let determineDefaultChartType decide
         })
       );
     }
@@ -122,6 +123,7 @@ export function AggregateDropdown({type}: {type: string}) {
         setVisualize(
           visualize.replace({
             yAxis: `${option.value}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
+            chartType: undefined, // Reset chart type to let determineDefaultChartType decide
           })
         );
       }}
