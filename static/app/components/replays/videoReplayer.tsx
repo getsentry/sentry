@@ -454,7 +454,11 @@ export class VideoReplayer {
       this.setBuffering(true);
     }
 
-    const playPromise = video.play();
+    const playPromise = video.play().catch(() => {
+      // `play()` throws lots of noisy errors that are unimportant e.g.
+      // AbortError: The play() request was interrupted by a call to pause().
+    });
+
     await playPromise;
 
     // Buffering is over after play promise is resolved
