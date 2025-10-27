@@ -21,20 +21,14 @@ export function CopyToClipboardButton({
   onClick: passedOnClick,
   ...props
 }: Props) {
-  const {onClick, label} = useCopyToClipboard({
-    text,
-    onCopy,
-    onError,
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Button
-      aria-label={label}
-      title={label}
-      tooltipProps={{delay: 0}}
+      aria-label="Copy to clipboard"
       translucentBorder
       onClick={e => {
-        onClick();
+        copy(text).then(onCopy).catch(onError);
         passedOnClick?.(e);
       }}
       icon={<IconCopy color="subText" />}
