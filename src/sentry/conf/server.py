@@ -951,7 +951,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": timedelta(seconds=20),
+        "schedule": timedelta(seconds=15),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
