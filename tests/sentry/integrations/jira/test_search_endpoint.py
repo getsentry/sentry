@@ -6,7 +6,6 @@ from django.urls import reverse
 
 from fixtures.integrations.stub_service import StubService
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -184,7 +183,6 @@ class JiraSearchEndpointTest(APITestCase):
         }
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_project_search_with_pagination(self) -> None:
         responses.add(
             responses.GET,
@@ -210,7 +208,6 @@ class JiraSearchEndpointTest(APITestCase):
         ]
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_project_search_error_with_pagination(self) -> None:
         responses.add(
             responses.GET,
