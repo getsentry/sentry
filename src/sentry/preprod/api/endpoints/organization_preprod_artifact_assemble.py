@@ -22,7 +22,9 @@ from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.assemble import ChunkFileState
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 SUPPORTED_VCS_PROVIDERS = [
     IntegrationProviderSlug.GITHUB,
@@ -102,6 +104,14 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectReleasePermission,)
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
+        }
+    )
 
     def post(self, request: Request, project: Project) -> Response:
         """

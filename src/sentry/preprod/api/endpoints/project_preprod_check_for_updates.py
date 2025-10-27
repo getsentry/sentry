@@ -47,13 +47,10 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
             "GET": {
-                RateLimitCategory.ORGANIZATION: RateLimit(
-                    limit=100, window=60
-                ),  # 100 requests per minute per org
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
             }
         }
     )
