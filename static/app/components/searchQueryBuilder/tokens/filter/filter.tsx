@@ -237,6 +237,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         token={token}
         state={state}
         item={item}
+        columnCount={4}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >

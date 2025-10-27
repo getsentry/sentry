@@ -69,14 +69,16 @@ export function InvalidTokenTooltip({
 
 type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps & {
   children: React.ReactNode;
+  columnCount: number;
 };
 
 export function GridInvalidTokenTooltip({
   children,
+  columnCount,
   ...props
 }: GridInvalidTokenTooltipProps) {
   return (
-    <Grid align="stretch" height="22px" columns="auto auto auto auto">
+    <Grid align="stretch" height="22px" columns={`repeat(${columnCount}, auto)`}>
       {styleProps => (
         <InvalidTokenTooltip {...props} {...styleProps}>
           {children}

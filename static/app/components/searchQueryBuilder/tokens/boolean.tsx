@@ -140,6 +140,7 @@ function SearchQueryBuilderBooleanSelect({
       {...modifiedRowProps}
     >
       <GridInvalidTokenTooltip
+        columnCount={2}
         token={token}
         state={state}
         item={item}
