@@ -533,7 +533,16 @@ class JiraIntegration(IssueSyncIntegration):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().create_comment(issue_id, quoted_comment)
+        try:
+            return self.get_client().create_comment(issue_id, quoted_comment)
+        except ApiUnauthorized as e:
+            raise IntegrationConfigurationError(
+                "Insufficient permissions to create a comment on the Jira issue."
+            ) from e
+        except ApiError as e:
+            raise IntegrationError(
+                "There was an error creating a comment on the Jira issue."
+            ) from e
 
     def create_comment_attribution(self, user_id, comment_text):
         user = user_service.get_user(user_id=user_id)
@@ -544,9 +553,18 @@ class JiraIntegration(IssueSyncIntegration):
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
-        return self.get_client().update_comment(
-            issue_id, group_note.data["external_id"], quoted_comment
-        )
+        try:
+            return self.get_client().update_comment(
+                issue_id, group_note.data["external_id"], quoted_comment
+            )
+        except ApiUnauthorized as e:
+            raise IntegrationConfigurationError(
+                "Insufficient permissions to update a comment on the Jira issue."
+            ) from e
+        except ApiError as e:
+            raise IntegrationError(
+                "There was an error updating a comment on the Jira issue."
+            ) from e
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         try:
@@ -793,13 +811,9 @@ class JiraIntegration(IssueSyncIntegration):
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
-            jira_projects = (
-                client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})["values"]
-                if features.has(
-                    "organizations:jira-paginated-projects", self.organization, actor=user
-                )
-                else client.get_projects_list()
-            )
+            jira_projects = client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})[
+                "values"
+            ]
         except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
@@ -841,11 +855,10 @@ class JiraIntegration(IssueSyncIntegration):
             "updatesForm": True,
             "required": True,
         }
-        if features.has("organizations:jira-paginated-projects", self.organization, actor=user):
-            paginated_projects_url = reverse(
-                "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
-            )
-            projects_form_field["url"] = paginated_projects_url
+        paginated_projects_url = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
+        )
+        projects_form_field["url"] = paginated_projects_url
 
         fields = [
             projects_form_field,

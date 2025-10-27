@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Container} from 'sentry/components/core/layout';
 import type {ContainerProps} from 'sentry/components/core/layout/container';
 import type {Organization} from 'sentry/types/organization';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 
@@ -24,6 +26,18 @@ function SubscriptionPageContainer({
   useBorderTopLogic?: boolean;
 }) {
   const isNewBillingUI = hasNewBillingUI(organization);
+
+  useEffect(() => {
+    // record replays for all usage and billing settings pages
+    if (isNewBillingUI) {
+      Sentry.getReplay()?.start();
+    }
+  }, [isNewBillingUI]);
+
+  useRouteAnalyticsParams({
+    isNewBillingUI,
+  });
+
   if (!isNewBillingUI) {
     if (dataTestId) {
       return <Container data-test-id={dataTestId}>{children}</Container>;

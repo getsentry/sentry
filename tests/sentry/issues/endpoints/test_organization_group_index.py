@@ -3533,66 +3533,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
-    def test_set_resolved_in_next_semver_release(self) -> None:
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="a@1.0.0"
-        )
-        release.add_project(self.project)
-
-        # Smaller than 1.0.0 but more recent.
-        release2 = Release.objects.create(
-            organization_id=self.project.organization_id, version="a@0.9.1"
-        )
-        release2.add_project(self.project)
-
-        # Bigger than 1.0.0 and more recent but different package.
-        release3 = Release.objects.create(
-            organization_id=self.project.organization_id, version="b@1.0.1"
-        )
-        release3.add_project(self.project)
-
-        # Smaller than 1.0.0, a different package, and associated to the group. This package's
-        # release should be in contention for largest semver but not selected.
-        release4 = Release.objects.create(
-            organization_id=self.project.organization_id, version="c@0.9.9"
-        )
-        release4.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        # Record the release as a group release so the group is scoped to at least one package.
-        self.create_group_release(self.project, group=group, release=release)
-        self.create_group_release(self.project, group=group, release=release4)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolved", statusDetails={"inNextRelease": True}
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == ""
-        assert activity.data["current_release_version"] == "a@1.0.0"
-
     def test_set_resolved_in_next_release_legacy(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)

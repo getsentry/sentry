@@ -110,6 +110,7 @@ export function TraceSpanRow(
             )}
             {shouldUseOTelFriendlyUI &&
             isEAPSpanNode(props.node) &&
+            !props.node.value.description &&
             props.node.value.name &&
             props.node.value.name !== props.node.value.op ? (
               <React.Fragment>

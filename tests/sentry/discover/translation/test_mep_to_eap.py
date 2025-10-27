@@ -145,7 +145,7 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
         pytest.param(
             ["any(transaction.duration)", "count_miserable(user,300)", "transaction", "count()"],
             ["transaction", "count(span.duration)"],
-            ["any(span.duration)", "count_miserable(user,300)"],
+            ["any(transaction.duration)", "count_miserable(user,300)"],
         ),
         pytest.param(
             ["platform.name", "count()"],
@@ -237,8 +237,8 @@ def test_mep_to_eap_simple_selected_columns(
             [],
         ),
         pytest.param(
-            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)"],
-            [],
+            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)", "equation|"],
+            ["equation|"],
             [
                 {
                     "equation": "equation|(sum(transaction.duration) + 5) + count_miserable(user,300)",
@@ -338,15 +338,15 @@ def test_mep_to_eap_simple_equations(
             [
                 {
                     "orderby": "-count_miserable(user,300)",
-                    "reason": "fields were dropped: count_miserable(user,300)",
+                    "reason": ["count_miserable(user,300)"],
                 },
                 {
                     "orderby": "count_web_vitals(user,300)",
-                    "reason": "fields were dropped: count_web_vitals(user,300)",
+                    "reason": ["count_web_vitals(user,300)"],
                 },
                 {
                     "orderby": "any(transaction.duration)",
-                    "reason": "fields were dropped: any(span.duration)",
+                    "reason": ["any(transaction.duration)"],
                 },
             ],
         ),
@@ -366,14 +366,14 @@ def test_mep_to_eap_simple_equations(
             [
                 {
                     "orderby": "equation|count_miserable(user,300) + 3",
-                    "reason": "equation was dropped",
+                    "reason": "dropped",
                 }
             ],
         ),
         pytest.param(
             ["equation[3453]"],
             [],
-            [{"orderby": "equation[3453]", "reason": "equation at this index doesn't exist"}],
+            [{"orderby": "equation[3453]", "reason": "equation issue"}],
         ),
     ],
 )

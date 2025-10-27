@@ -395,8 +395,6 @@ function recordAnalytics(
   isMigratingPartnerAccount: boolean
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
-  const isNewCheckout = hasNewCheckout(organization);
-
   const currentData: CheckoutData = {
     plan: data.plan,
   };
@@ -440,14 +438,12 @@ function recordAnalytics(
     subscription,
     ...previousData,
     ...currentData,
-    isNewCheckout,
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
     ...productSelectAnalyticsData,
-    isNewCheckout,
   });
 
   let {onDemandBudget} = data;
@@ -485,7 +481,6 @@ function recordAnalytics(
       applyNow: data.applyNow ?? false,
       daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
-      isNewCheckout,
     });
   }
 }

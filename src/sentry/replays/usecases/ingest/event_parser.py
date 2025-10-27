@@ -47,6 +47,14 @@ class MultiClickEvent:
     click_count: int
 
 
+@dataclass(frozen=True)
+class TapEvent:
+    timestamp: int
+    message: str
+    view_class: str
+    view_id: str
+
+
 @dataclass
 class HydrationError:
     timestamp: float
@@ -67,6 +75,7 @@ class ParsedEventMeta:
     mutation_events: list[MutationEvent]
     options_events: list[dict[str, Any]]
     request_response_sizes: list[tuple[Any, Any]]
+    tap_events: list[TapEvent]
 
 
 class EventContext(TypedDict):
@@ -120,6 +129,14 @@ class EventType(Enum):
     CLS = 21
     NAVIGATION_SPAN = 22
     MULTI_CLICK = 23
+    TAP = 24
+    DEVICE_BATTERY = 25
+    DEVICE_ORIENTATION = 26
+    DEVICE_CONNECTIVITY = 27
+    SCROLL = 28
+    SWIPE = 29
+    BACKGROUND = 30
+    FOREGROUND = 31
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -183,6 +200,22 @@ def which(event: dict[str, Any]) -> EventType:
                     return EventType.MUTATIONS
                 elif category == "sentry.feedback":
                     return EventType.FEEDBACK
+                elif category == "ui.tap":
+                    return EventType.TAP
+                elif category == "device.battery":
+                    return EventType.DEVICE_BATTERY
+                elif category == "device.orientation":
+                    return EventType.DEVICE_ORIENTATION
+                elif category == "device.connectivity":
+                    return EventType.DEVICE_CONNECTIVITY
+                elif category == "ui.scroll":
+                    return EventType.SCROLL
+                elif category == "ui.swipe":
+                    return EventType.SWIPE
+                elif category == "app.background":
+                    return EventType.BACKGROUND
+                elif category == "app.foreground":
+                    return EventType.FOREGROUND
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "performanceSpan":
@@ -263,6 +296,14 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             | EventType.OPTIONS
             | EventType.UNKNOWN
             | EventType.FEEDBACK  # feedback breadcrumbs from the SDK have MS timestamps.
+            | EventType.TAP
+            | EventType.DEVICE_BATTERY
+            | EventType.DEVICE_ORIENTATION
+            | EventType.DEVICE_CONNECTIVITY
+            | EventType.SCROLL
+            | EventType.SWIPE
+            | EventType.BACKGROUND
+            | EventType.FOREGROUND
         ):
             return "ms"
 
@@ -393,6 +434,19 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
         case EventType.MULTI_CLICK:
             return None
+        case EventType.TAP:
+            payload = event.get("data", {}).get("payload", {})
+            tap_attributes: dict[str, Value] = {
+                "category": "ui.tap",
+                "message": as_string_strict(payload["message"]),
+                "view_id": as_string_strict(payload["data"]["view.id"]),
+                "view_class": as_string_strict(payload["data"]["view.class"]),
+            }
+            return {
+                "attributes": tap_attributes,
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload["timestamp"]),
+            }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
             payload_data = payload.get("data", {})
@@ -566,6 +620,20 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
         case EventType.NAVIGATION_SPAN:
             return None
+        case EventType.DEVICE_BATTERY:
+            return None
+        case EventType.DEVICE_ORIENTATION:
+            return None
+        case EventType.DEVICE_CONNECTIVITY:
+            return None
+        case EventType.SCROLL:
+            return None
+        case EventType.SWIPE:
+            return None
+        case EventType.BACKGROUND:
+            return None
+        case EventType.FOREGROUND:
+            return None
 
 
 def as_string_strict(value: Any) -> str:
@@ -594,6 +662,7 @@ class HighlightedEvents(TypedDict, total=False):
     multiclicks: list[MultiClickEvent]
     request_response_sizes: list[tuple[int | None, int | None]]
     options: list[dict[str, Any]]
+    taps: list[TapEvent]
 
 
 class HighlightedEventsBuilder:
@@ -607,6 +676,7 @@ class HighlightedEventsBuilder:
             "mutations": [],
             "options": [],
             "request_response_sizes": [],
+            "taps": [],
         }
 
     def add(self, event_type: EventType, event: dict[str, Any], sampled: bool) -> None:
@@ -623,6 +693,7 @@ class HighlightedEventsBuilder:
             self.events["mutations"],
             self.events["options"],
             self.events["request_response_sizes"],
+            self.events["taps"],
         )
 
 
@@ -673,6 +744,9 @@ def as_highlighted_event(
             return {}
     elif event_type == EventType.OPTIONS and sampled:
         return {"options": [event]}
+    elif event_type == EventType.TAP:
+        tap = parse_tap_event(event["data"]["payload"])
+        return {"taps": [tap]} if tap else {}
     else:
         return {}
 
@@ -705,6 +779,16 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
         response_size = None
 
     return request_size, response_size
+
+
+def parse_tap_event(payload: dict[str, Any]) -> TapEvent | None:
+    payload_data = payload.get("data", {})
+    return TapEvent(
+        timestamp=int(payload["timestamp"]),
+        message=payload.get("message", ""),
+        view_class=payload_data.get("view.class", ""),
+        view_id=payload_data.get("view.id", ""),
+    )
 
 
 def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent | None:

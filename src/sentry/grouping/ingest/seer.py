@@ -57,7 +57,6 @@ def should_call_seer_for_grouping(
 
     if (
         _has_custom_fingerprint(event, variants)
-        or _has_too_many_contributing_frames(event, variants)
         or _is_race_condition_skipped_event(event, event_grouphash)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
@@ -65,6 +64,8 @@ def should_call_seer_for_grouping(
         # because it calculates the stacktrace string, which we only want to spend the time to do if we already
         # know the other checks have passed.
         or _has_empty_stacktrace_string(event, variants)
+        # do this after the empty stacktrace string check because it calculates the stacktrace string
+        or _has_too_many_contributing_frames(event, variants)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
         # the checks.
         #

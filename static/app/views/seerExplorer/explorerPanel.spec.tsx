@@ -135,6 +135,8 @@ describe('ExplorerPanel', () => {
         isPending: false,
         runId: 123,
         deletedFromIndex: null,
+        interruptRun: jest.fn(),
+        interruptRequested: false,
       });
 
       render(<ExplorerPanel isVisible />, {organization});

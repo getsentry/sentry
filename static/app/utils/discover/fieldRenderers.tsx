@@ -55,6 +55,8 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
+import type {LinkedDashboard} from 'sentry/views/dashboards/types';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -1326,6 +1328,16 @@ const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis}
 `;
 
+export function getFieldRenderer(
+  field: string,
+  meta: MetaType,
+  isAlias = true,
+  dashboardLink: LinkedDashboard | undefined = undefined
+): FieldFormatterRenderFunctionPartial {
+  const baseRenderer = getFieldRendererBase(field, meta, isAlias);
+  return wrapFieldRendererInDashboardLink(baseRenderer, dashboardLink);
+}
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -1334,7 +1346,7 @@ const StyledTooltip = styled(Tooltip)`
  * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
-export function getFieldRenderer(
+function getFieldRendererBase(
   field: string,
   meta: MetaType,
   isAlias = true
@@ -1363,4 +1375,20 @@ export function getFieldRenderer(
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+// TODO: Need to handle cases where a field already has a link in it's renderer
+function wrapFieldRendererInDashboardLink(
+  renderer: FieldFormatterRenderFunctionPartial,
+  dashboardLink: LinkedDashboard | undefined
+): FieldFormatterRenderFunctionPartial {
+  return function (data, baggage) {
+    const {organization} = baggage;
+    if (hasDrillDownFlowsFeature(organization) && dashboardLink) {
+      // TODO: Add filters from the current dashboard to the url
+      const dashboardUrl = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/`;
+      return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
+    }
+    return renderer(data, baggage);
+  };
 }

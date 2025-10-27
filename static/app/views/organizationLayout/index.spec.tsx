@@ -47,14 +47,9 @@ describe('OrganizationLayout', () => {
       });
       OrganizationStore.onUpdate(organization);
 
-      render(
-        <OrganizationLayout>
-          <div />
-        </OrganizationLayout>,
-        {
-          organization,
-        }
-      );
+      render(<OrganizationLayout />, {
+        organization,
+      });
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
       expect(screen.getByLabelText('Restore Organization')).toBeInTheDocument();
@@ -75,14 +70,9 @@ describe('OrganizationLayout', () => {
       });
       OrganizationStore.onUpdate(organization);
 
-      render(
-        <OrganizationLayout>
-          <div />
-        </OrganizationLayout>,
-        {
-          organization,
-        }
-      );
+      render(<OrganizationLayout />, {
+        organization,
+      });
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
 
@@ -104,14 +94,9 @@ describe('OrganizationLayout', () => {
     });
     OrganizationStore.onUpdate(organization);
 
-    render(
-      <OrganizationLayout>
-        <div />
-      </OrganizationLayout>,
-      {
-        organization,
-      }
-    );
+    render(<OrganizationLayout />, {
+      organization,
+    });
 
     const inProgress = await screen.findByText(
       'currently in the process of being deleted from Sentry.',
@@ -132,11 +117,7 @@ describe('OrganizationLayout', () => {
       url: '/internal/health/',
     });
 
-    render(
-      <OrganizationLayout>
-        <div />
-      </OrganizationLayout>
-    );
+    render(<OrganizationLayout />);
 
     expect(
       await screen.findByText(/Celery workers have not checked in/)
@@ -160,9 +141,7 @@ describe('OrganizationLayout', () => {
 
       render(
         <OrganizationContext.Provider value={null}>
-          <OrganizationLayout>
-            <div />
-          </OrganizationLayout>
+          <OrganizationLayout />
         </OrganizationContext.Provider>
       );
 

@@ -6,9 +6,9 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -40,6 +40,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         debug: bool = False,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
         so we need to always order by it regardless of what is actually passed to the orderby."""
@@ -68,6 +69,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                     config=config,
                 ),
                 page_token=page_token,
+                additional_queries=additional_queries,
             ),
             debug=debug,
         )
@@ -102,10 +104,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
 
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         for resolved_field in aggregates + groupbys:
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 

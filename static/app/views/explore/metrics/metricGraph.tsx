@@ -10,12 +10,18 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
+  useMetricLabel,
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsQuery,
+  useQueryParamsTopEventsLimit,
+} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -24,10 +30,11 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricsGraphProps {
+  queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
+export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
@@ -40,19 +47,22 @@ export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
       visualize={visualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
+      queryIndex={queryIndex}
     />
   );
 }
 
 interface GraphProps extends MetricsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
+  queryIndex: number;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
+function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
-
+  const metricLabel = useMetricLabel();
+  const userQuery = useQueryParamsQuery();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartInfo = useMemo(() => {
@@ -74,7 +84,9 @@ function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
   }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
 
   const Title = (
-    <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
+    <Widget.WidgetTitle
+      title={`${getVisualizeLabel(queryIndex)}: ${metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}`}
+    />
   );
 
   const chartIcon =
@@ -122,6 +134,16 @@ function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
       Title={Title}
       Actions={Actions}
       Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+      Footer={
+        visualize.visible && (
+          <ConfidenceFooter
+            chartInfo={chartInfo}
+            isLoading={timeseriesResult.isFetching}
+            hasUserQuery={!!userQuery}
+          />
+        )
+      }
+      height={visualize.visible ? undefined : 0}
       revealActions="always"
       borderless
     />

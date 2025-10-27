@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -242,6 +243,12 @@ from sentry.integrations.api.endpoints.organization_coding_agents import (
 )
 from sentry.integrations.api.endpoints.organization_config_integrations import (
     OrganizationConfigIntegrationsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_channel_validate import (
+    OrganizationIntegrationChannelValidateEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_channels import (
+    OrganizationIntegrationChannelsEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
@@ -505,6 +512,9 @@ from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoin
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_explorer_update import (
+    OrganizationSeerExplorerUpdateEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
@@ -1673,6 +1683,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-traces",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/$",
+        OrganizationAIConversationsEndpoint.as_view(),
+        name="sentry-api-0-organization-ai-conversations",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",
         OrganizationTraceItemAttributesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes",
@@ -1893,6 +1908,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/repos/$",
         OrganizationIntegrationReposEndpoint.as_view(),
         name="sentry-api-0-organization-integration-repos",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channels/$",
+        OrganizationIntegrationChannelsEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-channels",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channel-validate/$",
+        OrganizationIntegrationChannelValidateEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-channel-validate",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/issues/$",
@@ -2263,6 +2288,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?:(?P<run_id>[^/]+)/)?$",
         OrganizationSeerExplorerChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
+        OrganizationSeerExplorerUpdateEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-update",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",

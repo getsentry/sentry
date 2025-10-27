@@ -145,7 +145,8 @@ def _compute_breakdowns(
 ) -> None:
     config = project.get_option("sentry:breakdowns")
     breakdowns = compute_breakdowns(spans, config)
-    segment.setdefault("attributes", {}).update(breakdowns)
+    segment["attributes"] = segment.get("attributes") or {}
+    segment["attributes"].update(breakdowns)  # type: ignore[union-attr]
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
@@ -231,7 +232,7 @@ def _detect_performance_problems(
             culprit=event_data["transaction"],
             evidence_data=problem.evidence_data or {},
             evidence_display=problem.evidence_display,
-            detection_time=to_datetime(segment_span["end_timestamp"]),
+            detection_time=to_datetime(segment_span["end_timestamp"]),  # type: ignore[arg-type]  # checked in process-spans
             level="info",
         )
 
@@ -265,7 +266,7 @@ def _record_signals(
     )
 
     for module in insights_modules(
-        [FilterSpan.from_span_attributes(span.get("attributes", {})) for span in spans]
+        [FilterSpan.from_span_attributes(span.get("attributes") or {}) for span in spans]
     ):
         set_project_flag_and_signal(
             project,

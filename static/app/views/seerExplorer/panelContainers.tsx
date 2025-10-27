@@ -2,78 +2,82 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
 
-import MinimizedStrip from './minimizedStrip';
-import type {Block, PanelSize} from './types';
+import {Text} from 'sentry/components/core/text';
+import {IconSeer} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
+import type {PanelSize} from 'sentry/views/seerExplorer/types';
 
 interface PanelContainersProps {
-  blocks: Block[];
   children: React.ReactNode;
+  isMinimized: boolean;
   isOpen: boolean;
-  isPolling: boolean;
-  onClear: () => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onMinSize: () => void;
-  onSubmit: (message: string) => void;
   panelSize: PanelSize;
+  onUnminimize?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 function PanelContainers({
   isOpen,
+  isMinimized,
   panelSize,
   children,
-  blocks,
-  onSubmit,
-  isPolling,
-  onMaxSize,
-  onMedSize,
-  onMinSize,
-  onClear,
+  onUnminimize,
+  ref,
 }: PanelContainersProps) {
   return (
     <AnimatePresence>
       {isOpen && (
         <Fragment>
-          {panelSize === 'min' ? (
-            <MinimizedStrip
-              key="minimized"
-              blocks={blocks}
-              onSubmit={onSubmit}
-              isPolling={isPolling}
-              onMaxSize={onMaxSize}
-              onMedSize={onMedSize}
-              onMinSize={onMinSize}
-              onClear={onClear}
+          {panelSize === 'max' && (
+            <Backdrop
+              key="backdrop"
+              isMinimized={isMinimized}
+              initial={{opacity: 0}}
+              animate={{opacity: isMinimized ? 0 : 1}}
+              exit={{opacity: 0}}
+              transition={{duration: 0.1}}
             />
-          ) : (
-            <Fragment>
-              {panelSize === 'max' && (
-                <Backdrop
-                  key="backdrop"
+          )}
+          <PanelContainer
+            panelSize={panelSize}
+            isMinimized={isMinimized}
+            initial={{
+              opacity: 0,
+              y: 50,
+              scale: 0.1,
+              transformOrigin: 'bottom center',
+            }}
+            animate={{
+              opacity: 1,
+              y: isMinimized ? 'calc(100% - 60px)' : 0,
+              scale: 1,
+              transformOrigin: 'bottom center',
+            }}
+            exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
+            transition={{duration: 0.1, ease: 'easeInOut'}}
+          >
+            <PanelContent ref={ref} data-seer-explorer-root="">
+              {children}
+              {isMinimized && (
+                <MinimizedOverlay
                   initial={{opacity: 0}}
                   animate={{opacity: 1}}
                   exit={{opacity: 0}}
-                  transition={{duration: 0.1}}
-                />
+                  transition={{duration: 0.2}}
+                  onClick={onUnminimize}
+                >
+                  <Flex direction="column" align="center" gap="lg">
+                    <IconSeer variant="waiting" size="lg" color="purple400" />
+                    <Text variant="muted">
+                      Press Tab ⇥ or click to continue with Seer
+                    </Text>
+                  </Flex>
+                </MinimizedOverlay>
               )}
-              <PanelContainer
-                panelSize={panelSize}
-                initial={{
-                  opacity: 0,
-                  y: 50,
-                  scale: 0.1,
-                  transformOrigin: 'bottom center',
-                }}
-                animate={{opacity: 1, y: 0, scale: 1, transformOrigin: 'bottom center'}}
-                exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-                transition={{duration: 0.1, ease: 'easeOut'}}
-              >
-                <PanelContent data-seer-explorer-root="">{children}</PanelContent>
-              </PanelContainer>
-            </Fragment>
-          )}
+            </PanelContent>
+          </PanelContainer>
         </Fragment>
       )}
     </AnimatePresence>
@@ -82,7 +86,7 @@ function PanelContainers({
 
 export default PanelContainers;
 
-const Backdrop = styled(motion.div)`
+const Backdrop = styled(motion.div)<{isMinimized: boolean}>`
   position: fixed;
   top: 0;
   left: 0;
@@ -90,10 +94,13 @@ const Backdrop = styled(motion.div)`
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);
   z-index: 9999;
-  pointer-events: auto;
+  pointer-events: ${p => (p.isMinimized ? 'none' : 'auto')};
 `;
 
-const PanelContainer = styled(motion.div)<{panelSize: 'max' | 'med'}>`
+const PanelContainer = styled(motion.div)<{
+  isMinimized: boolean;
+  panelSize: 'max' | 'med';
+}>`
   position: fixed;
   bottom: ${space(2)};
   left: 50%;
@@ -133,4 +140,35 @@ export const BlocksContainer = styled('div')`
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+`;
+
+const MinimizedOverlay = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: ${p => p.theme.background};
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: ${p => p.theme.space.lg};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  z-index: 1;
+  cursor: pointer;
+
+  /* Purple tint */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: ${p => p.theme.purple200};
+    border-radius: inherit;
+    z-index: -1;
+    pointer-events: none;
+  }
 `;

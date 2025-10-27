@@ -18,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
@@ -25,7 +26,6 @@ import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell, NumberPlaceholder} from 'sentry/views/insights/agents/utils/cells';
 import {
-  AI_GENERATION_OPS,
   getAgentRunsFilter,
   getAITracesFilter,
 } from 'sentry/views/insights/agents/utils/query';
@@ -75,11 +75,6 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
-// FIXME: This is potentially not correct, we need to find a way for it to work with the new filter
-const GENERATION_COUNTS = AI_GENERATION_OPS.map(
-  op => `count_if(span.op,equals,${op})` as const
-);
-
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -108,13 +103,14 @@ export function TracesTable() {
       search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
-        ...GENERATION_COUNTS,
+        'count_if(gen_ai.operation.type,equals,ai_client)',
         'count_if(span.op,equals,gen_ai.execute_tool)',
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.usage.total_cost)',
       ],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
     },
     Referrer.TRACES_TABLE
   );
@@ -146,14 +142,11 @@ export function TracesTable() {
     return spansRequest.data.reduce(
       (acc, span) => {
         acc[span.trace] = {
-          llmCalls: GENERATION_COUNTS.reduce<number>(
-            (sum, key) => sum + (span[key] ?? 0),
-            0
-          ),
-          toolCalls: span['count_if(span.op,equals,gen_ai.execute_tool)'] ?? 0,
+          llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
+          toolCalls: Number(span['count_if(span.op,equals,gen_ai.execute_tool)'] ?? 0),
           totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
           totalCost: Number(span['sum(gen_ai.usage.total_cost)'] ?? 0),
-          totalErrors: errors[span.trace] ?? 0,
+          totalErrors: Number(errors[span.trace] ?? 0),
         };
         return acc;
       },

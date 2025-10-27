@@ -8,9 +8,11 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
 
 function LinksCard({organization}: {organization: Organization}) {
   const hasBillingPerms = organization.access?.includes('org:billing');
+  const hasSpendNotifications = hasSpendVisibilityNotificationsFeature(organization);
 
   return (
     <SubscriptionHeaderCard
@@ -37,15 +39,17 @@ function LinksCard({organization}: {organization: Organization}) {
                   {t('View activity')}
                 </Text>
               </LinkButton>
-              <LinkButton
-                priority="link"
-                icon={<IconSubscribed />}
-                to="/settings/billing/notifications/"
-              >
-                <Text size="sm" variant="accent">
-                  {t('Manage spend notifications')}
-                </Text>
-              </LinkButton>
+              {hasSpendNotifications && (
+                <LinkButton
+                  priority="link"
+                  icon={<IconSubscribed />}
+                  to="/settings/billing/notifications/"
+                >
+                  <Text size="sm" variant="accent">
+                    {t('Manage spend notifications')}
+                  </Text>
+                </LinkButton>
+              )}
             </Fragment>
           ) : (
             <LinkButton

@@ -230,8 +230,6 @@ def test_matcher_test_threads() -> None:
     assert not Matcher("url", "*.py").test(data, munged_data)
 
 
-# Only necessary while auto_source_code_config.multi_module_java is used
-@pytest.mark.django_db
 def test_matcher_test_platform_java_threads() -> None:
     data = {
         "platform": "java",

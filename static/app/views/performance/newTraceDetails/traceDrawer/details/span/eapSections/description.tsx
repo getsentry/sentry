@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
@@ -70,7 +73,7 @@ export function SpanDescription({
   hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
-    eventId: node.event?.eventID,
+    eventId: node.value.transaction_id,
     projectSlug: project?.slug,
   });
   const span = node.value;
@@ -100,7 +103,8 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreUsingName = shouldUseOTelFriendlyUI && span.name !== span.op;
+  const exploreUsingName =
+    shouldUseOTelFriendlyUI && !span.description && span.name !== span.op;
   const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
@@ -140,7 +144,7 @@ export function SpanDescription({
           to={getSearchInExploreTarget(
             organization,
             location,
-            node.event?.projectID,
+            project?.id,
             exploreAttributeName,
             exploreAttributeValue,
             TraceDrawerActionKind.INCLUDE
@@ -166,6 +170,13 @@ export function SpanDescription({
   const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
   const codeFunction = findSpanAttributeValue(attributes, 'code.function');
 
+  const requestMethod = findSpanAttributeValue(attributes, 'http.request.method');
+
+  // `"url.full"` is semantic, but `"url"` is common
+  const spanURL =
+    findSpanAttributeValue(attributes, 'url.full') ??
+    findSpanAttributeValue(attributes, 'url');
+
   const value =
     resolvedModule === ModuleName.DB ? (
       <CodeSnippetWrapper>
@@ -177,7 +188,7 @@ export function SpanDescription({
         </StyledCodeSnippet>
         {codeFilepath ? (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={project?.id}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -189,13 +200,45 @@ export function SpanDescription({
           <MissingFrame />
         )}
       </CodeSnippetWrapper>
+    ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
+      <Flex direction="column" width="100%">
+        <Flex align="start" justify="between" gap="xs" padding="md">
+          <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
+            <Flex gap="xs">
+              {requestMethod && <Text>{requestMethod}</Text>}
+              <Text wordBreak="break-word">{spanURL}</Text>
+            </Flex>
+            <LinkHint value={spanURL} />
+          </Flex>
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            text={spanURL}
+            tooltipProps={{disabled: true}}
+          />
+        </Flex>
+        {codeFilepath && (
+          <StackTraceMiniFrame
+            projectId={project?.id}
+            event={event}
+            frame={{
+              filename: codeFilepath,
+              lineNo: codeLineNumber ? Number(codeLineNumber) : null,
+              function: codeFunction,
+            }}
+          />
+        )}
+      </Flex>
     ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
       <ResourceImageDescription
         formattedDescription={formattedDescription}
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI && span.name && span.name !== span.op ? (
+    ) : shouldUseOTelFriendlyUI &&
+      !span.description &&
+      span.name &&
+      span.name !== span.op ? (
       <DescriptionWrapper>
         <FormattedDescription>{span.name}</FormattedDescription>
         <CopyToClipboardButton
@@ -237,6 +280,7 @@ export function SpanDescription({
       hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes,
+        spanId: span.event_id,
         op: span.op,
       })}
     />
@@ -292,7 +336,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug ?? node.event?.projectSlug}
+          projectSlug={span.project_slug}
         />
       )}
     </StyledDescriptionWrapper>

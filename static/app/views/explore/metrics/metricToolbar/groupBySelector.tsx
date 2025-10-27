@@ -1,8 +1,12 @@
+import {useMemo} from 'react';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {t} from 'sentry/locale';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsGroupBys,
   useSetQueryParamsGroupBys,
@@ -25,9 +29,7 @@ export function GroupBySelector({metricName}: GroupBySelectorProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const metricNameFilter = metricName
-    ? MutableSearch.fromQueryObject({['metric.name']: [metricName]}).formatString()
-    : undefined;
+  const metricNameFilter = createMetricNameFilter(metricName);
 
   const {attributes: numberTags, isLoading: numberTagsLoading} =
     useTraceItemAttributeKeys({
@@ -44,10 +46,26 @@ export function GroupBySelector({metricName}: GroupBySelectorProps) {
       query: metricNameFilter,
     });
 
+  const visibleNumberTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(numberTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
+    );
+  }, [numberTags]);
+
+  const visibleStringTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(stringTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
+    );
+  }, [stringTags]);
+
   const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
     groupBys: [],
-    numberTags: numberTags ?? {},
-    stringTags: stringTags ?? {},
+    numberTags: visibleNumberTags ?? {},
+    stringTags: visibleStringTags ?? {},
     traceItemType: TraceItemDataset.TRACEMETRICS,
     hideEmptyOption: true,
   });
@@ -58,6 +76,9 @@ export function GroupBySelector({metricName}: GroupBySelectorProps) {
     <CompactSelect<string>
       multiple
       searchable
+      triggerProps={{
+        prefix: t('Group by'),
+      }}
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}

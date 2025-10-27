@@ -19,17 +19,26 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
-import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {
+  TRANSACTIONS_DATASET_DEPRECATION_MESSAGE,
+  TransactionsDatasetWarning,
+} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -48,6 +57,7 @@ import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 function MetricDetectorForm() {
   return (
@@ -205,6 +215,7 @@ function IntervalPicker() {
       }
       name={METRIC_DETECTOR_FORM_FIELDS.interval}
       choices={intervalChoices}
+      disabled={dataset === DetectorDataset.TRANSACTIONS}
     />
   );
 }
@@ -212,16 +223,29 @@ function IntervalPicker() {
 function useDatasetChoices() {
   const organization = useOrganization();
 
+  const {detector} = useDetectorFormContext();
+  const savedDataset = (detector as MetricDetector | undefined)?.dataSources[0]?.queryObj
+    ?.snubaQuery?.dataset;
+  const isExistingTransactionsDetector =
+    Boolean(detector) &&
+    [Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(savedDataset as Dataset);
+  const shouldHideTransactionsDataset =
+    !isExistingTransactionsDetector && deprecateTransactionAlerts(organization);
+
   return useMemo(() => {
     const datasetChoices: Array<SelectValue<DetectorDataset>> = [
       {
         value: DetectorDataset.ERRORS,
         label: t('Errors'),
       },
-      {
-        value: DetectorDataset.TRANSACTIONS,
-        label: t('Transactions'),
-      },
+      ...(shouldHideTransactionsDataset
+        ? []
+        : [
+            {
+              value: DetectorDataset.TRANSACTIONS,
+              label: t('Transactions'),
+            },
+          ]),
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
@@ -238,7 +262,7 @@ function useDatasetChoices() {
     ];
 
     return datasetChoices;
-  }, [organization]);
+  }, [organization, shouldHideTransactionsDataset]);
 }
 
 function DetectSection() {
@@ -250,6 +274,8 @@ function DetectSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
 
   return (
     <Container>
@@ -290,9 +316,26 @@ function DetectSection() {
               }
             }}
           />
-          <IntervalPicker />
+          <Tooltip
+            title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+            isHoverable
+            disabled={!isTransactionsDataset}
+          >
+            <DisabledSection disabled={isTransactionsDataset}>
+              <IntervalPicker />
+            </DisabledSection>
+          </Tooltip>
         </DatasetRow>
-        <Visualize />
+        <Tooltip
+          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+          isHoverable
+          disabled={!isTransactionsDataset}
+        >
+          <DisabledSection disabled={isTransactionsDataset}>
+            <Visualize />
+          </DisabledSection>
+        </Tooltip>
+
         <DetectionType />
         <Flex direction="column">
           {(!detectionType || detectionType === 'static') && (
@@ -518,4 +561,8 @@ const IntervalField = styled(SelectField)`
   padding: 0;
   margin-left: 0;
   border-bottom: none;
+`;
+
+const DisabledSection = styled('div')<{disabled: boolean}>`
+  ${p => (p.disabled ? `opacity: 0.6;` : '')}
 `;

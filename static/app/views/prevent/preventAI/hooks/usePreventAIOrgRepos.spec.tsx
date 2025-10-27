@@ -16,20 +16,16 @@ describe('usePreventAIOrgRepos', () => {
   const mockResponse: PreventAIOrgReposResponse = {
     orgRepos: [
       {
-        id: '1',
+        githubOrganizationId: '1',
         name: 'repo1',
         provider: 'github',
-        repos: [
-          {id: '1', name: 'repo1', fullName: 'repo1', url: 'https://github.com/repo1'},
-        ],
+        repos: [{id: '1', name: 'repo1', fullName: 'org-1/repo1'}],
       },
       {
-        id: '2',
+        githubOrganizationId: '2',
         name: 'repo2',
         provider: 'github',
-        repos: [
-          {id: '2', name: 'repo2', fullName: 'repo2', url: 'https://github.com/repo2'},
-        ],
+        repos: [{id: '2', name: 'repo2', fullName: 'org-2/repo2'}],
       },
     ],
   };
@@ -79,7 +75,16 @@ describe('usePreventAIOrgRepos', () => {
 
     await waitFor(() => expect(result.current.data).toEqual(mockResponse));
 
-    const newResponse = {orgRepos: [{id: '3', name: 'repo3'}]};
+    const newResponse: PreventAIOrgReposResponse = {
+      orgRepos: [
+        {
+          githubOrganizationId: '3',
+          name: 'repo3',
+          provider: 'github',
+          repos: [{id: '3', name: 'repo3', fullName: 'org-3/repo3'}],
+        },
+      ],
+    };
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrg.slug}/prevent/github/repos/`,
       body: newResponse,

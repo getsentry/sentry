@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   ContentBlock,
   Docs,
@@ -144,33 +144,6 @@ const getVerifySnippet = () => `
   Throw error
 </button>`;
 
-// TODO: Remove once the other product areas support content blocks
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/solid',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/solid',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/solid',
-      },
-    ],
-  },
-];
-
 const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
@@ -246,12 +219,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'conditional',
           condition: params.isReplaySelected,
-          content: [
-            {
-              type: 'custom',
-              content: <TracePropagationMessage />,
-            },
-          ],
+          content: [tracePropagationBlock],
         },
       ],
     },
@@ -314,27 +282,35 @@ const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version 8.9.1 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'You need a minimum version 8.9.1 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/session-replay/',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/solid/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },
@@ -351,39 +327,50 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/solid]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/solid]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },
           ],
         },
+        {
+          type: 'custom',
+          content: crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/#crash-report-modal',
+          }),
+        },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/#crash-report-modal',
-      }),
     },
   ],
   verify: () => [],
@@ -396,12 +383,17 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        widgetCalloutBlock({
+          link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/#user-feedback-widget',
+        }),
+      ],
     },
   ],
   verify: () => [],
@@ -417,7 +409,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'solid',
-  sdkPackage: '@sentry/solid',
+  packageName: '@sentry/solid',
 });
 
 const docs: Docs = {

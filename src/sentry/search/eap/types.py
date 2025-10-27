@@ -66,3 +66,10 @@ class TraceItemAttribute(TypedDict):
 class EAPResponse(EventsResponse):
     confidence: ConfidenceData
     page_token: NotRequired[PageToken]
+
+
+@dataclass()
+class AdditionalQueries:
+    span: list[str] | None
+    log: list[str] | None
+    metric: list[str] | None

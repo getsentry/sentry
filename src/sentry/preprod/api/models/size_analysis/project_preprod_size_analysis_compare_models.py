@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pydantic import BaseModel
 
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsApiResponse
@@ -29,4 +31,4 @@ class SizeAnalysisCompareGETResponse(BaseModel):
 class SizeAnalysisComparePOSTResponse(BaseModel):
     status: str
     message: str
-    existing_comparisons: list[SizeAnalysisComparison] | None
+    comparisons: list[SizeAnalysisComparison] | None

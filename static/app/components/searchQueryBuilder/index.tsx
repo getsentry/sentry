@@ -2,8 +2,10 @@ import {useContext, useLayoutEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
@@ -128,6 +130,12 @@ export interface SearchQueryBuilderProps {
    * ```
    */
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  /**
+   * If provided, filters recent searches by this query string on the backend.
+   * This query will not be displayed in the UI because it is stripped from the
+   * API response results before rendering.
+   */
+  namespace?: string;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * When passed, this will display the case sensitivity toggle, and will be called when
@@ -198,21 +206,26 @@ function ActionButtons({
     return null;
   }
 
+  const isCaseInsensitive = caseInsensitive === 1;
+  const caseInsensitiveLabel = isCaseInsensitive ? t('Match case') : t('Ignore case');
+
   return (
     <ButtonsWrapper ref={ref}>
       {trailingItems}
       {defined(onCaseInsensitiveClick) && hasCaseSensitiveSearch ? (
-        <ActionButton
-          aria-label={t('Toggle case sensitivity')}
-          aria-pressed={caseInsensitive === 1}
-          size="zero"
-          icon={<IconCase color={caseInsensitive ? 'active' : 'subText'} />}
-          borderless
-          active={caseInsensitive === 1}
-          onClick={() => {
-            onCaseInsensitiveClick?.(caseInsensitive === 1 ? null : 1);
-          }}
-        />
+        <Tooltip title={caseInsensitiveLabel}>
+          <ActionButton
+            aria-label={caseInsensitiveLabel}
+            aria-pressed={isCaseInsensitive}
+            size="zero"
+            icon={<IconCase color={isCaseInsensitive ? 'subText' : 'active'} />}
+            borderless
+            active={!isCaseInsensitive}
+            onClick={() => {
+              onCaseInsensitiveClick?.(isCaseInsensitive ? null : 1);
+            }}
+          />
+        </Tooltip>
       ) : null}
       {query === '' ? null : (
         <ActionButton
