@@ -83,12 +83,6 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
 
         self.set_up_data_conditions(detector, Condition.GREATER, 100, None, 10)
 
-        # XXX: while we're in the rollout phase of workflow engine, the subscription processor still requires a rule.
-        # Create one here and delete it when we can.
-        rule = self.create_alert_rule()
-        rule.snuba_query = snuba_query
-        rule.save()
-
         return detector
 
     def set_up_data_conditions(
@@ -208,14 +202,6 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         ):
             processor.process_update(message)
         return processor
-
-    def assert_no_open_period(self, rule, subscription=None):
-        # TODO: inverse of below
-        pass
-
-    def assert_open_period(self, rule, subscription=None):
-        # TODO: once we are writing to IncidentGroupOpenPeriod look up the GroupOpenPeriod
-        pass
 
     def get_detector_state(self, detector: Detector) -> int:
         detector_state = DetectorState.objects.get(detector=detector)
