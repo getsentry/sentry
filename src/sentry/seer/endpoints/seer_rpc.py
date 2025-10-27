@@ -65,6 +65,11 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
+from sentry.seer.assisted_query.tools import (
+    execute_issues_query,
+    get_attribute_values,
+    get_issue_attributes,
+)
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -1016,6 +1021,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
     "get_spans": get_spans,
+    "get_issue_attributes": get_issue_attributes,
+    "get_attribute_values": get_attribute_values,
+    "execute_issues_query": execute_issues_query,
     #
     # Explorer
     "get_transactions_for_project": rpc_get_transactions_for_project,
