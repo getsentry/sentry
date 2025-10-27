@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import EmptyState from 'sentry/views/replays/detail/emptyState';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 
 export default function MemoryPanel() {
   const replay = useReplayReader();
@@ -26,17 +26,12 @@ export default function MemoryPanel() {
 
   if (!memoryFrames?.length) {
     return (
-      <ChartWrapper>
-        <EmptyState data-test-id="replay-details-memory-tab">
-          <p>
-            <strong>{t('No memory metrics found')}</strong>
-          </p>
-          <p>
-            {t(
-              'Memory metrics are only captured within Chromium based browser sessions.'
-            )}
-          </p>
-        </EmptyState>
+      <ChartWrapper data-test-id="replay-details-memory-tab">
+        <NoRowRenderer unfilteredItems={[]} clearSearchTerm={() => {}}>
+          {t(
+            'No memory metrics found. Memory metrics are only captured within Chromium based browser sessions.'
+          )}
+        </NoRowRenderer>
       </ChartWrapper>
     );
   }
