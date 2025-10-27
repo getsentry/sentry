@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
+import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +17,7 @@ import {
   FieldValueType,
   getFieldDefinition,
   prettifyTagKey,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
@@ -29,8 +31,8 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ISSUE, t('Issues')],
 ]);
 
-const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
-const SUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
+const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION];
+const UNSUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.DATE];
 
 export function getDatasetLabel(dataset: WidgetType) {
   return DATASET_CHOICES.get(dataset) ?? '';
@@ -66,6 +68,9 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       )
     : {};
 
+  // Maps filter keys to their field definitions
+  const fieldDefinitionMap = new Map<string, FieldDefinition | null>();
+
   // Get filter keys for the selected dataset
   const filterKeyOptions = selectedDataset
     ? Object.entries(filterKeys).flatMap(([_, tag]) => {
@@ -85,10 +90,10 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
           tag.kind
         );
         const valueType = fieldDefinition?.valueType;
-
-        if (!valueType || !SUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
+        if (!valueType || UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
           return [];
         }
+        fieldDefinitionMap.set(tag.key, fieldDefinition);
 
         return {
           value: tag.key,
@@ -134,10 +139,21 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
           onClick={() => {
             if (!selectedFilterKey || !selectedDataset) return;
 
+            let defaultFilterValue = '';
+            const fieldDefinition = fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
+
+            if (fieldDefinition?.valueType !== FieldValueType.STRING) {
+              defaultFilterValue = getInitialFilterText(
+                selectedFilterKey.key,
+                fieldDefinition,
+                false
+              );
+            }
+
             const newFilter: GlobalFilter = {
               dataset: selectedDataset,
               tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
-              value: '',
+              value: defaultFilterValue,
             };
             onAddFilter(newFilter);
             setIsSelectingFilterKey(false);
