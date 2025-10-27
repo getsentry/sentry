@@ -1046,6 +1046,10 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
+    const hasTemporaryFilters = defined(
+      location.query?.[DashboardFilterKeys.TEMPORARY_FILTERS]
+    );
+
     const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
     const isDashboardUsingTransaction = dashboard.widgets.some(
@@ -1178,6 +1182,7 @@ class DashboardDetail extends Component<Props, State> {
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                                hasTemporaryFilters={hasTemporaryFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard

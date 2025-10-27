@@ -567,6 +567,10 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
             }
           })
           .filter(filter => filter !== null);
+      } else if (key === DashboardFilterKeys.TEMPORARY_FILTERS) {
+        dashboardFilters[key] = queryFilters.map(filter => {
+          return JSON.parse(filter);
+        });
       } else {
         dashboardFilters[key] = queryFilters;
       }
@@ -581,7 +585,10 @@ export function dashboardFiltersToString(
 ): string {
   let dashboardFilterConditions = '';
 
-  const pinnedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
+  const pinnedFilters = omit(dashboardFilters, [
+    DashboardFilterKeys.GLOBAL_FILTER,
+    DashboardFilterKeys.TEMPORARY_FILTERS,
+  ]);
   if (pinnedFilters) {
     for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
       if (activeFilters.length === 1) {
