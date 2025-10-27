@@ -31,7 +31,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import ExtrapolationMode, QuerySubscription
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
@@ -189,6 +189,12 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 raise serializers.ValidationError(
                     "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
                 )
+
+        if data.get("extrapolation_mode") is not None:
+            extrapolation_mode = data.get("extrapolation_mode")
+            extrapolation_options = [option[0] for option in ExtrapolationMode.as_text_choices()]
+            if extrapolation_mode not in extrapolation_options:
+                raise serializers.ValidationError("Invalid Extrapolation Mode")
 
         return data
 
