@@ -129,7 +129,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
   // We explicitly only want to show the confidence footer if we have
   // scanned partial data.
   const showConfidenceFooter =
-    chartInfo.dataScanned !== 'full' && !timeseriesResult.isLoading;
+    chartInfo.dataScanned !== 'full' && !timeseriesResult.isPending;
   return (
     <Widget
       Title={Title}
@@ -139,7 +139,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
         showConfidenceFooter && (
           <ConfidenceFooter
             chartInfo={chartInfo}
-            isLoading={timeseriesResult.isLoading}
+            isLoading={timeseriesResult.isFetching}
           />
         )
       }
