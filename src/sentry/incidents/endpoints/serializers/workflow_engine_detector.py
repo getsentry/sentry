@@ -86,7 +86,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                     alert_rule_id=alert_rule_id
                 )
             except AlertRuleDetector.DoesNotExist:
-                detector_id = get_object_id_from_fake_id(alert_rule_id)
+                detector_id = get_object_id_from_fake_id(int(alert_rule_id))
 
             detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
