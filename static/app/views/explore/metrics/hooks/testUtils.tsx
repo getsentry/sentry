@@ -1,20 +1,16 @@
 import type {ReactNode} from 'react';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
 
 export function MockMetricQueryParamsContext({children}: {children: ReactNode}) {
-  const location = useLocation();
-  const organization = useOrganization();
-  const queryParams = getReadableQueryParamsFromLocation(location, organization);
+  const mockQueryParams = defaultMetricQuery();
   return (
     <MultiMetricsQueryParamsProvider>
       <MetricsQueryParamsProvider
         traceMetric={{name: 'mockMetric', type: 'counter'}}
-        queryParams={queryParams}
+        queryParams={mockQueryParams.queryParams}
         setQueryParams={() => {}}
         setTraceMetric={() => {}}
         removeMetric={() => {}}
