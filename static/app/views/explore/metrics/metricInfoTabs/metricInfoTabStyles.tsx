@@ -1,60 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
-import {Table} from 'sentry/views/explore/components/table';
-import {DetailsWrapper, FirstTableHeadCell} from 'sentry/views/explore/logs/styles';
+import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
-
-export const TableContainer = styled('div')`
-  height: 100%;
-  position: relative;
-`;
-
-export const StyledTableBodyCell = styled(GridBodyCell)<{
-  align?: Alignments;
-  isFirst?: boolean;
-}>`
-  font-size: ${p => p.theme.fontSize.sm};
-  min-height: 12px;
-  ${p => p.align && `justify-content: ${p.align};`}
-  ${p => p.isFirst && `padding-left: 0;`}
-`;
-
-export const TableHeadCell = styled(GridHeadCell)<{
-  align?: Alignments;
-  isFirst?: boolean;
-}>`
-  ${p => p.align && `justify-content: ${p.align};`}
-  font-size: ${p => p.theme.fontSize.sm};
-  height: 26px;
-  ${p => p.isFirst && `padding-left: 0;`}
-`;
 
 export const TabListWrapper = styled('div')`
   padding-top: ${p => p.theme.space.sm};
 `;
 
-export const TableHeadCellContent = styled(Flex)`
-  cursor: pointer;
-  user-select: none;
-`;
-
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
-
-export const StyledFirstTableHeadCell = styled(FirstTableHeadCell)`
-  height: 100%;
-  border-right: none;
-`;
-
-export const StyledTable = styled(Table)`
-  height: 100%;
-  overflow-x: hidden;
-`;
 
 export const StyledSimpleTable = styled(SimpleTable)`
   position: relative;
