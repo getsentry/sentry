@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -122,6 +122,11 @@ function ContentImpl({
     return sortedAttrs;
   }, [debouncedSearchQuery, data?.rankedAttributes, sortingMethod]);
 
+  useEffect(() => {
+    // Ensure that we are on the first page whenever filtered attributes change.
+    setPage(0);
+  }, [filteredRankedAttributes]);
+
   return (
     <Flex direction="column" gap="xl" padding="xl">
       {isLoading ? (
@@ -135,7 +140,6 @@ function ContentImpl({
               placeholder={t('Search keys')}
               onChange={query => {
                 setSearchQuery(query);
-                setPage(0);
               }}
               query={debouncedSearchQuery}
               size="sm"
