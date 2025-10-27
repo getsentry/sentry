@@ -66,6 +66,7 @@ const Grid = styled('div')`
   grid-template-columns: 1fr;
   gap: ${space(1)};
   justify-content: center;
+  height: 100%;
 `;
 
 const ChartWrapper = styled('div')`
