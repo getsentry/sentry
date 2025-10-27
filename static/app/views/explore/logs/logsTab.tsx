@@ -10,11 +10,9 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
@@ -27,10 +25,12 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/sc
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
+  useLogsPageData,
+  useLogsPageDataQueryResult,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {
@@ -42,6 +42,7 @@ import {
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -60,19 +61,16 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {
-  getIngestDelayFilterValue,
   getMaxIngestDelayTimestamp,
-  useLogsAggregatesQuery,
+  useLogsRawCounts,
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
+import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
-import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -88,7 +86,6 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
-import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -117,7 +114,6 @@ export function LogsTabContent({
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const [caseInsensitive] = useCaseInsensitivity();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
@@ -127,14 +123,6 @@ export function LogsTabContent({
   });
   const visualizes = useQueryParamsVisualizes();
 
-  const orderby: string | string[] | undefined = useMemo(() => {
-    if (!aggregateSortBys.length) {
-      return undefined;
-    }
-
-    return aggregateSortBys.map(formatSort);
-  }, [aggregateSortBys]);
-
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
   useEffect(() => {
@@ -143,41 +131,20 @@ export function LogsTabContent({
     }
   }, [autorefreshEnabled]);
 
-  const search = useMemo(() => {
-    const newSearch = logsSearch.copy();
-    // We need to add the delay filter to ensure the table data and the graph data are as close as possible when merging buckets.
-    newSearch.addFilterValue(
-      OurLogKnownFieldKey.TIMESTAMP_PRECISE,
-      getIngestDelayFilterValue(timeseriesIngestDelay)
-    );
-    return newSearch;
-  }, [logsSearch, timeseriesIngestDelay]);
+  const rawLogCounts = useLogsRawCounts();
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
     return [...uniqueYAxes];
   }, [visualizes]);
 
-  const _timeseriesResult = useSortedTimeSeries(
-    {
-      search,
-      yAxis: yAxes,
-      interval,
-      fields: [...groupBys.filter(Boolean), ...yAxes],
-      topEvents: topEventsLimit,
-      orderby,
-      caseInsensitive,
-    },
-    'explore.ourlogs.main-chart',
-    DiscoverDatasets.OURLOGS
-  );
-  const timeseriesResult = useStreamingTimeseriesResult(
+  const timeseriesResult = useLogsTimeseries({
+    enabled: true,
     tableData,
-    _timeseriesResult,
-    timeseriesIngestDelay
-  );
-  const aggregatesTableResult = useLogsAggregatesQuery({
-    disabled: mode !== Mode.AGGREGATE,
+    timeseriesIngestDelay,
+  });
+  const aggregatesTableResult = useLogsAggregatesTable({
+    enabled: mode === Mode.AGGREGATE,
     limit: 50,
   });
 
@@ -312,10 +279,12 @@ export function LogsTabContent({
     return false;
   }, [pageFilters.selection.datetime]);
 
+  const {infiniteLogsQueryResult} = useLogsPageData();
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <FilterBarContainer>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
@@ -396,8 +365,15 @@ export function LogsTabContent({
             {!tableData.isPending && tableData.isEmpty && (
               <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             )}
+            <LogsDownSamplingAlert
+              timeseriesResult={timeseriesResult}
+              tableResult={infiniteLogsQueryResult}
+            />
             <LogsGraphContainer>
-              <LogsGraph timeseriesResult={timeseriesResult} />
+              <LogsGraph
+                rawLogCounts={rawLogCounts}
+                timeseriesResult={timeseriesResult}
+              />
             </LogsGraphContainer>
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
@@ -427,7 +403,6 @@ export function LogsTabContent({
                 </Button>
               </TableActionsContainer>
             </LogsTableActionsContainer>
-
             <LogsItemContainer>
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable

@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/automations/components/actionFilters/assignedTo';
 import {
   AgeComparison,
-  Attributes,
+  Attribute,
   Interval,
   Level,
   MatchType,
@@ -245,7 +245,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: EventAttributeNode,
       details: EventAttributeDetails,
       defaultComparison: {
-        attribute: Attributes.MESSAGE,
+        attribute: Attribute.MESSAGE,
         match: MatchType.CONTAINS,
       },
       validate: validateEventAttributeCondition,

@@ -28,6 +28,7 @@ from sentry.ingest.inbound_filters import (
     get_filter_key,
     get_generic_filters,
     get_log_messages_generic_filter,
+    get_trace_metric_names_generic_filter,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -164,6 +165,17 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
                 log_messages_filter = get_log_messages_generic_filter(log_messages)
                 if log_messages_filter:
                     base_generic_filters.append(log_messages_filter)
+
+        if features.has("organizations:tracemetrics-ingestion", project.organization):
+            trace_metric_names = (
+                project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}") or []
+            )
+            if trace_metric_names:
+                trace_metric_names_filter = get_trace_metric_names_generic_filter(
+                    trace_metric_names
+                )
+                if trace_metric_names_filter:
+                    base_generic_filters.append(trace_metric_names_filter)
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
@@ -1162,11 +1174,13 @@ def _get_project_config(
             config["downsampledEventRetention"] = downsampled_event_retention
     with sentry_sdk.start_span(op="get_retentions"):
         retentions = quotas.backend.get_retentions(project.organization)
-        config["retentions"] = {
+        retentions_config = {
             RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
             for c, v in retentions.items()
             if c in RETENTIONS_CONFIG_MAPPING
         }
+        if retentions_config:
+            config["retentions"] = retentions_config
 
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):

@@ -103,7 +103,7 @@ export default Storybook.story('Grid Cell Components', story => {
   ];
 
   const linkedGroupsTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
-    {key: 'linkedItems', name: 'Connected Monitors/Automations', width: 200},
+    {key: 'linkedItems', name: 'Connected Monitors/Alerts', width: 200},
   ];
 
   const openIssuesTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [

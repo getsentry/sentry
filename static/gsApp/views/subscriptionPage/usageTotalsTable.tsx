@@ -223,7 +223,7 @@ function IngestionSummary({
     <Flex direction="column" gap="md">
       <Heading as="h4">{t('Total ingested')}</Heading>
       <Flex justify="between" align="center" gap="lg">
-        <Text>
+        <Text wrap="nowrap">
           {formatUsageWithUnits(totalIngested, category, {
             useUnitScaling: true,
             isAbbreviated: true,

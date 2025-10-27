@@ -47,7 +47,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.types import (
     CONFIDENCES,
     AdditionalQueries,
@@ -94,6 +94,14 @@ class TableRequest:
 
     rpc_request: TraceItemTableRequest
     columns: list[AnyResolved]
+
+
+def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
+    for row in timeseries:
+        for axis in y_axes:
+            if row[axis] and row[axis] != 0:
+                return True
+    return False
 
 
 class RPCBase:
@@ -356,10 +364,7 @@ class RPCBase:
         """Process the results"""
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         # Mapping from public alias to resolved column so we know type etc.
         columns_by_name = {col.public_alias: col for col in table_request.columns}
 
@@ -759,10 +764,7 @@ class RPCBase:
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)
 
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
 
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
@@ -803,7 +805,7 @@ class RPCBase:
         # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
         for index, row in enumerate(top_events["data"]):
             result_key = create_result_key(row, groupby_columns, {})
-            result_groupby = create_groupby_dict(row, groupby_columns, {})
+            result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key])
             final_result[result_key] = SnubaTSResult(
                 {
@@ -822,19 +824,20 @@ class RPCBase:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries]
             )
-            final_result[OTHER_KEY] = SnubaTSResult(
-                {
-                    "data": result.timeseries,
-                    "processed_timeseries": result,
-                    "order": limit,
-                    "meta": final_meta,
-                    "groupby": None,
-                    "is_other": True,
-                },
-                params.start,
-                params.end,
-                params.granularity_secs,
-            )
+            if check_timeseries_has_data(result.timeseries, y_axes):
+                final_result[OTHER_KEY] = SnubaTSResult(
+                    {
+                        "data": result.timeseries,
+                        "processed_timeseries": result,
+                        "order": index + 1,
+                        "meta": final_meta,
+                        "groupby": None,
+                        "is_other": True,
+                    },
+                    params.start,
+                    params.end,
+                    params.granularity_secs,
+                )
         return final_result
 
     """ Other Methods """

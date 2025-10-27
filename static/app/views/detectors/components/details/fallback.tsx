@@ -6,7 +6,7 @@ import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
-import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 
 type FallbackDetectorDetailsProps = {
   detector: Detector;
@@ -23,7 +23,7 @@ export function FallbackDetectorDetails({
       <DetailLayout.Body>
         <DetailLayout.Main>
           <ErrorBoundary mini>
-            <DetectorDetailsOngoingIssues detector={detector} />
+            <DetectorDetailsOpenPeriodIssues detector={detector} />
           </ErrorBoundary>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>

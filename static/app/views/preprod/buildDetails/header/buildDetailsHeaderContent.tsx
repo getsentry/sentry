@@ -2,10 +2,12 @@ import React from 'react';
 import {Link} from 'react-router-dom';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
@@ -123,7 +125,10 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   return (
     <React.Fragment>
       <Layout.HeaderContent>
-        <Breadcrumbs crumbs={breadcrumbs} />
+        <Flex align="center" gap="sm">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <FeatureBadge type="beta" />
+        </Flex>
         <Layout.Title>
           {project && <IdBadge project={project} avatarSize={28} hideName />}
           <Version version={version} anchor={false} truncate />
@@ -132,6 +137,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
       <Layout.HeaderActions>
         <Flex align="center" gap="sm" flexShrink={0}>
+          <FeedbackWidgetButton
+            optionOverrides={{
+              tags: {
+                'feedback.source': 'preprod.buildDetails',
+              },
+            }}
+          />
           <Link
             to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
           >

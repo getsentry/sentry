@@ -8,6 +8,8 @@ import SlashCommands, {type SlashCommand} from './slashCommands';
 interface InputSectionProps {
   focusedBlockIndex: number;
   inputValue: string;
+  interruptRequested: boolean;
+  isPolling: boolean;
   onClear: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -15,7 +17,6 @@ interface InputSectionProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
-  onMinSize: () => void;
   onSlashCommandsClose: () => void;
   showSlashCommands: boolean;
   ref?: React.RefObject<HTMLTextAreaElement | null>;
@@ -24,6 +25,8 @@ interface InputSectionProps {
 function InputSection({
   inputValue,
   focusedBlockIndex,
+  isPolling,
+  interruptRequested,
   onClear,
   onInputChange,
   onKeyDown,
@@ -32,9 +35,21 @@ function InputSection({
   onSlashCommandsClose,
   onMaxSize,
   onMedSize,
-  onMinSize,
   ref,
 }: InputSectionProps) {
+  const getPlaceholder = () => {
+    if (focusedBlockIndex !== -1) {
+      return 'Press Tab ⇥ to return here';
+    }
+    if (interruptRequested) {
+      return 'Winding down...';
+    }
+    if (isPolling) {
+      return 'Press Esc to interrupt';
+    }
+    return 'Type your message or / command and press Enter ↵';
+  };
+
   return (
     <InputBlock>
       <InputContainer onClick={onInputClick}>
@@ -44,7 +59,6 @@ function InputSection({
           onClose={onSlashCommandsClose}
           onMaxSize={onMaxSize}
           onMedSize={onMedSize}
-          onMinSize={onMinSize}
           onClear={onClear}
         />
         <InputRow>
@@ -54,11 +68,7 @@ function InputSection({
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}
-            placeholder={
-              focusedBlockIndex === -1
-                ? 'Type your message or / command and press Enter ↵'
-                : 'Press Tab ⇥ to return here'
-            }
+            placeholder={getPlaceholder()}
             rows={1}
           />
         </InputRow>
@@ -104,7 +114,7 @@ const FocusIndicator = styled('div')`
   right: 0;
   bottom: 0;
   width: 3px;
-  background: ${p => p.theme.pink400};
+  background: ${p => p.theme.purple400};
 `;
 
 const InputTextarea = styled('textarea')`

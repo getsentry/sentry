@@ -1,5 +1,9 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {MetricDetectorFixture, UptimeDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  CronDetectorFixture,
+  MetricDetectorFixture,
+  UptimeDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -15,9 +19,9 @@ describe('DetectorEdit', () => {
   });
   const project = ProjectFixture({organization, environments: ['production']});
   const initialRouterConfig = {
-    route: '/organizations/:orgId/issues/monitors/new/settings/',
+    route: '/organizations/:orgId/monitors/new/settings/',
     location: {
-      pathname: '/organizations/org-slug/issues/monitors/new/settings/',
+      pathname: '/organizations/org-slug/monitors/new/settings/',
     },
   };
 
@@ -138,15 +142,17 @@ describe('DetectorEdit', () => {
                 detectionType: 'static',
                 thresholdPeriod: 1,
               },
-              dataSource: {
-                aggregate: 'count(span.duration)',
-                dataset: 'events_analytics_platform',
-                eventTypes: ['trace_item_span'],
-                query: '',
-                queryType: 1,
-                timeWindow: 3600,
-                environment: null,
-              },
+              dataSources: [
+                {
+                  aggregate: 'count(span.duration)',
+                  dataset: 'events_analytics_platform',
+                  eventTypes: ['trace_item_span'],
+                  query: '',
+                  queryType: 1,
+                  timeWindow: 3600,
+                  environment: null,
+                },
+              ],
             }),
           })
         );
@@ -155,7 +161,7 @@ describe('DetectorEdit', () => {
       // Should navigate to the new monitor page
       await waitFor(() => {
         expect(router.location.pathname).toBe(
-          `/organizations/${organization.slug}/issues/monitors/123/`
+          `/organizations/${organization.slug}/monitors/123/`
         );
       });
     });
@@ -212,15 +218,17 @@ describe('DetectorEdit', () => {
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
-              dataSource: {
-                aggregate: 'count_unique(tags[sentry:user])',
-                dataset: 'events',
-                environment: 'prod',
-                eventTypes: ['error'],
-                query: '',
-                queryType: 0,
-                timeWindow: 3600,
-              },
+              dataSources: [
+                {
+                  aggregate: 'count_unique(tags[sentry:user])',
+                  dataset: 'events',
+                  environment: 'prod',
+                  eventTypes: ['error'],
+                  query: '',
+                  queryType: 0,
+                  timeWindow: 3600,
+                },
+              ],
             }),
           })
         );
@@ -271,16 +279,18 @@ describe('DetectorEdit', () => {
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
-              dataSource: {
-                aggregate: 'count()',
-                dataset: 'events',
-                environment: null,
-                // Event type has moved from the query to the eventTypes field
-                eventTypes: ['error'],
-                query: '',
-                queryType: 0,
-                timeWindow: 3600,
-              },
+              dataSources: [
+                {
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  environment: null,
+                  // Event type has moved from the query to the eventTypes field
+                  eventTypes: ['error'],
+                  query: '',
+                  queryType: 0,
+                  timeWindow: 3600,
+                },
+              ],
               name: 'Foo',
               owner: null,
               projectId: '2',
@@ -422,13 +432,15 @@ describe('DetectorEdit', () => {
               mode: 1,
               recoveryThreshold: 1,
             },
-            dataSource: {
-              intervalSeconds: 60,
-              method: 'GET',
-              timeoutMs: 5000,
-              traceSampling: undefined,
-              url: 'https://uptime.example.com',
-            },
+            dataSources: [
+              {
+                intervalSeconds: 60,
+                method: 'GET',
+                timeoutMs: 5000,
+                traceSampling: undefined,
+                url: 'https://uptime.example.com',
+              },
+            ],
             name: 'New MonitorUptime Monitor',
             projectId: '2',
             type: 'uptime_domain_failure',
@@ -482,13 +494,15 @@ describe('DetectorEdit', () => {
               mode: 1,
               recoveryThreshold: '4',
             },
-            dataSource: {
-              intervalSeconds: 60,
-              method: 'GET',
-              timeoutMs: 5000,
-              traceSampling: undefined,
-              url: 'https://uptime-custom.example.com',
-            },
+            dataSources: [
+              {
+                intervalSeconds: 60,
+                method: 'GET',
+                timeoutMs: 5000,
+                traceSampling: undefined,
+                url: 'https://uptime-custom.example.com',
+              },
+            ],
             name: 'Uptime check for uptime-custom.example.com',
             projectId: '2',
             type: 'uptime_domain_failure',
@@ -539,6 +553,61 @@ describe('DetectorEdit', () => {
       expect(
         screen.queryByText('Uptime check for different-site.com')
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Cron Detector', () => {
+    const cronRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {detectorType: 'monitor_check_in_failure', project: project.id},
+      },
+    };
+
+    it('submits default cron config with no changes', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: '999'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'monitor_check_in_failure',
+            name: 'New Monitor',
+            projectId: project.id,
+            workflowIds: [],
+            dataSources: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'New Monitor',
+                config: expect.objectContaining({
+                  schedule: '0 0 * * *',
+                  schedule_type: 'crontab',
+                  timezone: 'UTC',
+                  checkin_margin: 1,
+                  failure_issue_threshold: 1,
+                  max_runtime: 30,
+                  recovery_threshold: 1,
+                }),
+              }),
+            ]),
+          }),
+        })
+      );
     });
   });
 });

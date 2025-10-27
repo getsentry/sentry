@@ -17,7 +17,7 @@ from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     build_workflow_event_data_from_event,
@@ -85,7 +85,12 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     retry=Retry(times=3, delay=5),
     silo_mode=SiloMode.REGION,
 )
-@retry(timeouts=True, exclude=EventNotFoundError, ignore=Group.DoesNotExist)
+@retry(
+    timeouts=True,
+    exclude=EventNotFoundError,
+    ignore=Group.DoesNotExist,
+    on_silent=DataConditionGroup.DoesNotExist,
+)
 def process_workflows_event(
     project_id: int,
     event_id: str,

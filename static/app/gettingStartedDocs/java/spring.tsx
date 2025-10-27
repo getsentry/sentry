@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
@@ -232,125 +230,136 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: t(
-        "Install Sentry's integration with Spring using %s:",
-        params.platformOptions.packageManager === PackageManager.GRADLE
-          ? 'Gradle'
-          : 'Maven'
-      ),
-      configurations: [
+      content: [
         {
-          description: (
-            <p>
-              {tct(
-                'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
-                {
-                  link: (
-                    <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />
-                  ),
-                }
-              )}
-            </p>
+          type: 'text',
+          text: t(
+            "Install Sentry's integration with Spring using %s:",
+            params.platformOptions.packageManager === PackageManager.GRADLE
+              ? 'Gradle'
+              : 'Maven'
           ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            {
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
+            }
+          ),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
         },
-        ...(params.platformOptions.packageManager === PackageManager.GRADLE
-          ? [
-              {
-                description: (
-                  <p>
-                    {tct(
-                      'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
-                      {
-                        code: <code />,
-                        link: (
-                          <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
-                        ),
-                      }
-                    )}
-                  </p>
-                ),
-                language: 'groovy',
-                code: getGradleInstallSnippet(params),
-              },
-            ]
-          : []),
-        ...(params.platformOptions.packageManager === PackageManager.MAVEN
-          ? [
-              {
-                language: 'xml',
-                description: (
-                  <p>
-                    {tct(
-                      'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
-                      {
-                        code: <code />,
-                        link: (
-                          <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
-                        ),
-                      }
-                    )}
-                  </p>
-                ),
-                code: getMavenInstallSnippet(params),
-              },
-            ]
-          : []),
-        ...(params.platformOptions.opentelemetry === YesNo.YES
-          ? [
-              {
-                description: tct(
-                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. In case you are using an application server to run your [code:.WAR] file, please add it to the [code:JAVA_OPTS] of your application server. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
-                  {
-                    code: <code />,
-                    linkMC: (
-                      <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
-                    ),
-                    linkGH: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
-                    ),
-                  }
-                ),
-                language: 'bash',
-                code: getOpenTelemetryRunSnippet(params),
-              },
-            ]
-          : []),
-        ...(params.platformOptions.opentelemetry === YesNo.YES
-          ? [
-              {
-                description: t(
-                  'In case of an application server, adding the Agent might look more like the following:'
-                ),
-                language: 'bash',
-                code: getOpenTelemetryApplicationServerSnippet(params),
-              },
-            ]
-          : []),
-      ],
-      additionalInfo: (
-        <p>
-          {tct(
+        {
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.GRADLE,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'groovy',
+              code: getGradleInstallSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.MAVEN,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'xml',
+              code: getMavenInstallSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.opentelemetry === YesNo.YES,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. In case you are using an application server to run your [code:.WAR] file, please add it to the [code:JAVA_OPTS] of your application server. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                {
+                  code: <code />,
+                  linkMC: (
+                    <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                  ),
+                  linkGH: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'bash',
+              code: getOpenTelemetryRunSnippet(params),
+            },
+            {
+              type: 'text',
+              text: t(
+                'In case of an application server, adding the Agent might look more like the following:'
+              ),
+            },
+            {
+              type: 'code',
+              language: 'bash',
+              code: getOpenTelemetryApplicationServerSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
             'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
               ),
             }
-          )}
-        </p>
-      ),
+          ),
+        },
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: (
-        <Fragment>
-          {t("Configure Sentry as soon as possible in your application's lifecycle:")}
-          <p>
-            {tct(
+      content: [
+        {
+          type: 'text',
+          text: [
+            t("Configure Sentry as soon as possible in your application's lifecycle."),
+            tct(
               'The [libraryName] library provides an [codeEnableSentry:@EnableSentry] annotation that registers all required Spring beans. [codeEnableSentry:@EnableSentry] can be placed on any class annotated with [configurationLink:@Configuration] including the main entry class in Spring Boot applications annotated with [springBootApplicationLink:@SpringBootApplication].',
               {
                 libraryName: (
@@ -368,93 +377,85 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   <ExternalLink href="https://docs.spring.io/spring-boot/docs/current/api/org/springframework/boot/autoconfigure/SpringBootApplication.html" />
                 ),
               }
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+            ),
+          ],
+        },
         {
-          description: <h5>{t('Java')}</h5>,
-          configurations: [
+          type: 'code',
+          tabs: [
             {
+              label: 'Java',
               language: 'java',
-              code: [
-                {
-                  language: 'java',
-                  label: 'Java',
-                  value: 'java',
-                  code: getJavaConfigSnippet(params),
-                },
-                {
-                  language: 'kotlin',
-                  label: 'Kotlin',
-                  value: 'kotlin',
-                  code: getKotlinConfigSnippet(params),
-                },
-              ],
+              code: getJavaConfigSnippet(params),
+            },
+            {
+              label: 'Kotlin',
+              language: 'kotlin',
+              code: getKotlinConfigSnippet(params),
             },
           ],
         },
-        ...(params.isPerformanceSelected || params.isLogsSelected
-          ? [
-              {
-                type: StepType.CONFIGURE,
-                description: tct(
-                  'Add a [code:sentry.properties] file to enable additional features:',
-                  {
-                    code: <code />,
-                  }
-                ),
-                configurations: [
-                  {
-                    language: 'properties',
-                    code: getSentryPropertiesSnippet(params),
-                  },
-                ],
-              },
-            ]
-          : []),
+        {
+          type: 'conditional',
+          condition: params.isPerformanceSelected || params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'Add a [code:sentry.properties] file to enable additional features:',
+                {
+                  code: <code />,
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'properties',
+              code: getSentryPropertiesSnippet(params),
+            },
+          ],
+        },
       ],
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Last, create an intentional error, so you can test that everything is working:'
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            'Last, create an intentional error, so you can test that everything is working:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'java',
               label: 'Java',
-              value: 'java',
+              language: 'java',
               code: getJavaVerifySnippet(),
             },
             {
-              language: 'kotlin',
               label: 'Kotlin',
-              value: 'kotlin',
+              language: 'kotlin',
               code: getKotlinVerifySnippet(),
             },
           ],
         },
+        {
+          type: 'text',
+          text: t(
+            "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            "If you're an existing user and have disabled alerts, you won't receive this email."
+          ),
+        },
       ],
-      additionalInfo: (
-        <Fragment>
-          <p>
-            {t(
-              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-            )}
-          </p>
-          <p>
-            {t(
-              "If you're an existing user and have disabled alerts, you won't receive this email."
-            )}
-          </p>
-        </Fragment>
-      ),
     },
   ],
   nextSteps: () => [

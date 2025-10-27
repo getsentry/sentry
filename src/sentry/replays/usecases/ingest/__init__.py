@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
+from sentry.replays.lib.cache import AutoCache
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.ingest.event_logger import (
@@ -28,6 +29,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     report_rage_click,
 )
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta, parse_events
+from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -231,32 +233,29 @@ def pack_replay_video(recording: bytes, video: bytes):
 
 
 @sentry_sdk.trace
-def commit_recording_message(recording: ProcessedEvent) -> None:
+def commit_recording_message(recording: ProcessedEvent, context: ProcessorContext) -> None:
     # Write to GCS.
     storage_kv.set(recording.filename, recording.filedata)
 
-    try:
-        project = Project.objects.get_from_cache(id=recording.context["project_id"])
-        assert isinstance(project, Project)
-    except Project.DoesNotExist as exc:
-        logger.warning(
-            "Recording segment was received for a project that does not exist.",
-            extra={
-                "project_id": recording.context["project_id"],
-                "replay_id": recording.context["replay_id"],
-            },
-        )
-        raise DropEvent("Could not find project.") from exc
-
     # Write to billing consumer if its a billable event.
     if recording.context["segment_id"] == 0:
-        _track_initial_segment_event(
-            recording.context["org_id"],
-            project,
-            recording.context["replay_id"],
-            recording.context["key_id"],
-            recording.context["received"],
-        )
+        if context["has_sent_replays_cache"] is not None:
+            _track_initial_segment_event_new(
+                recording.context["org_id"],
+                recording.context["project_id"],
+                recording.context["replay_id"],
+                recording.context["key_id"],
+                recording.context["received"],
+                context["has_sent_replays_cache"],
+            )
+        else:
+            _track_initial_segment_event_old(
+                recording.context["org_id"],
+                recording.context["project_id"],
+                recording.context["replay_id"],
+                recording.context["key_id"],
+                recording.context["received"],
+            )
 
     metrics.incr(
         "replays.should_publish_replay_event",
@@ -277,10 +276,11 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
         emit_replay_events(
             recording.actions_event,
             recording.context["org_id"],
-            project,
+            recording.context["project_id"],
             recording.context["replay_id"],
             recording.context["retention_days"],
             recording.replay_event,
+            context,
         )
 
     emit_trace_items_to_eap(recording.trace_items)
@@ -290,16 +290,17 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
 def emit_replay_events(
     event_meta: ParsedEventMeta,
     org_id: int,
-    project: Project,
+    project_id: int,
     replay_id: str,
     retention_days: int,
     replay_event: dict[str, Any] | None,
+    context: ProcessorContext,
 ) -> None:
     environment = replay_event.get("environment") if replay_event else None
 
     emit_click_events(
         event_meta.click_events,
-        project.id,
+        project_id,
         replay_id,
         retention_days,
         start_time=time.time(),
@@ -308,34 +309,93 @@ def emit_replay_events(
 
     emit_tap_events(
         event_meta.tap_events,
-        project.id,
+        project_id,
         replay_id,
         retention_days,
         start_time=time.time(),
         environment=environment,
     )
     emit_request_response_metrics(event_meta)
-    log_canvas_size(event_meta, org_id, project.id, replay_id)
-    log_mutation_events(event_meta, project.id, replay_id)
-    log_option_events(event_meta, project.id, replay_id)
-    log_multiclick_events(event_meta, project.id, replay_id)
-    log_rage_click_events(event_meta, project.id, replay_id)
-    report_hydration_error(event_meta, project, replay_id, replay_event)
-    report_rage_click(event_meta, project, replay_id, replay_event)
+    log_canvas_size(event_meta, org_id, project_id, replay_id)
+    log_mutation_events(event_meta, project_id, replay_id)
+    log_option_events(event_meta, project_id, replay_id)
+    log_multiclick_events(event_meta, project_id, replay_id)
+    log_rage_click_events(event_meta, project_id, replay_id)
+    report_hydration_error(event_meta, project_id, replay_id, replay_event, context)
+    report_rage_click(event_meta, project_id, replay_id, replay_event, context)
 
 
-def _track_initial_segment_event(
+def _track_initial_segment_event_old(
     org_id: int,
-    project: Project,
+    project_id: int,
     replay_id,
     key_id: int | None,
     received: int,
 ) -> None:
+    try:
+        # I have to do this because of looker and amplitude statistics. This could be
+        # replaced with a simple update statement on the model...
+        project = Project.objects.get_from_cache(id=project_id)
+        assert isinstance(project, Project)
+    except Project.DoesNotExist as exc:
+        logger.warning(
+            "Recording segment was received for a project that does not exist.",
+            extra={
+                "project_id": project_id,
+                "replay_id": replay_id,
+            },
+        )
+        raise DropEvent("Could not find project.") from exc
+
     set_project_flag_and_signal(project, "has_replays", first_replay_received)
 
     track_outcome(
         org_id=org_id,
         project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.fromtimestamp(received, timezone.utc),
+        event_id=replay_id,
+        category=DataCategory.REPLAY,
+        quantity=1,
+    )
+
+
+def _track_initial_segment_event_new(
+    org_id: int,
+    project_id: int,
+    replay_id,
+    key_id: int | None,
+    received: int,
+    has_seen_replays: AutoCache[int, bool],
+) -> None:
+    # We'll skip querying for projects if we've seen the project before or the project has already
+    # recorded its first replay.
+    if has_seen_replays[project_id] is False:
+        try:
+            # I have to do this because of looker and amplitude statistics. This could be
+            # replaced with a simple update statement on the model...
+            project = Project.objects.get(id=project_id)
+            assert isinstance(project, Project)
+        except Project.DoesNotExist as exc:
+            logger.warning(
+                "Recording segment was received for a project that does not exist.",
+                extra={
+                    "project_id": project_id,
+                    "replay_id": replay_id,
+                },
+            )
+            raise DropEvent("Could not find project.") from exc
+
+        set_project_flag_and_signal(project, "has_replays", first_replay_received)
+
+        # We've set the has_replays flag and can cache it.
+        has_seen_replays[project_id] = True
+
+    track_outcome(
+        org_id=org_id,
+        project_id=project_id,
         key_id=key_id,
         outcome=Outcome.ACCEPTED,
         reason=None,

@@ -386,10 +386,15 @@ function hasError(node: AITraceSpanNode) {
   }
 
   if (isEAPSpanNode(node)) {
-    const status = node.value.additional_attributes?.[SpanFields.SPAN_STATUS];
-    if (typeof status === 'string') {
+    const spanStatus = node.value.additional_attributes?.[SpanFields.SPAN_STATUS];
+    if (!!spanStatus && typeof spanStatus === 'string') {
+      return spanStatus.includes('error');
+    }
+    const status = node.value.additional_attributes?.status;
+    if (!!status && typeof status === 'string') {
       return status.includes('error');
     }
+
     return false;
   }
 

@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import sortBy from 'lodash/sortBy';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -33,7 +32,7 @@ import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
-import {getMonitorRefetchInterval} from './utils';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
 
 type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
 
@@ -125,8 +124,6 @@ function MonitorDetails({params, location}: Props) {
     );
   }
 
-  const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
-
   return (
     <Layout.Page>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
@@ -193,7 +190,7 @@ function MonitorDetails({params, location}: Props) {
           </Layout.Main>
           <Layout.Side>
             <DetailsSidebar
-              monitorEnv={envsSortedByLastCheck[envsSortedByLastCheck.length - 1]}
+              monitorEnv={getNextCheckInEnv(monitor.environments)}
               monitor={monitor}
               showUnknownLegend={showUnknownLegend}
             />

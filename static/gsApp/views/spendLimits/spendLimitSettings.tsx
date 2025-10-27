@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
@@ -13,6 +14,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import useMedia from 'sentry/utils/useMedia';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
@@ -26,6 +28,7 @@ import {
   displayBudgetName,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
+  isAm1Plan,
   isAm2Plan,
 } from 'getsentry/utils/billing';
 import {
@@ -165,8 +168,10 @@ function SpendLimitInput({
 }
 
 function SharedSpendLimitPriceTableRow({children}: {children: React.ReactNode}) {
+  const theme = useTheme();
+  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
   return (
-    <Grid columns="max-content 1fr max-content" align="center">
+    <Grid columns={isXSmallScreen ? '1fr' : 'max-content 1fr max-content'} align="center">
       {children}
     </Grid>
   );
@@ -178,12 +183,15 @@ export function SharedSpendLimitPriceTable({
   organization,
   includedAddOns,
 }: SharedSpendLimitPriceTableProps) {
+  const theme = useTheme();
+  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
   const addOnDataCategories = Object.values(activePlan.addOnCategories).flatMap(
     addOnInfo => addOnInfo.dataCategories
   );
   const baseCategories = activePlan.onDemandCategories.filter(
     category => !addOnDataCategories.includes(category)
   );
+  const isLegacy = isAm2Plan(activePlan.id) || isAm1Plan(activePlan.id);
 
   return (
     <Flex
@@ -194,7 +202,13 @@ export function SharedSpendLimitPriceTable({
       radius="md"
       padding="lg xl"
     >
-      <Grid gap="lg" columns={{xs: '1fr', md: 'repeat(2, 1fr)'}}>
+      <Grid
+        gap="lg"
+        columns={
+          // legacy plans need more space because of the longer product names (transactions, performance units)
+          isLegacy ? {xs: '1fr', xl: 'repeat(2, 1fr)'} : {xs: '1fr', md: 'repeat(2, 1fr)'}
+        }
+      >
         {baseCategories.map(category => {
           // pre-AM3 specific behavior
           const showPerformanceUnits =
@@ -224,7 +238,12 @@ export function SharedSpendLimitPriceTable({
             });
           return (
             <SharedSpendLimitPriceTableRow key={category}>
-              <Flex gap="xs" align="center" paddingRight="xs">
+              <Flex
+                gap="xs"
+                align="center"
+                paddingRight="xs"
+                wrap={isXSmallScreen ? 'wrap' : 'nowrap'}
+              >
                 <Text bold>{pluralName}</Text>
                 {reserved > 0 && (
                   <Text variant="accent">
@@ -372,7 +391,8 @@ function InnerSpendLimitSettings({
 
   const getPerCategoryWarning = (productName: string) => {
     return (
-      <Flex gap="xs">
+      // hardcoded height to match the input height so that all rows have the same height
+      <Flex gap="xs" height="36px" align="start">
         <IconWarning size="sm" />
         <Text variant="muted" size="sm">
           {tct(
@@ -430,24 +450,32 @@ function InnerSpendLimitSettings({
             return (
               <Flex
                 key={category}
+                direction={{xs: 'column', sm: 'row'}}
                 justify="between"
-                align="center"
-                gap="lg"
+                align={{xs: 'start', sm: 'center'}}
+                gap={{xs: 'xs', sm: 'lg'}}
                 padding="lg 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
-                <Flex gap="xs" align="center" flexGrow={1}>
-                  <Text bold>{upperFirst(pluralName)}</Text>
-                  {showPerformanceUnits
-                    ? renderPerformanceHovercard()
-                    : categoryInfo?.checkoutTooltip && (
-                        <QuestionTooltip
-                          title={categoryInfo.checkoutTooltip}
-                          position="top"
-                          size="xs"
-                        />
-                      )}
-                  <Text variant="muted" wrap="nowrap">
+                <Flex
+                  gap="xs"
+                  align={{xs: 'start', sm: 'center'}}
+                  flexGrow={1}
+                  direction={{xs: 'column', sm: 'row'}}
+                >
+                  <Flex align="center" gap="xs">
+                    <Text bold>{upperFirst(pluralName)}</Text>
+                    {showPerformanceUnits
+                      ? renderPerformanceHovercard()
+                      : categoryInfo?.checkoutTooltip && (
+                          <QuestionTooltip
+                            title={categoryInfo.checkoutTooltip}
+                            position="top"
+                            size="xs"
+                          />
+                        )}
+                  </Flex>
+                  <Text variant="muted">
                     {reserved === 0
                       ? t('None included')
                       : tct('[reserved] included', {
@@ -505,17 +533,25 @@ function InnerSpendLimitSettings({
             return (
               <Flex
                 key={apiName}
+                direction={{xs: 'column', sm: 'row'}}
                 justify="between"
-                align="center"
-                gap="lg"
+                align={{xs: 'start', sm: 'center'}}
+                gap={{xs: 'xs', sm: 'lg'}}
                 padding="xl 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
-                <Flex gap="xs" align="center" flexGrow={1}>
-                  <Text bold>{upperFirst(addOnInfo.productName)}</Text>
-                  {tooltipText && (
-                    <QuestionTooltip title={tooltipText} position="top" size="xs" />
-                  )}
+                <Flex
+                  gap="xs"
+                  align={{xs: 'start', sm: 'center'}}
+                  flexGrow={1}
+                  direction={{xs: 'column', sm: 'row'}}
+                >
+                  <Flex align="center" gap="xs">
+                    <Text bold>{upperFirst(addOnInfo.productName)}</Text>
+                    {tooltipText && (
+                      <QuestionTooltip title={tooltipText} position="top" size="xs" />
+                    )}
+                  </Flex>
                   <Text variant="muted">
                     {includedBudget
                       ? tct('[reservedBudget] credit included', {
@@ -548,7 +584,7 @@ function InnerSpendLimitSettings({
             onUpdate={handleUpdate}
             reserved={null}
           />
-          <Container width="344px">
+          <Container width={{xs: '100%', sm: '344px'}}>
             <Text variant="muted" size="sm">
               {t(
                 'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
@@ -730,6 +766,11 @@ const Currency = styled('div')`
 `;
 
 const DashedBorder = styled('div')`
+  display: block;
   border-top: 1px dashed ${p => p.theme.border};
   height: 1px;
+
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    display: none;
+  }
 `;
