@@ -13,6 +13,8 @@ import {hasSomeBillingDetails} from 'getsentry/utils/billing';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
+const MAX_WIDTH = 'calc(100vw - 48px - 32px)'; // 100vw - 48px (outer padding) - 32px (inner padding)
+
 function BillingInfoCard({
   subscription,
   organization,
@@ -66,10 +68,7 @@ function BillingDetailsInfo() {
 
   if (!billingDetails || !hasSomeBillingDetails(billingDetails)) {
     return (
-      <Container
-        overflow="hidden"
-        maxWidth={isMobile ? 'calc(100vw - 48px - 32px)' : '100%'}
-      >
+      <Container overflow="hidden" maxWidth={isMobile ? MAX_WIDTH : '100%'}>
         <Text size="sm" variant="muted">
           {t('No billing details on file')}
         </Text>
@@ -101,7 +100,7 @@ function BillingDetailsInfo() {
       overflow="hidden"
       direction="column"
       gap="sm"
-      maxWidth={isMobile ? 'calc(100vw - 48px - 32px)' : '100%'}
+      maxWidth={isMobile ? MAX_WIDTH : '100%'}
     >
       <Text ellipsis size="sm" variant="muted">
         {primaryDetails.length > 0
