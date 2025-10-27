@@ -4429,6 +4429,49 @@ describe('SearchQueryBuilder', () => {
           expect(getLastInput()).toHaveFocus();
         });
       });
+
+      describe('selecting from filter key suggestions', () => {
+        beforeEach(() => {
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/recent-searches/',
+            body: [{query: 'a or b'}, {query: 'some recent query'}],
+          });
+        });
+
+        it('should replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              recentSearches={SavedSearchType.ISSUE}
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+
+          const aOrBOption = await screen.findByRole('option', {name: 'a or b'});
+          expect(aOrBOption).toBeInTheDocument();
+
+          await userEvent.hover(aOrBOption);
+          await userEvent.keyboard('{enter}{enter}');
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}a`,
+            })
+          ).toBeInTheDocument();
+
+          expect(await screen.findByRole('row', {name: 'OR'})).toBeInTheDocument();
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}b`,
+            })
+          ).toBeInTheDocument();
+        });
+      });
     });
   });
 
