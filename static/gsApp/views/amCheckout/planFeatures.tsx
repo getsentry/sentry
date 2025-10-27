@@ -1,6 +1,5 @@
 import type React from 'react';
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -362,7 +361,7 @@ function FeatureItem({
   isOnlyOnBusiness: boolean;
 }) {
   return (
-    <FeatureItemContainer align="start" gap="md">
+    <Flex align="start" gap="md">
       <Container padding="0">
         {isIncluded ? (
           isOnlyOnBusiness ? (
@@ -375,7 +374,7 @@ function FeatureItem({
         )}
       </Container>
       {children}
-    </FeatureItemContainer>
+    </Flex>
   );
 }
 
@@ -486,7 +485,3 @@ function PlanFeatures({
 }
 
 export default PlanFeatures;
-
-const FeatureItemContainer = styled(Flex)`
-  color: ${p => p.theme.textColor};
-`;
