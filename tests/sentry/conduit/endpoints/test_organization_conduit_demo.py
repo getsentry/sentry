@@ -19,7 +19,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
         mock_settings.CONDUIT_JWT_ISSUER = "sentry"
         mock_settings.CONDUIT_JWT_AUDIENCE = "conduit"
-        mock_settings.CONDUIT_GATEWAY_URL = "https://conduit.example.com/events"
+        mock_settings.CONDUIT_GATEWAY_URL = "https://conduit.example.com"
 
         response = self.get_success_response(
             self.organization.slug,
@@ -60,7 +60,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
         mock_settings.CONDUIT_JWT_ISSUER = "sentry"
         mock_settings.CONDUIT_JWT_AUDIENCE = "conduit"
-        mock_settings.CONDUIT_GATEWAY_URL = "https://conduit.example.com/events"
+        mock_settings.CONDUIT_GATEWAY_URL = "https://conduit.example.com"
 
         response1 = self.get_success_response(
             self.organization.slug,
