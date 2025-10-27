@@ -107,8 +107,4 @@ const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
 
 const StyledSettingsHeader = styled(SettingsHeader)`
   border: none;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    overflow: scroll;
-  }
 `;

@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
@@ -133,7 +133,7 @@ interface TotalSummaryProps extends BaseSummaryProps {
 
 function ItemFlex({children}: {children: React.ReactNode}) {
   return (
-    <StyledFlex justify="between" align="start" gap="3xl">
+    <StyledFlex justify="between" align="start" gap={{xs: 'xl', sm: '3xl'}}>
       {children}
     </StyledFlex>
   );
@@ -162,7 +162,7 @@ function ItemWithPrice({
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
+  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
   const isChonk = theme.isChonk;
 
   const additionalProductCategories = useMemo(
@@ -240,24 +240,21 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       >
                         <Tag icon={<IconLock locked size="xs" />}>
                           {(isChonk || activePlan.budgetTerm === 'pay-as-you-go') &&
-                          !isSmallScreen ? (
+                          !isXSmallScreen ? (
                             tct('Unlock with [budgetTerm]', {
-                              budgetTerm: displayBudgetName(
-                                activePlan,
-                                activePlan.budgetTerm === 'pay-as-you-go'
-                                  ? {
-                                      abbreviated: true,
-                                    }
-                                  : {
-                                      title: true,
-                                    }
-                              ),
+                              budgetTerm: displayBudgetName(activePlan, {
+                                title: true,
+                                abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                              }),
                             })
                           ) : (
                             // "Unlock with on-demand" gets cut off in non-chonk theme
                             <Text size="xs">
                               {tct('Unlock with [budgetTerm]', {
-                                budgetTerm: displayBudgetName(activePlan, {title: true}),
+                                budgetTerm: displayBudgetName(activePlan, {
+                                  title: true,
+                                  abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                                }),
                               })}
                             </Text>
                           )}
@@ -713,8 +710,6 @@ function Cart({
     () => utils.hasBillingInfo(billingDetails, subscription, true),
     [billingDetails, subscription]
   );
-  const theme = useTheme();
-  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
@@ -849,25 +844,27 @@ function Cart({
         organization={organization}
       />
       <Flex direction="column" gap="sm" background="primary" radius="md" border="primary">
-        <Flex justify="between" align="center" gap="sm" padding="lg xl">
+        <Grid
+          columns="max-content auto max-content"
+          align="center"
+          gap="sm"
+          padding="lg xl"
+        >
           <Heading as="h2" textWrap="nowrap">
             {t('Plan Summary')}
           </Heading>
-          <Flex gap="xs" align="center" justify="end">
-            <Container maxWidth={isXSmallScreen ? '120px' : '100%'}>
-              <Text monospace variant="muted" ellipsis>
-                {organization.slug.toUpperCase()}
-              </Text>
-            </Container>
-            <Button
-              aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
-              onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-              borderless
-              size="xs"
-              icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
-            />
-          </Flex>
-        </Flex>
+          <Text monospace variant="muted" ellipsis align="right">
+            {organization.slug.toUpperCase()}
+          </Text>
+
+          <Button
+            aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
+            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+            borderless
+            size="xs"
+            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+          />
+        </Grid>
         {summaryIsOpen && (
           <Flex direction="column" gap="lg" data-test-id="plan-summary">
             {errorMessage && <Alert type="error">{errorMessage}</Alert>}
