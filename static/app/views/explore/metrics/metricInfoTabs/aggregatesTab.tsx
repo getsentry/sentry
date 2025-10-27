@@ -67,7 +67,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
   const tableStyle = useMemo(() => {
     return {
-      gridTemplateColumns: `repeat(${fields.length - 1}, min-content) 1fr`,
+      gridTemplateColumns: `repeat(${fields.length}, min-content) 1fr`,
     };
   }, [fields]);
 
