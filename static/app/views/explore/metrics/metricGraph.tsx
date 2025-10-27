@@ -135,11 +135,13 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
       Actions={Actions}
       Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
       Footer={
-        <ConfidenceFooter
-          chartInfo={chartInfo}
-          isLoading={timeseriesResult.isFetching}
-          hasUserQuery={!!userQuery}
-        />
+        visualize.visible && (
+          <ConfidenceFooter
+            chartInfo={chartInfo}
+            isLoading={timeseriesResult.isFetching}
+            hasUserQuery={!!userQuery}
+          />
+        )
       }
       height={visualize.visible ? undefined : 0}
       revealActions="always"
