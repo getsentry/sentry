@@ -142,17 +142,19 @@ def set_commit(idx, data, release):
     # Guard against patch_set being None
     patch_set = data.get("patch_set") or []
     if patch_set:
-        file_changes = [
-            CommitFileChange(
-                organization_id=release.organization.id,
-                commit_id=commit.id,
-                filename=patched_file["path"],
-                type=patched_file["type"],
-            )
-            for patched_file in patch_set
-        ]
-        bulk_create_commit_file_changes(file_changes)
-
+        CommitFileChange.objects.bulk_create(
+            [
+                CommitFileChange(
+                    organization_id=release.organization.id,
+                    commit=commit,
+                    filename=patched_file["path"],
+                    type=patched_file["type"],
+                )
+                for patched_file in patch_set
+            ],
+            ignore_conflicts=True,
+            batch_size=100,
+        )
     try:
         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
             ReleaseCommit.objects.create(
