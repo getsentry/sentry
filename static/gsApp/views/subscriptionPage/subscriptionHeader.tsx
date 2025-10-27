@@ -180,7 +180,7 @@ function SubscriptionHeader(props: Props) {
   }
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="xl" background="secondary">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
 
       <Flex
