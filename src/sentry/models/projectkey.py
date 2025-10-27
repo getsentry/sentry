@@ -271,7 +271,7 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/integration/"
 
     def build_integration_endpoint(self, integration_name: str, postfix: str = "") -> str:
-        return f"{self.integration_endpoint}/{integration_name}/{postfix}"
+        return f"{self.integration_endpoint}{integration_name}/{postfix}"
 
     @property
     def otlp_traces_endpoint(self):
