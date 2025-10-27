@@ -79,7 +79,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
 
   const fieldLabels: Record<string, string> = {
     trace: t('Trace'),
-    value: metricName,
+    value: t('Metric Value'),
     timestamp: t('Timestamp'),
   };
 
