@@ -24,6 +24,7 @@ export type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
+  disabled?: boolean;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SetCaseInsensitive;
@@ -145,6 +146,7 @@ export function TraceItemSearchQueryBuilder({
   portalTarget,
   projects,
   supportedAggregates = [],
+  disabled,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps({
     itemType,
@@ -163,7 +165,13 @@ export function TraceItemSearchQueryBuilder({
     supportedAggregates,
   });
 
-  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
+  return (
+    <SearchQueryBuilder
+      autoFocus={autoFocus}
+      disabled={disabled}
+      {...searchQueryBuilderProps}
+    />
+  );
 }
 
 function useFunctionTags(

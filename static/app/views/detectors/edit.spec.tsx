@@ -809,5 +809,55 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
     });
+
+    it('disables interval, aggregate, and query when using the transactions dataset', async () => {
+      const transactionsDetector = MetricDetectorFixture({
+        id: '321',
+        name: 'Transaction Detector',
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'p75()',
+                dataset: Dataset.GENERIC_METRICS,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRANSACTION],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${transactionsDetector.id}/`,
+        body: transactionsDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${transactionsDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: transactionsDetector.name})
+      ).toBeInTheDocument();
+
+      // Interval select should be disabled
+      const intervalField = screen.getByLabelText('Interval');
+      expect(intervalField).toBeDisabled();
+
+      // Aggregate selector should be disabled
+      expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
+    });
   });
 });
