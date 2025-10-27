@@ -91,6 +91,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
     ):
         mock_context = {
             "org_slug": self.organization.slug,
+            "user_id": self.user.id,
             "user_name": self.user.name,
             "user_email": self.user.email,
             "user_teams": [],
@@ -286,6 +287,7 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
         ):
             mock_context = {
                 "org_slug": self.organization.slug,
+                "user_id": self.user.id,
                 "user_name": self.user.name,
                 "user_email": self.user.email,
                 "user_teams": [],
@@ -336,6 +338,7 @@ class CollectUserOrgContextTest(APITestCase):
 
         assert context is not None
         assert context["org_slug"] == self.organization.slug
+        assert context["user_id"] == self.user.id
         assert context["user_name"] == self.user.name
         assert context["user_email"] == self.user.email
 
