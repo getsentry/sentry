@@ -1,5 +1,4 @@
 import type React from 'react';
-import {useMemo} from 'react';
 
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -386,35 +385,32 @@ function PlanFeatures({
   planOptions: Plan[];
 }) {
   const currentTier = getAmPlanTier(activePlan.id);
-  const perPlanPriceDiffs = useMemo(() => {
-    const priceDiffs: Record<
-      Plan['id'],
-      Partial<Record<DataCategory, number>> & {plan: Plan}
-    > = {};
-    planOptions.forEach((planOption, index) => {
-      const priorPlan = index > 0 ? planOptions[index - 1] : null;
-      if (priorPlan && priorPlan?.basePrice > 0) {
-        priceDiffs[planOption.id] = {
-          plan: planOption,
-          ...Object.entries(planOption.planCategories ?? {}).reduce(
-            (acc, [category, eventBuckets]) => {
-              const priorPlanEventBuckets =
-                priorPlan?.planCategories[category as DataCategory];
-              const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
-              const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
-              const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
-              if (perUnitPriceDiff > 0) {
-                acc[category as DataCategory] = perUnitPriceDiff;
-              }
-              return acc;
-            },
-            {} as Partial<Record<DataCategory, number>>
-          ),
-        };
-      }
-    });
-    return priceDiffs;
-  }, [planOptions]);
+  const perPlanPriceDiffs: Record<
+    Plan['id'],
+    Partial<Record<DataCategory, number>> & {plan: Plan}
+  > = {};
+  planOptions.forEach((planOption, index) => {
+    const priorPlan = index > 0 ? planOptions[index - 1] : null;
+    if (priorPlan && priorPlan?.basePrice > 0) {
+      perPlanPriceDiffs[planOption.id] = {
+        plan: planOption,
+        ...Object.entries(planOption.planCategories ?? {}).reduce(
+          (acc, [category, eventBuckets]) => {
+            const priorPlanEventBuckets =
+              priorPlan?.planCategories[category as DataCategory];
+            const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
+            const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
+            const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
+            if (perUnitPriceDiff > 0) {
+              acc[category as DataCategory] = perUnitPriceDiff;
+            }
+            return acc;
+          },
+          {} as Partial<Record<DataCategory, number>>
+        ),
+      };
+    }
+  });
 
   return (
     <Flex direction="column">
