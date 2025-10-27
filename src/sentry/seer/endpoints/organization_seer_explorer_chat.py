@@ -62,6 +62,7 @@ def _collect_user_org_context(request: Request, organization: Organization) -> d
 
     return {
         "org_slug": organization.slug,
+        "user_id": user.id,
         "user_name": user.name,
         "user_email": user.email,
         "user_teams": user_teams,
