@@ -89,7 +89,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
           const func = parseFunction(field);
           if (func) {
-            label = prettifyParsedFunction(func);
+            label = prettifyParsedFunction(func, {value: metricName});
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;

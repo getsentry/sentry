@@ -11,6 +11,7 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,
   useSetMetricVisualize,
@@ -28,9 +29,14 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 interface MetricsGraphProps {
   queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  traceMetric: TraceMetric;
 }
 
-export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) {
+export function MetricsGraph({
+  timeseriesResult,
+  queryIndex,
+  traceMetric,
+}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
@@ -44,6 +50,7 @@ export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) 
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
       queryIndex={queryIndex}
+      traceMetric={traceMetric}
     />
   );
 }
@@ -51,10 +58,17 @@ export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) 
 interface GraphProps extends MetricsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
   queryIndex: number;
+  traceMetric: TraceMetric;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
+function Graph({
+  onChartTypeChange,
+  timeseriesResult,
+  queryIndex,
+  visualize,
+  traceMetric,
+}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
@@ -80,7 +94,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${getVisualizeLabel(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+      title={`${getVisualizeLabel(queryIndex)}: ${prettifyAggregation(aggregate, {aliasMap: {value: traceMetric.name}}) ?? aggregate}`}
     />
   );
 
