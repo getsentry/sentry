@@ -36,7 +36,8 @@ class SentrySDKMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        if not self._should_send(key):
+        full_key = self._get_key(key)
+        if not self._should_send(full_key):
             return
 
         if not self._should_sample(sample_rate):
@@ -47,7 +48,7 @@ class SentrySDKMetricsBackend(MetricsBackend):
             metric_attributes["instance"] = instance
 
         metrics.count(
-            self._get_key(key),
+            full_key,
             amount,
             unit=unit,
             attributes=metric_attributes,
@@ -74,7 +75,8 @@ class SentrySDKMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        if not self._should_send(key):
+        full_key = self._get_key(key)
+        if not self._should_send(full_key):
             return
 
         if not self._should_sample(sample_rate):
@@ -85,7 +87,7 @@ class SentrySDKMetricsBackend(MetricsBackend):
             metric_attributes["instance"] = instance
 
         metrics.gauge(
-            self._get_key(key),
+            full_key,
             value,
             unit=unit,
             attributes=metric_attributes,
@@ -101,7 +103,8 @@ class SentrySDKMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        if not self._should_send(key):
+        full_key = self._get_key(key)
+        if not self._should_send(full_key):
             return
 
         if not self._should_sample(sample_rate):
@@ -112,7 +115,7 @@ class SentrySDKMetricsBackend(MetricsBackend):
             metric_attributes["instance"] = instance
 
         metrics.distribution(
-            self._get_key(key),
+            full_key,
             value,
             unit=unit,
             attributes=metric_attributes,

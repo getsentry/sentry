@@ -85,7 +85,7 @@ class TestSentrySDKMetricsBackend:
     @mock.patch("sentry_sdk._metrics.count")
     def test_incr_deny_list(self, mock_count):
         backend = SentrySDKMetricsBackend(
-            prefix="test.", experimental_sample_rate=1.0, deny_list=["denied"]
+            prefix="test.", experimental_sample_rate=1.0, deny_list=["test.denied"]
         )
         backend.incr("denied.metric", amount=1)
         mock_count.assert_not_called()
