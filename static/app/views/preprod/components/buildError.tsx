@@ -17,11 +17,11 @@ export function BuildError({title, message, children}: BuildErrorProps) {
       direction="column"
       align="center"
       justify="center"
-      gap="3xl"
+      gap="xl"
       padding="md"
       minHeight="60vh"
     >
-      <Flex maxWidth="500px" direction="column" align="center" gap="lg" padding="md">
+      <Flex maxWidth="500px" direction="column" align="center" gap="md" padding="md">
         <AlertImage src={Missing} alt="Error image" />
         <Heading as="h2" align="center">
           {title}
