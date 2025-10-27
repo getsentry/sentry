@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
@@ -28,16 +29,14 @@ export default function MemoryPanel() {
     return (
       <ChartWrapper data-test-id="replay-details-memory-tab">
         <NoRowRenderer unfilteredItems={[]} clearSearchTerm={() => {}}>
-          <div>
-            <p>
-              <strong>{t('No memory metrics found')}</strong>
-            </p>
+          <Fragment>
+            <p>{t('No memory metrics found')}</p>
             <Description>
               {t(
                 'Memory metrics are only captured within Chromium based browser sessions.'
               )}
             </Description>
-          </div>
+          </Fragment>
         </NoRowRenderer>
       </ChartWrapper>
     );
