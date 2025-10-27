@@ -101,6 +101,7 @@ describe('useStreamingTimeseriesResult', () => {
       isFetchingNextPage: false,
       isFetchingPreviousPage: false,
       lastPageLength: logFixtures.length,
+      bytesScanned: 0,
     } as UseInfiniteLogsQueryResult;
   }
 
