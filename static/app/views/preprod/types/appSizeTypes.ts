@@ -66,6 +66,7 @@ export enum TreemapType {
   MANIFESTS = 'manifests',
   SIGNATURES = 'signatures',
   FONTS = 'fonts',
+  AUDIO = 'audio',
 
   // iOS-specific categories
   FRAMEWORKS = 'frameworks',
