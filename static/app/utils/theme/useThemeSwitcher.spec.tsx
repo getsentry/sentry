@@ -105,6 +105,13 @@ describe('useChonkTheme', () => {
 
   describe('enforce states', () => {
     it('returns light chonk theme if the organization has chonk-ui-enforce feature and user prefers chonk theme', () => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            options: {...UserFixture().options, prefersChonkUI: true, theme: 'light'},
+          }),
+        })
+      );
       OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui-enforce']}));
       const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
@@ -114,7 +121,7 @@ describe('useChonkTheme', () => {
       ConfigStore.loadInitialData(
         ConfigFixture({
           user: UserFixture({
-            options: {...UserFixture().options, theme: 'dark'},
+            options: {...UserFixture().options, prefersChonkUI: true, theme: 'dark'},
           }),
         })
       );
@@ -122,5 +129,41 @@ describe('useChonkTheme', () => {
       const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
     });
+
+    it.each(['light', 'dark', 'system'] as const)(
+      'opt-out is respected for opted out users',
+      theme => {
+        ConfigStore.loadInitialData(
+          ConfigFixture({
+            user: UserFixture({
+              options: {...UserFixture().options, prefersChonkUI: false, theme},
+            }),
+          })
+        );
+        OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui-enforce']}));
+        const {result} = renderHookWithProviders(useThemeSwitcher);
+        expect(result.current).toBe(
+          theme === 'light' || theme === 'system' ? lightTheme : darkTheme
+        );
+      }
+    );
+
+    it.each(['light', 'dark', 'system'] as const)(
+      'opt-out is respected for opted out users',
+      theme => {
+        ConfigStore.loadInitialData(
+          ConfigFixture({
+            user: UserFixture({
+              options: {...UserFixture().options, prefersChonkUI: false, theme},
+            }),
+          })
+        );
+        OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
+        const {result} = renderHookWithProviders(useThemeSwitcher);
+        expect(result.current).toBe(
+          theme === 'light' || theme === 'system' ? lightTheme : darkTheme
+        );
+      }
+    );
   });
 });
