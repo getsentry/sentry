@@ -35,6 +35,9 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
+  // Only show top 5 insights, show the rest in the sidebar
+  const topInsights = processedInsights.slice(0, 5);
+
   return (
     <Container background="primary" radius="md" padding="lg" border="muted">
       <Flex
@@ -60,7 +63,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
           },
         })}
       >
-        {processedInsights.map(insight => (
+        {topInsights.map(insight => (
           <Flex
             key={insight.key}
             align="center"
