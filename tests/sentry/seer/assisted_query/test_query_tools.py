@@ -516,6 +516,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "message": "Error message 1",
                 "level": "error",
+                "fingerprint": ["group-1"],
                 "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
@@ -525,6 +526,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "message": "Error message 2",
                 "level": "warning",
+                "fingerprint": ["group-2"],
                 "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
@@ -582,6 +584,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
                 data={
                     "event_id": chr(97 + i) * 32,
                     "message": f"Error {i}",
+                    "fingerprint": [f"group-{i}"],
                     "timestamp": self.min_ago.isoformat(),
                 },
                 project_id=self.project.id,

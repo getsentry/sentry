@@ -35,7 +35,9 @@ def get_issue_attributes(*, org_id: int, project_ids: list[int]) -> dict[str, An
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    api_key = ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"])
+    api_key = ApiKey(
+        organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
+    )
 
     base_params: dict[str, Any] = {
         "statsPeriod": "24h",
@@ -117,7 +119,9 @@ def get_attribute_values(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    api_key = ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"])
+    api_key = ApiKey(
+        organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
+    )
 
     base_params: dict[str, Any] = {
         "statsPeriod": "24h",
@@ -218,7 +222,9 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    api_key = ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"])
+    api_key = ApiKey(
+        organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
+    )
 
     params: dict[str, Any] = {
         "query": query,
