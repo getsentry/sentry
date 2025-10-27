@@ -11,9 +11,16 @@ from sentry.search.eap.columns import FormulaDefinition, ResolvedArguments, Reso
 
 def _rate_internal(divisor: int, settings: ResolverSettings) -> Column.BinaryFormula:
     """
-    Internal rate calculation function with hardcoded divisor.
+    Calculate rate per X (assumed second if not passed) for trace metrics using the value attribute.
     """
     extrapolation_mode = settings["extrapolation_mode"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
+
+    time_interval = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
 
     return Column.BinaryFormula(
         left=Column(
@@ -25,7 +32,7 @@ def _rate_internal(divisor: int, settings: ResolverSettings) -> Column.BinaryFor
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            literal=LiteralValue(val_double=divisor),
+            literal=LiteralValue(val_double=time_interval / divisor),
         ),
     )
 
