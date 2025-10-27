@@ -403,13 +403,6 @@ class EnhancementsConfig:
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
     ) -> StacktraceGroupingComponent:
-        """
-        This assembles a `stacktrace` grouping component out of the given
-        `frame` components and source frames.
-
-        This also handles cases where the entire stacktrace should be discarded.
-        """
-
         with metrics.timer("grouping.enhancements.get_contributes_and_hint") as metrics_timer_tags:
             metrics_timer_tags.update({"split": True, "variant": variant_name})
 
