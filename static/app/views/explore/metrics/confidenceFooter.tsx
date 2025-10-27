@@ -13,11 +13,13 @@ import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 
 interface ConfidenceFooterProps {
   chartInfo: ChartInfo;
+  hasUserQuery: boolean;
   isLoading: boolean;
 }
 
 export function ConfidenceFooter({
   chartInfo: currentChartInfo,
+  hasUserQuery,
   isLoading,
 }: ConfidenceFooterProps) {
   const chartInfo = usePreviouslyLoaded(currentChartInfo, isLoading);
@@ -26,6 +28,7 @@ export function ConfidenceFooter({
     <Container>
       <ConfidenceMessage
         isLoading={isLoading}
+        hasUserQuery={hasUserQuery}
         confidence={chartInfo.confidence}
         dataScanned={chartInfo.dataScanned}
         isSampled={chartInfo.isSampled}
@@ -37,6 +40,7 @@ export function ConfidenceFooter({
 }
 
 interface ConfidenceMessageProps {
+  hasUserQuery: boolean;
   isLoading: boolean;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
@@ -50,22 +54,45 @@ function ConfidenceMessage({
   dataScanned,
   confidence,
   topEvents,
+  hasUserQuery,
   isLoading,
   isSampled,
 }: ConfidenceMessageProps) {
   const isTopN = defined(topEvents) && topEvents > 1;
 
   if (!defined(sampleCount) || isLoading) {
-    return <Placeholder />;
+    return <Placeholder width={180} />;
   }
 
   const noSampling = defined(isSampled) && !isSampled;
   const sampleCountComponent = <Count value={sampleCount} />;
 
   if (dataScanned === 'full') {
-    // If the full data was scanned, we do not want to expose any
-    // sample count information because we deem it as unnecessary.
-    return null;
+    if (!hasUserQuery) {
+      if (isTopN) {
+        return tct('Metric count for top [topEvents] groups: [sampleCountComponent]', {
+          topEvents,
+          sampleCountComponent,
+        });
+      }
+
+      return tct('Metric count: [sampleCountComponent]', {
+        sampleCountComponent,
+      });
+    }
+
+    // For metrics, if the full data was scanned, we can assume that no
+    // extrapolation happened and we should remove mentions of extrapolation.
+    if (isTopN) {
+      return tct('[sampleCountComponent] matching metrics for top [topEvents] groups', {
+        topEvents,
+        sampleCountComponent,
+      });
+    }
+
+    return tct('[sampleCountComponent] matching metrics', {
+      sampleCountComponent,
+    });
   }
 
   if (confidence === 'low') {
@@ -129,8 +156,9 @@ function LowAccuracyFullTooltip({
   );
 }
 
-const Placeholder = styled('div')`
-  width: 180px;
+const Placeholder = styled('div')<{width: number}>`
+  display: inline-block;
+  width: ${p => p.width}px;
   height: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.backgroundTertiary};

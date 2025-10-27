@@ -25,7 +25,10 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/sc
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
+  useLogsPageData,
+  useLogsPageDataQueryResult,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -39,6 +42,7 @@ import {
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -275,6 +279,8 @@ export function LogsTabContent({
     return false;
   }, [pageFilters.selection.datetime]);
 
+  const {infiniteLogsQueryResult} = useLogsPageData();
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
@@ -359,6 +365,10 @@ export function LogsTabContent({
             {!tableData.isPending && tableData.isEmpty && (
               <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             )}
+            <LogsDownSamplingAlert
+              timeseriesResult={timeseriesResult}
+              tableResult={infiniteLogsQueryResult}
+            />
             <LogsGraphContainer>
               <LogsGraph
                 rawLogCounts={rawLogCounts}
@@ -393,7 +403,6 @@ export function LogsTabContent({
                 </Button>
               </TableActionsContainer>
             </LogsTableActionsContainer>
-
             <LogsItemContainer>
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
