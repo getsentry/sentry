@@ -591,18 +591,20 @@ describe('DetectorEdit', () => {
             name: 'New Monitor',
             projectId: project.id,
             workflowIds: [],
-            dataSource: expect.objectContaining({
-              name: 'New Monitor',
-              config: expect.objectContaining({
-                schedule: '0 0 * * *',
-                schedule_type: 'crontab',
-                timezone: 'UTC',
-                checkin_margin: 1,
-                failure_issue_threshold: 1,
-                max_runtime: 30,
-                recovery_threshold: 1,
+            dataSources: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'New Monitor',
+                config: expect.objectContaining({
+                  schedule: '0 0 * * *',
+                  schedule_type: 'crontab',
+                  timezone: 'UTC',
+                  checkin_margin: 1,
+                  failure_issue_threshold: 1,
+                  max_runtime: 30,
+                  recovery_threshold: 1,
+                }),
               }),
-            }),
+            ]),
           }),
         })
       );
