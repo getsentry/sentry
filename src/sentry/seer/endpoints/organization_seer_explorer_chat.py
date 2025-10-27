@@ -40,6 +40,7 @@ def _collect_user_org_context(request: Request, organization: Organization) -> d
     if isinstance(user, AnonymousUser):
         return {
             "org_slug": organization.slug,
+            "user_id": None,
             "user_name": None,
             "user_email": None,
             "user_teams": [],
