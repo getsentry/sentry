@@ -475,22 +475,10 @@ class EnhancementsConfig:
 
             frame_component.update(hint=hint)
 
-        # Because of the special case above, in which we ignore the rust-derived `contributes` value
-        # for certain frames, it's possible for the rust-derived `contributes` value for the overall
-        # stacktrace to be wrong, too (if in the process of ignoring rust we turn a stacktrace with
-        # at least one contributing frame into one without any). So we need to special-case here as
-        # well.
-        if variant_name == "app" and frame_counts["in_app_contributing_frames"] == 0:
-            stacktrace_contributes = False
-            stacktrace_hint = None
-        else:
-            stacktrace_contributes = rust_stacktrace_results.contributes
-            stacktrace_hint = rust_stacktrace_results.hint
-
         stacktrace_component = StacktraceGroupingComponent(
             values=frame_components,
-            hint=stacktrace_hint,
-            contributes=stacktrace_contributes,
+            hint=rust_stacktrace_results.hint,
+            contributes=rust_stacktrace_results.contributes,
         )
 
         return stacktrace_component
