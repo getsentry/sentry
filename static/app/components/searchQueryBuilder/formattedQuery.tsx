@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -77,6 +79,15 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   );
 }
 
+function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+  const label = token.text.toUpperCase();
+  return (
+    <FilterWrapper aria-label={label}>
+      <Text variant="muted">{label}</Text>
+    </FilterWrapper>
+  );
+}
+
 function QueryToken({token}: TokenProps) {
   switch (token.type) {
     case Token.FILTER:
@@ -89,12 +100,12 @@ function QueryToken({token}: TokenProps) {
     case Token.L_PAREN:
     case Token.R_PAREN:
       return (
-        <Boolean>
+        <Paren>
           <SearchQueryBuilderParenIcon token={token} />
-        </Boolean>
+        </Paren>
       );
     case Token.LOGIC_BOOLEAN:
-      return <Boolean>{token.text}</Boolean>;
+      return <Boolean token={token} />;
     default:
       return null;
   }
@@ -197,7 +208,7 @@ const FilterValue = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const Boolean = styled('div')`
+const Paren = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.subText};
