@@ -260,6 +260,7 @@ export function Onboarding() {
     project,
     isLogsSelected: false,
     isFeedbackSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,

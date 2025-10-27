@@ -12,9 +12,27 @@
       }
       __sentryMark('head-start');
     </script>
+    <link rel="preload" href="/api/client-config/" as="fetch" crossorigin />
+    <script>
+      // Django inlines a class for the user theme, but SPA mode requires manual init.
+      // Default to `.theme-system` and replace with user theme as soon as possible.
+      const BOOTSTRAP_URL = '/api/client-config/';
+      async function applySpaTheme() {
+        const res = await fetch(BOOTSTRAP_URL);
+        if (res.ok) {
+          const data = await res.json();
+          const theme = data.user?.options?.theme;
+          if (theme) {
+            document.body.classList.replace('theme-system', `theme-${theme}`);
+            return;
+          }
+        }
+        document.body.classList.remove('theme-system');
+      }
+      applySpaTheme();
+    </script>
   </head>
-
-  <body>
+  <body class="theme-system">
     <% if (htmlWebpackPlugin.options.unsupportedBrowser) { %>
     <style>.unsupported-browser { display: none; }</style>
     <div class="unsupported-browser">
