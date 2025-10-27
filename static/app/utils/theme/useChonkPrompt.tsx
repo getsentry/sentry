@@ -35,20 +35,21 @@ function promptWasDismissedWithoutSnoozing(
 export function useChonkPrompt() {
   const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const hasChonkUI = organization?.features.includes('chonk-ui');
+  const hasChonkUIAccess = organization?.features.includes('chonk-ui');
+  const hasChonkUIEnforce = organization?.features.includes('chonk-ui-enforce');
 
   const bannerPrompt = usePrompt({
     organization,
     feature: 'chonk_ui_banner',
     daysToSnooze: DAYS_SINCE_DISMISS,
-    options: {enabled: hasChonkUI},
+    options: {enabled: hasChonkUIAccess && !hasChonkUIEnforce},
   });
 
   const dotIndicatorPrompt = usePrompt({
     organization,
     feature: 'chonk_ui_dot_indicator',
     daysToSnooze: DAYS_SINCE_DISMISS,
-    options: {enabled: hasChonkUI},
+    options: {enabled: hasChonkUIAccess && !hasChonkUIEnforce},
   });
 
   const bannerData = bannerPrompt.data;
@@ -61,7 +62,7 @@ export function useChonkPrompt() {
   const showDotIndicatorPrompt = dotIndicatorPrompt.showPrompt;
 
   useEffect(() => {
-    if (!hasChonkUI) {
+    if (!hasChonkUIAccess || hasChonkUIEnforce) {
       return;
     }
 
@@ -91,7 +92,8 @@ export function useChonkPrompt() {
     dotIndicatorIsPromptDismissed,
     showBannerPrompt,
     showDotIndicatorPrompt,
-    hasChonkUI,
+    hasChonkUIAccess,
+    hasChonkUIEnforce,
     user?.options?.prefersChonkUI,
   ]);
 
@@ -109,9 +111,10 @@ export function useChonkPrompt() {
 
   // User is optional because we useUser hooks reads the value from ConfigStore,
   if (
+    user?.options?.prefersChonkUI ||
     (bannerPrompt.isPromptDismissed && dotIndicatorPrompt.isPromptDismissed) ||
-    !hasChonkUI ||
-    user?.options?.prefersChonkUI
+    !hasChonkUIAccess ||
+    hasChonkUIEnforce
   ) {
     return {
       showBannerPrompt: false,
