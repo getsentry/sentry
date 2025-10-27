@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
