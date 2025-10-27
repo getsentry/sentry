@@ -39,7 +39,7 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
                 ?.label || t('any'),
           })}
         </ConditionGroupHeader>
-        {triggers?.conditions.map((trigger, index) => (
+        {triggers?.conditions?.map((trigger, index) => (
           <div key={index}>
             <DataConditionDetails condition={trigger} />
           </div>
