@@ -78,7 +78,7 @@ class IntegrationProxyErrorMapping:
     status_code: int
 
 
-IntegrationProxyErrorMapping: dict[type[Exception], IntegrationProxyErrorMapping] = {
+IntegrationProxyErrorMap: dict[type[Exception], IntegrationProxyErrorMapping] = {
     IdentityNotValid: IntegrationProxyErrorMapping(
         IntegrationProxyFailureMetricType.INVALID_IDENTITY,
         "invalid_identity",
@@ -355,14 +355,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         handler_context: Mapping[str, Any] | None = None,
         scope: Scope | None = None,
     ) -> DRFResponse:
-        for exc_type, error_mapping in IntegrationProxyErrorMapping.items():
+        for exc_type, error_mapping in IntegrationProxyErrorMap.items():
             if isinstance(exc, exc_type):
                 logger.warning(
                     "hybrid_cloud.integration_proxy.{failure_type}",
                     extra={"failure_type": error_mapping.failure_type},
                 )
                 self._add_failure_metric(error_mapping.failure_type)
-                return self.respond(status=error_mapping.status_code)
+                return self.respond(context={"detail": str(exc)}, status=error_mapping.status_code)
 
         self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
