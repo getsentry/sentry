@@ -9,6 +9,7 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {
+  getReplayExpiryTimestamp,
   liveDuration,
   LiveIndicatorWithToolTip,
 } from 'sentry/components/replays/replayLiveIndicator';
@@ -32,7 +33,10 @@ export default function ReplayBadge({replay}: Props) {
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
 
-  const [isLive, setIsLive] = useState(liveDuration(replay.finished_at) > 0);
+  const [isLive, setIsLive] = useState(
+    liveDuration(replay.finished_at) > 0 &&
+      Date.now() < getReplayExpiryTimestamp(replay.started_at)
+  );
 
   const {start: startTimeout} = useTimeout({
     timeMs: liveDuration(replay.finished_at),

@@ -7,6 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import ReplayLiveIndicator, {
+  getReplayExpiryTimestamp,
   liveDuration,
 } from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
@@ -29,7 +30,6 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const replayReader = readerResult.replay;
 
   const {slug: orgSlug} = organization;
   const replayId = readerResult.replayId;
@@ -79,12 +79,9 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     }
   };
 
-  const ONE_HOUR_MS = 3_600_000;
-
-  // We poll for the replay record for 60 minutes after the replay started.
-  const REPLAY_EXPIRY_TIMESTAMP = replayReader
-    ? replayReader.getStartTimestampMs() + ONE_HOUR_MS
-    : 0;
+  const REPLAY_EXPIRY_TIMESTAMP = getReplayExpiryTimestamp(
+    replayRecord?.started_at ? replayRecord.started_at : null
+  );
 
   const polledReplayRecord = usePollReplayRecord({
     enabled: Date.now() < REPLAY_EXPIRY_TIMESTAMP,
@@ -99,7 +96,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const showLiveIndicator =
     replayRecord &&
-    liveDuration(replayRecord?.finished_at) > 0 &&
+    liveDuration(replayRecord.finished_at) > 0 &&
     Date.now() < REPLAY_EXPIRY_TIMESTAMP;
   const badge = replayRecord ? (
     <UserBadge

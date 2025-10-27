@@ -8,14 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-export function liveDuration(finishedAt: ReplayRecord['finished_at']) {
-  if (!finishedAt) {
-    return 0;
-  }
-  const FIVE_MINUTE_MS = 300_000;
-  return finishedAt.getTime() + FIVE_MINUTE_MS - Date.now();
-}
-
 const TOOLTIP_MESSAGE = 'This replay is still in progress.';
 
 export default function ReplayLiveIndicator() {
@@ -29,6 +21,19 @@ export default function ReplayLiveIndicator() {
       </Flex>
     </Tooltip>
   );
+}
+
+export function getReplayExpiryTimestamp(startedAt: ReplayRecord['started_at']) {
+  const ONE_HOUR_MS = 3_600_000;
+  return startedAt ? startedAt.getTime() + ONE_HOUR_MS : 0;
+}
+
+export function liveDuration(finishedAt: ReplayRecord['finished_at']) {
+  if (!finishedAt) {
+    return 0;
+  }
+  const FIVE_MINUTE_MS = 300_000;
+  return finishedAt.getTime() + FIVE_MINUTE_MS - Date.now();
 }
 
 export function LiveIndicatorWithToolTip() {
