@@ -31,7 +31,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -700,6 +700,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           }
                           onChange={onChange}
                           invalidMessages={{
+                            ...defaultConfig.invalidMessages,
                             [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                               'The wildcard operator is not supported here.'
                             ),

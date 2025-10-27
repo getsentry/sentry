@@ -182,7 +182,7 @@ class DataForwarderSerializer(Serializer):
     def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
         data_forwarder = DataForwarder.objects.create(**validated_data)
 
-        # Auto-enroll all existing projects in the organization
+        # Add rows for all existing projects in the organization
         project_ids = Project.objects.filter(
             organization_id=validated_data["organization_id"]
         ).values_list("id", flat=True)
@@ -192,7 +192,7 @@ class DataForwarderSerializer(Serializer):
                 DataForwarderProject(
                     data_forwarder=data_forwarder,
                     project_id=project_id,
-                    is_enabled=True,
+                    is_enabled=False,
                 )
                 for project_id in project_ids
             ]

@@ -7,7 +7,7 @@ from django.http import StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features, roles
+from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -19,6 +19,7 @@ from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.services import eventstore
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 

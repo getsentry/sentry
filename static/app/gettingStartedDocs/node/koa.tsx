@@ -16,7 +16,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -31,7 +31,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const Koa = require("koa");
 
 const app = new Koa();
@@ -69,10 +69,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Add the Sentry Node SDK as a dependency:'),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params)[0]!.code,
-        },
+        getInstallCodeBlock(params),
       ],
     },
   ],
@@ -241,7 +238,7 @@ const docs: Docs = {
   crashReportOnboarding,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'koa',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   profilingOnboarding: getNodeProfilingOnboarding(),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),

@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -75,12 +75,9 @@ const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params, {
-            basePackage: '@sentry/google-cloud-serverless',
-          })[0]!.code,
-        },
+        getInstallCodeBlock(params, {
+          packageName: '@sentry/google-cloud-serverless',
+        }),
       ],
     },
   ],
@@ -168,14 +165,14 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
-    basePackage: '@sentry/google-cloud-serverless',
+    packageName: '@sentry/google-cloud-serverless',
   }),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'gcp-functions',
-    sdkPackage: '@sentry/google-cloud-serverless',
+    packageName: '@sentry/google-cloud-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'google-cloud-serverless',
+    packageName: '@sentry/google-cloud-serverless',
   }),
   mcpOnboarding: getNodeMcpOnboarding(),
 };

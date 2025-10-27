@@ -1,7 +1,7 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   ContentBlock,
   Docs,
@@ -180,10 +180,7 @@ const replayOnboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          type: 'custom',
-          content: <TracePropagationMessage />,
-        },
+        tracePropagationBlock,
       ],
     },
   ],

@@ -237,7 +237,12 @@ def build_metric_alert_chart(
         organization,
         actor=user,
     )
-    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
+    aggregate = translate_aggregate_field(
+        snuba_query.aggregate,
+        reverse=True,
+        allow_mri=allow_mri,
+        allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+    )
     # If we allow alerts to be across multiple orgs this will break
     # TODO: determine whether this validation is necessary
     first_subscription_or_none = snuba_query.subscriptions.first()

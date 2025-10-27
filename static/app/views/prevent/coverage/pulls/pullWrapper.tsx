@@ -22,7 +22,7 @@ export default function PullDetailWrapper() {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <Outlet />
         </Layout.Main>
       </Layout.Body>

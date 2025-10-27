@@ -91,6 +91,7 @@ describe('formatSeriesName', () => {
         'v0.0.2',
       ],
       ['p95(span.duration)', [{key: 'release', value: 'v0.0.2'}], 'v0.0.2'],
+      ['p95(span.duration)', [{key: 'gen_ai.request.model', value: null}], 'null'],
       [
         'p95(span.duration)',
         [

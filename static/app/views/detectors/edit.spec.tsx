@@ -34,9 +34,9 @@ describe('DetectorEdit', () => {
   });
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
-    route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+    route: '/organizations/:orgId/monitors/:detectorId/edit/',
     location: {
-      pathname: '/organizations/org-slug/issues/monitors/1/edit/',
+      pathname: '/organizations/org-slug/monitors/1/edit/',
     },
   };
 
@@ -139,7 +139,7 @@ describe('DetectorEdit', () => {
 
       // Redirect to the monitors list
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/monitors/`
+        `/organizations/${organization.slug}/monitors/`
       );
     });
 
@@ -216,9 +216,9 @@ describe('DetectorEdit', () => {
       expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
 
       // Can add an automation and save
-      await userEvent.click(screen.getByRole('button', {name: 'Connect an Automation'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Connect an Alert'}));
       const drawer = await screen.findByRole('complementary', {
-        name: 'Connect Automations',
+        name: 'Connect Alerts',
       });
       await userEvent.click(await within(drawer).findByRole('button', {name: 'Connect'}));
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
@@ -239,7 +239,7 @@ describe('DetectorEdit', () => {
       // Should navigate back to detector details page
       await waitFor(() => {
         expect(router.location.pathname).toBe(
-          `/organizations/${organization.slug}/issues/monitors/1/`
+          `/organizations/${organization.slug}/monitors/1/`
         );
       });
     });
@@ -329,7 +329,7 @@ describe('DetectorEdit', () => {
 
       // Should navigate back to detector details page
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/monitors/1/`
+        `/organizations/${organization.slug}/monitors/1/`
       );
     });
 
@@ -454,9 +454,9 @@ describe('DetectorEdit', () => {
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
-          route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
           location: {
-            pathname: `/organizations/${organization.slug}/issues/monitors/${mockDetector.id}/edit/`,
+            pathname: `/organizations/${organization.slug}/monitors/${mockDetector.id}/edit/`,
           },
         },
       });
@@ -528,9 +528,9 @@ describe('DetectorEdit', () => {
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
-          route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
           location: {
-            pathname: `/organizations/${organization.slug}/issues/monitors/${testDetector.id}/edit/`,
+            pathname: `/organizations/${organization.slug}/monitors/${testDetector.id}/edit/`,
           },
         },
       });
@@ -779,9 +779,9 @@ describe('DetectorEdit', () => {
       });
 
       const editRouterConfig = {
-        route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+        route: '/organizations/:orgId/monitors/:detectorId/edit/',
         location: {
-          pathname: `/organizations/${organizationWithDeprecation.slug}/issues/monitors/123/edit/`,
+          pathname: `/organizations/${organizationWithDeprecation.slug}/monitors/123/edit/`,
         },
       };
 
@@ -808,6 +808,56 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+    });
+
+    it('disables interval, aggregate, and query when using the transactions dataset', async () => {
+      const transactionsDetector = MetricDetectorFixture({
+        id: '321',
+        name: 'Transaction Detector',
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'p75()',
+                dataset: Dataset.GENERIC_METRICS,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRANSACTION],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${transactionsDetector.id}/`,
+        body: transactionsDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${transactionsDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: transactionsDetector.name})
+      ).toBeInTheDocument();
+
+      // Interval select should be disabled
+      const intervalField = screen.getByLabelText('Interval');
+      expect(intervalField).toBeDisabled();
+
+      // Aggregate selector should be disabled
+      expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
     });
   });
 });

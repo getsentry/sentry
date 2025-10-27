@@ -34,7 +34,7 @@ export default function TestAnalyticsPageWrapper() {
       </Layout.Header>
       <Layout.Body>
         <PreventQueryParamsProvider>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <Outlet />
           </Layout.Main>
         </PreventQueryParamsProvider>

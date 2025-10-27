@@ -47,6 +47,7 @@ export function FeatureFlagOnboardingLayout({
       platformKey,
       project,
       isLogsSelected: false,
+      isMetricsSelected: false,
       isFeedbackSelected: false,
       isPerformanceSelected: false,
       isProfilingSelected: false,

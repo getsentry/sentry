@@ -13,7 +13,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstore, features, quotas, tagstore
+from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
@@ -31,6 +31,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
@@ -330,109 +331,6 @@ def _get_profile_from_trace_tree(
     return None
 
 
-def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
-    """
-    Get high-level overview of all tags for an issue.
-    Returns aggregated tag data with percentages for all tags.
-    """
-    tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
-        group,
-        [],  # all environments
-        keys=None,  # Get all tags
-        value_limit=3,  # Get top 3 values per tag
-        tenant_ids={"organization_id": group.project.organization_id},
-    )
-
-    all_tags: list[dict] = []
-
-    KEYS_TO_EXCLUDE = {
-        "release",
-        "browser.name",  # the 'browser' tag is better
-        "device.class",
-        "mechanism",
-        "os.name",  # the 'os' tag is better
-        "runtime.name",  # the 'runtime' tag is better
-        "replay_id",
-        "replayid",
-        "level",
-    }  # tags we think are useless for Autofix
-    for tag in tag_keys:
-        if tag.key.lower() in KEYS_TO_EXCLUDE:
-            continue
-
-        # Calculate percentages for each tag value
-        tag_data = {
-            "key": tag.key,
-            "name": tagstore.backend.get_tag_key_label(tag.key),
-            "total_values": tag.count,
-            "unique_values": getattr(tag, "values_seen", 0),
-            "top_values": [],
-        }
-
-        if hasattr(tag, "top_values") and tag.top_values:
-            # Calculate total from top values
-            top_values_total = sum(tag_value.times_seen for tag_value in tag.top_values)
-
-            for tag_value in tag.top_values:
-                percentage = round((tag_value.times_seen / tag.count) * 100) if tag.count > 0 else 0
-
-                # Ensure no single value shows 100% when there are multiple values
-                has_multiple_values = len(tag.top_values) > 1 or top_values_total < tag.count
-                if has_multiple_values and percentage >= 100:
-                    percentage = ">99"
-                elif percentage < 1:
-                    percentage = "<1"
-
-                tag_data["top_values"].append(
-                    {
-                        "value": tag_value.value,
-                        "count": tag_value.times_seen,
-                        "percentage": (
-                            f"{percentage}%" if isinstance(percentage, (int, float)) else percentage
-                        ),
-                    }
-                )
-
-            # Add "other" category if there are more values than the top values shown
-            if top_values_total < tag.count:
-                other_count = tag.count - top_values_total
-                other_percentage = round((other_count / tag.count) * 100) if tag.count > 0 else 0
-
-                # Apply the same percentage formatting rules
-                if other_percentage < 1:
-                    other_percentage_str = "<1%"
-                elif len(tag.top_values) > 0 and other_percentage >= 100:
-                    other_percentage_str = ">99%"
-                else:
-                    other_percentage_str = f"{other_percentage}%"
-
-                tag_data["top_values"].append(
-                    {
-                        "value": "other",
-                        "count": other_count,
-                        "percentage": other_percentage_str,
-                    }
-                )
-
-        if tag_data["top_values"]:  # Only include tags that have values
-            all_tags.append(tag_data)
-
-    logger.info(
-        "[Autofix] Retrieved all tags overview",
-        extra={
-            "group_id": group.id,
-            "org_slug": group.project.organization.slug,
-            "project_slug": group.project.slug,
-            "total_tags_count": len(all_tags),
-            "total_tags_checked": len(tag_keys),
-            "tag_overview": all_tags[:5],  # only log up to the first 5 results
-        },
-    )
-    return {
-        "tags_overview": all_tags,
-    }
-
-
 def _respond_with_error(reason: str, status: int):
     return Response(
         {
@@ -536,6 +434,109 @@ def _call_autofix(
     return response.json().get("run_id")
 
 
+def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
+    """
+    Get high-level overview of all tags for an issue.
+    Returns aggregated tag data with percentages for all tags.
+    """
+    tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
+        group,
+        [],  # all environments
+        keys=None,  # Get all tags
+        value_limit=3,  # Get top 3 values per tag
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+
+    all_tags: list[dict] = []
+
+    KEYS_TO_EXCLUDE = {
+        "release",
+        "browser.name",  # the 'browser' tag is better
+        "device.class",
+        "mechanism",
+        "os.name",  # the 'os' tag is better
+        "runtime.name",  # the 'runtime' tag is better
+        "replay_id",
+        "replayid",
+        "level",
+    }  # tags we think are useless for Autofix
+    for tag in tag_keys:
+        if tag.key.lower() in KEYS_TO_EXCLUDE:
+            continue
+
+        # Calculate percentages for each tag value
+        tag_data = {
+            "key": tag.key,
+            "name": tagstore.backend.get_tag_key_label(tag.key),
+            "total_values": tag.count,
+            "unique_values": getattr(tag, "values_seen", 0),
+            "top_values": [],
+        }
+
+        if hasattr(tag, "top_values") and tag.top_values:
+            # Calculate total from top values
+            top_values_total = sum(tag_value.times_seen for tag_value in tag.top_values)
+
+            for tag_value in tag.top_values:
+                percentage = round((tag_value.times_seen / tag.count) * 100) if tag.count > 0 else 0
+
+                # Ensure no single value shows 100% when there are multiple values
+                has_multiple_values = len(tag.top_values) > 1 or top_values_total < tag.count
+                if has_multiple_values and percentage >= 100:
+                    percentage = ">99"
+                elif percentage < 1:
+                    percentage = "<1"
+
+                tag_data["top_values"].append(
+                    {
+                        "value": tag_value.value,
+                        "count": tag_value.times_seen,
+                        "percentage": (
+                            f"{percentage}%" if isinstance(percentage, (int, float)) else percentage
+                        ),
+                    }
+                )
+
+            # Add "other" category if there are more values than the top values shown
+            if top_values_total < tag.count:
+                other_count = tag.count - top_values_total
+                other_percentage = round((other_count / tag.count) * 100) if tag.count > 0 else 0
+
+                # Apply the same percentage formatting rules
+                if other_percentage < 1:
+                    other_percentage_str = "<1%"
+                elif len(tag.top_values) > 0 and other_percentage >= 100:
+                    other_percentage_str = ">99%"
+                else:
+                    other_percentage_str = f"{other_percentage}%"
+
+                tag_data["top_values"].append(
+                    {
+                        "value": "other",
+                        "count": other_count,
+                        "percentage": other_percentage_str,
+                    }
+                )
+
+        if tag_data["top_values"]:  # Only include tags that have values
+            all_tags.append(tag_data)
+
+    logger.info(
+        "[Autofix] Retrieved all tags overview",
+        extra={
+            "group_id": group.id,
+            "org_slug": group.project.organization.slug,
+            "project_slug": group.project.slug,
+            "total_tags_count": len(all_tags),
+            "total_tags_checked": len(tag_keys),
+            "tag_overview": all_tags[:5],  # only log up to the first 5 results
+        },
+    )
+    return {
+        "tags_overview": all_tags,
+    }
+
+
 def trigger_autofix(
     *,
     group: Group,
@@ -611,7 +612,7 @@ def trigger_autofix(
 
     # get all tags overview for this issue
     try:
-        tags_overview = _get_all_tags_overview(group)
+        tags_overview = get_all_tags_overview(group)
     except Exception:
         logger.exception("Failed to get tags overview")
         tags_overview = None
