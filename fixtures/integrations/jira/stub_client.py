@@ -26,7 +26,7 @@ class StubJiraApiClient(StubService):
         return self._get_stub_data("versions_response.json")
 
     def get_projects_paginated(self, params: dict[str, Any] | None = None):
-        return self._get_stub_data("project_list_response.json")
+        return self._get_stub_data("projects_paginated.json")
 
     def get_projects_list(self, cached: bool = True):
         return self._get_stub_data("project_list_response.json")

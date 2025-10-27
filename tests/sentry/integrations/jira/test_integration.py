@@ -119,6 +119,7 @@ class RegionJiraIntegrationTest(APITestCase):
                     "choices": [("10000", "EX - Example"), ("10001", "ABC - Alphabetical")],
                     "label": "Jira Project",
                     "type": "select",
+                    "url": search_url,
                     "required": True,
                 },
                 {
@@ -509,6 +510,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -543,6 +548,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -593,6 +602,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
