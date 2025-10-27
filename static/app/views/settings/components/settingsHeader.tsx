@@ -17,6 +17,7 @@ const SettingsHeader = styled('div')`
   background: ${p => p.theme.background};
   /* @TODO(jonasbadalic) 61px used to be defined as theme.settings.headerHeight and only used here */
   height: '61px';
+  overflow: auto;
 `;
 
 export default SettingsHeader;

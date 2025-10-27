@@ -40,5 +40,8 @@ function SettingsSearch() {
 export default SettingsSearch;
 
 const StyledSearchInput = styled(InputGroup.Input)`
-  width: 260px;
+  width: 100px;
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    width: 260px;
+  }
 `;
