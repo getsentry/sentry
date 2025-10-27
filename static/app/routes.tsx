@@ -2382,6 +2382,10 @@ function buildRoutes(): RouteObject[] {
           path: 'new/',
           component: make(() => import('sentry/views/prevent/coverage/onboarding')),
         },
+        {
+          path: 'preOnb/',
+          component: make(() => import('sentry/views/prevent/coverage/preOnboarding')),
+        },
         codecovCommitRoutes,
         codecovPRRoutes,
       ],
