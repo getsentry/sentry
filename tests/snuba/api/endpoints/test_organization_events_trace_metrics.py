@@ -72,8 +72,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        # 6 events / 60 seconds = 0.1 events per second
-        assert data[0]["per_minute()"] == 0.1
+        assert data[0]["per_minute()"] == 0.6
         assert meta["fields"]["per_minute()"] == "rate"
         assert meta["dataset"] == "tracemetrics"
 
@@ -95,7 +94,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        # 6 events / 1 second = 6 events per second
-        assert data[0]["per_second()"] == 6.0
+        assert (
+            data[0]["per_second()"] == 0.01
+        )  # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
         assert meta["fields"]["per_second()"] == "rate"
         assert meta["dataset"] == "tracemetrics"
