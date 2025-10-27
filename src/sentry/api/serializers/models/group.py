@@ -15,7 +15,7 @@ from django.db.models import Min, prefetch_related_objects
 
 from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import LOG_LEVELS
 from sentry.integrations.mixins.issues import IssueBasicIntegration
@@ -133,7 +133,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     issueCategory: str
     metadata: dict[str, Any]
     numComments: int
-    assignedTo: UserSerializerResponse
+    assignedTo: ActorSerializerResponse
     isBookmarked: bool
     isSubscribed: bool
     subscriptionDetails: SubscriptionDetails | None
