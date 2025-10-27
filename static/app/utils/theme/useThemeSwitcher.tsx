@@ -74,7 +74,8 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
   );
 
   useHotkeys(
-    organization?.features?.includes('chonk-ui')
+    organization?.features?.includes('chonk-ui') ||
+      organization?.features?.includes('chonk-ui-enforce')
       ? [themeToggleHotkey, chonkThemeToggleHotkey]
       : [themeToggleHotkey]
   );
