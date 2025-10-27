@@ -4,10 +4,13 @@ import styled from '@emotion/styled';
 import {TreeCoverageSunburstChart} from 'sentry/components/charts/treeCoverageSunburstChart';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -18,6 +21,7 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {
+  IconAdd,
   IconArrow,
   IconCheckmark,
   IconChevron,
@@ -25,6 +29,7 @@ import {
   IconCommit,
   IconFile,
   IconGithub,
+  IconInfo,
   IconOpen,
   IconSearch,
   IconSync,
@@ -32,7 +37,7 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconBuilding} from 'sentry/icons/iconBuilding';
 import {IconRepository} from 'sentry/icons/iconRepository';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -42,11 +47,33 @@ import {makePreventPathname} from 'sentry/views/prevent/pathnames';
 import {COVERAGE_BASE_URL} from 'sentry/views/prevent/settings';
 import {SummaryCard, SummaryCardGroup} from 'sentry/views/prevent/summary';
 
+// Styled components used in mock data
+const OptionLabel = styled('span')`
+  white-space: normal;
+  /* Remove custom margin added by SelectorItemLabel. Once we update custom hooks and
+  remove SelectorItemLabel, we can delete this. */
+  div {
+    margin: 0;
+  }
+`;
+
 // Mock data for demonstration - replace with actual data
 const organizationOptions = [
-  {value: 'turing-corp', label: 'Turing-Corp'},
-  {value: 'Example Org-1', label: 'Example Org-1'},
-  {value: 'Example Org-2', label: 'Example Org-2'},
+  {
+    value: 'turing-corp',
+    label: <OptionLabel>Turing-Corp</OptionLabel>,
+    textValue: 'Turing-Corp',
+  },
+  {
+    value: 'Example Org-1',
+    label: <OptionLabel>Example Org-1</OptionLabel>,
+    textValue: 'Example Org-1',
+  },
+  {
+    value: 'Example Org-2',
+    label: <OptionLabel>Example Org-2</OptionLabel>,
+    textValue: 'Example Org-2',
+  },
 ];
 
 const repositoryOptions = [
@@ -56,9 +83,21 @@ const repositoryOptions = [
 ];
 
 const branchOptions = [
-  {value: 'main', label: 'Main branch'},
-  {value: 'develop', label: 'Develop'},
-  {value: 'feature/new-ui', label: 'Feature/new-ui'},
+  {
+    value: 'main',
+    label: <OptionLabel>Main branch</OptionLabel>,
+    textValue: 'Main branch',
+  },
+  {
+    value: 'develop',
+    label: <OptionLabel>Develop</OptionLabel>,
+    textValue: 'Develop',
+  },
+  {
+    value: 'feature/new-ui',
+    label: <OptionLabel>Feature/new-ui</OptionLabel>,
+    textValue: 'Feature/new-ui',
+  },
 ];
 
 const tabOptions = [
@@ -67,6 +106,63 @@ const tabOptions = [
   {id: 'fileExplorer', label: 'File Explorer'},
   {id: 'coverageTrend', label: 'Coverage Trend'},
 ];
+
+function OrgFooterMessage() {
+  return (
+    <Flex gap="sm" direction="column" align="start">
+      <Grid columns="max-content 1fr" gap="sm">
+        {props => (
+          <Text variant="muted" size="sm" {...props}>
+            <IconInfo size="sm" />
+            <div>
+              {tct(
+                'Installing the [githubAppLink:GitHub Application] will require admin approval.',
+                {
+                  githubAppLink: (
+                    <ExternalLink openInNewTab href="https://github.com/apps/sentry-io" />
+                  ),
+                }
+              )}
+            </div>
+          </Text>
+        )}
+      </Grid>
+      <LinkButton
+        href="https://github.com/apps/sentry-io/installations/select_target"
+        size="xs"
+        icon={<IconAdd />}
+        external
+      >
+        {t('GitHub Organization')}
+      </LinkButton>
+    </Flex>
+  );
+}
+
+function RepoFooterMessage() {
+  return (
+    <Grid columns="max-content 1fr" gap="sm">
+      {props => (
+        <Text variant="muted" size="sm" {...props}>
+          <IconInfo size="sm" />
+          <div>
+            {tct(
+              "Sentry only displays repos you've authorized. Manage [repoAccessLink:repo access] in your GitHub settings.",
+              {
+                repoAccessLink: (
+                  <ExternalLink
+                    openInNewTab
+                    href="https://github.com/settings/installations/"
+                  />
+                ),
+              }
+            )}
+          </div>
+        </Text>
+      )}
+    </Grid>
+  );
+}
 
 const uploadFilterOptions = [
   {value: 'all', label: 'All uploads'},
@@ -2567,56 +2663,66 @@ export default function CommitsListPage() {
             value={selectedOrg}
             options={organizationOptions}
             onChange={option => setSelectedOrg(String(option?.value))}
+            closeOnSelect
             trigger={(triggerProps, isOpen) => (
               <DropdownButton
                 isOpen={isOpen}
+                icon={<IconBuilding />}
                 data-test-id="page-filter-org-selector"
                 {...triggerProps}
               >
                 <TriggerLabelWrap>
-                  <Flex align="center" gap="sm">
-                    <IconContainer>
-                      <IconBuilding />
-                    </IconContainer>
-                    <TriggerLabel>
-                      {organizationOptions.find(opt => opt.value === selectedOrg)
-                        ?.label || t('Select organization')}
-                    </TriggerLabel>
-                  </Flex>
+                  <TriggerLabel>
+                    {organizationOptions.find(opt => opt.value === selectedOrg)
+                      ?.textValue || t('Select GitHub Org')}
+                  </TriggerLabel>
                 </TriggerLabelWrap>
               </DropdownButton>
             )}
+            menuWidth="280px"
+            menuFooter={<OrgFooterMessage />}
           />
 
           <CompactSelect
+            menuTitle={t('Select a Repository')}
+            searchable
+            disableSearchFilter
+            searchPlaceholder={t('search by repository name')}
             value={selectedRepo}
             options={repositoryOptions}
             onChange={option => setSelectedRepo(String(option?.value))}
+            menuWidth="16rem"
+            menuHeaderTrailingItems={
+              <Syncbutton size="zero" borderless>
+                {t('Sync Repos')}
+              </Syncbutton>
+            }
+            menuFooter={<RepoFooterMessage />}
             trigger={(triggerProps, isOpen) => (
               <DropdownButton
                 isOpen={isOpen}
+                icon={<IconRepository />}
                 data-test-id="page-filter-repo-selector"
                 {...triggerProps}
               >
-                <TriggerLabelWrap>
-                  <Flex align="center" gap="sm">
-                    <IconContainer>
-                      <IconRepository />
-                    </IconContainer>
-                    <TriggerLabel>
-                      {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
-                        t('Select repo')}
-                    </TriggerLabel>
-                  </Flex>
-                </TriggerLabelWrap>
+                <TriggerLabel>
+                  {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
+                    t('Select Repo')}
+                </TriggerLabel>
               </DropdownButton>
             )}
           />
 
           <CompactSelect
+            searchable
+            disableSearchFilter
+            searchPlaceholder={t('search by branch name')}
+            menuTitle={t('Filter to branch')}
             value={selectedBranch}
             options={branchOptions}
             onChange={option => setSelectedBranch(String(option?.value))}
+            closeOnSelect
+            menuWidth="22em"
             trigger={(triggerProps, isOpen) => (
               <DropdownButton
                 isOpen={isOpen}
@@ -2629,8 +2735,8 @@ export default function CommitsListPage() {
                       <IconBranch />
                     </IconContainer>
                     <TriggerLabel>
-                      {branchOptions.find(opt => opt.value === selectedBranch)?.label ||
-                        t('Select branch')}
+                      {branchOptions.find(opt => opt.value === selectedBranch)
+                        ?.textValue || t('Select branch')}
                     </TriggerLabel>
                   </Flex>
                 </TriggerLabelWrap>
@@ -3192,6 +3298,14 @@ const TriggerLabelWrap = styled('span')`
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   width: auto;
+`;
+
+const Syncbutton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
 `;
 
 const IconContainer = styled('div')`
