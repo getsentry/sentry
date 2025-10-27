@@ -147,7 +147,7 @@ export function PrimaryNavigationHelp() {
                     key: 'new-chonk-ui',
                     label: (
                       <Fragment>
-                        {t('Try our new look')} <FeatureBadge type="beta" />
+                        {t('Try our new look')} <FeatureBadge type="new" />
                       </Fragment>
                     ),
                     textValue: 'Try our new look',
