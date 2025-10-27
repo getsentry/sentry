@@ -12,6 +12,7 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
+  useMetricLabel,
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -57,6 +58,7 @@ interface GraphProps extends MetricsGraphProps {
 function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
+  const metricLabel = useMetricLabel();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -80,7 +82,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${getVisualizeLabel(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+      title={`${getVisualizeLabel(queryIndex)}: ${metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}`}
     />
   );
 
