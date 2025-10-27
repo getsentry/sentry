@@ -415,7 +415,7 @@ def stacktrace(
 ) -> ComponentsByVariant:
     assert context.get("variant_name") is None
 
-    return call_with_variants(
+    stacktrace_components_by_variant = call_with_variants(
         _single_stacktrace_variant,
         ["!app", "system"],
         interface,
@@ -423,6 +423,34 @@ def stacktrace(
         context=context,
         kwargs=kwargs,
     )
+
+    # Tally the number of each type of frame in the stacktrace. This will help with getting the hint
+    # now, and later on, this will allow us to both collect metrics and use the information in
+    # decisions about whether to send the event to Seer. Only the system variant can see system
+    # frames as contributing, so we use it to get the counts.
+    app_stacktrace_component = stacktrace_components_by_variant.get("!app")
+    system_stacktrace_component = stacktrace_components_by_variant.get("system")
+    frame_counts: Counter[str] = Counter()
+    if app_stacktrace_component and system_stacktrace_component:  # Mypy appeasement; always true
+        # Do the tallying
+        for frame_component in system_stacktrace_component.values:
+            if frame_component.in_app:
+                frame_type = "in_app"
+            else:
+                frame_type = "system"
+
+            if frame_component.contributes:
+                contribution_descriptor = "contributing"
+            else:
+                contribution_descriptor = "non_contributing"
+
+            key = f"{frame_type}_{contribution_descriptor}_frames"
+            frame_counts[key] += 1
+
+        app_stacktrace_component.frame_counts = frame_counts
+        system_stacktrace_component.frame_counts = frame_counts
+
+    return stacktrace_components_by_variant
 
 
 def _single_stacktrace_variant(
