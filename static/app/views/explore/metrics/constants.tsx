@@ -6,11 +6,10 @@ import {
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
   TraceMetricKnownFieldKey.ORGANIZATION_ID,
-  TraceMetricKnownFieldKey.SEVERITY_NUMBER,
   TraceMetricKnownFieldKey.ITEM_TYPE,
   TraceMetricKnownFieldKey.TIMESTAMP_PRECISE,
   TraceMetricKnownFieldKey.PROJECT_ID,
-  'project_id', // these are both aliases that might show up
+  TraceMetricKnownFieldKey.OLD_PROJECT_ID,
 ];
 
 /**
@@ -19,12 +18,21 @@ const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
 export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
   TraceMetricKnownFieldKey.SPAN_ID,
-  'sentry.span_id',
 
   // deprecated/otel fields that clutter the UI
   TraceMetricKnownFieldKey.TIMESTAMP_NANOS,
-  'sentry.observed_timestamp_nanos',
-  'tags[sentry.trace_flags,number]',
-  'metric.name',
-  'metric.type',
+  TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_NANOS,
+  TraceMetricKnownFieldKey.TRACE_FLAGS,
+  TraceMetricKnownFieldKey.METRIC_NAME,
+  TraceMetricKnownFieldKey.METRIC_TYPE,
+];
+
+export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
+  ...AlwaysHiddenTraceMetricFields,
+  TraceMetricKnownFieldKey.METRIC_NAME,
+  TraceMetricKnownFieldKey.METRIC_TYPE,
+];
+
+export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
+  ...HiddenTraceMetricSearchFields,
 ];
