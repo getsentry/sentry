@@ -18,6 +18,7 @@ KEY_RATE_LIMIT = {
         "security": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/security/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "playstation": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/playstation/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "integration": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/integration/",
         "otlp_traces": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/integration/otlp/v1/traces",
         "otlp_logs": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/integration/otlp/v1/logs",
         "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
