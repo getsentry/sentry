@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
+import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+
 import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
@@ -231,13 +233,23 @@ export function Chart({
               color={cohort1Color}
               title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
             >
-              {populationPercentages.selected.toFixed(0)}%
+              <Tooltip
+                showUnderline
+                title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
+              >
+                {populationPercentages.selected.toFixed(0)}%
+              </Tooltip>
             </PopulationIndicator>
             <PopulationIndicator
               color={cohort2Color}
               title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
             >
-              {populationPercentages.baseline.toFixed(0)}%
+              <Tooltip
+                showUnderline
+                title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
+              >
+                {populationPercentages.baseline.toFixed(0)}%
+              </Tooltip>
             </PopulationIndicator>
           </Flex>
         </Flex>

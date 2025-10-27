@@ -85,7 +85,10 @@ export function useChartBoxSelect({
       chart.dispatchAction({type: 'hideTip'});
       chart.setOption(
         {
-          tooltip: {show: false},
+          tooltip: {
+            show: false,
+            axisPointer: {show: false},
+          },
         },
         {silent: true}
       );
