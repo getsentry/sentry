@@ -1,6 +1,5 @@
 import {useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -9,10 +8,13 @@ import type {Node} from '@react-types/shared';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
+import {
+  BaseGridCell,
+  FilterWrapper,
+} from 'sentry/components/searchQueryBuilder/tokens/components';
 import {DeletableToken} from 'sentry/components/searchQueryBuilder/tokens/deletableToken';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
@@ -131,12 +133,6 @@ function SearchQueryBuilderBooleanSelect({
 
   return (
     <FilterWrapper
-      border="muted"
-      position="relative"
-      radius="sm"
-      height="24px"
-      /* Ensures that filters do not grow outside of the container */
-      minWidth="0"
       ref={ref}
       aria-label={token.text}
       aria-invalid={tokenHasError}
@@ -150,7 +146,7 @@ function SearchQueryBuilderBooleanSelect({
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >
-        <Flex align="stretch" position="relative" {...gridCellProps}>
+        <BaseGridCell {...gridCellProps}>
           <CompactSelect
             disabled={disabled}
             size="sm"
@@ -173,10 +169,10 @@ function SearchQueryBuilderBooleanSelect({
               dispatch({type: 'UPDATE_BOOLEAN_OPERATOR', token, value: option.value});
             }}
           />
-        </Flex>
-        <Flex align="stretch" position="relative" {...gridCellProps}>
+        </BaseGridCell>
+        <BaseGridCell {...gridCellProps}>
           <FilterDelete token={token} state={state} item={item} />
-        </Flex>
+        </BaseGridCell>
       </GridInvalidTokenTooltip>
     </FilterWrapper>
   );
@@ -195,28 +191,6 @@ const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
-`;
-
-const FilterWrapper = styled(Container)<{state: 'invalid' | 'warning' | 'valid'}>`
-  :focus,
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-    border-color: ${p => (p.theme.isChonk ? p.theme.tokens.border.accent : undefined)};
-    outline: none;
-  }
-
-  ${p =>
-    p.state === 'invalid'
-      ? css`
-          border-color: ${p.theme.red200};
-          background-color: ${p.theme.red100};
-        `
-      : p.state === 'warning'
-        ? css`
-            border-color: ${p.theme.gray300};
-            background-color: ${p.theme.gray100};
-          `
-        : ''}
 `;
 
 const DeleteButton = styled(UnstyledButton)`
