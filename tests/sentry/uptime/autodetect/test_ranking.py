@@ -5,7 +5,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.autodetect.ranking import (
-    _get_cluster,
     add_base_url_to_rank,
     build_org_projects_key,
     delete_candidate_urls_for_project,
@@ -17,6 +16,7 @@ from sentry.uptime.autodetect.ranking import (
     should_autodetect_for_organization,
     should_autodetect_for_project,
 )
+from sentry.uptime.utils import get_cluster
 
 
 class AddBaseUrlToRankTest(UptimeTestCase):
@@ -24,7 +24,7 @@ class AddBaseUrlToRankTest(UptimeTestCase):
         self, project: Project, count: int | None, expiry: int | None
     ) -> int | None:
         key = build_org_projects_key(project.organization)
-        cluster = _get_cluster()
+        cluster = get_cluster()
         if count is None:
             assert not cluster.zscore(key, str(project.id))
             return None
@@ -36,7 +36,7 @@ class AddBaseUrlToRankTest(UptimeTestCase):
         self, project: Project, url: str, count: int | None, expiry: int | None
     ) -> int | None:
         key = get_project_base_url_rank_key(project)
-        cluster = _get_cluster()
+        cluster = get_cluster()
         if count is None:
             assert cluster.zscore(key, url) is None
             return None
@@ -45,7 +45,7 @@ class AddBaseUrlToRankTest(UptimeTestCase):
             return self.check_expiry(key, expiry)
 
     def check_expiry(self, key: str, expiry: int | None) -> int:
-        cluster = _get_cluster()
+        cluster = get_cluster()
         ttl = cluster.ttl(key)
         if expiry is None:
             assert ttl > 0
@@ -94,7 +94,7 @@ class AddBaseUrlToRankTest(UptimeTestCase):
             url_1 = "https://sentry.io"
             url_2 = "https://sentry.sentry.io"
             url_3 = "https://santry.sentry.io"
-            cluster = _get_cluster()
+            cluster = get_cluster()
             add_base_url_to_rank(self.project, url_1)
             add_base_url_to_rank(self.project, url_1)
             add_base_url_to_rank(self.project, url_1)
