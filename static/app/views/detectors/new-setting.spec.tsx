@@ -494,13 +494,15 @@ describe('DetectorEdit', () => {
               mode: 1,
               recoveryThreshold: '4',
             },
-            dataSources: [{
-              intervalSeconds: 60,
-              method: 'GET',
-              timeoutMs: 5000,
-              traceSampling: undefined,
-              url: 'https://uptime-custom.example.com',
-            }],
+            dataSources: [
+              {
+                intervalSeconds: 60,
+                method: 'GET',
+                timeoutMs: 5000,
+                traceSampling: undefined,
+                url: 'https://uptime-custom.example.com',
+              },
+            ],
             name: 'Uptime check for uptime-custom.example.com',
             projectId: '2',
             type: 'uptime_domain_failure',
