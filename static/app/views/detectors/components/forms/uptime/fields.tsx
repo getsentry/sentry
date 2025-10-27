@@ -34,13 +34,15 @@ export function uptimeFormDataToEndpointPayload(
     owner: data.owner,
     projectId: data.projectId,
     workflowIds: data.workflowIds,
-    dataSource: {
-      intervalSeconds: data.intervalSeconds,
-      method: data.method,
-      timeoutMs: data.timeoutMs,
-      traceSampling: data.traceSampling,
-      url: data.url,
-    },
+    dataSources: [
+      {
+        intervalSeconds: data.intervalSeconds,
+        method: data.method,
+        timeoutMs: data.timeoutMs,
+        traceSampling: data.traceSampling,
+        url: data.url,
+      },
+    ],
     config: {
       mode: UptimeMonitorMode.MANUAL,
       recoveryThreshold: data.recoveryThreshold ?? UPTIME_DEFAULT_RECOVERY_THRESHOLD,
