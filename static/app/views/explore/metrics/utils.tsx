@@ -2,6 +2,8 @@ import type {ReactNode} from 'react';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
@@ -51,4 +53,19 @@ export function metricsPickableDays(): PickableDays {
       ...Object.fromEntries(relativeOptions),
     }),
   };
+}
+
+export function getMetricsUnit(
+  meta: MetaType | EventsMetaType,
+  field: string
+): string | undefined {
+  const unitFromField = meta?.units?.[field];
+
+  if (field.startsWith('per_second(')) {
+    return RateUnit.PER_SECOND;
+  }
+  if (field.startsWith('per_minute(')) {
+    return RateUnit.PER_MINUTE;
+  }
+  return unitFromField;
 }
