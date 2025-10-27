@@ -25,7 +25,7 @@ class OrganizationConduitDemoEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.INFRASTRUCTURE
 
     def post(self, request: Request, organization: Organization) -> Response:
         try:
