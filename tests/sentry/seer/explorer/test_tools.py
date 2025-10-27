@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
+from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
@@ -371,17 +372,22 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
 
     def test_get_organization_project_ids(self):
         """Test the get_organization_project_ids RPC method"""
-        from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
-
         # Test with valid organization
         result = get_organization_project_ids(org_id=self.organization.id)
-        assert "project_ids" in result
-        assert isinstance(result["project_ids"], list)
-        assert self.project.id in result["project_ids"]
+        assert "projects" in result
+        assert isinstance(result["projects"], list)
+        assert len(result["projects"]) > 0
+        # Check that projects have both id and slug
+        project = result["projects"][0]
+        assert "id" in project
+        assert "slug" in project
+        # Check that our project is in the results
+        project_ids = [p["id"] for p in result["projects"]]
+        assert self.project.id in project_ids
 
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
-        assert result == {"project_ids": []}
+        assert result == {"projects": []}
 
 
 class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase):
