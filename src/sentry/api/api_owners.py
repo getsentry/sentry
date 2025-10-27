@@ -20,7 +20,7 @@ class ApiOwner(Enum):
     FLAG = "replay-backend"
     GDX = "gdx"
     HYBRID_CLOUD = "hybrid-cloud"
-    INFRASTRUCTURE = "infrastructure"
+    INFRA_ENG = "sre-infrastructure-engineering"
     INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issue-workflow"
     ISSUE_DETECTION_BACKEND = "issue-detection-backend"
