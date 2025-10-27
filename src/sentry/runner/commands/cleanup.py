@@ -767,7 +767,7 @@ def run_bulk_deletes_by_project(
             current_percentage = int((processed_count / total_projects) * 100)
 
             # Report progress every 5% to avoid excessive output
-            if current_percentage > last_reported_percentage + 5:
+            if current_percentage >= last_reported_percentage + 5:
                 logger.info(
                     "Progress: %s%% (%s/%s projects processed) (last_project_id: %s)",
                     current_percentage,
