@@ -5,7 +5,7 @@ import {Item, Section} from '@react-stately/collections';
 import {Flex} from '@sentry/scraps/layout';
 
 import {closeModal} from 'sentry/actionCreators/modal';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
@@ -24,7 +24,9 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
 // TODO: Consider other options, like limiting large sections directly or virtualizing the list
 const MAX_ACTIONS_PER_SECTION = 10;
 
-function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMenuItem {
+function actionToMenuItem(
+  action: CommandPaletteActionWithKey
+): CommandPaletteActionMenuItem {
   return {
     key: action.key,
     label: action.display.label,
@@ -72,7 +74,7 @@ export function CommandPaletteContent() {
   }, [actions]);
 
   const handleSelect = useCallback(
-    (action: CommandPaletteAction) => {
+    (action: CommandPaletteActionWithKey) => {
       const actionType = action.type;
       switch (actionType) {
         case 'group':

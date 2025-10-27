@@ -12,8 +12,6 @@ interface CommonCommandPaletteAction {
     /** Icon to render for this action */
     icon?: ReactNode;
   };
-  /** Unique identifier for this action */
-  key: string;
   /** Section to group the action in the palette */
   groupingKey?: CommandPaletteGroupKey;
   /** Whether this action should be hidden from the palette */
@@ -22,13 +20,13 @@ interface CommonCommandPaletteAction {
   keywords?: string[];
 }
 
-interface CommandPaletteActionLink extends CommonCommandPaletteAction {
+export interface CommandPaletteActionLink extends CommonCommandPaletteAction {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
   type: 'navigate';
 }
 
-interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
+export interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
   /**
    * Execute a callback when the action is selected.
    * Use the `to` prop if you want to navigate to a route.
@@ -37,9 +35,11 @@ interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
   type: 'callback';
 }
 
-interface CommandPaletteActionGroup extends CommonCommandPaletteAction {
+export interface CommandPaletteActionGroup<
+  T = CommandPaletteActionLink | CommandPaletteActionCallback,
+> extends CommonCommandPaletteAction {
   /** Nested actions to show when this action is selected */
-  actions: CommandPaletteAction[];
+  actions: T[];
   type: 'group';
 }
 
@@ -47,3 +47,18 @@ export type CommandPaletteAction =
   | CommandPaletteActionLink
   | CommandPaletteActionCallback
   | CommandPaletteActionGroup;
+
+// Internally, a key is added to the actions in order to track them for registration and selection.
+export type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
+export type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
+  key: string;
+};
+type CommandPaletteActionGroupWithKey<T> = CommandPaletteActionGroup<T> & {
+  key: string;
+};
+export type CommandPaletteActionWithKey =
+  | CommandPaletteActionLinkWithKey
+  | CommandPaletteActionCallbackWithKey
+  | CommandPaletteActionGroupWithKey<
+      CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey
+    >;

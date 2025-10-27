@@ -2,11 +2,11 @@ import {useMemo, useState} from 'react';
 import type Fuse from 'fuse.js';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-type CommandPaletteActionWithPriority = CommandPaletteAction & {
+type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
   priority: number;
 };
 
@@ -29,7 +29,7 @@ const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> =
  * - Change theme → Dark
  */
 function flattenActions(
-  actions: CommandPaletteAction[],
+  actions: CommandPaletteActionWithKey[],
   parentLabel?: string
 ): CommandPaletteActionWithPriority[] {
   const flattened: CommandPaletteActionWithPriority[] = [];
@@ -70,7 +70,8 @@ function flattenActions(
 export function useCommandPaletteState() {
   const [query, setQuery] = useState('');
   const actions = useCommandPaletteActions();
-  const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
+  const [selectedAction, setSelectedAction] =
+    useState<CommandPaletteActionWithKey | null>(null);
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (

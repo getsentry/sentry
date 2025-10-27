@@ -2,18 +2,18 @@ import {createContext, useCallback, useContext, useReducer} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
-import type {CommandPaletteAction} from './types';
+import type {CommandPaletteActionWithKey} from './types';
 
 type CommandPaletteProviderProps = {children: React.ReactNode};
 
-type CommandPaletteActions = CommandPaletteAction[];
+type CommandPaletteActions = CommandPaletteActionWithKey[];
 
 type Unregister = () => void;
-type CommandPaletteRegistration = (actions: CommandPaletteAction[]) => Unregister;
+type CommandPaletteRegistration = (actions: CommandPaletteActionWithKey[]) => Unregister;
 
 type CommandPaletteActionReducerAction =
   | {
-      actions: CommandPaletteAction[];
+      actions: CommandPaletteActionWithKey[];
       type: 'register';
     }
   | {
@@ -35,7 +35,7 @@ export function useCommandPaletteRegistration(): CommandPaletteRegistration {
   return ctx;
 }
 
-export function useCommandPaletteActions(): CommandPaletteActions {
+export function useCommandPaletteActions(): CommandPaletteActionWithKey[] {
   const ctx = useContext(CommandPaletteActionsContext);
   if (ctx === null) {
     throw new Error('useCommandPaletteActions must be wrapped in CommandPaletteProvider');
@@ -44,9 +44,9 @@ export function useCommandPaletteActions(): CommandPaletteActions {
 }
 
 function actionsReducer(
-  state: CommandPaletteAction[],
+  state: CommandPaletteActionWithKey[],
   reducerAction: CommandPaletteActionReducerAction
-): CommandPaletteAction[] {
+): CommandPaletteActionWithKey[] {
   const type = reducerAction.type;
   switch (type) {
     case 'register': {
@@ -76,7 +76,7 @@ export function CommandPaletteProvider({children}: CommandPaletteProviderProps) 
   const [actions, dispatch] = useReducer(actionsReducer, []);
 
   const registerActions = useCallback(
-    (newActions: CommandPaletteAction[]) => {
+    (newActions: CommandPaletteActionWithKey[]) => {
       dispatch({type: 'register', actions: newActions});
       return () => {
         dispatch({type: 'unregister', keys: newActions.map(a => a.key)});
