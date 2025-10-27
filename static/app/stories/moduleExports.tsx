@@ -5,7 +5,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Stack} from 'sentry/components/core/layout';
 
 export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
-  if (!props.exports || !props.exports.exports) return null;
+  if (!props.exports?.exports) return null;
 
   const lines = [];
 
