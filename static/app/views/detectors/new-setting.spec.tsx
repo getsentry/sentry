@@ -15,7 +15,7 @@ import DetectorNewSettings from 'sentry/views/detectors/new-settings';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'visibility-explore-view'],
+    features: ['workflow-engine-ui', 'visibility-explore-view', 'performance-view'],
   });
   const project = ProjectFixture({organization, environments: ['production']});
   const initialRouterConfig = {
@@ -97,6 +97,52 @@ describe('DetectorEdit', () => {
         query: {detectorType: 'metric_issue', project: project.id},
       },
     };
+
+    it('auto-generates name', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+      await screen.findByText('New Monitor');
+
+      // Enter threshold value
+      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+
+      // Name should be auto-generated from defaults (Spans + count(span.duration))
+      expect(await screen.findByTestId('editable-text-label')).toHaveTextContent(
+        'Number of spans above 100 over past 1 hour'
+      );
+
+      // Change aggregate from count() to p75(span.duration)
+      await userEvent.click(screen.getByRole('button', {name: 'count'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'p75'}));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('editable-text-label')).toHaveTextContent(
+          'p75(span.duration) above 100ms over past 1 hour'
+        );
+      });
+
+      // Change dataset from Spans to Errors
+      await userEvent.click(screen.getByText('Spans'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Errors'}));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('editable-text-label')).toHaveTextContent(
+          'Number of errors above 100 over past 1 hour'
+        );
+      });
+
+      // Change interval from 1 hour to 4 hours
+      await userEvent.click(screen.getByText('1 hour'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '4 hours'}));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('editable-text-label')).toHaveTextContent(
+          'Number of errors above 100 over past 4 hours'
+        );
+      });
+    });
 
     it('can submit a new metric detector', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
@@ -200,7 +246,7 @@ describe('DetectorEdit', () => {
           `/organizations/${organization.slug}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
-              name: 'My Monitor',
+              name: 'Users experiencing errors above 100 over past 1 hour',
               type: 'metric_issue',
               projectId: project.id,
               owner: null,
