@@ -832,12 +832,33 @@ export function useQueryBuilderState({
           return {...state, committedQuery: state.query};
         case 'UPDATE_QUERY': {
           const shouldCommitQuery = action.shouldCommitQuery ?? true;
-          return {
-            ...state,
-            query: action.query,
-            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
-            focusOverride: action.focusOverride ?? null,
-          };
+
+          if (
+            !hasWildcardOperators ||
+            !replaceRawSearchKeys ||
+            replaceRawSearchKeys.length === 0
+          ) {
+            return {
+              ...state,
+              query: action.query,
+              committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
+              focusOverride: action.focusOverride ?? null,
+            };
+          }
+
+          const replacedState = replaceFreeTextTokens(
+            action.query,
+            getFieldDefinition,
+            replaceRawSearchKeys
+          );
+
+          const query = replacedState?.newQuery ? replacedState.newQuery : action.query;
+          const committedQuery = shouldCommitQuery ? query : state.committedQuery;
+          const focusOverride = replacedState?.focusOverride
+            ? replacedState.focusOverride
+            : (action.focusOverride ?? null);
+
+          return {...state, query, committedQuery, focusOverride};
         }
         case 'RESET_FOCUS_OVERRIDE':
           return {
