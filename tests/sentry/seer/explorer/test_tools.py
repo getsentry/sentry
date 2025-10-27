@@ -891,6 +891,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
             delta = parse_stats_period(stats_period)
+            assert delta is not None
             if delta > timedelta(days=30):
                 # Skip the 90d test as the retention for testutils is 30d.
                 continue

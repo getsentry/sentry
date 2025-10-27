@@ -348,7 +348,8 @@ def _get_issue_event_timeseries(
 
     stats_period, interval = None, None
     for p, i in EVENT_TIMESERIES_RESOLUTIONS:
-        if first_seen_delta <= parse_stats_period(p):
+        delta = parse_stats_period(p)
+        if delta and first_seen_delta <= delta:
             stats_period, interval = p, i
             break
     stats_period = stats_period or "90d"
@@ -478,16 +479,22 @@ def get_issue_details(
         )
         tags_overview = None
 
-    event_timeseries, stats_period, interval = _get_issue_event_timeseries(
+    ts_result = _get_issue_event_timeseries(
         organization=organization,
         project_id=group.project_id,
         issue_short_id=group.qualified_short_id,
         first_seen_delta=datetime.now(UTC) - group.first_seen,
     )
+    if ts_result:
+        timeseries, stats_period, interval = ts_result
+    else:
+        timeseries = None
+        stats_period = None
+        interval = None
 
     return {
         "issue": serialized_group,
-        "event_timeseries": event_timeseries,
+        "event_timeseries": timeseries,
         "timeseries_stats_period": stats_period,
         "timeseries_interval": interval,
         "tags_overview": tags_overview,
