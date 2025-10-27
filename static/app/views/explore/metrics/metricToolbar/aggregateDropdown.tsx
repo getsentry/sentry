@@ -12,6 +12,14 @@ import {
 const OPTIONS_BY_TYPE: Record<string, Array<{label: string; value: string}>> = {
   counter: [
     {
+      label: 'per_second',
+      value: 'per_second',
+    },
+    {
+      label: 'per_minute',
+      value: 'per_minute',
+    },
+    {
       label: 'sum',
       value: 'sum',
     },

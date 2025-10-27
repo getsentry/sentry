@@ -19,7 +19,7 @@ import {
   StyledTopResultsIndicator,
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
+import {createMetricNameFilter, getMetricsUnit} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -134,7 +134,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
                   <FieldRenderer
                     column={columns[j]}
                     data={row}
-                    unit={meta?.units?.[field]}
+                    unit={getMetricsUnit(meta, field)}
                     meta={meta}
                   />
                 </StyledSimpleTableRowCell>
