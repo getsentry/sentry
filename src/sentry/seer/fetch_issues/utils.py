@@ -136,15 +136,25 @@ def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
     }
 
 
-def get_latest_issue_event(group_id: int, organization_id: int) -> dict[str, Any]:
+def _group_by_short_id(short_id: str, organization_id: int) -> Group | None:
+    try:
+        return Group.objects.by_qualified_short_id(organization_id, short_id)
+    except Group.DoesNotExist:
+        return None
+
+
+def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[str, Any]:
     """
     Get an issue's latest event as a dict, matching the Seer IssueDetails model.
     """
-    group = Group.objects.filter(id=group_id).first()
+    if isinstance(group_id, str) and not group_id.isdigit():
+        group = _group_by_short_id(group_id, organization_id)
+    else:
+        group = Group.objects.filter(id=int(group_id)).first()
+
     if not group:
         logger.warning(
-            "Group not found",
-            extra={"group_id": group_id},
+            "Group not found", extra={"group_id": group_id, "organization_id": organization_id}
         )
         return {}
 
