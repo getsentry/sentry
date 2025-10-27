@@ -19,6 +19,7 @@ import {
   StyledTopResultsIndicator,
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {useMetricLabel} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -36,6 +37,7 @@ interface AggregatesTabProps {
 
 export function AggregatesTab({metricName}: AggregatesTabProps) {
   const topEvents = useTopEvents();
+  const metricLabel = useMetricLabel();
 
   const {result, eventView, fields} = useMetricAggregatesTable({
     enabled: Boolean(metricName),
@@ -89,7 +91,8 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
           const func = parseFunction(field);
           if (func) {
-            label = prettifyParsedFunction(func);
+            label =
+              func.arguments[0] === 'value' ? metricLabel : prettifyParsedFunction(func);
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
