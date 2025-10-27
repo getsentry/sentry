@@ -35,7 +35,7 @@ export interface CommandPaletteActionCallback extends CommonCommandPaletteAction
   type: 'callback';
 }
 
-export interface CommandPaletteActionGroup<
+interface CommandPaletteActionGroup<
   T = CommandPaletteActionLink | CommandPaletteActionCallback,
 > extends CommonCommandPaletteAction {
   /** Nested actions to show when this action is selected */
