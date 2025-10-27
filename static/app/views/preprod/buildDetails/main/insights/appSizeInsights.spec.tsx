@@ -20,7 +20,7 @@ describe('AppSizeInsights', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
     expect(screen.getByText('Top insights')).toBeInTheDocument();
-    expect(screen.getByText('View all insights')).toBeInTheDocument();
+    expect(screen.getByText('View insight details')).toBeInTheDocument();
   });
 
   it('displays only top 3 insights in the main view', () => {
