@@ -50,7 +50,8 @@ class ManualTokenRefresher:
                 token = None
                 with transaction.atomic(router.db_for_write(ApiToken)):
                     self._validate()
-                    self.install.api_token.delete()
+                    if self.install.api_token is not None:
+                        self.install.api_token.delete()
 
                     self._record_analytics()
                     token = self._create_new_token()

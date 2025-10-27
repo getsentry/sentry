@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime
+from typing import Any
 
 import sentry_sdk
+from django.http import HttpHeaders
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -81,22 +83,24 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     client_id=refresh_serializer.validated_data.get("client_id"),
                     user=promote_request_api_user(request),
                 ).run()
-            elif request.data.get("grant_type") == GrantTypes.CLIENT_SECERT_JWT:
+            elif request.data.get("grant_type") == GrantTypes.CLIENT_SECRET_JWT:
                 client_secret_jwt_serializer = SentryAppClientSecretJWTSerializer(data=request.data)
 
                 if not client_secret_jwt_serializer.is_valid():
                     return Response(client_secret_jwt_serializer.errors, status=400)
 
                 try:
-                    payload = validate_client_secret_jwt(request.header)
+                    payload = validate_client_secret_jwt(
+                        headers=request.headers, installation=installation
+                    )
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
-                    return Response({"detail": "could not validate JWT"}, code=403)
+                    return Response({"detail": "could not validate JWT"}, status=403)
 
                 if request.data.get("operation") == "manual_token_refresh":
                     token = ManualTokenRefresher(
                         install=installation,
-                        client_id=payload.get("iss"),
+                        client_id=payload["iss"],
                         user=promote_request_api_user(request),
                     ).run()
 
@@ -122,8 +126,10 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
         return Response(body, status=201)
 
 
-def validate_client_secret_jwt(header: str, installation: SentryAppInstallation) -> None:
-    auth_header = header.get("Authorization")
+def validate_client_secret_jwt(
+    headers: HttpHeaders, installation: SentryAppInstallation
+) -> dict[str, Any]:
+    auth_header = headers.get("Authorization")
     if auth_header is None:
         raise serializers.ValidationError("Header is in invalid form")
 
@@ -131,17 +137,21 @@ def validate_client_secret_jwt(header: str, installation: SentryAppInstallation)
     if tokens[0].lower() != "bearer":
         raise serializers.ValidationError("Bearer not present in token")
 
-    client_secret = installation.sentry_app.application.client_secret
+    application = installation.sentry_app.application
+    if application is None:
+        raise serializers.ValidationError("Application not found")
+
+    client_secret = application.client_secret
     encoded_jwt = tokens[1]
     try:
-        payload = jwt.decode(encoded_jwt, client_secret, algorithm="HS256")
+        payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
     except Exception as e:
         raise serializers.ValidationError("Could not validate JWT") from e
 
-    if payload.get("iss") != installation.sentry_app.application.client_id:
+    if payload.get("iss") is not None and payload["iss"] != application.client_id:
         raise serializers.ValidationError("JWT is not valid for this application")
 
-    if payload.get("exp") < datetime.now():
+    if payload.get("exp") is not None and payload["exp"] < datetime.now().timestamp():
         raise serializers.ValidationError("JWT is expired")
 
     return payload
