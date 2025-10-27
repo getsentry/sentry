@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-export const LIVE_TOOLTIP_MESSAGE = t('This replay is still in progress.');
+export const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
 
 export function getReplayExpiresAtMs(startedAt: ReplayRecord['started_at']): number {
   const ONE_HOUR_MS = 3_600_000;
