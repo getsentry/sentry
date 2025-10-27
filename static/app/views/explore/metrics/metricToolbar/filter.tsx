@@ -8,6 +8,7 @@ import {
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
 import {
@@ -42,12 +43,28 @@ export function Filter({traceMetric}: FilterProps) {
     query: metricNameFilter,
   });
 
+  const visibleNumberTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(numberTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+      )
+    );
+  }, [numberTags]);
+
+  const visibleStringTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(stringTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+      )
+    );
+  }, [stringTags]);
+
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
-        numberAttributes: numberTags ?? EMPTY_TAG_COLLECTION,
-        stringAttributes: stringTags ?? EMPTY_TAG_COLLECTION,
+        numberAttributes: visibleNumberTags ?? EMPTY_TAG_COLLECTION,
+        stringAttributes: visibleStringTags ?? EMPTY_TAG_COLLECTION,
         numberSecondaryAliases: EMPTY_ALIASES,
         stringSecondaryAliases: EMPTY_ALIASES,
         initialQuery: query,
@@ -55,7 +72,7 @@ export function Filter({traceMetric}: FilterProps) {
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
       };
-    }, [query, setQuery, numberTags, stringTags, traceMetric.name]);
+    }, [query, setQuery, visibleNumberTags, visibleStringTags, traceMetric.name]);
 
   const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
+import {TabListWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -26,11 +27,14 @@ export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
       onChange={mode => {
         setAggregatesMode(mode);
       }}
+      size="xs"
     >
-      <TabList>
-        <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-        <TabList.Item key={Mode.SAMPLES}>{t('Samples')}</TabList.Item>
-      </TabList>
+      <TabListWrapper>
+        <TabList>
+          <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+          <TabList.Item key={Mode.SAMPLES}>{t('Samples')}</TabList.Item>
+        </TabList>
+      </TabListWrapper>
 
       {visualize.visible && (
         <BodyContainer>

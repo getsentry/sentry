@@ -4,8 +4,6 @@
 export enum TraceMetricKnownFieldKey {
   TRACE_ID = 'trace',
   MESSAGE = 'message',
-  SEVERITY_NUMBER = 'severity_number',
-  SEVERITY = 'severity',
   ORGANIZATION_ID = 'organization.id',
   PROJECT_ID = 'project.id',
   PROJECT = 'project',
@@ -14,9 +12,11 @@ export enum TraceMetricKnownFieldKey {
   TIMESTAMP_PRECISE = 'timestamp_precise',
   OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
 
+  METRIC_NAME = 'metric.name',
+  METRIC_TYPE = 'metric.type',
+
   PAYLOAD_SIZE = 'payload_size',
 
-  TEMPLATE = 'message.template',
   PARENT_SPAN_ID = 'trace.parent_span_id',
 
   // Field renderer aliases
@@ -43,6 +43,9 @@ export enum TraceMetricKnownFieldKey {
 
   // Deprecated fields
   TIMESTAMP_NANOS = 'sentry.timestamp_nanos',
+  OBSERVED_TIMESTAMP_NANOS = 'observed_timestamp_nanos',
+  TRACE_FLAGS = 'tags[sentry.trace_flags,number]',
+  OLD_PROJECT_ID = 'project_id',
 
   // Replay integration
   REPLAY_ID = 'replay_id',
