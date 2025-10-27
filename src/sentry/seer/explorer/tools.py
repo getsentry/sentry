@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal
 
 from sentry import eventstore
@@ -23,6 +23,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
 
@@ -322,18 +323,36 @@ def get_repository_definition(*, organization_id: int, repo_full_name: str) -> d
     }
 
 
+# Tuples of (total period, interval) (both in sentry stats period format).
+EVENT_TIMESERIES_RESOLUTIONS = (
+    ("6h", "15m"),  # 24 buckets
+    ("24h", "1h"),  # 24 buckets
+    ("3d", "3h"),  # 24 buckets
+    ("7d", "6h"),  # 28 buckets
+    ("14d", "12h"),  # 28 buckets
+    ("30d", "24h"),  # 30 buckets
+    ("90d", "3d"),  # 30 buckets
+)
+
+
 def _get_issue_event_timeseries(
     *,
     organization: Organization,
     project_id: int,
     issue_short_id: str,
-    stats_period: str = "7d",
-    interval: str = "6h",
-    per_page: int = 50,
-) -> dict[str, Any] | None:
+    first_seen_delta: timedelta,
+) -> tuple[dict[str, Any], str, str] | None:
     """
     Get event counts over time for an issue by calling the events-stats endpoint.
     """
+
+    stats_period, interval = None, None
+    for p, i in EVENT_TIMESERIES_RESOLUTIONS:
+        if first_seen_delta <= parse_stats_period(p):
+            stats_period, interval = p, i
+            break
+    stats_period = stats_period or "90d"
+    interval = interval or "3d"
 
     params: dict[str, Any] = {
         "dataset": "issuePlatform",
@@ -342,7 +361,6 @@ def _get_issue_event_timeseries(
         "partial": "1",
         "statsPeriod": stats_period,
         "interval": interval,
-        "per_page": per_page,
         "project": project_id,
         "referrer": Referrer.SEER_RPC,
     }
@@ -364,7 +382,7 @@ def _get_issue_event_timeseries(
         )
         return None
 
-    return {"count()": {"data": resp.data["data"]}}
+    return {"count()": {"data": resp.data["data"]}}, stats_period, interval
 
 
 def get_issue_details(
@@ -460,15 +478,18 @@ def get_issue_details(
         )
         tags_overview = None
 
-    event_timeseries = _get_issue_event_timeseries(
+    event_timeseries, stats_period, interval = _get_issue_event_timeseries(
         organization=organization,
         project_id=group.project_id,
         issue_short_id=group.qualified_short_id,
+        first_seen_delta=datetime.now(UTC) - group.first_seen,
     )
 
     return {
         "issue": serialized_group,
         "event_timeseries": event_timeseries,
+        "timeseries_stats_period": stats_period,
+        "timeseries_interval": interval,
         "tags_overview": tags_overview,
         "event": serialized_event,
         "event_id": event.event_id,
