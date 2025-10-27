@@ -283,7 +283,34 @@ def patch_transport_for_instrumentation(transport, transport_name):
 
         def patched_send_request(*args, **kwargs):
             metrics.incr(f"internal.sent_requests.{transport_name}.events")
-            return _send_request(*args, **kwargs)
+
+            try:
+                return _send_request(*args, **kwargs)
+            except Exception as e:
+                # Track transport failures as Datadog metrics (won't fail if SDK is down)
+                # This is critical for detecting SDK health issues like HTTP/2 connection
+                # exhaustion (e.g., httpcore.LocalProtocolError in cleanup operations)
+                error_type = type(e).__name__
+                metrics.incr(
+                    "internal.sdk_transport_error",
+                    tags={
+                        "transport": transport_name,
+                        "error_type": error_type,
+                    },
+                    sample_rate=1.0,
+                )
+                # Log for visibility in GCP logs (where transport errors surface)
+                logger.warning(
+                    "SDK transport error - event delivery failed",
+                    extra={
+                        "transport": transport_name,
+                        "error_type": error_type,
+                        "error_message": str(e)[:200],  # Truncate to avoid log spam
+                    },
+                    exc_info=False,  # Don't include full traceback to avoid recursion
+                )
+                # Re-raise to let SDK handle it normally (SDK will log internally)
+                raise
 
         transport._send_request = patched_send_request
     return transport
