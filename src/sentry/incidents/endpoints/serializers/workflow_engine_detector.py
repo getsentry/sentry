@@ -7,6 +7,10 @@ from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+    get_object_id_from_fake_id,
+)
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
 )
@@ -34,8 +38,6 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
-
-OFFSET = 10**9
 
 
 class WorkflowEngineDetectorSerializer(Serializer):
@@ -84,7 +86,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                     alert_rule_id=alert_rule_id
                 )
             except AlertRuleDetector.DoesNotExist:
-                detector_id = int(alert_rule_id) - OFFSET
+                detector_id = get_object_id_from_fake_id(alert_rule_id)
 
             detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
@@ -338,7 +340,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             except AlertRuleDetector.DoesNotExist:
                 # this detector does not have an analog in the old system,
                 # but we need to return *something*
-                alert_rule_id = obj.id + OFFSET
+                alert_rule_id = get_fake_id_from_object_id(obj.id)
 
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_id),

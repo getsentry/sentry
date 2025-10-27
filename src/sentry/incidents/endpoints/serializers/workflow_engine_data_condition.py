@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer, serialize
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_action import (
     WorkflowEngineActionSerializer,
 )
@@ -26,8 +27,6 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-
-OFFSET = 10**9
 
 
 class WorkflowEngineDataConditionSerializer(Serializer):
@@ -98,14 +97,14 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         except DataConditionAlertRuleTrigger.DoesNotExist:
             # this data condition does not have an analog in the old system,
             # but we need to return *something*
-            alert_rule_trigger_id = obj.id + OFFSET
+            alert_rule_trigger_id = get_fake_id_from_object_id(obj.id)
         try:
             alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
                 detector=detector.id
             )
         except AlertRuleDetector.DoesNotExist:
             # this detector does not have an analog in the old system
-            alert_rule_id = detector.id + OFFSET
+            alert_rule_id = get_fake_id_from_object_id(detector.id)
 
         if obj.type == Condition.ANOMALY_DETECTION:
             threshold_type = obj.comparison["threshold_type"]

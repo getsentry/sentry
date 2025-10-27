@@ -10,6 +10,7 @@ from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
     get_input_channel_id,
     human_desc,
 )
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
@@ -26,8 +27,6 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-
-OFFSET = 10**9
 
 
 class WorkflowEngineActionSerializer(Serializer):
@@ -63,7 +62,7 @@ class WorkflowEngineActionSerializer(Serializer):
         except DataConditionAlertRuleTrigger.DoesNotExist:
             # this data condition does not have an analog in the old system,
             # but we need to return *something*
-            return detector_trigger.id + OFFSET
+            return get_fake_id_from_object_id(detector_trigger.id)
 
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
@@ -95,7 +94,7 @@ class WorkflowEngineActionSerializer(Serializer):
             "id": (
                 str(aarta.alert_rule_trigger_action_id)
                 if aarta is not None
-                else str(obj.id + OFFSET)
+                else str(get_fake_id_from_object_id(obj.id))
             ),
             "alertRuleTriggerId": str(self.get_alert_rule_trigger_id(obj)),
             "type": obj.type,
