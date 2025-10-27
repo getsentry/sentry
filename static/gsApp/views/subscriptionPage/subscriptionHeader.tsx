@@ -193,7 +193,12 @@ function SubscriptionHeader(props: Props) {
         <Heading as="h1" size="md">
           {t('Subscription')}
         </Heading>
-        <Flex justify="between" align="center">
+        <Flex
+          justify="between"
+          align={{xs: 'start', sm: 'center'}}
+          direction={{xs: 'column', sm: 'row'}}
+          gap="xl"
+        >
           <Flex align="center" gap="sm">
             {isValidElement(planIcon)
               ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)

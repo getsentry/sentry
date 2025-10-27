@@ -73,7 +73,6 @@ function getCards(organization: Organization, subscription: Subscription) {
 
 function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const isNewBillingUI = hasNewBillingUI(organization);
-
   const cards = getCards(organization, subscription);
 
   return (
@@ -83,6 +82,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
         <Grid
           columns={{
             xs: '1fr',
+            sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
             md: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"

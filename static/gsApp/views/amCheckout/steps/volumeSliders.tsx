@@ -414,6 +414,10 @@ const StyledHovercard = styled(Hovercard)`
   ${Body} {
     padding: 0px;
   }
+
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    width: 100%;
+  }
 `;
 
 const IconContainer = styled('span')`

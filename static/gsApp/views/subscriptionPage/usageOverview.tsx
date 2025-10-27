@@ -826,7 +826,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
           {t('Usage Overview')}
         </Heading>
         {hasBillingPerms && (
-          <Flex gap="lg">
+          <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
             <LinkButton
               icon={<IconGraph />}
               aria-label={t('View usage history')}
