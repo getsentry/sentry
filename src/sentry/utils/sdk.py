@@ -297,7 +297,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
                         "transport": transport_name,
                         "error_type": error_type,
                     },
-                    sample_rate=1.0,
+                    sample_rate=options.get("sdk_transport_error.sample-rate"),
                 )
                 # Log for visibility in GCP logs (where transport errors surface)
                 logger.warning(
