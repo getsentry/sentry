@@ -148,7 +148,7 @@ def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) 
 
     for span in spans:
         if not attribute_value(span, "sentry.segment.name"):
-            segment["attributes"] = segment.get("attributes") or {}
+            span["attributes"] = span.get("attributes") or {}
             span["attributes"]["sentry.segment.name"] = {  # type: ignore[index]
                 "type": "string",
                 "value": segment_name,
