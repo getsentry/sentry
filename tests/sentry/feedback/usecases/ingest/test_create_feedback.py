@@ -478,12 +478,16 @@ def test_create_feedback_spam_detection_kafka_and_evidence(
     expected_result,
     expected_evidence_display,
 ):
-    mock_is_spam_seer.return_value = expected_result
     mock_spam_detection_enabled.return_value = enabled
+    if enabled:
+        mock_is_spam_seer.return_value = expected_result
 
     event = mock_feedback_event(default_project.id, message=input_message)
 
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    if not enabled:
+        mock_is_spam_seer.assert_not_called()
 
     # Check status change kafka message.
     if expected_result is True:
