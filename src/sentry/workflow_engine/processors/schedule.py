@@ -88,10 +88,13 @@ class ProjectChooser:
     ProjectChooser assists in determining which projects to process based on the cohort updates.
     """
 
-    def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts: int):
+    def __init__(
+        self, buffer_client: DelayedWorkflowClient, num_cohorts: int, min_scheduling_age: timedelta
+    ):
         self.client = buffer_client
         assert num_cohorts > 0 and num_cohorts <= 255
         self.num_cohorts = num_cohorts
+        self.min_scheduling_age = min_scheduling_age
 
     def _project_id_to_cohort(self, project_id: int) -> int:
         return hashlib.sha256(project_id.to_bytes(8)).digest()[0] % self.num_cohorts
@@ -108,7 +111,7 @@ class ProjectChooser:
         cohort_to_elapsed = dict[int, timedelta]()
         long_ago = now - 1000
         target_max_age = timedelta(minutes=1)  # must run
-        min_scheduling_age = timedelta(seconds=50)  # can run
+        min_scheduling_age = self.min_scheduling_age  # can run
         # The cohort choice algorithm is essentially:
         # 1. Any cohort that hasn't been run recently enough (based on target_max_age)
         #   must be run.
@@ -119,12 +122,27 @@ class ProjectChooser:
         # With this, we distribute cohorts across runs, but ensure we don't process them
         # too frequently or too late, while not being too dependent on number of cohorts or
         # frequency of scheduling.
+        if len(cohort_updates.values) != self.num_cohorts:
+            logger.info(
+                "%s cohort_updates.values, but num_cohorts is %s. Resetting.",
+                len(cohort_updates.values),
+                self.num_cohorts,
+                extra={"cohort_updates": cohort_updates.values},
+            )
+            # When cohort counts change, we accept that we'll be potentially running some
+            # projects a bit too early. Previous cohorts are no longer valid, so the timestamps
+            # associated with them are only accurate for setting bounds on the whole project space.
+            # But, we can still use that to avoid running projects too early by giving them all the
+            # eldest timestamp.
+            eldest = min(cohort_updates.values.values(), default=long_ago)
+            # This also ensures that if we downsize cohorts, we don't let data from now-dead cohorts
+            # linger.
+            cohort_updates.values = {co: eldest for co in range(self.num_cohorts)}
         for co in range(self.num_cohorts):
             last_run = cohort_updates.values.get(co)
             if last_run is None:
                 last_run = long_ago
-                # It's a bug if we don't know the last run outside of
-                # a few transitional periods.
+                # It's a bug if the cohort doesn't exist at this point.
                 metrics.incr(
                     "workflow_engine.schedule.cohort_not_found",
                     tags={"cohort": co},
@@ -154,6 +172,15 @@ class ProjectChooser:
                     elapsed.total_seconds(),
                     sample_rate=1.0,
                 )
+                metrics.incr(
+                    "workflow_engine.schedule.scheduled_cohort",
+                    tags={"cohort": cohort_id},
+                    sample_rate=1.0,
+                )
+        logger.info(
+            "schedule.selected_cohorts",
+            extra={"selected": sorted(must_process), "may_process": sorted(may_process)},
+        )
         return [
             project_id
             for project_id in all_project_ids
@@ -202,7 +229,15 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         # Check if cohort-based selection is enabled (defaults to True for safety)
         use_cohort_selection = options.get("workflow_engine.use_cohort_selection", True)
         project_chooser = (
-            ProjectChooser(buffer_client, num_cohorts=options.get("workflow_engine.num_cohorts", 1))
+            ProjectChooser(
+                buffer_client,
+                num_cohorts=options.get("workflow_engine.num_cohorts", 1),
+                min_scheduling_age=timedelta(
+                    seconds=options.get(
+                        "workflow_engine.schedule.min_cohort_scheduling_age_seconds", 50
+                    )
+                ),
+            )
             if use_cohort_selection
             else None
         )

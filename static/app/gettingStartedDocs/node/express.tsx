@@ -33,7 +33,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const express = require("express");
 
 const app = express();
@@ -211,7 +211,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'express',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   profilingOnboarding: getNodeProfilingOnboarding(),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),

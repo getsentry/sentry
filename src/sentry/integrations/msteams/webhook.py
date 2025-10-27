@@ -15,7 +15,7 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, eventstore, options
+from sentry import analytics, audit_log, options
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -49,6 +49,7 @@ from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.rule import Rule
+from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
 from sentry.utils import jwt

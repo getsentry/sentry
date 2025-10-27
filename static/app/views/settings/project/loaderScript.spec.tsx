@@ -100,7 +100,7 @@ describe('LoaderScript', () => {
           crons: '',
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
-          otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          otlp_traces: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/traces',
           otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',
@@ -242,7 +242,7 @@ describe('LoaderScript', () => {
           crons: '',
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
-          otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          otlp_traces: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/traces',
           otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',

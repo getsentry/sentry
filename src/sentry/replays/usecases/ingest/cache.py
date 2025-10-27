@@ -17,8 +17,8 @@ def _has_replays_lookup(project_id: int) -> bool:
 
 def _option_lookup(project_id: int) -> tuple[bool, bool]:
     default_options = {
-        "sentry:replay_hydration_error_issues": False,
-        "sentry:replay_rage_click_issues": False,
+        "sentry:replay_hydration_error_issues": True,
+        "sentry:replay_rage_click_issues": True,
     }
 
     # We're intentionally manually looking up the options. We're avoided the project-options local

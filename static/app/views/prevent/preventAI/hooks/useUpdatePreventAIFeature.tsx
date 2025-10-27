@@ -10,10 +10,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface UpdatePreventAIFeatureParams {
   enabled: boolean;
-  feature: 'vanilla' | 'test_generation' | 'bug_prediction';
-  orgName: string;
-  // if repoName is provided, edit repo_overrides for that repo, otherwise edit org_defaults
-  repoName?: string;
+  // 'use_org_defaults' is a special case that will remove the entire repo override
+  feature: 'vanilla' | 'test_generation' | 'bug_prediction' | 'use_org_defaults';
+  orgId: string;
+  // if repo is provided, edit repo_overrides for that repo, otherwise edit org_defaults
+  repoId?: string;
   sensitivity?: Sensitivity;
   trigger?: Partial<PreventAIFeatureTriggers>;
 }
@@ -46,9 +47,10 @@ export function useUpdatePreventAIFeature() {
 /**
  * Makes a new PreventAIConfig object with feature settings applied for the specified org and/or repo
  * 1. Deep clones the original config to prevent mutation
- * 2. Get the org config for the specified orgName or create it from default_org_config template if not exists
- * 3. If editing repo, get the repo override for the specified repoName or create it from org_defaults template if not exists
+ * 2. Get the org config for the specified org or create it from default_org_config template if not exists
+ * 3. If editing repo, get the repo override for the specified repo or create it from org_defaults template if not exists
  * 4. Modifies the specified feature's settings, preserves any unspecified settings.
+ * 5. Special case: 'use_org_defaults' feature type will remove the entire repo override
  *
  * @param originalConfig Original PreventAIConfig object (will not be mutated)
  * @param params Parameters to update
@@ -61,16 +63,28 @@ export function makePreventAIConfig(
   const updatedConfig = structuredClone(originalConfig);
 
   const orgConfig =
-    updatedConfig.github_organizations[params.orgName] ??
+    updatedConfig.github_organizations[params.orgId] ??
     structuredClone(updatedConfig.default_org_config);
-  updatedConfig.github_organizations[params.orgName] = orgConfig;
+  updatedConfig.github_organizations[params.orgId] = orgConfig;
+
+  if (params.feature === 'use_org_defaults') {
+    if (!params.repoId) {
+      throw new Error('Repo name is required when feature is use_org_defaults');
+    }
+    if (params.enabled) {
+      delete orgConfig.repo_overrides[params.repoId];
+    } else {
+      orgConfig.repo_overrides[params.repoId] = structuredClone(orgConfig.org_defaults);
+    }
+    return updatedConfig;
+  }
 
   let featureConfig = orgConfig.org_defaults;
-  if (params.repoName) {
-    let repoOverride = orgConfig.repo_overrides[params.repoName];
+  if (params.repoId) {
+    let repoOverride = orgConfig.repo_overrides[params.repoId];
     if (!repoOverride) {
       repoOverride = structuredClone(orgConfig.org_defaults);
-      orgConfig.repo_overrides[params.repoName] = repoOverride;
+      orgConfig.repo_overrides[params.repoId] = repoOverride;
     }
     featureConfig = repoOverride;
   }

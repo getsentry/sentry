@@ -154,8 +154,15 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             sampling_mode = request.GET.get("sampling", None)
             if sampling_mode is not None:
                 if sampling_mode.upper() not in SAMPLING_MODE_MAP:
-                    raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
+                    raise ParseError(f"sampling mode: {sampling_mode} is not supported")
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
+                sentry_sdk.set_tag("sampling_mode", sampling_mode)
+
+                # kill switch: disable the highest accuracy flex time strategy to avoid hammering snuba
+                if sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME" and not features.has(
+                    "organizations:ourlogs-high-fidelity", organization, actor=request.user
+                ):
+                    raise ParseError(f"sampling mode: {sampling_mode} is not supported")
 
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
@@ -363,6 +370,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 full_scan = meta.pop("full_scan", None)
+                bytes_scanned = meta.pop("bytes_scanned", None)
                 debug_info = meta.pop("debug_info", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
@@ -384,6 +392,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 else:
                     # If this key isn't in meta there wasn't any sampling and we can assume all the data was scanned
                     meta["dataScanned"] = "full"
+
+                if bytes_scanned is not None:
+                    meta["bytesScanned"] = bytes_scanned
 
                 # Only appears in meta when debug is passed to the endpoint
                 if debug_info:

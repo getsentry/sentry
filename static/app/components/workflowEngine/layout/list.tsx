@@ -26,7 +26,7 @@ function WorkflowEngineListLayout({
         <Layout.HeaderActions>{actions}</Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <Flex direction="column" gap="lg">
             {children}
           </Flex>

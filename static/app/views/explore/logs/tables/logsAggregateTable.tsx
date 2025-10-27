@@ -24,7 +24,7 @@ import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
   getLogSeverityLevel,
   viewLogsSamplesTarget,
@@ -44,7 +44,7 @@ import {
 export function LogsAggregateTable({
   aggregatesTableResult,
 }: {
-  aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
+  aggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
 }) {
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
 

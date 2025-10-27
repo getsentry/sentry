@@ -10,12 +10,12 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
-    _get_all_tags_overview,
     _get_github_username_for_user,
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _respond_with_error,
+    get_all_tags_overview,
     trigger_autofix,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
@@ -707,7 +707,7 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
 
     def test_get_all_tags_overview_basic(self) -> None:
         """Test basic functionality of getting all tags overview with real data."""
-        result = _get_all_tags_overview(self.group)
+        result = get_all_tags_overview(self.group)
 
         assert result is not None
         assert "tags_overview" in result
@@ -744,7 +744,7 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
 
     def test_get_all_tags_overview_percentage_calculation(self) -> None:
         """Test that percentage calculations work correctly."""
-        result = _get_all_tags_overview(self.group)
+        result = get_all_tags_overview(self.group)
 
         assert result is not None
 
@@ -788,7 +788,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
     @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
+    @patch("sentry.seer.autofix.autofix.get_all_tags_overview")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
@@ -890,7 +890,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_serialized_event.assert_not_called()
 
     @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
+    @patch("sentry.seer.autofix.autofix.get_all_tags_overview")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
