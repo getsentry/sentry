@@ -661,11 +661,7 @@ function normalizeKey(key: string): string {
   return key.startsWith('!') ? key.slice(1) : key;
 }
 
-type PrettifyAliasMap = Record<string, string>;
-export function prettifyAggregation(
-  aggregation: string,
-  options: {aliasMap?: PrettifyAliasMap} = {}
-): string | null {
+export function prettifyAggregation(aggregation: string): string | null {
   if (isEquation(aggregation)) {
     const expression = new Expression(stripEquationPrefix(aggregation));
     return expression.tokens
@@ -673,7 +669,7 @@ export function prettifyAggregation(
         if (isTokenFunction(token)) {
           const func = parseFunction(token.text);
           if (func) {
-            return prettifyParsedFunction(func, options.aliasMap);
+            return prettifyParsedFunction(func);
           }
         }
         return token.text;
@@ -683,7 +679,7 @@ export function prettifyAggregation(
 
   const func = parseFunction(aggregation);
   if (func) {
-    return prettifyParsedFunction(func, options.aliasMap);
+    return prettifyParsedFunction(func);
   }
 
   return null;

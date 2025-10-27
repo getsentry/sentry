@@ -1646,10 +1646,7 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
-export function prettifyParsedFunction(
-  func: ParsedFunction,
-  aliasMap?: Record<string, string>
-) {
+export function prettifyParsedFunction(func: ParsedFunction) {
   // special case for `count(span.duration)` as we want to say `count(spans)`
   if (
     func.name === 'count' &&
@@ -1665,11 +1662,6 @@ export function prettifyParsedFunction(
     func.arguments[0] === 'message'
   ) {
     return 'count(logs)';
-  }
-
-  if (func.arguments.length === 1 && func.arguments[0] === 'value') {
-    // If an alias map is provided, use the value from the alias map, otherwise use 'value'
-    return `${func.name}(${aliasMap?.value ?? 'value'})`;
   }
 
   const args = func.arguments.map(prettifyTagKey);

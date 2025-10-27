@@ -76,7 +76,6 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
                   <MetricsGraph
                     timeseriesResult={timeseriesResult}
                     queryIndex={queryIndex}
-                    traceMetric={traceMetric}
                   />
                 ),
                 default: defaultSplit,
