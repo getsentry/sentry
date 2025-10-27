@@ -1,14 +1,20 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import ReplayLiveIndicator, {
-  getReplayExpiryTimestamp,
-  liveDuration,
+import {
+  getLiveDurationMs,
+  getReplayExpiresAtMs,
+  LIVE_TOOLTIP_MESSAGE,
+  LiveIndicator,
 } from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
@@ -79,12 +85,11 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     }
   };
 
-  const pollingEnabled =
-    Date.now() <
-    getReplayExpiryTimestamp(replayRecord?.started_at ? replayRecord.started_at : null);
+  const isReplayExpired =
+    Date.now() > getReplayExpiresAtMs(replayRecord?.started_at ?? null);
 
   const polledReplayRecord = usePollReplayRecord({
-    enabled: pollingEnabled,
+    enabled: !isReplayExpired,
     replayId,
     orgSlug,
   });
@@ -95,7 +100,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const showRefreshButton = polledCountSegments > prevSegments;
 
   const showLiveIndicator =
-    pollingEnabled && replayRecord && liveDuration(replayRecord.finished_at) > 0;
+    !isReplayExpired && replayRecord && getLiveDurationMs(replayRecord.finished_at) > 0;
 
   const badge = replayRecord ? (
     <UserBadge
@@ -129,7 +134,20 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {showLiveIndicator ? <ReplayLiveIndicator /> : null}
+              {showLiveIndicator ? (
+                <Tooltip
+                  title={LIVE_TOOLTIP_MESSAGE}
+                  underlineColor="success"
+                  showUnderline
+                >
+                  <Flex align="center">
+                    <Text bold variant="success" data-test-id="live-badge">
+                      {t('LIVE')}
+                    </Text>
+                    <LiveIndicator />
+                  </Flex>
+                </Tooltip>
+              ) : null}
               <Button
                 title={t('Replay is outdated. Refresh for latest activity.')}
                 data-test-id="refresh-button"

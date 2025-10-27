@@ -1,47 +1,22 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
-
 import {t} from 'sentry/locale';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-const TOOLTIP_MESSAGE = 'This replay is still in progress.';
+export const LIVE_TOOLTIP_MESSAGE = t('This replay is still in progress.');
 
-export default function ReplayLiveIndicator() {
-  return (
-    <Tooltip title={TOOLTIP_MESSAGE} underlineColor="success" showUnderline>
-      <Flex align="center">
-        <Text bold variant="success" data-test-id="live-badge">
-          {t('LIVE')}
-        </Text>
-        <LiveIndicator />
-      </Flex>
-    </Tooltip>
-  );
-}
-
-export function getReplayExpiryTimestamp(startedAt: ReplayRecord['started_at']) {
+export function getReplayExpiresAtMs(startedAt: ReplayRecord['started_at']): number {
   const ONE_HOUR_MS = 3_600_000;
   return startedAt ? startedAt.getTime() + ONE_HOUR_MS : 0;
 }
 
-export function liveDuration(finishedAt: ReplayRecord['finished_at']) {
+export function getLiveDurationMs(finishedAt: ReplayRecord['finished_at']): number {
   if (!finishedAt) {
     return 0;
   }
   const FIVE_MINUTE_MS = 300_000;
   return Math.max(finishedAt.getTime() + FIVE_MINUTE_MS - Date.now(), 0);
-}
-
-export function LiveIndicatorWithToolTip() {
-  return (
-    <Tooltip title={TOOLTIP_MESSAGE}>
-      <LiveIndicator />
-    </Tooltip>
-  );
 }
 
 const pulse = keyframes`
@@ -56,7 +31,7 @@ const pulse = keyframes`
   }
 `;
 
-const LiveIndicator = styled('div')`
+export const LiveIndicator = styled('div')`
   background: ${p => p.theme.successText};
   height: 8px;
   width: 8px;

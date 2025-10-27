@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Grid} from 'sentry/components/core/layout';
@@ -9,9 +11,10 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {
-  getReplayExpiryTimestamp,
-  liveDuration,
-  LiveIndicatorWithToolTip,
+  getLiveDurationMs,
+  getReplayExpiresAtMs,
+  LIVE_TOOLTIP_MESSAGE,
+  LiveIndicator,
 } from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
@@ -34,11 +37,11 @@ export default function ReplayBadge({replay}: Props) {
   const timestampType = prefs.timestampType;
 
   const [isLive, setIsLive] = useState(
-    Date.now() < getReplayExpiryTimestamp(replay.started_at)
+    Date.now() < getReplayExpiresAtMs(replay.started_at)
   );
 
   const {start: startTimeout} = useTimeout({
-    timeMs: liveDuration(replay.finished_at),
+    timeMs: getLiveDurationMs(replay.finished_at),
     onTimeout: () => {
       setIsLive(false);
     },
@@ -95,7 +98,11 @@ export default function ReplayBadge({replay}: Props) {
               {replay.user.display_name || t('Anonymous User')}
             </Text>
           </div>
-          {isLive ? <LiveIndicatorWithToolTip /> : null}
+          {isLive ? (
+            <Tooltip title={LIVE_TOOLTIP_MESSAGE}>
+              <LiveIndicator />
+            </Tooltip>
+          ) : null}
         </Flex>
 
         <Flex gap="xs">
