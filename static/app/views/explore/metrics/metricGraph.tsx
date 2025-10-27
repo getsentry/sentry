@@ -16,7 +16,10 @@ import {
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsQuery,
+  useQueryParamsTopEventsLimit,
+} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {
@@ -59,7 +62,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
-
+  const userQuery = useQueryParamsQuery();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartInfo = useMemo(() => {
@@ -126,20 +129,17 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
     </Fragment>
   );
 
-  // We explicitly only want to show the confidence footer if we have
-  // scanned partial data.
-  const showConfidenceFooter =
-    chartInfo.dataScanned !== 'full' && !timeseriesResult.isPending;
   return (
     <Widget
       Title={Title}
       Actions={Actions}
       Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
       Footer={
-        showConfidenceFooter && (
+        visualize.visible && (
           <ConfidenceFooter
             chartInfo={chartInfo}
             isLoading={timeseriesResult.isFetching}
+            hasUserQuery={!!userQuery}
           />
         )
       }
