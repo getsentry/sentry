@@ -2,26 +2,21 @@ import type {ReactNode} from 'react';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
 
-export function MockQueryParamsContextWrapper({
-  children,
-}: {
-  children: ReactNode;
-  extrapolate?: boolean;
-}) {
+export function MockMetricQueryParamsContext({children}: {children: ReactNode}) {
   const location = useLocation();
   const organization = useOrganization();
   const queryParams = getReadableQueryParamsFromLocation(location, organization);
   return (
-    <QueryParamsContextProvider
+    <MetricsQueryParamsProvider
       queryParams={queryParams}
       setQueryParams={() => {}}
-      isUsingDefaultFields
-      shouldManageFields={false}
+      setTraceMetric={() => {}}
+      removeMetric={() => {}}
     >
       {children}
-    </QueryParamsContextProvider>
+    </MetricsQueryParamsProvider>
   );
 }

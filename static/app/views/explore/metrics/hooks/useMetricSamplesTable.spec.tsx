@@ -4,7 +4,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {MockQueryParamsContextWrapper} from 'sentry/views/explore/metrics/hooks/testUtils';
+import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 
 jest.mock('sentry/utils/usePageFilters');
@@ -51,7 +51,7 @@ describe('useMetricSamplesTable', () => {
           enabled: true,
         }),
       {
-        additionalWrapper: MockQueryParamsContextWrapper,
+        additionalWrapper: MockMetricQueryParamsContext,
       }
     );
 
@@ -72,53 +72,6 @@ describe('useMetricSamplesTable', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          sampling: SAMPLING_MODE.HIGH_ACCURACY,
-        }),
-      })
-    );
-  });
-
-  it('disables extrapolation', async () => {
-    const mockNonExtrapolatedRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return (
-            options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY &&
-            options.query.disableAggregateExtrapolation === '1'
-          );
-        },
-      ],
-      method: 'GET',
-    });
-
-    renderHookWithProviders(
-      () =>
-        useMetricSamplesTable({
-          metricName: 'test metric',
-          fields: [],
-          limit: 100,
-          enabled: true,
-        }),
-      {
-        additionalWrapper: MockQueryParamsContextWrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/metrics/',
-            query: {
-              extrapolate: '0',
-            },
-          },
-        },
-      }
-    );
-
-    await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
-    expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
         }),
       })
