@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
@@ -87,8 +88,8 @@ export function AppSizeInsightsSidebarRow({
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <Button priority="link" onClick={handleOpenModal} size="xs">
-            {t('Fix this locally')}
+          <Button priority="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
+            {t('How to fix this locally')}
           </Button>
         )}
       </Stack>

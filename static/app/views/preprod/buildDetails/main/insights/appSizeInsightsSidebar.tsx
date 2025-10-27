@@ -35,8 +35,8 @@ export function AppSizeInsightsSidebar({
     size: width,
   } = useResizableDrawer({
     direction: 'right',
-    initialSize: 502,
-    min: 502,
+    initialSize: 700,
+    min: 700,
     onResize: () => {},
     sizeStorageKey: 'app-size-insights-sidebar-width',
   });
