@@ -13,14 +13,14 @@ function getInstallSnippet({
   params,
   packageManager,
   additionalPackages = [],
-  basePackage = '@sentry/node',
+  packageName = '@sentry/node',
 }: {
   packageManager: 'npm' | 'yarn' | 'pnpm';
   params: DocsParams;
-  additionalPackages?: string[];
-  basePackage?: string;
+  additionalPackages?: Array<`@sentry/${string}`>;
+  packageName?: `@sentry/${string}`;
 }) {
-  let packages = [basePackage];
+  let packages = [packageName];
   if (params.isProfilingSelected) {
     packages.push('@sentry/profiling-node');
   }
@@ -40,11 +40,11 @@ function getInstallSnippet({
 export function getInstallCodeBlock(
   params: DocsParams,
   {
-    basePackage = '@sentry/node',
+    packageName = '@sentry/node',
     additionalPackages,
   }: {
-    additionalPackages?: string[];
-    basePackage?: string;
+    additionalPackages?: Array<`@sentry/${string}`>;
+    packageName?: `@sentry/${string}`;
   } = {}
 ): ContentBlock {
   return {
@@ -57,7 +57,7 @@ export function getInstallCodeBlock(
           params,
           additionalPackages,
           packageManager: 'npm',
-          basePackage,
+          packageName,
         }),
       },
       {
@@ -67,7 +67,7 @@ export function getInstallCodeBlock(
           params,
           additionalPackages,
           packageManager: 'yarn',
-          basePackage,
+          packageName,
         }),
       },
       {
@@ -77,79 +77,25 @@ export function getInstallCodeBlock(
           params,
           additionalPackages,
           packageManager: 'pnpm',
-          basePackage,
+          packageName,
         }),
       },
     ],
   };
 }
 
-/**
- * @deprecated Use getInstallCodeBlock instead.
- */
-export function getInstallConfig(
-  params: DocsParams,
-  {
-    basePackage = '@sentry/node',
-    additionalPackages,
-  }: {
-    additionalPackages?: string[];
-    basePackage?: string;
-  } = {}
-) {
-  return [
-    {
-      code: [
-        {
-          label: 'npm',
-          value: 'npm',
-          language: 'bash',
-          code: getInstallSnippet({
-            params,
-            additionalPackages,
-            packageManager: 'npm',
-            basePackage,
-          }),
-        },
-        {
-          label: 'yarn',
-          value: 'yarn',
-          language: 'bash',
-          code: getInstallSnippet({
-            params,
-            additionalPackages,
-            packageManager: 'yarn',
-            basePackage,
-          }),
-        },
-        {
-          label: 'pnpm',
-          value: 'pnpm',
-          language: 'bash',
-          code: getInstallSnippet({
-            params,
-            additionalPackages,
-            packageManager: 'pnpm',
-            basePackage,
-          }),
-        },
-      ],
-    },
-  ];
-}
-
 function getImport(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless' | 'nestjs',
+  packageName: `@sentry/${string}`,
   defaultMode?: 'esm' | 'cjs'
 ): string[] {
   return defaultMode === 'esm'
     ? [
-        `// Import with \`const Sentry = require("@sentry/${sdkPackage}");\` if you are using CJS`,
-        `import * as Sentry from "@sentry/${sdkPackage}"`,
+        `// Import with \`const Sentry = require("${packageName}");\` if you are using CJS`,
+        `import * as Sentry from "${packageName}"`,
       ]
     : [
-        `// Import with \`import * as Sentry from "@sentry/${sdkPackage}"\` if you are using ESM`,
-        `const Sentry = require("@sentry/${sdkPackage}");`,
+        `// Import with \`import * as Sentry from "${packageName}"\` if you are using ESM`,
+        `const Sentry = require("${packageName}");`,
       ];
 }
 
@@ -163,10 +109,10 @@ function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
  * Import Snippet for the Node and Serverless SDKs without other packages (like profiling).
  */
 export function getSentryImportSnippet(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless' | 'nestjs',
+  packageName: `@sentry/${string}`,
   defaultMode?: 'esm' | 'cjs'
 ): string {
-  return getImport(sdkPackage, defaultMode).join('\n');
+  return getImport(packageName, defaultMode).join('\n');
 }
 
 export function getImportInstrumentSnippet(
@@ -185,10 +131,10 @@ require("./${filename}");`;
 }
 
 const libraryMap = {
-  node: 'node',
-  aws: 'aws-serverless',
-  gpc: 'google-cloud-serverless',
-  nestjs: 'nestjs',
+  node: '@sentry/node',
+  aws: '@sentry/aws-serverless',
+  gpc: '@sentry/google-cloud-serverless',
+  nestjs: '@sentry/nestjs',
 } as const;
 
 function getDefaultNodeImports({
@@ -276,39 +222,47 @@ Sentry.startSpan({
   }`;
 
 export const getNodeProfilingOnboarding = ({
-  basePackage = '@sentry/node',
+  packageName = '@sentry/node',
   profilingLifecycle = 'trace',
 }: {
-  basePackage?: string;
+  packageName?: `@sentry/${string}`;
   profilingLifecycle?: 'trace' | 'manual';
 } = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable profiling, add [code:@sentry/profiling-node] to your imports.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage,
-      }),
+          type: 'text',
+          text: tct(
+            'To enable profiling, add [code:@sentry/profiling-node] to your imports.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          packageName,
+        }),
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          language: 'javascript',
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Javascript',
               value: 'javascript',
@@ -372,20 +326,27 @@ Sentry.profiler.stopProfiler();
               }`,
             },
           ],
-          additionalInfo:
-            profilingLifecycle === 'trace'
-              ? tct(
-                  'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
-                    ),
-                  }
-                )
-              : '',
         },
         {
-          description: tct(
+          type: 'conditional',
+          condition: profilingLifecycle === 'trace',
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
+                  ),
+                }
+              ),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
@@ -400,32 +361,42 @@ Sentry.profiler.stopProfiler();
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 });
 
 export const getNodeAgentMonitoringOnboarding = ({
-  basePackage = 'node',
+  packageName = '@sentry/node',
   configFileName,
 }: {
-  basePackage?: string;
   configFileName?: string;
+  packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.14.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: `@sentry/${basePackage}`,
-      }),
+          type: 'text',
+          text: tct(
+            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.14.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          packageName,
+        }),
+      ],
     },
   ],
   configure: params => {
@@ -448,7 +419,7 @@ export const getNodeAgentMonitoringOnboarding = ({
           {
             label: configFileName ? configFileName : 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -515,7 +486,7 @@ const result = await generateText({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -549,7 +520,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -583,7 +554,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -621,7 +592,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 // Create a span around your AI call
 await Sentry.startSpan({
@@ -742,9 +713,9 @@ const response = await ai.models.generateContent({
 });
 
 export const getNodeMcpOnboarding = ({
-  basePackage = 'node',
+  packageName = '@sentry/node',
 }: {
-  basePackage?: string;
+  packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   introduction: () => (
     <Alert type="info" showIcon={false}>
@@ -761,32 +732,40 @@ export const getNodeMcpOnboarding = ({
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: `@sentry/${basePackage}`,
-      }),
+          type: 'text',
+          text: tct(
+            'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          packageName,
+        }),
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
-        code: <code />,
-      }),
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          code: [
+          type: 'text',
+          text: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+              code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -798,13 +777,17 @@ Sentry.init({
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
             {
               code: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -815,26 +798,37 @@ const { McpServer } = require("@modelcontextprotocol/sdk");
 const server = Sentry.wrapMcpServerWithSentry(new McpServer({
     name: "my-mcp-server",
     version: "1.0.0",
-}));
-`,
+}));`,
             },
           ],
         },
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that MCP monitoring is working correctly by triggering some MCP server interactions in your application.'
+          ),
+        },
+      ],
+    },
+  ],
 });
 
 function getNodeLogsConfigureSnippet(
   params: DocsParams,
-  sdkPackage: `@sentry/${string}`
+  packageName: `@sentry/${string}`
 ): ContentBlock {
   return {
     type: 'code',
     language: 'javascript',
     code: `
-import * as Sentry from "${sdkPackage}";
+import * as Sentry from "${packageName}";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -852,11 +846,11 @@ export const getNodeLogsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
   docsPlatform,
-  sdkPackage,
+  packageName,
   generateConfigureSnippet = getNodeLogsConfigureSnippet,
 }: {
   docsPlatform: string;
-  sdkPackage: `@sentry/${string}`;
+  packageName: `@sentry/${string}`;
   generateConfigureSnippet?: typeof getNodeLogsConfigureSnippet;
 }): OnboardingConfig<PlatformOptions> => ({
   install: (params: DocsParams) => [
@@ -866,19 +860,14 @@ export const getNodeLogsOnboarding = <
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
             {
               code: <code />,
-              sdkPackage: <code>{sdkPackage}</code>,
+              packageName: <code>{packageName}</code>,
             }
           ),
         },
-        {
-          type: 'code',
-          tabs: getInstallConfig(params, {
-            basePackage: sdkPackage,
-          })[0]!.code,
-        },
+        getInstallCodeBlock(params, {packageName}),
         {
           type: 'text',
           text: tct(
@@ -906,7 +895,7 @@ export const getNodeLogsOnboarding = <
             {code: <code />}
           ),
         },
-        generateConfigureSnippet(params, sdkPackage),
+        generateConfigureSnippet(params, packageName),
         {
           type: 'text',
           text: tct('For more detailed information, see the [link:logs documentation].', {
@@ -931,7 +920,7 @@ export const getNodeLogsOnboarding = <
         {
           type: 'code',
           language: 'javascript',
-          code: `import * as Sentry from "${sdkPackage}";
+          code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { action: 'test_log' })`,
         },

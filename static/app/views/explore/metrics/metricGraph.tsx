@@ -12,12 +12,13 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
+  useMetricLabel,
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {getQuerySymbol} from 'sentry/views/explore/metrics/metricToolbar/querySymbol';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -57,6 +58,7 @@ interface GraphProps extends MetricsGraphProps {
 function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
+  const metricLabel = useMetricLabel();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -80,7 +82,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${getQuerySymbol(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+      title={`${getVisualizeLabel(queryIndex)}: ${metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}`}
     />
   );
 
@@ -141,6 +143,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
           />
         )
       }
+      height={visualize.visible ? undefined : 0}
       revealActions="always"
       borderless
     />

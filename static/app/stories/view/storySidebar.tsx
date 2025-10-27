@@ -6,7 +6,7 @@ import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
-  const {foundations, principles, typography, layout, core, product, shared} =
+  const {foundations, principles, patterns, typography, layout, core, product, shared} =
     useStoryBookFilesByCategory();
 
   return (
@@ -20,6 +20,12 @@ export function StorySidebar() {
           <li>
             <h3>Principles</h3>
             <StoryTree nodes={principles} />
+          </li>
+        )}
+        {patterns.length > 0 && (
+          <li>
+            <h3>Patterns</h3>
+            <StoryTree nodes={patterns} />
           </li>
         )}
         <li>
@@ -56,7 +62,14 @@ function scrollIntoView(node: HTMLElement | null) {
 }
 
 export function useStoryBookFilesByCategory(): Record<
-  'foundations' | 'principles' | 'typography' | 'layout' | 'core' | 'product' | 'shared',
+  | 'foundations'
+  | 'principles'
+  | 'patterns'
+  | 'typography'
+  | 'layout'
+  | 'core'
+  | 'product'
+  | 'shared',
   StoryTreeNode[]
 > {
   const files = useStoryBookFiles();
@@ -65,6 +78,7 @@ export function useStoryBookFilesByCategory(): Record<
     const map: Record<ReturnType<typeof inferFileCategory>, string[]> = {
       foundations: [],
       principles: [],
+      patterns: [],
       typography: [],
       layout: [],
       core: [],
@@ -78,6 +92,9 @@ export function useStoryBookFilesByCategory(): Record<
           break;
         case 'principles':
           map.principles.push(file);
+          break;
+        case 'patterns':
+          map.patterns.push(file);
           break;
         case 'typography':
           map.typography.push(file);
@@ -104,6 +121,11 @@ export function useStoryBookFilesByCategory(): Record<
     type: 'flat',
   });
   const principles = useStoryTree(filesByOwner.principles, {
+    query: '',
+    representation: 'category',
+    type: 'flat',
+  });
+  const patterns = useStoryTree(filesByOwner.patterns, {
     query: '',
     representation: 'category',
     type: 'flat',
@@ -136,6 +158,7 @@ export function useStoryBookFilesByCategory(): Record<
   return {
     foundations,
     principles,
+    patterns,
     typography,
     core,
     product,

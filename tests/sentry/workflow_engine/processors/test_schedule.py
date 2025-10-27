@@ -1,5 +1,5 @@
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
@@ -94,42 +94,6 @@ class ProcessBufferedWorkflowsTest(CreateEventTestCase):
         all_project_ids = self.batch_client.get_project_ids(min=0, max=fetch_time)
         # Should still contain our project
         assert project.id in all_project_ids
-
-    @override_options(
-        {"delayed_workflow.rollout": True, "workflow_engine.use_cohort_selection": False}
-    )
-    @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
-    def test_processes_all_projects_without_cohort_selection(
-        self, mock_process_in_batches: MagicMock
-    ) -> None:
-        """Test that all projects are processed when cohort selection is disabled."""
-        project = self.create_project()
-        project_two = self.create_project()
-        group = self.create_group(project)
-        group_two = self.create_group(project_two)
-
-        # Push data to buffer
-        self.batch_client.for_project(project.id).push_to_hash(
-            batch_key=None,
-            data={f"345:{group.id}": json.dumps({"event_id": "event-1"})},
-        )
-        self.batch_client.for_project(project_two.id).push_to_hash(
-            batch_key=None,
-            data={f"345:{group_two.id}": json.dumps({"event_id": "event-2"})},
-        )
-
-        # Add projects to sorted set
-        self.batch_client.add_project_ids([project.id, project_two.id])
-
-        process_buffered_workflows(self.batch_client)
-
-        # All projects should be processed (no cohort filtering)
-        assert mock_process_in_batches.call_count == 2
-
-        # Verify that the buffer keys are cleaned up
-        fetch_time = datetime.now().timestamp()
-        all_project_ids = self.batch_client.get_project_ids(min=0, max=fetch_time)
-        assert all_project_ids == {}
 
 
 class ProcessInBatchesTest(CreateEventTestCase):
@@ -239,7 +203,7 @@ class TestProjectChooser:
 
     @pytest.fixture
     def project_chooser(self, mock_buffer):
-        return ProjectChooser(mock_buffer, num_cohorts=6)
+        return ProjectChooser(mock_buffer, num_cohorts=6, min_scheduling_age=timedelta(seconds=50))
 
     def _find_projects_for_cohorts(self, chooser: ProjectChooser, num_cohorts: int) -> list[int]:
         """Helper method to find project IDs that map to each cohort to ensure even distribution."""
@@ -300,8 +264,8 @@ class TestProjectChooser:
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
-                0: 995.0,  # 5 seconds ago - may process (older)
-                1: 998.0,  # 2 seconds ago - may process (newer)
+                0: 945.0,  # 55 seconds ago - may process (older)
+                1: 948.0,  # 52 seconds ago - may process (newer)
                 2: 999.0,  # 1 second ago - no process
             }
         )
@@ -411,7 +375,9 @@ class TestProjectChooser:
         This demonstrates that all projects are processed together every minute.
         """
         # Create ProjectChooser with cohort count = 1 (production default)
-        chooser = ProjectChooser(mock_buffer, num_cohorts=1)
+        chooser = ProjectChooser(
+            mock_buffer, num_cohorts=1, min_scheduling_age=timedelta(seconds=50)
+        )
         all_project_ids = self._find_projects_for_cohorts(chooser, 1)
 
         # Add more projects to demonstrate they all map to cohort 0
@@ -444,6 +410,32 @@ class TestProjectChooser:
                 f"Run {minute}: Expected all {len(all_project_ids)} projects to be processed, "
                 f"but got {len(processed_projects)}: {sorted(processed_projects)}"
             )
+
+    def test_cohort_count_change_uses_eldest_freshness(self, mock_buffer) -> None:
+        """
+        Test that when num_cohorts changes, all new cohorts use the eldest stored cohort freshness,
+        then cohorts that need processing are scheduled and updated to current time.
+        """
+        # Start with 3 cohorts at different ages
+        cohort_updates = CohortUpdates(
+            values={
+                0: 100.0,  # eldest
+                1: 200.0,
+                2: 300.0,  # newest
+            }
+        )
+
+        # Change to 6 cohorts - since all cohorts will be reset to 100.0 (900 seconds old),
+        # they will all exceed the target_max_age of 60 seconds and be scheduled to run
+        new_chooser = ProjectChooser(
+            mock_buffer, num_cohorts=6, min_scheduling_age=timedelta(seconds=50)
+        )
+        new_chooser.project_ids_to_process(1000.0, cohort_updates, [])
+
+        # All 6 cohorts should exist and be set to current time since they were all very old
+        assert len(cohort_updates.values) == 6
+        for cohort_id in range(6):
+            assert cohort_updates.values[cohort_id] == 1000.0
 
 
 class TestChosenProjects:
@@ -514,15 +506,6 @@ class TestChosenProjects:
                 raise RuntimeError("Processing failed")
 
         mock_buffer_client.persist_updates.assert_not_called()
-
-    def test_chosen_projects_without_cohort_selection(self):
-        """Test chosen_projects when project_chooser is None (cohort selection disabled)."""
-        fetch_time = 1000.0
-        all_project_ids = [1, 2, 3, 4, 5]
-
-        # When project_chooser is None, all projects should be yielded without redis interaction
-        with chosen_projects(None, fetch_time, all_project_ids) as result:
-            assert result == all_project_ids
 
 
 @override_options({"workflow_engine.scheduler.use_conditional_delete": True})

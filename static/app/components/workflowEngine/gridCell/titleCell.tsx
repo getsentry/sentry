@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSentry, IconWarning} from 'sentry/icons';
@@ -16,7 +16,8 @@ export type TitleCellProps = {
   className?: string;
   details?: React.ReactNode;
   disabled?: boolean;
-  systemCreated?: boolean;
+  openInNewTab?: boolean;
+  systemCreated?: string;
   warning?: StatusWarning | null;
 };
 
@@ -28,12 +29,17 @@ export function TitleCell({
   disabled = false,
   className,
   warning,
+  openInNewTab,
 }: TitleCellProps) {
-  return (
-    <TitleWrapper to={link} className={className}>
+  const content = (
+    <Fragment>
       <Name>
         <NameText>{name}</NameText>
-        {systemCreated && <CreatedBySentryIcon size="xs" color="subText" />}
+        {systemCreated && (
+          <Tooltip title={systemCreated} skipWrapper>
+            <CreatedBySentryIcon size="xs" color="subText" />
+          </Tooltip>
+        )}
         {warning && (
           <Fragment>
             &mdash;
@@ -48,6 +54,25 @@ export function TitleCell({
         {disabled && <DisabledText>&mdash; Disabled</DisabledText>}
       </Name>
       {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
+    </Fragment>
+  );
+
+  if (openInNewTab) {
+    return (
+      <TitleWrapperAnchor
+        href={link}
+        className={className}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {content}
+      </TitleWrapperAnchor>
+    );
+  }
+
+  return (
+    <TitleWrapper to={link} className={className}>
+      {content}
     </TitleWrapper>
   );
 }
@@ -73,7 +98,7 @@ const CreatedBySentryIcon = styled(IconSentry)`
   flex-shrink: 0;
 `;
 
-const TitleWrapper = styled(Link)`
+const TitleBase = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
@@ -87,6 +112,9 @@ const TitleWrapper = styled(Link)`
     }
   }
 `;
+
+const TitleWrapper = TitleBase.withComponent(Link);
+const TitleWrapperAnchor = TitleBase.withComponent(ExternalLink);
 
 const DetailsWrapper = styled('div')`
   display: inline-grid;
