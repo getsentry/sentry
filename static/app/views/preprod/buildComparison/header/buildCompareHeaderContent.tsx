@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
@@ -49,7 +50,10 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   return (
     <Flex justify="between" align="center" gap="lg">
       <Stack gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
-        <Breadcrumbs crumbs={breadcrumbs} />
+        <Flex align="center" gap="sm">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <FeatureBadge type="beta" />
+        </Flex>
         <Heading as="h1">Build comparison</Heading>
         <Flex gap="lg" wrap="wrap" align="center">
           <Flex gap="sm" align="center">
