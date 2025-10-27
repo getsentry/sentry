@@ -195,17 +195,27 @@ export function getToolsStringFromBlock(block: Block): string[] {
  */
 export function buildToolLinkUrl(
   toolLink: ToolLink,
-  orgSlug: string
+  orgSlug: string,
+  projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'trace_explorer_query': {
-      const {query, stats_period, y_axes, group_by, sort, mode} = toolLink.params;
+      const {query, stats_period, y_axes, group_by, sort, mode, project_slug} =
+        toolLink.params;
 
       // Transform backend params to frontend format
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
       };
+
+      // If project_slug is provided, look up the project ID
+      if (project_slug && projects) {
+        const project = projects.find(p => p.slug === project_slug);
+        if (project) {
+          queryParams.project = project.id;
+        }
+      }
 
       const aggregateFields: any[] = [];
       if (stats_period) {
