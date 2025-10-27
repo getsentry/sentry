@@ -331,10 +331,9 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
         values: Sequence[FrameGroupingComponent] | None = None,
         hint: str | None = None,
         contributes: bool | None = None,
-        frame_counts: Counter[str] | None = None,
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
-        self.frame_counts = frame_counts or Counter()
+        self.frame_counts = Counter()
 
     def as_dict(self) -> dict[str, Any]:
         result = super().as_dict()
