@@ -25,6 +25,7 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
       </Heading>
       <pre>
         <CodeBlock
+          dark
           language="tsx"
           onCopy={() => addSuccessMessage('Imports copied to clipboard')}
         >
