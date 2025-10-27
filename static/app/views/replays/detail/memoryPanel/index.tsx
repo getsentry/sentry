@@ -28,9 +28,16 @@ export default function MemoryPanel() {
     return (
       <ChartWrapper data-test-id="replay-details-memory-tab">
         <NoRowRenderer unfilteredItems={[]} clearSearchTerm={() => {}}>
-          {t(
-            'No memory metrics found. Memory metrics are only captured within Chromium based browser sessions.'
-          )}
+          <div>
+            <p>
+              <strong>{t('No memory metrics found')}</strong>
+            </p>
+            <Description>
+              {t(
+                'Memory metrics are only captured within Chromium based browser sessions.'
+              )}
+            </Description>
+          </div>
         </NoRowRenderer>
       </ChartWrapper>
     );
@@ -56,11 +63,10 @@ export default function MemoryPanel() {
 
 const Grid = styled('div')`
   display: grid;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1fr;
   grid-template-columns: 1fr;
   gap: ${space(1)};
   justify-content: center;
-  height: 100%;
 `;
 
 const ChartWrapper = styled('div')`
@@ -82,4 +88,9 @@ const ChartTitle = styled('h5')`
   color: ${p => p.theme.subText};
   flex: 0 1 auto;
   margin: 0;
+`;
+
+const Description = styled('p')`
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.subText};
 `;
