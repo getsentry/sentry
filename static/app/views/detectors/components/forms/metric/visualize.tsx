@@ -202,6 +202,8 @@ export function Visualize() {
   });
   const formContext = useContext(FormContext);
 
+  const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
+
   // Parse the aggregateFunction into UI components on each render
   const {aggregate, parameters} = useMemo(() => {
     return parseAggregateFunction(aggregateFunction);
@@ -329,6 +331,7 @@ export function Visualize() {
             onChange={option => {
               handleAggregateChange(String(option.value));
             }}
+            disabled={isTransactionsDataset}
           />
         </FieldContainer>
         {aggregateMetadata?.parameters?.map((param, index) => {
@@ -353,7 +356,7 @@ export function Visualize() {
                   onChange={option => {
                     handleParameterChange(index, String(option.value));
                   }}
-                  disabled={lockSpanOptions}
+                  disabled={isTransactionsDataset || lockSpanOptions}
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
@@ -370,6 +373,7 @@ export function Visualize() {
                   onChange={option => {
                     handleParameterChange(index, String(option.value));
                   }}
+                  disabled={isTransactionsDataset}
                 />
               ) : (
                 <StyledParameterInput
@@ -378,6 +382,7 @@ export function Visualize() {
                   onChange={e => {
                     handleParameterChange(index, e.target.value);
                   }}
+                  disabled={isTransactionsDataset}
                 />
               )}
             </FieldContainer>

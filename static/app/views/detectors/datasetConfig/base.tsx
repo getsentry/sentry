@@ -24,6 +24,7 @@ export interface DetectorSearchBarProps {
   onSearch: (query: string) => void;
   projectIds: number[];
   dataset?: DiscoverDatasets;
+  disabled?: boolean;
 }
 
 interface DetectorSeriesQueryOptions {
