@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -125,8 +126,9 @@ function ConfidenceMessage({
 
   if (isTopN) {
     return tct(
-      'Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+      '[warning] Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
       {
+        warning: <IconWarning size="sm" />,
         topEvents,
         matchingLogsCount,
         downsampledLogsCount,
@@ -138,8 +140,9 @@ function ConfidenceMessage({
   }
 
   return tct(
-    'Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+    '[warning] Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
     {
+      warning: <IconWarning size="sm" />,
       matchingLogsCount,
       downsampledLogsCount,
       allLogsCount,
