@@ -3,13 +3,14 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {testableDebounce} from 'sentry/utils/testableDebounce';
 import {
   UrlParamBatchProvider,
   useUrlBatchContext,
 } from 'sentry/utils/url/urlParamBatchContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {testableDebounce} from './testUtils';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');

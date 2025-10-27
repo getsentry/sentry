@@ -5,7 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {testableDebounce} from 'sentry/utils/testableDebounce';
+import {testableDebounce} from 'sentry/utils/url/testUtils';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
