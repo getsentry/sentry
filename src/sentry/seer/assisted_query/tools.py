@@ -197,7 +197,7 @@ def execute_issues_query(
     stats_period: str,
     sort: str | None = None,
     limit: int = 25,
-) -> dict[str, Any] | None:
+) -> list[dict[str, Any]] | None:
     """
     Execute an issues query by calling the issues endpoint.
 
