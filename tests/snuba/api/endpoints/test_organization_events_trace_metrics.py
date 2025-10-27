@@ -54,14 +54,14 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             },
         ]
 
-    def test_rate_formula(self) -> None:
+    def test_per_minute_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
         for _ in range(6):
             self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0)])
 
         response = self.do_request(
             {
-                "field": ["rate(60)"],
+                "field": ["per_minute()"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -73,49 +73,18 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         meta = response.data["meta"]
         assert len(data) == 1
         # 6 events / 60 seconds = 0.1 events per second
-        assert data[0]["rate(60)"] == 0.1
-        assert meta["fields"]["rate(60)"] == "rate"
-        assert meta["units"]["rate(60)"] == "1/second"
+        assert data[0]["per_minute()"] == 0.1
+        assert meta["fields"]["per_minute()"] == "rate"
         assert meta["dataset"] == "tracemetrics"
 
-    def test_rate_formula_validation_divisor_too_large(self) -> None:
-        self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0)])
-
-        # Test with divisor larger than interval (600 seconds for 10m period)
-        response = self.do_request(
-            {
-                "field": ["rate(700)"],
-                "query": "",
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "statsPeriod": "10m",
-            }
-        )
-        assert response.status_code == 400, response.content
-
-    def test_rate_formula_validation_divisor_not_divisible(self) -> None:
-        self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0)])
-
-        # Test with divisor that doesn't divide evenly into interval (600 seconds for 10m period)
-        response = self.do_request(
-            {
-                "field": ["rate(7)"],
-                "query": "",
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "statsPeriod": "10m",
-            }
-        )
-        assert response.status_code == 400, response.content
-
-    def test_rate_formula_no_params(self) -> None:
+    def test_per_second_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
         for _ in range(6):
             self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0)])
 
         response = self.do_request(
             {
-                "field": ["rate()"],
+                "field": ["per_second()"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -127,7 +96,6 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         meta = response.data["meta"]
         assert len(data) == 1
         # 6 events / 1 second = 6 events per second
-        assert data[0]["rate()"] == 6.0
-        assert meta["fields"]["rate()"] == "rate"
-        assert meta["units"]["rate()"] == "1/second"
+        assert data[0]["per_second()"] == 6.0
+        assert meta["fields"]["per_second()"] == "rate"
         assert meta["dataset"] == "tracemetrics"

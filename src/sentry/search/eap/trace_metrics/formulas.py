@@ -1,5 +1,3 @@
-from typing import cast
-
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -8,48 +6,14 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
 )
 
-from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import (
-    FormulaDefinition,
-    ResolvedArguments,
-    ResolverSettings,
-    ValueArgumentDefinition,
-)
+from sentry.search.eap.columns import FormulaDefinition, ResolvedArguments, ResolverSettings
 
 
-def rate_divisor_validator(divisor: str) -> bool:
-    """Validate that divisor is a positive integer."""
-    try:
-        divisor_int = int(divisor)
-        return divisor_int > 0
-    except (ValueError, TypeError):
-        return False
-
-
-def rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def _rate_internal(divisor: int, settings: ResolverSettings) -> Column.BinaryFormula:
     """
-    Calculate rate per X (assumed second if not passed) for trace metrics using the value attribute.
+    Internal rate calculation function with hardcoded divisor.
     """
     extrapolation_mode = settings["extrapolation_mode"]
-    is_timeseries_request = settings["snuba_params"].is_timeseries_request
-
-    time_interval = (
-        settings["snuba_params"].timeseries_granularity_secs
-        if is_timeseries_request
-        else settings["snuba_params"].interval
-    )
-
-    divisor = int(cast(str, args[0])) if args else 1
-
-    if divisor > time_interval:
-        raise InvalidSearchQuery(
-            f"Divisor {divisor} cannot be greater than time interval {time_interval}"
-        )
-
-    if time_interval % divisor != 0:
-        raise InvalidSearchQuery(
-            f"Divisor {divisor} must divide evenly into time interval {time_interval}"
-        )
 
     return Column.BinaryFormula(
         left=Column(
@@ -66,17 +30,31 @@ def rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFo
     )
 
 
+def per_second(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """
+    Calculate rate per second for trace metrics using the value attribute.
+    """
+    return _rate_internal(1, settings)
+
+
+def per_minute(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """
+    Calculate rate per minute for trace metrics using the value attribute.
+    """
+    return _rate_internal(60, settings)
+
+
 TRACE_METRICS_FORMULA_DEFINITIONS = {
-    "rate": FormulaDefinition(
+    "per_second": FormulaDefinition(
         default_search_type="rate",
-        arguments=[
-            ValueArgumentDefinition(
-                argument_types={"integer"},
-                default_arg="1",
-                validator=rate_divisor_validator,
-            ),
-        ],
-        formula_resolver=rate,
+        arguments=[],
+        formula_resolver=per_second,
+        is_aggregate=True,
+    ),
+    "per_minute": FormulaDefinition(
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=per_minute,
         is_aggregate=True,
     ),
 }
