@@ -11,7 +11,6 @@ import {
   VisualizeFunction,
   type BaseVisualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface TraceMetric {
   name: string;
@@ -136,7 +135,7 @@ function defaultSortBys(): Sort[] {
 }
 
 function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('sum(value)', {chartType: ChartType.BAR})];
+  return [new VisualizeFunction('sum(value)')];
 }
 
 function defaultAggregateSortBys(): Sort[] {
