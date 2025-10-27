@@ -8,7 +8,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {unreachable} from 'sentry/utils/unreachable';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {
@@ -71,6 +71,11 @@ interface BuildDetailsSidebarAppInfoProps {
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
   const labels = getLabels(props.appInfo.platform ?? undefined);
+
+  const datetimeFormat = getFormat({
+    seconds: true,
+    timeZone: true,
+  });
 
   return (
     <Flex direction="column" gap="xl">
@@ -135,7 +140,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
                 <IconClock />
               </InfoIcon>
               <Text>
-                {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+                {getFormattedDate(
+                  getUtcToSystem(props.appInfo.date_added),
+                  datetimeFormat,
+                  {local: true}
+                )}
               </Text>
             </Flex>
           </Tooltip>
