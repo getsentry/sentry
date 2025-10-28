@@ -1,6 +1,7 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BASE_URL as AGENTS_BASE_URL} from 'sentry/views/insights/agents/settings';
+import {BASE_URL as AI_GENERATIONS_BASE_URL} from 'sentry/views/insights/aiGenerations/settings';
 import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/insights/browser/resources/settings';
 import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/insights/browser/webVitals/settings';
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
@@ -33,6 +34,7 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_BASE_URL,
   [ModuleName.AGENTS]: AGENTS_BASE_URL,
   [ModuleName.MCP]: MCP_BASE_URL,
+  [ModuleName.AI_GENERATIONS]: AI_GENERATIONS_BASE_URL,
   [ModuleName.MOBILE_UI]: MOBILE_UI_BASE_URL,
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_BASE_URL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_BASE_URL,

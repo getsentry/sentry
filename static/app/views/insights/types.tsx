@@ -13,6 +13,7 @@ export enum ModuleName {
   APP_START = 'app_start',
   RESOURCE = 'resource',
   AGENTS = 'agents',
+  AI_GENERATIONS = 'ai-generations',
   MCP = 'mcp',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',

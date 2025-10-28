@@ -5,4 +5,4 @@ export const AGENTS_LANDING_SUB_PATH = 'ai';
 export const AGENTS_LANDING_TITLE = t('AI');
 export const AI_SIDEBAR_LABEL = t('AI');
 
-export const MODULES = [ModuleName.AGENTS, ModuleName.MCP];
+export const MODULES = [ModuleName.AGENTS, ModuleName.MCP, ModuleName.AI_GENERATIONS];
