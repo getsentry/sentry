@@ -12,7 +12,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
-import CommandPaletteModal from 'sentry/components/modals/commandPalette';
+import CommandPaletteModal from 'sentry/components/modals/deprecatedCommandPalette';
 import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
