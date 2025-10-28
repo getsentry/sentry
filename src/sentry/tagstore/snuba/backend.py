@@ -1404,9 +1404,12 @@ class SnubaTagStorage(TagStorage):
     ) -> list[GroupTagValue]:
         filters: dict[str, list[Any]] = {
             "project_id": get_project_list(group.project_id),
+            self.key_column: [key],
         }
-        if not include_empty_values:
-            filters[self.key_column] = [key]
+        # When you filter by tags_key = ["foo"], we're filtering to where the tags_key array contains "foo".
+        # In order to get the total count with empty values, we need to remove the filter.
+        if include_empty_values:
+            del filters[self.key_column]
         dataset, filters = self.apply_group_filters(group, filters)
 
         if environment_ids:
@@ -1416,7 +1419,7 @@ class SnubaTagStorage(TagStorage):
             dataset=dataset,
             groupby=[tag_expression],
             filter_keys=filters,
-            conditions=[] if include_empty_values else [[tag_expression, "!=", ""]],
+            conditions=[],
             aggregations=[
                 ["count()", "", "times_seen"],
                 ["min", "timestamp", "first_seen"],
