@@ -67,7 +67,11 @@ function ConfidenceMessage({
   const isTopN = defined(topEvents) && topEvents > 1;
 
   if (!defined(sampleCount) || isLoading) {
-    return <Placeholder width={180} />;
+    return (
+      <OffsetContainer>
+        <Placeholder width={180} />
+      </OffsetContainer>
+    );
   }
 
   const noSampling = defined(isSampled) && !isSampled;
@@ -75,12 +79,16 @@ function ConfidenceMessage({
   const downsampledLogsCount = rawLogCounts.normal.count ? (
     <Count value={rawLogCounts.normal.count} />
   ) : (
-    <Placeholder width={40} />
+    <OffsetContainer>
+      <Placeholder width={40} />
+    </OffsetContainer>
   );
   const allLogsCount = rawLogCounts.highAccuracy.count ? (
     <Count value={rawLogCounts.highAccuracy.count} />
   ) : (
-    <Placeholder width={40} />
+    <OffsetContainer>
+      <Placeholder width={40} />
+    </OffsetContainer>
   );
   const suffix = rawLogCounts.highAccuracy.count ? t('logs') : '';
 
@@ -125,9 +133,9 @@ function ConfidenceMessage({
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
 
   const warning = (
-    <IconWarningContainer>
+    <OffsetContainer>
       <IconWarning size="sm" />
-    </IconWarningContainer>
+    </OffsetContainer>
   );
 
   if (isTopN) {
@@ -195,7 +203,7 @@ const Placeholder = styled('div')<{width: number}>`
   background-color: ${p => p.theme.backgroundTertiary};
 `;
 
-const IconWarningContainer = styled('span')`
+const OffsetContainer = styled('span')`
   position: relative;
   top: 2px;
 `;
