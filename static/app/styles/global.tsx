@@ -138,10 +138,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
       background: ${theme.tokens.background.primary};
     }
 
-    .loading.triangle .loading-indicator {
-      background: ${theme.tokens.background.secondary};
-    }
-
     color: ${theme.textColor};
     background: ${theme.tokens.background.primary};
   }
