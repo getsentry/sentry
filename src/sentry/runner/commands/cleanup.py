@@ -728,7 +728,7 @@ def run_bulk_deletes_by_project(
         logger.info("Processing %d project(s)", total_projects)
 
         processed_count = 0
-        last_reported_percentage = -1
+        last_reported_percentage = 0
 
         for project_id_for_deletion in RangeQuerySetWrapper(
             project_deletion_query.values_list("id", flat=True),
