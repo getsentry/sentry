@@ -64,31 +64,31 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
             return Response({"detail": detail}, status=403)
 
         limit = request.GET.get("limit")
+        if limit is not None:
+            if not limit.isdigit():
+                return Response({"detail": "Invalid limit"}, status=400)
+            limit = int(limit)
+
         path = "/v1/automation/explorer/runs"
         body = orjson.dumps(
             {
                 "organization_id": organization.id,
                 "user_id": user.id,
-                **({"limit": int(limit)} if limit is not None else {}),
+                **({"limit": limit} if limit is not None else {}),
             },
             option=orjson.OPT_NON_STR_KEYS,
         )
 
-        try:
-            response = make_signed_seer_api_request(autofix_connection_pool, path, body)
-            if response.status < 200 or response.status >= 300:
-                logger.error(
-                    "Seer explorer runs endpoint failed",
-                    extra={
-                        "path": path,
-                        "status_code": response.status,
-                        "response_data": response.data,
-                    },
-                )
-                return Response({"detail": "Internal Server Error"}, status=502)
-
-        except Exception:
-            logger.exception("Error calling Seer Explorer Runs endpoint", extra={"path": path})
-            return Response({"detail": "Internal Server Error"}, status=504)
+        response = make_signed_seer_api_request(autofix_connection_pool, path, body)
+        if response.status < 200 or response.status >= 300:
+            logger.error(
+                "Seer explorer runs endpoint failed",
+                extra={
+                    "path": path,
+                    "status_code": response.status,
+                    "response_data": response.data,
+                },
+            )
+            return Response({"detail": "Internal Server Error"}, status=502)
 
         return Response(response.json(), status=response.status)
