@@ -53,6 +53,10 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
 
+  const suspectTagsEnabled = organization.features.includes(
+    'performance-spans-suspect-attributes'
+  );
+
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
@@ -91,9 +95,11 @@ export function ExploreTables(props: ExploreTablesProps) {
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-            <TabList.Item key={Tab.SUSPECT_ATTRIBUTES}>
-              {t('Suspect Attributes')}
-            </TabList.Item>
+            {suspectTagsEnabled ? (
+              <TabList.Item key={Tab.SUSPECT_ATTRIBUTES}>
+                {t('Suspect Attributes')}
+              </TabList.Item>
+            ) : null}
           </TabList>
         </Tabs>
         {props.tab === Tab.SPAN ? (
