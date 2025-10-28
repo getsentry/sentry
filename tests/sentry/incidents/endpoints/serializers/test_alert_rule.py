@@ -127,8 +127,6 @@ class BaseAlertRuleSerializerTest:
                 rule.owner_user_id = actor.id
             if actor.is_team:
                 rule.owner_team_id = actor.id
-        if data.get("extrapolation_mode"):
-            rule.extrapolation_mode = data["extrapolation_mode"]
 
         rule.save()
         return rule

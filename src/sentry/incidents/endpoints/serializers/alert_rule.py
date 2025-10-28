@@ -277,7 +277,7 @@ class AlertRuleSerializer(Serializer):
         if aggregate == "upsampled_count()":
             aggregate = "count()"
 
-        extrapolation_mode = obj.snuba_query.extrapolation_mod
+        extrapolation_mode = obj.snuba_query.extrapolation_mode
 
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
