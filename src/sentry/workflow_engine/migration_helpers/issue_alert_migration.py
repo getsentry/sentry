@@ -7,6 +7,7 @@ from rest_framework import status
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues import grouptype
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
@@ -37,11 +38,13 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
     enforce_data_condition_json_schema,
 )
-from sentry.workflow_engine.types import ERROR_DETECTOR_NAME
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
 SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
+VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug]
 
 
 class UnableToAcquireLockApiError(SentryAPIException):
@@ -50,17 +53,22 @@ class UnableToAcquireLockApiError(SentryAPIException):
     message = "Unable to acquire lock for issue alert migration."
 
 
-def ensure_default_error_detector(project: Project) -> Detector:
+def ensure_default_detector(project: Project, type: str) -> Detector:
     """
     Ensure that the default error detector exists for a project.
     If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
     and UnableToAcquireLockApiError if that fails.
     """
+    group_type = grouptype.registry.get_by_slug(type)
+    if not group_type:
+        raise ValueError(f"Group type {type} not registered")
+    slug = group_type.slug
+    if slug not in VALID_DEFAULT_DETECTOR_TYPES:
+        raise ValueError(f"Invalid default detector type: {slug}")
+
     # If it already exists, life is simple and we can return immediately.
     # If there happen to be duplicates, we prefer the oldest.
-    existing = (
-        Detector.objects.filter(type=ErrorGroupType.slug, project=project).order_by("id").first()
-    )
+    existing = Detector.objects.filter(type=slug, project=project).order_by("id").first()
     if existing:
         return existing
 
@@ -69,9 +77,9 @@ def ensure_default_error_detector(project: Project) -> Detector:
     # to avoid duplicates.
     # However, by only locking during the one-time creation, the window for a race condition is small.
     lock = locks.get(
-        f"workflow-engine-project-error-detector:{project.id}",
+        f"workflow-engine-project-{slug}-detector:{project.id}",
         duration=2,
-        name="workflow_engine_default_error_detector",
+        name=f"workflow_engine_default_{slug}_detector",
     )
     try:
         with (
@@ -81,9 +89,16 @@ def ensure_default_error_detector(project: Project) -> Detector:
             transaction.atomic(router.db_for_write(Detector)),
         ):
             detector, _ = Detector.objects.get_or_create(
-                type=ErrorGroupType.slug,
+                type=slug,
                 project=project,
-                defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
+                defaults={
+                    "config": {},
+                    "name": (
+                        ERROR_DETECTOR_NAME
+                        if slug == ErrorGroupType.slug
+                        else ISSUE_STREAM_DETECTOR_NAME
+                    ),
+                },
             )
             return detector
     except UnableToAcquireLock:
@@ -145,6 +160,7 @@ class IssueAlertMigrator:
                 project=self.project,
                 defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
             )
+            # TODO: get_or_create issue stream detector
             AlertRuleDetector.objects.get_or_create(detector=error_detector, rule_id=self.rule.id)
 
         return error_detector

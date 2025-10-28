@@ -25,7 +25,7 @@ from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
     IssueAlertMigrator,
     UnableToAcquireLockApiError,
-    ensure_default_error_detector,
+    ensure_default_detector,
 )
 from sentry.workflow_engine.models import (
     Action,
@@ -40,6 +40,8 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class IssueAlertMigratorTest(TestCase):
@@ -456,29 +458,39 @@ class IssueAlertMigratorTest(TestCase):
         self.assert_nothing_migrated(self.issue_alert)
 
 
-class TestEnsureDefaultErrorDetector(TestCase):
-    def test_ensure_default_error_detector(self) -> None:
-        project = self.create_project()
-        detector = ensure_default_error_detector(project)
-        assert detector.name == "Error Monitor"
-        assert detector.project_id == project.id
-        assert detector.type == ErrorGroupType.slug
+class TestEnsureDefaultDetector(TestCase):
+    def setUp(self) -> None:
+        self.slug = ErrorGroupType.slug
+        self.name = ERROR_DETECTOR_NAME
 
-    def test_ensure_default_error_detector__already_exists(self) -> None:
+    def test_ensure_default_detector(self) -> None:
         project = self.create_project()
-        detector = ensure_default_error_detector(project)
+        detector = ensure_default_detector(project, self.slug)
+        assert detector.name == self.name
+        assert detector.project_id == project.id
+        assert detector.type == self.slug
+
+    def test_ensure_default_detector__already_exists(self) -> None:
+        project = self.create_project()
+        detector = ensure_default_detector(project, self.slug)
         with patch(
             "sentry.workflow_engine.migration_helpers.issue_alert_migration.locks.get"
         ) as mock_lock:
-            assert ensure_default_error_detector(project).id == detector.id
+            assert ensure_default_detector(project, self.slug).id == detector.id
             # No lock if it already exists.
             mock_lock.assert_not_called()
 
-    def test_ensure_default_error_detector__lock_fails(self) -> None:
+    def test_ensure_default_detector__lock_fails(self) -> None:
         project = self.create_project()
         with patch(
             "sentry.workflow_engine.migration_helpers.issue_alert_migration.locks.get"
         ) as mock_lock:
             mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
             with pytest.raises(UnableToAcquireLockApiError):
-                ensure_default_error_detector(project)
+                ensure_default_detector(project, self.slug)
+
+
+class TestEnsureDefaultIssueStreamDetector(TestEnsureDefaultDetector):
+    def setUp(self) -> None:
+        self.slug = IssueStreamGroupType.slug
+        self.name = ISSUE_STREAM_DETECTOR_NAME
