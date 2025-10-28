@@ -331,7 +331,7 @@ export function AutofixChanges({
             {step.termination_reason && (
               <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
             )}
-            <Flex justify="flex-end" align="center" gap="md">
+            <Flex justify="end" align="center" gap="md">
               {!prsMade && (
                 <ButtonBar>
                   {branchesMade ? (
