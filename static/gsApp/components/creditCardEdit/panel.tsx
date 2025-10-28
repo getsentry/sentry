@@ -61,6 +61,11 @@ function CreditCardPanel({
   const [expandInitially, setExpandInitially] = useState(shouldExpandInitially);
 
   const handleCardUpdated = useCallback((data: Subscription) => {
+    // if the card was successfully updated, reset the billing failure state
+    // so we don't trigger side effects nor render outdated content
+    setFromBillingFailure(false);
+    setReferrer(undefined);
+
     setCardLastFourDigits(data.paymentSource?.last4 || null);
     setCardZipCode(data.paymentSource?.zipCode || null);
     SubscriptionStore.set(data.slug, data);
