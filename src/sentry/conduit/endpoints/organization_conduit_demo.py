@@ -12,8 +12,8 @@ from sentry.models.organization import Organization
 
 class ConduitCredentialsSerializer(serializers.Serializer):
     token = serializers.CharField()
-    channel_id = serializers.CharField()
-    url = serializers.CharField()
+    channel_id = serializers.UUIDField()
+    url = serializers.URLField()
 
 
 class ConduitCredentialsResponseSerializer(serializers.Serializer):
