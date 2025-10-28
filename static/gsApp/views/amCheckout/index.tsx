@@ -1154,6 +1154,20 @@ const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
         display: none;
       }
     `}
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      gap: ${p.theme.space.xl};
+      padding: ${p.theme.space['2xl']} 0;
+
+      @media (min-width: ${p.theme.breakpoints.md}) {
+        padding: 0;
+      }
+    `}
 `;
 
 const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
