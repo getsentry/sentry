@@ -195,8 +195,8 @@ def process_batch(
             validate_span_event(val, segment_id)
 
             span = Span(
-                trace_id=cast(str, val["trace_id"]),
-                span_id=cast(str, val["span_id"]),
+                trace_id=val["trace_id"],
+                span_id=val["span_id"],
                 parent_span_id=val.get("parent_span_id"),
                 segment_id=segment_id,
                 project_id=val["project_id"],
