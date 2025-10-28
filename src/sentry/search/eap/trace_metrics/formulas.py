@@ -1,3 +1,5 @@
+from typing import cast
+
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -53,7 +55,6 @@ def per_second(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     """
     Calculate rate per second for trace metrics using the value attribute.
     """
-    from typing import cast
 
     metric_type = cast(str, args[1]) if len(args) > 1 else "counter"
     return _rate_internal(1, metric_type, settings)
@@ -63,7 +64,6 @@ def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     """
     Calculate rate per minute for trace metrics using the value attribute.
     """
-    from typing import cast
 
     metric_type = cast(str, args[1]) if len(args) > 1 else "counter"
     return _rate_internal(60, metric_type, settings)
