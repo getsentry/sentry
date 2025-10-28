@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
@@ -76,61 +77,63 @@ export function AppSizeInsightsSidebarRow({
           </Text>
           <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
             <Text size="sm" tabular variant="success">
-              {formatPercentage(insight.percentage / 100, 1)}
+              {formatUpside(insight.percentage / 100)}
             </Text>
           </Tag>
         </Flex>
       </Flex>
 
-      <Stack gap="lg" align="start" paddingBottom="md">
+      <Stack gap="lg" align="start">
         <Text variant="muted" size="sm">
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <Button priority="link" onClick={handleOpenModal} size="xs">
-            {t('Fix this locally')}
+          <Button priority="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
+            {t('How to fix this locally')}
           </Button>
         )}
       </Stack>
 
-      <Container>
-        <Button
-          size="sm"
-          onClick={onToggleExpanded}
-          style={{marginBottom: isExpanded ? '16px' : '0'}}
-          icon={
-            <IconChevron
-              style={{
-                transition: 'transform 0.2s ease',
-                color: 'inherit',
-                transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)',
-              }}
-            />
-          }
-        >
-          <Text variant="primary" size="md" bold>
-            {tn('%s file', '%s files', insight.files.length)}
-          </Text>
-        </Button>
-
-        {isExpanded && (
-          <Container
-            display="flex"
-            css={() => ({
-              flexDirection: 'column',
-              width: '100%',
-              overflow: 'hidden',
-              '& > :nth-child(odd)': {
-                backgroundColor: theme.backgroundSecondary,
-              },
-            })}
+      {insight.files.length > 0 && (
+        <Container paddingTop="md">
+          <Button
+            size="sm"
+            onClick={onToggleExpanded}
+            style={{marginBottom: isExpanded ? '16px' : '0'}}
+            icon={
+              <IconChevron
+                style={{
+                  transition: 'transform 0.2s ease',
+                  color: 'inherit',
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)',
+                }}
+              />
+            }
           >
-            {insight.files.map((file, fileIndex) => (
-              <FileRow key={`${file.path}-${fileIndex}`} file={file} />
-            ))}
-          </Container>
-        )}
-      </Container>
+            <Text variant="primary" size="md" bold>
+              {tn('%s file', '%s files', insight.files.length)}
+            </Text>
+          </Button>
+
+          {isExpanded && (
+            <Container
+              display="flex"
+              css={() => ({
+                flexDirection: 'column',
+                width: '100%',
+                overflow: 'hidden',
+                '& > :nth-child(odd)': {
+                  backgroundColor: theme.backgroundSecondary,
+                },
+              })}
+            >
+              {insight.files.map((file, fileIndex) => (
+                <FileRow key={`${file.path}-${fileIndex}`} file={file} />
+              ))}
+            </Container>
+          )}
+        </Container>
+      )}
     </Flex>
   );
 }

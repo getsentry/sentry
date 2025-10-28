@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
@@ -40,7 +41,6 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
-from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -303,7 +303,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     numComments: NotRequired[int]
-    assignedTo: NotRequired[UserSerializerResponse]
+    assignedTo: NotRequired[ActorSerializerResponse]
     isBookmarked: NotRequired[bool]
     isSubscribed: NotRequired[bool]
     subscriptionDetails: NotRequired[SubscriptionDetails | None]

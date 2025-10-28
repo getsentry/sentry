@@ -118,4 +118,27 @@ export const customFilterFields: FieldWithFeature[] = [
     ),
     getData: getOptionsData,
   },
+  {
+    name: 'filters:trace_metric_names',
+    type: 'string',
+    feature: 'tracemetrics-ingestion',
+    saveOnBlur: false,
+    saveMessage: t('Changing this filter will apply to all new events.'),
+    monospace: true,
+    multiline: true,
+    autosize: true,
+    maxRows: 10,
+    rows: 1,
+
+    placeholder: 'e.g. my_metric.*',
+    label: t('Metrics'),
+    help: (
+      <Fragment>
+        {t('Filter metrics by name. ')}
+        {newLineHelpText} {globHelpText}{' '}
+        {t('Metrics are matched on the metric name, for example "my_metric.*".')}
+      </Fragment>
+    ),
+    getData: getOptionsData,
+  },
 ];

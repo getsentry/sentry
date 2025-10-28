@@ -69,6 +69,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  bytesScanned?: number | null;
   dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;

@@ -82,6 +82,7 @@ function MetricsQueryBuilderSection() {
               key={`queryBuilder-${index}`}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
+              traceMetric={metricQuery.metric}
               setTraceMetric={metricQuery.setTraceMetric}
               removeMetric={metricQuery.removeMetric}
             >
@@ -113,6 +114,7 @@ function MetricsTabBodySection() {
               key={`queryPanel-${index}`}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
+              traceMetric={metricQuery.metric}
               setTraceMetric={metricQuery.setTraceMetric}
               removeMetric={metricQuery.removeMetric}
             >
