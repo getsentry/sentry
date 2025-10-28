@@ -11,6 +11,7 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
 from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 
@@ -28,6 +29,7 @@ from sentry.monitors.models import (
     MonitorIncident,
 )
 from sentry.monitors.utils import get_detector_for_monitor
+from sentry.types.actor import validate_actor
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -149,6 +151,15 @@ def send_incident_occurrence(
     if detector:
         evidence_data["detector_id"] = detector.id
 
+    owner_actor = monitor_env.monitor.owner_actor
+    if owner_actor:
+        try:
+            validate_actor(owner_actor, monitor_env.monitor.organization_id)
+        except serializers.ValidationError:
+            # If the owner is no longer valid, unassign it from the monitor
+            owner_actor = None
+            monitor_env.monitor.update(owner_user_id=None, owner_team_id=None)
+
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
@@ -179,7 +190,7 @@ def send_incident_occurrence(
         culprit="",
         detection_time=failed_checkin.date_added,
         level="error",
-        assignee=monitor_env.monitor.owner_actor,
+        assignee=owner_actor,
     )
 
     if failed_checkin.trace_id:
