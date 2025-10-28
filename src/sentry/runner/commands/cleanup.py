@@ -70,7 +70,13 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
     import logging
 
+    from django.db import close_old_connections
+
     from sentry.utils.imports import import_string
+
+    # Close any inherited database connections from the parent process
+    # to avoid "lost synchronization with server" errors
+    close_old_connections()
 
     logger = logging.getLogger("sentry.cleanup")
 
