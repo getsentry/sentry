@@ -149,7 +149,7 @@ function SpendLimitInput({
   return (
     <Currency>
       <StyledInput
-        aria-label={t('Custom %s spending limit', displayName)}
+        aria-label={t('Custom %s spending limit (in dollars)', displayName)}
         name={`spending-limit-${inputName}`}
         type="text"
         inputMode="numeric"

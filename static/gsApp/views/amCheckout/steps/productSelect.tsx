@@ -209,15 +209,11 @@ function ProductSelect({
                 <Flex align="start" justify="between" gap="md">
                   <Container paddingTop="sm">
                     <Checkbox
+                      tabIndex={-1} // let CheckoutOption handle the focus
                       aria-label={ariaLabel}
                       aria-checked={isSelected}
                       checked={isSelected}
                       onChange={toggleProductOption}
-                      onKeyDown={({key}) => {
-                        if (key === 'Enter') {
-                          toggleProductOption();
-                        }
-                      }}
                     />
                   </Container>
                   <Flex direction="column" gap="0" width="100%">
