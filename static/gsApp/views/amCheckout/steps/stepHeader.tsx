@@ -3,6 +3,7 @@ import kebabCase from 'lodash/kebabCase';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Heading} from 'sentry/components/core/text';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -61,9 +62,9 @@ function StepHeader({
     return (
       <Flex justify="between" align="center">
         <Flex justify="start" align="center" gap="sm" width="100%">
-          <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
+          <Heading as="h2" size="2xl" id={`step-${stepNumber}`} data-test-id={dataTestId}>
             {title}
-          </NewCheckoutStepTitle>
+          </Heading>
         </Flex>
         {trailingItems && <div>{trailingItems}</div>}
       </Flex>
@@ -144,10 +145,4 @@ const EditStep = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const NewCheckoutStepTitle = styled('div')`
-  font-size: 28px;
-  letter-spacing: -0.02em;
-  font-weight: ${p => p.theme.fontWeight.bold};
 `;
