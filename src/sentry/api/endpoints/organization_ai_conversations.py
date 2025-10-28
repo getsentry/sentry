@@ -1,6 +1,6 @@
-import dataclasses
+import json  # noqa: S003
+import logging
 from collections import defaultdict
-from datetime import datetime
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -17,6 +17,8 @@ from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+
+logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
 
 class OrganizationAIConversationsSerializer(serializers.Serializer):
@@ -89,6 +91,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=lambda results: results,
+                default_per_page=10,
+                max_per_page=100,
             )
 
     def _get_conversations(
@@ -108,6 +112,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             _sort: Sort field and direction (currently only supports timestamp sorting, unused for now)
             _query: Search query (not yet implemented)
         """
+
         # Step 1: Find conversation IDs with spans in the time range
         conversation_ids_results = Spans.run_table_query(
             params=snuba_params,
@@ -124,6 +129,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             sampling_mode=None,
         )
 
+        logger.info(
+            "[ai-conversations] Got Conversation IDs results",
+            extra={"conversation_ids_results": conversation_ids_results},
+        )
+
         conversation_ids: list[str] = [
             conv_id
             for row in conversation_ids_results.get("data", [])
@@ -133,15 +143,19 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
         if not conversation_ids:
             return []
 
-        # Step 2: Get complete aggregations for these conversations (all time)
-        all_time_params = dataclasses.replace(
-            snuba_params,
-            start=datetime(2020, 1, 1),
-            end=datetime(2100, 1, 1),
-        )
+        # # Step 2: Get complete aggregations for these conversations (all time)
+        # all_time_params = dataclasses.replace(
+        #     snuba_params,
+        #     start=datetime(2020, 1, 1),
+        #     end=datetime(2100, 1, 1),
+        # )
 
+        logger.info(
+            "[ai-conversations] Getting complete aggregations for conversations",
+            extra={"conversation_ids": conversation_ids},
+        )
         results = Spans.run_table_query(
-            params=all_time_params,
+            params=snuba_params,
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
@@ -159,7 +173,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             limit=len(conversation_ids),
             referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode=None,
+            sampling_mode="HIGHEST_ACCURACY",
+        )
+
+        logger.info(
+            "[ai-conversations] Got complete aggregations for conversations",
+            extra={"results": json.dumps(results)},
         )
 
         # Create a map of conversation data by ID
@@ -185,6 +204,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
                 "traceIds": [],
             }
 
+        logger.info(
+            "[ai-conversations] Got conversations map",
+            extra={"conversations_map": json.dumps(conversations_map)},
+        )
+
         # Preserve the order from step 1
         conversations = [
             conversations_map[conv_id]
@@ -193,7 +217,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
         ]
 
         if conversations:
-            self._enrich_conversations(all_time_params, conversations)
+            self._enrich_conversations(snuba_params, conversations)
 
         return conversations
 
@@ -204,6 +228,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
         conversation_ids = [conv["conversationId"] for conv in conversations]
 
         # Query all spans for these conversations to get both agent flows and trace IDs
+        logger.info(
+            "[ai-conversations] Enriching conversations",
+            extra={"conversation_ids": conversation_ids},
+        )
         all_spans_results = Spans.run_table_query(
             params=snuba_params,
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
@@ -211,6 +239,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
                 "gen_ai.conversation.id",
                 "span.op",
                 "span.description",
+                "gen_ai.agent.name",
                 "trace",
                 "precise.start_ts",
             ],
@@ -219,12 +248,19 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             limit=10000,
             referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode=None,
+            sampling_mode="HIGHEST_ACCURACY",
+        )
+        logger.info(
+            "[ai-conversations] Got all spans results",
+            extra={"all_spans_results": json.dumps(all_spans_results)},
         )
 
         flows_by_conversation = defaultdict(list)
         traces_by_conversation = defaultdict(set)
-
+        logger.info(
+            "[ai-conversations] Collecting traces and flows",
+            extra={"all_spans_results": json.dumps(all_spans_results)},
+        )
         for row in all_spans_results.get("data", []):
             conv_id = row.get("gen_ai.conversation.id", "")
             if not conv_id:
@@ -237,7 +273,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
 
             # Collect agent flow (only from invoke_agent spans)
             if row.get("span.op") == "gen_ai.invoke_agent":
-                agent_name = row.get("span.description", "")
+                agent_name = row.get("gen_ai.agent.name", "")
                 if agent_name:
                     flows_by_conversation[conv_id].append(agent_name)
 
@@ -245,3 +281,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             conv_id = conversation["conversationId"]
             conversation["flow"] = flows_by_conversation.get(conv_id, [])
             conversation["traceIds"] = list(traces_by_conversation.get(conv_id, set()))
+
+        logger.info(
+            "[ai-conversations] Enriched conversations",
+            extra={"conversations": json.dumps(conversations)},
+        )

@@ -342,8 +342,10 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+
 register(
-    "deletions.group.delete_group_hashes_metadata_first",
+    "cleanup.abort_execution",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -375,7 +377,11 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # New `objectstore` service configuration
-register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+register(
+    "objectstore.config",
+    default={"base_url": "http://127.0.0.1:8888"},
+    flags=FLAG_NOSTORE,
+)
 
 
 # Symbol server
@@ -2924,6 +2930,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.schema-validation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3494,6 +3505,9 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # configuration where it writes to the new objectstore alongside the existing filestore.
 # This is mutually exclusive with the above setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# This forces symbolication to use the "stored attachment" codepath,
+# regardless of whether the attachment has already been stored.
+register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # option used to enable/disable tracking
 # rate of potential functions metrics to

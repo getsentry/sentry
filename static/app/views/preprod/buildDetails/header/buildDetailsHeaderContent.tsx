@@ -2,6 +2,7 @@ import React from 'react';
 import {Link} from 'react-router-dom';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -124,7 +125,10 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   return (
     <React.Fragment>
       <Layout.HeaderContent>
-        <Breadcrumbs crumbs={breadcrumbs} />
+        <Flex align="center" gap="sm">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <FeatureBadge type="beta" />
+        </Flex>
         <Layout.Title>
           {project && <IdBadge project={project} avatarSize={28} hideName />}
           <Version version={version} anchor={false} truncate />

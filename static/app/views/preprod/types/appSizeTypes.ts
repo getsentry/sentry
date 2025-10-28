@@ -66,6 +66,7 @@ export enum TreemapType {
   MANIFESTS = 'manifests',
   SIGNATURES = 'signatures',
   FONTS = 'fonts',
+  AUDIO = 'audio',
 
   // iOS-specific categories
   FRAMEWORKS = 'frameworks',
@@ -147,10 +148,12 @@ interface LooseImagesInsightResult extends GroupsInsightResult {}
 interface MainBinaryExportMetadataResult extends FilesInsightResult {}
 
 export interface OptimizableImageFile {
+  colorspace: string | null;
   conversion_savings: number;
   current_size: number;
   file_path: string;
   heic_size: number | null;
+  idiom: string | null;
   minified_size: number | null;
   minify_savings: number;
 }
