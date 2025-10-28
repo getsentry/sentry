@@ -505,3 +505,33 @@ class ColumnDefinitions:
     filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
     alias_to_column: Callable[[str], str | None] | None
     column_to_alias: Callable[[str], str | None] | None
+
+
+def attribute_key_to_tuple(attribute_key: AttributeKey) -> tuple[str, AttributeKey.Type.ValueType]:
+    return (attribute_key.name, attribute_key.type)
+
+
+def count_argument_resolver_optimized(
+    always_present_attributes: list[AttributeKey],
+) -> Callable[[ResolvedArguments], AttributeKey]:
+    always_present_attributes_set = {
+        attribute_key_to_tuple(attribute) for attribute in always_present_attributes
+    }
+
+    def count_argument_resolver(resolved_arguments: ResolvedArguments) -> AttributeKey:
+        if len(resolved_arguments) != 1:
+            raise InvalidSearchQuery(
+                f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
+            )
+
+        if not isinstance(resolved_arguments[0], AttributeKey):
+            raise InvalidSearchQuery("Aggregates accept attribute keys only")
+
+        resolved_attribute: AttributeKey = resolved_arguments[0]
+
+        if attribute_key_to_tuple(resolved_attribute) in always_present_attributes_set:
+            return AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
+
+        return resolved_attribute
+
+    return count_argument_resolver

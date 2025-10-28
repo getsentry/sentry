@@ -286,9 +286,7 @@ class SearchResolverQueryTest(TestCase):
                 comparison_filter=AggregationComparisonFilter(
                     aggregation=AttributeAggregation(
                         aggregate=Function.FUNCTION_COUNT,
-                        key=AttributeKey(
-                            name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
-                        ),
+                        key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
                         label="count()",
                         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                     ),
@@ -312,9 +310,7 @@ class SearchResolverQueryTest(TestCase):
                 comparison_filter=AggregationComparisonFilter(
                     aggregation=AttributeAggregation(
                         aggregate=Function.FUNCTION_COUNT,
-                        key=AttributeKey(
-                            name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
-                        ),
+                        key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
                         label="count()",
                         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                     ),
@@ -367,7 +363,7 @@ class SearchResolverQueryTest(TestCase):
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_COUNT,
                                 key=AttributeKey(
-                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
+                                    name="sentry.project_id", type=AttributeKey.Type.TYPE_INT
                                 ),
                                 label="count()",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -403,7 +399,7 @@ class SearchResolverQueryTest(TestCase):
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_COUNT,
                                 key=AttributeKey(
-                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
+                                    name="sentry.project_id", type=AttributeKey.Type.TYPE_INT
                                 ),
                                 label="count()",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -439,7 +435,7 @@ class SearchResolverQueryTest(TestCase):
                             aggregation=AttributeAggregation(
                                 aggregate=Function.FUNCTION_COUNT,
                                 key=AttributeKey(
-                                    name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE
+                                    name="sentry.project_id", type=AttributeKey.Type.TYPE_INT
                                 ),
                                 label="count()",
                                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -480,8 +476,8 @@ class SearchResolverQueryTest(TestCase):
                                         aggregation=AttributeAggregation(
                                             aggregate=Function.FUNCTION_COUNT,
                                             key=AttributeKey(
-                                                name="sentry.duration_ms",
-                                                type=AttributeKey.Type.TYPE_DOUBLE,
+                                                name="sentry.project_id",
+                                                type=AttributeKey.Type.TYPE_INT,
                                             ),
                                             label="count()",
                                             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -516,8 +512,8 @@ class SearchResolverQueryTest(TestCase):
                                         aggregation=AttributeAggregation(
                                             aggregate=Function.FUNCTION_COUNT,
                                             key=AttributeKey(
-                                                name="sentry.duration_ms",
-                                                type=AttributeKey.Type.TYPE_DOUBLE,
+                                                name="sentry.project_id",
+                                                type=AttributeKey.Type.TYPE_INT,
                                             ),
                                             label="count()",
                                             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
@@ -644,7 +640,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
             label="count()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -652,7 +648,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
             label="count(span.duration)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
