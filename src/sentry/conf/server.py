@@ -479,6 +479,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.prevent",
 )
 
 # Silence internal hints from Django's system checks
@@ -950,7 +951,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": timedelta(seconds=20),
+        "schedule": timedelta(seconds=15),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -1728,6 +1729,7 @@ SENTRY_SCOPES = {
     "project:write",
     "project:admin",
     "project:releases",
+    "project:distribution",
     "event:read",
     "event:write",
     "event:admin",
@@ -1766,6 +1768,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "project:write": {"project:read", "project:write"},
     "project:admin": {"project:read", "project:write", "project:admin"},
     "project:releases": {"project:releases"},
+    "project:distribution": {"project:distribution"},
     "event:read": {"event:read"},
     "event:write": {"event:read", "event:write"},
     "event:admin": {"event:read", "event:write", "event:admin"},

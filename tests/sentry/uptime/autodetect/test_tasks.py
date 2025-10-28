@@ -17,7 +17,6 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.autodetect.ranking import (
     NUMBER_OF_BUCKETS,
-    _get_cluster,
     add_base_url_to_rank,
     get_organization_bucket,
     get_project_base_url_rank_key,
@@ -41,6 +40,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     is_url_auto_monitored_for_project,
 )
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.utils import get_cluster
 from sentry.workflow_engine.models import Detector
 
 
@@ -55,7 +55,7 @@ class ScheduleDetectionsTest(UptimeTestCase):
     def test_no_last_processed(self) -> None:
         # The first time this runs we don't expect much to happen,
         # just that it'll update the last processed date in redis
-        cluster = _get_cluster()
+        cluster = get_cluster()
         assert not cluster.get(LAST_PROCESSED_KEY)
         with mock.patch(
             "sentry.uptime.autodetect.tasks.process_autodetection_bucket"
@@ -69,7 +69,7 @@ class ScheduleDetectionsTest(UptimeTestCase):
         )
 
     def test_processes(self) -> None:
-        cluster = _get_cluster()
+        cluster = get_cluster()
         current_bucket = timezone.now().replace(second=0, microsecond=0)
         last_processed_bucket = current_bucket - timedelta(minutes=10)
         cluster.set(LAST_PROCESSED_KEY, int(last_processed_bucket.timestamp()))
@@ -181,7 +181,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
             get_project_base_url_rank_key(self.project),
             get_project_base_url_rank_key(project_2),
         ]
-        redis = _get_cluster()
+        redis = get_cluster()
         assert all(redis.exists(key) for key in keys)
 
         with mock.patch(

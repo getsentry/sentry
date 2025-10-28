@@ -4,17 +4,12 @@ import {useTheme} from '@emotion/react';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
 import {
-  DetailsBody,
-  DetailsContent,
-  DetailsWrapper,
   getLogColors,
   LogAttributeTreeWrapper,
   LogDetailTableBodyCell,
@@ -23,8 +18,12 @@ import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttri
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 import {HiddenTraceMetricDetailFields} from 'sentry/views/explore/metrics/constants';
 import {useMetricTraceDetail} from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
+import {
+  DetailsContent,
+  MetricsDetailsWrapper,
+} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 
-export function TraceDetails({
+export function MetricDetails({
   dataRow,
   ref,
 }: {
@@ -48,24 +47,21 @@ export function TraceDetails({
 
   if (isError) {
     return (
-      <DetailsWrapper ref={ref}>
+      <MetricsDetailsWrapper ref={ref}>
         <EmptyStreamWrapper>
           <IconWarning color="gray300" size="lg" />
         </EmptyStreamWrapper>
-      </DetailsWrapper>
+      </MetricsDetailsWrapper>
     );
   }
 
   return (
-    <DetailsWrapper ref={isPending ? undefined : ref}>
+    <MetricsDetailsWrapper ref={isPending ? undefined : ref}>
       <LogDetailTableBodyCell colSpan={0}>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>
             <DetailsContent>
-              <DetailsBody>
-                {tct('Trace: [traceId]', {traceId: getShortEventId(dataRow.trace)})}
-              </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree
                   attributes={data.attributes.filter(
@@ -88,6 +84,6 @@ export function TraceDetails({
           </Fragment>
         )}
       </LogDetailTableBodyCell>
-    </DetailsWrapper>
+    </MetricsDetailsWrapper>
   );
 }
