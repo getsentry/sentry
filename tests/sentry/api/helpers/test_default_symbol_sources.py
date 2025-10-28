@@ -1,0 +1,104 @@
+from django.test import override_settings
+
+from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
+from sentry.testutils.cases import TestCase
+
+
+class SetDefaultSymbolSourcesTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+
+    def test_no_platform(self):
+        """Projects without a platform should not get any default symbol sources"""
+        project = self.create_project(organization=self.organization, platform=None)
+        set_default_symbol_sources(project, self.organization)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        assert sources is None
+
+    def test_unknown_platform(self):
+        """Projects with unknown platforms should not get any default symbol sources"""
+        project = self.create_project(organization=self.organization, platform="unknown-platform")
+        set_default_symbol_sources(project, self.organization)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        assert sources is None
+
+    def test_electron_platform(self):
+        """Electron projects should get the correct default sources"""
+        project = self.create_project(organization=self.organization, platform="electron")
+        set_default_symbol_sources(project, self.organization)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        assert sources is not None
+        assert "ios" in sources
+        assert "microsoft" in sources
+        assert "electron" in sources
+
+    def test_unity_platform(self):
+        """Unity projects should get the correct default sources"""
+        project = self.create_project(organization=self.organization, platform="unity")
+        set_default_symbol_sources(project, self.organization)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        assert sources is not None
+        assert "ios" in sources
+        assert "microsoft" in sources
+        assert "android" in sources
+        assert "nuget" in sources
+        assert "unity" in sources
+        assert "nvidia" in sources
+        assert "ubuntu" in sources
+
+    def test_organization_auto_fetch_from_project(self):
+        """Function should auto-fetch organization from project if not provided"""
+        project = self.create_project(organization=self.organization, platform="electron")
+        # Don't pass organization parameter
+        set_default_symbol_sources(project)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        assert sources is not None
+        assert "electron" in sources
+
+
+class PlatformRestrictedSymbolSourcesTest(TestCase):
+    """Tests for platform-restricted symbol sources (e.g., console platforms)"""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+
+    def test_nintendo_switch_with_org_access(self):
+        """Nintendo Switch project should get nintendo-private source if org has access"""
+        # Grant org access to nintendo-switch console platform
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+
+        project = self.create_project(organization=self.organization, platform="nintendo-switch")
+        set_default_symbol_sources(project, self.organization)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        assert sources is not None
+        assert "nintendo-private" in sources
+
+    def test_nintendo_switch_without_org_access(self):
+        """Nintendo Switch project should NOT get nintendo-private source if org lacks access"""
+        # Org has no enabled console platforms (default is empty list)
+        project = self.create_project(organization=self.organization, platform="nintendo-switch")
+        set_default_symbol_sources(project, self.organization)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        # Should be None or empty since no sources are available
+        assert sources is None or sources == []
+
+    def test_unity_not_affected_by_console_restrictions(self):
+        """Unity projects should get sources regardless of console platform access"""
+        # Org has no enabled console platforms
+        project = self.create_project(organization=self.organization, platform="unity")
+        set_default_symbol_sources(project, self.organization)
+
+        sources = project.get_option("sentry:builtin_symbol_sources")
+        assert sources is not None
+        # Unity sources have no platform restrictions, so they should all be added
+        assert "unity" in sources
+        assert "microsoft" in sources

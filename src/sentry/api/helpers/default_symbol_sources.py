@@ -1,3 +1,7 @@
+from django.conf import settings
+
+from sentry.constants import ENABLED_CONSOLE_PLATFORMS_DEFAULT
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.projects.services.project import RpcProject
 
@@ -11,8 +15,56 @@ DEFAULT_SYMBOL_SOURCES = {
 }
 
 
-def set_default_symbol_sources(project: Project | RpcProject) -> None:
-    if project.platform and project.platform in DEFAULT_SYMBOL_SOURCES:
-        project.update_option(
-            "sentry:builtin_symbol_sources", DEFAULT_SYMBOL_SOURCES[project.platform]
-        )
+def set_default_symbol_sources(
+    project: Project | RpcProject, organization: Organization | None = None
+) -> None:
+    """
+    Sets default symbol sources for a project based on its platform.
+
+    For sources with platform restrictions (e.g., console platforms), this function checks
+    if the organization has access to the required platform before adding the source.
+
+    Args:
+        project: The project to configure symbol sources for
+        organization: Optional organization (fetched from project if not provided)
+    """
+    if not project.platform or project.platform not in DEFAULT_SYMBOL_SOURCES:
+        return
+
+    # Get organization from project if not provided
+    if organization is None:
+        if isinstance(project, Project):
+            organization = project.organization
+        else:
+            # For RpcProject, fetch organization by ID
+            organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    # Get default sources for this platform
+    source_keys = DEFAULT_SYMBOL_SOURCES[project.platform]
+
+    # Filter sources based on platform restrictions and organization access
+    enabled_sources = []
+    for source_key in source_keys:
+        source_config = settings.SENTRY_BUILTIN_SOURCES.get(source_key)
+        if not source_config:
+            continue
+
+        # Check if source has platform restrictions
+        required_platforms = source_config.get("platforms")
+        if required_platforms:
+            # Source is platform-restricted - check if org has access
+            enabled_console_platforms = organization.get_option(
+                "sentry:enabled_console_platforms", ENABLED_CONSOLE_PLATFORMS_DEFAULT
+            )
+
+            # Only add source if org has access to at least one of the required platforms
+            has_access = any(
+                platform in enabled_console_platforms for platform in required_platforms
+            )
+            if not has_access:
+                continue
+
+        enabled_sources.append(source_key)
+
+    if enabled_sources:
+        project.update_option("sentry:builtin_symbol_sources", enabled_sources)
