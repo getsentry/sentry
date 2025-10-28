@@ -1,69 +1,24 @@
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer} from '@tanstack/react-virtual';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+
+import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
 
 const MAX_BAR_WIDTH = 20;
+const HIGH_CARDINALITY_THRESHOLD = 20;
+const AXIS_LABEL_FONT_SIZE = 12;
+const TOOLTIP_MAX_VALUE_LENGTH = 300;
 
 const SELECTED_SERIES_NAME = 'selected';
 const BASELINE_SERIES_NAME = 'baseline';
-
-type Props = {
-  cohort1Total: number;
-  cohort2Total: number;
-  rankedAttributes: SuspectAttributesResult['rankedAttributes'];
-  searchQuery: string;
-};
-
-// TODO Abdullah Khan: Add virtualization and search to the list of charts
-export function Charts({
-  cohort1Total,
-  cohort2Total,
-  rankedAttributes,
-  searchQuery,
-}: Props) {
-  const theme = useTheme();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const virtualizer = useVirtualizer({
-    count: rankedAttributes.length,
-    getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 200,
-    overscan: 5,
-  });
-
-  const virtualItems = virtualizer.getVirtualItems();
-
-  return (
-    <ChartsWrapper ref={scrollContainerRef}>
-      <AllItemsContainer height={virtualizer.getTotalSize()}>
-        {virtualItems.map(item => (
-          <VirtualOffset key={item.index} offset={item.start}>
-            <Chart
-              key={`${item.key}+${searchQuery}`}
-              index={item.index}
-              virtualizer={virtualizer}
-              attribute={rankedAttributes[item.index]!}
-              theme={theme}
-              cohort1Total={cohort1Total}
-              cohort2Total={cohort2Total}
-            />
-          </VirtualOffset>
-        ))}
-      </AllItemsContainer>
-    </ChartsWrapper>
-  );
-}
 
 type CohortData = SuspectAttributesResult['rankedAttributes'][number]['cohort1'];
 
@@ -137,23 +92,19 @@ function cohortsToSeriesData(
   };
 }
 
-function Chart({
+export function Chart({
   attribute,
   theme,
-  index,
-  virtualizer,
   cohort1Total,
   cohort2Total,
 }: {
   attribute: SuspectAttributesResult['rankedAttributes'][number];
   cohort1Total: number;
   cohort2Total: number;
-  index: number;
   theme: Theme;
-  virtualizer: Virtualizer<HTMLDivElement, Element>;
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
-  const [hideLabels, setHideLabels] = useState(false);
+  const [chartWidth, setChartWidth] = useState(0);
 
   const cohort1Color = theme.chart.getColorPalette(0)?.[0];
   const cohort2Color = '#A29FAA';
@@ -179,12 +130,16 @@ function Chart({
     [attribute.cohort1, attribute.cohort2, cohort1Total, cohort2Total]
   );
 
-  const valueFormatter = useCallback(
+  const toolTipValueFormatter = useCallback(
     (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
       const percentage = Number(seriesParams?.data);
 
-      if (isNaN(percentage) || percentage === 0 || !isFinite(percentage)) {
+      if (isNaN(percentage) || !isFinite(percentage)) {
         return '\u2014';
+      }
+
+      if (percentage < 0.1) {
+        return `<0.1%`;
       }
 
       return `${percentage.toFixed(1)}%`;
@@ -192,7 +147,7 @@ function Chart({
     []
   );
 
-  const formatAxisLabel = useCallback(
+  const toolTipFormatAxisLabel = useCallback(
     (
       _value: number,
       _isTimestamp: boolean,
@@ -227,163 +182,154 @@ function Chart({
         : {adjective: 'similar', message: 'Nothing unusual here.'};
 
       const name = selectedParam?.name ?? baselineParam?.name ?? '';
-      const truncatedName = name.length > 300 ? `${name.slice(0, 300)}...` : name;
+      const truncatedName =
+        name.length > TOOLTIP_MAX_VALUE_LENGTH
+          ? `${name.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
+          : name;
 
       return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
     },
     [theme.textColor]
   );
 
-  const [tooltipOptions, setTooltipOptions] = useState<TooltipOption | undefined>(
-    undefined
+  const chartXAxisLabelFormatter = useCallback(
+    (value: string): string => {
+      const labelsCount = seriesData[SELECTED_SERIES_NAME].length;
+      const pixelsPerLabel = chartWidth / labelsCount;
+
+      //  Average width of a character is 0.6 times the font size
+      const pixelsPerCharacter = 0.6 * AXIS_LABEL_FONT_SIZE;
+
+      // Compute the max number of characters that can fit
+      const maxChars = Math.floor(pixelsPerLabel / pixelsPerCharacter);
+
+      // If value fits, return it as-is
+      if (value.length <= maxChars) return value;
+
+      // Otherwise, truncate and append '…'
+      const truncatedLength = Math.max(0, maxChars - 1); // leaving space for (ellipsis)
+      return value.slice(0, truncatedLength) + '…';
+    },
+    [chartWidth, seriesData]
   );
 
   useLayoutEffect(() => {
-    const chartContainer = chartRef.current?.getEchartsInstance().getDom();
-    if (!chartContainer) return;
+    const chartInstance = chartRef.current?.getEchartsInstance();
 
-    const labels = chartContainer.querySelectorAll('.echarts-for-react text');
+    if (!chartInstance) return;
 
-    for (const label of labels) {
-      const labelRect = (label as SVGGraphicsElement).getBoundingClientRect();
-      const containerRect = chartContainer.getBoundingClientRect();
+    const width = chartInstance.getDom().offsetWidth;
 
-      // If there are any labels exceeding the boundaries of the chart container, we hide
-      // hide all labels.
-      if (labelRect.left < containerRect.left || labelRect.right > containerRect.right) {
-        setHideLabels(true);
-        break;
-      }
-    }
-  }, [attribute]);
-
-  useEffect(() => {
-    // appendToBody:true is expensive, so we delay it by 100ms to avoid
-    // performance issues when the virtualized list of charts is scrolled.
-    // This prevents appendToBody to be triggered for charts that are quickly scrolled out of view
-    // i.e. unmounted.
-    const timeout = setTimeout(() => {
-      setTooltipOptions({
-        appendToBody: true,
-        trigger: 'axis',
-        renderMode: 'html',
-        valueFormatter,
-        formatAxisLabel,
-      });
-    }, 100);
-    return () => clearTimeout(timeout);
-  }, [formatAxisLabel, valueFormatter]);
+    setChartWidth(width);
+  }, [chartRef]);
 
   return (
-    <div ref={virtualizer.measureElement} data-index={index}>
-      <ChartWrapper>
-        <ChartHeaderWrapper>
-          <Flex justify="between" align="center">
-            <ChartTitle>{attribute.attributeName}</ChartTitle>
-            <Flex gap="sm">
-              <PopulationIndicator
-                color={cohort1Color}
+    <ChartWrapper>
+      <ChartHeaderWrapper>
+        <Flex justify="between" align="center">
+          <ChartTitle>{attribute.attributeName}</ChartTitle>
+          <Flex gap="sm">
+            <PopulationIndicator
+              color={cohort1Color}
+              title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
+            >
+              <Tooltip
+                showUnderline
                 title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
               >
                 {populationPercentages.selected.toFixed(0)}%
-              </PopulationIndicator>
-              <PopulationIndicator
-                color={cohort2Color}
+              </Tooltip>
+            </PopulationIndicator>
+            <PopulationIndicator
+              color={cohort2Color}
+              title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
+            >
+              <Tooltip
+                showUnderline
                 title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
               >
                 {populationPercentages.baseline.toFixed(0)}%
-              </PopulationIndicator>
-            </Flex>
+              </Tooltip>
+            </PopulationIndicator>
           </Flex>
-        </ChartHeaderWrapper>
-        <BaseChart
-          ref={chartRef}
-          autoHeightResize
-          isGroupedByDate={false}
-          tooltip={tooltipOptions}
-          grid={{
-            left: 2,
-            right: 8,
-            containLabel: true,
-          }}
-          xAxis={{
-            show: true,
-            type: 'category',
-            data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.label),
-            truncate: 14,
-            axisLabel: hideLabels
-              ? {show: false}
+        </Flex>
+      </ChartHeaderWrapper>
+      <BaseChart
+        ref={chartRef}
+        autoHeightResize
+        isGroupedByDate={false}
+        tooltip={{
+          appendToBody: true,
+          trigger: 'axis',
+          renderMode: 'html',
+          valueFormatter: toolTipValueFormatter,
+          formatAxisLabel: toolTipFormatAxisLabel,
+        }}
+        grid={{
+          left: 2,
+          right: 8,
+          containLabel: true,
+        }}
+        xAxis={{
+          show: true,
+          type: 'category',
+          data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.label),
+          truncate: 14,
+          axisLabel:
+            seriesData[SELECTED_SERIES_NAME].length > HIGH_CARDINALITY_THRESHOLD
+              ? {
+                  show: false,
+                }
               : {
-                  hideOverlap: true,
+                  hideOverlap: false,
                   showMaxLabel: false,
                   showMinLabel: false,
                   color: '#000',
                   interval: 0,
-                  formatter: (value: string) => value,
+                  fontSize: AXIS_LABEL_FONT_SIZE,
+                  formatter: chartXAxisLabelFormatter,
                 },
-          }}
-          yAxis={{
-            type: 'value',
-            axisLabel: {
-              show: false,
-              width: 0,
+        }}
+        yAxis={{
+          type: 'value',
+          axisLabel: {
+            show: false,
+            width: 0,
+          },
+        }}
+        series={[
+          {
+            type: 'bar',
+            data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
+            name: SELECTED_SERIES_NAME,
+            itemStyle: {
+              color: cohort1Color,
             },
-          }}
-          series={[
-            {
-              type: 'bar',
-              data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
-              name: SELECTED_SERIES_NAME,
-              itemStyle: {
-                color: cohort1Color,
-              },
-              barMaxWidth: MAX_BAR_WIDTH,
-              animation: false,
+            barMaxWidth: MAX_BAR_WIDTH,
+            animation: false,
+          },
+          {
+            type: 'bar',
+            data: seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value),
+            name: BASELINE_SERIES_NAME,
+            itemStyle: {
+              color: cohort2Color,
             },
-            {
-              type: 'bar',
-              data: seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value),
-              name: BASELINE_SERIES_NAME,
-              itemStyle: {
-                color: cohort2Color,
-              },
-              barMaxWidth: MAX_BAR_WIDTH,
-              animation: false,
-            },
-          ]}
-        />
-      </ChartWrapper>
-    </div>
+            barMaxWidth: MAX_BAR_WIDTH,
+            animation: false,
+          },
+        ]}
+      />
+    </ChartWrapper>
   );
 }
-
-const ChartsWrapper = styled('div')`
-  height: 100%;
-  overflow: auto;
-  overflow-y: scroll;
-  overscroll-behavior: none;
-`;
-
-const AllItemsContainer = styled('div')<{height: number}>`
-  position: relative;
-  width: 100%;
-  height: ${p => p.height}px;
-`;
-
-const VirtualOffset = styled('div')<{offset: number}>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  transform: translateY(${p => p.offset}px);
-`;
 
 const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   height: 200px;
-  padding-top: ${space(1.5)};
-  border-top: 1px solid ${p => p.theme.border};
+  padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const ChartHeaderWrapper = styled('div')`

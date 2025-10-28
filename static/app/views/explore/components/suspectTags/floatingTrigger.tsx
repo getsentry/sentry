@@ -1,35 +1,40 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import {createPortal} from 'react-dom';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useRouter from 'sentry/utils/useRouter';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import {Drawer} from 'sentry/views/explore/components/suspectTags/drawer';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
+import type {Mode} from 'sentry/views/explore/queryParams/mode';
+
+import {useChartSelection} from './chartSelectionContext';
 
 type Props = {
   boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
+  setTab: (tab: Mode | Tab) => void;
   triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function FloatingTrigger({boxSelectOptions, chartInfo, triggerWrapperRef}: Props) {
+export function FloatingTrigger({
+  boxSelectOptions,
+  chartInfo,
+  triggerWrapperRef,
+  setTab,
+}: Props) {
   const router = useRouter();
   const triggerPosition = boxSelectOptions.floatingTriggerPosition;
-
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const {openDrawer} = useDrawer();
+  const {setChartSelection} = useChartSelection();
 
   const handleZoomIn = useCallback(() => {
-    const coordRange = boxSelectOptions.boxCoordRange;
-    let startTimestamp = coordRange?.x[0];
-    let endTimestamp = coordRange?.x[1];
+    const coordRange = boxSelectOptions.xRange;
+    let startTimestamp = coordRange?.[0];
+    let endTimestamp = coordRange?.[1];
 
     if (!startTimestamp || !endTimestamp) {
       return;
@@ -54,24 +59,12 @@ export function FloatingTrigger({boxSelectOptions, chartInfo, triggerWrapperRef}
   }, [boxSelectOptions, router]);
 
   const handleFindSuspectAttributes = useCallback(() => {
-    if (!isDrawerOpen) {
-      setIsDrawerOpen(true);
-      openDrawer(
-        () => <Drawer chartInfo={chartInfo} boxSelectOptions={boxSelectOptions} />,
-        {
-          ariaLabel: t('Suspect Attributes Drawer'),
-          drawerKey: 'suspect-attributes-drawer',
-          resizable: true,
-          drawerCss: css`
-            height: calc(100% - ${space(4)});
-          `,
-          onClose: () => {
-            setIsDrawerOpen(false);
-          },
-        }
-      );
-    }
-  }, [boxSelectOptions, chartInfo, isDrawerOpen, openDrawer]);
+    setChartSelection({
+      boxSelectOptions,
+      chartInfo,
+    });
+    setTab(Tab.SUSPECT_ATTRIBUTES);
+  }, [boxSelectOptions, chartInfo, setChartSelection, setTab]);
 
   if (!triggerPosition) return null;
 
@@ -101,6 +94,9 @@ const List = styled('ul')`
   margin: 0;
   padding: 0;
   margin-bottom: 0 !important;
+  box-shadow:
+    rgba(0, 0, 0, 0.05) 0px 6px 24px 0px,
+    rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
   background: ${p => p.theme.backgroundElevated};
   color: ${p => p.theme.textColor};
   border-radius: ${p => p.theme.borderRadius};

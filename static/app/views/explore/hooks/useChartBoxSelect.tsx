@@ -19,10 +19,6 @@ type Props = {
 };
 
 export type BoxSelectOptions = {
-  boxCoordRange: {
-    x: [number, number];
-    y: [number, number];
-  } | null;
   brush: EChartsOption['brush'];
   clearSelection: () => void;
   floatingTriggerPosition: {left: number; top: number} | null;
@@ -30,16 +26,17 @@ export type BoxSelectOptions = {
   onBrushStart: EChartBrushStartHandler;
   reActivateSelection: () => void;
   toolBox: ToolboxComponentOption | undefined;
+  xRange: [number, number] | null;
 };
 
 export const EXPLORE_CHART_BRUSH_OPTION: BrushComponentOption = {
   mainType: 'brush',
   toolbox: ['rect', 'clear'],
   brushMode: 'single',
+  brushType: 'lineX',
   throttleType: 'debounce',
   throttleDelay: 100,
   xAxisIndex: 0,
-  yAxisIndex: 0,
   brushStyle: {},
   removeOnClick: false,
   transformable: true,
@@ -54,7 +51,7 @@ export function useChartBoxSelect({
 
   const {groupName} = useWidgetSyncContext();
 
-  const enabledBoxSelect = organization.features.includes(
+  const boxSelectIsEnabled = organization.features.includes(
     'performance-spans-suspect-attributes'
   );
 
@@ -77,13 +74,27 @@ export function useChartBoxSelect({
     0
   );
 
-  const onBrushStart = useCallback<EChartBrushStartHandler>(() => {
-    // Echarts either lets us connect all interactivity of the charts in a group or none of them.
-    // We need connectivity for cursor syncing, but having that enabled while drawing, leads to a
-    // box drawn for all of the charts in the group. We are going for chart specific box selections,
-    // so we disconnect the group while drawing.
-    echarts?.disconnect(groupName);
-  }, [groupName]);
+  const onBrushStart = useCallback<EChartBrushStartHandler>(
+    (_evt: any, chart: any) => {
+      // Echarts either lets us connect all interactivity of the charts in a group or none of them.
+      // We need connectivity for cursor syncing, but having that enabled while drawing, leads to a
+      // box drawn for all of the charts in the group. We are going for chart specific box selections,
+      // so we disconnect the group while drawing.
+      echarts?.disconnect(groupName);
+
+      chart.dispatchAction({type: 'hideTip'});
+      chart.setOption(
+        {
+          tooltip: {
+            show: false,
+            axisPointer: {show: false},
+          },
+        },
+        {silent: true}
+      );
+    },
+    [groupName]
+  );
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
     (evt: any, chart: any) => {
@@ -95,16 +106,14 @@ export function useChartBoxSelect({
       const xMin = xAxis.axis.scale.getExtent()[0];
       const xMax = xAxis.axis.scale.getExtent()[1];
       const yMin = yAxis.axis.scale.getExtent()[0];
-      const yMax = yAxis.axis.scale.getExtent()[1];
 
       const area = evt.areas[0];
 
-      const [x0, x1] = area.coordRange[0];
-      const [y0, y1] = area.coordRange[1];
+      const [x0, x1] = area.coordRange;
 
-      const clampedCoordRange: [[number, number], [number, number]] = [
-        [Math.max(xMin, x0), Math.min(xMax, x1)],
-        [Math.max(yMin, y0), Math.min(yMax, y1)],
+      const clampedCoordRange: [number, number] = [
+        Math.max(xMin, x0),
+        Math.min(xMax, x1),
       ];
 
       const newBrushArea: EchartBrushAreas = [
@@ -116,22 +125,18 @@ export function useChartBoxSelect({
 
       setBrushArea(newBrushArea);
 
-      // Get the bottom right coordinates of the box
-      const [clamped_x1, clamped_y0] = [clampedCoordRange[0][1], clampedCoordRange[1][0]];
-
-      // Convert the bottom right coordinates to pixel coordinates, so that we can use them to
-      // absolutely position the floating CTAs.
-      const [clamped_x1_pixels, clamped_y0_pixels] = chart.convertToPixel(
-        {xAxisIndex: 0, yAxisIndex: 0},
-        [clamped_x1, clamped_y0]
-      );
+      // Convert *bottom-right* of lineX brush to pixels
+      const [xPixel, yPixel] = chart.convertToPixel({xAxisIndex: 0, yAxisIndex: 0}, [
+        clampedCoordRange[1],
+        yMin,
+      ]);
 
       const chartRect = chart.getDom().getBoundingClientRect();
 
       if (chartRect) {
         setFloatingTriggerPosition({
-          left: chartRect.left + clamped_x1_pixels,
-          top: chartRect.top + clamped_y0_pixels + window.scrollY,
+          left: chartRect.left + xPixel,
+          top: chartRect.top + yPixel + window.scrollY,
         });
       }
     },
@@ -169,7 +174,7 @@ export function useChartBoxSelect({
   }, [chartRef]);
 
   useEffect(() => {
-    if (!enabledBoxSelect) {
+    if (!boxSelectIsEnabled) {
       return;
     }
 
@@ -181,6 +186,13 @@ export function useChartBoxSelect({
         type: 'brush',
         areas: brushArea,
       });
+
+      chartInstance?.setOption(
+        {
+          tooltip: {show: true},
+        },
+        {silent: true}
+      );
 
       // We re-connect the group after drawing the box, so that the cursor is synced across all charts again.
       // Check the onBrushStart handler for more details.
@@ -210,11 +222,11 @@ export function useChartBoxSelect({
   ]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
-    return enabledBoxSelect ? EXPLORE_CHART_BRUSH_OPTION : undefined;
-  }, [enabledBoxSelect]);
+    return boxSelectIsEnabled ? EXPLORE_CHART_BRUSH_OPTION : undefined;
+  }, [boxSelectIsEnabled]);
 
   const toolBox = useMemo<ToolboxComponentOption | undefined>(() => {
-    if (!brush) {
+    if (!boxSelectIsEnabled) {
       return undefined;
     }
 
@@ -224,22 +236,17 @@ export function useChartBoxSelect({
       },
       {
         brush: {
-          type: ['rect'],
+          type: ['lineX'],
         },
       }
     );
-  }, [brush]);
+  }, [boxSelectIsEnabled]);
 
   const config: BoxSelectOptions = useMemo(() => {
     const coordRange = brushArea?.[0]?.coordRange ?? null;
     return {
       brush,
-      boxCoordRange: coordRange
-        ? {
-            x: coordRange[0] as [number, number],
-            y: coordRange[1] as [number, number],
-          }
-        : null,
+      xRange: coordRange ? (coordRange as [number, number]) : null,
       onBrushEnd,
       onBrushStart,
       toolBox,
