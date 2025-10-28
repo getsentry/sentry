@@ -1,13 +1,13 @@
 import {Component, Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import iconAndroid from 'sentry-logos/logo-android.svg';
-import iconChrome from 'sentry-logos/logo-chrome.svg';
-import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
-import iconFirefox from 'sentry-logos/logo-firefox.svg';
-import iconIe from 'sentry-logos/logo-ie.svg';
-import iconOpera from 'sentry-logos/logo-opera.svg';
-import iconSafari from 'sentry-logos/logo-safari.svg';
+import iconAndroid from 'sentry-logos/logo-android.svg?url';
+import iconChrome from 'sentry-logos/logo-chrome.svg?url';
+import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg?url';
+import iconFirefox from 'sentry-logos/logo-firefox.svg?url';
+import iconIe from 'sentry-logos/logo-ie.svg?url';
+import iconOpera from 'sentry-logos/logo-opera.svg?url';
+import iconSafari from 'sentry-logos/logo-safari.svg?url';
 
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
