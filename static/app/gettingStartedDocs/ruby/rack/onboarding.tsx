@@ -1,21 +1,15 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';
-import {getRubyLogsOnboarding} from 'sentry/utils/gettingStartedDocs/ruby';
 
-type Params = DocsParams;
-
-const getInstallSnippet = (params: Params) =>
+const getInstallSnippet = (params: DocsParams) =>
   `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
 
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 require 'sentry-ruby'
 
 Sentry.init do |config|
@@ -67,7 +61,7 @@ end
 
 Sentry.capture_message("test message")`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -162,14 +156,3 @@ const onboarding: OnboardingConfig = {
   ],
   nextSteps: () => [],
 };
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: CrashReportWebApiOnboarding,
-  profilingOnboarding: getRubyProfilingOnboarding(),
-  logsOnboarding: getRubyLogsOnboarding({
-    docsPlatform: 'rack',
-  }),
-};
-
-export default docs;
