@@ -7,6 +7,7 @@ from django.db import router, transaction
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.types.actor import Actor

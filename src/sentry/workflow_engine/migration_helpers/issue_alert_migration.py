@@ -30,11 +30,13 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
     enforce_data_condition_json_schema,
 )
-from sentry.workflow_engine.types import ERROR_DETECTOR_NAME
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
 SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
+VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug]
 
 
 class IssueAlertMigrator:
