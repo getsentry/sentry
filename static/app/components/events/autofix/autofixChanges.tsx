@@ -189,7 +189,6 @@ export function AutofixChanges({
   isChangesFirstAppearance,
 }: AutofixChangesProps) {
   const {data} = useAutofixData({groupId});
-  const organization = useOrganization();
   const isBusy = step.status === AutofixStatus.PROCESSING;
   const iconCodeRef = useRef<HTMLDivElement>(null);
   const firstChangeRef = useRef<HTMLDivElement | null>(null);
@@ -369,12 +368,7 @@ export function AutofixChanges({
                 </ButtonBar>
               )}
               {step.status === AutofixStatus.COMPLETED && (
-                <AutofixStepFeedback
-                  stepType="changes"
-                  groupId={groupId}
-                  runId={runId}
-                  organization={organization}
-                />
+                <AutofixStepFeedback stepType="changes" groupId={groupId} runId={runId} />
               )}
               {prsMade &&
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (

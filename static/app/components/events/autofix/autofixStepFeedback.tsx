@@ -1,19 +1,18 @@
 import {useCallback, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 type StepType = 'root_cause' | 'solution' | 'changes';
 
 interface AutofixStepFeedbackProps {
   groupId: string;
-  organization: Organization;
   runId: string;
   stepType: StepType;
 }
@@ -22,9 +21,9 @@ export function AutofixStepFeedback({
   stepType,
   groupId,
   runId,
-  organization,
 }: AutofixStepFeedbackProps) {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const organization = useOrganization();
   const user = useUser();
 
   const handleFeedback = useCallback(
@@ -47,47 +46,26 @@ export function AutofixStepFeedback({
 
   if (feedbackSubmitted) {
     return (
-      <FeedbackContainer>
-        <ThankYouText>{t('Thanks!')}</ThankYouText>
-      </FeedbackContainer>
+      <Flex align="center" gap="sm">
+        <Text variant="muted">{t('Thanks!')}</Text>
+      </Flex>
     );
   }
 
   return (
-    <FeedbackContainer>
-      <ButtonGroup>
-        <Button
-          size="xs"
-          icon={<IconThumb direction="up" size="sm" />}
-          onClick={() => handleFeedback(true)}
-          aria-label={t('This step was helpful')}
-        />
-        <Button
-          size="xs"
-          icon={<IconThumb direction="down" size="sm" />}
-          onClick={() => handleFeedback(false)}
-          aria-label={t('This step was not helpful')}
-        />
-      </ButtonGroup>
-    </FeedbackContainer>
+    <Flex align="center" gap="xs">
+      <Button
+        size="xs"
+        icon={<IconThumb direction="up" size="sm" />}
+        onClick={() => handleFeedback(true)}
+        aria-label={t('This step was helpful')}
+      />
+      <Button
+        size="xs"
+        icon={<IconThumb direction="down" size="sm" />}
+        onClick={() => handleFeedback(false)}
+        aria-label={t('This step was not helpful')}
+      />
+    </Flex>
   );
 }
-
-const FeedbackContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const ThankYouText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.5;
-  color: ${p => p.theme.subText};
-  white-space: nowrap;
-`;
-
-const ButtonGroup = styled('div')`
-  display: flex;
-  gap: ${space(0.25)};
-`;

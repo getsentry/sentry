@@ -377,7 +377,6 @@ function AutofixRootCauseDisplay({
                 stepType="root_cause"
                 groupId={groupId}
                 runId={runId}
-                organization={organization}
               />
             )}
           </BottomButtonContainer>
@@ -513,12 +512,7 @@ function AutofixRootCauseDisplay({
           )}
         </ButtonBar>
         {status === AutofixStatus.COMPLETED && (
-          <AutofixStepFeedback
-            stepType="root_cause"
-            groupId={groupId}
-            runId={runId}
-            organization={organization}
-          />
+          <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
         )}
       </BottomButtonContainer>
     </CausesContainer>

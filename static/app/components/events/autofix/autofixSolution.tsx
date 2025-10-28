@@ -660,12 +660,7 @@ function AutofixSolutionDisplay({
           </Tooltip>
         </ButtonBar>
         {status === AutofixStatus.COMPLETED && (
-          <AutofixStepFeedback
-            stepType="solution"
-            groupId={groupId}
-            runId={runId}
-            organization={organization}
-          />
+          <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}
       </BottomFooter>
     </SolutionContainer>
