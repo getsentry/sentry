@@ -15,7 +15,9 @@ interface MetricPanelProps {
 }
 
 const MIN_LEFT_WIDTH = 400;
-const MIN_RIGHT_WIDTH = 400;
+
+// Defined by the size of the expected samples tab component
+const MIN_RIGHT_WIDTH = 450;
 
 export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const measureRef = useRef<HTMLDivElement>(null);
@@ -28,7 +30,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
 
   const hasSize = width > 0;
   // Default split is 60% of the available width, but not less than MIN_LEFT_WIDTH.
-  const defaultSplit = Math.min(width * 0.625, width - MIN_LEFT_WIDTH);
+  const defaultSplit = Math.max(width * 0.6, MIN_LEFT_WIDTH);
 
   return (
     <Panel>
