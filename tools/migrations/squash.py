@@ -1,6 +1,7 @@
 import ast
 import contextlib
 import os.path
+import string
 import subprocess
 from collections.abc import Generator
 from typing import NamedTuple
@@ -81,7 +82,7 @@ def _migration_root(app: str) -> str:
 
 def _migrations(root: str) -> Generator[str]:
     for fname in os.listdir(root):
-        if fname.startswith("0") and fname.endswith(".py"):
+        if fname[0] in string.digits and fname.endswith(".py"):
             yield fname
 
 
