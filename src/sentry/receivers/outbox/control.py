@@ -80,7 +80,12 @@ def process_sentry_app_deletes(
             status=ObjectStatus.DISABLED,
             sentry_app_id=object_identifier,
         )
-        # TODO: also update webhook actions using object identifier (sentry app slug)
+        if slug := payload.get("slug"):
+            action_service.update_action_status_for_webhook_via_sentry_app_slug(
+                region_name=region_name,
+                status=ObjectStatus.DISABLED,
+                sentry_app_slug=slug,
+            )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE)

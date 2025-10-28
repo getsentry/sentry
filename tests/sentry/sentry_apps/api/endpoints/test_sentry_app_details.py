@@ -860,6 +860,13 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        webhook_action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={
+                "target_identifier": self.internal_integration.slug,
+            },
+        )
+
         self.get_success_response(
             self.internal_integration.slug,
             status_code=204,
@@ -869,3 +876,6 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
 
         action.refresh_from_db()
         assert action.status == ObjectStatus.DISABLED
+
+        webhook_action.refresh_from_db()
+        assert webhook_action.status == ObjectStatus.DISABLED
