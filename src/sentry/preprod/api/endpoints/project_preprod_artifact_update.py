@@ -280,6 +280,32 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 head_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
                 updated_fields.append("main_binary_identifier")
 
+            # Truncate missing_dsym_binaries if total character count exceeds 1024
+            if "missing_dsym_binaries" in apple_info:
+                binaries = apple_info["missing_dsym_binaries"]
+                if isinstance(binaries, list):
+                    total_chars = sum(len(str(b)) for b in binaries)
+                    if total_chars > 1024:
+                        truncated = []
+                        char_count = 0
+                        for binary in binaries:
+                            binary_str = str(binary)
+                            if char_count + len(binary_str) <= 1024:
+                                truncated.append(binary_str)
+                                char_count += len(binary_str)
+                            else:
+                                break
+                        apple_info["missing_dsym_binaries"] = truncated
+                        logger.warning(
+                            "Truncated missing_dsym_binaries list to not exceed 1024 characters limit",
+                            extra={
+                                "artifact_id": artifact_id_int,
+                                "original_count": len(binaries),
+                                "truncated_count": len(truncated),
+                                "total_chars": total_chars,
+                            },
+                        )
+
             for field in [
                 "is_simulator",
                 "codesigning_type",
