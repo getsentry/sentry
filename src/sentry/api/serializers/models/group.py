@@ -170,16 +170,8 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
 
 
 def _get_status_label(group: Group):
-    status = group.status
+    status = group.get_status()
 
-    # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
-    # unresolved it after it was auto-resolved. We should respect that and not override
-    # the status back to RESOLVED.
-    if status == GroupStatus.UNRESOLVED and group.is_over_resolve_age() and not group.resolved_at:
-        # When an issue is over the auto-resolve age but the task has not yet run
-        # Only show as auto-resolved if this group type has auto-resolve enabled
-        if group.issue_type.enable_auto_resolve:
-            status = GroupStatus.RESOLVED
     if status == GroupStatus.RESOLVED:
         status_label = "resolved"
     elif status == GroupStatus.IGNORED:
@@ -467,7 +459,7 @@ class GroupSerializerBase(Serializer, ABC):
             else:
                 status = GroupStatus.UNRESOLVED
         # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
-        # unresolved it after it was auto-resolved. We should respect that and not override
+        # unresolved it after it was resolved. We should respect that and not override
         # the status back to RESOLVED.
         if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age() and not obj.resolved_at:
             # When an issue is over the auto-resolve age but the task has not yet run

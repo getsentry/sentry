@@ -80,55 +80,34 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_manually_unresolved_after_auto_resolve(self) -> None:
-        """
-        Test that when an issue is manually unresolved after being auto-resolved,
-        the serializer respects the manual unresolve and doesn't override it back to resolved.
-
-        Regression test for a bug where issues past the auto-resolve age would always
-        show as "resolved" even if manually unresolved.
-        """
         now = timezone.now()
-        # Set auto-resolve age to 7 days
-        self.project.update_option("sentry:resolve_age", 168)  # hours
+        self.project.update_option("sentry:resolve_age", 168)  # 7 days
 
         user = self.create_user()
-        # Create a group with last_seen 10 days ago (past auto-resolve age)
         group = self.create_group(
             status=GroupStatus.UNRESOLVED,
-            last_seen=now - timedelta(days=10),
+            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
         )
-        # Simulate that the issue was auto-resolved and then manually unresolved
-        # by setting resolved_at (left from when it was resolved) but keeping status UNRESOLVED
+
         group.resolved_at = now - timedelta(days=1)
         group.save()
 
         result = serialize(group, user)
-        # The status should be "unresolved" because the user manually unresolved it,
-        # even though it's past the auto-resolve age
         assert result["status"] == "unresolved"
         assert result["statusDetails"] == {}
 
     def test_auto_resolve_not_yet_resolved(self) -> None:
-        """
-        Test that issues past the auto-resolve age that haven't been resolved yet
-        are shown as "resolved" in the serializer (pre-emptively before the background job runs).
-        """
         now = timezone.now()
-        # Set auto-resolve age to 7 days
-        self.project.update_option("sentry:resolve_age", 168)  # hours
+        self.project.update_option("sentry:resolve_age", 168)  # 7 days
 
         user = self.create_user()
-        # Create a group with last_seen 10 days ago (past auto-resolve age)
         group = self.create_group(
             status=GroupStatus.UNRESOLVED,
-            last_seen=now - timedelta(days=10),
+            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
         )
-        # resolved_at should be None because it hasn't been resolved yet
         assert group.resolved_at is None
 
         result = serialize(group, user)
-        # The status should be "resolved" because it's past the auto-resolve age
-        # and hasn't been manually unresolved (resolved_at is None)
         assert result["status"] == "resolved"
         assert result["statusDetails"]["autoResolved"] is True
 
