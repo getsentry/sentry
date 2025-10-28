@@ -2646,8 +2646,6 @@ function buildRoutes(): RouteObject[] {
       deprecatedRouteProps: true,
     },
     traceView,
-    automationRoutes,
-    detectorRoutes,
   ];
   const issueRoutes: SentryRouteObject = {
     path: '/issues/',
