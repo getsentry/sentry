@@ -901,9 +901,19 @@ def test_which() -> None:
     assert which(event) == EventType.NAVIGATION_SPAN
 
     event = {
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1761671674.977515,
+                "type": "default",
+                "data": {"to": "UIInputWindowController"},
+                "message": "UIInputWindowController",
+                "category": "navigation",
+                "level": "none",
+            },
+        },
         "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "navigation"}},
+        "timestamp": 1761671674977,
     }
     assert which(event) == EventType.NAVIGATION
 

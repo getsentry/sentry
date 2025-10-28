@@ -27,6 +27,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
+from sentry.utils.platform_categories import MOBILE
 
 logger = logging.getLogger(__name__)
 
@@ -249,16 +250,18 @@ def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
     project_id: int,
+    is_mobile_replay: bool = False,
 ) -> list[str]:
     # Sort error events by timestamp. This list includes all feedback events still.
     error_events.sort(key=lambda x: x["timestamp"])
-    return list(generate_summary_logs(segment_data, error_events, project_id))
+    return list(generate_summary_logs(segment_data, error_events, project_id, is_mobile_replay))
 
 
 def generate_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
     project_id,
+    is_mobile_replay: bool = False,
 ) -> Generator[str]:
     """
     Generate log messages from events and errors in chronological order.
@@ -297,7 +300,7 @@ def generate_summary_logs(
                     if feedback:
                         yield generate_feedback_log_message(feedback)
 
-            elif message := as_log_message(event):
+            elif message := as_log_message(event, is_mobile_replay):
                 yield message
 
     # Yield any remaining error messages
@@ -312,7 +315,7 @@ def generate_summary_logs(
         error_idx += 1
 
 
-def as_log_message(event: dict[str, Any]) -> str | None:
+def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str | None:
     """Return an event as a log message.
 
     Useful in AI contexts where the event's structure is an impediment to the AI's understanding
@@ -337,8 +340,14 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.NAVIGATION_SPAN:
-                to = event["data"]["payload"]["description"]
-                return f"User navigated to: {to} at {timestamp}"
+                # for web replays, we favor NAVIGATION_SPAN
+                # since the frontend favors navigation span events in the breadcrumb tab
+                # for mobile replays, we only have access to NAVIGATION events.
+                if not is_mobile_replay:
+                    to = event["data"]["payload"]["description"]
+                    return f"User navigated to: {to} at {timestamp}"
+                else:
+                    return None
             case EventType.CONSOLE:
                 message = str(event["data"]["payload"]["message"])
                 if len(message) > trunc_length:
@@ -451,7 +460,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.CLS:
                 return None
             case EventType.NAVIGATION:
-                return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
+                if is_mobile_replay:
+                    to = event["data"]["payload"]["data"]["to"]
+                    return f"User navigated to: {to} at {timestamp}"
+                else:
+                    return None
             case EventType.MULTI_CLICK:
                 return None
     except (KeyError, ValueError, TypeError):
@@ -520,6 +533,8 @@ def rpc_get_replay_summary_logs(
 
     error_ids = processed_response[0].get("error_ids", [])
     trace_ids = processed_response[0].get("trace_ids", [])
+    platform = processed_response[0].get("platform")
+    is_mobile_replay = platform in MOBILE if platform else False
 
     result = get_replay_range(
         organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
@@ -564,6 +579,6 @@ def rpc_get_replay_summary_logs(
     segment_data = iter_segment_data(segment_md)
 
     # Combine replay and error data and parse into logs.
-    logs = get_summary_logs(segment_data, error_events, project.id)
+    logs = get_summary_logs(segment_data, error_events, project.id, is_mobile_replay)
 
     return {"logs": logs}
