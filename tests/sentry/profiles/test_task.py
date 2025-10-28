@@ -1078,6 +1078,7 @@ def test_track_latest_sdk_with_payload(
     )
 
 
+@patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._track_outcome")
 @patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all
@@ -1093,6 +1094,7 @@ def test_track_latest_sdk_with_payload(
 def test_deprecated_sdks(
     _process_vroomrs_profile,
     _track_outcome,
+    _symbolicate_profile: mock.MagicMock,
     profile,
     category,
     sdk_version,
@@ -1108,6 +1110,7 @@ def test_deprecated_sdks(
         "name": "sentry.python",
         "version": sdk_version,
     }
+    _symbolicate_profile.return_value = True
 
     with Feature(
         [
@@ -1136,6 +1139,7 @@ def test_deprecated_sdks(
         _process_vroomrs_profile.assert_called()
 
 
+@patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._track_outcome")
 @patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all
@@ -1151,6 +1155,7 @@ def test_deprecated_sdks(
 def test_rejected_sdks(
     _process_vroomrs_profile,
     _track_outcome,
+    _symbolicate_profile: mock.MagicMock,
     profile,
     category,
     sdk_version,
@@ -1166,6 +1171,7 @@ def test_rejected_sdks(
         "name": "sentry.cocoa",
         "version": sdk_version,
     }
+    _symbolicate_profile.return_value = True
 
     with Feature(
         [
