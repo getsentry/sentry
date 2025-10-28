@@ -18,12 +18,18 @@ function CheckoutOption({
 }) {
   return (
     <Option
+      tabIndex={0}
       role={ariaRole}
       aria-checked={isSelected}
       isSelected={isSelected}
       onClick={onClick}
       data-test-id={dataTestId}
       aria-label={ariaLabel}
+      onKeyDown={({key}) => {
+        if (key === 'Enter') {
+          onClick();
+        }
+      }}
     >
       {children}
     </Option>

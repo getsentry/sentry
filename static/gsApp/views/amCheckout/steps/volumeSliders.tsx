@@ -227,6 +227,17 @@ function VolumeSliders({
                       showLabel={false}
                       name={category}
                       id={sliderId}
+                      aria-label={
+                        isByteCategory(category)
+                          ? t(
+                              'Reserved volume for %s (in gigabytes)',
+                              getPlanCategoryName({plan: activePlan, category})
+                            )
+                          : t(
+                              'Reserved volume for %s',
+                              getPlanCategoryName({plan: activePlan, category})
+                            )
+                      }
                       value={formData.reserved[category] ?? ''}
                       allowedValues={allowedValues}
                       onChange={value =>

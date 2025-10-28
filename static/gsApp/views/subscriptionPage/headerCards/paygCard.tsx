@@ -142,7 +142,7 @@ function PaygCard({
                   <StyledInput
                     ref={paygInput}
                     aria-label={t(
-                      'Edit %s limit',
+                      'Edit %s limit (in dollars)',
                       displayBudgetName(subscription.planDetails)
                     )}
                     size="sm"
