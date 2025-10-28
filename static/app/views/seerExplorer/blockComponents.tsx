@@ -23,6 +23,8 @@ interface BlockProps {
   isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onNavigate?: () => void;
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
@@ -88,6 +90,8 @@ function BlockComponent({
   isPolling,
   onClick,
   onDelete,
+  onMouseEnter,
+  onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
   ref,
@@ -97,8 +101,6 @@ function BlockComponent({
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
-
-  const [isHovered, setIsHovered] = useState(false);
 
   // State to track selected tool link (for navigation)
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
@@ -220,15 +222,15 @@ function BlockComponent({
     }
   };
 
-  const showActions = (isFocused || isHovered) && !block.loading;
+  const showActions = isFocused && !block.loading;
 
   return (
     <Block
       ref={ref}
       isLast={isLast}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <AnimatePresence>
         <motion.div
