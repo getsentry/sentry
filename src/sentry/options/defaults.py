@@ -3505,6 +3505,9 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # configuration where it writes to the new objectstore alongside the existing filestore.
 # This is mutually exclusive with the above setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# This forces symbolication to use the "stored attachment" codepath,
+# regardless of whether the attachment has already been stored.
+register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # option used to enable/disable tracking
 # rate of potential functions metrics to

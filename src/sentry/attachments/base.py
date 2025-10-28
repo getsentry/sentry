@@ -74,10 +74,6 @@ class CachedAttachment:
         return self._data
 
     def delete(self):
-        if self.stored_id:
-            # TODO: delete the stored file
-            raise NotImplementedError()
-
         for key in self.chunk_keys:
             self._cache.inner.delete(key)
 

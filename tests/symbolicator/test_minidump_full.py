@@ -11,9 +11,10 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.services import eventstore
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_kafka, requires_symbolicator
+from sentry.testutils.skips import requires_kafka, requires_objectstore, requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
@@ -204,6 +205,20 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
         with self.feature(self._FEATURES):
+            with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump({"upload_file_minidump": f}, {})
+
+        thread_name = get_path(event.data, "threads", "values", 1, "name")
+        assert thread_name == "sentry-http"
+
+    @requires_objectstore
+    def test_force_stored_minidump(self) -> None:
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
+
+        with (
+            self.feature(self._FEATURES),
+            override_options({"objectstore.force-stored-symbolication": 1}),
+        ):
             with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump({"upload_file_minidump": f}, {})
 
