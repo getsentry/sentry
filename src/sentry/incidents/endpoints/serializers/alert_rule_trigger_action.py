@@ -29,11 +29,11 @@ def human_desc(
     if action_type == AlertRuleTriggerAction.Type.EMAIL.value:
         if action_target:
             if target_type == AlertRuleTriggerAction.TargetType.USER.value:
-                return "Send a notification to " + target.get_email()
+                email = target.get_email() if target else "[removed]"
+                return "Send a notification to " + email
             elif target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                return "Send an email to members of #" + target.slug
-        else:
-            return "Send a notification to [removed]"
+                slug = "#" + target.slug if target else "[removed]"
+                return "Send an email to members of " + slug
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         if priority:
             return f"Send a {priority} Opsgenie notification to {target_display}"
