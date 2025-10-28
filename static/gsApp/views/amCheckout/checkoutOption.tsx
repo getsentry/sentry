@@ -18,6 +18,7 @@ function CheckoutOption({
 }) {
   return (
     <Option
+      tabIndex={0}
       role={ariaRole}
       aria-checked={isSelected}
       isSelected={isSelected}

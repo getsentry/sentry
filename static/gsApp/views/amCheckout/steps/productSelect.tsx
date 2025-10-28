@@ -209,6 +209,7 @@ function ProductSelect({
                 <Flex align="start" justify="between" gap="md">
                   <Container paddingTop="sm">
                     <Checkbox
+                      tabIndex={-1} // let CheckoutOption handle the focus
                       aria-label={ariaLabel}
                       aria-checked={isSelected}
                       checked={isSelected}
