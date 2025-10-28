@@ -136,6 +136,13 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dynamic-sampling-custom", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic sampling minimum sample rate
     manager.add("organizations:dynamic-sampling-minimum-sample-rate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables generation of dynamic sampling rules based on span data for span first
+    manager.add(
+        "organizations:dynamic-sampling-on-span-first",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=False,
+    )
     # Enable logging project config for debugging
     manager.add("organizations:log-project-config", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable archive/escalating issue workflow features in v2
@@ -633,13 +640,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     manager.add("projects:project-detail-apple-app-hang-rate", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # fmt: on
-    # Enables generation of dynamic sampling rules based on span data for span first
-    manager.add(
-        "projects:dynamic-sampling-on-span-first",
-        ProjectFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=False,
-    )
 
     # Partner oauth
     manager.add(
