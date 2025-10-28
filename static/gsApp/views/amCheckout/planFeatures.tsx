@@ -104,10 +104,19 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
   },
 ];
 
-function getMinimumPlanType({featureInfo}: {featureInfo: FeatureInfo}) {
-  return Object.keys(featureInfo.displayStringMap).sort(
-    (a, b) => ORDERED_PLAN_TYPES.indexOf(a) - ORDERED_PLAN_TYPES.indexOf(b)
-  )[0];
+/**
+ * Returns the minimum plan type that has the feature, if any.
+ */
+function getMinimumPlanType({
+  featureInfo,
+}: {
+  featureInfo: FeatureInfo;
+}): PlanType | undefined {
+  return (
+    (Object.keys(featureInfo.displayStringMap).sort(
+      (a, b) => ORDERED_PLAN_TYPES.indexOf(a) - ORDERED_PLAN_TYPES.indexOf(b)
+    )[0] as PlanType) ?? undefined
+  );
 }
 
 /**
@@ -124,6 +133,40 @@ function checkHasFeature({
   return !minPlanType || activePlanTypeIndex >= ORDERED_PLAN_TYPES.indexOf(minPlanType);
 }
 
+/**
+ *
+ * Check if the active plan has at least the feature version of the given plan type.
+ */
+function checkHasFeatureVersion({
+  activePlanTypeIndex,
+  targetPlanTypeIndex,
+}: {
+  activePlanTypeIndex: number;
+  targetPlanTypeIndex: number;
+}) {
+  return activePlanTypeIndex >= targetPlanTypeIndex;
+}
+
+/**
+ * Check if the active plan has a greater feature version than the given plan type.
+ */
+function checkHasGreaterFeatureVersion({
+  activePlanType,
+  activePlanTypeIndex,
+  targetPlanTypeIndex,
+  featureInfo,
+}: {
+  activePlanType: PlanType;
+  activePlanTypeIndex: number;
+  featureInfo: FeatureInfo;
+  targetPlanTypeIndex: number;
+}) {
+  return (
+    activePlanTypeIndex > targetPlanTypeIndex &&
+    activePlanType in featureInfo.displayStringMap
+  );
+}
+
 function MonitoringAndDataFeatures({
   planOptions,
   activePlan,
@@ -131,6 +174,10 @@ function MonitoringAndDataFeatures({
   activePlan: Plan;
   planOptions: Plan[];
 }) {
+  const activePlanTypeIndex = useMemo(
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    [activePlan]
+  );
   const featureKeyToInfo: Partial<
     Record<FeatureKey | DataCategory, Omit<FeatureInfo, 'key'>>
   > = {
@@ -240,31 +287,44 @@ function MonitoringAndDataFeatures({
             <Flex direction="column" gap="sm">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
                 const isActivePlanType = planType === activePlanType;
-                const hasFeature =
-                  isActivePlanType || !(activePlanType in info.displayStringMap);
+                const planTypeIndex = ORDERED_PLAN_TYPES.indexOf(planType);
+                const hasFeatureVersion = checkHasFeatureVersion({
+                  activePlanTypeIndex,
+                  targetPlanTypeIndex: planTypeIndex,
+                });
+                const hasGreaterFeatureVersion = checkHasGreaterFeatureVersion({
+                  activePlanType,
+                  activePlanTypeIndex,
+                  targetPlanTypeIndex: planTypeIndex,
+                  featureInfo: {...info, key},
+                });
                 const isBusinessFeature = planType === 'business';
                 const commonProps = {
                   as: 'span' as const,
-                  variant: hasFeature ? ('primary' as const) : ('muted' as const),
-                  size:
-                    isBusinessFeature && !hasFeature ? ('xs' as const) : ('md' as const),
+                  variant:
+                    hasGreaterFeatureVersion || !hasFeatureVersion
+                      ? ('muted' as const)
+                      : ('primary' as const),
+                  size: hasFeatureVersion ? ('md' as const) : ('xs' as const),
                 };
 
                 return (
                   <Text
                     key={planType + displayString}
                     as="div"
-                    strikethrough={!hasFeature && !isBusinessFeature}
+                    strikethrough={hasGreaterFeatureVersion && !isActivePlanType}
                   >
                     <Text {...commonProps}>{info.displayStringPrefix}</Text>
                     <Text
                       {...commonProps}
                       variant={
-                        hasFeature
-                          ? isBusinessFeature && isActivePlanType
+                        isBusinessFeature
+                          ? isActivePlanType
                             ? 'accent'
+                            : 'muted'
+                          : hasGreaterFeatureVersion
+                            ? 'muted'
                             : 'primary'
-                          : 'muted'
                       }
                     >
                       {displayString}
@@ -273,12 +333,14 @@ function MonitoringAndDataFeatures({
                     {key === 'alerts' && planType === 'business' && (
                       <Text
                         {...commonProps}
-                        variant={isBusinessFeature && hasFeature ? 'accent' : 'muted'}
+                        variant={
+                          isBusinessFeature && hasFeatureVersion ? 'accent' : 'muted'
+                        }
                       >
                         {t(' + anomaly detection')}
                       </Text>
                     )}
-                    {isBusinessFeature && !hasFeature && (
+                    {isBusinessFeature && !hasFeatureVersion && (
                       <Text {...commonProps} variant="muted">
                         {t(' on Business only')}
                       </Text>
@@ -323,16 +385,17 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
           >
             <Flex direction="column" gap="sm">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
-                // active plan has this specific version of the feature
-                const hasPlanTypeFeature =
-                  activePlanTypeIndex >= ORDERED_PLAN_TYPES.indexOf(planType);
+                const hasFeatureVersion = checkHasFeatureVersion({
+                  activePlanTypeIndex,
+                  targetPlanTypeIndex: ORDERED_PLAN_TYPES.indexOf(planType),
+                });
 
                 const isBusinessFeature = planType === 'business';
                 const commonProps = {
                   as: 'span' as const,
-                  variant: hasPlanTypeFeature ? ('primary' as const) : ('muted' as const),
+                  variant: hasFeatureVersion ? ('primary' as const) : ('muted' as const),
                   size:
-                    (isBusinessFeature && !hasPlanTypeFeature) ||
+                    (isBusinessFeature && !hasFeatureVersion) ||
                     (isOnlyOnBusiness && !hasFeature)
                       ? ('xs' as const)
                       : ('md' as const),
@@ -344,7 +407,7 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
                     <Text
                       {...commonProps}
                       variant={
-                        hasPlanTypeFeature
+                        hasFeatureVersion
                           ? isBusinessFeature && !isOnlyOnBusiness
                             ? 'accent'
                             : 'primary'
@@ -354,7 +417,7 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
                       {displayString}
                     </Text>
                     <Text {...commonProps}>{info.displayStringSuffix}</Text>
-                    {isBusinessFeature && !isOnlyOnBusiness && !hasPlanTypeFeature && (
+                    {isBusinessFeature && !isOnlyOnBusiness && !hasFeatureVersion && (
                       <Text {...commonProps} variant="muted">
                         {t(' on Business only')}
                       </Text>
