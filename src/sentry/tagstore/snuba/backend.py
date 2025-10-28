@@ -1412,7 +1412,6 @@ class SnubaTagStorage(TagStorage):
         if environment_ids:
             filters["environment"] = environment_ids
         tag_expression = self.format_string.format(key)
-        safe_limit = limit
         results = snuba.query(
             dataset=dataset,
             groupby=[tag_expression],
@@ -1424,7 +1423,7 @@ class SnubaTagStorage(TagStorage):
                 ["max", "timestamp", "last_seen"],
             ],
             orderby=orderby,
-            limit=safe_limit,
+            limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
             tenant_ids=tenant_ids,
