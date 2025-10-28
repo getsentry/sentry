@@ -1,6 +1,7 @@
 from copy import deepcopy
 from functools import cached_property
 
+from arroyo.processing.processor import StreamProcessor
 from arroyo.utils import metrics
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
@@ -16,6 +17,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_state import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -50,7 +52,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         metrics._metrics_backend = None
 
     @cached_property
-    def snuba_query(self):
+    def snuba_query(self) -> SnubaQuery:
         return SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset="events",
@@ -62,7 +64,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
 
     @cached_property
-    def subscription(self):
+    def subscription(self) -> QuerySubscription:
         return QuerySubscription.objects.create(
             status=QuerySubscription.Status.ACTIVE.value,
             project=self.project,
@@ -71,7 +73,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
 
     @cached_property
-    def detector(self):
+    def detector(self) -> Detector:
         from sentry.incidents.grouptype import MetricIssue
 
         # Create condition group for detector thresholds
@@ -118,7 +120,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         return detector
 
     @cached_property
-    def producer(self):
+    def producer(self) -> Producer:
         conf = {
             "bootstrap.servers": settings.KAFKA_CLUSTERS[self.cluster]["common"][
                 "bootstrap.servers"
@@ -127,7 +129,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         }
         return Producer(conf)
 
-    def run_test(self, consumer):
+    def run_test(self, consumer: StreamProcessor) -> None:
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
         # calls the correct callback, which should result in a GroupOpenPeriod being created.
@@ -138,7 +140,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         message = {
             "version": 3,
             "payload": {
-                "subscription_id": str(self.subscription.subscription_id),
+                "subscription_id": self.subscription.subscription_id,
                 "result": {
                     "data": [{"some_col": 101}],
                     "meta": [{"name": "count", "type": "UInt64"}],
