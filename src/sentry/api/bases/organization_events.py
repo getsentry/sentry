@@ -338,6 +338,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 return "1/second", field_type
             elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
                 return "1/minute", field_type
+            elif field in ["per_second()"]:
+                return "1/second", field_type
+            elif field in ["per_minute()"]:
+                return "1/minute", field_type
             else:
                 logger.warning(
                     "sentry.api.bases.organization_events.get_unit_and_type encountered an unknown rate type",
@@ -370,6 +374,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 full_scan = meta.pop("full_scan", None)
+                bytes_scanned = meta.pop("bytes_scanned", None)
                 debug_info = meta.pop("debug_info", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
@@ -391,6 +396,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 else:
                     # If this key isn't in meta there wasn't any sampling and we can assume all the data was scanned
                     meta["dataScanned"] = "full"
+
+                if bytes_scanned is not None:
+                    meta["bytesScanned"] = bytes_scanned
 
                 # Only appears in meta when debug is passed to the endpoint
                 if debug_info:

@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -10,6 +11,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
+  useApiQuery,
   useInfiniteQuery,
   useQueryClient,
   type ApiQueryKey,
@@ -38,6 +40,7 @@ import {
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
+  type LogsAggregatesResult,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
@@ -581,6 +584,27 @@ export function useInfiniteLogsQuery({
 
   const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
 
+  // Due to the way we prune empty pages, we cannot simply compute the sum of bytes scanned
+  // for all pages as most empty pages would have been evicted already.
+  //
+  // Instead, we watch the last page loaded, and keep a running sum that is reset when
+  // the last page is falsey which corresponds to a query change.
+  const [totalBytesScanned, setTotalBytesScanned] = useState(0);
+  const lastPage = data?.pages?.[data?.pages?.length - 1];
+  useEffect(() => {
+    if (!lastPage) {
+      setTotalBytesScanned(0);
+      return;
+    }
+
+    const bytesScanned = lastPage[0].meta?.bytesScanned;
+    if (!defined(bytesScanned)) {
+      return;
+    }
+
+    setTotalBytesScanned(previousBytesScanned => previousBytesScanned + bytesScanned);
+  }, [lastPage]);
+
   const _data = useMemo(() => {
     const usedRowIds = new Set();
     const filteredData =
@@ -637,6 +661,12 @@ export function useInfiniteLogsQuery({
     [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
   );
 
+  const dataScannedList = data?.pages?.map(page => page[0].meta?.dataScanned);
+  const dataScanned = defined(dataScannedList)
+    ? dataScannedList.includes('partial')
+      ? ('partial' as const)
+      : ('full' as const)
+    : undefined;
   const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
   const shouldAutoFetchNextPage =
@@ -691,6 +721,8 @@ export function useInfiniteLogsQuery({
     isFetchingNextPage: _data.length > 0 && (waitingToAutoFetch || isFetchingNextPage),
     isFetchingPreviousPage,
     lastPageLength,
+    dataScanned,
+    bytesScanned: totalBytesScanned,
   };
 }
 
@@ -709,4 +741,80 @@ export function useLogsQueryHighFidelity() {
     sortBys[0]?.field === 'timestamp' &&
     sortBys[0]?.kind === 'desc'
   );
+}
+
+interface RawCount {
+  count: number | null;
+  isLoading: boolean;
+}
+
+export interface RawLogCounts {
+  highAccuracy: RawCount;
+  normal: RawCount;
+}
+
+export function useLogsRawCounts(): RawLogCounts {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const baseQueryParams = {
+    dataset: DiscoverDatasets.OURLOGS,
+    project: selection.projects,
+    environment: selection.environments,
+    ...normalizeDateTimeParams(selection.datetime),
+    field: ['count(message)'],
+    disableAggregateExtrapolation: '1',
+  };
+
+  const normalScanQueryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/events/`,
+    {
+      query: {
+        ...baseQueryParams,
+        referrer: 'api.explore.logs.raw-count.normal',
+        sampling: SAMPLING_MODE.NORMAL,
+      },
+    },
+  ];
+
+  const normalScanResult = useApiQuery<LogsAggregatesResult>(normalScanQueryKey, {
+    enabled: true,
+    staleTime: 0,
+  });
+
+  const highestAccuracyScanQueryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/events/`,
+    {
+      query: {
+        ...baseQueryParams,
+        referrer: 'api.explore.logs.raw-count.high-accuracy',
+        sampling: SAMPLING_MODE.HIGH_ACCURACY,
+      },
+    },
+  ];
+
+  const highestAccuracyScanResult = useApiQuery<LogsAggregatesResult>(
+    highestAccuracyScanQueryKey,
+    {
+      enabled: true,
+      staleTime: 0,
+    }
+  );
+
+  const normalScanCount = (normalScanResult.data?.data?.[0]?.['count(message)'] ||
+    null) as number | null;
+  const highestAccuracyScanCount = (highestAccuracyScanResult.data?.data?.[0]?.[
+    'count(message)'
+  ] || null) as number | null;
+
+  return {
+    normal: {
+      isLoading: normalScanResult.isFetching,
+      count: normalScanCount,
+    },
+    highAccuracy: {
+      isLoading: highestAccuracyScanResult.isFetching,
+      count: highestAccuracyScanCount,
+    },
+  };
 }

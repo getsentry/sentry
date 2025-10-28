@@ -18,7 +18,6 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
-from sentry.uptime.autodetect.ranking import _get_cluster
 from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.grouptype import UptimePacketValue
@@ -30,8 +29,6 @@ from sentry.uptime.models import (
     load_regions_for_uptime_subscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
-    build_last_seen_interval_key,
-    build_last_update_key,
     check_and_update_regions,
     disable_uptime_detector,
     remove_uptime_subscription_if_unused,
@@ -41,6 +38,7 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
 )
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.utils import build_last_seen_interval_key, build_last_update_key, get_cluster
 from sentry.utils import metrics
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
@@ -277,7 +275,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             sample_rate=1.0,
         )
 
-        cluster = _get_cluster()
+        cluster = get_cluster()
         last_update_key = build_last_update_key(detector)
         last_update_raw: str | None = cluster.get(last_update_key)
         last_update_ms = 0 if last_update_raw is None else int(last_update_raw)

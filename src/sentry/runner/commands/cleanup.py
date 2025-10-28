@@ -8,20 +8,26 @@ from collections.abc import Callable, Sequence
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
-from typing import Any, Final, Literal, TypeAlias
+from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
 import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
-from django.db.models import Model, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel
+
+    # TypeVar for concrete subclasses of BaseModel
+    ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 class CleanupExecutionAborted(Exception):
@@ -224,7 +230,7 @@ def _cleanup(
             # Track which models were filtered out for legitimate reasons (silo/router)
             models_legitimately_filtered: set[str] = set()
 
-            def is_filtered(model: type[Model]) -> bool:
+            def is_filtered(model: type[BaseModel]) -> bool:
                 model_name = model.__name__.lower()
                 silo_limit = getattr(model._meta, "silo_limit", None)
                 if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
@@ -349,7 +355,10 @@ def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
 
 
 def _run_specialized_cleanups(
-    is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool],
+    days: int,
+    silent: bool,
+    models_attempted: set[str],
 ) -> None:
     """Run specialized cleanup operations for specific models."""
     from sentry import options
@@ -367,7 +376,7 @@ def _handle_project_organization_cleanup(
     project: str | None,
     organization: str | None,
     days: int,
-    deletes: list[tuple[type[Model], str, str]],
+    deletes: list[tuple[type[BaseModel], str, str]],
 ) -> tuple[int | None, int | None]:
     """Handle project/organization specific cleanup logic."""
     project_id = None
@@ -429,7 +438,7 @@ def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
     "Error removing expired values for lost passwords", "specialized_cleanup_lost_passwords"
 )
 def remove_expired_values_for_lost_passwords(
-    is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
     from sentry.users.models.lostpasswordhash import LostPasswordHash
 
@@ -447,7 +456,7 @@ def remove_expired_values_for_lost_passwords(
     "Error removing expired values for org members", "specialized_cleanup_org_members"
 )
 def remove_expired_values_for_org_members(
-    is_filtered: Callable[[type[Model]], bool], days: int, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], days: int, models_attempted: set[str]
 ) -> None:
     from sentry.models.organizationmember import OrganizationMember
 
@@ -462,7 +471,7 @@ def remove_expired_values_for_org_members(
 
 @continue_on_error("Error deleting API models", "specialized_cleanup_api_models")
 def delete_api_models(
-    is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
     from sentry.models.apigrant import ApiGrant
     from sentry.models.apitoken import ApiToken
@@ -490,7 +499,7 @@ def delete_api_models(
 
 @continue_on_error("Error cleaning up exported data", "specialized_cleanup_exported_data")
 def exported_data(
-    is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
     from sentry.data_export.models import ExportedData
 
@@ -506,7 +515,7 @@ def exported_data(
             item.delete_file()
 
 
-def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
+def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.commit import Commit
     from sentry.models.eventattachment import EventAttachment
@@ -529,20 +538,20 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (PullRequest, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
-        (File, "timestamp", "timestamp"),
+        (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
     ]
 
 
 def remove_cross_project_models(
-    deletes: list[tuple[type[Model], str, str]],
-) -> list[tuple[type[Model], str, str]]:
+    deletes: list[tuple[type[BaseModel], str, str]],
+) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
-    deletes.remove((File, "timestamp", "timestamp"))
+    deletes.remove((File, "timestamp", "id"))
     return deletes
 
 
@@ -580,7 +589,7 @@ def remove_old_nodestore_values(days: int) -> None:
         click.echo("NodeStore backend does not support cleanup operation", err=True)
 
 
-def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
+def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None]]:
     from django.apps import apps
 
     from sentry.models.groupemailthread import GroupEmailThread
@@ -603,7 +612,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
 
 
 def run_bulk_query_deletes(
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     project: str | None,
     project_id: int | None,
@@ -652,8 +661,8 @@ def run_bulk_query_deletes(
 
 def run_bulk_deletes_in_deletes(
     task_queue: _WorkQueue,
-    deletes: list[tuple[type[Model], str, str]],
-    is_filtered: Callable[[type[Model]], bool],
+    deletes: list[tuple[type[BaseModel], str, str]],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     project: str | None,
     project_id: int | None,
@@ -708,7 +717,7 @@ def run_bulk_deletes_by_project(
     task_queue: _WorkQueue,
     project_id: int | None,
     start_from_project_id: int | None,
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     models_attempted: set[str],
 ) -> None:
@@ -771,7 +780,7 @@ def run_bulk_deletes_by_project(
 def run_bulk_deletes_by_organization(
     task_queue: _WorkQueue,
     organization_id: int | None,
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     models_attempted: set[str],
 ) -> None:
@@ -830,7 +839,7 @@ def run_bulk_deletes_by_organization(
 
 
 def prepare_deletes_by_project(
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     project_id: int | None = None,
     start_from_project_id: int | None = None,
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
@@ -841,7 +850,7 @@ def prepare_deletes_by_project(
 
     # Deletions that we run per project. In some cases we can't use an index on just the date
     # column, so as an alternative we use `(project_id, <date_col>)` instead
-    DELETES_BY_PROJECT = [
+    DELETES_BY_PROJECT: list[tuple[type[BaseModel], str, str]] = [
         # Having an index on `last_seen` sometimes caused the planner to make a bad plan that
         # used this index instead of a more appropriate one. This was causing a lot of postgres
         # load, so we had to remove it.
@@ -871,7 +880,7 @@ def prepare_deletes_by_project(
 
 
 def prepare_deletes_by_organization(
-    organization_id: int | None, is_filtered: Callable[[type[Model]], bool]
+    organization_id: int | None, is_filtered: Callable[[type[BaseModel]], bool]
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
     from sentry.constants import ObjectStatus
     from sentry.models.organization import Organization
@@ -879,7 +888,7 @@ def prepare_deletes_by_organization(
 
     # Deletions that we run per organization. In some cases we can't use an index on just the date
     # column, so as an alternative we use `(organization_id, <date_col>)` instead
-    DELETES_BY_ORGANIZATION = [
+    DELETES_BY_ORGANIZATION: list[tuple[type[BaseModel], str, str]] = [
         (ReleaseFile, "date_accessed", "date_accessed"),
     ]
     organization_deletion_query = None
@@ -901,7 +910,7 @@ def prepare_deletes_by_organization(
 
 @continue_on_error("Error cleaning up unused FileBlob references", "fileblob_cleanup")
 def remove_file_blobs(
-    is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
     from sentry import options
     from sentry.models.file import FileBlob
