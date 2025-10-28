@@ -21,7 +21,13 @@ def add_scope_hierarchy(curr_scopes: Sequence[str]) -> list[str]:
 
 
 class ApiScopes(Sequence):
-    project = (("project:read"), ("project:write"), ("project:admin"), ("project:releases"))
+    project = (
+        ("project:read"),
+        ("project:write"),
+        ("project:admin"),
+        ("project:releases"),
+        ("project:distribution"),
+    )
 
     team = (("team:read"), ("team:write"), ("team:admin"))
 
@@ -85,6 +91,7 @@ class HasApiScopes(models.Model):
             "alerts:read": bool,
             "alerts:write": bool,
             "member:invite": bool,
+            "project:distribution": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())
