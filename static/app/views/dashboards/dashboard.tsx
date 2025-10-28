@@ -44,7 +44,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {WidgetType} from './types';
+import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -170,7 +170,7 @@ function Dashboard({
       dashboard.widgets,
       organization,
       dashboard.title,
-      dashboard.filters.globalFilter?.length ?? 0
+      dashboard.filters?.[DashboardFilterKeys.GLOBAL_FILTER]?.length ?? 0
     );
 
     return () => {
