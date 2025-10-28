@@ -214,11 +214,6 @@ function ProductSelect({
                       aria-checked={isSelected}
                       checked={isSelected}
                       onChange={toggleProductOption}
-                      onKeyDown={({key}) => {
-                        if (key === 'Enter') {
-                          toggleProductOption();
-                        }
-                      }}
                     />
                   </Container>
                   <Flex direction="column" gap="0" width="100%">
