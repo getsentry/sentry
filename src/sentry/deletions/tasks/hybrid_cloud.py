@@ -9,6 +9,8 @@ opposing silo and are stored in Tombstone rows.  Deletions that are not successf
 Tombstone row will not, therefore, cascade to any related cross silo rows.
 """
 
+from __future__ import annotations
+
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
