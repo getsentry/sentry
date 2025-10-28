@@ -110,9 +110,9 @@ class TreeEnricher:
                         "value": mobile_start_type,
                     }
 
-            if self._ttid_ts is not None and span["end_timestamp"] <= self._ttid_ts:  # type: ignore[operator]  # checked in process-spans
+            if self._ttid_ts is not None and span["end_timestamp"] <= self._ttid_ts:
                 attributes["sentry.ttid"] = {"type": "string", "value": "ttid"}
-            if self._ttfd_ts is not None and span["end_timestamp"] <= self._ttfd_ts:  # type: ignore[operator]  # checked in process-spans
+            if self._ttfd_ts is not None and span["end_timestamp"] <= self._ttfd_ts:
                 attributes["sentry.ttfd"] = {"type": "string", "value": "ttfd"}
 
             for key, value in shared_attrs.items():
@@ -134,7 +134,7 @@ class TreeEnricher:
         of all time intervals where no child span was active.
         """
 
-        intervals = self._span_map.get(span["span_id"], [])  # type: ignore[arg-type]  # checked in process-spans
+        intervals = self._span_map.get(span["span_id"], [])
         # Sort by start ASC, end DESC to skip over nested intervals efficiently
         intervals.sort(key=lambda x: (x[0], -x[1]))
 
@@ -201,7 +201,7 @@ def _timestamp_by_op(spans: list[SpanEvent], op: str) -> float | None:
 def _span_interval(span: SpanEvent) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
 
-    return _us(span["start_timestamp"]), _us(span["end_timestamp"])  # type: ignore[arg-type]  # checked in process-spans
+    return _us(span["start_timestamp"]), _us(span["end_timestamp"])
 
 
 def _us(timestamp: float) -> int:
