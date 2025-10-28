@@ -33,18 +33,21 @@ class GetResult(NamedTuple):
 
 
 class ClientBuilder:
-    def __init__(self, usecase: str, options: dict | None = None, propagate_traces: bool = False):
+    def __init__(
+        self,
+        objectstore_base_url: str,
+        usecase: str,
+        options: dict | None = None,
+        propagate_traces: bool = False,
+    ):
+        self._base_url = objectstore_base_url
         self._usecase = usecase
-        self._options = options
         self._default_compression: Compression = "zstd"
         self._propagate_traces = propagate_traces
+        _ = options
 
     def _make_client(self, scope: str) -> Client:
-        from sentry import options as options_store
-
-        options = self._options or options_store.get("objectstore.config")
-        pool = urllib3.connectionpool.connection_from_url(options["base_url"])
-
+        pool = urllib3.connectionpool.connection_from_url(self._base_url)
         return Client(pool, self._default_compression, self._usecase, scope, self._propagate_traces)
 
     def default_compression(self, default_compression: Compression) -> Self:
@@ -59,6 +62,8 @@ class ClientBuilder:
 
 
 class Client:
+    _default_compression: Compression
+
     def __init__(
         self,
         pool: HTTPConnectionPool,
