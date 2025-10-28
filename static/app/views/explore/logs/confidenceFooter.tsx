@@ -124,11 +124,17 @@ function ConfidenceMessage({
 
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
 
+  const warning = (
+    <IconWarningContainer>
+      <IconWarning size="sm" />
+    </IconWarningContainer>
+  );
+
   if (isTopN) {
     return tct(
       '[warning] Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
       {
-        warning: <IconWarning size="sm" />,
+        warning,
         topEvents,
         matchingLogsCount,
         downsampledLogsCount,
@@ -142,7 +148,7 @@ function ConfidenceMessage({
   return tct(
     '[warning] Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
     {
-      warning: <IconWarning size="sm" />,
+      warning,
       matchingLogsCount,
       downsampledLogsCount,
       allLogsCount,
@@ -187,4 +193,9 @@ const Placeholder = styled('div')<{width: number}>`
   height: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.backgroundTertiary};
+`;
+
+const IconWarningContainer = styled('span')`
+  position: relative;
+  top: 2px;
 `;
