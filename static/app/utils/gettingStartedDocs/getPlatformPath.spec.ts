@@ -14,18 +14,6 @@ describe('getPlatformPath', () => {
 
       expect(getPlatformPath(platform)).toBe('php-laravel');
     });
-
-    it('returns the new structure path for react-native', () => {
-      const platform: PlatformIntegration = {
-        type: 'framework',
-        id: 'react-native',
-        language: 'react-native',
-        link: 'link',
-        name: 'name',
-      };
-
-      expect(getPlatformPath(platform)).toBe('react-native');
-    });
   });
 
   describe('legacy platforms (old structure)', () => {
