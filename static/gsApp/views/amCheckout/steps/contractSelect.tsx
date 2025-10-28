@@ -97,9 +97,10 @@ class ContractSelect extends Component<Props> {
             creditCategory?: InvoiceItemType;
             discountType?: string;
           } = {
+            // default to subscription discount
+            // since we need a credit category to calculate the price after discount
             creditCategory: InvoiceItemType.SUBSCRIPTION,
           };
-          // TODO(ISABELLA): take this into account
           if (
             promotion?.showDiscountInfo &&
             promotion.discountInfo &&

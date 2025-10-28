@@ -102,7 +102,6 @@ function PlanSelect({
   onCompleteStep,
 }: StepProps) {
   const {data: promotionData, refetch} = usePromotionTriggerCheck(organization);
-  // TODO(ISABELLA): take this into account
   const discountInfo = promotion?.discountInfo;
   let trailingItems: React.ReactNode = null;
   if (showSubscriptionDiscount({activePlan, discountInfo}) && discountInfo) {
