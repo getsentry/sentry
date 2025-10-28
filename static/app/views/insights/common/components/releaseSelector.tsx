@@ -32,8 +32,9 @@ export const PRIMARY_RELEASE_ALIAS = 'R1';
 export const SECONDARY_RELEASE_ALIAS = 'R2';
 
 type Props = {
+  allOptionDescription: string;
+  allOptionTitle: string;
   onChange: (selectedOption: SelectOption<string>) => void;
-  selectorKey: string;
   sortBy: ReleasesSortByOption;
   selectorName?: string;
   selectorValue?: string;
@@ -42,8 +43,9 @@ type Props = {
 };
 
 function ReleaseSelector({
+  allOptionDescription,
+  allOptionTitle,
   onChange,
-  selectorKey,
   selectorValue,
   triggerLabel,
   triggerLabelPrefix,
@@ -58,12 +60,8 @@ function ReleaseSelector({
   // Add "All" option as the first option
   options.push({
     value: '',
-    label: selectorKey === 'primaryRelease' ? t('All') : t('None'),
-    details: (
-      <div>
-        {selectorKey === 'primaryRelease' ? t('Show data from all releases.') : ''}
-      </div>
-    ),
+    label: allOptionTitle,
+    details: <div>{allOptionDescription}</div>,
   });
 
   if (defined(selectorValue)) {
@@ -255,6 +253,8 @@ export function ReleaseComparisonSelector({
   return (
     <StyledPageSelector condensed>
       <ReleaseSelector
+        allOptionDescription={t('Show data from all releases.')}
+        allOptionTitle={t('All')}
         onChange={newValue => {
           const updatedQuery: Record<string, string> = {
             ...location.query,
@@ -269,7 +269,6 @@ export function ReleaseComparisonSelector({
             query: updatedQuery,
           });
         }}
-        selectorKey="primaryRelease"
         selectorValue={primaryRelease}
         selectorName={t('Release 1')}
         key="primaryRelease"
@@ -285,6 +284,8 @@ export function ReleaseComparisonSelector({
       />
       {primaryOnly === false && primaryRelease && (
         <ReleaseSelector
+          allOptionDescription={t('No comparison.')}
+          allOptionTitle={t('None')}
           onChange={newValue => {
             const updatedQuery: Record<string, string> = {
               ...location.query,
@@ -296,7 +297,6 @@ export function ReleaseComparisonSelector({
               query: updatedQuery,
             });
           }}
-          selectorKey="secondaryRelease"
           selectorName={t('Release 2')}
           selectorValue={secondaryRelease}
           key="secondaryRelease"
