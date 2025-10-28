@@ -191,16 +191,13 @@ function LocalStorageDisclosure() {
 
 Disclosures can maintain their expanded state across page reloads by using URL state.
 
+import {parseAsBoolean, useQueryState} from 'nuqs';
+
 export function URLStateDisclosure() {
-    const [expanded, setExpanded] = useState(new URLSearchParams(window.location.search).get('my-disclosure-key') === 'true');
+    const [expanded, setExpanded] = useQueryState('my-disclosure-key', parseAsBoolean.withDefault(false));
 
     return (
-        <Disclosure defaultExpanded={expanded} onExpandedChange={(expanded) => {
-            const url = new URL(window.location.href);
-            url.searchParams.set('my-disclosure-key', expanded ? 'true' : 'false');
-            window.history.pushState({}, '', url.toString());
-            setExpanded(expanded);
-        }}>
+        <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded}>
             <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
             <Disclosure.Content>Reload the page to see the expanded state is remembered and new params are added to the URL</Disclosure.Content>
         </Disclosure>
@@ -215,21 +212,16 @@ export function URLStateDisclosure() {
 </Storybook.Demo>
 
 ```tsx
+import {parseAsBoolean, useQueryState} from 'nuqs';
+
 function URLStateDisclosure() {
-  const [expanded, setExpanded] = useState<boolean>(
-    new URLSearchParams(window.location.search).get('my-disclosure-key') === 'true'
+  const [expanded, setExpanded] = useQueryState(
+    'my-disclosure-key',
+    parseAsBoolean.withDefault(false)
   );
 
   return (
-    <Disclosure
-      defaultExpanded={expanded}
-      onExpandedChange={expanded => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('my-disclosure-key', expanded ? 'true' : 'false');
-        window.history.pushState({}, '', url.toString());
-        setExpanded(expanded);
-      }}
-    >
+    <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded}>
       <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
       <Disclosure.Content>
         Reload the page to see the expanded state is remembered
