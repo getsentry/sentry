@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -186,9 +186,9 @@ function AgentsOverviewPage() {
                     />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -219,7 +219,7 @@ function AgentsOverviewPage() {
                         <IssuesWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ControlsWrapper>
+                    <Container paddingBottom="xl">
                       <TableControl
                         value={activeTable}
                         onChange={handleTableSwitch}
@@ -235,7 +235,7 @@ function AgentsOverviewPage() {
                           {t('Tools')}
                         </TableControlItem>
                       </TableControl>
-                    </ControlsWrapper>
+                    </Container>
 
                     {activeTable === TableType.TRACES && <TracesView />}
                     {activeTable === TableType.MODELS && <ModelsView />}
@@ -341,18 +341,6 @@ function LoadingPanel() {
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
-`;
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  margin: ${p => p.theme.space.xl} 0;
 `;
 
 export default PageWithProviders;
