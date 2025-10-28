@@ -51,8 +51,6 @@ function StepHeader({
   checkoutTier,
   organization,
   isNewCheckout,
-  isOpen,
-  onToggleStep,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
   const toggleTier = getToggleTier(checkoutTier);
@@ -66,15 +64,6 @@ function StepHeader({
           <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
             {title}
           </NewCheckoutStepTitle>
-          <Button
-            borderless
-            size="zero"
-            icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
-            aria-label={
-              isOpen ? t('Collapse %s section', title) : t('Expand %s section', title)
-            }
-            onClick={() => onToggleStep?.(!isOpen)}
-          />
         </Flex>
         {trailingItems && <div>{trailingItems}</div>}
       </Flex>
