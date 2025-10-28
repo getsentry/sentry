@@ -31,12 +31,17 @@ export function getFieldDefinitionForDataset(
   return getFieldDefinition(tag.key, fieldType(), tag.kind);
 }
 
-export function parseFilterValue(filterValue: string, filterKeys: TagCollection) {
+export function parseFilterValue(
+  filterValue: string,
+  filterKeys: TagCollection
+): Array<TokenResult<Token.FILTER>> {
   const parsedResult = parseQueryBuilderValue(filterValue, getFieldDefinition, {
     filterKeys,
   });
-  const filterTokens = parsedResult?.filter(token => token.type === Token.FILTER);
-  return filterTokens?.[0] as TokenResult<Token.FILTER>;
+  if (!parsedResult) {
+    return [];
+  }
+  return parsedResult.filter(token => token.type === Token.FILTER);
 }
 
 export function isValidNumericFilterValue(
@@ -74,7 +79,12 @@ export function newNumericFilterQuery(
     filterToken,
     cleanedValue
   );
-  const filterTokenWithNewValue = parseFilterValue(filterWithNewValue, filterKeys);
+
+  const newFilterTokens = parseFilterValue(filterWithNewValue, filterKeys);
+  const filterTokenWithNewValue = newFilterTokens?.[0];
+  if (!filterTokenWithNewValue) {
+    return '';
+  }
 
   // Update the operator of the filter
   const newFilterQuery = modifyFilterOperatorQuery(

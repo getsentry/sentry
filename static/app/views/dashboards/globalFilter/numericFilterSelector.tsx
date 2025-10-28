@@ -31,30 +31,37 @@ function NumericFilterSelector({
   const filterKeys = useMemo(() => searchBarData.getFilterKeys(), [searchBarData]);
 
   // Parse global filter condition to retrieve initial state
-  const globalFilterToken = useMemo(
+  const globalFilterTokens = useMemo(
     () => parseFilterValue(globalFilter.value, filterKeys),
     [globalFilter.value, filterKeys]
   );
 
+  const globalFilterToken = globalFilterTokens ? globalFilterTokens[0] : null;
+
   const {operator: globalFilterOperator, options} = useMemo(
     () =>
-      getOperatorInfo({
-        filterToken: globalFilterToken,
-        hasWildcardOperators: false,
-        fieldDefinition: getFieldDefinition(globalFilterToken.key.text),
-      }),
+      globalFilterToken
+        ? getOperatorInfo({
+            filterToken: globalFilterToken,
+            hasWildcardOperators: false,
+            fieldDefinition: getFieldDefinition(globalFilterToken?.key?.text ?? ''),
+          })
+        : {
+            operator: TermOperator.EQUAL,
+            options: [],
+          },
     [globalFilterToken]
   );
 
   const [stagedFilterOperator, setStagedFilterOperator] =
     useState<TermOperator>(globalFilterOperator);
   const [stagedFilterValue, setStagedFilterValue] = useState<string>(
-    globalFilterToken.value?.text || ''
+    globalFilterToken?.value?.text || ''
   );
 
   const hasStagedChanges =
     stagedFilterOperator !== globalFilterOperator ||
-    stagedFilterValue !== globalFilterToken.value?.text;
+    stagedFilterValue !== globalFilterToken?.value?.text;
 
   return (
     <CompactSelect
@@ -65,7 +72,7 @@ function NumericFilterSelector({
       onChange={() => {}}
       onClose={() => {
         setStagedFilterOperator(globalFilterOperator);
-        setStagedFilterValue(globalFilterToken.value?.text || '');
+        setStagedFilterValue(globalFilterToken?.value?.text || '');
       }}
       menuTitle={t('%s Filter', getDatasetLabel(globalFilter.dataset))}
       menuHeaderTrailingItems={() => (
@@ -111,7 +118,7 @@ function NumericFilterSelector({
           <NumericFilterSelectorTrigger
             globalFilter={globalFilter}
             globalFilterOperator={globalFilterOperator}
-            globalFilterValue={globalFilterToken.value?.text || ''}
+            globalFilterValue={globalFilterToken?.value?.text || ''}
           />
         ),
       }}
@@ -127,9 +134,11 @@ function NumericFilterSelector({
                     size="xs"
                     priority="primary"
                     disabled={
+                      !globalFilterToken ||
                       !isValidNumericFilterValue(stagedFilterValue, globalFilterToken)
                     }
                     onClick={() => {
+                      if (!globalFilterToken) return;
                       const newFilterQuery = newNumericFilterQuery(
                         stagedFilterValue,
                         stagedFilterOperator,
