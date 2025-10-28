@@ -13,13 +13,13 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
@@ -781,11 +781,7 @@ class AMCheckout extends Component<Props, State> {
   renderParentComponent({children}: {children: React.ReactNode}) {
     const {isNewCheckout} = this.props;
     if (isNewCheckout) {
-      return (
-        <Flex direction="column" align="center" background="primary">
-          {children}
-        </Flex>
-      );
+      return <Fragment>{children}</Fragment>;
     }
     return children;
   }
@@ -885,30 +881,13 @@ class AMCheckout extends Component<Props, State> {
 
     const renderCheckoutContent = () => (
       <Fragment>
-        <CheckoutBody>
+        <CheckoutBody isNewCheckout={!!isNewCheckout}>
           {!isNewCheckout && (
             <SettingsPageHeader
               title="Change Subscription"
               colorSubtitle={subscriptionDiscountInfo}
               data-test-id="change-subscription"
             />
-          )}
-          {isNewCheckout && (
-            <BackButton
-              aria-label={t('Back to Subscription Overview')}
-              to={`/settings/${organization.slug}/billing/`}
-              onClick={() => {
-                trackGetsentryAnalytics('checkout.exit', {
-                  subscription,
-                  organization,
-                });
-              }}
-            >
-              <Flex gap="sm" align="center">
-                <IconArrow direction="left" />
-                <span>{t('Back')}</span>
-              </Flex>
-            </BackButton>
           )}
           {this.renderPartnerAlert()}
           <CheckoutStepsContainer
@@ -918,7 +897,7 @@ class AMCheckout extends Component<Props, State> {
             {this.renderSteps()}
           </CheckoutStepsContainer>
         </CheckoutBody>
-        <SidePanel>
+        <SidePanel isNewCheckout={!!isNewCheckout}>
           <OverviewContainer isNewCheckout={!!isNewCheckout}>
             {isNewCheckout ? (
               <Cart
@@ -998,7 +977,8 @@ class AMCheckout extends Component<Props, State> {
           width="100%"
           background={isNewCheckout ? 'primary' : 'secondary'}
           justify="center"
-          padding="2xl"
+          align="center"
+          direction="column"
         >
           <SentryDocumentTitle
             title={t('Change Subscription')}
@@ -1020,13 +1000,48 @@ class AMCheckout extends Component<Props, State> {
               <Alert type="info">{promotionDisclaimerText}</Alert>
             </Alert.Container>
           )}
-          {isNewCheckout ? (
-            <Stack gap="2xl" align="start" width="100%" maxWidth="1440px">
-              <LogoSentry height="24px" />
-              <Flex gap="2xl" wrap="wrap" width="100%" align="start" paddingTop="xl">
-                {renderCheckoutContent()}
+          {isNewCheckout && (
+            <CheckoutHeader>
+              <Flex
+                width="100%"
+                align="center"
+                maxWidth="82rem"
+                gap="lg"
+                padding="lg 2xl"
+              >
+                <LogoSentry height="20px" />
+                <LinkButton
+                  aria-label={t('Back to Subscription Overview')}
+                  to={`/settings/${organization.slug}/billing/`}
+                  icon={<IconChevron direction="left" />}
+                  size="xs"
+                  borderless
+                  onClick={() => {
+                    trackGetsentryAnalytics('checkout.exit', {
+                      subscription,
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Manage Subscription')}
+                </LinkButton>
+
+                <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
               </Flex>
-            </Stack>
+            </CheckoutHeader>
+          )}
+          {isNewCheckout ? (
+            <Flex
+              direction={{xs: 'column', md: 'row'}}
+              gap="md 3xl"
+              justify="between"
+              width="100%"
+              maxWidth="82rem"
+              align="start"
+              paddingTop="3xl"
+            >
+              {renderCheckoutContent()}
+            </Flex>
           ) : (
             <Grid
               gap="2xl"
@@ -1046,29 +1061,84 @@ class AMCheckout extends Component<Props, State> {
   }
 }
 
-const BackButton = styled(Link)`
-  align-self: flex-start;
-  padding: 0;
-  color: ${p => p.theme.textColor};
-  display: inline-flex;
-`;
-
-const CheckoutBody = styled('div')`
-  flex-basis: 0;
-  flex-grow: 999;
-  min-inline-size: 60%;
-`;
-
-const SidePanel = styled('aside')`
-  height: max-content;
+const CheckoutHeader = styled('header')`
   position: sticky;
-  top: 30px;
-  align-self: start;
-  flex-grow: 1;
-  flex-basis: 25rem;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
+  background: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
+  justify-content: center;
+  gap: ${p => p.theme.space.md};
+`;
+
+const OrgSlug = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  flex: 1;
+  text-align: right;
+`;
+
+const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
+  ${p =>
+    !p.isNewCheckout &&
+    css`
+      flex-basis: 0;
+      flex-grow: 999;
+      min-inline-size: 60%;
+    `}
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      padding: 0 ${p.theme.space['2xl']} ${p.theme.space['3xl']} ${p.theme.space['2xl']};
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      @media (min-width: ${p.theme.breakpoints.md}) {
+        max-width: 45rem;
+        padding-top: ${p.theme.space.md};
+      }
+    `}
+`;
+
+const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      width: 100%;
+      border-top: 1px solid ${p.theme.border};
+      display: flex;
+      flex-direction: column;
+      padding: 0 ${p.theme.space['2xl']};
+      background-color: ${p.theme.backgroundSecondary};
+      @media (min-width: ${p.theme.breakpoints.md}) {
+        position: sticky;
+        right: 0;
+        top: 6.25rem;
+        min-height: 100vh;
+        max-width: 26rem;
+        border-top: none;
+        padding-left: ${p.theme.space['3xl']};
+        background-color: ${p.theme.background};
+        padding-bottom: ${p.theme.space['3xl']};
+      }
+    `}
+  ${p =>
+    !p.isNewCheckout &&
+    css`
+      height: max-content;
+      position: sticky;
+      top: 30px;
+      align-self: start;
+      flex-grow: 1;
+      flex-basis: 25rem;
+    `}
 `;
 
 /**
