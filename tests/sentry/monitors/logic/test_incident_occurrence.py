@@ -345,6 +345,32 @@ class IncidentOccurrenceTestCase(TestCase):
             Topic("monitors-test-topic"), test_payload
         )
 
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_send_incident_occurrence_invalid_owner(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        self.build_occurrence_test_data()
+        team = self.create_team(organization=self.organization)
+        self.monitor.update(owner_team_id=team.id)
+        self.monitor.refresh_from_db()
+        other_org = self.create_organization()
+        team.update(organization_id=other_org.id)
+
+        send_incident_occurrence(
+            self.failed_checkin,
+            [self.timeout_checkin, self.failed_checkin],
+            self.incident,
+            self.last_checkin,
+        )
+
+        self.monitor.refresh_from_db()
+        assert self.monitor.owner_team_id is None
+        assert self.monitor.owner_user_id is None
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
+        occurrence = kwargs["occurrence"]
+        assert occurrence.assignee is None
+
     @mock.patch("sentry.monitors.logic.incident_occurrence.send_incident_occurrence")
     @mock.patch("sentry.monitors.logic.incident_occurrence.queue_incident_occurrence")
     def test_dispatch_incident_occurrence(
