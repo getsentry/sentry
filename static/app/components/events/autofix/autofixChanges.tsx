@@ -9,6 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
@@ -330,7 +331,7 @@ export function AutofixChanges({
             {step.termination_reason && (
               <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
             )}
-            <ButtonContainer>
+            <Flex justify="flex-end" align="center" gap="md">
               {!prsMade && (
                 <ButtonBar>
                   {branchesMade ? (
@@ -400,7 +401,7 @@ export function AutofixChanges({
                     )}
                   </ScrollCarousel>
                 ))}
-            </ButtonContainer>
+            </Flex>
           </BottomButtonContainer>
         </ChangesContainer>
       </AnimationWrapper>
@@ -512,13 +513,6 @@ const TerminationReasonText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   flex: 1;
   min-width: 0;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 function CreatePRsButton({
