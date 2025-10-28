@@ -18,6 +18,10 @@ class Platform(StrEnum):
     MACOS = "macos"
 
 
+class AppleAppInfo(BaseModel):
+    missing_dsym_binaries: list[str] = []
+
+
 class BuildDetailsAppInfo(BaseModel):
     app_id: str | None
     name: str | None
@@ -30,10 +34,6 @@ class BuildDetailsAppInfo(BaseModel):
     is_installable: bool
     build_configuration: str | None = None
     apple_app_info: AppleAppInfo | None = None
-
-
-class AppleAppInfo(BaseModel):
-    missing_dsym_binaries: list[str] = []
 
 
 class BuildDetailsVcsInfo(BaseModel):

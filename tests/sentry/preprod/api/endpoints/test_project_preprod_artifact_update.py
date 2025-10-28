@@ -159,6 +159,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             "profile_name": "Test Profile",
             "is_code_signature_valid": False,
             "code_signature_errors": ["Certificate expired", "Missing entitlements"],
+            "missing_dsym_binaries": ["TestLib.dylib", "TestFramework.framework"],
         }
         data = {
             "date_built": "2024-01-01T00:00:00Z",
