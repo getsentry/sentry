@@ -38,7 +38,8 @@ function confidenceMessage({
       return t('Span count: \u2026');
     }
     return isTopN
-      ? tct('Top [topEvents] groups spans count: [sampleCountComponent]', {
+      ? tct('Top [topEvents] groups span count: [sampleCountComponent]', {
+          topEvents,
           sampleCountComponent: <Count value={sampleCount} />,
         })
       : tct('Span count: [sampleCountComponent]', {
