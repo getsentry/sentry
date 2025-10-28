@@ -54,7 +54,7 @@ describe('PaygCard', () => {
       screen.queryByRole('heading', {name: 'Pay-as-you-go limit'})
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit'})
+      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit (in dollars)'})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'PAYG pricing'})).toBeInTheDocument();
   });
@@ -130,7 +130,7 @@ describe('PaygCard', () => {
       screen.queryByRole('heading', {name: 'Pay-as-you-go'})
     ).not.toBeInTheDocument();
     await userEvent.type(
-      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit'}),
+      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit (in dollars)'}),
       '100'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
