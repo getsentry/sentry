@@ -59,6 +59,7 @@ def validate_preprod_artifact_update_schema(
                     "certificate_expiration_date": {"type": "string"},
                     "is_code_signature_valid": {"type": "boolean"},
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
+                    "missing_dsym_binaries": {"type": "array", "items": {"type": "string"}},
                 },
             },
             "dequeued_at": {"type": "string"},
@@ -82,6 +83,7 @@ def validate_preprod_artifact_update_schema(
         "apple_app_info.profile_name": "The profile_name field must be a string.",
         "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
+        "apple_app_info.missing_dsym_binaries": "The missing_dsym_binaries field must be an array of strings.",
         "dequeued_at": "The dequeued_at field must be a string.",
         "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
     }
@@ -286,6 +288,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 "certificate_expiration_date",
                 "is_code_signature_valid",
                 "code_signature_errors",
+                "missing_dsym_binaries",
             ]:
                 if field in apple_info:
                     extras_updates[field] = apple_info[field]
