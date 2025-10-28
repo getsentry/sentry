@@ -94,9 +94,6 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
             for integration in integration_service.get_integrations(integration_ids=integration_ids)
         }
 
-        # Fetch all repos integrated with Seer for the organization
-        seer_integrated_repos = self._fetch_seer_integrated_repos(list(integration_map.keys()))
-
         # Fetch all repos integrated with Sentry for the organization
         integration_id_to_name = {
             integration.id: integration.name for integration in integration_map.values()
@@ -111,20 +108,16 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
         for repo in all_installed_repos:
             repos_by_integration[integration_id_to_name[repo.integration_id]].append(repo)
 
-        # Determine what repos are installed in Sentry and Seer for each GitHub org
         org_repos = []
         for github_org_name, integration in integration_map.items():
             installed_repos = repos_by_integration.get(github_org_name, [])
 
-            sentry_repos = {repo.name.split("/")[-1]: repo for repo in installed_repos}
-            sentry_repo_names = set(sentry_repos.keys())
-            seer_repo_names = set(seer_integrated_repos.get(github_org_name, []))
-
             repos = []
-            for repo_name in sentry_repo_names & seer_repo_names:
+            for repo in installed_repos:
+                repo_name = repo.name.split("/")[-1]
                 repos.append(
                     {
-                        "id": sentry_repos[repo_name].external_id,
+                        "id": repo.external_id,
                         "name": repo_name,
                         "fullName": f"{github_org_name}/{repo_name}",
                     }
