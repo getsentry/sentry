@@ -602,15 +602,22 @@ function GraphButton({
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
+  const theme = useTheme();
+  const textVariant = theme.isChonk ? undefined : props.disabled ? 'accent' : 'muted';
+
   return (
     <CalloutButton
       isActive={isActive}
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <Flex direction="column">
-        <Text size="sm">{label}</Text>
-        <Text size="lg">{count ? formatAbbreviatedNumber(count) : '-'}</Text>
+      <Flex direction="column" gap="xs">
+        <Text size="sm" variant={textVariant}>
+          {label}
+        </Text>
+        <Text size="lg" variant={textVariant}>
+          {count ? formatAbbreviatedNumber(count) : '-'}
+        </Text>
       </Flex>
     </CalloutButton>
   );
