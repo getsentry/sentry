@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useEffectEvent} from 'react';
+import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
@@ -44,15 +44,11 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
     parseAsString.withOptions({history: 'replace'})
   );
 
-  const clearSelectedNodeKey = useEffectEvent(() => {
-    void setSelectedNodeKey(null);
-  });
-
   useEffect(() => {
     return () => {
-      clearSelectedNodeKey();
+      void setSelectedNodeKey(null);
     };
-  }, []);
+  }, [setSelectedNodeKey]);
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
