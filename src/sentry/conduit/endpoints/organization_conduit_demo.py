@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -32,7 +33,8 @@ class OrganizationConduitDemoEndpoint(OrganizationEndpoint):
             conduit_credentials = get_conduit_credentials(
                 organization.id,
             )
-        except ValueError:
+        except ValueError as e:
+            sentry_sdk.capture_exception(e, level="warning")
             return Response(
                 {"error": "Conduit is not configured properly"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
