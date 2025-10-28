@@ -173,7 +173,7 @@ function BuildYourPlan({
         onToggleStep={setIsOpen}
         isOpen={isOpen}
         stepNumber={stepNumber}
-        title={t('Build your plan')}
+        title={t('Select a plan')}
         isNewCheckout
       />
       {isOpen && (
