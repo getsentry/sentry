@@ -23,17 +23,16 @@ const stripDataConditionId = (condition: any) => {
       ...conditionWithoutId,
       comparison: {
         ...condition.comparison,
-        filters: condition.comparison.filters?.map(stripSubfilterTypeAndId) || [],
+        filters: condition.comparison.filters?.map(stripSubfilterId) || [],
       },
     };
   }
   return conditionWithoutId;
 };
 
-// subfilters have a `type` for the frontend to distinguish between attribute and tag comparisons, but this is not expected by the backend
-const stripSubfilterTypeAndId = (subfilter: any) => {
-  const {id: _id, type: _type, ...subfilterWithoutTypeAndId} = subfilter;
-  return subfilterWithoutTypeAndId;
+const stripSubfilterId = (subfilter: any) => {
+  const {id: _id, ...subfilterWithoutId} = subfilter;
+  return subfilterWithoutId;
 };
 
 const stripActionId = (action: any) => {
@@ -109,7 +108,7 @@ export function validateAutomationBuilderState(state: AutomationBuilderState) {
     }
     // validate action filter actions
     if (actionFilter.actions?.length === 0) {
-      errors[actionFilter.id] = t('You must add an action for this automation to run.');
+      errors[actionFilter.id] = t('You must add an action for this alert to run.');
       continue;
     }
     for (const action of actionFilter.actions || []) {

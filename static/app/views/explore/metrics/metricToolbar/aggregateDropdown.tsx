@@ -12,6 +12,14 @@ import {
 const OPTIONS_BY_TYPE: Record<string, Array<{label: string; value: string}>> = {
   counter: [
     {
+      label: 'per_second',
+      value: 'per_second',
+    },
+    {
+      label: 'per_minute',
+      value: 'per_minute',
+    },
+    {
       label: 'sum',
       value: 'sum',
     },
@@ -57,6 +65,14 @@ const OPTIONS_BY_TYPE: Record<string, Array<{label: string; value: string}>> = {
       label: 'count',
       value: 'count',
     },
+    {
+      label: 'per_second',
+      value: 'per_second',
+    },
+    {
+      label: 'per_minute',
+      value: 'per_minute',
+    },
   ],
   gauge: [
     {
@@ -75,11 +91,19 @@ const OPTIONS_BY_TYPE: Record<string, Array<{label: string; value: string}>> = {
       label: 'last',
       value: 'last',
     },
+    {
+      label: 'per_second',
+      value: 'per_second',
+    },
+    {
+      label: 'per_minute',
+      value: 'per_minute',
+    },
   ],
 };
 
 const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
-  counter: 'sum',
+  counter: 'per_second',
   distribution: 'p75',
   gauge: 'avg',
 };
@@ -98,6 +122,7 @@ export function AggregateDropdown({type}: {type: string}) {
       setVisualize(
         visualize.replace({
           yAxis: `${DEFAULT_YAXIS_BY_TYPE[type]}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
+          chartType: undefined, // Reset chart type to let determineDefaultChartType decide
         })
       );
     }
@@ -114,6 +139,7 @@ export function AggregateDropdown({type}: {type: string}) {
         setVisualize(
           visualize.replace({
             yAxis: `${option.value}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
+            chartType: undefined, // Reset chart type to let determineDefaultChartType decide
           })
         );
       }}

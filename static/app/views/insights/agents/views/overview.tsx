@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Stack} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -25,6 +25,11 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {ConversationsTable} from 'sentry/views/insights/agents/components/conversationsTable';
+import {
+  ConversationsTableSwitch,
+  useConversationsTableSwitch,
+} from 'sentry/views/insights/agents/components/conversationsTableSwitch';
 import {IssuesWidget} from 'sentry/views/insights/agents/components/issuesWidget';
 import LLMGenerationsWidget from 'sentry/views/insights/agents/components/llmCallsWidget';
 import TokenCostWidget from 'sentry/views/insights/agents/components/modelCostWidget';
@@ -166,7 +171,7 @@ function AgentsOverviewPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <ModuleFeature moduleName={ModuleName.AGENTS}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ToolRibbon>
@@ -247,6 +252,8 @@ function AgentsOverviewPage() {
 }
 
 function TracesView() {
+  const {value: conversationTable} = useConversationsTableSwitch();
+
   return (
     <Fragment>
       <WidgetGrid rowHeight={260}>
@@ -260,7 +267,10 @@ function TracesView() {
           <ToolUsageWidget />
         </WidgetGrid.Position3>
       </WidgetGrid>
-      <TracesTable />
+      <Flex justify="end" paddingBottom="xl">
+        <ConversationsTableSwitch />
+      </Flex>
+      {conversationTable ? <ConversationsTable /> : <TracesTable />}
     </Fragment>
   );
 }

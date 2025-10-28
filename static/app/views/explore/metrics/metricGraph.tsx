@@ -12,12 +12,16 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
+  useMetricLabel,
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {getQuerySymbol} from 'sentry/views/explore/metrics/metricToolbar/querySymbol';
-import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsQuery,
+  useQueryParamsTopEventsLimit,
+} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -57,7 +61,8 @@ interface GraphProps extends MetricsGraphProps {
 function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
-
+  const metricLabel = useMetricLabel();
+  const userQuery = useQueryParamsQuery();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartInfo = useMemo(() => {
@@ -80,7 +85,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${getQuerySymbol(queryIndex)}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+      title={`${getVisualizeLabel(queryIndex)}: ${metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}`}
     />
   );
 
@@ -124,23 +129,21 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
     </Fragment>
   );
 
-  // We explicitly only want to show the confidence footer if we have
-  // scanned partial data.
-  const showConfidenceFooter =
-    chartInfo.dataScanned !== 'full' && !timeseriesResult.isLoading;
   return (
     <Widget
       Title={Title}
       Actions={Actions}
       Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
       Footer={
-        showConfidenceFooter && (
+        visualize.visible && (
           <ConfidenceFooter
             chartInfo={chartInfo}
-            isLoading={timeseriesResult.isLoading}
+            isLoading={timeseriesResult.isFetching}
+            hasUserQuery={!!userQuery}
           />
         )
       }
+      height={visualize.visible ? undefined : 0}
       revealActions="always"
       borderless
     />

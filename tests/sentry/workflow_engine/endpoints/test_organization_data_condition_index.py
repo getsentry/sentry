@@ -54,6 +54,20 @@ class OrganizationDataConditionAPITestCase(APITestCase):
             group = DataConditionHandler.Group.WORKFLOW_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
+        @self.registry.register(Condition.ISSUE_CATEGORY)
+        @dataclass(frozen=True)
+        class TestIssueCategoryCondition(DataConditionHandler):
+            group = DataConditionHandler.Group.ACTION_FILTER
+            subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
+            comparison_json_schema = {
+                "type": "object",
+                "properties": {
+                    "value": {"type": "integer", "minimum": 0},
+                },
+                "required": ["value"],
+                "additionalProperties": False,
+            }
+
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.stop()
@@ -77,9 +91,23 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
         response = self.get_success_response(
             self.organization.slug, group=DataConditionHandler.Group.ACTION_FILTER, status_code=200
         )
-        assert len(response.data) == 1
+
+        assert len(response.data) == 2
         assert response.data[0] == {
             "type": Condition.AGE_COMPARISON.value,
+            "handlerGroup": DataConditionHandler.Group.ACTION_FILTER.value,
+            "handlerSubgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
+            "comparisonJsonSchema": {
+                "type": "object",
+                "properties": {
+                    "value": {"type": "integer", "minimum": 0},
+                },
+                "required": ["value"],
+                "additionalProperties": False,
+            },
+        }
+        assert response.data[1] == {
+            "type": Condition.ISSUE_CATEGORY.value,
             "handlerGroup": DataConditionHandler.Group.ACTION_FILTER.value,
             "handlerSubgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
             "comparisonJsonSchema": {

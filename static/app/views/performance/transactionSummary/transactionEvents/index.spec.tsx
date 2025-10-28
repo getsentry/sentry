@@ -1,27 +1,40 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-
 import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
-function WrappedComponent({data}: {data: ReturnType<typeof initializeData>}) {
-  return (
-    <MEPSettingProvider>
-      <TransactionEvents
-        organization={data.organization}
-        location={LocationFixture({...data.initialRouterConfig.location})}
-      />
-    </MEPSettingProvider>
-  );
-}
+const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
+  return render(<TransactionSummaryLayout />, {
+    organization: data.organization,
+    initialRouterConfig: {
+      location: {
+        ...data.initialRouterConfig.location,
+        pathname: '/performance/summary/events/',
+      },
+      route: '/performance/summary/',
+      children: [
+        {
+          path: 'events',
+          handle: {tab: TransactionSummaryTab.EVENTS},
+          element: (
+            <MEPSettingProvider>
+              <TransactionEvents />
+            </MEPSettingProvider>
+          ),
+        },
+      ],
+    },
+  });
+};
 
 const setupMockApiResponeses = () => {
   MockApiClient.addMockResponse({
@@ -157,9 +170,8 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should contain all transaction events', async () => {
     const data = initializeData();
 
-    render(<WrappedComponent data={data} />, {
-      initialRouterConfig: data.initialRouterConfig,
-    });
+    renderWithLayout(data);
+
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(await screen.findByText('moreuhoh@example.com')).toBeInTheDocument();
   });
@@ -169,9 +181,8 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
       query: {project: '1', transaction: 'transaction', showTransactions: 'p50'},
     });
 
-    render(<WrappedComponent data={data} />, {
-      initialRouterConfig: data.initialRouterConfig,
-    });
+    renderWithLayout(data);
+
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(screen.queryByText('moreuhoh@example.com')).not.toBeInTheDocument();
   });
@@ -179,9 +190,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should update transaction percentile query if selected', async () => {
     const data = initializeData();
 
-    const {router} = render(<WrappedComponent data={data} />, {
-      initialRouterConfig: data.initialRouterConfig,
-    });
+    const {router} = renderWithLayout(data);
     const percentileButton = await screen.findByRole('button', {
       name: /percentile p100/i,
     });

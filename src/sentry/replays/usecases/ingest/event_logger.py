@@ -16,6 +16,7 @@ from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
 )
+from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.utils import json, metrics
 
 logger = logging.getLogger()
@@ -298,6 +299,7 @@ def report_hydration_error(
     project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    context: ProcessorContext,
 ) -> None:
     metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
 
@@ -305,7 +307,7 @@ def report_hydration_error(
     if (
         len(event_meta.hydration_errors) == 0
         or not replay_event
-        or not _should_report_hydration_error_issue(project_id)
+        or not _should_report_hydration_error_issue(project_id, context)
     ):
         return None
 
@@ -372,9 +374,10 @@ def report_rage_click(
     project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    context: ProcessorContext,
 ) -> None:
     clicks = list(gen_rage_clicks(event_meta, project_id, replay_id, replay_event))
-    if len(clicks) == 0 or not _should_report_rage_click_issue(project_id):
+    if len(clicks) == 0 or not _should_report_rage_click_issue(project_id, context):
         return None
 
     metrics.incr("replay.rage_click_detected", amount=len(clicks))
@@ -392,33 +395,58 @@ def report_rage_click(
         )
 
 
+def _largest_attr(ti: TraceItem) -> tuple[str, int]:
+    if not ti.attributes:
+        return ("", 0)
+    name, anyv = max(ti.attributes.items(), key=lambda kv: kv[1].ByteSize())
+    return name, anyv.ByteSize()
+
+
 @sentry_sdk.trace
 def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
-    write_trace_items(trace_items)
+    largest_attribute = max(
+        ((ti, *_largest_attr(ti)) for ti in trace_items),
+        key=lambda t: t[2],
+        default=None,
+    )
+
+    with sentry_sdk.start_span(op="process", name="write_trace_items") as span:
+        if largest_attribute:
+            ti, name, size = largest_attribute
+            span.set_data("largest_attr_trace_id", ti.trace_id)
+            span.set_data("largest_attr_name", name)
+            span.set_data("largest_attr_size_bytes", size)
+        write_trace_items(trace_items)
 
 
 @sentry_sdk.trace
-def _should_report_hydration_error_issue(project_id: int) -> bool:
+def _should_report_hydration_error_issue(project_id: int, context: ProcessorContext) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    return ProjectOption.objects.get_value(
-        project_id,
-        "sentry:replay_hydration_error_issues",
-        default=False,
-    )
+    if context["options_cache"]:
+        return context["options_cache"][project_id][0]
+    else:
+        return ProjectOption.objects.get_value(
+            project_id,
+            "sentry:replay_hydration_error_issues",
+            default=True,
+        )
 
 
 @sentry_sdk.trace
-def _should_report_rage_click_issue(project_id: int) -> bool:
+def _should_report_rage_click_issue(project_id: int, context: ProcessorContext) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    return ProjectOption.objects.get_value(
-        project_id,
-        "sentry:replay_rage_click_issues",
-        default=False,
-    )
+    if context["options_cache"]:
+        return context["options_cache"][project_id][1]
+    else:
+        return ProjectOption.objects.get_value(
+            project_id,
+            "sentry:replay_rage_click_issues",
+            default=True,
+        )
 
 
 def encode_as_uuid(message: str) -> str:

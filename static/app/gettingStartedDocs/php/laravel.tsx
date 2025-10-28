@@ -1,6 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -83,23 +83,32 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      content: [
         {
-          description: tct('Install the [code:sentry/sentry-laravel] package:', {
+          type: 'text',
+          text: tct('Install the [code:sentry/sentry-laravel] package:', {
             code: <code />,
           }),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `composer require sentry/sentry-laravel`,
         },
         ...(params.isProfilingSelected
-          ? [
+          ? ([
               {
-                description: t('Install the Excimer extension via PECL:'),
+                type: 'text',
+                text: t('Install the Excimer extension via PECL:'),
+              },
+              {
+                type: 'code',
                 language: 'bash',
                 code: 'pecl install excimer',
               },
               {
-                description: tct(
+                type: 'text',
+                text: tct(
                   "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
                   {
                     sentryPhpDocumentationLink: (
@@ -108,15 +117,19 @@ const onboarding: OnboardingConfig = {
                   }
                 ),
               },
-            ]
+            ] satisfies ContentBlock[])
           : []),
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Enable capturing unhandled exception to report to Sentry by making the following change to your [code:bootstrap/app.php]:',
             {
               code: <code />,
             }
           ),
+        },
+        {
+          type: 'code',
           language: 'php',
           code: getExceptionHandlerSnippet(),
         },
@@ -126,29 +139,43 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          description: t('Configure the Sentry DSN with this command:'),
+          type: 'text',
+          text: t('Configure the Sentry DSN with this command:'),
+        },
+        {
+          type: 'code',
           language: 'shell',
           code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your [code:.env] file where you can add further configuration options:',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'shell',
           code: getConfigureSnippet(params),
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                description: tct(
-                  'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it:',
-                  {code: <code />}
-                ),
-                language: 'php',
-                code: `'channels' => [
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it:',
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              language: 'php',
+              code: `'channels' => [
     // ...
     'sentry_logs' => [
         'driver' => 'sentry_logs',
@@ -157,21 +184,18 @@ const onboarding: OnboardingConfig = {
         'level' => env('LOG_LEVEL', 'info'), // defaults to \`debug\` if not set
     ],
 ],`,
-              },
-            ]
-          : []),
+            },
+          ],
+        },
         {
-          description: (
-            <Alert.Container>
-              <Alert type="warning" showIcon={false}>
-                {tct(
-                  'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </Alert>
-            </Alert.Container>
+          type: 'alert',
+          alertType: 'warning',
+          showIcon: false,
+          text: tct(
+            'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+            {
+              code: <code />,
+            }
           ),
         },
       ],
@@ -180,26 +204,36 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'You can test your configuration using the provided [code:sentry:test] artisan command:',
             {
               code: <code />,
             }
           ),
+        },
+        {
+          type: 'code',
           language: 'shell',
           code: 'php artisan sentry:test',
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                description: tct(
-                  "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:",
-                  {code: <code />}
-                ),
-                language: 'php',
-                code: `use Illuminate\\Support\\Facades\\Log;
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:",
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              language: 'php',
+              code: `use Illuminate\\Support\\Facades\\Log;
 
 // Log to all channels in the stack (including Sentry)
 Log::info('This is an info message');
@@ -208,18 +242,22 @@ Log::error('This is an error message');
 
 // Log directly to the Sentry channel
 Log::channel('sentry')->error('This will only go to Sentry');`,
-              },
-              {
-                description: tct(
-                  'You can also test your configuration using the Sentry logger directly:',
-                  {code: <code />}
-                ),
-                language: 'php',
-                code: `\\Sentry\\logger()->info('A test log message');
+            },
+            {
+              type: 'text',
+              text: tct(
+                'You can also test your configuration using the Sentry logger directly:',
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              language: 'php',
+              code: `\\Sentry\\logger()->info('A test log message');
 \\Sentry\\logger()->flush();`,
-              },
-            ]
-          : []),
+            },
+          ],
+        },
       ],
     },
   ],
@@ -348,21 +386,30 @@ const profilingOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      content: [
         {
-          description: tct('Install the [code:sentry/sentry-laravel] package:', {
+          type: 'text',
+          text: tct('Install the [code:sentry/sentry-laravel] package:', {
             code: <code />,
           }),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `composer require sentry/sentry-laravel`,
         },
         {
-          description: t('Install the Excimer extension via PECL:'),
+          type: 'text',
+          text: t('Install the Excimer extension via PECL:'),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: 'pecl install excimer',
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
             {
               sentryPhpDocumentationLink: (
@@ -377,17 +424,25 @@ const profilingOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          description: t('Configure the Sentry DSN with this command:'),
+          type: 'text',
+          text: t('Configure the Sentry DSN with this command:'),
+        },
+        {
+          type: 'code',
           language: 'shell',
           code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your [code:.env] file where you can add further configuration options:',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'shell',
           code: getConfigureSnippet(params),
         },
@@ -397,9 +452,14 @@ const profilingOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],

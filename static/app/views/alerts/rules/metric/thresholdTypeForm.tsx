@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -110,7 +111,14 @@ function ThresholdTypeForm({
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
-        {t('Anomaly: whenever values are outside of expected bounds')}
+        {tct(
+          'Anomaly: whenever values are outside of expected bounds ([learnMore:learn more])',
+          {
+            learnMore: (
+              <ExternalLink href="https://blog.sentry.io/time-series-monitoring-anomaly-detection-matrix-profile-prophet/" />
+            ),
+          }
+        )}
       </ComparisonContainer>,
     ] as RadioOption);
   }

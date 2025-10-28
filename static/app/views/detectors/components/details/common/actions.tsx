@@ -12,6 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useDeleteDetectorMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorMutation';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
@@ -54,6 +55,7 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
 
 export function EditDetectorAction({detector}: {detector: Detector}) {
   const organization = useOrganization();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
   const canEdit = useCanEditDetector({
     detectorType: detector.type,
     projectId: detector.projectId,
@@ -75,7 +77,7 @@ export function EditDetectorAction({detector}: {detector: Detector}) {
 
   return (
     <LinkButton
-      to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
+      to={`${makeMonitorDetailsPathname(organization.slug, detector.id, monitorsLinkPrefix)}edit/`}
       priority="primary"
       icon={<IconEdit />}
       size="sm"
@@ -91,6 +93,7 @@ export function EditDetectorAction({detector}: {detector: Detector}) {
 export function DeleteDetectorAction({detector}: {detector: Detector}) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
   const {mutateAsync: deleteDetector, isPending: isDeleting} =
     useDeleteDetectorMutation();
 
@@ -101,10 +104,10 @@ export function DeleteDetectorAction({detector}: {detector: Detector}) {
       priority: 'danger',
       onConfirm: async () => {
         await deleteDetector(detector.id);
-        navigate(makeMonitorBasePathname(organization.slug));
+        navigate(makeMonitorBasePathname(organization.slug, monitorsLinkPrefix));
       },
     });
-  }, [deleteDetector, detector.id, navigate, organization.slug]);
+  }, [deleteDetector, detector.id, navigate, organization.slug, monitorsLinkPrefix]);
 
   const canEdit = useCanEditDetector({
     detectorType: detector.type,

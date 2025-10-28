@@ -7,6 +7,8 @@ import {IconBuilding, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PreventAIOrg} from 'sentry/types/prevent';
 
+export const ALL_REPOS_VALUE = '__$ALL_REPOS__';
+
 function ManageReposToolbar({
   installedOrgs,
   onOrgChange,
@@ -15,28 +17,35 @@ function ManageReposToolbar({
   selectedRepo,
 }: {
   installedOrgs: PreventAIOrg[];
-  onOrgChange: (orgName: string) => void;
-  onRepoChange: (repoName: string) => void;
+  onOrgChange: (orgId: string) => void;
+  onRepoChange: (repoId: string) => void;
   selectedOrg: string;
   selectedRepo: string;
 }) {
   const organizationOptions = useMemo(
     () =>
       installedOrgs.map(org => ({
-        value: org.name,
+        value: org.githubOrganizationId,
         label: org.name,
       })),
     [installedOrgs]
   );
 
   const repositoryOptions = useMemo(() => {
-    const org = installedOrgs.find(o => o.name === selectedOrg);
-    return (
+    const org = installedOrgs.find(o => o.githubOrganizationId === selectedOrg);
+    const repoOptions =
       org?.repos.map(repo => ({
-        value: repo.name,
+        value: repo.id,
         label: repo.name,
-      })) ?? []
-    );
+      })) ?? [];
+
+    return [
+      {
+        value: ALL_REPOS_VALUE,
+        label: t('All Repos'),
+      },
+      ...repoOptions,
+    ];
   }, [installedOrgs, selectedOrg]);
 
   return (

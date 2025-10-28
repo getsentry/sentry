@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.testutils.cases import APITestCase
+from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 
 
 class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
@@ -22,7 +23,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
     def test_requires_auth(self):
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
         # Missing auth
-        resp = self.client.get(url, {"ghOrg": "acme", "repo": "acme/repo"})
+        resp = self.client.get(url, {"sentryOrgId": "123"})
         assert resp.status_code == 403
 
     @patch(
@@ -39,14 +40,83 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_success_returns_empty_config_dict(self):
+    def test_invalid_org_id_not_found(self):
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"ghOrg": "acme", "repo": "acme/repo"}
+        params = {"sentryOrgId": "999999"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_invalid_org_id_non_numeric(self):
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": "abc"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_success_returns_default_config(self):
+        org = self.create_organization()
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": str(org.id)}
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {}
-        assert "Link" not in resp
+        assert resp.data == PREVENT_AI_CONFIG_GITHUB_DEFAULT
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_success_returns_custom_config(self):
+        org = self.create_organization()
+        custom_config = {
+            "schema_version": "v1",
+            "default_org_config": {
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": False,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": False,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {},
+            },
+            "github_organizations": {},
+        }
+        org.update_option("sentry:prevent_ai_config_github", custom_config)
+
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": str(org.id)}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert resp.data == custom_config
 
 
 class TestPreventPrReviewSentryOrgEndpoint(APITestCase):

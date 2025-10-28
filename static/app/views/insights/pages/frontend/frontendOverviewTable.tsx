@@ -72,26 +72,31 @@ const COLUMN_ORDER: Column[] = [
     key: 'tpm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
     key: `p50_if(span.duration,is_transaction,equals,true)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p50,
   },
   {
     key: `p75_if(span.duration,is_transaction,equals,true)`,
     name: t('p75()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p75,
   },
   {
     key: `p95_if(span.duration,is_transaction,equals,true)`,
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p95,
   },
   {
     key: 'failure_rate_if(is_transaction,equals,true)',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.failureRate,
   },
   {
     key: 'count_unique(user)',

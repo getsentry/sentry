@@ -6,6 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -17,8 +18,6 @@ import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -50,20 +49,20 @@ export default function TokenUsageWidget() {
     Referrer.TOKEN_USAGE_WIDGET
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
-      fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'count(span.duration)'],
+      query: fullQuery,
+      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
       yAxis: ['sum(gen_ai.usage.total_tokens)'],
       sort: {field: 'sum(gen_ai.usage.total_tokens)', kind: 'desc'},
-      topN: 3,
+      topEvents: 3,
       enabled: !!tokensRequest.data,
     },
     Referrer.TOKEN_USAGE_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data || [];
+  const timeSeries = timeSeriesRequest?.data?.timeSeries || [];
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;
@@ -98,10 +97,8 @@ export default function TokenUsageWidget() {
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Bars(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
-              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
+            new Bars(ts, {
+              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
               stack: 'stack',
             })
         ),
