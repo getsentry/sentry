@@ -8,6 +8,7 @@ export enum WidgetBuilderVersion {
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
   'dashboards_views.engagement.load': {
+    globalFiltersCount: number;
     issuesRatio: number;
     logRatio: number;
     title: string;

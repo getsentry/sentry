@@ -166,7 +166,12 @@ function Dashboard({
     fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
-    trackEngagementAnalytics(dashboard.widgets, organization, dashboard.title);
+    trackEngagementAnalytics(
+      dashboard.widgets,
+      organization,
+      dashboard.title,
+      dashboard.filters.globalFilter?.length ?? 0
+    );
 
     return () => {
       window.removeEventListener('resize', debouncedHandleResize);
