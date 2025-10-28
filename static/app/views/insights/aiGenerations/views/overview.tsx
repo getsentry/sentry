@@ -6,7 +6,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
@@ -16,13 +15,14 @@ import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHa
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
+import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
+import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -119,31 +119,8 @@ function AIGenerationsPage() {
                   <Onboarding />
                 ) : (
                   <Stack direction="column" gap="xl">
-                    <Widget
-                      Title={<Widget.WidgetTitle title="count(generations)" />}
-                      Visualization={null}
-                      height={200}
-                    />
-                    <PanelTable
-                      headers={['id', 'input/output', 'model', 'cost', 'timestamp']}
-                    >
-                      <div>1244</div>
-                      <div>
-                        <div>User Input</div>
-                        <div>Some AI response</div>
-                      </div>
-                      <div>gpt-4o</div>
-                      <div>1244$</div>
-                      <div>2025-01-01 12:00:00</div>
-                      <div>1245</div>
-                      <div>
-                        <div>Another user query</div>
-                        <div>Short AI answer</div>
-                      </div>
-                      <div>gpt-4o</div>
-                      <div>8$</div>
-                      <div>2025-01-01 8:00:00</div>
-                    </PanelTable>
+                    <GenerationsChart />
+                    <GenerationsTable />
                   </Stack>
                 )}
               </ModuleLayout.Full>
