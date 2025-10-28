@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from django.test.utils import override_settings
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -13,13 +13,14 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @patch("sentry.conduit.auth.settings")
-    def test_post_generate_credentials(self, mock_settings: MagicMock) -> None:
+    @override_settings(
+        CONDUIT_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_JWT_ISSUER="sentry",
+        CONDUIT_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_URL="https://conduit.example.com",
+    )
+    def test_post_generate_credentials(self) -> None:
         """Test that POST generates valid credentials."""
-        mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
-        mock_settings.CONDUIT_JWT_ISSUER = "sentry"
-        mock_settings.CONDUIT_JWT_AUDIENCE = "conduit"
-        mock_settings.CONDUIT_GATEWAY_URL = "https://conduit.example.com"
 
         response = self.get_success_response(
             self.organization.slug,
@@ -33,12 +34,11 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         assert "url" in response.data["conduit"]
         assert str(self.organization.id) in response.data["conduit"]["url"]
 
-    @patch("sentry.conduit.auth.settings")
-    def test_post_without_org_access(self, _: MagicMock) -> None:
+    def test_post_without_org_access(self) -> None:
         """Test that users without org access cannot generate credentials."""
         other_org = self.create_organization()
 
-        _ = self.get_error_response(
+        self.get_error_response(
             other_org.slug,
             method="POST",
             status_code=403,
@@ -54,14 +54,14 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
 
         assert response.data == {"error": "Conduit is not configured properly"}
 
-    @patch("sentry.conduit.auth.settings")
-    def test_credentials_are_unique(self, mock_settings: MagicMock) -> None:
+    @override_settings(
+        CONDUIT_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_JWT_ISSUER="sentry",
+        CONDUIT_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_URL="https://conduit.example.com",
+    )
+    def test_credentials_are_unique(self) -> None:
         """Test that multiple calls generate different credentials."""
-        mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
-        mock_settings.CONDUIT_JWT_ISSUER = "sentry"
-        mock_settings.CONDUIT_JWT_AUDIENCE = "conduit"
-        mock_settings.CONDUIT_GATEWAY_URL = "https://conduit.example.com"
-
         response1 = self.get_success_response(
             self.organization.slug,
             method="POST",
