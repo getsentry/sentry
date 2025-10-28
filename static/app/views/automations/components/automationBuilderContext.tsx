@@ -185,7 +185,7 @@ export const useAutomationBuilderContext = () => {
   return context;
 };
 
-export const initialAutomationBuilderState: AutomationBuilderState = {
+const initialAutomationBuilderState: AutomationBuilderState = {
   triggers: {
     id: 'when',
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,

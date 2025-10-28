@@ -100,6 +100,8 @@ describe('useLogsTimeseries', () => {
             isFetchingNextPage: false,
             isFetchingPreviousPage: false,
             lastPageLength: 0,
+            bytesScanned: 0,
+            dataScanned: undefined,
           },
         }),
       {additionalWrapper: Wrapper}

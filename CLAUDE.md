@@ -60,8 +60,11 @@ make develop
 # Or use the newer devenv command
 devenv sync
 
+# Start dev dependencies
+devservices up
+
 # Start the development server
-pnpm run dev
+devservices serve
 ```
 
 ### Testing
@@ -113,6 +116,8 @@ Sentry uses `devservices` to manage local development dependencies:
 - **Symbolicator**: Debug symbol processing
 - **Taskbroker**: Asynchronous task processing
 - **Spotlight**: Local debugging tool
+
+📖 Full devservices documentation: https://develop.sentry.dev/development-infrastructure/devservices.md
 
 ## AI Assistant Quick Decision Trees
 
@@ -442,7 +447,7 @@ def my_function():
 
 ## Debugging Tips
 
-1. Use `sentry devserver` for full stack debugging
+1. Use `devservices serve` for full stack debugging
 2. Access Django shell: `sentry django shell`
 3. View Celery tasks: monitor RabbitMQ management UI
 4. Database queries: use Django Debug Toolbar
@@ -552,6 +557,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
 ## Useful Resources
 
 - Development Setup Guide: https://develop.sentry.dev/getting-started/
+- Devservices Documentation: https://develop.sentry.dev/development-infrastructure/devservices
 - Main Documentation: https://docs.sentry.io/
 - Internal Contributing Guide: https://docs.sentry.io/internal/contributing/
 - GitHub Discussions: https://github.com/getsentry/sentry/discussions

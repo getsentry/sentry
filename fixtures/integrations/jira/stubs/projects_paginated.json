@@ -1,0 +1,58 @@
+{
+  "isLast": false,
+  "maxResults": 2,
+  "nextPage": "https://your-domain.atlassian.net/rest/api/3/project/search?startAt=2&maxResults=2",
+  "self": "https://your-domain.atlassian.net/rest/api/3/project/search?startAt=0&maxResults=2",
+  "startAt": 0,
+  "total": 7,
+  "values": [
+    {
+      "avatarUrls": {
+        "16x16": "https://your-domain.atlassian.net/secure/projectavatar?size=xsmall&pid=10000",
+        "24x24": "https://your-domain.atlassian.net/secure/projectavatar?size=small&pid=10000",
+        "32x32": "https://your-domain.atlassian.net/secure/projectavatar?size=medium&pid=10000",
+        "48x48": "https://your-domain.atlassian.net/secure/projectavatar?size=large&pid=10000"
+      },
+      "id": "10000",
+      "insight": {
+        "lastIssueUpdateTime": "2021-04-22T05:37:05.000+0000",
+        "totalIssueCount": 100
+      },
+      "key": "EX",
+      "name": "Example",
+      "projectCategory": {
+        "description": "First Project Category",
+        "id": "10000",
+        "name": "FIRST",
+        "self": "https://your-domain.atlassian.net/rest/api/3/projectCategory/10000"
+      },
+      "self": "https://your-domain.atlassian.net/rest/api/3/project/EX",
+      "simplified": false,
+      "style": "classic"
+    },
+    {
+      "avatarUrls": {
+        "16x16": "https://your-domain.atlassian.net/secure/projectavatar?size=xsmall&pid=10001",
+        "24x24": "https://your-domain.atlassian.net/secure/projectavatar?size=small&pid=10001",
+        "32x32": "https://your-domain.atlassian.net/secure/projectavatar?size=medium&pid=10001",
+        "48x48": "https://your-domain.atlassian.net/secure/projectavatar?size=large&pid=10001"
+      },
+      "id": "10001",
+      "insight": {
+        "lastIssueUpdateTime": "2021-04-22T05:37:05.000+0000",
+        "totalIssueCount": 100
+      },
+      "key": "ABC",
+      "name": "Alphabetical",
+      "projectCategory": {
+        "description": "First Project Category",
+        "id": "10000",
+        "name": "FIRST",
+        "self": "https://your-domain.atlassian.net/rest/api/3/projectCategory/10000"
+      },
+      "self": "https://your-domain.atlassian.net/rest/api/3/project/ABC",
+      "simplified": false,
+      "style": "classic"
+    }
+  ]
+}

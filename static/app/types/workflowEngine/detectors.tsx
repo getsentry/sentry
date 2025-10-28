@@ -195,22 +195,22 @@ export interface BaseDetectorUpdatePayload {
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   config: UptimeDetectorConfig;
-  dataSource: UpdateUptimeDataSourcePayload;
+  dataSources: UpdateUptimeDataSourcePayload[];
   type: 'uptime_domain_failure';
 }
 
 export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   conditionGroup: UpdateConditionGroupPayload;
   config: MetricDetectorConfig;
-  dataSource: UpdateSnubaDataSourcePayload;
+  dataSources: UpdateSnubaDataSourcePayload[];
   type: 'metric_issue';
 }
 
 export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
-  dataSource: {
+  dataSources: Array<{
     config: MonitorConfig;
     name: string;
-  };
+  }>;
   type: 'monitor_check_in_failure';
 }
 
