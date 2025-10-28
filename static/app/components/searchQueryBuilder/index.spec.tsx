@@ -224,7 +224,7 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('does not display footer when using a wildcard operator', async () => {
+      it('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
           {organization: {features: ['search-query-builder-wildcard-operators']}}
@@ -250,10 +250,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-
         expect(
-          screen.queryByText('Wildcard (*) matching allowed')
-        ).not.toBeInTheDocument();
+          screen.getByText('Switch to "is" operator to use wildcard (*) matching')
+        ).toBeInTheDocument();
       });
     });
   });
