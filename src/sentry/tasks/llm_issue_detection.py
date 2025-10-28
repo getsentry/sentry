@@ -106,7 +106,9 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         project_id, limit=50, start_time_delta={"minutes": 30}
     )
     for transaction in transactions:
-        trace: TraceData = get_trace_for_transaction(transaction.name, transaction.project_id)
+        trace: TraceData | None = get_trace_for_transaction(
+            transaction.name, transaction.project_id
+        )
         if not trace:
             continue
 

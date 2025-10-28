@@ -95,6 +95,7 @@ class LLMIssueDetectionTest(APITransactionTestCase, SnubaTestCase, SpanTestCase)
         assert exception.project_id == self.project.id
         assert exception.trace_id is not None
         assert exception.response_data == "invalid json"
+        assert exception.error_message is not None
         assert "Expecting value" in exception.error_message
 
     def test_detect_llm_issues_invalid_schema(self, mock_seer_api):
@@ -116,6 +117,7 @@ class LLMIssueDetectionTest(APITransactionTestCase, SnubaTestCase, SpanTestCase)
         assert exception.trace_id is not None
         assert exception.response_data == '{"wrong_field": "value"}'
         assert exception.error_message is not None
+        assert "field required" in exception.error_message
 
     @patch("sentry.tasks.llm_issue_detection.logger")
     def test_detect_llm_issues_success_with_logging(self, mock_logger, mock_seer_api):
