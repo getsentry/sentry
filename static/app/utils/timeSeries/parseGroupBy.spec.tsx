@@ -6,6 +6,11 @@ describe('parseGroupBy', () => {
     expect(result).toBeNull();
   });
 
+  it('returns null for "None" group name', () => {
+    const result = parseGroupBy('None', ['field1']);
+    expect(result).toEqual([{key: 'field1', value: null}]);
+  });
+
   it('parses single field and value correctly', () => {
     const result = parseGroupBy('value1', ['field1']);
     expect(result).toEqual([{key: 'field1', value: 'value1'}]);

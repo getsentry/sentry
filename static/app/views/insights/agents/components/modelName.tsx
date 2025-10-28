@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
+import {t} from 'sentry/locale';
 import type {Space} from 'sentry/utils/theme/theme';
 
 interface ModelNameProps {
@@ -19,7 +20,7 @@ export function ModelName({modelId, provider, size = 16, gap = 'md'}: ModelNameP
       <IconWrapper>
         <PlatformIcon platform={platform ?? 'unknown'} size={size} />
       </IconWrapper>
-      <NameWrapper>{modelId}</NameWrapper>
+      <NameWrapper>{modelId === 'null' ? t('(no value)') : modelId}</NameWrapper>
     </Flex>
   );
 }

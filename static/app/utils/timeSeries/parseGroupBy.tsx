@@ -6,6 +6,7 @@ export function parseGroupBy(
   groupName: string,
   fields: string[]
 ): TimeSeriesGroupBy[] | null {
+  // "Other", by definition, does not have any known group by values
   if (groupName === 'Other') {
     return null;
   }
@@ -15,6 +16,15 @@ export function parseGroupBy(
   }
 
   const groupKeys = fields;
+
+  // `/events-stats/` converts Python's `None` into `"None"`. Here, we do the reverse
+  if (groupName === 'None') {
+    return groupKeys.map(groupKey => ({
+      key: groupKey,
+      value: null,
+    }));
+  }
+
   const groupValues = groupName.split(DELIMITER);
 
   // If the `groupName` contains commas, that will result in more values than
