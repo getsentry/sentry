@@ -902,3 +902,16 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["meta"]["bytesScanned"] > 0
+
+    def test_count_message(self):
+        self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
+        request = {
+            "field": ["count(message)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"count(message)": 1}]
