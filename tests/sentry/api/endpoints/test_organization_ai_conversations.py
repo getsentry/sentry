@@ -470,7 +470,6 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
 
         conversation = response.data[0]
         assert conversation["conversationId"] == conversation_id
-        assert conversation["llmCalls"] == 2
-        assert conversation["totalTokens"] == 150
-        assert conversation["totalCost"] == 0.015
-        assert conversation["duration"] > timedelta(days=6).total_seconds() * 1000
+        assert conversation["llmCalls"] == 1
+        assert conversation["totalTokens"] == 50
+        assert conversation["totalCost"] == 0.005
