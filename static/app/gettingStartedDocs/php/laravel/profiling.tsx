@@ -4,7 +4,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getConfigureSnippet} from 'sentry/gettingStartedDocs/php-laravel/utils';
+import {getConfigureSnippet} from 'sentry/gettingStartedDocs/php/laravel/utils';
 import {t, tct} from 'sentry/locale';
 
 export const profiling: OnboardingConfig = {
