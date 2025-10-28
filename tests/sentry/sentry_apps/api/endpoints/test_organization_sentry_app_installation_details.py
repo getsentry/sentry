@@ -8,16 +8,21 @@ from sentry.analytics.events.sentry_app_installation_updated import (
     SentryAppInstallationUpdatedEvent,
 )
 from sentry.analytics.events.sentry_app_uninstalled import SentryAppUninstalledEvent
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import ObjectStatus, SentryAppInstallationStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
+from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -103,6 +108,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
     @patch("sentry.analytics.record")
+    @override_options({"workflow_engine.sentry-app-actions-outbox": True})
     def test_delete_install(self, record: MagicMock) -> None:
         responses.add(url="https://example.com/webhook", method=responses.POST, body=b"")
         self.login_as(user=self.user)
@@ -122,8 +128,23 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             ),
         )
 
+        action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": self.installation2.uuid,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+
         with self.tasks():
             run_scheduled_deletions_control()
+
+        with outbox_runner():
+            pass
+
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.DISABLED
 
         assert not SentryAppInstallation.objects.filter(id=self.installation2.id).exists()
 

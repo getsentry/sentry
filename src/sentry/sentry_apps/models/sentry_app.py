@@ -241,8 +241,8 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             for outbox in self.outboxes_for_delete():
                 outbox.save()
 
-        SentryAppAvatar.objects.filter(sentry_app=self).delete()
-        return super().delete(*args, **kwargs)
+            SentryAppAvatar.objects.filter(sentry_app=self).delete()
+            return super().delete(*args, **kwargs)
 
     def _disable(self):
         self.events = []
