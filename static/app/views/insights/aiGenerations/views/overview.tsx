@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -13,7 +13,6 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -22,7 +21,6 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -48,8 +46,10 @@ function AIGenerationsPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
-
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
   useRemoveUrlCursorsOnSearch();
 
   const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
@@ -107,9 +107,9 @@ function AIGenerationsPage() {
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -164,9 +164,5 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
 
 export default PageWithProviders;
