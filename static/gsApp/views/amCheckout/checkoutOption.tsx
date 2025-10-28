@@ -25,6 +25,11 @@ function CheckoutOption({
       onClick={onClick}
       data-test-id={dataTestId}
       aria-label={ariaLabel}
+      onKeyDown={({key}) => {
+        if (key === 'Enter') {
+          onClick();
+        }
+      }}
     >
       {children}
     </Option>
