@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
-from sentry.objectstore import app_icons
+from sentry.objectstore import preprod
 from sentry.objectstore.service import ClientError
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def detect_image_content_type(image_data: bytes) -> str:
 
 
 @region_silo_endpoint
-class ProjectPreprodArtifactIconEndpoint(ProjectEndpoint):
+class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -66,24 +66,24 @@ class ProjectPreprodArtifactIconEndpoint(ProjectEndpoint):
         self,
         request: Request,
         project: Project,
-        app_icon_id: str,
+        image_id: str,
     ) -> HttpResponse:
         organization_id = project.organization_id
         project_id = project.id
 
-        # object_key = f"{organization_id}/{project_id}/{app_icon_id}"
+        object_key = f"{organization_id}/{project_id}/{image_id}"
         logger.info(
-            "Retrieving app icon from objectstore",
+            "Retrieving image from objectstore",
             extra={
                 "organization_id": organization_id,
                 "project_id": project_id,
-                "app_icon_id": app_icon_id,
+                "image_id": image_id,
             },
         )
-        client = app_icons.for_project(organization_id, project_id)
+        client = preprod.for_project(organization_id, project_id)
 
         try:
-            result = client.get(app_icon_id)
+            result = client.get(object_key)
             # Read the entire stream at once
             image_data = result.payload.read()
 
@@ -91,11 +91,11 @@ class ProjectPreprodArtifactIconEndpoint(ProjectEndpoint):
             content_type = detect_image_content_type(image_data)
 
             logger.info(
-                "Retrieved app icon from objectstore",
+                "Retrieved image from objectstore",
                 extra={
                     "organization_id": organization_id,
                     "project_id": project_id,
-                    "app_icon_id": app_icon_id,
+                    "image_id": image_id,
                     "size_bytes": len(image_data),
                     "content_type": content_type,
                 },
@@ -109,7 +109,7 @@ class ProjectPreprodArtifactIconEndpoint(ProjectEndpoint):
                     extra={
                         "organization_id": organization_id,
                         "project_id": project_id,
-                        "app_icon_id": app_icon_id,
+                        "image_id": image_id,
                     },
                 )
 
@@ -121,7 +121,7 @@ class ProjectPreprodArtifactIconEndpoint(ProjectEndpoint):
                 extra={
                     "organization_id": organization_id,
                     "project_id": project_id,
-                    "app_icon_id": app_icon_id,
+                    "image_id": image_id,
                     "error": str(e),
                     "status": e.status,
                 },
@@ -134,7 +134,7 @@ class ProjectPreprodArtifactIconEndpoint(ProjectEndpoint):
                 extra={
                     "organization_id": organization_id,
                     "project_id": project_id,
-                    "app_icon_id": app_icon_id,
+                    "image_id": image_id,
                 },
             )
             return HttpResponse({"error": "Internal server error"}, status=500)
