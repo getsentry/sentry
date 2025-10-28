@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 from sentry.db.models import NodeData
 from sentry.eventstream.item_helpers import encode_attributes, serialize_event_data_as_item
@@ -167,7 +167,7 @@ class ItemHelpersTest(TestCase):
         # "tags" field itself gets encoded as a non-scalar value in the loop
         # Then tags are processed separately, but empty list adds no tag attributes
         assert len(result) == 1
-        assert result["tags"] == AnyValue(string_value="encode not supported for non-scalar values")
+        assert result["tags"] == AnyValue(array_value=ArrayValue(values=[]))
 
     def test_encode_attributes_with_complex_types(self):
         event_data = {
@@ -185,10 +185,20 @@ class ItemHelpersTest(TestCase):
         result = encode_attributes(event, event_data)
 
         assert result["list_field"] == AnyValue(
-            string_value="encode not supported for non-scalar values"
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(int_value=1),
+                    AnyValue(int_value=2),
+                    AnyValue(int_value=3),
+                ]
+            )
         )
         assert result["dict_field"] == AnyValue(
-            string_value="encode not supported for non-scalar values"
+            kvlist_value=KeyValueList(
+                values=[
+                    KeyValue(key="nested", value=AnyValue(string_value="value")),
+                ]
+            )
         )
 
     def test_serialize_event_data_as_item_basic(self):
