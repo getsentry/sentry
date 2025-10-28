@@ -24,7 +24,6 @@ import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -120,7 +119,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     return {
       triggers: automation.triggers
         ? automation.triggers
-        : initialAutomationBuilderState.triggers,
+        : {
+            id: 'when',
+            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+            conditions: [],
+          },
       actionFilters: automation.actionFilters,
     };
   }, [automation]);
