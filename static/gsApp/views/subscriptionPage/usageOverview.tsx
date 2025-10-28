@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -799,6 +800,9 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
   const hasBillingPerms = organization.access.includes('org:billing');
   const {isCollapsed: navIsCollapsed, layout} = useNavContext();
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
+  const startDate = moment(subscription.onDemandPeriodStart);
+  const endDate = moment(subscription.onDemandPeriodEnd);
+  const startsAndEndsSameYear = startDate.year() === endDate.year();
   return (
     <Container
       radius="md"
@@ -822,9 +826,14 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
         gap="xl"
         direction={{xs: 'column', sm: 'row'}}
       >
-        <Heading as="h3" size="lg">
-          {t('Usage Overview')}
-        </Heading>
+        <Flex direction="column" gap="sm">
+          <Heading as="h3" size="lg">
+            {t('Usage Overview')}
+          </Heading>
+          <Text variant="muted">
+            {`${startDate.format(startsAndEndsSameYear ? 'MMM D' : 'MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`}
+          </Text>
+        </Flex>
         {hasBillingPerms && (
           <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
             <LinkButton
