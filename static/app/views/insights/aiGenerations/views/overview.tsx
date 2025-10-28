@@ -1,8 +1,7 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -108,9 +107,9 @@ function AIGenerationsPage() {
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -165,9 +164,5 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
 
 export default PageWithProviders;

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
+
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -12,7 +13,6 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -211,9 +211,9 @@ function McpOverviewPage() {
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -234,7 +234,7 @@ function McpOverviewPage() {
                         <McpTransportWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ControlsWrapper>
+                    <Container paddingBottom="xl">
                       <TableControl
                         value={activeView}
                         onChange={handleTableSwitch}
@@ -250,7 +250,7 @@ function McpOverviewPage() {
                           {t('Prompts')}
                         </TableControlItem>
                       </TableControl>
-                    </ControlsWrapper>
+                    </Container>
                     <WidgetGrid>
                       <WidgetGrid.Position1>
                         <ViewTrafficWidget />
@@ -283,17 +283,5 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-  padding-bottom: ${space(2)};
-`;
 
 export default PageWithProviders;
