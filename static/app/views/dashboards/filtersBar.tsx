@@ -20,6 +20,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
+import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -153,13 +154,15 @@ export default function FiltersBar({
               onUpdateFilter={updatedFilter => {
                 updateGlobalFilters(
                   activeGlobalFilters.map(f =>
-                    f.tag.key === updatedFilter.tag.key ? updatedFilter : f
+                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
                   )
                 );
               }}
               onRemoveFilter={removedFilter => {
                 updateGlobalFilters(
-                  activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
+                  activeGlobalFilters.filter(
+                    f => !globalFilterKeysAreEqual(f, removedFilter)
+                  )
                 );
               }}
             />

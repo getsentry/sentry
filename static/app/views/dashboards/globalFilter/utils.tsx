@@ -14,6 +14,10 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {getFieldDefinition, type FieldDefinition} from 'sentry/utils/fields';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 
+export function globalFilterKeysAreEqual(a: GlobalFilter, b: GlobalFilter): boolean {
+  return a.tag.key === b.tag.key && a.dataset === b.dataset;
+}
+
 export function getFieldDefinitionForDataset(
   tag: Tag,
   datasetType: WidgetType
