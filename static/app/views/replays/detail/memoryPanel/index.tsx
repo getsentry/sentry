@@ -62,7 +62,7 @@ export default function MemoryPanel() {
 
 const Grid = styled('div')`
   display: grid;
-  grid-template-rows: 1fr;
+  grid-template-rows: 1fr 1fr;
   grid-template-columns: 1fr;
   gap: ${space(1)};
   justify-content: center;
