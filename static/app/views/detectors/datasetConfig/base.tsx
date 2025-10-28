@@ -139,4 +139,12 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     data: SeriesResponse | undefined,
     aggregate: string
   ) => Series[];
+
+  /**
+   * When automatically generating a detector name, this function will be called to format the aggregate function.
+   * If this function is not provided, the aggregate function will be used as is.
+   *
+   * e.g. For the errors dataset, count() will be formatted as 'Number of errors'
+   */
+  formatAggregateForTitle?: (aggregate: string) => string;
 }
