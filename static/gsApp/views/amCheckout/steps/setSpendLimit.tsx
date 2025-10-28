@@ -56,7 +56,7 @@ function SetSpendCap({
         subscription={subscription}
         header={
           <StepHeader
-            title={t('Set your %s limit', displayBudgetName(activePlan))}
+            title={t('Pay-as-you-go', displayBudgetName(activePlan))}
             isActive
             stepNumber={stepNumber}
             isCompleted={false}
