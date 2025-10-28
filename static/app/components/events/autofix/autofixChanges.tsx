@@ -14,6 +14,7 @@ import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighl
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
   AutofixStatus,
   type AutofixChangesStep,
@@ -188,6 +189,7 @@ export function AutofixChanges({
   isChangesFirstAppearance,
 }: AutofixChangesProps) {
   const {data} = useAutofixData({groupId});
+  const organization = useOrganization();
   const isBusy = step.status === AutofixStatus.PROCESSING;
   const iconCodeRef = useRef<HTMLDivElement>(null);
   const firstChangeRef = useRef<HTMLDivElement | null>(null);
@@ -366,6 +368,14 @@ export function AutofixChanges({
                   />
                 </ButtonBar>
               )}
+              {step.status === AutofixStatus.COMPLETED && (
+                <AutofixStepFeedback
+                  stepType="changes"
+                  groupId={groupId}
+                  runId={runId}
+                  organization={organization}
+                />
+              )}
               {prsMade &&
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
@@ -513,6 +523,8 @@ const TerminationReasonText = styled('div')`
 const ButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 function CreatePRsButton({
