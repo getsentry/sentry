@@ -82,7 +82,14 @@ export default function AutomationsList() {
   return (
     <SentryDocumentTitle title={t('Alerts')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={t('Alerts')}>
+        <ListLayout
+          actions={<Actions />}
+          title={t('Alerts')}
+          description={t(
+            'Alerts are triggered when issue changes state, is created, or passes a threshold. They perform external actions like sending notifications, creating tickets, or calling webhooks and integrations.'
+          )}
+          docsUrl="https://docs.sentry.io/product/automations/"
+        >
           <TableHeader />
           <div>
             <VisuallyCompleteWithData
