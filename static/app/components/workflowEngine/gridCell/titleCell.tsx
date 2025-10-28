@@ -17,7 +17,7 @@ export type TitleCellProps = {
   details?: React.ReactNode;
   disabled?: boolean;
   openInNewTab?: boolean;
-  systemCreated?: boolean;
+  systemCreated?: string;
   warning?: StatusWarning | null;
 };
 
@@ -35,7 +35,11 @@ export function TitleCell({
     <Fragment>
       <Name>
         <NameText>{name}</NameText>
-        {systemCreated && <CreatedBySentryIcon size="xs" color="subText" />}
+        {systemCreated && (
+          <Tooltip title={systemCreated} skipWrapper>
+            <CreatedBySentryIcon size="xs" color="subText" />
+          </Tooltip>
+        )}
         {warning && (
           <Fragment>
             &mdash;
