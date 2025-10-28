@@ -265,7 +265,7 @@ function PlanSelect({
               await checkForPromptBasedPromotion({
                 organization,
                 subscription,
-                refetch,
+                onRefetch: refetch,
                 promptFeature: 'business_to_team_promo',
                 promotionData,
                 onAcceptConditions: () => {

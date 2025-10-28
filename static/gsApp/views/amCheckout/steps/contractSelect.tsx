@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
-import type {Plan} from 'getsentry/types';
+import {InvoiceItemType, type Plan} from 'getsentry/types';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -94,8 +94,13 @@ class ContractSelect extends Component<Props> {
 
           const discountData: {
             amount?: number;
+            creditCategory?: InvoiceItemType;
             discountType?: string;
-          } = {};
+          } = {
+            // default to subscription discount
+            // since we need a credit category to calculate the price after discount
+            creditCategory: InvoiceItemType.SUBSCRIPTION,
+          };
           if (
             promotion?.showDiscountInfo &&
             promotion.discountInfo &&
@@ -113,7 +118,6 @@ class ContractSelect extends Component<Props> {
             ...discountData,
           });
           const formattedPriceAfterDiscount = formatPrice({cents: priceAfterDiscount});
-
           return (
             <PlanSelectRow
               key={plan.id}
