@@ -1,4 +1,5 @@
 import type React from 'react';
+import {useMemo} from 'react';
 
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -102,6 +103,26 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
     },
   },
 ];
+
+function getMinimumPlanType({featureInfo}: {featureInfo: FeatureInfo}) {
+  return Object.keys(featureInfo.displayStringMap).sort(
+    (a, b) => ORDERED_PLAN_TYPES.indexOf(a) - ORDERED_PLAN_TYPES.indexOf(b)
+  )[0];
+}
+
+/**
+ * Check if the active plan has the feature at some level.
+ */
+function checkHasFeature({
+  activePlanTypeIndex,
+  featureInfo,
+}: {
+  activePlanTypeIndex: number;
+  featureInfo: FeatureInfo;
+}) {
+  const minPlanType = getMinimumPlanType({featureInfo});
+  return !minPlanType || activePlanTypeIndex >= ORDERED_PLAN_TYPES.indexOf(minPlanType);
+}
 
 function MonitoringAndDataFeatures({
   planOptions,
@@ -274,8 +295,11 @@ function MonitoringAndDataFeatures({
 }
 
 function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
-  const activePlanType = activePlan.name.toLowerCase() as PlanType;
-  const activePlanTypeIndex = ORDERED_PLAN_TYPES.indexOf(activePlanType);
+  const activePlanTypeIndex = useMemo(
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    [activePlan]
+  );
+
   return (
     <Flex direction="column" gap="lg">
       <Heading as="h4" size="xs" variant="muted">
@@ -283,16 +307,13 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
       </Heading>
       {EXPANSION_PACK_FEATURES.map(info => {
         const {key} = info;
-        const minPlanType = Object.keys(info.displayStringMap).sort(
-          (a, b) => ORDERED_PLAN_TYPES.indexOf(a) - ORDERED_PLAN_TYPES.indexOf(b)
-        )[0];
+        const minPlanType = getMinimumPlanType({featureInfo: info});
 
         // feature is only available on Business plan
         const isOnlyOnBusiness = minPlanType === 'business';
 
         // active plan has the feature at some level
-        const hasFeature =
-          !minPlanType || activePlanTypeIndex >= ORDERED_PLAN_TYPES.indexOf(minPlanType);
+        const hasFeature = checkHasFeature({activePlanTypeIndex, featureInfo: info});
 
         return (
           <FeatureItem
@@ -302,10 +323,9 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
           >
             <Flex direction="column" gap="sm">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
-                const planTypeIndex = ORDERED_PLAN_TYPES.indexOf(planType);
-
                 // active plan has this specific version of the feature
-                const hasPlanTypeFeature = activePlanTypeIndex >= planTypeIndex;
+                const hasPlanTypeFeature =
+                  activePlanTypeIndex >= ORDERED_PLAN_TYPES.indexOf(planType);
 
                 const isBusinessFeature = planType === 'business';
                 const commonProps = {
