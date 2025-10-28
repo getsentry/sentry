@@ -1,5 +1,6 @@
 from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -60,6 +61,7 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
 
 @region_silo_endpoint
 @extend_schema(tags=["Integrations"])
+@sentry_sdk.trace
 class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
