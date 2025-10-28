@@ -584,6 +584,27 @@ export function useInfiniteLogsQuery({
 
   const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
 
+  // Due to the way we prune empty pages, we cannot simply compute the sum of bytes scanned
+  // for all pages as most empty pages would have been evicted already.
+  //
+  // Instead, we watch the last page loaded, and keep a running sum that is reset when
+  // the last page is falsey which corresponds to a query change.
+  const [totalBytesScanned, setTotalBytesScanned] = useState(0);
+  const lastPage = data?.pages?.[data?.pages?.length - 1];
+  useEffect(() => {
+    if (!lastPage) {
+      setTotalBytesScanned(0);
+      return;
+    }
+
+    const bytesScanned = lastPage[0].meta?.bytesScanned;
+    if (!defined(bytesScanned)) {
+      return;
+    }
+
+    setTotalBytesScanned(previousBytesScanned => previousBytesScanned + bytesScanned);
+  }, [lastPage]);
+
   const _data = useMemo(() => {
     const usedRowIds = new Set();
     const filteredData =
@@ -640,6 +661,12 @@ export function useInfiniteLogsQuery({
     [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
   );
 
+  const dataScannedList = data?.pages?.map(page => page[0].meta?.dataScanned);
+  const dataScanned = defined(dataScannedList)
+    ? dataScannedList.includes('partial')
+      ? ('partial' as const)
+      : ('full' as const)
+    : undefined;
   const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
   const shouldAutoFetchNextPage =
@@ -694,6 +721,8 @@ export function useInfiniteLogsQuery({
     isFetchingNextPage: _data.length > 0 && (waitingToAutoFetch || isFetchingNextPage),
     isFetchingPreviousPage,
     lastPageLength,
+    dataScanned,
+    bytesScanned: totalBytesScanned,
   };
 }
 
