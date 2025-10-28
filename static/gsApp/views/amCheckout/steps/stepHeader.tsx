@@ -70,7 +70,9 @@ function StepHeader({
             borderless
             size="zero"
             icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
-            aria-label={isOpen ? t('Collapse section') : t('Expand section')}
+            aria-label={
+              isOpen ? t('Collapse %s section', title) : t('Expand %s section', title)
+            }
             onClick={() => onToggleStep?.(!isOpen)}
           />
         </Flex>
