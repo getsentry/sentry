@@ -990,7 +990,12 @@ class AMCheckout extends Component<Props, State> {
 
     return this.renderParentComponent({
       children: (
-        <Flex width="100%" background="secondary" justify="center" padding="2xl">
+        <Flex
+          width="100%"
+          background={isNewCheckout ? 'primary' : 'secondary'}
+          justify="center"
+          padding="2xl"
+        >
           <SentryDocumentTitle
             title={t('Change Subscription')}
             orgSlug={organization.slug}
