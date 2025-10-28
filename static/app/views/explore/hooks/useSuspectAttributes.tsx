@@ -46,10 +46,8 @@ function useSuspectAttributes({
   const {selection: pageFilters} = usePageFilters();
   const aggregateExtrapolation = location.query.extrapolate ?? '1';
 
-  const enableQuery = boxSelectOptions.boxCoordRange !== null;
-  const {
-    x: [x1, x2],
-  } = boxSelectOptions.boxCoordRange!;
+  const enableQuery = boxSelectOptions.xRange !== null;
+  const [x1, x2] = boxSelectOptions.xRange!;
 
   // Ensure that we pass the existing queries in the search bar to the suspect attributes queries
   const currentQuery = location.query.query?.toString() ?? '';

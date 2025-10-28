@@ -13,6 +13,7 @@ const SPANS_TABLE_KEY = 'table';
 export enum Tab {
   SPAN = 'span',
   TRACE = 'trace',
+  SUSPECT_ATTRIBUTES = 'suspect_attributes',
 }
 
 export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
@@ -34,6 +35,10 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
     if (table === 'trace') {
       return Tab.TRACE;
     }
+    if (table === 'suspect_attributes') {
+      return Tab.SUSPECT_ATTRIBUTES;
+    }
+
     return Tab.SPAN;
   }, [table, pageParams.mode]);
 
@@ -46,7 +51,11 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
       updateNullableLocation(
         target,
         SPANS_TABLE_KEY,
-        newTab === Tab.TRACE ? 'trace' : null
+        newTab === Tab.TRACE
+          ? 'trace'
+          : newTab === Tab.SUSPECT_ATTRIBUTES
+            ? 'suspect_attributes'
+            : null
       );
 
       navigate(target);

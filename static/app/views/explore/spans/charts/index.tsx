@@ -21,7 +21,9 @@ import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsCon
 import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
@@ -39,6 +41,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   extrapolate: boolean;
   query: string;
+  setTab: (tab: Mode | Tab) => void;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
@@ -69,6 +72,7 @@ export function ExploreCharts({
   visualizes,
   setVisualizes,
   samplingMode,
+  setTab,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
 
@@ -104,6 +108,7 @@ export function ExploreCharts({
         {visualizes.map((visualize, index) => {
           return (
             <Chart
+              setTab={setTab}
               key={`${index}`}
               extrapolate={extrapolate}
               index={index}
@@ -130,6 +135,7 @@ interface ChartProps {
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
+  setTab: (tab: Mode | Tab) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
   samplingMode?: SamplingMode;
@@ -146,6 +152,7 @@ function Chart({
   timeseriesResult,
   samplingMode,
   topEvents,
+  setTab,
 }: ChartProps) {
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -287,6 +294,7 @@ function Chart({
       />
       <FloatingTrigger
         chartInfo={chartInfo}
+        setTab={setTab}
         boxSelectOptions={boxSelectOptions}
         triggerWrapperRef={triggerWrapperRef}
       />
