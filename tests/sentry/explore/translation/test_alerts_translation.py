@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import orjson
 import pytest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -7,20 +8,28 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
+from urllib3.response import HTTPResponse
 
 from sentry.explore.translation.alerts_translation import (
     rollback_alert_rule_query_and_update_subscription_in_snuba,
     snapshot_snuba_query,
     translate_alert_rule_and_update_subscription_in_snuba,
 )
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
+)
+from sentry.seer.anomaly_detection.store_data import SeerMethod, StoreDataResponse
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class AlertsTranslationTestCase(TestCase):
+class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
@@ -356,3 +365,126 @@ class AlertsTranslationTestCase(TestCase):
 
         assert snuba_query.dataset == original_dataset
         assert snuba_query.query_snapshot is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    @patch(
+        "sentry.explore.translation.alerts_translation.handle_send_historical_data_to_seer_legacy"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_translate_anomaly_detection_alert(
+        self, mock_seer_request, mock_seer_legacy, mock_create_rpc
+    ) -> None:
+
+        mock_create_rpc.return_value = "test-subscription-id"
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        alert_rule = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="Anomaly Detection Alert",
+            query="transaction.duration:>100",
+            aggregate="count()",
+            time_window=15,
+            dataset=Dataset.PerformanceMetrics,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.LOW,
+            seasonality=AlertRuleSeasonality.AUTO,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+        )
+        snuba_query = alert_rule.snuba_query
+
+        translate_alert_rule_and_update_subscription_in_snuba(alert_rule)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert snuba_query.aggregate == "count(span.duration)"
+
+        assert mock_seer_legacy.called
+        assert mock_seer_legacy.call_count == 1
+
+        call_args = mock_seer_legacy.call_args
+        alert_rule_arg = call_args[0][0]
+        snuba_query_arg = call_args[0][1]
+        project_arg = call_args[0][2]
+        seer_method_arg = call_args[0][3]
+        event_types_arg = call_args[1]["event_types"]
+
+        assert alert_rule_arg.id == alert_rule.id
+        assert snuba_query_arg.id == snuba_query.id
+        assert snuba_query_arg.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert project_arg.id == self.project.id
+        assert seer_method_arg == SeerMethod.UPDATE
+        assert event_types_arg == [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN]
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch("sentry.snuba.tasks._delete_from_snuba")
+    @patch("sentry.snuba.tasks._create_snql_in_snuba")
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    @patch(
+        "sentry.explore.translation.alerts_translation.handle_send_historical_data_to_seer_legacy"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_rollback_anomaly_detection_alert(
+        self,
+        mock_seer_request,
+        mock_seer_legacy,
+        mock_create_rpc,
+        mock_create_snql,
+        mock_delete,
+    ) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+        mock_create_snql.return_value = "rollback-subscription-id"
+        mock_delete.return_value = None
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        alert_rule = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="Anomaly Detection Alert",
+            query="transaction.duration:>100",
+            aggregate="count()",
+            time_window=15,
+            dataset=Dataset.Transactions,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.LOW,
+            seasonality=AlertRuleSeasonality.AUTO,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+        )
+        snuba_query = alert_rule.snuba_query
+
+        original_dataset = snuba_query.dataset
+
+        translate_alert_rule_and_update_subscription_in_snuba(alert_rule)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert mock_seer_legacy.call_count == 1
+
+        rollback_alert_rule_query_and_update_subscription_in_snuba(alert_rule)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == original_dataset
+        assert mock_seer_legacy.call_count == 2
+
+        rollback_call_args = mock_seer_legacy.call_args
+        alert_rule_arg = rollback_call_args[0][0]
+        snuba_query_arg = rollback_call_args[0][1]
+        project_arg = rollback_call_args[0][2]
+        seer_method_arg = rollback_call_args[0][3]
+        event_types_arg = rollback_call_args[1]["event_types"]
+
+        assert alert_rule_arg.id == alert_rule.id
+        assert snuba_query_arg.id == snuba_query.id
+        assert snuba_query_arg.dataset == Dataset.Transactions.value
+        assert project_arg.id == self.project.id
+        assert seer_method_arg == SeerMethod.UPDATE
+        assert event_types_arg == [SnubaQueryEventType.EventType.TRANSACTION]

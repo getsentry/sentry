@@ -1,7 +1,11 @@
 from django.db import router, transaction
 
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
+from sentry.seer.anomaly_detection.store_data import (
+    SeerMethod,
+    handle_send_historical_data_to_seer_legacy,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     ExtrapolationMode,
@@ -93,6 +97,16 @@ def translate_alert_rule_and_update_subscription_in_snuba(alert_rule: AlertRule)
                 using=router.db_for_write(QuerySubscription),
             )
 
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+        project = alert_rule.projects.get()
+        handle_send_historical_data_to_seer_legacy(
+            alert_rule,
+            snuba_query,
+            project,
+            SeerMethod.UPDATE,
+            event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
+        )
+
     return alert_rule
 
 
@@ -141,5 +155,15 @@ def rollback_alert_rule_query_and_update_subscription_in_snuba(alert_rule: Alert
                 ),
                 using=router.db_for_write(QuerySubscription),
             )
+
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        project = alert_rule.projects.get()
+        handle_send_historical_data_to_seer_legacy(
+            alert_rule,
+            snuba_query,
+            project,
+            SeerMethod.UPDATE,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+        )
 
     return alert_rule
