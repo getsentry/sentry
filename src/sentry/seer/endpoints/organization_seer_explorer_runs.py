@@ -4,6 +4,7 @@ import logging
 
 import orjson
 from django.conf import settings
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -26,6 +27,10 @@ class OrganizationSeerExplorerRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
     }
+
+
+class ExplorerRunsRequestSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(required=False, allow_null=False)
 
 
 @region_silo_endpoint
@@ -56,18 +61,18 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
                 status=403,
             )
 
-        limit = request.GET.get("limit")
-        if limit is not None:
-            if not limit.isdigit():
-                return Response({"detail": "Invalid limit"}, status=400)
-            limit = int(limit)
+        serializer = ExplorerRunsRequestSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        limit: int | None = serializer.validated_data.get("limit")
 
         path = "/v1/automation/explorer/runs"
         body = orjson.dumps(
             {
                 "organization_id": organization.id,
                 "user_id": request.user.id,
-                **({"limit": limit} if limit is not None else {}),
+                "limit": limit,
             },
             option=orjson.OPT_NON_STR_KEYS,
         )
