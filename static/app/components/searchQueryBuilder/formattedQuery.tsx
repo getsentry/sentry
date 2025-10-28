@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -80,11 +81,23 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
-  const label = token.text.toUpperCase();
+  const hasConditionalsSelect = useOrganization().features.includes(
+    'search-query-builder-add-boolean-operator-select'
+  );
+
+  if (hasConditionalsSelect) {
+    const label = token.text.toUpperCase();
+    return (
+      <FilterWrapper aria-label={label}>
+        <Text variant="muted">{label}</Text>
+      </FilterWrapper>
+    );
+  }
+
   return (
-    <FilterWrapper aria-label={label}>
-      <Text variant="muted">{label}</Text>
-    </FilterWrapper>
+    <Flex align="center">
+      <Text variant="muted">{token.text}</Text>
+    </Flex>
   );
 }
 
