@@ -32,6 +32,8 @@ def human_desc(
                 return "Send a notification to " + target.get_email()
             elif target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 return "Send an email to members of #" + target.slug
+        else:
+            return "Send a notification to [removed]"
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         if priority:
             return f"Send a {priority} Opsgenie notification to {target_display}"

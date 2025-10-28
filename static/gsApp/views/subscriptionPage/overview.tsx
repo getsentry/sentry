@@ -7,7 +7,6 @@ import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSupport} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -39,7 +38,6 @@ import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editO
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 
-import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
 import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
 import TrialEnded from './trial/trialEnded';
 import OnDemandDisabled from './ondemandDisabled';
@@ -97,7 +95,7 @@ function Overview({location, subscription, promotionData}: Props) {
 
   useEffect(() => {
     if (promotionData) {
-      let promotion = promotionData.availablePromotions?.find(
+      const promotion = promotionData.availablePromotions?.find(
         promo => promo.promptActivityTrigger === 'performance_reserved_txns_discount_v1'
       );
 
@@ -111,15 +109,6 @@ function Overview({location, subscription, promotionData}: Props) {
         });
         return;
       }
-
-      promotion = promotionData.availablePromotions?.find(
-        promo => promo.promptActivityTrigger === 'performance_quota_credits_v1'
-      );
-
-      if (promotion) {
-        openPerformanceQuotaCreditsPromoModal({api, promotionData, organization});
-        return;
-      }
     }
 
     // open the codecov modal if the query param is present
@@ -131,12 +120,9 @@ function Overview({location, subscription, promotionData}: Props) {
       openCodecovModal({organization});
     }
 
-    // Open on-demand budget modal if hash fragment present and user has access
-    if (
-      window.location.hash === '#open-ondemand-modal' &&
-      subscription.supportsOnDemand &&
-      hasAccessToSubscriptionOverview(subscription, organization)
-    ) {
+    // Open on-demand budget modal if hash fragment present
+    // Modal logic handles checking perms
+    if (window.location.hash === '#open-ondemand-modal' && !isNewBillingUI) {
       openOnDemandBudgetEditModal({organization, subscription});
 
       // Clear hash to prevent modal reopening on refresh
@@ -146,7 +132,15 @@ function Overview({location, subscription, promotionData}: Props) {
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api, navigate]);
+  }, [
+    organization,
+    location.query,
+    subscription,
+    promotionData,
+    api,
+    navigate,
+    isNewBillingUI,
+  ]);
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
@@ -323,13 +317,14 @@ function Overview({location, subscription, promotionData}: Props) {
         border="primary"
       >
         <Flex align="center" gap="sm">
-          <IconSupport />
           <Text bold>{t('Having trouble?')}</Text>
         </Flex>
         <Text>
-          {tct('Reach out to [supportLink], or vent to a real human on [discordLink]', {
+          {tct('Reach out to our [supportLink], or join us on [discordLink]', {
             supportLink: (
-              <ExternalLink href="https://support.sentry.io">{t('Support')}</ExternalLink>
+              <ExternalLink href="https://support.sentry.io">
+                {t('Support team')}
+              </ExternalLink>
             ),
             discordLink: (
               <ExternalLink href="https://discord.com/invite/sentry">

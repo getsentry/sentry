@@ -5,10 +5,12 @@ import {Item, Section} from '@react-stately/collections';
 import {Flex} from '@sentry/scraps/layout';
 
 import {closeModal} from 'sentry/actionCreators/modal';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
+import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -22,7 +24,9 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
 // TODO: Consider other options, like limiting large sections directly or virtualizing the list
 const MAX_ACTIONS_PER_SECTION = 10;
 
-function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMenuItem {
+function actionToMenuItem(
+  action: CommandPaletteActionWithKey
+): CommandPaletteActionMenuItem {
   return {
     key: action.key,
     label: action.display.label,
@@ -33,7 +37,9 @@ function actionToMenuItem(action: CommandPaletteAction): CommandPaletteActionMen
       </IconWrap>
     ) : undefined,
     children:
-      action.actions?.slice(0, MAX_ACTIONS_PER_SECTION).map(actionToMenuItem) ?? [],
+      action.type === 'group'
+        ? action.actions.slice(0, MAX_ACTIONS_PER_SECTION).map(actionToMenuItem)
+        : [],
     hideCheck: true,
   };
 }
@@ -45,10 +51,11 @@ export function CommandPaletteContent() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const groupedMenuItems = useMemo<CommandPaletteActionMenuItem[]>(() => {
-    // Group by section label
     const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
     for (const action of actions) {
-      const sectionLabel = action.groupingKey ?? '';
+      const sectionLabel = action.groupingKey
+        ? (COMMAND_PALETTE_GROUP_KEY_CONFIG[action.groupingKey]?.label ?? '')
+        : '';
       const list = itemsBySection.get(sectionLabel) ?? [];
       list.push(actionToMenuItem(action));
       itemsBySection.set(sectionLabel, list);
@@ -67,17 +74,21 @@ export function CommandPaletteContent() {
   }, [actions]);
 
   const handleSelect = useCallback(
-    (action: CommandPaletteAction) => {
-      // If there are child actions, we want to select the parent action and show the children
-      if (action.actions && action.actions.length > 0) {
-        selectAction(action);
-        return;
-      }
-      if (action.onAction) {
-        action.onAction();
-      }
-      if (action.to) {
-        navigate(normalizeUrl(action.to));
+    (action: CommandPaletteActionWithKey) => {
+      const actionType = action.type;
+      switch (actionType) {
+        case 'group':
+          selectAction(action);
+          return;
+        case 'navigate':
+          navigate(normalizeUrl(action.to));
+          break;
+        case 'callback':
+          action.onAction();
+          break;
+        default:
+          unreachable(actionType);
+          break;
       }
       closeModal();
     },

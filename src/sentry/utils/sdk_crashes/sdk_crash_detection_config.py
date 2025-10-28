@@ -140,6 +140,12 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="**SentrySDK crash**",
                 ),
+                # [SentrySDKInternal crash] is a testing function causing a crash.
+                # Therefore, we don't want to mark it a as a SDK crash.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentrySDKInternal crash**",
+                ),
                 # SentryCrashExceptionApplicationHelper._crashOnException calls abort() intentionally, which would cause false positives.
                 FunctionAndModulePattern(
                     module_pattern="*",

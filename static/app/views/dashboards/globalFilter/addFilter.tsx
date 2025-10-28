@@ -10,10 +10,14 @@ import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyLi
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types/group';
-import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {Tag} from 'sentry/types/group';
+import {
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
+import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
@@ -26,28 +30,22 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
 ]);
 
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
+const SUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
 
 export function getDatasetLabel(dataset: WidgetType) {
   return DATASET_CHOICES.get(dataset) ?? '';
 }
 
-function getTagType(tag: Tag, dataset: WidgetType | null) {
-  const fieldType =
-    dataset === WidgetType.SPANS ? 'span' : dataset === WidgetType.LOGS ? 'log' : 'event';
-  const fieldDefinition = getFieldDefinition(tag.key, fieldType, tag.kind);
-
-  return <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />;
-}
-
 type AddFilterProps = {
+  getSearchBarData: (widgetType: WidgetType) => SearchBarData;
+  globalFilters: GlobalFilter[];
   onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddFilter({onAddFilter}: AddFilterProps) {
+function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProps) {
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
-  const {selection} = usePageFilters();
 
   // Dataset selection before showing filter keys
   const datasetOptions = useMemo(() => {
@@ -58,44 +56,73 @@ function AddFilter({onAddFilter}: AddFilterProps) {
     }));
   }, []);
 
-  const datasetFilterKeysMap = new Map<WidgetType, TagCollection>();
-
-  DATASET_CHOICES.forEach((_, widgetType) => {
-    const datasetConfig = getDatasetConfig(widgetType);
-    if (datasetConfig.useSearchBarDataProvider) {
-      const dataProvider = datasetConfig.useSearchBarDataProvider({
-        pageFilters: selection,
-      });
-      const filterKeys = Object.fromEntries(
-        Object.entries(dataProvider.getFilterKeys()).filter(
+  const filterKeys: Record<string, Tag> = selectedDataset
+    ? Object.fromEntries(
+        Object.entries(getSearchBarData(selectedDataset).getFilterKeys()).filter(
           ([key, value]) =>
             !shouldExcludeTracingKeys(key) &&
             (!value.kind || !UNSUPPORTED_FIELD_KINDS.includes(value.kind))
         )
-      );
-      datasetFilterKeysMap.set(widgetType, filterKeys);
-    }
-  });
+      )
+    : {};
 
   // Get filter keys for the selected dataset
-  const filterKeys = (selectedDataset && datasetFilterKeysMap.get(selectedDataset)) || {};
-  const filterKeyOptions = Object.entries(filterKeys).map(([_, tag]) => {
-    return {
-      value: tag.key,
-      label: prettifyTagKey(tag.key),
-      trailingItems: <TagBadge>{getTagType(tag, selectedDataset)}</TagBadge>,
-    };
-  });
+  const filterKeyOptions = selectedDataset
+    ? Object.entries(filterKeys).flatMap(([_, tag]) => {
+        const fieldType = (datasetType: WidgetType) => {
+          switch (datasetType) {
+            case WidgetType.SPANS:
+              return 'span';
+            case WidgetType.LOGS:
+              return 'log';
+            default:
+              return 'event';
+          }
+        };
+        const fieldDefinition = getFieldDefinition(
+          tag.key,
+          fieldType(selectedDataset),
+          tag.kind
+        );
+        const valueType = fieldDefinition?.valueType;
+
+        if (!valueType || !SUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
+          return [];
+        }
+
+        return {
+          value: tag.key,
+          label: prettifyTagKey(tag.key),
+          trailingItems: (
+            <TagBadge>
+              <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
+            </TagBadge>
+          ),
+          disabled: globalFilters.some(
+            filter => filter.tag.key === tag.key && filter.dataset === selectedDataset
+          ),
+        };
+      })
+    : [];
 
   // Footer for filter key selection for adding filters and returning to dataset selection
-  const filterOptionsMenuFooter = ({closeOverlay}: {closeOverlay: () => void}) => (
+  const filterOptionsMenuFooter = ({
+    closeOverlay,
+    resetSearch,
+  }: {
+    closeOverlay: () => void;
+    resetSearch: () => void;
+  }) => (
     <FooterWrap>
       <Flex gap="md" justify="end">
         <Button
           size="xs"
           borderless
           icon={<IconArrow direction="left" />}
-          onClick={() => setIsSelectingFilterKey(false)}
+          onClick={() => {
+            resetSearch();
+            setIsSelectingFilterKey(false);
+          }}
         >
           {t('Back')}
         </Button>
@@ -129,7 +156,11 @@ function AddFilter({onAddFilter}: AddFilterProps) {
       searchable={isSelectingFilterKey}
       sizeLimit={50}
       closeOnSelect={false}
-      clearable={false}
+      onClose={() => {
+        setSelectedFilterKey(null);
+        setSelectedDataset(null);
+        setIsSelectingFilterKey(false);
+      }}
       value={selectedFilterKey?.key ?? ''}
       onChange={(option: SelectOption<string>) => {
         if (isSelectingFilterKey) {

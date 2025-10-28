@@ -193,18 +193,18 @@ export function AutomationsTableActions({
         <FullWidthAlert type="warning" showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
-              tct('Selected all [count] automations that match this search query.', {
+              tct('Selected all [count] alerts that match this search query.', {
                 count: queryCount,
               })
             ) : (
               <Fragment>
                 {tn(
-                  '%s automation on this page selected.',
-                  '%s automations on this page selected.',
+                  '%s alert on this page selected.',
+                  '%s alerts on this page selected.',
                   selected.size
                 )}
                 <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
-                  {tct('Select all [count] automations that match this search query.', {
+                  {tct('Select all [count] alerts that match this search query.', {
                     count: queryCount,
                   })}
                 </Button>

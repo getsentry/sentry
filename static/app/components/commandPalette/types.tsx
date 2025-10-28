@@ -3,7 +3,7 @@ import type {LocationDescriptor} from 'history';
 
 export type CommandPaletteGroupKey = 'navigate' | 'add' | 'help';
 
-export type CommandPaletteAction = {
+interface CommonCommandPaletteAction {
   display: {
     /** Primary text shown to the user */
     label: string;
@@ -12,21 +12,53 @@ export type CommandPaletteAction = {
     /** Icon to render for this action */
     icon?: ReactNode;
   };
-  /** Unique identifier for this action */
-  key: string;
-  /** Nested actions to show when this action is selected */
-  actions?: CommandPaletteAction[];
   /** Section to group the action in the palette */
   groupingKey?: CommandPaletteGroupKey;
   /** Whether this action should be hidden from the palette */
   hidden?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
+}
+
+export interface CommandPaletteActionLink extends CommonCommandPaletteAction {
+  /** Navigate to a route when selected */
+  to: LocationDescriptor;
+  type: 'navigate';
+}
+
+export interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
   /**
    * Execute a callback when the action is selected.
    * Use the `to` prop if you want to navigate to a route.
    */
-  onAction?: () => void;
-  /** Navigate to a route when selected */
-  to?: LocationDescriptor;
+  onAction: () => void;
+  type: 'callback';
+}
+
+interface CommandPaletteActionGroup<
+  T = CommandPaletteActionLink | CommandPaletteActionCallback,
+> extends CommonCommandPaletteAction {
+  /** Nested actions to show when this action is selected */
+  actions: T[];
+  type: 'group';
+}
+
+export type CommandPaletteAction =
+  | CommandPaletteActionLink
+  | CommandPaletteActionCallback
+  | CommandPaletteActionGroup;
+
+// Internally, a key is added to the actions in order to track them for registration and selection.
+export type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
+export type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
+  key: string;
 };
+type CommandPaletteActionGroupWithKey<T> = CommandPaletteActionGroup<T> & {
+  key: string;
+};
+export type CommandPaletteActionWithKey =
+  | CommandPaletteActionLinkWithKey
+  | CommandPaletteActionCallbackWithKey
+  | CommandPaletteActionGroupWithKey<
+      CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey
+    >;

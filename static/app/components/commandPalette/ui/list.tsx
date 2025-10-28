@@ -11,14 +11,14 @@ import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type CommandPaletteSection = {
-  actions: CommandPaletteAction[];
+  actions: CommandPaletteActionWithKey[];
   label: string;
   'aria-label'?: string;
 };
@@ -28,7 +28,7 @@ interface CommandPaletteListProps extends TreeProps<CommandPaletteSection> {
   inputRef: React.RefObject<HTMLInputElement | null>;
   onActionKey: (selectionKey: React.Key | null | undefined) => void;
   query: string;
-  selectedAction: CommandPaletteAction | null;
+  selectedAction: CommandPaletteActionWithKey | null;
   setQuery: (query: string) => void;
 }
 

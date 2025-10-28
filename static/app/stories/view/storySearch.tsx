@@ -228,7 +228,6 @@ function SearchComboBox(props: SearchComboBoxProps) {
             listState={state}
             hasSearch={!!state.inputValue}
             hiddenOptions={new Set([])}
-            keyDownHandler={() => false}
             overlayIsOpen={state.isOpen}
             size="sm"
             {...listBoxProps}

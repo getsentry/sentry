@@ -25,7 +25,7 @@ import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
+    features: ['workflow-engine-ui'],
     access: ['org:write'],
   });
 
@@ -126,10 +126,10 @@ describe('DetectorsList', () => {
 
     render(<DetectorsList />, {organization});
     const row = await screen.findByTestId('detector-list-row');
-    expect(within(row).getByText('1 automation')).toBeInTheDocument();
+    expect(within(row).getByText('1 alert')).toBeInTheDocument();
 
     // Tooltip should fetch and display the automation name/action
-    await userEvent.hover(within(row).getByText('1 automation'));
+    await userEvent.hover(within(row).getByText('1 alert'));
     expect(await screen.findByText('Automation 1')).toBeInTheDocument();
     expect(await screen.findByText('Slack')).toBeInTheDocument();
   });
@@ -169,9 +169,6 @@ describe('DetectorsList', () => {
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'type'}));
 
-      const isOption = await screen.findByRole('option', {name: 'is'});
-      await userEvent.click(isOption);
-
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
@@ -204,13 +201,7 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:');
-
-      await userEvent.keyboard('{enter}');
-
-      await userEvent.keyboard('test@example.com');
-
-      await userEvent.keyboard('{enter}');
+      await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
 
       await screen.findByText('Assigned Detector');
       expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
@@ -500,10 +491,7 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:');
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('test@example.com');
-      await userEvent.keyboard('{enter}');
+      await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
 
       // Wait for filtered results to load
       await screen.findByText('Assigned Detector 1');

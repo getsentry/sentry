@@ -189,6 +189,8 @@ SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
+SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -479,6 +481,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.prevent",
 )
 
 # Silence internal hints from Django's system checks
@@ -775,6 +778,7 @@ TIMEDELTA_ALLOW_LIST = {
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
+    "flush-delayed-workflows",
     "sync-options",
     "sync-options-control",
     "schedule-digests",
@@ -895,6 +899,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.email",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
@@ -916,7 +921,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.user_report",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
-    "sentry.uptime.detectors.tasks",
+    "sentry.uptime.autodetect.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
@@ -948,7 +953,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": timedelta(seconds=15),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -1100,6 +1105,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
+    "llm-issue-detection": {
+        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
@@ -1722,6 +1731,7 @@ SENTRY_SCOPES = {
     "project:write",
     "project:admin",
     "project:releases",
+    "project:distribution",
     "event:read",
     "event:write",
     "event:admin",
@@ -1760,6 +1770,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "project:write": {"project:read", "project:write"},
     "project:admin": {"project:read", "project:write", "project:admin"},
     "project:releases": {"project:releases"},
+    "project:distribution": {"project:distribution"},
     "event:read": {"event:read"},
     "event:write": {"event:read", "event:write"},
     "event:admin": {"event:read", "event:write", "event:admin"},
@@ -2545,7 +2556,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
     "uptime-results": "default",
-    "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -2879,6 +2889,7 @@ SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
@@ -3171,3 +3182,8 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
+
+CONDUIT_PRIVATE_KEY: str | None = os.getenv("CONDUIT_PRIVATE_KEY")
+CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "https://conduit.sentry.io")
+CONDUIT_JWT_ISSUER: str = os.getenv("CONDUIT_JWT_ISSUER", "sentry")
+CONDUIT_JWT_AUDIENCE: str = os.getenv("CONDUIT_JWT_AUDIENCE", "conduit")

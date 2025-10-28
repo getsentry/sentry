@@ -100,6 +100,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         request_data = {
             "repositories": [
                 {
+                    "organization_id": self.org.id,
                     "integration_id": "111",
                     "provider": "github",
                     "owner": "getsentry",
@@ -175,7 +176,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         request_data = {
             "repositories": [
                 {
-                    # Missing required 'provider' field
+                    # Missing required 'provider' and 'integration_id' fields
                     "owner": "getsentry",
                     "name": "sentry",
                 }
@@ -185,11 +186,11 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Make the request
         response = self.client.post(self.url, data=request_data)
 
-        # Should fail with a 500 error according to actual behavior
-        assert response.status_code == 500
+        # Should fail with a 400 error for invalid request data
+        assert response.status_code == 400
 
-        # We don't assert mock_post.assert_not_called() here since the error happens
-        # during validation which triggers a 500 error rather than a 400
+        # The post to Seer should not be called since validation fails
+        mock_post.assert_not_called()
 
     @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_api_error_status_code(self, mock_post: MagicMock) -> None:
@@ -237,3 +238,40 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         # The actual behavior returns 200 instead of 500 even with invalid data
         assert response.status_code == 200
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
+    def test_post_with_blank_string_fields(self, mock_post: MagicMock) -> None:
+        """Test that optional fields accept blank strings (empty strings) not just null values"""
+        # Setup the mock
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        # Request data with blank strings for optional fields
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                    "branch_name": "",  # blank string
+                    "instructions": "",  # blank string
+                }
+            ]
+        }
+
+        # Make the request
+        response = self.client.post(self.url, data=request_data)
+
+        # Assert the response is successful
+        assert response.status_code == 204
+
+        # Assert that the mock was called
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+
+        # Verify the URL used
+        assert args[0] == f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/set"

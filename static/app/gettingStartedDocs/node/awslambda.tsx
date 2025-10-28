@@ -15,7 +15,7 @@ import {
 import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node/awslambdaArnSelector';
 import {t, tct} from 'sentry/locale';
 import {
-  getInstallConfig,
+  getInstallCodeBlock,
   getNodeAgentMonitoringOnboarding,
   getNodeLogsOnboarding,
   getNodeMcpOnboarding,
@@ -57,14 +57,16 @@ const commonOnboarding = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To set environment variables, navigate to your Lambda function, select [strong:Configuration], then [strong:Environment variables]:',
+      content: [
         {
-          strong: <strong />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To set environment variables, navigate to your Lambda function, select [strong:Configuration], then [strong:Environment variables]:',
+            {strong: <strong />}
+          ),
+        },
         {
+          type: 'code',
           language: 'bash',
           code: getEnvSetupSnippet(params),
         },
@@ -85,11 +87,15 @@ const commonOnboarding = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
           language: 'javascript',
           code: `throw new Error("This should show up in Sentry!");`,
         },
@@ -116,19 +122,22 @@ const installationMethodOnboarding: Record<
     install: () => [
       {
         type: StepType.INSTALL,
-        description: t(
-          'Start off by selecting the region you want to deploy your Lambda function to'
-        ),
-        configurations: [
+        content: [
           {
-            description: <AwsLambdaArn canonical="aws-layer:node" />,
+            type: 'text',
+            text: t(
+              'Start off by selecting the region you want to deploy your Lambda function to.'
+            ),
           },
           {
-            description: tct(
+            type: 'custom',
+            content: <AwsLambdaArn canonical="aws-layer:node" />,
+          },
+          {
+            type: 'text',
+            text: tct(
               'Add the Sentry Layer by navigating to your Lambda function. Select [strong:Layers], then [strong:Add a Layer]. Choose the [strong: Specify an ARN] option and paste the ARN from the previous step. Then click [strong:Add].',
-              {
-                strong: <strong />,
-              }
+              {strong: <strong />}
             ),
           },
         ],
@@ -151,10 +160,15 @@ const installationMethodOnboarding: Record<
     install: (params: Params) => [
       {
         type: StepType.INSTALL,
-        description: t('Add the Sentry AWS Serverless SDK as a dependency'),
-        configurations: getInstallConfig(params, {
-          basePackage: '@sentry/aws-serverless',
-        }),
+        content: [
+          {
+            type: 'text',
+            text: t('Add the Sentry AWS Serverless SDK as a dependency'),
+          },
+          getInstallCodeBlock(params, {
+            packageName: '@sentry/aws-serverless',
+          }),
+        ],
       },
     ],
     configure: commonOnboarding.configure,
@@ -187,9 +201,14 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -199,17 +218,17 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
-    basePackage: '@sentry/aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'aws-lambda',
-    sdkPackage: '@sentry/aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: 'aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   mcpOnboarding: getNodeMcpOnboarding({
-    basePackage: 'aws-serverless',
+    packageName: '@sentry/aws-serverless',
   }),
   platformOptions,
 };

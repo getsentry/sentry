@@ -13,7 +13,10 @@ import {OnDemandBudgetMode} from 'getsentry/types';
 import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 
 describe('PaygCard', () => {
-  const organization = OrganizationFixture({features: ['subscriptions-v3']});
+  const organization = OrganizationFixture({
+    features: ['subscriptions-v3'],
+    access: ['org:billing'],
+  });
 
   beforeEach(() => {
     setMockDate(new Date('2022-06-09'));
@@ -51,7 +54,7 @@ describe('PaygCard', () => {
       screen.queryByRole('heading', {name: 'Pay-as-you-go limit'})
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit'})
+      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit (in dollars)'})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'PAYG pricing'})).toBeInTheDocument();
   });
@@ -127,7 +130,7 @@ describe('PaygCard', () => {
       screen.queryByRole('heading', {name: 'Pay-as-you-go'})
     ).not.toBeInTheDocument();
     await userEvent.type(
-      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit'}),
+      screen.getByRole('spinbutton', {name: 'Edit pay-as-you-go limit (in dollars)'}),
       '100'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));

@@ -24,8 +24,10 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,11 +46,13 @@ import {
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 const AUTOMATION_DETECTORS_LIMIT = 10;
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -81,8 +85,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Automations'),
-                  to: makeAutomationBasePathname(organization.slug),
+                  label: t('Alerts'),
+                  to: makeAutomationBasePathname(
+                    organization.slug,
+                    automationsLinkPrefix
+                  ),
                 },
                 {label: automation.name},
               ]}
@@ -203,16 +210,13 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   );
 }
 
-export default function AutomationDetail() {
-  useWorkflowEngineFeatureGate({redirect: true});
-  const params = useParams<{automationId: string}>();
-
+function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   const {
     data: automation,
     isPending,
     isError,
     refetch,
-  } = useAutomationQuery(params.automationId);
+  } = useAutomationQuery(automationId);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -225,8 +229,26 @@ export default function AutomationDetail() {
   return <AutomationDetailContent automation={automation} />;
 }
 
+export default function AutomationDetail() {
+  useWorkflowEngineFeatureGate({redirect: true});
+  const params = useParams<{automationId: string}>();
+
+  const {data: automation, isPending} = useAutomationQuery(params.automationId);
+
+  return (
+    <VisuallyCompleteWithData
+      id="AutomationDetails-Body"
+      isLoading={isPending}
+      hasData={defined(automation)}
+    >
+      <AutomationDetailLoadingStates automationId={params.automationId} />
+    </VisuallyCompleteWithData>
+  );
+}
+
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -239,9 +261,7 @@ function Actions({automation}: {automation: Automation}) {
       },
       {
         onSuccess: () => {
-          addSuccessMessage(
-            newEnabled ? t('Automation enabled') : t('Automation disabled')
-          );
+          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );
@@ -254,7 +274,11 @@ function Actions({automation}: {automation: Automation}) {
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
-        to={makeAutomationEditPathname(organization.slug, automation.id)}
+        to={makeAutomationEditPathname(
+          organization.slug,
+          automation.id,
+          automationsLinkPrefix
+        )}
         priority="primary"
         icon={<IconEdit />}
         size="sm"
@@ -270,7 +294,7 @@ function UserDisplayName({id}: {id: string | undefined}) {
     id: id ? Number(id) : undefined,
   });
   if (!id) {
-    return t('Sentry');
+    return '—';
   }
   if (isPending) {
     return <Placeholder height="20px" />;

@@ -31,24 +31,30 @@ const onChild = jest.fn();
 
 const globalActions: CommandPaletteAction[] = [
   {
-    key: 'go-to-route',
     to: '/target/',
     groupingKey: 'navigate',
     display: {
       label: 'Go to route',
     },
+    type: 'navigate',
   },
   {
-    key: 'other',
     to: '/other/',
     groupingKey: 'help',
     display: {label: 'Other'},
+    type: 'navigate',
   },
   {
-    key: 'parent-action',
     groupingKey: 'add',
     display: {label: 'Parent action'},
-    actions: [{onAction: onChild, key: 'child-action', display: {label: 'Child action'}}],
+    actions: [
+      {
+        onAction: onChild,
+        display: {label: 'Child action'},
+        type: 'callback',
+      },
+    ],
+    type: 'group',
   },
 ];
 

@@ -131,4 +131,13 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
     parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
   // TODO: This should use the discover dataset unless `is:unresolved` is in the query
   getDiscoverDataset: () => DiscoverDatasets.ERRORS,
+  formatAggregateForTitle: aggregate => {
+    if (aggregate === 'count()') {
+      return t('Number of errors');
+    }
+    if (aggregate === 'count_unique(user)') {
+      return t('Users experiencing errors');
+    }
+    return aggregate;
+  },
 };

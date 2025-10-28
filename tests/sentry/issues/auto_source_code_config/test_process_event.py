@@ -337,13 +337,22 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 platform=platform,
             )
 
-            with patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=["tbd"]):
-                self._process_and_assert_configuration_changes(
-                    repo_trees={REPO1: [file_in_repo]},
-                    frames=[self.frame(frame_filename, True)],
-                    platform=platform,
-                    expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/")],
-                )
+    def test_extension_is_included(self) -> None:
+        frame_filename = "foo/bar.tbd"
+        file_in_repo = "src/foo/bar.tbd"
+        platform = "other"
+        self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
+
+        with (
+            patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),
+            patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=["tbd"]),
+        ):
+            self._process_and_assert_configuration_changes(
+                repo_trees={REPO1: [file_in_repo]},
+                frames=[self.frame(frame_filename, True)],
+                platform=platform,
+                expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/")],
+            )
 
     def test_multiple_calls(self) -> None:
         platform = "other"

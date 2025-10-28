@@ -1,53 +1,55 @@
-import {createContext, useCallback, useContext, useMemo, useReducer} from 'react';
+import {createContext, useCallback, useContext, useReducer} from 'react';
 
-import type {CommandPaletteAction} from './types';
+import {unreachable} from 'sentry/utils/unreachable';
+
+import type {CommandPaletteActionWithKey} from './types';
 
 type CommandPaletteProviderProps = {children: React.ReactNode};
 
-type CommandPaletteStore = {
-  actions: CommandPaletteAction[];
-};
+type CommandPaletteActions = CommandPaletteActionWithKey[];
 
-type CommandPaletteConfig = {
-  registerActions: (actions: CommandPaletteAction[]) => void;
-  unregisterActions: (keys: string[]) => void;
-};
+type Unregister = () => void;
+type CommandPaletteRegistration = (actions: CommandPaletteActionWithKey[]) => Unregister;
 
 type CommandPaletteActionReducerAction =
   | {
-      actions: CommandPaletteAction[];
-      type: 'REGISTER_ACTIONS';
+      actions: CommandPaletteActionWithKey[];
+      type: 'register';
     }
   | {
       keys: string[];
-      type: 'UNREGISTER_ACTIONS';
+      type: 'unregister';
     };
 
-const CommandPaletteConfigContext = createContext<CommandPaletteConfig | null>(null);
-const CommandPaletteStoreContext = createContext<CommandPaletteStore | null>(null);
+const CommandPaletteRegistrationContext =
+  createContext<CommandPaletteRegistration | null>(null);
+const CommandPaletteActionsContext = createContext<CommandPaletteActions | null>(null);
 
-export function useCommandPaletteConfiguration(): CommandPaletteConfig {
-  const ctx = useContext(CommandPaletteConfigContext);
+export function useCommandPaletteRegistration(): CommandPaletteRegistration {
+  const ctx = useContext(CommandPaletteRegistrationContext);
   if (ctx === null) {
-    throw new Error('Must be wrapped in CommandPaletteProvider');
+    throw new Error(
+      'useCommandPaletteRegistration must be wrapped in CommandPaletteProvider'
+    );
   }
   return ctx;
 }
 
-export function useCommandPaletteStore(): CommandPaletteStore {
-  const ctx = useContext(CommandPaletteStoreContext);
+export function useCommandPaletteActions(): CommandPaletteActionWithKey[] {
+  const ctx = useContext(CommandPaletteActionsContext);
   if (ctx === null) {
-    throw new Error('Must be wrapped in CommandPaletteProvider');
+    throw new Error('useCommandPaletteActions must be wrapped in CommandPaletteProvider');
   }
   return ctx;
 }
 
 function actionsReducer(
-  state: CommandPaletteAction[],
+  state: CommandPaletteActionWithKey[],
   reducerAction: CommandPaletteActionReducerAction
-): CommandPaletteAction[] {
-  switch (reducerAction.type) {
-    case 'REGISTER_ACTIONS': {
+): CommandPaletteActionWithKey[] {
+  const type = reducerAction.type;
+  switch (type) {
+    case 'register': {
       const result = [...state];
 
       for (const newAction of reducerAction.actions) {
@@ -62,9 +64,10 @@ function actionsReducer(
 
       return result;
     }
-    case 'UNREGISTER_ACTIONS':
+    case 'unregister':
       return state.filter(action => !reducerAction.keys.includes(action.key));
     default:
+      unreachable(type);
       return state;
   }
 }
@@ -72,33 +75,21 @@ function actionsReducer(
 export function CommandPaletteProvider({children}: CommandPaletteProviderProps) {
   const [actions, dispatch] = useReducer(actionsReducer, []);
 
-  const registerActions = useCallback((newActions: CommandPaletteAction[]) => {
-    dispatch({type: 'REGISTER_ACTIONS', actions: newActions});
-  }, []);
-  const unregisterActions = useCallback((keys: string[]) => {
-    dispatch({type: 'UNREGISTER_ACTIONS', keys});
-  }, []);
-
-  const config = useMemo<CommandPaletteConfig>(
-    () => ({
-      registerActions,
-      unregisterActions,
-    }),
-    [registerActions, unregisterActions]
-  );
-
-  const store = useMemo<CommandPaletteStore>(
-    () => ({
-      actions,
-    }),
-    [actions]
+  const registerActions = useCallback(
+    (newActions: CommandPaletteActionWithKey[]) => {
+      dispatch({type: 'register', actions: newActions});
+      return () => {
+        dispatch({type: 'unregister', keys: newActions.map(a => a.key)});
+      };
+    },
+    [dispatch]
   );
 
   return (
-    <CommandPaletteConfigContext.Provider value={config}>
-      <CommandPaletteStoreContext.Provider value={store}>
+    <CommandPaletteRegistrationContext.Provider value={registerActions}>
+      <CommandPaletteActionsContext.Provider value={actions}>
         {children}
-      </CommandPaletteStoreContext.Provider>
-    </CommandPaletteConfigContext.Provider>
+      </CommandPaletteActionsContext.Provider>
+    </CommandPaletteRegistrationContext.Provider>
   );
 }

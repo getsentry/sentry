@@ -1,4 +1,5 @@
 import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -21,7 +22,6 @@ import GuideStore from 'sentry/stores/guideStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
@@ -32,6 +32,7 @@ import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
@@ -40,10 +41,6 @@ import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextPro
 import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
-type Props = {
-  children: React.ReactNode;
-} & RouteComponentProps<{orgId?: string}>;
-
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
@@ -51,7 +48,7 @@ const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App({children, params}: Props) {
+function App() {
   useColorscheme();
 
   const api = useApi();
@@ -112,7 +109,7 @@ function App({children, params}: Props) {
   }, [api, config.isSelfHosted]);
 
   const {sentryUrl} = ConfigStore.get('links');
-  const {orgId} = params;
+  const {orgId} = useParams<{orgId?: string}>();
   const isOrgSlugValid = orgId ? isValidOrgSlug(orgId) : true;
 
   useEffect(() => {
@@ -230,7 +227,7 @@ function App({children, params}: Props) {
       return null;
     }
 
-    return children;
+    return <Outlet />;
   }
 
   const renderOrganizationContextProvider = useCallback(

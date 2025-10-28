@@ -1,17 +1,17 @@
 import {useMemo, useState} from 'react';
 import type Fuse from 'fuse.js';
 
-import {useCommandPaletteStore} from 'sentry/components/commandPalette/context';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
+import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-interface CommandPaletteActionWithPriority extends CommandPaletteAction {
+type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
   priority: number;
-}
+};
 
 const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> = {
-  keys: ['label', 'details'],
+  keys: ['display.label', 'display.details'],
   getFn: strGetFn,
   shouldSort: true,
   minMatchCharLength: 1,
@@ -29,7 +29,7 @@ const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> =
  * - Change theme → Dark
  */
 function flattenActions(
-  actions: CommandPaletteAction[],
+  actions: CommandPaletteActionWithKey[],
   parentLabel?: string
 ): CommandPaletteActionWithPriority[] {
   const flattened: CommandPaletteActionWithPriority[] = [];
@@ -56,7 +56,7 @@ function flattenActions(
       });
     }
 
-    if (action.actions && action.actions.length > 0) {
+    if (action.type === 'group' && action.actions.length > 0) {
       const childParentLabel = parentLabel
         ? `${parentLabel} → ${action.display.label}`
         : action.display.label;
@@ -69,14 +69,18 @@ function flattenActions(
 
 export function useCommandPaletteState() {
   const [query, setQuery] = useState('');
-  const {actions} = useCommandPaletteStore();
-  const [selectedAction, setSelectedAction] = useState<CommandPaletteAction | null>(null);
+  const actions = useCommandPaletteActions();
+  const [selectedAction, setSelectedAction] =
+    useState<CommandPaletteActionWithKey | null>(null);
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
-    if (selectedAction?.actions?.length) {
+    if (
+      selectedAction &&
+      selectedAction.type === 'group' &&
+      selectedAction.actions.length > 0
+    ) {
       return flattenActions(selectedAction.actions);
     }
-
     return flattenActions(actions);
   }, [actions, selectedAction]);
 
