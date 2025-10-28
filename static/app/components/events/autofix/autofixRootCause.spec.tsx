@@ -3,6 +3,7 @@ import {AutofixRootCauseData} from 'sentry-fixture/autofixRootCauseData';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
+import {AutofixStatus} from 'sentry/components/events/autofix/types';
 
 describe('AutofixRootCause', () => {
   beforeEach(() => {
@@ -27,6 +28,7 @@ describe('AutofixRootCause', () => {
     groupId: '1',
     rootCauseSelection: null,
     runId: '101',
+    status: AutofixStatus.COMPLETED,
   } satisfies React.ComponentProps<typeof AutofixRootCause>;
 
   it('can view a relevant code snippet', async () => {
