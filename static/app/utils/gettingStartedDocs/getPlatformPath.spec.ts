@@ -125,17 +125,17 @@ describe('getPlatformPath', () => {
         'language/pymongo'
       );
     });
-  });
 
-  it('handles console platforms', () => {
-    const platform: PlatformIntegration = {
-      type: 'console',
-      id: 'xbox',
-      language: 'native',
-      link: 'link',
-      name: 'name',
-    };
+    it('handles console platforms', () => {
+      const platform: PlatformIntegration = {
+        type: 'console',
+        id: 'xbox',
+        language: 'native',
+        link: 'link',
+        name: 'name',
+      };
 
-    expect(getPlatformPath(platform)).toBe('console/xbox');
+      expect(getPlatformPath(platform)).toBe('console/xbox');
+    });
   });
 });
