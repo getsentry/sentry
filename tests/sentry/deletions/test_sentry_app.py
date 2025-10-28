@@ -70,6 +70,12 @@ class TestSentryAppDeletionTask(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        webhook_action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={
+                "target_identifier": self.sentry_app.slug,
+            },
+        )
         other_action = self.create_action(
             type=Action.Type.SENTRY_APP,
             config={
@@ -82,6 +88,9 @@ class TestSentryAppDeletionTask(TestCase):
 
         action.refresh_from_db()
         assert action.status == ObjectStatus.DISABLED
+
+        webhook_action.refresh_from_db()
+        assert webhook_action.status == ObjectStatus.DISABLED
 
         other_action.refresh_from_db()
         assert other_action.status == ObjectStatus.ACTIVE
