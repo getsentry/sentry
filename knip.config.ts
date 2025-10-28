@@ -59,6 +59,8 @@ const config: KnipConfig = {
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
     '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
+    // TODO(malwilley): Remove this when the command palette is imported in a subsequent PR.
+    '!static/app/components/commandPalette/**/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

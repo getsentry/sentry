@@ -7,7 +7,7 @@ import {
   displayExperimentalSpaAlert,
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
-import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {openCommandPaletteDeprecated} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -65,7 +65,7 @@ function App() {
       : [
           {
             match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-            callback: () => openCommandPalette(),
+            callback: () => openCommandPaletteDeprecated(),
           },
         ]
   );
