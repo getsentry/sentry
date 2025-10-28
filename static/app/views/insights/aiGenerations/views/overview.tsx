@@ -44,7 +44,7 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
 }
 
-function McpOverviewPage() {
+function AIGenerationsPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
@@ -67,7 +67,7 @@ function McpOverviewPage() {
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
       },
-      searchSource: 'mcp-monitoring',
+      searchSource: 'ai-generations',
       numberTags,
       stringTags,
       numberSecondaryAliases,
@@ -159,7 +159,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders moduleName={ModuleName.AI_GENERATIONS}>
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <McpOverviewPage />
+        <AIGenerationsPage />
       </TraceItemAttributeProvider>
     </ModulePageProviders>
   );
