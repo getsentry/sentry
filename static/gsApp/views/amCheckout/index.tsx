@@ -1101,7 +1101,7 @@ const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
       flex-direction: column;
       align-items: flex-start;
       @media (min-width: ${p.theme.breakpoints.md}) {
-        max-width: 45rem;
+        max-width: 47.5rem;
         padding-top: ${p.theme.space.md};
       }
     `}
