@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0997_add_has_trace_metrics_bit_to_project_model"),
+        ("sentry", "0999_add_extrapolation_mode_to_snuba_query"),
     ]
 
     operations = [
