@@ -819,10 +819,14 @@ class Group(Model):
                 if not snooze.is_valid(group=self):
                     status = GroupStatus.UNRESOLVED
 
-        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
+        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
+        # unresolved it after it was resolved. We should respect that and not override
+        # the status back to RESOLVED.
+        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age() and not self.resolved_at:
             # Only auto-resolve if this group type has auto-resolve enabled
             if self.issue_type.enable_auto_resolve:
                 return GroupStatus.RESOLVED
+
         return status
 
     def get_share_id(self):
