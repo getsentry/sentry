@@ -35,9 +35,7 @@ def _get_all_keys(config):
 
 
 def assert_no_snakecase_key(config):
-    exempt_keys = {"trace_metric"}
-    snakecase_keys = {x for x in _get_all_keys(config) if "-" in x or "_" in x}
-    assert not snakecase_keys - exempt_keys
+    assert not {x for x in _get_all_keys(config) if "-" in x or "_" in x}
 
 
 @pytest.fixture
@@ -192,7 +190,7 @@ def test_parse_retentions(call_endpoint, default_project):
         assert safe.get_path(cfg, "config", "retentions") == {
             "span": {"standard": 12, "downsampled": 22},
             "log": {"standard": 13, "downsampled": 23},
-            "trace_metric": {"standard": 14, "downsampled": 24},
+            "traceMetric": {"standard": 14, "downsampled": 24},
         }
 
 

@@ -74,7 +74,7 @@ class RetentionSettings:
 RETENTIONS_CONFIG_MAPPING = {
     DataCategory.SPAN: "span",
     DataCategory.LOG_BYTE: "log",
-    DataCategory.TRACE_METRIC: "trace_metric",
+    DataCategory.TRACE_METRIC: "traceMetric",
 }
 
 
