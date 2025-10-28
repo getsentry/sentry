@@ -18,9 +18,7 @@ import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
-import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -936,9 +934,17 @@ class AMCheckout extends Component<Props, State> {
             ) : (
               <CheckoutOverview {...overviewProps} />
             )}
-            <SupportPrompt>
+            <Flex
+              justify="between"
+              background="primary"
+              padding="xl"
+              border="primary"
+              radius="md"
+              gap="xl"
+              align="start"
+            >
               {t('Have a question?')}
-              <TextOverflow>
+              <Text align="right">
                 {tct('[help:Find an answer] or [contact]', {
                   help: (
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
@@ -953,8 +959,8 @@ class AMCheckout extends Component<Props, State> {
                     </ZendeskLink>
                   ),
                 })}
-              </TextOverflow>
-            </SupportPrompt>
+              </Text>
+            </Flex>
           </OverviewContainer>
           <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
           {subscription.canCancel && (
@@ -1051,6 +1057,9 @@ const SidePanel = styled('aside')`
   align-self: start;
   flex-grow: 1;
   flex-basis: 25rem;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xl};
 `;
 
 /**
@@ -1066,17 +1075,6 @@ const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
         display: none;
       }
     `}
-`;
-
-const SupportPrompt = styled(Panel)`
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.xl};
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  align-items: center;
 `;
 
 const CancelSubscription = styled('div')`
