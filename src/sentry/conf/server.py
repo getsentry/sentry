@@ -479,6 +479,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.prevent",
 )
 
 # Silence internal hints from Django's system checks
@@ -950,7 +951,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": timedelta(seconds=20),
+        "schedule": timedelta(seconds=15),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -3190,3 +3191,8 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
+
+CONDUIT_PRIVATE_KEY: str | None = os.getenv("CONDUIT_PRIVATE_KEY")
+CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "https://conduit.sentry.io")
+CONDUIT_JWT_ISSUER: str = os.getenv("CONDUIT_JWT_ISSUER", "sentry")
+CONDUIT_JWT_AUDIENCE: str = os.getenv("CONDUIT_JWT_AUDIENCE", "conduit")

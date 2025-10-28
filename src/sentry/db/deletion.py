@@ -3,16 +3,27 @@ from __future__ import annotations
 import itertools
 from collections.abc import Generator
 from datetime import timedelta
+from typing import TYPE_CHECKING, Any
 
 from django.db import connections, router
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.utils.query import RangeQuerySetWrapper
 
+if TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel
+
 
 class BulkDeleteQuery:
     def __init__(
-        self, model, project_id=None, organization_id=None, dtfield=None, days=None, order_by=None
+        self,
+        model: type[BaseModel],
+        project_id: int | None = None,
+        organization_id: int | None = None,
+        dtfield: str | None = None,
+        days: int | None = None,
+        order_by: str | None = None,
     ):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -22,7 +33,7 @@ class BulkDeleteQuery:
         self.order_by = order_by
         self.using = router.db_for_write(model)
 
-    def execute(self, chunk_size=10000):
+    def execute(self, chunk_size: int = 10000) -> None:
         quote_name = connections[self.using].ops.quote_name
 
         where = []
@@ -72,14 +83,16 @@ class BulkDeleteQuery:
 
         return self._continuous_query(query)
 
-    def _continuous_query(self, query):
+    def _continuous_query(self, query: str) -> None:
         results = True
         cursor = connections[self.using].cursor()
         while results:
             cursor.execute(query)
             results = cursor.rowcount > 0
 
-    def iterator(self, chunk_size=100, batch_size=10000) -> Generator[tuple[int, ...]]:
+    def iterator(
+        self, chunk_size: int = 100, batch_size: int = 10000
+    ) -> Generator[tuple[int, ...]]:
         assert self.days is not None
         assert self.dtfield is not None
 
@@ -87,21 +100,24 @@ class BulkDeleteQuery:
         queryset = self.model.objects.filter(**{f"{self.dtfield}__lt": cutoff})
 
         if self.project_id:
-            queryset = queryset.filter(project_id=self.project_id)
+            queryset = queryset.filter(project_id=self.project_id)  # type: ignore[misc]
         if self.organization_id:
-            queryset = queryset.filter(organization_id=self.organization_id)
+            queryset = queryset.filter(organization_id=self.organization_id)  # type: ignore[misc]
 
-        if self.order_by[0] == "-":
-            step = -batch_size
-            order_field = self.order_by[1:]
-        else:
-            step = batch_size
-            order_field = self.order_by
+        step = batch_size
+        order_field = "id"
+        if self.order_by:
+            if self.order_by[0] == "-":
+                step = -batch_size
+                order_field = self.order_by[1:]
+            else:
+                order_field = self.order_by
 
-        queryset = queryset.values_list("id", order_field)
+        # values_list returns tuples of (id, order_field_value)
+        queryset_values: QuerySet[Any, tuple[Any, Any]] = queryset.values_list("id", order_field)
 
         wrapper = RangeQuerySetWrapper(
-            queryset,
+            queryset_values,
             step=step,
             order_by=order_field,
             override_unique_safety_check=True,

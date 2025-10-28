@@ -13,6 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
@@ -61,7 +62,15 @@ function OrgDashboards({children}: OrgDashboardsProps) {
     retry: false,
   });
 
-  const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+  let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+
+  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard
+  if (selectedDashboard?.prebuiltId) {
+    selectedDashboard = {
+      ...selectedDashboard,
+      ...PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId],
+    };
+  }
 
   useEffect(() => {
     if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {

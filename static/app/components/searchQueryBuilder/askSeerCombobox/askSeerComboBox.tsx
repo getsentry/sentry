@@ -32,7 +32,6 @@ import {useMutation, type MutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
-import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
@@ -84,6 +83,17 @@ function useUpdateOverlayPositionOnContentChange({
 
 interface AskSeerComboBoxProps<T extends QueryTokensProps>
   extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+  /**
+   * The source of the analytics event, must be a dot-separated identifier like "trace.
+   * explorer" or "issue.list"
+   * @example 'trace.explorer'
+   *
+   * The combobox has the following analytic events, that will need to be tracked with your provided analyticsSource:
+   * - `<analyticsSource>.ai_query_rejected`
+   * - `<analyticsSource>.ai_query_interface`
+   * - `<analyticsSource>.ai_query_submitted`
+   */
+  analyticsSource: string;
   applySeerSearchQuery: (item: T) => void;
   askSeerMutationOptions: MutationOptions<
     {
@@ -94,11 +104,20 @@ interface AskSeerComboBoxProps<T extends QueryTokensProps>
     Error,
     string
   >;
+  /**
+   * The owner of the feedback form, must be an underscore-separated identifier like
+   * "trace_explorer_ai_query" or "issue_list_ai_query"
+   *
+   * @example 'trace_explorer_ai_query'
+   */
+  feedbackSource: string;
   initialQuery: string;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({
   initialQuery,
+  feedbackSource,
+  analyticsSource,
   ...props
 }: AskSeerComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -107,6 +126,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const organization = useOrganization();
 
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
@@ -120,6 +140,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     askSeerNLQueryRef,
     autoSubmitSeer,
     setAutoSubmitSeer,
+    enableAISearch,
   } = useSearchQueryBuilder();
 
   const {
@@ -135,16 +156,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     },
   });
 
-  const organization = useOrganization();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
   const handleNoneOfTheseClick = () => {
     if (openForm) {
       openForm({
         messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
-          ['feedback.source']: 'trace_explorer_ai_query',
+          ['feedback.source']: feedbackSource,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
           ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
@@ -189,7 +206,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       if (typeof key !== 'string') return;
 
       if (key === 'none-of-these') {
-        trackAnalytics('trace.explorer.ai_query_rejected', {
+        trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
           organization,
           natural_language_query: searchQuery,
           num_queries_returned: data?.queries?.length ?? 0,
@@ -239,8 +256,6 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     },
   });
 
-  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && state.isOpen});
-
   const {inputProps, listBoxProps} = useSearchTokenCombobox(
     {
       ...props,
@@ -259,7 +274,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
-              trackAnalytics('trace.explorer.ai_query_interface', {
+              trackAnalytics(`${analyticsSource}.ai_query_interface`, {
                 organization,
                 action: 'closed',
               });
@@ -271,7 +286,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics('trace.explorer.ai_query_rejected', {
+              trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
                 organization,
                 natural_language_query: searchQuery,
                 num_queries_returned: data?.queries?.length ?? 0,
@@ -301,7 +316,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
-              trackAnalytics('trace.explorer.ai_query_submitted', {
+              trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
                 organization,
                 natural_language_query: searchQuery.trim(),
               });
@@ -365,18 +380,29 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
 
   useLayoutEffect(() => {
     if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics('trace.explorer.ai_query_submitted', {
+      trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
         organization,
         natural_language_query: searchQuery.trim(),
       });
       submitQuery(searchQuery.trim());
       setAutoSubmitSeer(false);
     }
-  }, [autoSubmitSeer, searchQuery, organization, submitQuery, setAutoSubmitSeer]);
+  }, [
+    analyticsSource,
+    autoSubmitSeer,
+    organization,
+    searchQuery,
+    setAutoSubmitSeer,
+    submitQuery,
+  ]);
 
   const onMouseLeave = () => {
     state.selectionManager.setFocusedKey(null);
   };
+
+  if (!enableAISearch) {
+    return null;
+  }
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -398,7 +424,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
-            trackAnalytics('trace.explorer.ai_query_interface', {
+            trackAnalytics(`${analyticsSource}.ai_query_interface`, {
               organization,
               action: 'closed',
             });
@@ -458,7 +484,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: 'seer_trace_explorer_search',
+                      ['feedback.source']: feedbackSource,
                       ['feedback.owner']: 'ml-ai',
                     },
                   })

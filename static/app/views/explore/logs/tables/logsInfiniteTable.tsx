@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,12 +9,14 @@ import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
@@ -105,6 +108,7 @@ export function LogsInfiniteTable({
   const {infiniteLogsQueryResult} = useLogsPageData();
   const lastFetchTime = useRef<number | null>(null);
   const {
+    bytesScanned,
     isPending,
     isEmpty,
     meta,
@@ -331,6 +335,7 @@ export function LogsInfiniteTable({
       '.log-table-row-chevron-button': {
         width: theme.isChonk ? '24px' : '18px',
         height: theme.isChonk ? '24px' : '18px',
+        padding: `${space(0.5)} ${space(0.75)}`,
         marginRight: '4px',
         display: 'flex',
         alignItems: 'center',
@@ -383,7 +388,7 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && <LoadingRenderer />}
+          {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
           {!hasReplay && isError && <ErrorRenderer />}
           {!hasReplay && isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
@@ -571,13 +576,40 @@ function ErrorRenderer() {
   );
 }
 
-export function LoadingRenderer({size}: {size?: number}) {
+export function LoadingRenderer({bytesScanned}: {bytesScanned?: number | null}) {
   return (
-    <TableStatus size={size}>
-      <LoadingIndicator size={size} />
+    <TableStatus>
+      <LoadingStateContainer>
+        <EmptyStateText size="md" textAlign="center">
+          <StyledLoadingIndicator margin="1em auto" />
+          {defined(bytesScanned) && bytesScanned > 0 && (
+            <Fragment>
+              {t('Searching for a needle in a haystack. This could take a while.')}
+              <br />
+              <span>
+                {tct('[bytesScanned] scanned', {
+                  bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                })}
+              </span>
+            </Fragment>
+          )}
+        </EmptyStateText>
+      </LoadingStateContainer>
     </TableStatus>
   );
 }
+
+const LoadingStateContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)<{
+  margin: CSSProperties['margin'];
+}>`
+  ${p => p.margin && `margin: ${p.margin}`};
+`;
 
 function HoveringRowLoadingRenderer({
   position,
