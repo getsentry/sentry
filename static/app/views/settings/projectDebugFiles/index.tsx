@@ -62,7 +62,7 @@ function makeSymbolSourcesQueryKey({
 }): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/builtin-symbol-sources/`,
-    {query: {platform: platform || ''}},
+    {query: {platform}},
   ];
 }
 
