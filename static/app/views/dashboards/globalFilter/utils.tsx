@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {getFieldDefinition, type FieldDefinition} from 'sentry/utils/fields';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 
 export function getFieldDefinitionForDataset(
   tag: Tag,
@@ -33,11 +33,16 @@ export function getFieldDefinitionForDataset(
 
 export function parseFilterValue(
   filterValue: string,
-  filterKeys: TagCollection
+  filterKeys: TagCollection,
+  globalFilter: GlobalFilter
 ): Array<TokenResult<Token.FILTER>> {
-  const parsedResult = parseQueryBuilderValue(filterValue, getFieldDefinition, {
-    filterKeys,
-  });
+  const parsedResult = parseQueryBuilderValue(
+    filterValue,
+    () => getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset),
+    {
+      filterKeys,
+    }
+  );
   if (!parsedResult) {
     return [];
   }
@@ -46,9 +51,13 @@ export function parseFilterValue(
 
 export function isValidNumericFilterValue(
   value: string,
-  filterToken: TokenResult<Token.FILTER>
+  filterToken: TokenResult<Token.FILTER>,
+  globalFilter: GlobalFilter
 ) {
-  const fieldDefinition = getFieldDefinition(filterToken.key.text);
+  const fieldDefinition = getFieldDefinitionForDataset(
+    globalFilter.tag,
+    globalFilter.dataset
+  );
   const valueType = getFilterValueType(filterToken, fieldDefinition);
   return (
     cleanFilterValue({
@@ -63,10 +72,14 @@ export function newNumericFilterQuery(
   newValue: string,
   newOperator: TermOperator,
   filterToken: TokenResult<Token.FILTER>,
-  filterKeys: TagCollection
+  filterKeys: TagCollection,
+  globalFilter: GlobalFilter
 ) {
   // Update the value of the filter
-  const fieldDefinition = getFieldDefinition(filterToken.key.text);
+  const fieldDefinition = getFieldDefinitionForDataset(
+    globalFilter.tag,
+    globalFilter.dataset
+  );
   const valueType = getFilterValueType(filterToken, fieldDefinition);
   const cleanedValue = cleanFilterValue({
     value: newValue,
@@ -80,7 +93,7 @@ export function newNumericFilterQuery(
     cleanedValue
   );
 
-  const newFilterTokens = parseFilterValue(filterWithNewValue, filterKeys);
+  const newFilterTokens = parseFilterValue(filterWithNewValue, filterKeys, globalFilter);
   const filterTokenWithNewValue = newFilterTokens?.[0];
   if (!filterTokenWithNewValue) {
     return '';

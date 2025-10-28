@@ -32,8 +32,8 @@ function NumericFilterSelector({
 
   // Parse global filter condition to retrieve initial state
   const globalFilterTokens = useMemo(
-    () => parseFilterValue(globalFilter.value, filterKeys),
-    [globalFilter.value, filterKeys]
+    () => parseFilterValue(globalFilter.value, filterKeys, globalFilter),
+    [filterKeys, globalFilter]
   );
 
   const globalFilterToken = globalFilterTokens ? globalFilterTokens[0] : null;
@@ -135,7 +135,11 @@ function NumericFilterSelector({
                     priority="primary"
                     disabled={
                       !globalFilterToken ||
-                      !isValidNumericFilterValue(stagedFilterValue, globalFilterToken)
+                      !isValidNumericFilterValue(
+                        stagedFilterValue,
+                        globalFilterToken,
+                        globalFilter
+                      )
                     }
                     onClick={() => {
                       if (!globalFilterToken) return;
@@ -143,7 +147,8 @@ function NumericFilterSelector({
                         stagedFilterValue,
                         stagedFilterOperator,
                         globalFilterToken,
-                        filterKeys
+                        filterKeys,
+                        globalFilter
                       );
                       onUpdateFilter({
                         ...globalFilter,
