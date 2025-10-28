@@ -232,7 +232,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         """
         Request body: {"project_id": 1, "overrides": {...}, "is_enabled": true}
         """
-        project_id: int = request.data.get("project_id")
+        project_id: int = request.data["project_id"]
 
         try:
             # Update existing configuration
