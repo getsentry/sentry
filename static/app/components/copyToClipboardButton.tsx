@@ -1,6 +1,5 @@
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 interface CopyToClipboardButtonProps
@@ -18,14 +17,12 @@ export function CopyToClipboardButton({
   onCopy,
   onError,
   text,
-  'aria-label': ariaLabel,
   ...props
 }: CopyToClipboardButtonProps) {
   const {copy} = useCopyToClipboard();
 
   return (
     <Button
-      aria-label={ariaLabel ?? t('Copy to clipboard')}
       translucentBorder
       onClick={e => {
         copy(text).then(onCopy).catch(onError);

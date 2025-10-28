@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {IconLink} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
@@ -17,7 +18,7 @@ export default Storybook.story('CopyToClipboardButton', story => {
         <Storybook.JSXProperty name="onError" value={Function} /> callbacks.
       </p>
 
-      <CopyToClipboardButton text="Hello World" />
+      <CopyToClipboardButton text="Hello World" aria-label={t('Copy to clipboard')} />
     </Fragment>
   ));
 
