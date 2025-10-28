@@ -13,7 +13,7 @@ feedback: 0006_safe_del_feedback_model
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0023_correct_webhook_payload_constraint
+hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
@@ -31,7 +31,7 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0999_add_extrapolation_mode_to_snuba_query
+sentry: 1000_add_project_distribution_scope
 
 social_auth: 0003_social_auth_json_field
 
