@@ -95,7 +95,6 @@ import {
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/onDemandBudgets/utils';
 
-// TODO: push promotion logic to subcomponents
 type Props = {
   api: Client;
   checkoutTier: PlanTier;
@@ -706,6 +705,8 @@ class AMCheckout extends Component<Props, State> {
     } = this.props;
     const {currentStep, completedSteps, formData, billingConfig} = this.state;
 
+    // TODO(isabella): promotion logic should be pushed to subcomponents
+    // clean this up after promos are live on new checkout
     const promoClaimed = getCompletedOrActivePromotion(promotionData);
 
     if (!formData || !billingConfig) {
@@ -962,7 +963,10 @@ class AMCheckout extends Component<Props, State> {
               </Text>
             </Flex>
           </OverviewContainer>
-          <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
+          {/* temporarily hiding this until we have a better way to display it in new checkout */}
+          {!isNewCheckout && (
+            <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
+          )}
           {subscription.canCancel && (
             <CancelSubscription>
               <LinkButton
