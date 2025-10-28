@@ -98,9 +98,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
 
         enrolled_projects = set(
-            DataForwarderProject.objects.filter(data_forwarder=data_forwarder).values_list(
-                "project_id", flat=True
-            )
+            DataForwarderProject.objects.filter(
+                data_forwarder=data_forwarder, is_enabled=True
+            ).values_list("project_id", flat=True)
         )
         assert enrolled_projects == {project2.id, project3.id}
         assert project1.id not in enrolled_projects
@@ -127,7 +127,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             self.organization.slug, data_forwarder.id, status_code=200, **payload
         )
 
-        enrolled_count = DataForwarderProject.objects.filter(data_forwarder=data_forwarder).count()
+        enrolled_count = DataForwarderProject.objects.filter(
+            data_forwarder=data_forwarder, is_enabled=True
+        ).count()
         assert enrolled_count == 0
 
     def test_update_with_invalid_project_ids(self) -> None:
@@ -147,7 +149,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         assert "invalid project ids" in str(response.data).lower()
 
-    def test_update_with_project_write_only(self) -> None:
+    def test_update_with_project_write_bulk_enrollment(self) -> None:
+        """Test bulk enrollment of multiple projects by project:write user"""
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
@@ -166,10 +169,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
+        # Bulk enrollment only uses project_ids
         payload = {
             "project_ids": [project1.id, project2.id],
-            "overrides": {"custom": "value"},
-            "is_enabled": True,
         }
 
         self.get_success_response(
@@ -179,16 +181,15 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         project_config1 = DataForwarderProject.objects.get(
             data_forwarder=data_forwarder, project=project1
         )
-        assert project_config1.overrides == {"custom": "value"}
         assert project_config1.is_enabled
 
         project_config2 = DataForwarderProject.objects.get(
             data_forwarder=data_forwarder, project=project2
         )
-        assert project_config2.overrides == {"custom": "value"}
         assert project_config2.is_enabled
 
     def test_update_project_overrides_with_project_write(self) -> None:
+        """Test updating a single project's overrides and is_enabled by project:write user"""
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
@@ -210,8 +211,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
+        # Single project configuration uses project_id (singular)
         payload = {
-            "project_ids": [project.id],
+            "project_id": project.id,
             "overrides": {"new": "value"},
             "is_enabled": False,
         }
@@ -254,7 +256,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             self.organization.slug, data_forwarder.id, status_code=200, **payload
         )
 
-        enrolled_count = DataForwarderProject.objects.filter(data_forwarder=data_forwarder).count()
+        enrolled_count = DataForwarderProject.objects.filter(
+            data_forwarder=data_forwarder, is_enabled=True
+        ).count()
         assert enrolled_count == 0
 
     def test_update_with_project_write_checks_permissions(self) -> None:
@@ -304,7 +308,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             self.organization.slug, data_forwarder.id, status_code=403, **payload
         )
 
-    def test_update_with_missing_project_ids_for_project_write(self) -> None:
+    def test_update_with_missing_project_id_for_project_write(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
@@ -320,7 +324,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
-        # project:write path requires project_ids
+        # project:write path requires either project_ids or project_id
         payload = {
             "overrides": {"custom": "value"},
         }
@@ -328,9 +332,10 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         response = self.get_error_response(
             self.organization.slug, data_forwarder.id, status_code=400, **payload
         )
-        assert "project_ids" in response.data
+        assert "project_id" in str(response.data).lower()
 
     def test_update_with_mixed_valid_and_invalid_project_ids(self) -> None:
+        """Test bulk enrollment with invalid project IDs"""
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
@@ -348,9 +353,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
+        # Bulk enrollment should not include overrides
         payload = {
             "project_ids": [project.id, 99999],
-            "overrides": {"custom": "value"},
         }
 
         response = self.get_error_response(
@@ -360,6 +365,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert "99999" in str(response.data)
 
     def test_update_with_project_from_different_organization(self) -> None:
+        """Test bulk enrollment rejects projects from different organization"""
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
@@ -379,9 +385,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
+        # Bulk enrollment should not include overrides
         payload = {
             "project_ids": [other_project.id],
-            "overrides": {"custom": "value"},
         }
 
         response = self.get_error_response(
@@ -404,14 +410,49 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
+        # Bulk enrollment should not include overrides
         payload = {
             "project_ids": [],
-            "overrides": {"custom": "value"},
         }
 
         self.get_error_response(
             self.organization.slug, data_forwarder.id, status_code=403, **payload
         )
+
+    def test_update_single_project_creates_new_config(self) -> None:
+        """Test that single project configuration can create a new config"""
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        project = self.create_project(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=user)
+
+        payload = {
+            "project_id": project.id,
+            "overrides": {"custom": "value"},
+            "is_enabled": True,
+        }
+
+        self.get_success_response(
+            self.organization.slug, data_forwarder.id, status_code=200, **payload
+        )
+
+        project_config = DataForwarderProject.objects.get(
+            data_forwarder=data_forwarder, project=project
+        )
+        assert project_config.overrides == {"custom": "value"}
+        assert project_config.is_enabled
 
 
 @region_silo_test

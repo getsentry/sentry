@@ -16,12 +16,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.parameters import GlobalParams
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
 )
 from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
+    DataForwarderProjectSerializer,
     DataForwarderSerializer,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
@@ -92,11 +93,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
         """
+        Request body: {"is_enabled": true, "enroll_new_projects": true, "provider": "segment", "config": {...}, "project_ids": [1, 2, 3]}
+
         Returns:
             Response: 200 OK with serialized data forwarder on success,
                      400 Bad Request with validation errors on failure
         """
-        data = request.data
+        data: dict[str, Any] = request.data
         data["organization_id"] = organization.id
 
         serializer = DataForwarderSerializer(
@@ -110,187 +113,163 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _validate_project_ids_input(self, request: Request) -> list[int]:
-        raw_project_ids = request.data.get("project_ids")
-        if raw_project_ids is None or not isinstance(raw_project_ids, list):
-            raise serializers.ValidationError(
-                {"project_ids": ["This field is required and must be a list"]}
-            )
-        return raw_project_ids
+    def _validate_enrollment_changes(
+        self,
+        request: Request,
+        organization: Organization,
+        data_forwarder: DataForwarder,
+    ) -> tuple[set[int], set[int]]:
+        """
+        Request body: {"project_ids": [1, 2, 3]}
 
-    def _validate_projects_exist(self, projects: list[Project], project_ids: list[int]) -> None:
-        if len(projects) != len(project_ids):
-            found_ids = {project.id for project in projects}
-            invalid_ids = set(project_ids) - found_ids
+        Validates enrollment changes:
+        - project IDs to be enrolled exist in the organization
+        - User has project:write on projects being enrolled
+        - User has project:write on projects being unenrolled
+
+        Returns:
+            Tuple of (project_ids_to_enroll, project_ids_to_unenroll)
+        """
+        project_ids_new: set[int] = set(request.data.get("project_ids", []))
+        project_ids_current: set[int] = set(
+            DataForwarderProject.objects.filter(
+                data_forwarder=data_forwarder, is_enabled=True
+            ).values_list("project_id", flat=True)
+        )
+
+        project_ids_to_enroll: set[int] = project_ids_new - project_ids_current
+        project_ids_to_unenroll: set[int] = project_ids_current - project_ids_new
+
+        all_project_ids: set[int] = project_ids_new | project_ids_to_unenroll
+        all_projects_by_id: dict[int, Project] = {
+            project.id: project
+            for project in Project.objects.filter(
+                organization_id=organization.id, id__in=all_project_ids
+            )
+        }
+
+        # Validate new project IDs being enrolled exist in the organization
+        missing_ids: set[int] = project_ids_to_enroll - all_projects_by_id.keys()
+        if missing_ids:
             raise serializers.ValidationError(
                 {
                     "project_ids": [
-                        f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
+                        f"Invalid project IDs for this organization: {', '.join(map(str, missing_ids))}"
                     ]
                 }
             )
 
-    def _validate_project_permissions(self, request: Request, projects: list[Project]) -> None:
-        """
-        Validate that the user has project:write permission for all specified projects.
-
-        Raises:
-            PermissionDenied: If user lacks access to any project
-        """
-        unauthorized_projects: list[int] = []
-        for project in projects:
-            if not request.access.has_project_scope(project, "project:write"):
-                unauthorized_projects.append(project.id)
-        if unauthorized_projects:
+        # Validate permissions on all projects
+        unauthorized_project_ids: set[int] = {
+            project_id
+            for project_id in all_projects_by_id.keys()
+            if not request.access.has_project_scope(all_projects_by_id[project_id], "project:write")
+        }
+        if unauthorized_project_ids:
             raise PermissionDenied(
                 detail={
                     "project_ids": [
-                        f"Insufficient access to projects: {', '.join(map(str, unauthorized_projects))}"
+                        f"Insufficient access to projects: {', '.join(map(str, unauthorized_project_ids))}"
                     ]
                 }
             )
 
-    def _validate_projects_config(self, request: Request, project_ids: list[int]) -> None:
-        """
-        Validate the projects_config structure if provided.
+        return project_ids_to_enroll, project_ids_to_unenroll
 
-        Expected format: {"projects_config": {project_id: {"overrides": {...}, "is_enabled": bool}}}
-
-        Raises:
-            ValidationError: If projects_config has invalid structure
-        """
-        projects_config = request.data.get("projects_config")
-        if projects_config is None:
-            return
-
-        if not isinstance(projects_config, dict):
-            raise serializers.ValidationError(
-                {"projects_config": ["Must be a dictionary mapping project IDs to configuration"]}
-            )
-
-        for project_id_key, config in projects_config.items():
-            # Validate that the key is a valid project ID (as string or int)
-            try:
-                project_id = int(project_id_key)
-            except (ValueError, TypeError):
-                raise serializers.ValidationError(
-                    {"projects_config": [f"Invalid project ID key: {project_id_key}"]}
-                )
-
-            # Validate that the config is a dictionary
-            if not isinstance(config, dict):
-                raise serializers.ValidationError(
-                    {
-                        "projects_config": [
-                            f"Configuration for project {project_id} must be a dictionary"
-                        ]
-                    }
-                )
-
-            # Validate is_enabled field if present
-            if "is_enabled" in config and not isinstance(config["is_enabled"], bool):
-                raise serializers.ValidationError(
-                    {"projects_config": [f"is_enabled for project {project_id} must be a boolean"]}
-                )
-
-            # Validate overrides field if present
-            if "overrides" in config and not isinstance(config["overrides"], dict):
-                raise serializers.ValidationError(
-                    {
-                        "projects_config": [
-                            f"overrides for project {project_id} must be a dictionary"
-                        ]
-                    }
-                )
-
-    def _enroll_or_update_projects(
+    def _update_enrollment(
         self,
         request: Request,
-        data_forwarder: DataForwarder,
-        project_ids: list[int],
-    ) -> None:
-        # Extract per-project configuration if provided
-        # Format: {"projects_config": {project_id: {"overrides": {...}, "is_enabled": true}}}
-        projects_config = request.data.get("projects_config", {})
-
-        with transaction.atomic(router.db_for_write(DataForwarderProject)):
-            for project_id in project_ids:
-                # Get per-project settings (try both string and int keys since JSON uses strings)
-                project_settings = projects_config.get(
-                    str(project_id), projects_config.get(project_id)
-                )
-
-                # Prepare defaults for creating new projects
-                defaults: dict[str, Any] = {}
-
-                if project_settings is not None:
-                    # Use per-project configuration
-                    defaults["is_enabled"] = project_settings.get("is_enabled", True)
-                    if "overrides" in project_settings:
-                        defaults["overrides"] = project_settings["overrides"]
-                else:
-                    # Fallback to legacy format (same config for all projects)
-                    defaults["is_enabled"] = request.data.get("is_enabled", True)
-                    if "overrides" in request.data:
-                        defaults["overrides"] = request.data["overrides"]
-
-                project_config, created = DataForwarderProject.objects.get_or_create(
-                    data_forwarder=data_forwarder,
-                    project_id=project_id,
-                    defaults=defaults,
-                )
-
-                if created:
-                    continue
-
-                # Update existing project with per-project or legacy settings
-                if project_settings is not None:
-                    if "is_enabled" in project_settings:
-                        project_config.is_enabled = project_settings["is_enabled"]
-                    if "overrides" in project_settings:
-                        project_config.overrides = project_settings["overrides"]
-                else:
-                    # Legacy format - update if fields present in top-level request
-                    if "is_enabled" in request.data:
-                        project_config.is_enabled = request.data["is_enabled"]
-                    if "overrides" in request.data:
-                        project_config.overrides = request.data["overrides"]
-                project_config.save()
-
-    def _unenroll_removed_projects(
-        self,
-        data_forwarder: DataForwarder,
         organization: Organization,
-        request: Request,
-        project_ids: list[int],
-    ) -> None:
-        enrolled_projects: list[int] = DataForwarderProject.objects.filter(
-            data_forwarder=data_forwarder
-        ).values_list("project_id", flat=True)
+        data_forwarder: DataForwarder,
+    ) -> Response:
+        """
+        Request body: {"project_ids": [1, 2, 3]}
+        """
+        project_ids_to_enroll, project_ids_to_unenroll = self._validate_enrollment_changes(
+            request, organization, data_forwarder
+        )
 
-        accessible_enrolled_projects: list[int] = []
-        unauthorized_projects: list[int] = []
-        projects = Project.objects.filter(organization_id=organization.id, id__in=enrolled_projects)
-        for project in projects:
-            if request.access.has_project_scope(project, "project:write"):
-                accessible_enrolled_projects.append(project.id)
-            else:
-                unauthorized_projects.append(project.id)
-        if unauthorized_projects:
-            raise PermissionDenied(
-                detail={
-                    "project_ids": [
-                        f"Insufficient access to projects: {', '.join(map(str, unauthorized_projects))}"
-                    ]
-                }
+        with transaction.atomic(router.db_for_write(DataForwarderProject)):
+            existing_data_forwarder_projects: set[int] = set(
+                DataForwarderProject.objects.filter(
+                    data_forwarder=data_forwarder, project_id__in=project_ids_to_enroll
+                ).values_list("project_id", flat=True)
             )
 
-        project_ids_to_unenroll = set(accessible_enrolled_projects) - set(project_ids)
-        projects_to_unenroll = DataForwarderProject.objects.filter(
-            data_forwarder=data_forwarder, project__id__in=project_ids_to_unenroll
+            new_data_forwarder_projects: set[int] = (
+                project_ids_to_enroll - existing_data_forwarder_projects
+            )
+            DataForwarderProject.objects.bulk_create(
+                [
+                    DataForwarderProject(
+                        data_forwarder=data_forwarder,
+                        project_id=project_id,
+                        is_enabled=True,
+                    )
+                    for project_id in new_data_forwarder_projects
+                ]
+            )
+
+            DataForwarderProject.objects.filter(
+                data_forwarder=data_forwarder, project_id__in=existing_data_forwarder_projects
+            ).update(is_enabled=True)
+
+            DataForwarderProject.objects.filter(
+                data_forwarder=data_forwarder, project_id__in=project_ids_to_unenroll
+            ).update(is_enabled=False)
+
+        return Response(
+            serialize(data_forwarder, request.user),
+            status=status.HTTP_200_OK,
         )
-        with transaction.atomic(router.db_for_write(DataForwarderProject)):
-            projects_to_unenroll.delete()
+
+    def _update_single_project_configuration(
+        self,
+        request: Request,
+        organization: Organization,
+        data_forwarder: DataForwarder,
+    ) -> Response:
+        """
+        Request body: {"project_id": 1, "overrides": {...}, "is_enabled": true}
+        """
+        project_id = request.data.get("project_id")
+
+        try:
+            # Update existing configuration
+            project_config = DataForwarderProject.objects.get(
+                data_forwarder=data_forwarder,
+                project_id=project_id,
+            )
+            serializer = DataForwarderProjectSerializer(
+                project_config,
+                data={
+                    "data_forwarder_id": data_forwarder.id,
+                    "project": project_id,
+                    "overrides": request.data.get("overrides", {}),
+                    "is_enabled": request.data.get("is_enabled", project_config.is_enabled),
+                },
+                context={"organization": organization, "access": request.access},
+            )
+        except DataForwarderProject.DoesNotExist:
+            # Create new configuration
+            serializer = DataForwarderProjectSerializer(
+                data={
+                    "data_forwarder_id": data_forwarder.id,
+                    "project": project_id,
+                    "overrides": request.data.get("overrides", {}),
+                    "is_enabled": request.data.get("is_enabled", True),
+                },
+                context={"organization": organization, "access": request.access},
+            )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                serialize(data_forwarder, request.user),
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
@@ -307,28 +286,42 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
+        # org:write users can update the main data forwarder configuration
         if request.access.has_scope("org:write"):
             return self._update_data_forwarder_config(request, organization, data_forwarder)
 
-        # otherwise, user must have project:write permissions
-        project_ids = self._validate_project_ids_input(request)
+        # project:write users have two operation types:
+        # 1. Bulk enrollment/unenrollment: {"project_ids": [...]}
+        # 2. Single project override update: {"project_id": X, "overrides": {...}}
 
-        projects = list(Project.objects.filter(organization_id=organization.id, id__in=project_ids))
-        self._validate_projects_exist(projects, project_ids)
-        self._validate_project_permissions(request, projects)
-        self._validate_projects_config(request, project_ids)
+        has_project_ids = "project_ids" in request.data
+        has_project_id = "project_id" in request.data
 
-        self._enroll_or_update_projects(request, data_forwarder, project_ids)
-        self._unenroll_removed_projects(data_forwarder, organization, request, project_ids)
+        if has_project_ids and has_project_id:
+            raise serializers.ValidationError(
+                "Cannot specify both 'project_ids' and 'project_id'. "
+                "Use 'project_ids' for bulk enrollment or 'project_id' with 'overrides' for single project update."
+            )
 
-        return Response(
-            serialize(data_forwarder, request.user),
-            status=status.HTTP_200_OK,
-        )
+        if has_project_ids:
+            return self._update_enrollment(request, organization, data_forwarder)
+        elif has_project_id:
+            return self._update_single_project_configuration(request, organization, data_forwarder)
+        else:
+            raise serializers.ValidationError(
+                "Must specify either 'project_ids' for bulk enrollment or 'project_id' with 'overrides' for single project update."
+            )
 
+    @extend_schema(
+        operation_id="Delete a Data Forwarding Configuration for an Organization",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+        },
+    )
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
-        DataForwarderProject.objects.filter(data_forwarder=data_forwarder).delete()
         data_forwarder.delete()
         return self.respond(status=status.HTTP_204_NO_CONTENT)
