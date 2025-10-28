@@ -12,6 +12,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t, tct} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -59,8 +60,7 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
 }: Props) {
   // Only show comparison when we have two different releases selected
-  const showComparison =
-    primaryRelease && secondaryRelease && primaryRelease !== secondaryRelease;
+  const showComparison = defined(primaryRelease) && defined(secondaryRelease);
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;

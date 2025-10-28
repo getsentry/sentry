@@ -164,9 +164,9 @@ function DeviceClassBreakdownBarChart({
                   ...datum,
                   itemStyle: {
                     color:
-                      series.seriesName === secondaryRelease
-                        ? SECONDARY_RELEASE_COLOR
-                        : PRIMARY_RELEASE_COLOR,
+                      series.seriesName === 'all' || series.seriesName === primaryRelease
+                        ? PRIMARY_RELEASE_COLOR
+                        : SECONDARY_RELEASE_COLOR,
                   },
                 }
           ),

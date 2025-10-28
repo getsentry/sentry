@@ -107,7 +107,6 @@ describe('ScreenLoadEventSamples', () => {
         sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
         cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
         transaction="ErrorController"
-        showDeviceClassSelector
       />
     );
 
@@ -127,7 +126,6 @@ describe('ScreenLoadEventSamples', () => {
         sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
         cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
         transaction="ErrorController"
-        showDeviceClassSelector
       />
     );
 

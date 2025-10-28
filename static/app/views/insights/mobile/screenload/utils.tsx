@@ -67,7 +67,7 @@ export function transformDeviceClassEvents({
       const index = deviceClassIndex[deviceClass];
 
       const release = row.release || 'all';
-      const isSecondary = release === secondaryRelease;
+      const isPrimary = release === 'all' || release === primaryRelease;
 
       yAxes.forEach(val => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -78,7 +78,7 @@ export function transformDeviceClassEvents({
             name: deviceClass,
             value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
-              color: isSecondary ? colors[1] : colors[0],
+              color: isPrimary ? colors[0] : colors[1],
             },
           } as SeriesDataUnit;
         }

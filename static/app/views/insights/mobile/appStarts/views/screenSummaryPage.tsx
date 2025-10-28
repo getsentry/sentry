@@ -53,8 +53,7 @@ export function ScreenSummaryContentPage() {
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
-  const showComparison =
-    primaryRelease && secondaryRelease && primaryRelease !== secondaryRelease;
+  const showComparison = defined(primaryRelease) && defined(secondaryRelease);
 
   useEffect(() => {
     // Default the start type to cold start if not present

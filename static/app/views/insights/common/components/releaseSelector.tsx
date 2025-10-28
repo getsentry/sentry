@@ -34,7 +34,7 @@ export const SECONDARY_RELEASE_ALIAS = 'R2';
 type Props = {
   allOptionDescription: string;
   allOptionTitle: string;
-  onChange: (selectedOption: SelectOption<string>) => void;
+  onChange: (selectedOption: SelectOption<SelectKey>) => void;
   sortBy: ReleasesSortByOption;
   selectorName?: string;
   selectorValue?: string;
@@ -136,7 +136,7 @@ function ReleaseSelector({
       onSearch={debounce(val => {
         setSearchTerm(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
-      onChange={onChange as (selectedOption: SelectOption<SelectKey>) => void}
+      onChange={onChange}
       onClose={() => {
         setSearchTerm(undefined);
       }}
@@ -258,10 +258,10 @@ export function ReleaseComparisonSelector({
         onChange={newValue => {
           const updatedQuery: Record<string, string> = {
             ...location.query,
-            primaryRelease: newValue.value,
+            primaryRelease: newValue.value as string,
           };
 
-          if (newValue.value === '') {
+          if (!defined(newValue.value) || newValue.value === '') {
             delete updatedQuery.secondaryRelease;
           }
           navigate({
@@ -289,7 +289,7 @@ export function ReleaseComparisonSelector({
           onChange={newValue => {
             const updatedQuery: Record<string, string> = {
               ...location.query,
-              secondaryRelease: newValue.value,
+              secondaryRelease: newValue.value as string,
             };
 
             navigate({
