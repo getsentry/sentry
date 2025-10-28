@@ -301,6 +301,15 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Usage patterns across different tools and prompts.'),
     ],
   },
+  'ai-generations': {
+    heading: t('AI Generations'),
+    description: t(
+      'Monitor your AI generations to ensure your AI applications are performing as expected.'
+    ),
+    valuePropDescription: t('AI generations insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
