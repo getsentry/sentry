@@ -197,6 +197,14 @@ describe('CoveragePageWrapper', () => {
   });
   describe('when the organization is not in the US region', () => {
     it('renders the pre-onboarding page', () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/`,
+        method: 'GET',
+        body: {
+          providers: [],
+        },
+      });
+
       mockGetRegionData.mockReturnValue({
         name: 'eu',
         displayName: 'European Union (EU)',

@@ -56,7 +56,7 @@ const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
   defaultComponent: () => null,
 });
 
-type IntegrationInformation = {
+export type IntegrationInformation = {
   providers: IntegrationProvider[];
 };
 
