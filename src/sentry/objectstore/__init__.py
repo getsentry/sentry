@@ -1,3 +1,5 @@
+from sentry import options as options_store
 from sentry.objectstore.service import ClientBuilder
 
-attachments = ClientBuilder("attachments")
+options = options_store.get("objectstore.config")
+attachments = ClientBuilder(options["base_url"], "attachments", options)
