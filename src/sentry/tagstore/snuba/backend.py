@@ -815,7 +815,7 @@ class SnubaTagStorage(TagStorage):
         for k in keys_to_check:
             aliases = empty_alias_map[k]
             stats_map[k] = {
-                "count": empty_results.get(aliases["count"], 0) or 0,
+                "count": empty_results.get(aliases["count"], 0),
                 "first_seen": empty_results.get(aliases["first"]),
                 "last_seen": empty_results.get(aliases["last"]),
             }
