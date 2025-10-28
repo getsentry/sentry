@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './laravel';
+import docs from '.';
 
 describe('laravel onboarding docs', () => {
   it('renders doc correctly', () => {
