@@ -1,109 +1,15 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getRubyLogsOnboarding} from 'sentry/utils/gettingStartedDocs/ruby';
 
-type Params = DocsParams;
-
-export const getRubyProfilingOnboarding = ({
-  frameworkPackage,
-}: {frameworkPackage?: string} = {}): OnboardingConfig => ({
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'We use the [code:stackprof] [stackprofLink:gem] to collect profiles for Ruby.',
-            {
-              code: <code />,
-              stackprofLink: <ExternalLink href="https://github.com/tmm1/stackprof" />,
-            }
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before the Sentry SDK.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: `
-gem 'stackprof'
-gem 'sentry-ruby'${
-            frameworkPackage
-              ? `
-gem '${frameworkPackage}'`
-              : ''
-          }`,
-        },
-      ],
-    },
-  ],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Then, make sure both [code:traces_sample_rate] and [code:profiles_sample_rate] are set and non-zero in your Sentry initializer.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Ruby',
-              filename: 'config/initializers/sentry.rb',
-              language: 'ruby',
-              code: `
-Sentry.init do |config|
-  config.dsn = "${params.dsn.public}"
-  config.traces_sample_rate = 1.0
-  config.profiles_sample_rate = 1.0
-end
-                   `,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Verify that profiling is working correctly by simply using your application.'
-          ),
-        },
-      ],
-    },
-  ],
-});
-
-const getInstallSnippet = (params: Params) =>
+const getInstallSnippet = (params: DocsParams) =>
   `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
 
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 require 'sentry-ruby'
 
 Sentry.init do |config|
@@ -153,8 +59,8 @@ end
 
 Sentry.capture_message("test message")`;
 
-const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+export const onboarding: OnboardingConfig = {
+  install: (params: DocsParams) => [
     {
       type: StepType.INSTALL,
       content: [
@@ -240,14 +146,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: CrashReportWebApiOnboarding,
-  profilingOnboarding: getRubyProfilingOnboarding(),
-  logsOnboarding: getRubyLogsOnboarding({
-    docsPlatform: 'ruby',
-  }),
-};
-
-export default docs;
