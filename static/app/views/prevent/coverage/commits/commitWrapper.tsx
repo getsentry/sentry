@@ -1,8 +1,7 @@
 import {Outlet, useLocation, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
@@ -116,7 +115,7 @@ export default function CommitDetailWrapper() {
         </StyledHeader>
 
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <CommitTabNavigation commitHash={commitHash} />
             <Outlet />
           </Layout.Main>

@@ -2,8 +2,7 @@ import {Fragment, useState} from 'react';
 import {Outlet, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -253,7 +252,7 @@ export default function PullDetailWrapper() {
         </StyledHeader>
 
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <SummaryCardGroup
               title={t('Coverage On Selected Pull Request')}
               isLoading={false}
