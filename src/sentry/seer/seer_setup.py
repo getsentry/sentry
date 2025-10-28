@@ -48,10 +48,4 @@ def has_seer_access_with_detail(
     if not get_seer_org_acknowledgement(organization.id):
         return False, "Seer has not been acknowledged by the organization."
 
-    if not organization.flags.allow_joinleave:
-        return (
-            False,
-            "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely.",
-        )
-
     return True, None

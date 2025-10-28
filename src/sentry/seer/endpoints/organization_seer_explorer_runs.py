@@ -41,13 +41,20 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
         """
         Get the current state of a Seer Explorer session.
         """
-        user = request.user
-        if not features.has("organizations:seer-explorer", organization, actor=user):
+        if not features.has("organizations:seer-explorer", organization, actor=request.user):
             return Response({"detail": "Feature flag not enabled"}, status=403)
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=user)
+        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
         if not has_seer_access:
             return Response({"detail": detail}, status=403)
+
+        if not organization.flags.allow_joinleave:
+            return Response(
+                {
+                    "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+                },
+                status=403,
+            )
 
         limit = request.GET.get("limit")
         if limit is not None:
@@ -59,7 +66,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
         body = orjson.dumps(
             {
                 "organization_id": organization.id,
-                "user_id": user.id,
+                "user_id": request.user.id,
                 **({"limit": limit} if limit is not None else {}),
             },
             option=orjson.OPT_NON_STR_KEYS,
