@@ -122,7 +122,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
       projectId: detector.projectId,
       workflowIds: data.workflowIds,
-      dataSource: {},
+      dataSources: [],
       conditionGroup: {},
     }),
   });

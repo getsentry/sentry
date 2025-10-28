@@ -8,6 +8,8 @@ import SlashCommands, {type SlashCommand} from './slashCommands';
 interface InputSectionProps {
   focusedBlockIndex: number;
   inputValue: string;
+  interruptRequested: boolean;
+  isPolling: boolean;
   onClear: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -23,6 +25,8 @@ interface InputSectionProps {
 function InputSection({
   inputValue,
   focusedBlockIndex,
+  isPolling,
+  interruptRequested,
   onClear,
   onInputChange,
   onKeyDown,
@@ -33,6 +37,19 @@ function InputSection({
   onMedSize,
   ref,
 }: InputSectionProps) {
+  const getPlaceholder = () => {
+    if (focusedBlockIndex !== -1) {
+      return 'Press Tab ⇥ to return here';
+    }
+    if (interruptRequested) {
+      return 'Winding down...';
+    }
+    if (isPolling) {
+      return 'Press Esc to interrupt';
+    }
+    return 'Type your message or / command and press Enter ↵';
+  };
+
   return (
     <InputBlock>
       <InputContainer onClick={onInputClick}>
@@ -51,11 +68,7 @@ function InputSection({
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}
-            placeholder={
-              focusedBlockIndex === -1
-                ? 'Type your message or / command and press Enter ↵'
-                : 'Press Tab ⇥ to return here'
-            }
+            placeholder={getPlaceholder()}
             rows={1}
           />
         </InputRow>

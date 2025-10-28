@@ -7,6 +7,7 @@ import {
   feedbackOnboardingPlatforms,
   replayPlatforms,
   withLoggingOnboarding,
+  withMetricsOnboarding,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
@@ -17,7 +18,13 @@ import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 type Props = {
   orgSlug: Organization['slug'];
   platform: PlatformIntegration;
-  productType?: 'feedback' | 'replay' | 'performance' | 'featureFlags' | 'logs';
+  productType?:
+    | 'feedback'
+    | 'replay'
+    | 'performance'
+    | 'featureFlags'
+    | 'logs'
+    | 'metrics';
   projSlug?: Project['slug'];
 };
 
@@ -54,7 +61,8 @@ export function useLoadGettingStarted({
         (productType === 'feedback' &&
           !feedbackOnboardingPlatforms.includes(platform.id)) ||
         (productType === 'featureFlags' &&
-          !featureFlagOnboardingPlatforms.includes(platform.id))
+          !featureFlagOnboardingPlatforms.includes(platform.id)) ||
+        (productType === 'metrics' && !withMetricsOnboarding.has(platform.id))
       ) {
         setModule('none');
         return;

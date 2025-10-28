@@ -11,6 +11,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -81,18 +82,31 @@ export default function AutomationsList() {
   return (
     <SentryDocumentTitle title={t('Alerts')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={t('Alerts')}>
+        <ListLayout
+          actions={<Actions />}
+          title={t('Alerts')}
+          description={t(
+            'Alerts are triggered when issue changes state, is created, or passes a threshold. They perform external actions like sending notifications, creating tickets, or calling webhooks and integrations.'
+          )}
+          docsUrl="https://docs.sentry.io/product/automations/"
+        >
           <TableHeader />
           <div>
-            <AutomationListTable
-              automations={automations ?? []}
-              isPending={isLoading}
-              isError={isError}
-              isSuccess={isSuccess}
-              sort={sort}
-              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
-              allResultsVisible={allResultsVisible()}
-            />
+            <VisuallyCompleteWithData
+              hasData={(automations?.length ?? 0) > 0}
+              id="AutomationsList-Table"
+              isLoading={isLoading}
+            >
+              <AutomationListTable
+                automations={automations ?? []}
+                isPending={isLoading}
+                isError={isError}
+                isSuccess={isSuccess}
+                sort={sort}
+                queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+                allResultsVisible={allResultsVisible()}
+              />
+            </VisuallyCompleteWithData>
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {

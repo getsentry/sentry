@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
@@ -36,14 +37,21 @@ function FilterSelector({
   }, [globalFilter]);
 
   const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
+  const [stagedFilterValues, setStagedFilterValues] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setActiveFilterValues(initialValues);
+    setStagedFilterValues([]);
   }, [initialValues]);
 
   const {dataset, tag} = globalFilter;
+  const {selection} = usePageFilters();
 
-  const baseQueryKey = useMemo(() => ['global-dashboard-filters-tag-values', tag], [tag]);
+  const baseQueryKey = useMemo(
+    () => ['global-dashboard-filters-tag-values', tag, selection, searchQuery],
+    [tag, selection, searchQuery]
+  );
   const queryKey = useDebouncedValue(baseQueryKey);
 
   const queryResult = useQuery<string[]>({
@@ -51,21 +59,37 @@ function FilterSelector({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey,
     queryFn: async () => {
-      const result = await searchBarData.getTagValues(tag, '');
+      const result = await searchBarData.getTagValues(tag, searchQuery);
       return result ?? [];
     },
     placeholderData: keepPreviousData,
     enabled: true,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const {data, isFetching} = queryResult;
+  const {data: fetchedFilterValues, isFetching} = queryResult;
+
   const options = useMemo(() => {
-    if (!data) return [];
-    return data.map(value => ({
-      label: value,
-      value,
-    }));
-  }, [data]);
+    const optionMap = new Map<string, {label: string; value: string}>();
+    const addOption = (value: string) => optionMap.set(value, {label: value, value});
+
+    // Filter values fetched using getTagValues
+    fetchedFilterValues?.forEach(addOption);
+    // Filter values in the global filter
+    activeFilterValues.forEach(addOption);
+    // Staged filter values inside the filter selector
+    stagedFilterValues.forEach(addOption);
+
+    // Allow setting a custom filter value based on search input
+    if (searchQuery) {
+      addOption(searchQuery);
+    }
+
+    // Reversing the order allows effectively deduplicating the values
+    // and avoid losing their original order from the fetched results
+    // (e.g. without this, all staged values would be grouped at the top of the list)
+    return Array.from(optionMap.values()).reverse();
+  }, [fetchedFilterValues, activeFilterValues, stagedFilterValues, searchQuery]);
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues)) {
@@ -95,9 +119,18 @@ function FilterSelector({
       disabled={false}
       options={options}
       value={activeFilterValues}
+      searchPlaceholder={t('Search filter values...')}
+      onSearch={setSearchQuery}
       defaultValue={[]}
       onChange={handleChange}
+      onStagedValueChange={value => {
+        setStagedFilterValues(value);
+      }}
       sizeLimit={10}
+      onClose={() => {
+        setSearchQuery('');
+        setStagedFilterValues([]);
+      }}
       sizeLimitMessage={t('Use search to find more filter values…')}
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
@@ -111,6 +144,7 @@ function FilterSelector({
               size="zero"
               borderless
               onClick={() => {
+                setSearchQuery('');
                 handleChange([]);
                 closeOverlay();
               }}
@@ -131,7 +165,7 @@ function FilterSelector({
         children: (
           <FilterSelectorTrigger
             globalFilter={globalFilter}
-            activeFilterValues={activeFilterValues}
+            activeFilterValues={initialValues}
             options={options}
             queryResult={queryResult}
           />
