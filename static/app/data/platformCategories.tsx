@@ -390,6 +390,12 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set([
   'native',
 ]);
 
+// List of platforms that have metrics onboarding checklist content
+export const withMetricsOnboarding: Set<PlatformKey> = new Set([]);
+
+// List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
+export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
+
 export const profiling: PlatformKey[] = [
   'android',
   'apple',

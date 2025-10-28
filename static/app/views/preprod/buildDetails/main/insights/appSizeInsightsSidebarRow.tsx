@@ -1,11 +1,14 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -74,61 +77,63 @@ export function AppSizeInsightsSidebarRow({
           </Text>
           <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
             <Text size="sm" tabular variant="success">
-              {formatPercentage(insight.percentage / 100, 1)}
+              {formatUpside(insight.percentage / 100)}
             </Text>
           </Tag>
         </Flex>
       </Flex>
 
-      <Flex direction="column" gap="xs">
+      <Stack gap="lg" align="start">
         <Text variant="muted" size="sm">
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <LinkText onClick={handleOpenModal}>
-            {t('See how to fix this locally →')}
-          </LinkText>
+          <Button priority="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
+            {t('How to fix this locally')}
+          </Button>
         )}
-      </Flex>
+      </Stack>
 
-      <Container>
-        <Button
-          size="sm"
-          onClick={onToggleExpanded}
-          style={{marginBottom: isExpanded ? '16px' : '0'}}
-          icon={
-            <IconChevron
-              style={{
-                transition: 'transform 0.2s ease',
-                color: 'inherit',
-                transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)',
-              }}
-            />
-          }
-        >
-          <Text variant="primary" size="md" bold>
-            {tn('%s file', '%s files', insight.files.length)}
-          </Text>
-        </Button>
-
-        {isExpanded && (
-          <Container
-            display="flex"
-            css={() => ({
-              flexDirection: 'column',
-              width: '100%',
-              overflow: 'hidden',
-              '& > :nth-child(odd)': {
-                backgroundColor: theme.backgroundSecondary,
-              },
-            })}
+      {insight.files.length > 0 && (
+        <Container paddingTop="md">
+          <Button
+            size="sm"
+            onClick={onToggleExpanded}
+            style={{marginBottom: isExpanded ? '16px' : '0'}}
+            icon={
+              <IconChevron
+                style={{
+                  transition: 'transform 0.2s ease',
+                  color: 'inherit',
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)',
+                }}
+              />
+            }
           >
-            {insight.files.map((file, fileIndex) => (
-              <FileRow key={`${file.path}-${fileIndex}`} file={file} />
-            ))}
-          </Container>
-        )}
-      </Container>
+            <Text variant="primary" size="md" bold>
+              {tn('%s file', '%s files', insight.files.length)}
+            </Text>
+          </Button>
+
+          {isExpanded && (
+            <Container
+              display="flex"
+              css={() => ({
+                flexDirection: 'column',
+                width: '100%',
+                overflow: 'hidden',
+                '& > :nth-child(odd)': {
+                  backgroundColor: theme.backgroundSecondary,
+                },
+              })}
+            >
+              {insight.files.map((file, fileIndex) => (
+                <FileRow key={`${file.path}-${fileIndex}`} file={file} />
+              ))}
+            </Container>
+          )}
+        </Container>
+      )}
     </Flex>
   );
 }
@@ -139,7 +144,18 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
   }
 
   return (
-    <FlexAlternatingRow>
+    <Flex
+      align="center"
+      justify="between"
+      gap="lg"
+      padding="xs sm"
+      style={{
+        borderRadius: '4px',
+        minWidth: 0,
+        maxWidth: '100%',
+        overflow: 'hidden',
+      }}
+    >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
@@ -151,7 +167,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
           ({formatUpside(file.percentage / 100)})
         </Text>
       </Flex>
-    </FlexAlternatingRow>
+    </Flex>
   );
 }
 
@@ -176,12 +192,59 @@ function OptimizableImageFileRow({
     originalFile.conversion_savings || 0
   );
 
+  const hasMetadata =
+    (originalFile.idiom || originalFile.colorspace) && file.data.isDuplicateVariant;
+  // TODO (EME-460): Add link to formal documentation about idiom/colorspaces in apple binaries as well as more info about app thinning
+  const tooltipContent = hasMetadata && (
+    <Flex direction="column" gap="lg" align="start">
+      <Text size="xs" align="left">
+        {t(
+          'This image shows up multiple times because this build likely did not have app thinning applied. That means your asset catalog can include different copies of the same image meant for different device types.'
+        )}
+      </Text>
+      <Flex direction="column" gap="xs" align="start">
+        {originalFile.idiom && (
+          <Flex align="center" gap="xs">
+            <Text size="xs">{t('Idiom:')}</Text>
+            <Text size="xs">{originalFile.idiom}</Text>
+          </Flex>
+        )}
+        {originalFile.colorspace && (
+          <Flex align="center" gap="xs">
+            <Text size="xs">{t('Colorspace:')}</Text>
+            <Text size="xs">{originalFile.colorspace}</Text>
+          </Flex>
+        )}
+      </Flex>
+    </Flex>
+  );
+
   return (
-    <Container>
-      <FlexAlternatingRow>
-        <Text size="sm" ellipsis style={{flex: 1}}>
-          {file.path}
-        </Text>
+    <Fragment key={file.path}>
+      <Flex
+        align="center"
+        justify="between"
+        gap="lg"
+        padding="xs sm"
+        style={{
+          borderRadius: '4px',
+          minWidth: 0,
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}
+      >
+        <Flex align="center" gap="xs" style={{minWidth: 0, overflow: 'hidden'}}>
+          <Text size="sm" ellipsis style={{flex: 1}}>
+            {file.path}
+          </Text>
+          {hasMetadata && (
+            <Tooltip title={tooltipContent} isHoverable skipWrapper>
+              <Flex align="center" style={{flexShrink: 0}}>
+                <IconFlag size="xs" color="subText" />
+              </Flex>
+            </Tooltip>
+          )}
+        </Flex>
         <Flex align="center" gap="sm">
           <Text variant="primary" bold size="sm" tabular>
             -{formatBytesBase10(maxSavings)}
@@ -190,7 +253,7 @@ function OptimizableImageFileRow({
             ({formatUpside(file.percentage / 100)})
           </Text>
         </Flex>
-      </FlexAlternatingRow>
+      </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
         {hasMinifySavings && (
           <Flex align="center" gap="sm">
@@ -239,31 +302,6 @@ function OptimizableImageFileRow({
           </Flex>
         )}
       </Flex>
-    </Container>
+    </Fragment>
   );
 }
-
-const FlexAlternatingRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-radius: ${({theme}) => theme.borderRadius};
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  gap: ${({theme}) => theme.space.lg};
-  padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
-`;
-
-const LinkText = styled('span')`
-  color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSize.sm};
-  cursor: pointer;
-  text-decoration: underline;
-  padding: ${p => p.theme.space.xs} 0;
-  display: inline-block;
-
-  &:hover {
-    color: ${p => p.theme.purple400};
-  }
-`;

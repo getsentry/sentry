@@ -6,7 +6,7 @@ from sentry import eventstore
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -17,6 +17,7 @@ from sentry.models.repository import Repository
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
@@ -297,13 +298,14 @@ def get_repository_definition(*, organization_id: int, repo_full_name: str) -> d
 
     owner, name = parts
 
-    try:
-        repo = Repository.objects.get(
-            organization_id=organization_id,
-            name=repo_full_name,
-            status=ObjectStatus.ACTIVE,
-        )
-    except Repository.DoesNotExist:
+    repo = Repository.objects.filter(
+        organization_id=organization_id,
+        name=repo_full_name,
+        status=ObjectStatus.ACTIVE,
+        provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+    ).first()
+
+    if not repo:
         logger.info(
             "seer.rpc.repository_not_found",
             extra={"organization_id": organization_id, "repo_full_name": repo_full_name},
@@ -369,9 +371,10 @@ def get_issue_details(
         )
         return None
 
-    serialized_group: BaseGroupSerializerResponse = serialize(
-        group, user=None, serializer=GroupSerializer()
-    )
+    serialized_group: dict = serialize(group, user=None, serializer=GroupSerializer())
+
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
 
     event: Event | GroupEvent | None
     if selected_event == "oldest":

@@ -47,7 +47,7 @@ import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
-  return <SentryDocumentTitle title={title ?? t('Edit Automation')} />;
+  return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
@@ -58,7 +58,7 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
     <Breadcrumbs
       crumbs={[
         {
-          label: t('Automation'),
+          label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
         },
         {

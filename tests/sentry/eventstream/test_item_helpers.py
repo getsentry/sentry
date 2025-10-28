@@ -267,6 +267,7 @@ class ItemHelpersTest(TestCase):
             "contexts": {"trace": {"trace_id": "h" * 32}},
             "other_field": "should_be_included",
             "tags": [("level", "info")],
+            "empty": None,
         }
 
         event = self.create_group_event(event_data)
@@ -276,6 +277,7 @@ class ItemHelpersTest(TestCase):
         assert "event_id" not in result.attributes
         assert "timestamp" not in result.attributes
         assert "tags" not in result.attributes
+        assert "empty" not in result.attributes
         # other_field should be present
         assert result.attributes["other_field"] == AnyValue(string_value="should_be_included")
         # group_id should be added

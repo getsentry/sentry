@@ -7,7 +7,7 @@ export default function MonitorViewContainer() {
     <MonitorViewContext.Provider
       value={{
         monitorsLinkPrefix: `monitors`,
-        automationsLinkPrefix: `monitors/automations`,
+        automationsLinkPrefix: `monitors/alerts`,
       }}
     >
       <Outlet />

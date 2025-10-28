@@ -148,6 +148,7 @@ def _call_seer(
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(body),
         },
+        timeout=30,
     )
     response.raise_for_status()
 

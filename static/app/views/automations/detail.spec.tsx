@@ -64,8 +64,8 @@ describe('AutomationDetail', () => {
     render(<AutomationDetail />, {
       organization,
       initialRouterConfig: {
-        route: '/automations/:automationId/',
-        location: {pathname: '/automations/123/'},
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
       },
     });
 
@@ -96,8 +96,8 @@ describe('AutomationDetail', () => {
     render(<AutomationDetail />, {
       organization,
       initialRouterConfig: {
-        route: '/automations/:automationId/',
-        location: {pathname: '/automations/123/'},
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
       },
     });
 
@@ -121,7 +121,7 @@ describe('AutomationDetail', () => {
   });
 
   describe('Action warnings', () => {
-    it('displays warning when automation has no actions', async () => {
+    it('displays warning when alert has no actions', async () => {
       const automationWithWarning = AutomationFixture({
         ...automation,
         actionFilters: [ActionFilterFixture({actions: []})],
@@ -135,15 +135,15 @@ describe('AutomationDetail', () => {
       render(<AutomationDetail />, {
         organization,
         initialRouterConfig: {
-          route: '/automations/:automationId/',
-          location: {pathname: '/automations/123/'},
+          route: '/alerts/:automationId/',
+          location: {pathname: '/alerts/123/'},
         },
       });
 
       await screen.findByRole('heading', {name: 'Test Automation'});
 
       expect(
-        screen.getByText('You must add an action for this automation to run.')
+        screen.getByText('You must add an action for this alert to run.')
       ).toBeInTheDocument();
     });
 
@@ -165,8 +165,8 @@ describe('AutomationDetail', () => {
       render(<AutomationDetail />, {
         organization,
         initialRouterConfig: {
-          route: '/automations/:automationId/',
-          location: {pathname: '/automations/123/'},
+          route: '/alerts/:automationId/',
+          location: {pathname: '/alerts/123/'},
         },
       });
 
@@ -174,7 +174,7 @@ describe('AutomationDetail', () => {
 
       expect(
         screen.getByText(
-          'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+          'Alert is invalid because no actions can run. Actions need to be reconfigured.'
         )
       ).toBeInTheDocument();
     });
@@ -197,8 +197,8 @@ describe('AutomationDetail', () => {
       render(<AutomationDetail />, {
         organization,
         initialRouterConfig: {
-          route: '/automations/:automationId/',
-          location: {pathname: '/automations/123/'},
+          route: '/alerts/:automationId/',
+          location: {pathname: '/alerts/123/'},
         },
       });
 

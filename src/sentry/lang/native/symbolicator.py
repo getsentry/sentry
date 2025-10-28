@@ -26,6 +26,8 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
+from sentry.objectstore import attachments
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
@@ -173,62 +175,89 @@ class Symbolicator:
     ):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
+
+        force_stored_attachment = not minidump.stored_id and in_random_rollout(
+            "objectstore.force-stored-symbolication"
+        )
+        if force_stored_attachment:
+            client = attachments.for_project(self.project.organization_id, self.project.id)
+            minidump.stored_id = client.put(minidump.data)
+
+        if minidump.stored_id:
+            client = attachments.for_project(self.project.organization_id, self.project.id)
+            storage_url = client.object_url(minidump.stored_id)
+            json: dict[str, Any] = {
+                "platform": platform,
+                "sources": sources,
+                "scraping": scraping_config,
+                "options": {"dif_candidates": True},
+                "symbolicate": {
+                    "type": "minidump",
+                    "storage_url": storage_url,
+                    "rewrite_first_module": rewrite_first_module,
+                },
+            }
+            try:
+                res = self._process("process_minidump", "symbolicate-any", json=json)
+                return process_response(res)
+            finally:
+                if force_stored_attachment:
+                    client.delete(minidump.stored_id)
+                    minidump.stored_id = None
+
         data = {
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
-            "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
             "options": '{"dif_candidates": true}',
+            "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
         }
+        files = {"upload_file_minidump": minidump.data}
 
-        files: None | dict[str, bytes] = None
-        if minidump.stored_id:
-            data["stored_minidump"] = orjson.dumps(
-                {
-                    "organization_id": self.project.organization_id,
-                    "project_id": self.project.id,
-                    "stored_id": minidump.stored_id,
-                }
-            ).decode()
-        else:
-            files = {"upload_file_minidump": minidump.data}
-
-        res = self._process(
-            "process_minidump",
-            "minidump",
-            data=data,
-            files=files,
-        )
+        res = self._process("process_minidump", "minidump", data=data, files=files)
         return process_response(res)
 
     def process_applecrashreport(self, platform: str, report: CachedAttachment):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
+
+        force_stored_attachment = not report.stored_id and in_random_rollout(
+            "objectstore.force-stored-symbolication"
+        )
+        if force_stored_attachment:
+            client = attachments.for_project(self.project.organization_id, self.project.id)
+            report.stored_id = client.put(report.data)
+
+        if report.stored_id:
+            client = attachments.for_project(self.project.organization_id, self.project.id)
+            storage_url = client.object_url(report.stored_id)
+            json: dict[str, Any] = {
+                "platform": platform,
+                "sources": sources,
+                "scraping": scraping_config,
+                "options": {"dif_candidates": True},
+                "symbolicate": {
+                    "type": "applecrashreport",
+                    "storage_url": storage_url,
+                },
+            }
+            try:
+                res = self._process("process_applecrashreport", "symbolicate-any", json=json)
+                return process_response(res)
+            finally:
+                if force_stored_attachment:
+                    client.delete(report.stored_id)
+                    report.stored_id = None
+
         data = {
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
+        files = {"apple_crash_report": report.data}
 
-        files: None | dict[str, bytes] = None
-        if report.stored_id:
-            data["stored_apple_crash_report"] = orjson.dumps(
-                {
-                    "organization_id": self.project.organization_id,
-                    "project_id": self.project.id,
-                    "stored_id": report.stored_id,
-                }
-            ).decode()
-        else:
-            files = {"apple_crash_report": report.data}
-
-        res = self._process(
-            "process_applecrashreport",
-            "applecrashreport",
-            data=data,
-            files=files,
-        )
+        res = self._process("process_applecrashreport", "applecrashreport", data=data, files=files)
         return process_response(res)
 
     def process_payload(

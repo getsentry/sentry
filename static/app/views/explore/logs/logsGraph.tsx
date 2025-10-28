@@ -34,10 +34,12 @@ import {
 } from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
+import type {RawLogCounts} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsSearch,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
@@ -56,10 +58,11 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface LogsGraphProps {
+  rawLogCounts: RawLogCounts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export function LogsGraph({timeseriesResult}: LogsGraphProps) {
+export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
 
@@ -90,6 +93,7 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
           <Graph
             key={index}
             visualize={visualize}
+            rawLogCounts={rawLogCounts}
             timeseriesResult={timeseriesResult}
             onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
             onChartVisibilityChange={visible =>
@@ -111,10 +115,12 @@ interface GraphProps extends LogsGraphProps {
 function Graph({
   onChartTypeChange,
   onChartVisibilityChange,
+  rawLogCounts,
   timeseriesResult,
   visualize,
 }: GraphProps) {
   const aggregate = visualize.yAxis;
+  const userQuery = useQueryParamsQuery();
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
   const [interval, setInterval, intervalOptions] = useChartInterval({
@@ -199,6 +205,8 @@ function Graph({
           <ConfidenceFooter
             chartInfo={chartInfo}
             isLoading={timeseriesResult.isLoading}
+            rawLogCounts={rawLogCounts}
+            hasUserQuery={!!userQuery}
           />
         )
       }

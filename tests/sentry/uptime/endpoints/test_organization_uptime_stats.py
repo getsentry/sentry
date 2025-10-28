@@ -153,10 +153,6 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
 ):
     __test__ = True
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.features = {"organizations:uptime-eap-enabled": True}
-
     def store_uptime_data(
         self,
         subscription_id,

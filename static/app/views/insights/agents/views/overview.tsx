@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +17,6 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -44,7 +44,6 @@ import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
@@ -79,7 +78,10 @@ function AgentsOverviewPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
   useDefaultToAllProjects();
   const location = useLocation();
 
@@ -186,9 +188,9 @@ function AgentsOverviewPage() {
                     />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -219,7 +221,7 @@ function AgentsOverviewPage() {
                         <IssuesWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ControlsWrapper>
+                    <Container paddingTop="xl" paddingBottom="xl">
                       <TableControl
                         value={activeTable}
                         onChange={handleTableSwitch}
@@ -235,7 +237,7 @@ function AgentsOverviewPage() {
                           {t('Tools')}
                         </TableControlItem>
                       </TableControl>
-                    </ControlsWrapper>
+                    </Container>
 
                     {activeTable === TableType.TRACES && <TracesView />}
                     {activeTable === TableType.MODELS && <ModelsView />}
@@ -341,18 +343,6 @@ function LoadingPanel() {
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
-`;
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  margin: ${p => p.theme.space.xl} 0;
 `;
 
 export default PageWithProviders;
