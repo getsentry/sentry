@@ -101,6 +101,11 @@ export function escapeIssueTagKey(key: string) {
     return key;
   }
 
+  // Reserved keywords that conflict with issue search query
+  if (['project.name', 'project_id'].includes(key)) {
+    return `tags[${key}]`;
+  }
+
   if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
     return `tags[${key}]`;
   }
