@@ -359,15 +359,15 @@ class GroupManager(BaseManager["Group"]):
             ],
         )
 
-        groups = list(
-            self.exclude(
-                status__in=[
-                    GroupStatus.PENDING_DELETION,
-                    GroupStatus.DELETION_IN_PROGRESS,
-                    GroupStatus.PENDING_MERGE,
-                ]
-            ).filter(short_id_lookup, project__organization=organization_id)
-        )
+        base_group_queryset = self.exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
+            ]
+        ).filter(project__organization=organization_id)
+
+        groups = list(base_group_queryset.filter(short_id_lookup))
         group_lookup: set[int] = {group.short_id for group in groups}
 
         organization = Organization.objects.get_from_cache(id=organization_id)
@@ -392,15 +392,7 @@ class GroupManager(BaseManager["Group"]):
                     ],
                 )
 
-                fallback_groups = list(
-                    self.exclude(
-                        status__in=[
-                            GroupStatus.PENDING_DELETION,
-                            GroupStatus.DELETION_IN_PROGRESS,
-                            GroupStatus.PENDING_MERGE,
-                        ]
-                    ).filter(ci_short_id_lookup, project__organization=organization_id)
-                )
+                fallback_groups = list(base_group_queryset.filter(ci_short_id_lookup))
 
                 groups.extend(fallback_groups)
                 group_lookup.update(group.short_id for group in fallback_groups)
