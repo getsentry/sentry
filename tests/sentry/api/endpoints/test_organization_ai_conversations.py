@@ -431,7 +431,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
 
     def test_complete_conversation_data_across_time_range(self) -> None:
         """Test that conversations show complete data even when spans are outside time range"""
-        now = before_now(days=90).replace(microsecond=0)
+        now = before_now(days=15).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
