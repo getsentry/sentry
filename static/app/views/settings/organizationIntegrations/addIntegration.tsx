@@ -22,7 +22,8 @@ type Props = {
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
       | 'onboarding'
-      | 'project_creation';
+      | 'project_creation'
+      | 'test_analytics_onboarding';
   };
   modalParams?: Record<string, string>;
 };

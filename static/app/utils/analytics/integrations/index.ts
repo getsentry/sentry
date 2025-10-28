@@ -18,7 +18,8 @@ export type IntegrationView = {
     | 'onboarding'
     | 'project_creation'
     | 'developer_settings'
-    | 'new_integration_modal';
+    | 'new_integration_modal'
+    | 'test_analytics_onboarding';
 };
 
 type SingleIntegrationEventParams = {
