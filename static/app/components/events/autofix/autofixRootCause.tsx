@@ -10,7 +10,9 @@ import {Flex} from 'sentry/components/core/layout';
 import {TextArea} from 'sentry/components/core/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
+  AutofixStatus,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   type CommentThread,
@@ -80,6 +82,7 @@ type AutofixRootCauseProps = {
   groupId: string;
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  status: AutofixStatus;
   agentCommentThread?: CommentThread;
   event?: Event;
   isRootCauseFirstAppearance?: boolean;
@@ -249,6 +252,7 @@ function AutofixRootCauseDisplay({
   groupId,
   runId,
   rootCauseSelection,
+  status,
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
@@ -362,10 +366,19 @@ function AutofixRootCauseDisplay({
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
           <BottomButtonContainer>
-            <CopyRootCauseButton
-              customRootCause={rootCauseSelection.custom_root_cause}
-              event={event}
-            />
+            <ButtonBar>
+              <CopyRootCauseButton
+                customRootCause={rootCauseSelection.custom_root_cause}
+                event={event}
+              />
+            </ButtonBar>
+            {status === AutofixStatus.COMPLETED && (
+              <AutofixStepFeedback
+                stepType="root_cause"
+                groupId={groupId}
+                runId={runId}
+              />
+            )}
           </BottomButtonContainer>
         </CustomRootCausePadding>
       </CausesContainer>
@@ -498,6 +511,9 @@ function AutofixRootCauseDisplay({
             </Button>
           )}
         </ButtonBar>
+        {status === AutofixStatus.COMPLETED && (
+          <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
+        )}
       </BottomButtonContainer>
     </CausesContainer>
   );
@@ -594,6 +610,8 @@ const BottomDivider = styled('div')`
 const BottomButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: ${space(1)};
   padding-top: ${p => p.theme.space.xl};
 `;
 
