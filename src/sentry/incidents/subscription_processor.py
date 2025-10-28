@@ -69,7 +69,7 @@ class SubscriptionProcessor:
                 data_sources__source_id=str(self.subscription.id),
                 data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
             )
-            self.last_update = get_detector_last_update(self.detector, self.subscription.project.id)
+            self.last_update = get_detector_last_update(self.detector, self.subscription.project_id)
         except Detector.DoesNotExist:
             logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
 
@@ -256,6 +256,11 @@ class SubscriptionProcessor:
 
             if aggregation_value is None:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
+                # We have an invalid aggregate, but we _did_ process the update, so we store
+                # last_update to reflect that and avoid reprocessing.
+                store_detector_last_update(
+                    self.detector, self.subscription.project.id, self.last_update
+                )
                 return False
 
             self.process_results_workflow_engine(

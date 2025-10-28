@@ -70,6 +70,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             project=self.project,
             snuba_query=self.snuba_query,
             type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            subscription_id="8/fake_subscription_id",
         )
 
     @cached_property
