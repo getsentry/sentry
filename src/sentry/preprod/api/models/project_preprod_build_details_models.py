@@ -18,6 +18,10 @@ class Platform(StrEnum):
     MACOS = "macos"
 
 
+class AppleAppInfo(BaseModel):
+    missing_dsym_binaries: list[str] = []
+
+
 class BuildDetailsAppInfo(BaseModel):
     app_id: str | None
     name: str | None
@@ -29,6 +33,7 @@ class BuildDetailsAppInfo(BaseModel):
     platform: Platform | None = None
     is_installable: bool
     build_configuration: str | None = None
+    apple_app_info: AppleAppInfo | None = None
 
 
 class BuildDetailsVcsInfo(BaseModel):
@@ -135,6 +140,12 @@ def transform_preprod_artifact_to_build_details(
 
     size_info = to_size_info(size_metrics)
 
+    apple_app_info = AppleAppInfo(
+        missing_dsym_binaries=(
+            artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
+        )
+    )
+
     app_info = BuildDetailsAppInfo(
         app_id=artifact.app_id,
         name=artifact.app_name,
@@ -152,6 +163,7 @@ def transform_preprod_artifact_to_build_details(
         build_configuration=(
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
+        apple_app_info=apple_app_info,
     )
 
     vcs_info = BuildDetailsVcsInfo(
