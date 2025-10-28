@@ -78,6 +78,8 @@ export type DashboardsEventParameters = {
   'dashboards2.filter.cancel': Record<string, unknown>;
   'dashboards2.filter.change': {filter_type: string};
   'dashboards2.filter.save': Record<string, unknown>;
+  'dashboards2.global_filter.add': Record<string, unknown>;
+  'dashboards2.global_filter.remove': Record<string, unknown>;
   'dashboards2.span_migration.results_check': {
     error_message: string;
     dashboard_id?: string;
@@ -176,6 +178,8 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards2.filter.save': 'Dashboards2: Filter bar save',
   'dashboards2.filter.cancel': 'Dashboards2: Filter bar cancel',
   'dashboards2.filter.change': 'Dashboards2: Filter bar changed',
+  'dashboards2.global_filter.add': 'Dashboards2: Global filter added',
+  'dashboards2.global_filter.remove': 'Dashboards2: Global filter removed',
   'dashboards_views.query_selector.opened':
     'Dashboards2: Query Selector opened for Widget',
   'dashboards_views.query_selector.selected':

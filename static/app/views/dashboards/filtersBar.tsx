@@ -161,6 +161,9 @@ export default function FiltersBar({
                 updateGlobalFilters(
                   activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
                 );
+                trackAnalytics('dashboards2.global_filter.remove', {
+                  organization,
+                });
               }}
             />
           ))}
@@ -169,6 +172,9 @@ export default function FiltersBar({
             getSearchBarData={getSearchBarData}
             onAddFilter={newFilter => {
               updateGlobalFilters([...activeGlobalFilters, newFilter]);
+              trackAnalytics('dashboards2.global_filter.add', {
+                organization,
+              });
             }}
           />
         </Fragment>
