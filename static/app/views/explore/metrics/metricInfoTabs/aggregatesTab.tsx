@@ -19,7 +19,8 @@ import {
   StyledTopResultsIndicator,
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
+import {useMetricLabel} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {createMetricNameFilter, getMetricsUnit} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -36,6 +37,7 @@ interface AggregatesTabProps {
 
 export function AggregatesTab({metricName}: AggregatesTabProps) {
   const topEvents = useTopEvents();
+  const metricLabel = useMetricLabel();
 
   const {result, eventView, fields} = useMetricAggregatesTable({
     enabled: Boolean(metricName),
@@ -67,7 +69,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
   const tableStyle = useMemo(() => {
     return {
-      gridTemplateColumns: `repeat(${fields.length - 1}, min-content) 1fr`,
+      gridTemplateColumns: `repeat(${fields.length}, min-content) 1fr`,
     };
   }, [fields]);
 
@@ -89,7 +91,8 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
           const func = parseFunction(field);
           if (func) {
-            label = prettifyParsedFunction(func);
+            label =
+              func.arguments[0] === 'value' ? metricLabel : prettifyParsedFunction(func);
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
@@ -134,7 +137,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
                   <FieldRenderer
                     column={columns[j]}
                     data={row}
-                    unit={meta?.units?.[field]}
+                    unit={getMetricsUnit(meta, field)}
                     meta={meta}
                   />
                 </StyledSimpleTableRowCell>
