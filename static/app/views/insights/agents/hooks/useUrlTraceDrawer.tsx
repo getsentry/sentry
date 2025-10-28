@@ -18,7 +18,7 @@ export function useUrlTraceDrawer() {
   );
 
   const removeQueryParams = useCallback(() => {
-    void setSelectedTrace(null);
+    setSelectedTrace(null);
   }, [setSelectedTrace]);
 
   const closeDrawer = useCallback(() => {

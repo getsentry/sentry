@@ -46,7 +46,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
 
   useEffect(() => {
     return () => {
-      void setSelectedNodeKey(null);
+      setSelectedNodeKey(null);
     };
   }, [setSelectedNodeKey]);
 
