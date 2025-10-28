@@ -133,6 +133,7 @@ function BranchButton({change}: {change: AutofixCodebaseChange}) {
     <CopyContainer>
       <CopyButton
         size="xs"
+        disabled={!change.branch_name}
         onClick={() =>
           copy(change.branch_name ?? '', {
             successMessage: t('Branch name copied to clipboard.'),
