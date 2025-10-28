@@ -36,7 +36,7 @@ export type ExploreQueryChangedReason = {
 
 // Request payload type that matches the backend ExploreSavedQuerySerializer
 type ExploreSavedQueryRequest = {
-  dataset: 'logs' | 'spans' | 'segment_spans';
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics';
   name: string;
   projects: number[];
   changedReason?: ExploreQueryChangedReason;
