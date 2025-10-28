@@ -1,2 +1,2 @@
 'use strict';
-module.exports = {default: {id: 'test', viewBox: {}}};
+module.exports = 'mocked-svg-url';
