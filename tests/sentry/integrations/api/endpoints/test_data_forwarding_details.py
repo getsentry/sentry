@@ -410,8 +410,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=user)
 
-        # Bulk enrollment should not include overrides
-        payload = {
+        payload: dict[str, list[int]] = {
             "project_ids": [],
         }
 
