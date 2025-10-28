@@ -151,7 +151,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,
-                shard_identifier=self.id,
+                shard_identifier=self.api_application_id or 0,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
                 region_name=region_name,
