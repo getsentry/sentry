@@ -10,8 +10,26 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import {getFieldDefinition, type FieldDefinition} from 'sentry/utils/fields';
+import {WidgetType} from 'sentry/views/dashboards/types';
+
+export function getFieldDefinitionForDataset(
+  tag: Tag,
+  datasetType: WidgetType
+): FieldDefinition | null {
+  const fieldType = () => {
+    switch (datasetType) {
+      case WidgetType.SPANS:
+        return 'span';
+      case WidgetType.LOGS:
+        return 'log';
+      default:
+        return 'event';
+    }
+  };
+  return getFieldDefinition(tag.key, fieldType(), tag.kind);
+}
 
 export function parseFilterValue(filterValue: string, filterKeys: TagCollection) {
   const parsedResult = parseQueryBuilderValue(filterValue, getFieldDefinition, {

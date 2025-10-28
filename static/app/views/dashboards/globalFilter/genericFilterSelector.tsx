@@ -1,7 +1,8 @@
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
 import NumericFilterSelector from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
+import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 export type GenericFilterSelectorProps = {
@@ -14,7 +15,10 @@ export type GenericFilterSelectorProps = {
 function getFilterSelector(
   globalFilter: GlobalFilter
 ): React.ComponentType<GenericFilterSelectorProps> {
-  const fieldDefinition = getFieldDefinition(globalFilter.tag.key);
+  const fieldDefinition = getFieldDefinitionForDataset(
+    globalFilter.tag,
+    globalFilter.dataset
+  );
   switch (fieldDefinition?.valueType) {
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:

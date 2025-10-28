@@ -15,11 +15,11 @@ import type {Tag} from 'sentry/types/group';
 import {
   FieldKind,
   FieldValueType,
-  getFieldDefinition,
   prettifyTagKey,
   type FieldDefinition,
 } from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
+import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
@@ -74,21 +74,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
   // Get filter keys for the selected dataset
   const filterKeyOptions = selectedDataset
     ? Object.entries(filterKeys).flatMap(([_, tag]) => {
-        const fieldType = (datasetType: WidgetType) => {
-          switch (datasetType) {
-            case WidgetType.SPANS:
-              return 'span';
-            case WidgetType.LOGS:
-              return 'log';
-            default:
-              return 'event';
-          }
-        };
-        const fieldDefinition = getFieldDefinition(
-          tag.key,
-          fieldType(selectedDataset),
-          tag.kind
-        );
+        const fieldDefinition = getFieldDefinitionForDataset(tag, selectedDataset);
         const valueType = fieldDefinition?.valueType;
         if (!valueType || UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
           return [];
