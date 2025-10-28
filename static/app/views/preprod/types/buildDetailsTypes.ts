@@ -22,7 +22,7 @@ export interface BuildDetailsAppInfo {
   version?: string | null;
 }
 
-export interface AppleAppInfo {
+interface AppleAppInfo {
   missing_dsym_binaries?: string[];
 }
 
