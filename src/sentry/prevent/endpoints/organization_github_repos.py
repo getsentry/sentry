@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 
-import orjson
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,7 +15,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
 
@@ -40,36 +38,6 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CODECOV
-
-    def _fetch_seer_integrated_repos(self, organization_names: list[str]) -> dict[str, list[str]]:
-        """
-        Fetch repos from Seer for the given GitHub organizations that are integrated with Seer GH app.
-
-        Returns a dict mapping GitHub org name to list of full repo names
-        """
-        path = "/v1/automation/codegen/prevent/integrated-repos"
-        body = orjson.dumps(
-            {
-                "organization_names": organization_names,
-                "provider": "github",
-            }
-        )
-
-        response = make_signed_seer_api_request(
-            connection_pool=PREVENT_AI_CONNECTION_POOL,
-            path=path,
-            body=body,
-            timeout=SEER_PREVENT_AI_TIMEOUT,
-        )
-
-        if response.status >= 400:
-            logger.warning(
-                "Failed to fetch integrated repos from Seer",
-                extra={"status": response.status, "organization_names": organization_names},
-            )
-            return {}
-
-        return response.json().get("integrated_repos", {})
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
