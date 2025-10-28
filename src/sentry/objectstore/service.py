@@ -37,12 +37,14 @@ class ClientBuilder:
         self,
         objectstore_base_url: str,
         usecase: str,
+        options: dict | None = None,
         propagate_traces: bool = False,
     ):
         self._base_url = objectstore_base_url
         self._usecase = usecase
         self._default_compression: Compression = "zstd"
         self._propagate_traces = propagate_traces
+        _ = options
 
     def _make_client(self, scope: str) -> Client:
         pool = urllib3.connectionpool.connection_from_url(self._base_url)
