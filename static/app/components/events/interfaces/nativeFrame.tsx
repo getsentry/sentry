@@ -409,7 +409,7 @@ function NativeFrame({
             </ShowHideButton>
           ) : null}
           <GenericCellWrapper>
-            {hasStacktraceLink && (
+            <div style={{visibility: hasStacktraceLink ? 'visible' : 'hidden'}}>
               <ErrorBoundary>
                 <StacktraceLink
                   frame={frame}
@@ -418,8 +418,12 @@ function NativeFrame({
                   disableSetup={isHoverPreviewed}
                 />
               </ErrorBoundary>
-            )}
-            {showSentryAppStacktraceLinkInFrame && (
+            </div>
+            <div
+              style={{
+                visibility: showSentryAppStacktraceLinkInFrame ? 'visible' : 'hidden',
+              }}
+            >
               <ErrorBoundary mini>
                 <OpenInContextLine
                   lineNo={frame.lineNo}
@@ -427,7 +431,7 @@ function NativeFrame({
                   components={components}
                 />
               </ErrorBoundary>
-            )}
+            </div>
             <TypeCell>
               {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             </TypeCell>
