@@ -16,7 +16,7 @@ const EMPTY_OPTION_VALUE = '(empty)';
 // Hoisted regular expressions to avoid recompilation in hot paths
 const TRIMMABLE_ENDS_RE = /^["(]+|[")]+$/g;
 const WILDCARD_ESCAPE_RE = /([*])/g;
-const NEEDS_QUOTING_RE = /[\s()\\"]/;
+const NEEDS_QUOTING_RE = /[\s(),\\"]/;
 const VALUE_IS_LIST_RE = /^\[.*\]$/;
 const VALUE_IS_QUOTED_RE = /^".*"$/;
 const BRACKET_QUOTE_PATTERN_RE = /^(.*), (\[[^\]]+\])"]$/;
