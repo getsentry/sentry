@@ -47,13 +47,17 @@ def _encode_value(value: Any) -> AnyValue:
         return AnyValue(double_value=value)
     elif isinstance(value, list) or isinstance(value, tuple):
         # Not yet processed on EAP side
-        return AnyValue(array_value=ArrayValue(values=[_encode_value(v) for v in value]))
+        return AnyValue(
+            array_value=ArrayValue(values=[_encode_value(v) for v in value if v is not None])
+        )
     elif isinstance(value, dict):
         # Not yet processed on EAP side
         return AnyValue(
             kvlist_value=KeyValueList(
                 values=[
-                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1])) for kv in value.items()
+                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1]))
+                    for kv in value.items()
+                    if kv[1] is not None
                 ]
             )
         )
