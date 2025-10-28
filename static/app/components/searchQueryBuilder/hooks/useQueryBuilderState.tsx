@@ -879,7 +879,7 @@ export function useQueryBuilderState({
           );
 
           const query = replacedState?.newQuery ? replacedState.newQuery : action.query;
-          const committedQuery = state.committedQuery;
+          const committedQuery = shouldCommitQuery ? query : state.committedQuery;
           const focusOverride = replacedState?.focusOverride
             ? replacedState.focusOverride
             : (action.focusOverride ?? null);
