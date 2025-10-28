@@ -40,7 +40,7 @@ export function canEditIssueView({
     return true;
   }
 
-  return user.id === groupSearchView.createdBy.id;
+  return groupSearchView.createdBy !== null && user.id === groupSearchView.createdBy.id;
 }
 
 export function confirmDeleteIssueView({
