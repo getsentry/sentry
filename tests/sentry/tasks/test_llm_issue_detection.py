@@ -150,6 +150,8 @@ class LLMIssueDetectionTest(APITransactionTestCase, SnubaTestCase, SpanTestCase)
         log_extra = success_call[1]["extra"]
         assert log_extra["num_issues"] == 1
         assert "trace_id" in log_extra
+        assert log_extra["project_id"] == self.project.id
+        assert log_extra["titles"] == ["Test Issue"]
 
     def test_detect_llm_issues_no_transactions(self, mock_seer_api):
         """Test handling when no transactions are found."""
