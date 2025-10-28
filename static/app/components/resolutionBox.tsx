@@ -15,6 +15,7 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 type Props = {
   organization: Organization;
@@ -49,35 +50,40 @@ export function renderResolutionReason({
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   );
 
-  if (statusDetails.inNextRelease) {
-    // Resolved in next release has current_release_version (semver only)
-    if (relevantActivity && 'current_release_version' in relevantActivity.data) {
-      const version = (
-        <VersionHoverCard
-          organization={organization}
-          projectSlug={project.slug}
-          releaseVersion={relevantActivity.data.current_release_version}
-        >
-          <VersionComponent
-            version={relevantActivity.data.current_release_version}
-            projectId={project.id}
-          />
-        </VersionHoverCard>
-      );
-      return statusDetails.actor
-        ? tct(
-            '[actor] marked this issue as resolved in versions greater than [version].',
-            {
-              actor,
-              version,
-            }
-          )
-        : tct(
-            'This issue has been marked as resolved in versions greater than [version].',
-            {version}
-          );
-    }
+  // Resolved in next release has current_release_version
+  if (relevantActivity && 'current_release_version' in relevantActivity.data) {
+    const version = (
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={project.slug}
+        releaseVersion={relevantActivity.data.current_release_version}
+      >
+        <VersionComponent
+          version={relevantActivity.data.current_release_version}
+          projectId={project.id}
+        />
+      </VersionHoverCard>
+    );
+    const isSemver = isSemverRelease(relevantActivity.data.current_release_version);
+    return statusDetails.actor
+      ? tct(
+          '[actor] marked this issue as resolved in versions [semver_comparison] than [version].',
+          {
+            actor,
+            semver_comparison: isSemver ? t('greater') : t('later'),
+            version,
+          }
+        )
+      : tct(
+          'This issue has been marked as resolved in versions [semver_comparison] than [version].',
+          {
+            semver_comparison: isSemver ? t('greater') : t('later'),
+            version,
+          }
+        );
+  }
 
+  if (statusDetails.inNextRelease) {
     return actor
       ? tct('[actor] marked this issue as resolved in the upcoming release.', {
           actor,
