@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -89,10 +90,12 @@ export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName:
 
 export const EmptyStateText = styled('div')<{
   size: 'xl' | 'md';
+  textAlign?: CSSProperties['textAlign'];
 }>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize[p.size]};
   padding-bottom: ${space(1)};
+  ${p => p.textAlign && `text-align: ${p.textAlign}`};
 `;
 
 export const EmptyValueContainer = styled('span')`
