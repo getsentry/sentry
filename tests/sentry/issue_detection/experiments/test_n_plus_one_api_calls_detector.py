@@ -35,7 +35,9 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_event(self, description_maker: Callable[[int], str]) -> dict[str, Any]:
+    def create_event(
+        self, description_maker: Callable[[int], str], span_data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         total_duration = (
             self._settings[DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS]["total_duration"] + 1
         )
@@ -49,6 +51,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
                     total_duration / count,
                     description_maker(i),
                     hash=hash,
+                    data=span_data,
                 )
                 for i in range(count)
             ]
@@ -317,6 +320,13 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         assert problem.evidence_data["parameters"] == [
             "id: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
         ]
+
+    def test_span_is_prefetch(self) -> None:
+        event = self.create_event(
+            lambda i: f"GET /api/users?user_id={i}",
+            span_data={"http.request.prefetch": True},
+        )
+        assert self.find_problems(event) == []
 
 
 @pytest.mark.parametrize(
