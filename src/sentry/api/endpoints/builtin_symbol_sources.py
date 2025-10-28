@@ -61,7 +61,7 @@ class BuiltinSymbolSourcesEndpoint(Endpoint):
 
         sources = []
         for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
-            source_platforms = source.get("platforms")
+            source_platforms: list[str] | None = source.get("platforms")
 
             # If source has platform restrictions, check if current platform matches
             if source_platforms is not None:

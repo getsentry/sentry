@@ -60,10 +60,7 @@ function makeSymbolSourcesQueryKey({
   orgSlug: string;
   platform?: string;
 }): ApiQueryKey {
-  return [
-    `/organizations/${orgSlug}/builtin-symbol-sources/`,
-    {query: {platform}},
-  ];
+  return [`/organizations/${orgSlug}/builtin-symbol-sources/`, {query: {platform}}];
 }
 
 function ProjectDebugSymbols({organization, project, location, router, params}: Props) {

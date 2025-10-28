@@ -50,7 +50,7 @@ def set_default_symbol_sources(
             continue
 
         # Check if source has platform restrictions
-        required_platforms = source_config.get("platforms")
+        required_platforms: list[str] | None = source_config.get("platforms")
         if required_platforms:
             # Source is platform-restricted - check if org has access
             enabled_console_platforms = organization.get_option(

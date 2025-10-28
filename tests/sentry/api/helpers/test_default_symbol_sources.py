@@ -1,5 +1,3 @@
-from django.test import override_settings
-
 from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.testutils.cases import TestCase
 
