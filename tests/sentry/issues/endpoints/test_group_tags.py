@@ -340,6 +340,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert response.status_code == 200
         values = {v["value"] for v in response.data[0]["topValues"]}
         assert values == {"", "bar"}
+        assert response.data[0]["topValues"][0]["count"] == 1
 
     def test_include_empty_values_in_all_tags_with_feature(self) -> None:
         event = self.store_event(
