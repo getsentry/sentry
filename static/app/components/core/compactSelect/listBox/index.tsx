@@ -119,6 +119,7 @@ export function ListBox({
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
+  onAction,
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -129,6 +130,7 @@ export function ListBox({
       shouldFocusWrap,
       shouldFocusOnHover,
       shouldSelectOnPressUp: true,
+      onAction,
     },
     listState,
     listElementRef

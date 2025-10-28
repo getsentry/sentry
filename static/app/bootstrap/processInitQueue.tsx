@@ -4,6 +4,7 @@ import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
@@ -110,7 +111,9 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            */
           <QueryClientProvider client={queryClient}>
             <ThemeAndStyleProvider>
-              <SimpleRouter element={<Component {...props} />} />
+              <CommandPaletteProvider>
+                <SimpleRouter element={<Component {...props} />} />
+              </CommandPaletteProvider>
             </ThemeAndStyleProvider>
           </QueryClientProvider>
         ),
