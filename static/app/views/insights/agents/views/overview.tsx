@@ -221,7 +221,7 @@ function AgentsOverviewPage() {
                         <IssuesWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <Container paddingBottom="xl">
+                    <Container paddingTop="xl" paddingBottom="xl">
                       <TableControl
                         value={activeTable}
                         onChange={handleTableSwitch}
