@@ -17,6 +17,7 @@ from django.conf import settings
 from django.db import router as db_router
 from django.db.models import QuerySet
 from django.utils import timezone
+from sentry_sdk import capture_exception
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
@@ -140,7 +141,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 tags={"type": "multiprocess_worker"},
                 sample_rate=1.0,
             )
-            logger.exception("Error in multiprocess_worker.")
+            capture_exception()
         finally:
             task_queue.task_done()
 
@@ -288,7 +289,7 @@ def _cleanup(
             metrics.incr("cleanup.aborted", instance=router, sample_rate=1.0)
             # Don't re-raise - this is expected behavior, not an error
         except Exception:
-            logger.exception("FATAL: We did not handle an error and aborted the execution.")
+            capture_exception()
             metrics.incr("cleanup.error", tags={"type": "FATAL"}, sample_rate=1.0)
             raise
 
@@ -307,19 +308,18 @@ def _cleanup(
                 )
 
 
-def continue_on_error(log_message: str, metric_type: str) -> Callable[..., Any]:
+def continue_on_error(metric_type: str) -> Callable[..., Any]:
     """
-    Decorator that catches exceptions, logs them, tracks metrics, and continues execution.
+    Decorator that catches exceptions, tracks metrics, and continues execution.
 
     Does NOT catch CleanupExecutionAborted - that exception is allowed to propagate
     so the cleanup can be properly aborted.
 
     Args:
-        log_message: The message to log when an exception occurs
         metric_type: The type tag for the cleanup.error metric
 
     Example:
-        @continue_on_error("Error removing expired passwords", "specialized_cleanup_lost_passwords")
+        @continue_on_error("specialized_cleanup_lost_passwords")
         def remove_expired_values_for_lost_passwords(is_filtered, models_attempted):
             ...
     """
@@ -335,7 +335,7 @@ def continue_on_error(log_message: str, metric_type: str) -> Callable[..., Any]:
             except Exception:
                 from sentry.utils import metrics
 
-                logger.exception("%s (Continuing...)", log_message)
+                capture_exception()
                 metrics.incr("cleanup.error", tags={"type": metric_type}, sample_rate=1.0)
 
         return wrapper
@@ -434,9 +434,7 @@ def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
         p.join()
 
 
-@continue_on_error(
-    "Error removing expired values for lost passwords", "specialized_cleanup_lost_passwords"
-)
+@continue_on_error("specialized_cleanup_lost_passwords")
 def remove_expired_values_for_lost_passwords(
     is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
@@ -452,9 +450,7 @@ def remove_expired_values_for_lost_passwords(
         ).delete()
 
 
-@continue_on_error(
-    "Error removing expired values for org members", "specialized_cleanup_org_members"
-)
+@continue_on_error("specialized_cleanup_org_members")
 def remove_expired_values_for_org_members(
     is_filtered: Callable[[type[BaseModel]], bool], days: int, models_attempted: set[str]
 ) -> None:
@@ -469,7 +465,7 @@ def remove_expired_values_for_org_members(
         OrganizationMember.objects.delete_expired(expired_threshold)
 
 
-@continue_on_error("Error deleting API models", "specialized_cleanup_api_models")
+@continue_on_error("specialized_cleanup_api_models")
 def delete_api_models(
     is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
@@ -497,7 +493,7 @@ def delete_api_models(
             queryset.delete()
 
 
-@continue_on_error("Error cleaning up exported data", "specialized_cleanup_exported_data")
+@continue_on_error("specialized_cleanup_exported_data")
 def exported_data(
     is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
@@ -573,7 +569,7 @@ def get_organization_id_or_fail(organization: str) -> int:
     return organization_id
 
 
-@continue_on_error("Error removing old nodestore values", "nodestore_cleanup")
+@continue_on_error("nodestore_cleanup")
 def remove_old_nodestore_values(days: int) -> None:
     from sentry import nodestore, options
 
@@ -644,13 +640,7 @@ def run_bulk_query_deletes(
                     order_by=order_by,
                 ).execute(chunk_size=chunk_size)
             except Exception:
-                logger.exception(
-                    "Error removing %(model)s for project=%(project_id)s (Continuing...)",
-                    extra={
-                        "model": model_tp.__name__,
-                        "project_id": project_id,
-                    },
-                )
+                capture_exception()
                 metrics.incr(
                     "cleanup.error",
                     instance=model_tp.__name__,
@@ -698,10 +688,7 @@ def run_bulk_deletes_in_deletes(
                     task_queue.put((imp, chunk))
 
             except Exception:
-                logger.exception(
-                    "Error removing %(model)s for project=%(project_id)s (Continuing...)",
-                    extra={"model": model_tp.__name__, "project_id": project_id or "*"},
-                )
+                capture_exception()
                 metrics.incr(
                     "cleanup.error",
                     instance=model_tp.__name__,
@@ -735,6 +722,14 @@ def run_bulk_deletes_by_project(
 
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
+
+        # Count total projects for progress tracking
+        total_projects = project_deletion_query.count()
+        logger.info("Processing %d project(s)", total_projects)
+
+        processed_count = 0
+        last_reported_percentage = -1
+
         for project_id_for_deletion in RangeQuerySetWrapper(
             project_deletion_query.values_list("id", flat=True),
             result_value_getter=lambda item: item,
@@ -759,19 +754,28 @@ def run_bulk_deletes_by_project(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
                 except Exception:
-                    logger.exception(
-                        "Error removing %(model)s for project=%(project_id)s (Continuing...)",
-                        extra={
-                            "model": model_tp.__name__,
-                            "project_id": project_id_for_deletion,
-                        },
-                    )
+                    capture_exception()
                     metrics.incr(
                         "cleanup.error",
                         instance=model_tp.__name__,
                         tags={"type": "bulk_delete_by_project"},
                         sample_rate=1.0,
                     )
+
+            # Update progress tracking after processing all models for this project
+            processed_count += 1
+            current_percentage = int((processed_count / total_projects) * 100)
+
+            # Report progress every 5% to avoid excessive output
+            if current_percentage >= last_reported_percentage + 5:
+                logger.info(
+                    "Progress: %s%% (%s/%s projects processed) (last_project_id: %s)",
+                    current_percentage,
+                    processed_count,
+                    total_projects,
+                    project_id_for_deletion,
+                )
+                last_reported_percentage = current_percentage
 
     # Ensure all tasks are completed before exiting
     task_queue.join()
@@ -820,13 +824,7 @@ def run_bulk_deletes_by_organization(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
                 except Exception:
-                    logger.exception(
-                        "Error removing %(model)s for organization=%(organization_id)s (Continuing...)",
-                        extra={
-                            "model": model_tp.__name__,
-                            "organization_id": organization_id_for_deletion,
-                        },
-                    )
+                    capture_exception()
                     metrics.incr(
                         "cleanup.error",
                         instance=model_tp.__name__,
@@ -908,7 +906,7 @@ def prepare_deletes_by_organization(
     return organization_deletion_query, to_delete_by_organization
 
 
-@continue_on_error("Error cleaning up unused FileBlob references", "fileblob_cleanup")
+@continue_on_error("fileblob_cleanup")
 def remove_file_blobs(
     is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
 ) -> None:

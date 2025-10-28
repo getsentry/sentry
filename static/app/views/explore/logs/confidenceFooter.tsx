@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -66,7 +67,11 @@ function ConfidenceMessage({
   const isTopN = defined(topEvents) && topEvents > 1;
 
   if (!defined(sampleCount) || isLoading) {
-    return <Placeholder width={180} />;
+    return (
+      <OffsetContainer>
+        <Placeholder width={180} />
+      </OffsetContainer>
+    );
   }
 
   const noSampling = defined(isSampled) && !isSampled;
@@ -74,12 +79,16 @@ function ConfidenceMessage({
   const downsampledLogsCount = rawLogCounts.normal.count ? (
     <Count value={rawLogCounts.normal.count} />
   ) : (
-    <Placeholder width={40} />
+    <OffsetContainer>
+      <Placeholder width={40} />
+    </OffsetContainer>
   );
   const allLogsCount = rawLogCounts.highAccuracy.count ? (
     <Count value={rawLogCounts.highAccuracy.count} />
   ) : (
-    <Placeholder width={40} />
+    <OffsetContainer>
+      <Placeholder width={40} />
+    </OffsetContainer>
   );
   const suffix = rawLogCounts.highAccuracy.count ? t('logs') : '';
 
@@ -123,10 +132,17 @@ function ConfidenceMessage({
 
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
 
+  const warning = (
+    <OffsetContainer>
+      <IconWarning size="sm" />
+    </OffsetContainer>
+  );
+
   if (isTopN) {
     return tct(
-      'Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+      '[warning] Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
       {
+        warning,
         topEvents,
         matchingLogsCount,
         downsampledLogsCount,
@@ -138,8 +154,9 @@ function ConfidenceMessage({
   }
 
   return tct(
-    'Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+    '[warning] Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
     {
+      warning,
       matchingLogsCount,
       downsampledLogsCount,
       allLogsCount,
@@ -184,4 +201,9 @@ const Placeholder = styled('div')<{width: number}>`
   height: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.backgroundTertiary};
+`;
+
+const OffsetContainer = styled('span')`
+  position: relative;
+  top: 2px;
 `;
