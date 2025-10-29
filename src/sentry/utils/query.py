@@ -183,8 +183,9 @@ class RangeQuerySetWrapper[V]:
                 results_qs = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
 
             if self.query_timeout_retries is not None:
+                retries = self.query_timeout_retries
                 retry_policy = ConditionalRetryPolicy(
-                    test_function=lambda attempt, exc: attempt <= self.query_timeout_retries
+                    test_function=lambda attempt, exc: attempt <= retries
                     and isinstance(exc, OperationalError),
                     delay_function=lambda i: self.retry_delay_seconds,
                 )

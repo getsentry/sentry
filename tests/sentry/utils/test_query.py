@@ -88,16 +88,17 @@ class RangeQuerySetWrapperTest(TestCase):
             self.create_user()
 
         qs = User.objects.all()
-        batch_attempts = []
-        current_batch_count = {"count": 0}
+        batch_attempts: list[int] = []
+        current_batch_count = 0
         original_getitem = type(qs).__getitem__
 
         def mock_getitem(self, slice_obj):
-            current_batch_count["count"] += 1
-            if len(batch_attempts) == 0 and current_batch_count["count"] <= 2:
+            nonlocal current_batch_count
+            current_batch_count += 1
+            if len(batch_attempts) == 0 and current_batch_count <= 2:
                 raise OperationalError("canceling statement due to user request")
-            if len(batch_attempts) == 0 and current_batch_count["count"] == 3:
-                batch_attempts.append(current_batch_count["count"])
+            if len(batch_attempts) == 0 and current_batch_count == 3:
+                batch_attempts.append(current_batch_count)
             return original_getitem(self, slice_obj)
 
         with patch.object(type(qs), "__getitem__", mock_getitem):
