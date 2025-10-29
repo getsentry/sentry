@@ -143,10 +143,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 sample_rate=1.0,
             )
             if os.environ.get("SENTRY_CLEANUP_SILENT", None):
-                event_id = capture_exception(tags={"model": model_name})
-                debug_output(
-                    f"--> Error processing chunk of {len(chunk)} {model_name} objects (event_id: {event_id})."
-                )
+                capture_exception(tags={"model": model_name})
             else:
                 logger.exception("Error processing chunk of %s objects", model_name)
         finally:
