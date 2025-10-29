@@ -28,11 +28,41 @@ import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
-const DETECTOR_TYPE_TITLE_MAPPING: Record<DetectorType, string> = {
-  error: t('Error Monitors'),
-  metric_issue: t('Metric Monitors'),
-  monitor_check_in_failure: t('Cron Monitors'),
-  uptime_domain_failure: t('Uptime Monitors'),
+interface DetectorHeadingInfo {
+  description: string;
+  docsUrl: string;
+  title: string;
+}
+
+const DETECTOR_TYPE_HEADING_MAPPING: Record<DetectorType, DetectorHeadingInfo> = {
+  error: {
+    title: t('Error Monitors'),
+    description: t(
+      'Error monitors are created by default for each project based on issue grouping/fingerprint rules.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/monitors/',
+  },
+  metric_issue: {
+    title: t('Metric Monitors'),
+    description: t(
+      'Metric monitors track errors based on span attributes and custom metrics.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/monitors/',
+  },
+  monitor_check_in_failure: {
+    title: t('Cron Monitors'),
+    description: t(
+      'Cron monitors check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/crons/',
+  },
+  uptime_domain_failure: {
+    title: t('Uptime Monitors'),
+    description: t(
+      'Uptime monitors continuously track configured URLs, delivering alerts and insights to quickly identify downtime and troubleshoot issues.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
+  },
 };
 
 export default function DetectorsList() {
@@ -97,17 +127,38 @@ export default function DetectorsList() {
     return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
 
-  // Determine the page title based on active filters
-  const pageTitle = detectorFilter
-    ? DETECTOR_TYPE_TITLE_MAPPING[detectorFilter]
+  // Determine the page heading info based on active filters
+  const {
+    title: pageTitle,
+    description: pageDescription,
+    docsUrl,
+  } = detectorFilter
+    ? DETECTOR_TYPE_HEADING_MAPPING[detectorFilter]
     : assigneeFilter === 'me'
-      ? t('My Monitors')
-      : t('Monitors');
+      ? {
+          title: t('My Monitors'),
+          description: t(
+            'Monitors assigned to you or your team. Monitors are used to customize when to turn errors and performance problems into issues.'
+          ),
+          docsUrl: 'https://docs.sentry.io/product/monitors/',
+        }
+      : {
+          title: t('Monitors'),
+          description: t(
+            'Monitors are used to customize when to turn errors and performance problems into issues.'
+          ),
+          docsUrl: 'https://docs.sentry.io/product/monitors/',
+        };
 
   return (
     <SentryDocumentTitle title={pageTitle}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={pageTitle}>
+        <ListLayout
+          actions={<Actions />}
+          title={pageTitle}
+          description={pageDescription}
+          docsUrl={docsUrl}
+        >
           <TableHeader />
           <div>
             <VisuallyCompleteWithData
