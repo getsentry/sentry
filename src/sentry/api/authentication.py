@@ -42,6 +42,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -368,6 +369,9 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
     def authenticate(self, request: Request):
         if not request.data:
             raise AuthenticationFailed("Invalid request")
+
+        if request.data.get("grant_type") != GrantTypes.CLIENT_SECRET_JWT:
+            return None
 
         installation_uuid = request.path.split("/")[-3]
         try:
