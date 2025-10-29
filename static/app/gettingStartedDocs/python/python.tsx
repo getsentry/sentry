@@ -451,7 +451,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
 
 export const mcpOnboarding: OnboardingConfig = {
   install: () => {
-    const packageName = 'sentry-sdk[mcp]';
+    const packageName = 'sentry-sdk';
 
     return [
       {
