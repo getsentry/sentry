@@ -57,7 +57,7 @@ export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)`
 export const StyledSimpleTableBody = styled('div')`
   position: relative;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   min-height: 0;
   display: grid;
   grid-template-columns: subgrid;
