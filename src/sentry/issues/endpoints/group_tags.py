@@ -64,7 +64,8 @@ class GroupTagsEndpoint(GroupEndpoint):
 
         include_empty_values = features.has(
             "organizations:issue-tags-include-empty-values",
-            organization=group.project.organization,
+            group.project.organization,
+            actor=request.user,
         )
 
         tag_keys = backend.get_group_tag_keys_and_top_values(
