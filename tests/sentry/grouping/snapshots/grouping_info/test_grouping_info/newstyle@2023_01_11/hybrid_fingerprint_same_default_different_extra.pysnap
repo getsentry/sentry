@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:55.988931+00:00'
+created: '2025-10-27T23:46:02.540601+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -22,13 +22,6 @@ source: tests/sentry/grouping/test_grouping_info.py
           "name": "exception",
           "values": [
             {
-              "contributes": false,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": []
-            },
-            {
               "contributes": true,
               "hint": null,
               "id": "type",
@@ -45,6 +38,13 @@ source: tests/sentry/grouping/test_grouping_info.py
               "values": [
                 "FailedToFetchError: Charlie didn't bring the ball back!"
               ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": []
             }
           ]
         }

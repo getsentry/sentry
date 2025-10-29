@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:32.804736+00:00'
+created: '2025-10-27T23:46:00.689573+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,48 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "<redacted>"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": []
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "ns_error",
+              "name": null,
+              "values": [
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "<redacted>"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    2
+                  ]
+                }
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -1003,48 +1045,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "<redacted>"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "ns_error",
-              "name": null,
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "domain",
-                  "name": null,
-                  "values": [
-                    "<redacted>"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "code",
-                  "name": null,
-                  "values": [
-                    2
-                  ]
-                }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
             }
           ]
         }
@@ -1090,6 +1090,48 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "<redacted>"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": []
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "ns_error",
+              "name": null,
+              "values": [
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "<redacted>"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    2
+                  ]
+                }
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2076,48 +2118,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "<redacted>"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "ns_error",
-              "name": null,
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "domain",
-                  "name": null,
-                  "values": [
-                    "<redacted>"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "code",
-                  "name": null,
-                  "values": [
-                    2
-                  ]
-                }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
             }
           ]
         }

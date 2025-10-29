@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:53.838129+00:00'
+created: '2025-10-27T23:46:00.583927+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "ApplicationNotResponding"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": "stripped event-specific values",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Application Not Responding for at least <int> ms."
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -3804,24 +3822,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ApplicationNotResponding"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": "stripped event-specific values",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Application Not Responding for at least <int> ms."
-              ]
             }
           ]
         },
@@ -3953,6 +3953,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "ApplicationNotResponding"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Application Not Responding for at least <int> ms."
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -7739,24 +7757,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ApplicationNotResponding"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Application Not Responding for at least <int> ms."
               ]
             }
           ]

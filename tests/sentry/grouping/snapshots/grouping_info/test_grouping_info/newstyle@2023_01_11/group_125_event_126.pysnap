@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:55.610322+00:00'
+created: '2025-10-27T23:46:02.183904+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXC_BAD_ACCESS / 0x00000032"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": "stripped event-specific values",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: EXC_BAD_ACCESS / <hex>"
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -1216,24 +1234,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXC_BAD_ACCESS / 0x00000032"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": "stripped event-specific values",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: EXC_BAD_ACCESS / <hex>"
-              ]
             }
           ]
         }
@@ -1279,6 +1279,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXC_BAD_ACCESS / 0x00000032"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: EXC_BAD_ACCESS / <hex>"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2477,24 +2495,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXC_BAD_ACCESS / 0x00000032"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: EXC_BAD_ACCESS / <hex>"
               ]
             }
           ]
