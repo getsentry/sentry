@@ -146,7 +146,7 @@ def set_commit(idx, data, release):
             [
                 CommitFileChange(
                     organization_id=release.organization.id,
-                    commit=commit,
+                    commit_id=commit,
                     filename=patched_file["path"],
                     type=patched_file["type"],
                 )
