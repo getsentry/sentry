@@ -31,8 +31,12 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   });
 
   const hasSize = width > 0;
-  // Default split is 65% of the available width, but not less than MIN_LEFT_WIDTH.
-  const defaultSplit = Math.max(width * 0.65, MIN_LEFT_WIDTH);
+  // Default split is 65% of the available width, but not less than MIN_LEFT_WIDTH
+  // and at most the maximum size allowed for the left panel (i.e. width - MIN_RIGHT_WIDTH)
+  const defaultSplit = Math.min(
+    Math.max(width * 0.65, MIN_LEFT_WIDTH),
+    width - MIN_RIGHT_WIDTH
+  );
 
   return (
     <Panel>
