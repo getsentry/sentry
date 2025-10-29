@@ -14,6 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
+from sentry.models.activity import Activity
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
@@ -274,6 +275,19 @@ def sync_status_inbound(
                 )
                 if not created:
                     resolution.update(datetime=django_timezone.now(), **resolution_params)
+
+                # Link the activity to the resolution so regressions can find it.
+                # Only applies to SET_RESOLVED_IN_RELEASE activities created above.
+                if created and activity_type == ActivityType.SET_RESOLVED_IN_RELEASE:
+                    latest_activity = (
+                        Activity.objects.filter(
+                            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+                        )
+                        .order_by("-datetime")
+                        .first()
+                    )
+                    if latest_activity and not latest_activity.ident:
+                        latest_activity.update(ident=resolution.id)
 
             issue_resolved.send_robust(
                 organization_id=organization_id,

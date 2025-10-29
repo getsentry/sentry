@@ -13,6 +13,7 @@ from sentry.integrations.tasks.sync_status_inbound import sync_status_inbound
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.activity import Activity
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -271,6 +272,51 @@ class TestSyncStatusInbound(TestCase):
 
         self._assert_group_resolved(self.group.id)
         self._assert_resolve_in_release_activity_created(in_next_release=False)
+
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_resolve_in_release_activity_ident_is_linked(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
+        mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
+
+        # Ensure there is at least one release so we take the SET_RESOLVED_IN_RELEASE path
+        self.create_release(project=self.project, version="1.0.0")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+            org_integration.update(
+                config={
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                    "resolution_strategy": "resolve_current_release",
+                },
+            )
+
+        sync_status_inbound(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+        resolution = GroupResolution.objects.get(group=self.group)
+
+        # The latest SET_RESOLVED_IN_RELEASE activity should have ident == resolution.id
+        activity = (
+            Activity.objects.filter(
+                group=self.group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+            )
+            .order_by("-datetime")
+            .first()
+        )
+        assert activity is not None
+        assert activity.ident == str(resolution.id)
+
+
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_no_releases(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
