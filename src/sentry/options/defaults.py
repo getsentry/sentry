@@ -3604,3 +3604,11 @@ register(
     },
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enables or disables Github webhook routing based on the type of webhook
+register(
+    "github.webhook-type-routing.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
