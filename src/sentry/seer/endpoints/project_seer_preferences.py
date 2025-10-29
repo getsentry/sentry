@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 import orjson
 import requests
@@ -50,8 +51,14 @@ class RepositorySerializer(CamelSnakeSerializer):
 
 
 class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
-    handoff_point = serializers.CharField(required=True)
-    target = serializers.CharField(required=True)
+    handoff_point = serializers.ChoiceField(
+        choices=["root_cause"],
+        required=True,
+    )
+    target = serializers.ChoiceField(
+        choices=["cursor_background_agent"],
+        required=True,
+    )
 
 
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
@@ -63,8 +70,8 @@ class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
 
 
 class SeerAutomationHandoffConfiguration(BaseModel):
-    handoff_point: str
-    target: str
+    handoff_point: Literal["root_cause"]
+    target: Literal["cursor_background_agent"]
 
 
 class SeerProjectPreference(BaseModel):
