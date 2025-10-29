@@ -20,10 +20,6 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
   hideCheck?: boolean;
 };
 
-// We need to limit the number of displayed actions for performance reasons
-// TODO: Consider other options, like limiting large sections directly or virtualizing the list
-const MAX_ACTIONS_PER_SECTION = 10;
-
 function actionToMenuItem(
   action: CommandPaletteActionWithKey
 ): CommandPaletteActionMenuItem {
@@ -36,10 +32,7 @@ function actionToMenuItem(
         {action.display.icon}
       </IconWrap>
     ) : undefined,
-    children:
-      action.type === 'group'
-        ? action.actions.slice(0, MAX_ACTIONS_PER_SECTION).map(actionToMenuItem)
-        : [],
+    children: action.type === 'group' ? action.actions.map(actionToMenuItem) : [],
     hideCheck: true,
   };
 }
@@ -67,7 +60,7 @@ export function CommandPaletteContent() {
         return {
           key: sectionKey,
           label: sectionKey,
-          children: children.slice(0, MAX_ACTIONS_PER_SECTION),
+          children,
         };
       })
       .filter(section => section.children.length > 0);
