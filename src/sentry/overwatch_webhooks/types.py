@@ -42,7 +42,7 @@ class WebhookDetails:
     webhook_headers: Mapping[str, str]
     integration_provider: str
     region: str
-    github_app_id: int | None = None
+    app_id: int | None = None
     request_type: str = DEFAULT_REQUEST_TYPE
 
     def to_json(self) -> str:

@@ -173,7 +173,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             assert len(call_args.organizations) == 1
             assert call_args.organizations[0].name == "Test Org"
             assert call_args.webhook_body == event
-            assert call_args.github_app_id == 987654
+            assert call_args.app_id == 987654
 
     @override_options({"overwatch.enabled-regions": ["us"]})
     def test_forward_if_applicable_multiple_organizations(self):
@@ -324,7 +324,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             },
             "integration_provider": "github",
             "region": "us",
-            "github_app_id": 987654,
+            "app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
         json_body = orjson.loads(responses.calls[1].request.body)
@@ -346,7 +346,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             },
             "integration_provider": "github",
             "region": "de",
-            "github_app_id": 987654,
+            "app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
 
@@ -410,6 +410,6 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             },
             "integration_provider": "github",
             "region": "us",
-            "github_app_id": 987654,
+            "app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }

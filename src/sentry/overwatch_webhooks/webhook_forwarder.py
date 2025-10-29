@@ -97,12 +97,12 @@ class OverwatchGithubWebhookForwarder:
                 raw_app_id = headers.get(
                     GITHUB_INSTALLATION_TARGET_ID_HEADER,
                 ) or headers.get(DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER)
-                github_app_id: int | None = None
+                app_id: int | None = None
                 if raw_app_id is not None:
                     try:
-                        github_app_id = int(raw_app_id)
+                        app_id = int(raw_app_id)
                     except (TypeError, ValueError):
-                        github_app_id = None
+                        app_id = None
 
                 webhook_detail = WebhookDetails(
                     organizations=org_summaries,
@@ -110,7 +110,7 @@ class OverwatchGithubWebhookForwarder:
                     webhook_headers=headers,
                     integration_provider=self.integration.provider,
                     region=region_name,
-                    github_app_id=github_app_id,
+                    app_id=app_id,
                 )
 
                 publisher = OverwatchWebhookPublisher(
