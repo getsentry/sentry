@@ -673,6 +673,8 @@ export function useInfiniteLogsQuery({
   const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
 
+  // the original state starts at -1 because we have to count
+  // the 1 query made by default outside of the auto fetches
   const [autoFetchesRemaining, setAutoFetchesRemaining] = useState(maxAutoFetches - 1);
   const canAutoFetchNextPage =
     !!highFidelity &&
