@@ -35,11 +35,16 @@ function confidenceMessage({
 
   if (defined(extrapolate) && !extrapolate) {
     if (!defined(sampleCount)) {
-      return t('Span Count: \u2026');
+      return t('Span count: \u2026');
     }
-    return tct('Span Count: [sampleCountComponent]', {
-      sampleCountComponent: <Count value={sampleCount} />,
-    });
+    return isTopN
+      ? tct('Top [topEvents] groups span count: [sampleCountComponent]', {
+          topEvents,
+          sampleCountComponent: <Count value={sampleCount} />,
+        })
+      : tct('Span count: [sampleCountComponent]', {
+          sampleCountComponent: <Count value={sampleCount} />,
+        });
   }
 
   if (!defined(sampleCount)) {
