@@ -475,7 +475,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.dataset == original_dataset
         assert mock_seer_legacy.call_count == 2
 
-        rollback_call_args = mock_seer_legacy.call_args
+        rollback_call_args = mock_seer_legacy.call_args_list[1]
         alert_rule_arg = rollback_call_args[0][0]
         snuba_query_arg = rollback_call_args[0][1]
         project_arg = rollback_call_args[0][2]
