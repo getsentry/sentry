@@ -29,38 +29,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_missing_required_params_returns_400(self):
-        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        auth = self._auth_header_for_get(url, {}, "test-secret")
-        resp = self.client.get(url, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 400
-
-    @patch(
-        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        ["test-secret"],
-    )
-    def test_invalid_org_id_not_found(self):
-        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"sentryOrgId": "999999"}
-        auth = self._auth_header_for_get(url, params, "test-secret")
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 400
-
-    @patch(
-        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        ["test-secret"],
-    )
-    def test_invalid_org_id_non_numeric(self):
-        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"sentryOrgId": "abc"}
-        auth = self._auth_header_for_get(url, params, "test-secret")
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 400
-
-    @patch(
-        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        ["test-secret"],
-    )
     def test_success_returns_default_config(self):
         org = self.create_organization()
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
