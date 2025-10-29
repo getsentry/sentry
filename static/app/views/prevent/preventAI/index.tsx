@@ -5,11 +5,11 @@ import {t} from 'sentry/locale';
 import PreventAIManageRepos from 'sentry/views/prevent/preventAI/manageRepos';
 import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 
-import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgRepos';
+import {usePreventAIOrgs} from './hooks/usePreventAIOrgRepos';
 
 function PreventAIContent() {
-  const {data, isPending, isError} = usePreventAIOrgRepos();
-  const orgRepos = data?.orgRepos ?? [];
+  const {data, isPending, isError} = usePreventAIOrgs();
+  const integratedOrgs = data ?? [];
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -22,8 +22,8 @@ function PreventAIContent() {
       />
     );
   }
-  if (orgRepos.length > 0) {
-    return <PreventAIManageRepos installedOrgs={orgRepos} />;
+  if (integratedOrgs.length > 0) {
+    return <PreventAIManageRepos integratedOrgs={integratedOrgs} />;
   }
   return <PreventAIOnboarding />;
 }
