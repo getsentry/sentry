@@ -650,10 +650,11 @@ export function useInfiniteLogsQuery({
     return Promise.resolve();
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
-  const nextPageHasData =
-    parseLinkHeader(
-      data?.pages?.[data.pages.length - 1]?.[2]?.getResponseHeader('Link') ?? null
-    )?.next?.results ?? false;
+  const nextPageLink = parseLinkHeader(
+    data?.pages?.[data.pages.length - 1]?.[2]?.getResponseHeader('Link') ?? null
+  )?.next;
+  const nextPageHasData = nextPageLink?.results ?? false;
+  const nextPageCursor = nextPageLink?.cursor;
 
   const _fetchNextPage = useCallback(
     () =>
@@ -691,7 +692,7 @@ export function useInfiniteLogsQuery({
 
     setAutoFetchesRemaining(remaining => remaining - 1);
     _fetchNextPage();
-  }, [shouldAutoFetchNextPage, isFetchingNextPage, _fetchNextPage]);
+  }, [shouldAutoFetchNextPage, isFetchingNextPage, _fetchNextPage, nextPageCursor]);
 
   return {
     error,
