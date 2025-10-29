@@ -14,7 +14,7 @@ from sentry.spans.consumers.process_segments.types import CompatibleSpan
 ###############################################
 
 SPAN_KAFKA_MESSAGE: SpanEvent = {
-    "is_remote": True,
+    "is_segment": True,
     "attributes": {
         "http.status_code": {"value": "200", "type": "string"},
         "my.array.field": {"value": [1, 2, ["nested", "array"]], "type": "array"},

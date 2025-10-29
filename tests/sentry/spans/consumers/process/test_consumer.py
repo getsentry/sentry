@@ -135,7 +135,7 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
             "received": 1699999999.0,
             "name": "test-span",
             "status": "ok",
-            "is_remote": False,
+            "is_segment": False,
         }
         # Set the field to None
         span_data[field_to_set_none] = None
@@ -202,7 +202,7 @@ def test_schema_validator_rejects_string_timestamps() -> None:
             "received": 1699999999.0,
             "name": "test-span",
             "status": "ok",
-            "is_remote": False,
+            "is_segment": False,
         }
 
         step.submit(
