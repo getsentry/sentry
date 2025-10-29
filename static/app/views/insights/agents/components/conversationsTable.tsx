@@ -77,6 +77,7 @@ function ConversationsTableInner() {
   });
 
   const {cursor, setCursor} = useTableCursor();
+  const pageFilters = usePageFilters();
 
   const {
     data = [],
@@ -84,7 +85,20 @@ function ConversationsTableInner() {
     error,
     getResponseHeader,
   } = useApiQuery<TableData[]>(
-    [`/organizations/${organization.slug}/ai-conversations/`, {query: {cursor}}],
+    [
+      `/organizations/${organization.slug}/ai-conversations/`,
+      {
+        query: {
+          cursor,
+          project: pageFilters.selection.projects,
+          environment: pageFilters.selection.environments,
+          period: pageFilters.selection.datetime.period,
+          start: pageFilters.selection.datetime.start,
+          end: pageFilters.selection.datetime.end,
+          utc: pageFilters.selection.datetime.utc,
+        },
+      },
+    ],
     {
       staleTime: 0,
     }
