@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from './minidump';
+import docs from '.';
 
 function renderMockRequests() {
   MockApiClient.addMockResponse({
