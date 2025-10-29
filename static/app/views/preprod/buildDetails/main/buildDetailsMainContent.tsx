@@ -208,6 +208,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
 
+  const missingDsymBinaries =
+    buildDetailsData?.app_info?.apple_app_info?.missing_dsym_binaries;
+
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
@@ -231,6 +234,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             root={filteredTreemapData.root}
             searchQuery={searchQuery || ''}
             unfilteredRoot={appSizeData.treemap.root}
+            missingDsymBinaries={missingDsymBinaries}
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
@@ -245,6 +249,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         root={filteredTreemapData.root}
         searchQuery={searchQuery || ''}
         unfilteredRoot={appSizeData.treemap.root}
+        missingDsymBinaries={missingDsymBinaries}
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
