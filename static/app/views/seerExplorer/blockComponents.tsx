@@ -111,8 +111,6 @@ function BlockComponent({
     selectedLinkIndexRef.current = selectedLinkIndex;
   }, [selectedLinkIndex]);
 
-  const projectSlugs = projects.map(p => ({id: String(p.id), slug: p.slug}));
-
   // Get valid tool links with their corresponding tool call indices
   const validToolLinksWithIndices = (block.tool_links || [])
     .map(link => {
@@ -120,7 +118,7 @@ function BlockComponent({
         call => link && call.function === link.kind
       );
       const canBuildUrl =
-        link && buildToolLinkUrl(link, organization.slug, projectSlugs) !== null;
+        link && buildToolLinkUrl(link, organization.slug, projects) !== null;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
         return {link, toolCallIndex};
@@ -184,7 +182,7 @@ function BlockComponent({
         const currentIndex = selectedLinkIndexRef.current;
         const selectedLink = validToolLinks[currentIndex];
         if (selectedLink) {
-          const url = buildToolLinkUrl(selectedLink, organization.slug, projectSlugs);
+          const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
             navigate(url);
           }
@@ -199,7 +197,7 @@ function BlockComponent({
     hasValidLinks,
     validToolLinks,
     organization.slug,
-    projectSlugs,
+    projects,
     navigate,
     onRegisterEnterHandler,
   ]);
@@ -218,7 +216,7 @@ function BlockComponent({
     // Navigate to the clicked link
     const selectedLink = validToolLinks[linkIndex];
     if (selectedLink) {
-      const url = buildToolLinkUrl(selectedLink, organization.slug, projectSlugs);
+      const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
         navigate(url);
         onNavigate?.();
