@@ -80,35 +80,32 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     dataset: Dataset
 
     def __init__(
-        self, manager: DeletionTaskManager, groups: Sequence[Group], **kwargs: Any
+        self, manager: DeletionTaskManager, groups: Sequence[Group | tuple[Any, ...]], **kwargs: Any
     ) -> None:
-        self.groups = groups
         # Use self.last_event to keep track of the last event processed in the chunk method.
         self.last_event: Event | None = None
-        self.set_group_and_project_ids()
+        self.set_group_and_project_ids(groups)
         super().__init__(manager, **kwargs)
 
-    def set_group_and_project_ids(self) -> None:
-        group_ids = []
-        self.project_groups: defaultdict[int, list[Group | tuple[Any, ...]]] = defaultdict(list)
-        for group in self.groups:
+    def set_group_and_project_ids(self, groups: Sequence[Group | tuple[Any, ...]]) -> None:
+        # Deletion tasks always belong to the same organization.
+        if not options.get("deletions.fetch-subset-of-fields"):
+            self.organization_id = groups[0].project.organization_id
+        else:
+            self.organization_id = groups[0][_F_IDX["project__organization_id"]]
+
+        self.project_groups = defaultdict(list)
+        for group in groups:
             if isinstance(group, Group):
                 self.project_groups[group.project_id].append(group)
-                group_ids.append(group.id)
             else:
                 self.project_groups[group[_F_IDX["project_id"]]].append(group)
-                group_ids.append(group[_F_IDX["id"]])
-        self.group_ids = group_ids
-        self.project_ids = list(self.project_groups.keys())
 
     @property
     def tenant_ids(self) -> Mapping[str, Any]:
         result = {"referrer": self.referrer}
-        if self.groups:
-            if not options.get("deletions.fetch-subset-of-fields"):
-                result["organization_id"] = self.groups[0].project.organization_id
-            else:
-                result["organization_id"] = self.groups[0][_F_IDX["project__organization_id"]]
+        if self.organization_id:
+            result["organization_id"] = self.organization_id
         return result
 
     def chunk(self, apply_filter: bool = False) -> bool:
