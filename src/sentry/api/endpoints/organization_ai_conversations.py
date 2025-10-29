@@ -2,6 +2,7 @@ import json  # noqa: S003
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, cast
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -196,7 +197,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
 
         return conversations
 
-    def _get_aggregations(self, snuba_params, conversation_ids: list[str]) -> dict:
+    def _get_aggregations(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
         """
         Get aggregated metrics for conversations (query 2).
         """
@@ -229,9 +230,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             "[ai-conversations] Got complete aggregations for conversations",
             extra={"results": json.dumps(results)},
         )
-        return results
+        return cast(dict[str, Any], results)
 
-    def _get_enrichment_data(self, snuba_params, conversation_ids: list[str]) -> dict:
+    def _get_enrichment_data(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
         """
         Get enrichment data (flows and trace IDs) for conversations (query 3).
         """
@@ -260,7 +261,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             "[ai-conversations] Got all spans results",
             extra={"all_spans_results": json.dumps(all_spans_results)},
         )
-        return all_spans_results
+        return cast(dict[str, Any], all_spans_results)
 
     def _apply_enrichment(self, conversations: list[dict], enrichment_data: dict) -> None:
         """
