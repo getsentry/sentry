@@ -1,7 +1,4 @@
-import type {
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
 
@@ -29,7 +26,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: DocsParams) => [
+  configure: params => [
     {
       type: StepType.CONFIGURE,
       content: [
