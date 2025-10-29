@@ -1,11 +1,12 @@
 import {ThemeProvider, type Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import PreventAIOnboarding from './onboarding';
 
@@ -20,6 +21,7 @@ jest.mock(
   () => 'prevent-pr-comments-dark-mock.svg',
   {virtual: true}
 );
+jest.mock('sentry/utils/analytics');
 
 describe('PreventAIOnboarding', () => {
   const organization = OrganizationFixture({
@@ -81,11 +83,16 @@ describe('PreventAIOnboarding', () => {
     expect(screen.getByRole('heading', {name: 'Setup Seer'})).toBeInTheDocument();
   });
 
-  it('renders external links with correct hrefs', () => {
+  it('renders external links with correct hrefs', async () => {
     render(<PreventAIOnboarding />, {organization});
 
     const orgSettingsLink = screen.getByRole('link', {name: 'organization settings'});
     expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org/#hideAiFeatures');
+    await userEvent.click(orgSettingsLink);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'prevent.ai_onboarding.settings_link.clicked',
+      {organization}
+    );
 
     const sentryGitHubAppLink = screen.getByRole('link', {
       name: 'Sentry GitHub App',
@@ -93,6 +100,11 @@ describe('PreventAIOnboarding', () => {
     expect(sentryGitHubAppLink).toHaveAttribute(
       'href',
       '/settings/test-org/integrations/github/'
+    );
+    await userEvent.click(sentryGitHubAppLink);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'prevent.ai_onboarding.github_integration_link.clicked',
+      {organization}
     );
 
     const githubIntegrationLink = screen.getByRole('link', {
@@ -102,14 +114,29 @@ describe('PreventAIOnboarding', () => {
       'href',
       'https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github'
     );
+    await userEvent.click(githubIntegrationLink);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'prevent.ai_onboarding.github_docs_link.clicked',
+      {organization}
+    );
 
     const seerLink = screen.getByRole('link', {name: 'Seer by Sentry GitHub App'});
     expect(seerLink).toHaveAttribute('href', 'https://github.com/apps/seer-by-sentry');
+    await userEvent.click(seerLink);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'prevent.ai_onboarding.seer_app_link.clicked',
+      {organization}
+    );
 
     const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
     expect(learnMoreLink).toHaveAttribute(
       'href',
       'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
+    );
+    await userEvent.click(learnMoreLink);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'prevent.ai_onboarding.ai_code_review_docs_link.clicked',
+      {organization}
     );
   });
 
