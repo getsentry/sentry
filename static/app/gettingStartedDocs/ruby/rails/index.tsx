@@ -3,6 +3,7 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {logs} from 'sentry/gettingStartedDocs/ruby/ruby/logs';
 import {profiling} from 'sentry/gettingStartedDocs/ruby/ruby/profiling';
 
 import {crashReport} from './crashReport';
