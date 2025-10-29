@@ -116,6 +116,14 @@ describe('ProjectSeer', () => {
       method: 'GET',
       body: seerPreferencesResponse,
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      method: 'GET',
+      body: {
+        integrations: [],
+      },
+    });
   });
 
   afterEach(() => {
@@ -157,7 +165,7 @@ describe('ProjectSeer', () => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             automated_run_stopping_point: 'root_cause',
             repositories: [
               {
@@ -183,7 +191,7 @@ describe('ProjectSeer', () => {
                 branch_overrides: [],
               },
             ],
-          },
+          }),
         })
       );
     });
@@ -219,7 +227,7 @@ describe('ProjectSeer', () => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             automated_run_stopping_point: 'root_cause',
             repositories: [
               {
@@ -234,7 +242,7 @@ describe('ProjectSeer', () => {
                 branch_overrides: [],
               },
             ],
-          },
+          }),
         })
       );
     });
@@ -267,10 +275,10 @@ describe('ProjectSeer', () => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             automated_run_stopping_point: 'root_cause',
             repositories: [],
-          },
+          }),
         })
       );
     });
@@ -430,6 +438,7 @@ describe('ProjectSeer', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             automated_run_stopping_point: 'code_changes',
+            repositories: expect.any(Array),
           }),
         })
       );
