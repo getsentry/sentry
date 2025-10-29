@@ -1,36 +1,8 @@
-Please also reference the following documents as needed. In this case, `@` stands for the project root directory.
-
-<Documents>
-  <Document>
-    <Path>@.codex/memories/backend-integrations.md</Path>
-    <FilePatterns>src/sentry/integrations/**/*.py, tests/sentry/integrations/**/*.py</FilePatterns>
-  </Document>
-  <Document>
-    <Path>@.codex/memories/backend-overview.md</Path>
-    <Description>Backend development patterns and best practices</Description>
-    <FilePatterns>src/**/*.py, tests/**/*.py, **/test_*.py</FilePatterns>
-  </Document>
-  <Document>
-    <Path>@.codex/memories/backend-tests.md</Path>
-    <FilePatterns>tests/**/*.py, **/test_*.py</FilePatterns>
-  </Document>
-  <Document>
-    <Path>@.codex/memories/frontend-overview.md</Path>
-    <FilePatterns>static/**/*.ts, static/**/*.tsx, static/**/*.js, static/**/*.jsx, static/**/*.css, static/**/*.less</FilePatterns>
-  </Document>
-  <Document>
-    <Path>@.codex/memories/python-development.md</Path>
-    <FilePatterns>src/**/*.py, tests/**/*.py, **/test_*.py</FilePatterns>
-  </Document>
-  <Document>
-    <Path>@.codex/memories/typescript-tests.md</Path>
-    <FilePatterns>**/*.spec.tsx, **/*.spec.ts, **/*.test.tsx, **/*.test.ts</FilePatterns>
-  </Document>
-</Documents>
-
-# Additional Conventions Beyond the Built-in Functions
-
-As this project's AI coding tool, you must follow the additional conventions below, in addition to the built-in functions.
+---
+root: true
+globs:
+  - '**/*'
+---
 
 # Sentry Development Guide
 
