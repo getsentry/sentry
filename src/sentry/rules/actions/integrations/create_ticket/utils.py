@@ -24,6 +24,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationFormError,
+    IntegrationProviderError,
     IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import region_silo_function
@@ -185,6 +186,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 InvalidIdentity,
                 ApiUnauthorized,
                 IntegrationResourceNotFoundError,
+                IntegrationProviderError,
             ) as e:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.

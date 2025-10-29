@@ -31,6 +31,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
+    IntegrationProviderError,
 )
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
@@ -319,6 +320,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             except IntegrationError as e:
                 lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
+            except IntegrationProviderError as exc:
+                lifecycle.record_halt(exc)
+                return Response(
+                    {
+                        "detail": f"Something went wrong while communicating with {integration.provider}"
+                    },
+                    status=503,
+                )
 
         external_issue_key = installation.make_external_key(data)
         external_issue, created = ExternalIssue.objects.get_or_create(
