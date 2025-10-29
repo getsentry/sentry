@@ -358,41 +358,39 @@ function SubtotalSummary({
       </Flex>
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
         !!formData.onDemandMaxSpend && (
-          <Flex align="start" data-test-id="summary-item-spend-limit">
-            <ItemFlex>
-              <Text>
-                {tct('[budgetTerm] spend limit', {
-                  budgetTerm: displayBudgetName(activePlan, {title: true}),
+          <Flex justify="between" align="start" data-test-id="summary-item-spend-limit">
+            <Text>
+              {tct('[budgetTerm] spend limit', {
+                budgetTerm: displayBudgetName(activePlan, {title: true}),
+              })}
+            </Text>
+            <Flex direction="column" gap="sm" align="end">
+              <Text align="right">
+                {tct('up to [pricePerMonth]', {
+                  pricePerMonth: `${utils.displayPrice({
+                    cents: formData.onDemandMaxSpend,
+                  })}/mo`,
                 })}
               </Text>
-              <Flex direction="column" gap="sm" align="end">
-                <Text align="right">
-                  {tct('up to [pricePerMonth]', {
-                    pricePerMonth: `${utils.displayPrice({
-                      cents: formData.onDemandMaxSpend,
-                    })}/mo`,
-                  })}
-                </Text>
-                <AnimatePresence>
-                  {shouldShowDefaultPaygTag && (
-                    <motion.div
-                      initial={{opacity: 0, y: -10}}
-                      animate={{opacity: 1, y: 0}}
-                      exit={{opacity: 0, y: -10}}
-                      transition={{
-                        type: 'spring',
-                        duration: 0.4,
-                        bounce: 0.1,
-                      }}
-                    >
-                      <Tag icon={<IconSentry size="xs" />} type="info">
-                        <Text size="xs">{t('Default Amount')}</Text>
-                      </Tag>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Flex>
-            </ItemFlex>
+              <AnimatePresence>
+                {shouldShowDefaultPaygTag && (
+                  <motion.div
+                    initial={{opacity: 0, y: -10}}
+                    animate={{opacity: 1, y: 0}}
+                    exit={{opacity: 0, y: -10}}
+                    transition={{
+                      type: 'spring',
+                      duration: 0.4,
+                      bounce: 0.1,
+                    }}
+                  >
+                    <Tag icon={<IconSentry size="xs" />} type="info">
+                      <Text size="xs">{t('Default Amount')}</Text>
+                    </Tag>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Flex>
           </Flex>
         )}
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
