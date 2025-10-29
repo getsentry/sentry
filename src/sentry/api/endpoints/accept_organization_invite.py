@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 
 from django.contrib.auth import logout
-from django.http import HttpRequest, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -120,7 +120,7 @@ class AcceptOrganizationInvite(Endpoint):
         member_id: int,
         token: str,
         organization_id_or_slug: int | str | None = None,
-    ) -> Response:
+    ) -> Response | HttpResponse:
 
         # Demo user cant accept invites, this invite is probably meant for another user
         # so we log out the demo user and redirect them to the logout
