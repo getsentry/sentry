@@ -56,6 +56,7 @@ const BodyContainer = styled('div')`
   padding: ${p => p.theme.space.md};
   padding-top: 0;
   height: 320px;
+  container-type: inline-size;
 `;
 
 const StyledTabPanels = styled(TabPanels)`

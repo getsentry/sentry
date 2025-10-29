@@ -7,6 +7,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
+import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 interface MetricPanelProps {
@@ -15,7 +16,10 @@ interface MetricPanelProps {
 }
 
 const MIN_LEFT_WIDTH = 400;
-const MIN_RIGHT_WIDTH = 400;
+
+// Defined by the size of the expected samples tab component
+const PADDING_SIZE = 16;
+const MIN_RIGHT_WIDTH = SAMPLES_PANEL_MIN_WIDTH + PADDING_SIZE;
 
 export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const measureRef = useRef<HTMLDivElement>(null);
@@ -27,8 +31,12 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   });
 
   const hasSize = width > 0;
-  // Default split is 60% of the available width, but not less than MIN_LEFT_WIDTH.
-  const defaultSplit = Math.min(width * 0.625, width - MIN_LEFT_WIDTH);
+  // Default split is 65% of the available width, but not less than MIN_LEFT_WIDTH
+  // and at most the maximum size allowed for the left panel (i.e. width - MIN_RIGHT_WIDTH)
+  const defaultSplit = Math.min(
+    Math.max(width * 0.65, MIN_LEFT_WIDTH),
+    width - MIN_RIGHT_WIDTH
+  );
 
   return (
     <Panel>
