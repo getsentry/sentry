@@ -493,7 +493,7 @@ def send_group_and_stacktrace_to_seer(
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
         # Get model configuration from feature flags
-        project = Project.objects.get(id=project_id)
+        project = Project.objects.get_from_cache(id=project_id)
         use_v2_model = features.has("projects:similarity-grouping-v2-model", project)
         model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
         training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic
@@ -518,7 +518,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
     project_id,
 ):
     # Get model configuration from feature flags
-    project = Project.objects.get(id=project_id)
+    project = Project.objects.get_from_cache(id=project_id)
     use_v2_model = features.has("projects:similarity-grouping-v2-model", project)
     model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
     training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic

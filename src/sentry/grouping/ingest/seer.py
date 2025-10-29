@@ -291,9 +291,9 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {
+    seer_request_metric_tags: dict[str, str | int | bool] = {
         "platform": event.platform or "unknown",
-        "model_version": model_version,
+        "model_version": model_version.value,
         "training_mode": training_mode,
     }
 

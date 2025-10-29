@@ -66,7 +66,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
             },
             {
                 "platform": "python",
-                "model_version": GroupingVersion.V1,
+                "model_version": "v1",
                 "training_mode": False,
                 "hybrid_fingerprint": False,
             },
@@ -195,7 +195,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
             },
             {
                 "platform": "python",
-                "model_version": GroupingVersion.V1,
+                "model_version": "v1",
                 "training_mode": False,
                 "hybrid_fingerprint": False,
             },
