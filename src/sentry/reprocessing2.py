@@ -92,7 +92,7 @@ from django.conf import settings
 from django.db import router
 
 from sentry import models, nodestore, options
-from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.models.eventattachment import EventAttachment
 from sentry.services import eventstore
@@ -102,6 +102,7 @@ from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger("sentry.reprocessing")
@@ -210,19 +211,11 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     event = reprocessable_event.event
     attachments = reprocessable_event.attachments
 
-    # Step 1: Fix up the event payload for reprocessing and put it in event
-    # cache/event_processing_store
-    set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
-    set_path(
-        data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
-    )
-    cache_key = event_processing_store.store(data)
-
-    # Step 2: Copy attachments into attachment cache. Note that we can only
+    # Step 1: Copy attachments into attachment cache. Note that we can only
     # consider minidumps because filestore just stays as-is after reprocessing
     # (we simply update group_id on the EventAttachment models in post_process)
+    cache_key = cache_key_for_event(data)
     attachment_objects = []
-
     for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
             span.set_data("attachment_id", attachment.id)
@@ -236,8 +229,15 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
             )
 
     if attachment_objects:
-        with sentry_sdk.start_span(op="reprocess_event.set_attachment_meta"):
-            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+        store_attachments_for_event(data, attachment_objects, timeout=CACHE_TIMEOUT)
+
+    # Step 2: Fix up the event payload for reprocessing and put it in event
+    # cache/event_processing_store
+    set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
+    set_path(
+        data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
+    )
+    event_processing_store.store(data)
 
     preprocess_event_from_reprocessing(
         cache_key=cache_key,
