@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './rails';
+import docs from '.';
 
 describe('rails onboarding docs', () => {
   it('renders errors onboarding doc correctly', () => {

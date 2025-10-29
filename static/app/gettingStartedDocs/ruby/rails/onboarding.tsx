@@ -1,33 +1,18 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-  getCrashReportSDKInstallFirstBlocksRails,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {logs} from 'sentry/gettingStartedDocs/ruby/ruby/logs';
-import {profiling} from 'sentry/gettingStartedDocs/ruby/ruby/profiling';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getInstallSnippet = (
-  params: Params
-) => `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"
+const getInstallSnippet = (params: DocsParams) =>
+  `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"
 gem "sentry-rails"`;
 
 const generatorSnippet = 'bin/rails generate sentry';
 
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 Sentry.init do |config|
   config.dsn = '${params.dsn.public}'
   config.breadcrumbs_logger = [:active_support_logger, :http_logger]
@@ -76,12 +61,12 @@ end
 
 Sentry.capture_message("test message")`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     t(
       'In Rails, all uncaught exceptions will be automatically reported. We support Rails 5 and newer.'
     ),
-  install: (params: Params) => [
+  install: (params: DocsParams) => [
     {
       type: StepType.INSTALL,
       content: [
@@ -129,7 +114,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -184,75 +169,3 @@ const onboarding: OnboardingConfig = {
   ],
   nextSteps: () => [],
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            "In Rails, being able to serve dynamic pages in response to errors is required to pass the needed [codeEvent:event_id] to the JavaScript SDK. [link:Read our docs] to learn more. Once you're able to serve dynamic exception pages, you can support user feedback.",
-            {
-              codeEvent: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/#integration" />
-              ),
-            }
-          ),
-        },
-        ...getCrashReportSDKInstallFirstBlocksRails(params),
-        {
-          type: 'text',
-          text: t('Additionally, you need the template that brings up the dialog:'),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'ERB',
-              language: 'erb',
-              code: `<% sentry_id = request.env["sentry.error_event_id"] %>
-<% if sentry_id.present? %>
-<script>
-Sentry.init({ dsn: "${params.dsn.public}" });
-Sentry.showReportDialog({ eventId: "<%= sentry_id %>" });
-</script>
-<% end %>`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-  profilingOnboarding: profiling({frameworkPackage: 'sentry-rails'}),
-  logsOnboarding: logs({
-    docsPlatform: 'rails',
-  }),
-};
-
-export default docs;
