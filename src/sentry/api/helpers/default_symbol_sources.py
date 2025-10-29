@@ -46,25 +46,27 @@ def set_default_symbol_sources(
     enabled_sources = []
     for source_key in source_keys:
         source_config = settings.SENTRY_BUILTIN_SOURCES.get(source_key)
-        if not source_config:
-            continue
 
-        # Check if source has platform restrictions
-        required_platforms: list[str] | None = source_config.get("platforms")
-        if required_platforms:
-            # Source is platform-restricted - check if org has access
-            enabled_console_platforms = organization.get_option(
-                "sentry:enabled_console_platforms", ENABLED_CONSOLE_PLATFORMS_DEFAULT
-            )
+        # If source exists in config, check for platform restrictions
+        if source_config:
+            required_platforms: list[str] | None = source_config.get("platforms")
+            if required_platforms:
+                # Source is platform-restricted - check if org has access
+                enabled_console_platforms = organization.get_option(
+                    "sentry:enabled_console_platforms", ENABLED_CONSOLE_PLATFORMS_DEFAULT
+                )
 
-            # Only add source if org has access to at least one of the required platforms
-            has_access = any(
-                platform in enabled_console_platforms for platform in required_platforms
-            )
-            if not has_access:
-                continue
+                # Only add source if org has access to at least one of the required platforms
+                has_access = any(
+                    platform in enabled_console_platforms for platform in required_platforms
+                )
+                if not has_access:
+                    continue
 
+        # Include the source (either it passed platform check or doesn't exist in config)
+        # Non-existent sources will be filtered out at runtime in sources.py
         enabled_sources.append(source_key)
 
-    if enabled_sources:
-        project.update_option("sentry:builtin_symbol_sources", enabled_sources)
+    # Always update the option for recognized platforms, even if empty
+    # This ensures platform-specific defaults override epoch defaults
+    project.update_option("sentry:builtin_symbol_sources", enabled_sources)
