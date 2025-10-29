@@ -31,7 +31,11 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import type {
+  ParseResultToken,
+  Token,
+  TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -130,7 +134,9 @@ function useFilterKeyItems() {
 
 function useFilterKeySections({
   recentSearches,
+  filterItem,
 }: {
+  filterItem: Node<ParseResultToken>;
   recentSearches: RecentSearch[] | undefined;
 }) {
   const {filterKeySections, query, disallowLogicalOperators} = useSearchQueryBuilder();
@@ -149,20 +155,22 @@ function useFilterKeySections({
       return [];
     }
 
+    const isFirstItem = filterItem.key.toString().endsWith(':0');
     if (recentSearches?.length && !query) {
       const recentSearchesSections: Section[] = [
         RECENT_SEARCH_CATEGORY,
         ALL_CATEGORY,
         ...definedSections,
       ];
-      if (!disallowLogicalOperators && hasConditionalsInCombobox) {
+
+      if (!disallowLogicalOperators && !isFirstItem && hasConditionalsInCombobox) {
         recentSearchesSections.push(BOOLEAN_CATEGORY);
       }
       return recentSearchesSections;
     }
 
     const customSections: Section[] = [ALL_CATEGORY, ...definedSections];
-    if (!disallowLogicalOperators && hasConditionalsInCombobox) {
+    if (!disallowLogicalOperators && !isFirstItem && hasConditionalsInCombobox) {
       customSections.push(BOOLEAN_CATEGORY);
     }
 
@@ -171,6 +179,7 @@ function useFilterKeySections({
     disallowLogicalOperators,
     filterKeySections,
     hasConditionalsInCombobox,
+    filterItem.key,
     query,
     recentSearches?.length,
   ]);
@@ -196,7 +205,12 @@ const conditionalFilterItems = [
   createBooleanFilterItem({value: 'OR'}),
 ];
 
-export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
+interface UseFilterKeyListBoxArgs {
+  filterItem: Node<ParseResultToken>;
+  filterValue: string;
+}
+
+export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListBoxArgs) {
   const {
     filterKeys,
     getFieldDefinition,
@@ -212,6 +226,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const {data: recentSearches} = useRecentSearches();
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({
     recentSearches,
+    filterItem,
   });
 
   const organization = useOrganization();
