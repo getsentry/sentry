@@ -88,12 +88,12 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def set_group_and_project_ids(self, groups: Sequence[Group | tuple[Any, ...]]) -> None:
         # Deletion tasks always belong to the same organization.
-        if not options.get("deletions.fetch-subset-of-fields"):
+        if isinstance(groups[0], Group):
             self.organization_id = groups[0].project.organization_id
         else:
             self.organization_id = groups[0][_F_IDX["project__organization_id"]]
 
-        self.project_groups = defaultdict(list)
+        self.project_groups: defaultdict[int, list[Group | tuple[Any, ...]]] = defaultdict(list)
         for group in groups:
             if isinstance(group, Group):
                 self.project_groups[group.project_id].append(group)
@@ -120,7 +120,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
         # Schedule nodestore deletion task for each project
         for project_id, groups in self.project_groups.items():
-            if not options.get("deletions.fetch-subset-of-fields"):
+            if all(isinstance(group, Group) for group in groups):
                 sorted_groups = sorted(groups, key=lambda g: (g.times_seen, g.id))
                 sorted_group_ids = [group.id for group in sorted_groups]
                 sorted_times_seen = [group.times_seen for group in sorted_groups]
@@ -220,16 +220,15 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
         return False
 
-    def _delete_children(self, instance_list: Sequence[Group]) -> None:
+    def _delete_children(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> None:
         if not instance_list:
             return
 
-        if not options.get("deletions.fetch-subset-of-fields"):
+        if all(isinstance(group, Group) for group in instance_list):
             group_ids = [group.id for group in instance_list]
             project_id = instance_list[0].project_id
         else:
-            id_index = _F_IDX["id"]
-            group_ids = [group[id_index] for group in instance_list]
+            group_ids = [group[_F_IDX["id"]] for group in instance_list]
             project_id = instance_list[0][_F_IDX["project_id"]]
 
         # Remove child relations for all groups first.
@@ -238,7 +237,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-        if not options.get("deletions.fetch-subset-of-fields"):
+        if all(isinstance(group, Group) for group in error_groups):
             error_group_ids = [group.id for group in error_groups]
             issue_platform_group_ids = [group.id for group in issue_platform_groups]
         else:
@@ -265,21 +264,19 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     def delete_instance(self, instance: Group | tuple[Any, ...]) -> None:
         from sentry import similarity
 
-        if options.get("deletions.fetch-subset-of-fields"):
-            # We need to fetch the full Group object to be deleted.
-            instance = Group.objects.get(id=instance[0])
+        if isinstance(instance, tuple):
+            instance = Group.objects.get(id=instance[_F_IDX["id"]])
 
         if not self.skip_models or similarity not in self.skip_models:
             similarity.delete(None, instance)
 
         return super().delete_instance(instance)
 
-    def mark_deletion_in_progress(self, instance_list: Sequence[Group]) -> None:
-        if not options.get("deletions.fetch-subset-of-fields"):
+    def mark_deletion_in_progress(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> None:
+        if all(isinstance(group, Group) for group in instance_list):
             group_ids = [group.id for group in instance_list]
         else:
-            id_index = _F_IDX["id"]
-            group_ids = [group[id_index] for group in instance_list]
+            group_ids = [group[_F_IDX["id"]] for group in instance_list]
         Group.objects.filter(id__in=group_ids).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
@@ -356,23 +353,22 @@ def delete_group_hashes(
         )
 
 
-def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
-    error_groups = []
-    issue_platform_groups = []
+def separate_by_group_category(
+    instance_list: Sequence[Group | tuple[Any, ...]],
+) -> tuple[list[Group | tuple[Any, ...]], list[Group | tuple[Any, ...]]]:
+    error_groups: list[Group | tuple[Any, ...]] = []
+    issue_platform_groups: list[Group | tuple[Any, ...]] = []
 
     # Return early if the list is empty
     if not instance_list:
         return error_groups, issue_platform_groups
-
-    # Determine the actual type of items by checking the first item
-    is_group = isinstance(instance_list[0], Group)
 
     for group in instance_list:
         # XXX: If a group type has been removed, we shouldn't error here.
         # Ideally, we should refactor `issue_category` to return None if the type is
         # unregistered.
         try:
-            if is_group:
+            if isinstance(group, Group):
                 issue_category = group.issue_category
             else:
                 # When fetching subset of fields, we get the raw type ID
