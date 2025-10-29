@@ -5,6 +5,7 @@ import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echar
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -21,6 +22,7 @@ import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering'
 interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
+  missingDsymBinaries?: string[];
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -28,10 +30,12 @@ interface AppSizeTreemapProps {
 function FullscreenModalContent({
   unfilteredRoot,
   initialSearch,
+  missingDsymBinaries,
   onSearchChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
+  missingDsymBinaries?: string[];
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
@@ -67,7 +71,11 @@ function FullscreenModalContent({
         )}
       </InputGroup>
       <Container height="100%" width="100%" style={{flex: 1, minHeight: 0}}>
-        <AppSizeTreemap root={filteredRoot} searchQuery={localSearch} />
+        <AppSizeTreemap
+          root={filteredRoot}
+          searchQuery={localSearch}
+          missingDsymBinaries={missingDsymBinaries}
+        />
       </Container>
     </Flex>
   );
@@ -75,7 +83,7 @@ function FullscreenModalContent({
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root, searchQuery, unfilteredRoot, onSearchChange} = props;
+  const {root, searchQuery, unfilteredRoot, missingDsymBinaries, onSearchChange} = props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
@@ -306,66 +314,90 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     },
   };
 
+  const hasMissingDsyms = missingDsymBinaries && missingDsymBinaries.length > 0;
+
+  const getBinariesMessage = () => {
+    if (missingDsymBinaries?.length === 1) {
+      return t(
+        'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
+        missingDsymBinaries[0]
+      );
+    }
+    return t(
+      'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
+      missingDsymBinaries![0]
+    );
+  };
+
   return (
-    <Container
-      height="100%"
-      width="100%"
-      position="relative"
-      onMouseDown={handleContainerMouseDown}
-    >
-      <BaseChart
-        autoHeightResize
-        height={contextHeight}
-        renderer="canvas"
-        xAxis={null}
-        yAxis={null}
-        series={series}
-        visualMap={visualMap}
-        tooltip={tooltip}
-        onChartReady={handleChartReady}
-      />
-      <ButtonContainer
-        direction="row"
-        position="absolute"
-        onMouseDown={e => e.stopPropagation()}
+    <Flex direction="column" gap="sm" height="100%" width="100%">
+      {hasMissingDsyms && <Alert type="warning">{getBinariesMessage()}</Alert>}
+      <Container
+        height="100%"
+        width="100%"
+        position="relative"
+        onMouseDown={handleContainerMouseDown}
+        style={{flex: 1, minHeight: 0}}
       >
-        <Button
-          size="xs"
-          aria-label={t('Recenter View')}
-          title={t('Recenter')}
-          borderless
-          icon={<IconContract />}
-          onClick={handleRecenter}
-          disabled={!isZoomed}
+        <BaseChart
+          autoHeightResize
+          height={contextHeight}
+          renderer="canvas"
+          xAxis={null}
+          yAxis={null}
+          series={series}
+          visualMap={visualMap}
+          tooltip={tooltip}
+          onChartReady={handleChartReady}
         />
-        {!isFullscreen && (
+        <ButtonContainer
+          direction="row"
+          position="absolute"
+          onMouseDown={e => e.stopPropagation()}
+        >
           <Button
             size="xs"
-            aria-label={t('Open Full-Screen View')}
-            title={t('Fullscreen')}
+            aria-label={t('Recenter View')}
+            title={t('Recenter')}
             borderless
-            icon={<IconExpand />}
-            onClick={() => {
-              openInsightChartModal({
-                title: t('Size Analysis'),
-                fullscreen: true,
-                children: unfilteredRoot ? (
-                  <FullscreenModalContent
-                    unfilteredRoot={unfilteredRoot}
-                    initialSearch={searchQuery}
-                    onSearchChange={onSearchChange}
-                  />
-                ) : (
-                  <Container height="100%" width="100%">
-                    <AppSizeTreemap root={root} searchQuery={searchQuery} />
-                  </Container>
-                ),
-              });
-            }}
+            icon={<IconContract />}
+            onClick={handleRecenter}
+            disabled={!isZoomed}
           />
-        )}
-      </ButtonContainer>
-    </Container>
+          {!isFullscreen && (
+            <Button
+              size="xs"
+              aria-label={t('Open Full-Screen View')}
+              title={t('Fullscreen')}
+              borderless
+              icon={<IconExpand />}
+              onClick={() => {
+                openInsightChartModal({
+                  title: t('Size Analysis'),
+                  fullscreen: true,
+                  children: unfilteredRoot ? (
+                    <FullscreenModalContent
+                      unfilteredRoot={unfilteredRoot}
+                      initialSearch={searchQuery}
+                      missingDsymBinaries={missingDsymBinaries}
+                      onSearchChange={onSearchChange}
+                    />
+                  ) : (
+                    <Container height="100%" width="100%">
+                      <AppSizeTreemap
+                        root={root}
+                        searchQuery={searchQuery}
+                        missingDsymBinaries={missingDsymBinaries}
+                      />
+                    </Container>
+                  ),
+                });
+              }}
+            />
+          )}
+        </ButtonContainer>
+      </Container>
+    </Flex>
   );
 }
 

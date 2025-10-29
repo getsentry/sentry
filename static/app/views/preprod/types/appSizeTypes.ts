@@ -8,6 +8,7 @@ export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
   insights?: AppleInsightResults;
+  missing_dsym_binaries?: string[];
 }
 
 // Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/models.py#L382
