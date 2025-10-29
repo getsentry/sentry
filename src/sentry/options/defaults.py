@@ -3501,13 +3501,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "commit.dual-write-start-date",
-    type=String,
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch for linking identities for demo users
 register(
     "identity.prevent-link-identity-for-demo-users.enabled",

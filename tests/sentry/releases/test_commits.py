@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -12,12 +11,10 @@ from sentry.models.repository import Repository
 from sentry.releases.commits import (
     bulk_create_commit_file_changes,
     create_commit,
-    get_dual_write_start_date,
     get_or_create_commit,
 )
 from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 
 
 class CreateCommitDualWriteTest(TestCase):
@@ -440,45 +437,3 @@ class CreateCommitFileChangeDualWriteTest(TestCase):
             ).count()
             == 3
         )
-
-
-class GetDualWriteStartDateTest(TestCase):
-    def test_get_dual_write_start_date_not_set(self):
-        assert get_dual_write_start_date() is None
-
-    def test_get_dual_write_start_date_valid_naive(self):
-        """Test that naive datetime is converted to UTC"""
-        with override_options({"commit.dual-write-start-date": "2024-01-15T10:30:00"}):
-            result = get_dual_write_start_date()
-            assert result is not None
-            assert result.tzinfo is not None
-            assert result == datetime(2024, 1, 15, 10, 30, tzinfo=UTC)
-
-    def test_get_dual_write_start_date_valid_with_timezone(self):
-        """Test that timezone-aware datetime is preserved"""
-        with override_options({"commit.dual-write-start-date": "2024-01-15T10:30:00+05:00"}):
-            result = get_dual_write_start_date()
-            assert result is not None
-            assert result.tzinfo is not None
-            # The datetime should be the same moment in time
-            expected = datetime(2024, 1, 15, 5, 30, tzinfo=UTC)
-            assert result == expected
-
-    def test_get_dual_write_start_date_invalid(self):
-        with override_options({"commit.dual-write-start-date": "not-a-date"}):
-            assert get_dual_write_start_date() is None
-
-    def test_get_dual_write_start_date_empty_string(self):
-        with override_options({"commit.dual-write-start-date": ""}):
-            assert get_dual_write_start_date() is None
-
-    def test_get_dual_write_start_date_comparison_with_django_models(self):
-        """Test that the returned datetime can be compared with Django model datetimes"""
-        with override_options({"commit.dual-write-start-date": "2024-01-15T10:30:00"}):
-            dual_write_start = get_dual_write_start_date()
-            assert dual_write_start is not None
-
-            # Django's timezone.now() returns timezone-aware datetime
-            now = timezone.now()
-            # This comparison should not raise TypeError
-            assert now > dual_write_start
