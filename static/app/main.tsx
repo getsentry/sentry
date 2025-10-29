@@ -5,6 +5,7 @@ import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {SENTRY_RELEASE_VERSION, USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
@@ -29,7 +30,9 @@ function Main() {
         <ThemeAndStyleProvider>
           <SentryTrackingProvider>
             <NuqsAdapter defaultOptions={{shallow: false}}>
-              <RouterProvider router={router} />
+              <CommandPaletteProvider>
+                <RouterProvider router={router} />
+              </CommandPaletteProvider>
             </NuqsAdapter>
           </SentryTrackingProvider>
           {USE_REACT_QUERY_DEVTOOL && (

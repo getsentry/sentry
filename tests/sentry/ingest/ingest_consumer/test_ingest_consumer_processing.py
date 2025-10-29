@@ -25,18 +25,22 @@ from sentry.ingest.consumer.processors import (
     process_userreport,
 )
 from sentry.ingest.types import ConsumerType
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.objectstore import attachments
 from sentry.services import eventstore
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.skips import requires_snuba, requires_symbolicator
+from sentry.testutils.skips import requires_objectstore, requires_snuba, requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
+from sentry.utils.safe import get_path
 
 pytestmark = [requires_snuba]
 
@@ -413,6 +417,81 @@ def test_deobfuscate_view_hierarchy(
         assert attachment.name == "view_hierarchy.json"
         with attachment.getfile() as file:
             assert file.read() == expected_response
+
+
+@django_db_all
+@requires_objectstore
+@requires_symbolicator
+@pytest.mark.symbolicator
+@thread_leak_allowlist(reason="django dev server", issue=97036)
+def test_process_stored_attachment(
+    default_project, task_runner, set_sentry_option, live_server
+) -> None:
+    with set_sentry_option("system.url-prefix", live_server.url):
+        payload = get_normalized_event(
+            {
+                "platform": "native",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "minidump",
+                            "value": "Minidump",
+                            "mechanism": {"type": "minidump", "handled": False, "synthetic": True},
+                        }
+                    ]
+                },
+            },
+            default_project,
+        )
+        event_id = payload["event_id"]
+        attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+        project_id = default_project.id
+        start_time = time.time() - 3600
+
+        default_project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
+
+        with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
+            attachment_payload = f.read()
+
+        stored_id = attachments.for_project(default_project.organization_id, project_id).put(
+            attachment_payload
+        )
+
+        with task_runner():
+            process_event(
+                ConsumerType.Events,
+                {
+                    "payload": orjson.dumps(payload).decode(),
+                    "start_time": start_time,
+                    "event_id": event_id,
+                    "project_id": project_id,
+                    "remote_addr": "127.0.0.1",
+                    "attachments": [
+                        {
+                            "id": attachment_id,
+                            "name": "test.dmp",
+                            "content_type": "application/octet-stream",
+                            "attachment_type": "event.minidump",
+                            "size": len(attachment_payload),
+                            "stored_id": stored_id,
+                        }
+                    ],
+                },
+                project=default_project,
+            )
+
+        persisted_attachments = list(
+            EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+        )
+        (attachment,) = persisted_attachments
+        assert attachment.name == "test.dmp"
+        with attachment.getfile() as file:
+            assert file.read() == attachment_payload
+
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
+        assert event
+        thread_name = get_path(event.data, "threads", "values", 1, "name")
+        assert thread_name == "sentry-http"
 
 
 @django_db_all
