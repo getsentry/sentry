@@ -1,15 +1,11 @@
 import type {
-  Docs,
+  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t} from 'sentry/locale';
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -33,7 +29,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: params => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -92,11 +88,3 @@ Sentry.init({
   ],
   nextSteps: () => [],
 };
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  feedbackOnboardingJsLoader,
-};
-
-export default docs;
