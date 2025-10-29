@@ -31,7 +31,7 @@ EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
 
 # These fields are to reduce how much data we fetch from the database.
-FIELDS_TO_FETCH = ["id", "project_id", "times_seen", "type"]
+FIELDS_TO_FETCH = ["id", "project_id", "times_seen", "type", "project__organization_id"]
 _F_IDX = {field: index for index, field in enumerate(FIELDS_TO_FETCH)}
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -108,8 +108,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             if not options.get("deletions.fetch-subset-of-fields"):
                 result["organization_id"] = self.groups[0].project.organization_id
             else:
-                project_id = self.groups[0][_F_IDX["project_id"]]
-                result["organization_id"] = Project.objects.get(id=project_id).organization_id
+                result["organization_id"] = self.groups[0][_F_IDX["project__organization_id"]]
         return result
 
     def chunk(self, apply_filter: bool = False) -> bool:
@@ -206,7 +205,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
             if options.get("deletions.fetch-subset-of-fields"):
                 # This reduces the number of fields fetched from the database
-                return list(queryset.values_list(*FIELDS_TO_FETCH)[:query_limit])
+                return list(queryset.values(*FIELDS_TO_FETCH)[:query_limit])
             return list(queryset[:query_limit])
             # If there are no more rows we are all done.
             if not queryset:
