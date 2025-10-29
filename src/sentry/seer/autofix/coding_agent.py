@@ -7,7 +7,7 @@ import string
 import orjson
 from django.conf import settings
 from requests import HTTPError
-from rest_framework.exceptions import APIException, NotFound, ValidationError
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -299,9 +299,9 @@ def launch_coding_agents_for_run(
     integration_id: int,
     run_id: int,
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
-) -> dict:
+) -> None:
     """
-    Shared function to launch coding agents for an autofix run.
+    Launch coding agents for an autofix run.
 
     Args:
         organization_id: The organization ID
@@ -309,27 +309,25 @@ def launch_coding_agents_for_run(
         run_id: The autofix run ID
         trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
 
-    Returns:
-        dict: {"success": bool, "detail": str (optional)}
+    Raises:
+        NotFound: If organization, integration, autofix state, or repos are not found
+        PermissionDenied: If feature is not enabled for the organization
+        ValidationError: If integration is invalid
+        APIException: If there's an error launching agents
     """
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
-        return {"success": False, "detail": "Organization not found"}
+        raise NotFound("Organization not found")
 
     if not features.has("organizations:seer-coding-agent-integrations", organization):
-        return {"success": False, "detail": "Feature not available"}
+        raise PermissionDenied("Feature not available")
 
-    try:
-        integration, installation = _validate_and_get_integration(organization, integration_id)
-    except NotFound as e:
-        return {"success": False, "detail": str(e)}
-    except ValidationError as e:
-        return {"success": False, "detail": str(e)}
+    integration, installation = _validate_and_get_integration(organization, integration_id)
 
     autofix_state = _get_autofix_state(run_id, organization)
     if autofix_state is None:
-        return {"success": False, "detail": "Autofix state not found"}
+        raise NotFound("Autofix state not found")
 
     logger.info(
         "coding_agent.launch_request",
@@ -340,17 +338,12 @@ def launch_coding_agents_for_run(
         },
     )
 
-    try:
-        results = _launch_agents_for_repos(
-            installation, autofix_state, run_id, organization, trigger_source
-        )
-    except NotFound as e:
-        return {"success": False, "detail": str(e)}
-    except APIException as e:
-        return {"success": False, "detail": str(e)}
+    results = _launch_agents_for_repos(
+        installation, autofix_state, run_id, organization, trigger_source
+    )
 
     if not results:
-        return {"success": False, "detail": "No agents were launched"}
+        raise APIException("No agents were launched")
 
     logger.info(
         "coding_agent.launch_success",
@@ -362,5 +355,3 @@ def launch_coding_agents_for_run(
             "repos_processed": len(results),
         },
     )
-
-    return {"success": True}

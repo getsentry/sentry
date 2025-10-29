@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -80,25 +80,11 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         integration_id = validated["integration_id"]
         trigger_source = validated["trigger_source"]
 
-        result = launch_coding_agents_for_run(
+        launch_coding_agents_for_run(
             organization_id=organization.id,
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=trigger_source,
         )
-
-        if not result["success"]:
-            # Map error messages to appropriate HTTP status codes
-            detail = result.get("detail", "Unknown error")
-            if detail == "Feature not available":
-                status_code = status.HTTP_404_NOT_FOUND
-            elif detail in ["Integration not found", "Autofix state not found"]:
-                status_code = status.HTTP_400_BAD_REQUEST
-            elif detail == "No agents were launched":
-                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            else:
-                status_code = status.HTTP_400_BAD_REQUEST
-
-            return self.respond({"detail": detail}, status=status_code)
 
         return self.respond({"success": True})
