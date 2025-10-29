@@ -1,14 +1,12 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import {
-  StepType,
-  type BasePlatformOptions,
-  type OnboardingConfig,
+import type {
+  BasePlatformOptions,
+  OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-export const getRubyLogsOnboarding = <
-  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
->({
+export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformOptions>({
   docsPlatform,
 }: {
   docsPlatform: string;
