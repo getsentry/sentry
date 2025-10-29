@@ -73,10 +73,11 @@ class ActionHandlerSerializer(Serializer):
                 "installationId": str(installation.id),
                 "installationUuid": str(installation.uuid),
                 "status": installation.sentry_app.status,
-                "settings": component.app_schema.get("settings", {}) if component else None,
             }
-            if component.app_schema.get("title"):
-                sentry_app["title"] = component.app_schema.get("title")
+            if component:
+                sentry_app["settings"] = component.app_schema.get("settings", {})
+                if component.app_schema.get("title"):
+                    sentry_app["title"] = component.app_schema.get("title")
             result["sentryApp"] = sentry_app
 
         services = kwargs.get("services")
