@@ -12,6 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
@@ -556,47 +557,49 @@ export default function IntegrationDetailedView() {
   }
 
   return (
-    <IntegrationLayout.Body
-      integrationName={integrationName}
-      alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
-      topSection={
-        <IntegrationLayout.TopSection
-          featureData={featureData}
-          integrationName={integrationName}
-          installationStatus={installationStatus}
-          integrationIcon={<PluginIcon pluginId={integrationSlug} size={50} />}
-          addInstallButton={
-            <IntegrationLayout.AddInstallButton
-              featureData={featureData}
-              hideButtonIfDisabled={false}
-              requiresAccess
-              renderTopButton={renderTopButton}
-            />
-          }
-          additionalCTA={
-            <FirstPartyIntegrationAdditionalCTA integrations={configurations} />
-          }
-        />
-      }
-      tabs={renderTabs()}
-      content={
-        activeTab === 'overview' ? (
-          <IntegrationLayout.InformationCard
-            integrationSlug={integrationSlug}
-            description={description}
-            alerts={alerts}
+    <SentryDocumentTitle title={integrationName}>
+      <IntegrationLayout.Body
+        integrationName={integrationName}
+        alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
+        topSection={
+          <IntegrationLayout.TopSection
             featureData={featureData}
-            author={author}
-            resourceLinks={resourceLinks}
-            permissions={null}
+            integrationName={integrationName}
+            installationStatus={installationStatus}
+            integrationIcon={<PluginIcon pluginId={integrationSlug} size={50} />}
+            addInstallButton={
+              <IntegrationLayout.AddInstallButton
+                featureData={featureData}
+                hideButtonIfDisabled={false}
+                requiresAccess
+                renderTopButton={renderTopButton}
+              />
+            }
+            additionalCTA={
+              <FirstPartyIntegrationAdditionalCTA integrations={configurations} />
+            }
           />
-        ) : activeTab === 'configurations' ? (
-          renderConfigurations()
-        ) : (
-          renderFeatures()
-        )
-      }
-    />
+        }
+        tabs={renderTabs()}
+        content={
+          activeTab === 'overview' ? (
+            <IntegrationLayout.InformationCard
+              integrationSlug={integrationSlug}
+              description={description}
+              alerts={alerts}
+              featureData={featureData}
+              author={author}
+              resourceLinks={resourceLinks}
+              permissions={null}
+            />
+          ) : activeTab === 'configurations' ? (
+            renderConfigurations()
+          ) : (
+            renderFeatures()
+          )
+        }
+      />
+    </SentryDocumentTitle>
   );
 }
 

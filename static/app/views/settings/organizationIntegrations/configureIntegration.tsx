@@ -25,6 +25,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -127,7 +128,11 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   useEffect(() => {
     // This page should not be accessible by members (unless its github or gitlab)
     const allowMemberConfiguration = ['github', 'gitlab'].includes(providerKey);
-    if (!allowMemberConfiguration && !organization.access.includes('org:integrations')) {
+    if (
+      !allowMemberConfiguration &&
+      !organization.access.includes('org:integrations') &&
+      !isActiveSuperuser()
+    ) {
       router.push(
         normalizeUrl({
           pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
