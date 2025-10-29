@@ -4,7 +4,9 @@ import logging
 
 from django.http import HttpResponse
 from rest_framework.request import Request
+from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -12,15 +14,12 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.objectstore import preprod
 from sentry.objectstore.service import ClientError
+from sentry.preprod.analytics import PreprodArtifactApiImageEvent
 
 logger = logging.getLogger(__name__)
 
 
 def detect_image_content_type(image_data: bytes) -> str:
-    """
-    Detect the content type of an image from its magic bytes.
-    Returns the appropriate MIME type or a default if unknown.
-    """
     if not image_data:
         return "application/octet-stream"
 
@@ -67,7 +66,17 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         request: Request,
         project: Project,
         image_id: str,
-    ) -> HttpResponse:
+    ) -> Response:
+
+        analytics.record(
+            PreprodArtifactApiImageEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+                image_id=image_id,
+            )
+        )
+
         organization_id = project.organization_id
         project_id = project.id
 
@@ -114,7 +123,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                 )
 
                 # Upload failed, return appropriate error
-                return HttpResponse({"error": "Not found"}, status=404)
+                return Response({"error": "Not found"}, status=404)
 
             logger.warning(
                 "Failed to retrieve app icon from objectstore",
@@ -126,7 +135,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                     "status": e.status,
                 },
             )
-            return HttpResponse({"error": "Failed to retrieve app icon"}, status=500)
+            return Response({"error": "Failed to retrieve app icon"}, status=500)
 
         except Exception:
             logger.exception(
@@ -137,4 +146,4 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                     "image_id": image_id,
                 },
             )
-            return HttpResponse({"error": "Internal server error"}, status=500)
+            return Response({"error": "Internal server error"}, status=500)
