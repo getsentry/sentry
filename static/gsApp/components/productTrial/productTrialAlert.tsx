@@ -26,6 +26,7 @@ import titleCase from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function shouldUseOnDemandCta(category: DataCategory): boolean {
+  // TODO: other categories that use on demand is still missing here
   return category === DataCategory.LOG_BYTE;
 }
 
