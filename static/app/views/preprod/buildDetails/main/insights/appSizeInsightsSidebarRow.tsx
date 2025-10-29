@@ -15,7 +15,10 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
-import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
+import type {
+  FileSavingsResultGroup,
+  OptimizableImageFile,
+} from 'sentry/views/preprod/types/appSizeTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {
   ProcessedInsight,
@@ -38,29 +41,30 @@ const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'alternate_icons_optimization',
 ];
 
-const ITEMS_PER_PAGE = 20;
+const DEFAULT_ITEMS_PER_PAGE = 20;
 
 export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
   onToggleExpanded,
   platform,
+  itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
+  itemsPerPage?: number;
   platform?: Platform;
 }) {
   const theme = useTheme();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const sortedFiles = [...insight.files].sort((a, b) => b.savings - a.savings);
-  const totalPages = Math.ceil(sortedFiles.length / ITEMS_PER_PAGE);
-  const startIndex = currentPage * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentFiles = sortedFiles.slice(startIndex, endIndex);
-  const showPagination = sortedFiles.length > ITEMS_PER_PAGE;
+  const totalPages = Math.ceil(insight.files.length / itemsPerPage);
+  const startIndex = currentPage * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentFiles = insight.files.slice(startIndex, endIndex);
+  const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
     if (insight.key === 'alternate_icons_optimization') {
@@ -115,7 +119,7 @@ export function AppSizeInsightsSidebarRow({
         )}
       </Stack>
 
-      {sortedFiles.length > 0 && (
+      {insight.files.length > 0 && (
         <Container paddingTop="md">
           <Button
             size="sm"
@@ -132,7 +136,7 @@ export function AppSizeInsightsSidebarRow({
             }
           >
             <Text variant="primary" size="md" bold>
-              {tn('%s file', '%s files', sortedFiles.length)}
+              {tn('%s file', '%s files', insight.files.length)}
             </Text>
           </Button>
 
@@ -190,6 +194,10 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
     return <OptimizableImageFileRow file={file} originalFile={file.data.originalFile} />;
   }
 
+  if (file.data.fileType === 'duplicate_files') {
+    return <DuplicateGroupFileRow file={file} group={file.data.originalGroup} />;
+  }
+
   return (
     <Flex
       align="center"
@@ -215,6 +223,60 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
         </Text>
       </Flex>
     </Flex>
+  );
+}
+
+function DuplicateGroupFileRow({
+  file,
+  group,
+}: {
+  file: ProcessedInsightFile;
+  group: FileSavingsResultGroup;
+}) {
+  return (
+    <Fragment key={file.path}>
+      <Flex
+        align="center"
+        justify="between"
+        gap="lg"
+        padding="xs sm"
+        style={{
+          borderRadius: '4px',
+          minWidth: 0,
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}
+      >
+        <Text size="sm" ellipsis style={{flex: 1}} bold>
+          {group.name}
+        </Text>
+        <Flex align="center" gap="sm">
+          <Text variant="primary" bold size="sm" tabular>
+            -{formatBytesBase10(file.savings)}
+          </Text>
+          <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
+            ({formatUpside(file.percentage / 100)})
+          </Text>
+        </Flex>
+      </Flex>
+      <Flex direction="column" gap="xs" padding="xs sm">
+        {group.files.map((duplicateFile, index) => (
+          <Flex key={`${duplicateFile.file_path}-${index}`} align="center" gap="sm">
+            <Text size="xs" variant="muted" ellipsis style={{flex: 1, minWidth: 0}}>
+              {duplicateFile.file_path}
+            </Text>
+            <Text
+              size="xs"
+              variant="muted"
+              tabular
+              style={{minWidth: '80px', textAlign: 'right'}}
+            >
+              {formatBytesBase10(duplicateFile.total_savings)}
+            </Text>
+          </Flex>
+        ))}
+      </Flex>
+    </Fragment>
   );
 }
 
