@@ -324,6 +324,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             },
             "integration_provider": "github",
             "region": "us",
+            "event_type": "github",
             "app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
@@ -346,6 +347,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             },
             "integration_provider": "github",
             "region": "de",
+            "event_type": "github",
             "app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
@@ -410,6 +412,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             },
             "integration_provider": "github",
             "region": "us",
+            "event_type": "github",
             "app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
