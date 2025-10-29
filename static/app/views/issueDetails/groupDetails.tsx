@@ -19,6 +19,7 @@ import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
@@ -63,6 +64,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
@@ -509,9 +511,11 @@ function useTrackView({
   project,
   tab,
   organization,
+  hasAutofixQuota,
 }: {
   event: Event | null;
   group: Group | null;
+  hasAutofixQuota: boolean;
   organization: Organization;
   tab: Tab;
   project?: Project;
@@ -521,6 +525,29 @@ function useTrackView({
   const groupEventType = useLoadedEventType();
   const user = useUser();
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  // Calculate Seer access properties
+  const hasSeerAccess = hasAutofixQuota;
+
+  // Check if there's an active trial for SEER_AUTOFIX
+  const hasActiveAutofixTrial =
+    organization.productTrials?.some(trial => {
+      if (trial.category !== DataCategory.SEER_AUTOFIX || !trial.isStarted) {
+        return false;
+      }
+      // Check if trial hasn't expired
+      if (trial.endDate) {
+        const endDate = new Date(trial.endDate);
+        return endDate > new Date();
+      }
+      return false;
+    }) ?? false;
+
+  const seerAccessType = hasSeerAccess
+    ? hasActiveAutofixTrial
+      ? 'trial'
+      : 'purchased'
+    : undefined;
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -542,6 +569,8 @@ function useTrackView({
       user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_streamlined_ui: hasStreamlinedUI,
+    has_seer_access: hasSeerAccess,
+    seer_access_type: seerAccessType,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -676,6 +705,7 @@ function GroupDetailsContent({
   });
 
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const {hasAutofixQuota} = useAiConfig(group, project);
 
   useEffect(() => {
     if (isDrawerOpen) {
@@ -713,7 +743,14 @@ function GroupDetailsContent({
     openSeerDrawer,
   ]);
 
-  useTrackView({group, event, project, tab: currentTab, organization});
+  useTrackView({
+    group,
+    event,
+    project,
+    tab: currentTab,
+    organization,
+    hasAutofixQuota,
+  });
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
