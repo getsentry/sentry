@@ -20,8 +20,8 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.tasks import update_subscription_in_snuba
 from sentry.utils.db import atomic_transaction
+from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_source import DataSource
-from sentry.workflow_engine.models.detector import DataCondition
 
 logger = logging.getLogger(__name__)
 

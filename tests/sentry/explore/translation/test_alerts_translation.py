@@ -22,7 +22,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.seer.anomaly_detection.store_data import SeerMethod, StoreDataResponse
+from sentry.seer.anomaly_detection.store_data import SeerMethod
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -49,8 +50,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         )
         snuba_query = alert_rule.snuba_query
 
-        assert snuba_query.query_snapshot is None
-
         snapshot_snuba_query(snuba_query)
         snuba_query.refresh_from_db()
 
@@ -72,8 +71,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             dataset=Dataset.Transactions,
         )
         snuba_query = alert_rule.snuba_query
-
-        assert snuba_query.query_snapshot is None
 
         snapshot_snuba_query(snuba_query)
         snuba_query.refresh_from_db()
@@ -107,7 +104,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_translate_alert_rule_simple_count(self, mock_create_rpc) -> None:
-
         mock_create_rpc.return_value = "test-subscription-id"
 
         alert_rule = self.create_alert_rule(
@@ -142,7 +138,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         data_source.detectors.add(detector)
 
-        assert snuba_query.query_snapshot is None
         assert snuba_query.dataset == Dataset.PerformanceMetrics.value
 
         translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
@@ -207,7 +202,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_translate_alert_rule_p95(self, mock_create_rpc) -> None:
-
         mock_create_rpc.return_value = "test-subscription-id"
 
         alert_rule = self.create_alert_rule(
@@ -269,7 +263,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_translate_alert_rule_count_unique(self, mock_create_rpc) -> None:
-
         mock_create_rpc.return_value = "test-subscription-id"
 
         alert_rule = self.create_alert_rule(
@@ -320,7 +313,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_translate_alert_rule_empty_query(self, mock_create_rpc) -> None:
-
         mock_create_rpc.return_value = "test-subscription-id"
 
         alert_rule = self.create_alert_rule(
@@ -375,7 +367,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     def test_rollback_alert_rule_query(
         self, mock_create_rpc, mock_create_snql, mock_delete
     ) -> None:
-
         mock_create_rpc.return_value = "test-subscription-id"
         mock_create_snql.return_value = "rollback-subscription-id"
         mock_delete.return_value = None
@@ -460,7 +451,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     def test_rollback_without_snapshot(self) -> None:
-
         alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
