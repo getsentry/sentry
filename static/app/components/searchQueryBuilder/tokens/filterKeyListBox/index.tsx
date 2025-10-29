@@ -23,6 +23,7 @@ import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
+  BOOLEAN_CATEGORY_VALUE,
   createRecentFilterOptionKey,
   RECENT_SEARCH_CATEGORY_VALUE,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
@@ -152,7 +153,10 @@ function useHighlightFirstOptionOnSectionChange({
   state: ComboBoxState<SelectOptionOrSectionWithKey<string>>;
 }) {
   const displayedListItems = useMemo(() => {
-    if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
+    if (
+      selectedSection === RECENT_SEARCH_CATEGORY_VALUE ||
+      selectedSection === BOOLEAN_CATEGORY_VALUE
+    ) {
       return [...state.collection].filter(item => !hiddenOptions.has(item.key));
     }
     const options = state.collection.getChildren?.(selectedSection ?? sections[0]!.value);
@@ -169,6 +173,7 @@ function useHighlightFirstOptionOnSectionChange({
     if (selectedSection === previousSection) {
       return;
     }
+
     const firstItem = displayedListItems[0];
     if (firstItem) {
       state.selectionManager.setFocusedKey(firstItem.key);
