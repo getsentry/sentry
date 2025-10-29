@@ -579,7 +579,7 @@ function EmptyRenderer({
                   <Button
                     priority="link"
                     onClick={resumeAutoFetch}
-                    aria-label="continue scanning"
+                    aria-label={t("continue scanning")}
                   >
                     {t('Continue Scanning')}
                   </Button>
