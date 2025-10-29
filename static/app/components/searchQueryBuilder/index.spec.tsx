@@ -425,13 +425,16 @@ describe('SearchQueryBuilder', () => {
 
   describe('filter key menu', () => {
     it('breaks keys into sections', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+      });
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
       // Should show tab button for each section
       expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Category 1'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Category 2'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Conditionals'})).toBeInTheDocument();
 
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
@@ -3733,6 +3736,21 @@ describe('SearchQueryBuilder', () => {
       expect(
         await screen.findByText('Parentheses are not supported in this search')
       ).toBeInTheDocument();
+    });
+
+    it('should not add the conditionals section to filter key menu', async () => {
+      render(<SearchQueryBuilder {...defaultProps} disallowLogicalOperators />, {
+        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+      });
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('button', {name: 'Conditionals'})
+        ).not.toBeInTheDocument()
+      );
     });
   });
 
