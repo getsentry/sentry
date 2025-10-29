@@ -189,7 +189,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         expression = rpc_time_series_request.expressions[0]
         assert expression.HasField("aggregation")
         assert expression.aggregation.aggregate == Function.FUNCTION_COUNT
-        assert expression.aggregation.key.name == "sentry.duration_ms"
+        assert expression.aggregation.key.name == "sentry.project_id"
         assert expression.aggregation.label == "count(span.duration)"
         assert (
             expression.aggregation.extrapolation_mode
