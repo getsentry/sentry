@@ -19,7 +19,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
 import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
@@ -50,7 +50,7 @@ function AIGenerationsPage() {
     'query',
     parseAsString.withOptions({history: 'replace'})
   );
-  useRemoveUrlCursorsOnSearch();
+  const {unsetCursor} = useTableCursor();
 
   const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
     useTraceItemTags('number');
@@ -66,6 +66,7 @@ function AIGenerationsPage() {
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'ai-generations',
       numberTags,
@@ -86,6 +87,7 @@ function AIGenerationsPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 
