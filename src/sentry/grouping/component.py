@@ -406,6 +406,22 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
     def key(self) -> str:
         return _get_exception_component_key(self)
 
+    def as_dict(self) -> dict[str, Any]:
+        """
+        Convert to a dictionary, first rearranging the values so they show up in the order we want
+        in grouping info.
+        """
+        ordered_values: Any = []
+
+        for component_id in ["type", "value", "ns_error", "stacktrace"]:
+            subcomponent = self.get_subcomponent(component_id)
+            if subcomponent:
+                ordered_values.append(subcomponent)
+
+        self.values = ordered_values
+
+        return super().as_dict()
+
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
     id: str = "chained_exception"
