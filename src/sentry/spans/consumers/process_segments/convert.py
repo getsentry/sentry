@@ -17,6 +17,7 @@ FIELD_TO_ATTRIBUTE = {
     "hash": "sentry.hash",
     # TODO(INGEST-612): Remove "is_remote" once Relay writes this attribute.
     "is_remote": "sentry.is_remote",
+    "is_segment": "sentry.is_segment",
     "kind": "sentry.kind",
     "name": "sentry.name",
     "parent_span_id": "sentry.parent_span_id",
