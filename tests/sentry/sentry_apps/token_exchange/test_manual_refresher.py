@@ -318,20 +318,12 @@ class TestManualRefresher(TestCase):
         # Delete the existing token from the installation
         self.install.update(api_token=None)
 
-        token = self.refresher.run()
-        assert token is not None
-        assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
+        with pytest.raises(SentryAppIntegratorError) as e:
+            self.refresher.run()
 
-        # SLO assertions
-        assert_success_metric(mock_record)
-
-        # MANUAL_REFRESHER (success)
-        assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
-        )
-        assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
-        )
+        assert e.value.message == "Installation does not have a token"
+        assert e.value.status_code == 401
+        assert e.value.webhook_context == {"installation_uuid": self.install.uuid}
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_new_token_has_correct_properties(self, mock_record: MagicMock) -> None:

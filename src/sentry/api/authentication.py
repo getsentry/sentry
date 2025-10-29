@@ -395,7 +395,10 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
             raise AuthenticationFailed("JWT is not valid for this application")
 
         jti = payload.get("jti")
-        cache_key = self._create_cache_key(installation_uuid, jti)
+        if not jti:
+            raise AuthenticationFailed("JWT is missing a jti claim")
+
+        cache_key = self._create_cache_key(installation.uuid, jti)
         if cache.get(cache_key):
             raise AuthenticationFailed("JWT has already been used")
         cache.set(cache_key, True, timeout=60)  # 1 minute

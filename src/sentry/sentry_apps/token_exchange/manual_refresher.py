@@ -74,12 +74,15 @@ class ManualTokenRefresher:
                 raise
 
     def _delete_existing_token(self) -> None:
+        # An installation must have a token to be refreshed
+        # Lack of token indicates the api grant hasn't been exchanged yet
         if self.installation.api_token is None:
             raise SentryAppIntegratorError(
                 message="Installation does not have a token",
                 status_code=401,
                 webhook_context={"installation_uuid": self.install.uuid},
             )
+        self.installation.api_token.delete()
 
     def _record_analytics(self) -> None:
         analytics.record(
