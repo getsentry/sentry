@@ -1,16 +1,11 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
-  Docs,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 const getVerifySnippet = () => `
@@ -18,7 +13,7 @@ using Sentry; // On the top of the script
 
 SentrySdk.CaptureMessage("Test event");`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -135,48 +130,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-export const feedbackOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'C#',
-              language: 'csharp',
-              code: `var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
-
-SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
-            },
-            {
-              label: 'F#',
-              language: 'fsharp',
-              code: `let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
-
-SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboarding,
-  crashReportOnboarding: feedbackOnboarding,
-};
-
-export default docs;
