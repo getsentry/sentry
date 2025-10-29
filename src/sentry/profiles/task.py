@@ -1415,6 +1415,7 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                         min_depth=1,
                         filter_system_frames=True,
                         max_unique_functions=100,
+                        filter_non_leaf_functions=False,
                         generate_stack_fingerprints=True,
                     )
                     if eap_functions is not None and len(eap_functions) > 0:
@@ -1493,6 +1494,7 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                         min_depth=1,
                         filter_system_frames=True,
                         max_unique_functions=100,
+                        filter_non_leaf_functions=False,
                         generate_stack_fingerprints=True,
                     )
                     if eap_functions is not None and len(eap_functions) > 0:
