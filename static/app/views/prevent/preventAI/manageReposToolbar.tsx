@@ -6,7 +6,7 @@ import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconBuilding, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
 import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
@@ -26,7 +26,7 @@ function ManageReposToolbar({
   onRepoChange: (repoId: string) => void;
   selectedOrg: string;
   selectedRepo: string;
-  selectedRepoData: {id: string; name: string} | null;
+  selectedRepoData: Repository | null;
 }) {
   const [searchValue, setSearchValue] = useState<string | undefined>();
   const debouncedSearch = useDebouncedValue(searchValue, 300);
@@ -63,15 +63,15 @@ function ManageReposToolbar({
         scrollListenerIdRef.current += 1;
         const currentId = scrollListenerIdRef.current;
 
-        const attachListener = (attempts = 0) => {
-          if (scrollListenerIdRef.current !== currentId || attempts > 10) return;
+        const attachListener = () => {
+          if (scrollListenerIdRef.current !== currentId) return;
           const dropdownLists = document.querySelectorAll('ul[role="listbox"]');
           const lastList = dropdownLists[dropdownLists.length - 1];
           if (lastList instanceof HTMLElement) {
             scrollParentRef.current = lastList;
             lastList.addEventListener('scroll', handleScroll, {passive: true});
           } else {
-            setTimeout(() => attachListener(attempts + 1), 20);
+            setTimeout(attachListener, 20);
           }
         };
         attachListener();

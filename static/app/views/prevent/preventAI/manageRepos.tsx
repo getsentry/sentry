@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
@@ -13,7 +13,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar, {
@@ -30,7 +30,6 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
     () => integratedOrgs[0]?.id ?? ''
   );
   const [selectedRepoId, setSelectedRepoId] = useState<string>(() => ALL_REPOS_VALUE);
-  const [selectedRepoData, setSelectedRepoData] = useState<Repository | null>(null);
 
   const queryResult = useInfiniteRepositories({
     integrationId: selectedOrgId,
@@ -47,27 +46,23 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
     return found ?? integratedOrgs[0];
   }, [integratedOrgs, selectedOrgId]);
 
-  // Update selectedRepoData when reposData changes and we have a selectedRepoId
-  useEffect(() => {
+  // If the selected repo is not present in the list of repos, use null (for "All Repos")
+  const selectedRepo = useMemo(() => {
     if (selectedRepoId === ALL_REPOS_VALUE) {
-      setSelectedRepoData(null);
-      return;
+      return null;
     }
     const found = reposData.find(repo => repo.id === selectedRepoId);
-    if (found) {
-      setSelectedRepoData(found);
-    }
+    return found ?? null;
   }, [reposData, selectedRepoId]);
 
   // When the org changes, reset to "All Repos"
   const setSelectedOrgIdWithCascadeRepoId = useCallback((orgId: string) => {
     setSelectedOrgId(orgId);
     setSelectedRepoId(ALL_REPOS_VALUE);
-    setSelectedRepoData(null);
   }, []);
 
   const isOrgSelected = !!selectedOrg;
-  const isRepoSelected = selectedRepoId === ALL_REPOS_VALUE || !!selectedRepoData;
+  const isRepoSelected = selectedRepoId === ALL_REPOS_VALUE || !!selectedRepo;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
@@ -76,7 +71,7 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
           integratedOrgs={integratedOrgs}
           selectedOrg={selectedOrgId}
           selectedRepo={selectedRepoId}
-          selectedRepoData={selectedRepoData}
+          selectedRepoData={selectedRepo}
           onOrgChange={setSelectedOrgIdWithCascadeRepoId}
           onRepoChange={setSelectedRepoId}
         />
@@ -146,13 +141,13 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
         />
       </Flex>
 
-      {selectedOrg && (selectedRepoId === ALL_REPOS_VALUE || selectedRepoData) && (
+      {selectedOrg && (selectedRepoId === ALL_REPOS_VALUE || selectedRepo) && (
         <ManageReposPanel
           key={`${selectedOrgId || 'no-org'}-${selectedRepoId || 'no-repo'}`}
           collapsed={!isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
           org={selectedOrg}
-          repo={selectedRepoData}
+          repo={selectedRepo}
           allRepos={reposData}
           isEditingOrgDefaults={selectedRepoId === ALL_REPOS_VALUE}
         />

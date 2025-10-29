@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
-export type UseInfiniteRepositoriesOptions = {
+type UseInfiniteRepositoriesOptions = {
   integrationId: string;
   searchTerm?: string;
 };

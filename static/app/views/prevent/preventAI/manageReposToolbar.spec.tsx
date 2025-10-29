@@ -108,10 +108,7 @@ describe('ManageReposToolbar', () => {
     integratedOrgs: mockIntegratedOrgs,
     selectedOrg: '1',
     selectedRepo: '1',
-    selectedRepoData: {
-      id: mockRepositories[0]!.id,
-      name: mockRepositories[0]!.name,
-    },
+    selectedRepoData: mockRepositories[0] ?? null,
     onOrgChange: jest.fn(),
     onRepoChange: jest.fn(),
   };
@@ -236,10 +233,7 @@ describe('ManageReposToolbar', () => {
         {...defaultProps}
         selectedOrg="2"
         selectedRepo="3"
-        selectedRepoData={{
-          id: mockOrg2Repositories[0]!.id,
-          name: mockOrg2Repositories[0]!.name,
-        }}
+        selectedRepoData={mockOrg2Repositories[0] ?? null}
       />,
       {
         organization: OrganizationFixture({slug: 'org-slug'}),
