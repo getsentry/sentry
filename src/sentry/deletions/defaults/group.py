@@ -194,7 +194,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
             if options.get("deletions.fetch-subset-of-fields"):
                 # This reduces the number of fields fetched from the database
-                queryset = list(queryset.values(*FIELDS_TO_FETCH)[:query_limit])
+                queryset = list(queryset.values_list(*FIELDS_TO_FETCH)[:query_limit])
             else:
                 queryset = list(queryset[:query_limit])
 
