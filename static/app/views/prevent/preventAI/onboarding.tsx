@@ -12,6 +12,7 @@ import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -38,6 +39,7 @@ function OnboardingStep({step, title, description}: OnboardingStepProps) {
 }
 
 export function FeatureOverview() {
+  const organization = useOrganization();
   return (
     <Flex direction="column" gap="md" padding="xl" background="secondary" radius="md">
       <Text variant="primary" size="md" bold>
@@ -92,7 +94,17 @@ export function FeatureOverview() {
           'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+              <ExternalLink
+                href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/"
+                onClick={() => {
+                  trackAnalytics(
+                    'prevent.ai_onboarding.ai_code_review_docs_link.clicked',
+                    {
+                      organization,
+                    }
+                  );
+                }}
+              />
             ),
           }
         )}
@@ -193,6 +205,11 @@ export default function PreventAIOnboarding() {
                         pathname: `/settings/${organization.slug}/`,
                         hash: 'hideAiFeatures',
                       }}
+                      onClick={() => {
+                        trackAnalytics('prevent.ai_onboarding.settings_link.clicked', {
+                          organization,
+                        });
+                      }}
                     />
                   ),
                 }
@@ -205,10 +222,27 @@ export default function PreventAIOnboarding() {
                 'To grant Seer access to your codebase, install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories. Learn more about [gitHubIntegration:GitHub integration].',
                 {
                   sentryGitHubApp: (
-                    <Link to={`/settings/${organization.slug}/integrations/github/`} />
+                    <Link
+                      to={`/settings/${organization.slug}/integrations/github/`}
+                      onClick={() => {
+                        trackAnalytics(
+                          'prevent.ai_onboarding.github_integration_link.clicked',
+                          {
+                            organization,
+                          }
+                        );
+                      }}
+                    />
                   ),
                   gitHubIntegration: (
-                    <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
+                    <ExternalLink
+                      href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github"
+                      onClick={() => {
+                        trackAnalytics('prevent.ai_onboarding.github_docs_link.clicked', {
+                          organization,
+                        });
+                      }}
+                    />
                   ),
                 }
               )}
@@ -219,7 +253,16 @@ export default function PreventAIOnboarding() {
               description={tct(
                 'AI Code Review uses the Sentry Seer agent to power its core functionalities. Install the [link:Seer by Sentry GitHub App] within the same GitHub organization.',
                 {
-                  link: <ExternalLink href="https://github.com/apps/seer-by-sentry" />,
+                  link: (
+                    <ExternalLink
+                      href="https://github.com/apps/seer-by-sentry"
+                      onClick={() => {
+                        trackAnalytics('prevent.ai_onboarding.seer_app_link.clicked', {
+                          organization,
+                        });
+                      }}
+                    />
+                  ),
                 }
               )}
             />
