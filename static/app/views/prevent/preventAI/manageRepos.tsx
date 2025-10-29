@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.svg';
 import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.svg';
@@ -13,160 +13,47 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
-import type {PreventAIOrg} from 'sentry/types/prevent';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/useInfiniteRepositories';
+import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar, {
   ALL_REPOS_VALUE,
 } from 'sentry/views/prevent/preventAI/manageReposToolbar';
+import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
 
 import {FeatureOverview} from './onboarding';
 
-function ManageReposPage(_props: {installedOrgs: PreventAIOrg[]}) {
+function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegration[]}) {
   const theme = useTheme();
-  const organization = useOrganization();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedOrgId, setSelectedOrgId] = useState(integratedOrgs[0]?.id || '');
+  const [selectedRepoId, setSelectedRepoId] = useState(ALL_REPOS_VALUE);
 
-  // Track if we've initialized from URL params to avoid overriding user selections
-  const hasInitializedFromUrlRef = useRef({org: false, repo: false});
-
-  // selectedOrgId now stores the Sentry integration ID (not GitHub org ID)
-  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
-  const [selectedRepoId, setSelectedRepoId] = useState<string>(() => ALL_REPOS_VALUE);
-
-  // Fetch GitHub integrations to get organization names
-  const {data: githubIntegrations = []} = useApiQuery<OrganizationIntegration[]>(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {
-      staleTime: 0,
-    }
-  );
-
-  // Fetch repositories for the selected organization using infinite scroll
-  const {data: reposData = []} = useInfiniteRepositories({
+  const queryResult = useInfiniteRepositories({
     integrationId: selectedOrgId,
-    term: undefined, // No search term for the panel
+    searchTerm: undefined,
   });
 
-  // Find the selected org and repo data
-  const selectedOrgData = useMemo(
-    () => githubIntegrations.find(integration => integration.id === selectedOrgId),
-    [githubIntegrations, selectedOrgId]
+  const reposData = useMemo(
+    () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
+    [queryResult.data?.pages]
   );
 
-  const selectedRepoData = useMemo(
-    () => reposData.find(repo => repo.id === selectedRepoId),
-    [reposData, selectedRepoId]
-  );
+  const selectedOrgData = integratedOrgs.find(org => org.id === selectedOrgId);
+  const selectedRepoData = reposData.find(repo => repo.id === selectedRepoId);
 
-  // Initialize from URL params when data is loaded, or auto-select first org
-  useEffect(() => {
-    const org = searchParams.get('org');
-    const repo = searchParams.get('repo');
+  function handleOrgChange(integrationId: string) {
+    setSelectedOrgId(integrationId);
+    setSelectedRepoId(ALL_REPOS_VALUE);
+  }
 
-    // Find org by name if specified in URL
-    if (
-      org &&
-      githubIntegrations.length > 0 &&
-      !selectedOrgId &&
-      !hasInitializedFromUrlRef.current.org
-    ) {
-      const matchedOrg = githubIntegrations.find(
-        integration => integration.name.toLowerCase() === org.toLowerCase()
-      );
-      if (matchedOrg) {
-        setSelectedOrgId(matchedOrg.id);
-        hasInitializedFromUrlRef.current.org = true;
-      }
-    }
-    // Auto-select first org if no URL param and not yet initialized
-    else if (
-      !org &&
-      githubIntegrations.length > 0 &&
-      !selectedOrgId &&
-      !hasInitializedFromUrlRef.current.org &&
-      githubIntegrations[0]
-    ) {
-      setSelectedOrgId(githubIntegrations[0].id);
-      hasInitializedFromUrlRef.current.org = true;
-    }
-
-    // Find repo by name if specified in URL (only after org is selected and repos are loaded)
-    if (
-      repo &&
-      selectedOrgId &&
-      reposData.length > 0 &&
-      !hasInitializedFromUrlRef.current.repo
-    ) {
-      const matchedRepo = reposData.find(r => {
-        const repoNameWithoutOrg = r.name.includes('/')
-          ? r.name.split('/').pop() || r.name
-          : r.name;
-        return repoNameWithoutOrg.toLowerCase() === repo.toLowerCase();
-      });
-      if (matchedRepo) {
-        setSelectedRepoId(matchedRepo.id);
-        hasInitializedFromUrlRef.current.repo = true;
-      }
-    }
-  }, [searchParams, githubIntegrations, reposData, selectedOrgId]);
-
-  // When the org changes, reset to "All Repos" to avoid stale repo selection
-  const setSelectedOrgIdWithCascadeRepoId = useCallback(
-    (integrationId: string) => {
-      setSelectedOrgId(integrationId);
-      // Reset to All Repos when changing organizations
-      setSelectedRepoId(ALL_REPOS_VALUE);
-      // Reset initialization flags when user manually changes org
-      hasInitializedFromUrlRef.current = {org: true, repo: false};
-
-      // Update URL params with org name
-      const selectedOrg = githubIntegrations.find(
-        integration => integration.id === integrationId
-      );
-      if (selectedOrg) {
-        const newParams = new URLSearchParams(searchParams);
-        newParams.set('org', selectedOrg.name);
-        newParams.delete('repo'); // Clear repo when changing org
-        setSearchParams(newParams);
-      }
-    },
-    [githubIntegrations, searchParams, setSearchParams]
-  );
-
-  // Update URL params when repo changes
-  const setSelectedRepoIdWithUrlUpdate = useCallback(
-    (repoId: string) => {
-      setSelectedRepoId(repoId);
-      // Mark repo as initialized when user manually changes it
-      hasInitializedFromUrlRef.current.repo = true;
-
-      const newParams = new URLSearchParams(searchParams);
-      if (repoId === ALL_REPOS_VALUE) {
-        newParams.delete('repo');
-      } else {
-        const selectedRepo = reposData.find(r => r.id === repoId);
-        if (selectedRepo) {
-          const repoNameWithoutOrg = selectedRepo.name.includes('/')
-            ? selectedRepo.name.split('/').pop() || selectedRepo.name
-            : selectedRepo.name;
-          newParams.set('repo', repoNameWithoutOrg);
-        }
-      }
-      setSearchParams(newParams);
-    },
-    [reposData, searchParams, setSearchParams]
-  );
-
-  const isOrgSelected = !!selectedOrgId;
-  const isRepoSelected = !!selectedRepoId;
+  function formatRepoForPanel(repo: Repository) {
+    return {
+      id: repo.id,
+      name: getRepoNameWithoutOrg(repo.name),
+      fullName: repo.name,
+    };
+  }
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
@@ -174,13 +61,13 @@ function ManageReposPage(_props: {installedOrgs: PreventAIOrg[]}) {
         <ManageReposToolbar
           selectedOrg={selectedOrgId}
           selectedRepo={selectedRepoId}
-          onOrgChange={setSelectedOrgIdWithCascadeRepoId}
-          onRepoChange={setSelectedRepoIdWithUrlUpdate}
+          onOrgChange={handleOrgChange}
+          onRepoChange={setSelectedRepoId}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
             title="Select an organization and repository to configure settings"
-            disabled={isOrgSelected && isRepoSelected}
+            disabled={!!selectedOrgId && !!selectedRepoId}
             position="left"
           >
             <Button
@@ -188,8 +75,8 @@ function ManageReposPage(_props: {installedOrgs: PreventAIOrg[]}) {
               icon={<IconSettings size="md" />}
               aria-label="Settings"
               onClick={() => setIsPanelOpen(true)}
-              disabled={!isOrgSelected || !isRepoSelected}
-              tabIndex={!isOrgSelected || !isRepoSelected ? -1 : 0}
+              disabled={!selectedOrgId || !selectedRepoId}
+              tabIndex={!selectedOrgId || !selectedRepoId ? -1 : 0}
               data-test-id="manage-repos-settings-button"
             />
           </Tooltip>
@@ -245,46 +132,21 @@ function ManageReposPage(_props: {installedOrgs: PreventAIOrg[]}) {
 
       {isPanelOpen && selectedOrgData && (
         <ManageReposPanel
-          key={`${selectedOrgId || 'no-org'}-${selectedRepoId || 'no-repo'}`}
+          key={`${selectedOrgId}-${selectedRepoId}`}
           collapsed={!isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
           org={{
             githubOrganizationId: selectedOrgData.externalId || selectedOrgId,
             name: selectedOrgData.name,
             provider: 'github' as const,
-            repos: reposData.map(repo => {
-              // Extract just the repo name without org prefix
-              const repoNameWithoutOrg = repo.name.includes('/')
-                ? repo.name.split('/').pop() || repo.name
-                : repo.name;
-              return {
-                id: repo.id,
-                name: repoNameWithoutOrg,
-                fullName: repo.name,
-              };
-            }),
+            repos: reposData.map(formatRepoForPanel),
           }}
           repo={
             selectedRepoId === ALL_REPOS_VALUE || !selectedRepoData
               ? null
-              : {
-                  id: selectedRepoData.id,
-                  name: selectedRepoData.name.includes('/')
-                    ? selectedRepoData.name.split('/').pop() || selectedRepoData.name
-                    : selectedRepoData.name,
-                  fullName: selectedRepoData.name,
-                }
+              : formatRepoForPanel(selectedRepoData)
           }
-          allRepos={reposData.map(repo => {
-            const repoNameWithoutOrg = repo.name.includes('/')
-              ? repo.name.split('/').pop() || repo.name
-              : repo.name;
-            return {
-              id: repo.id,
-              name: repoNameWithoutOrg,
-              fullName: repo.name,
-            };
-          })}
+          allRepos={reposData.map(formatRepoForPanel)}
           isEditingOrgDefaults={selectedRepoId === ALL_REPOS_VALUE}
         />
       )}

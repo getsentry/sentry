@@ -1,16 +1,15 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
+import uniqBy from 'lodash/uniqBy';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconBuilding, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-
-import {useInfiniteRepositories} from './hooks/useInfiniteRepositories';
+import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
+import {usePreventAIOrgRepos} from 'sentry/views/prevent/preventAI/hooks/usePreventAIOrgs';
+import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
 
 export const ALL_REPOS_VALUE = '__$ALL_REPOS__';
 
@@ -25,98 +24,54 @@ function ManageReposToolbar({
   selectedOrg: string;
   selectedRepo: string;
 }) {
-  const organization = useOrganization();
-
-  // Search state for the repo search box - following RepoSelector pattern
   const [searchValue, setSearchValue] = useState<string | undefined>();
-
-  // Debounced search handler - following RepoSelector pattern
-  const handleOnSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        setSearchValue(value);
-      }, 300),
+  const debouncedSearch = useMemo(
+    () => debounce((value: string) => setSearchValue(value), 300),
     []
   );
 
-  // Cleanup debounced function on unmount
-  useEffect(() => {
-    return () => {
-      handleOnSearch.cancel();
-    };
-  }, [handleOnSearch]);
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
-  // Fetch GitHub integrations to power the organization dropdown
-  const {data: githubIntegrations = [], isLoading: isLoadingIntegrations} = useApiQuery<
-    OrganizationIntegration[]
-  >(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  const {data: integrations, isPending: isLoadingOrgs} = usePreventAIOrgRepos();
 
-  // Options for organization selector - use integration ID as value
-  const organizationOptions = useMemo(
-    () =>
-      githubIntegrations.map(integration => ({
-        value: integration.id, // Use integration ID as the value
-        label: integration.name, // Display the GitHub org name
-      })),
-    [githubIntegrations]
-  );
+  const organizationOptions =
+    integrations?.map(org => ({
+      label: org.name,
+      value: org.id,
+    })) ?? [];
 
-  // Fetch repos for the selected integration with infinite scroll
-  // Filter results to only show matches in the repo name (after the slash)
-  const {
-    data: allReposData = [],
-    isLoading: reposLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteRepositories({
+  const queryResult = useInfiniteRepositories({
     integrationId: selectedOrg,
-    term: searchValue,
+    searchTerm: searchValue,
   });
+
+  const {hasNextPage, isFetchingNextPage, isLoading, fetchNextPage} = queryResult;
+
+  const allReposData = useMemo(
+    () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
+    [queryResult.data?.pages]
+  );
 
   // Filter out repos where search only matches org name, not repo name
   const reposData = useMemo(() => {
     if (!searchValue) {
       return allReposData;
     }
-
     return allReposData.filter(repo => {
-      const parts = repo.name.split('/');
-      if (parts.length !== 2) {
-        return true;
-      }
-
-      const repoName = parts[1];
-      if (!repoName) {
-        return true;
-      }
-
+      const repoName = getRepoNameWithoutOrg(repo.name);
       return repoName.toLowerCase().includes(searchValue.toLowerCase());
     });
   }, [allReposData, searchValue]);
 
   // Auto-fetch more pages if filtering reduced visible results below threshold
-  const MIN_VISIBLE_RESULTS = 50;
   useEffect(() => {
-    // Only auto-fetch if:
-    // 1. We have a search filter active (otherwise all results are visible)
-    // 2. We have fewer than MIN_VISIBLE_RESULTS after filtering
-    // 3. There are more pages available
-    // 4. Not currently fetching
+    const MIN_VISIBLE_RESULTS = 50;
     if (
       searchValue &&
       reposData.length < MIN_VISIBLE_RESULTS &&
       hasNextPage &&
       !isFetchingNextPage &&
-      !reposLoading
+      !isLoading
     ) {
       fetchNextPage();
     }
@@ -125,62 +80,35 @@ function ManageReposToolbar({
     reposData.length,
     hasNextPage,
     isFetchingNextPage,
-    reposLoading,
+    isLoading,
     fetchNextPage,
   ]);
 
-  // Displayed repos - hide during initial load only (not during refetch when switching orgs)
-  const displayedRepos = useMemo(
-    () => (reposLoading ? [] : reposData),
-    [reposData, reposLoading]
-  );
-
-  // Compose repo options for CompactSelect, add 'All Repos'
   const repositoryOptions = useMemo(() => {
-    const repoOptions =
-      displayedRepos?.map(repo => {
-        // Extract just the repo name without the org prefix (e.g., "suejung-sentry/tools" → "tools")
-        const repoNameWithoutOrg = repo.name.includes('/')
-          ? repo.name.split('/').pop() || repo.name
-          : repo.name;
+    const repos = isLoading ? [] : reposData;
+    const repoOptions = repos.map(repo => ({
+      value: repo.id,
+      label: getRepoNameWithoutOrg(repo.name),
+    }));
 
-        return {
-          value: repo.id,
-          label: repoNameWithoutOrg,
-        };
-      }) ?? [];
+    return [{value: ALL_REPOS_VALUE, label: t('All Repos')}, ...repoOptions];
+  }, [reposData, isLoading]);
 
-    return [
-      {
-        value: ALL_REPOS_VALUE,
-        label: t('All Repos'),
-      },
-      ...repoOptions,
-    ];
-  }, [displayedRepos]);
-
-  // Empty message handler - following RepoSelector pattern
   function getEmptyMessage() {
-    if (reposLoading) {
+    if (isLoading) {
       return t('Loading repositories...');
     }
-
-    if (!displayedRepos?.length) {
-      if (searchValue?.length) {
-        return t('No repositories found. Please enter a different search term.');
-      }
-
-      return t('No repositories found');
+    if (reposData.length === 0) {
+      return searchValue
+        ? t('No repositories found. Please enter a different search term.')
+        : t('No repositories found');
     }
-
     return undefined;
   }
 
-  // Infinite scroll: Attach scroll listener to the list
   const scrollListenerRef = useRef<HTMLElement | null>(null);
   const scrollListenerIdRef = useRef<number>(0);
 
-  // Use refs to avoid stale closures
   const hasNextPageRef = useRef(hasNextPage);
   const isFetchingNextPageRef = useRef(isFetchingNextPage);
   const fetchNextPageRef = useRef(fetchNextPage);
@@ -269,7 +197,7 @@ function ManageReposToolbar({
         <CompactSelect
           value={selectedOrg}
           options={organizationOptions}
-          loading={isLoadingIntegrations}
+          loading={isLoadingOrgs}
           onChange={option => onOrgChange(option?.value ?? '')}
           triggerProps={{
             icon: <IconBuilding />,
@@ -285,13 +213,13 @@ function ManageReposToolbar({
         <CompactSelect
           value={selectedRepo}
           options={repositoryOptions}
-          loading={reposLoading}
-          disabled={!selectedOrg || reposLoading}
+          loading={isLoading}
+          disabled={!selectedOrg || isLoading}
           onChange={option => onRepoChange(option?.value ?? '')}
           searchable
           disableSearchFilter
-          onSearch={handleOnSearch}
-          searchPlaceholder={t('Filter by repository name')}
+          onSearch={debouncedSearch}
+          searchPlaceholder={t('search by repository name')}
           onOpenChange={isOpen => {
             setSearchValue(undefined);
             handleMenuOpenChange(isOpen);
@@ -301,10 +229,8 @@ function ManageReposToolbar({
             icon: <IconRepository />,
             children: (
               <TriggerLabel>
-                {reposLoading
-                  ? t('Loading...')
-                  : repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
-                    t('Select repository')}
+                {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
+                  t('Select repository')}
               </TriggerLabel>
             ),
           }}
