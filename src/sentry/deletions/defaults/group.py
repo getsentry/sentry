@@ -352,7 +352,7 @@ def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Gro
         return error_groups, issue_platform_groups
 
     # Determine the actual type of items by checking the first item
-    is_group = not isinstance(instance_list[0], Group)
+    is_group = isinstance(instance_list[0], Group)
 
     for group in instance_list:
         # XXX: If a group type has been removed, we shouldn't error here.
