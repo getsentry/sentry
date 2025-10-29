@@ -222,9 +222,11 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         """
         query_limit = self.query_limit
         remaining = self.chunk_size
+        query = self.query
+        order_by = self.order_by
 
         while remaining >= 0:
-            queryset = getattr(self.model, self.manager_name).filter(**self.query)
+            queryset = getattr(self.model, self.manager_name).filter(**query)
 
             if apply_filter:
                 query_filter = self.get_query_filter()
@@ -232,9 +234,10 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
                     queryset = queryset.filter(query_filter)
 
             if self.order_by:
-                queryset = queryset.order_by(self.order_by)
+                queryset = queryset.order_by(order_by)
 
-            queryset = list(queryset[:query_limit])
+            # Using only("id") to avoid loading the entire object into memory.
+            queryset = list(queryset.only("id")[:query_limit])
             # If there are no more rows we are all done.
             if not queryset:
                 return False
