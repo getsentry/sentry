@@ -13,6 +13,7 @@ import {
   agentMonitoringOnboarding,
   crashReportOnboardingPython,
   featureFlagOnboarding,
+  mcpOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
@@ -147,6 +148,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
   agentMonitoringOnboarding,
+  mcpOnboarding,
   logsOnboarding,
 };
 

@@ -8,6 +8,7 @@ import {
 import {
   agentMonitoringOnboarding,
   crashReportOnboardingPython,
+  mcpOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
@@ -193,6 +194,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReportOnboardingPython,
   profilingOnboarding: getPythonProfilingOnboarding(),
   agentMonitoringOnboarding,
+  mcpOnboarding,
   logsOnboarding,
 };
 

@@ -8,6 +8,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
   crashReportOnboardingPython,
+  mcpOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
@@ -170,6 +171,7 @@ const docs: Docs = {
   profilingOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
+  mcpOnboarding,
   logsOnboarding,
 };
 
