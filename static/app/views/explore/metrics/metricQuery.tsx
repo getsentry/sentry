@@ -135,9 +135,9 @@ function defaultSortBys(): Sort[] {
 }
 
 function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('per_second(value)')];
+  return [new VisualizeFunction('per_second()')];
 }
 
 function defaultAggregateSortBys(): Sort[] {
-  return [{field: 'per_second(value)', kind: 'desc'}];
+  return [{field: 'per_second()', kind: 'desc'}];
 }
