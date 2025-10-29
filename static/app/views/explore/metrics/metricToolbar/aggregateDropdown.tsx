@@ -4,6 +4,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,
   useSetMetricVisualize,
@@ -108,37 +109,49 @@ const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   gauge: 'avg',
 };
 
-export function AggregateDropdown({type}: {type: string}) {
+function getFunctionArguments(functionName: string, traceMetric: TraceMetric): string {
+  if (functionName === 'per_second' || functionName === 'per_minute') {
+    return `${traceMetric.name}, ${traceMetric.type}`;
+  }
+  return 'value';
+}
+
+export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
-  const previousType = usePrevious(type);
+  const previousType = usePrevious(traceMetric.type);
 
   useEffect(() => {
     if (
       defined(previousType) &&
-      previousType !== type &&
-      defined(DEFAULT_YAXIS_BY_TYPE[type])
+      previousType !== traceMetric.type &&
+      defined(DEFAULT_YAXIS_BY_TYPE[traceMetric.type])
     ) {
-      setVisualize(
-        visualize.replace({
-          yAxis: `${DEFAULT_YAXIS_BY_TYPE[type]}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
-          chartType: undefined, // Reset chart type to let determineDefaultChartType decide
-        })
-      );
+      const defaultFunction = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
+      if (defaultFunction) {
+        const functionArgs = getFunctionArguments(defaultFunction, traceMetric);
+        setVisualize(
+          visualize.replace({
+            yAxis: `${defaultFunction}(${functionArgs})`,
+            chartType: undefined, // Reset chart type to let determineDefaultChartType decide
+          })
+        );
+      }
     }
-  }, [setVisualize, visualize, type, previousType]);
+  }, [setVisualize, visualize, traceMetric.type, previousType, traceMetric]);
 
   return (
     <CompactSelect
       triggerProps={{
         prefix: t('Agg'),
       }}
-      options={defined(OPTIONS_BY_TYPE[type]) ? OPTIONS_BY_TYPE[type] : []}
+      options={OPTIONS_BY_TYPE[traceMetric.type] ?? []}
       value={visualize.parsedFunction?.name ?? ''}
       onChange={option => {
+        const functionArgs = getFunctionArguments(option.value, traceMetric);
         setVisualize(
           visualize.replace({
-            yAxis: `${option.value}(${visualize.parsedFunction?.arguments?.[0] ?? ''})`,
+            yAxis: `${option.value}(${functionArgs})`,
             chartType: undefined, // Reset chart type to let determineDefaultChartType decide
           })
         );
