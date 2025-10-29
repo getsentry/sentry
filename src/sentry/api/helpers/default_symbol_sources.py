@@ -39,10 +39,19 @@ def set_default_symbol_sources(
             organization = project.organization
         else:
             # For RpcProject, fetch organization by ID
-            organization = Organization.objects.get_from_cache(id=project.organization_id)
+            try:
+                organization = Organization.objects.get_from_cache(id=project.organization_id)
+            except Organization.DoesNotExist:
+                # If organization doesn't exist, cannot set defaults
+                return
 
     # Get default sources for this platform
     source_keys = DEFAULT_SYMBOL_SOURCES[project.platform]
+
+    # Get enabled console platforms once (optimization to avoid repeated DB calls)
+    enabled_console_platforms = organization.get_option(
+        "sentry:enabled_console_platforms", ENABLED_CONSOLE_PLATFORMS_DEFAULT
+    )
 
     # Filter sources based on platform restrictions and organization access
     enabled_sources = []
@@ -56,10 +65,6 @@ def set_default_symbol_sources(
             )
             if required_platforms:
                 # Source is platform-restricted - check if org has access
-                enabled_console_platforms = organization.get_option(
-                    "sentry:enabled_console_platforms", ENABLED_CONSOLE_PLATFORMS_DEFAULT
-                )
-
                 # Only add source if org has access to at least one of the required platforms
                 has_access = any(
                     platform in enabled_console_platforms for platform in required_platforms
