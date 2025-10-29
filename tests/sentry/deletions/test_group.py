@@ -331,6 +331,16 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
             assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
 
+    def test_delete_groups_with_few_fields_fetched(self) -> None:
+        with self.tasks(), self.options({"deletions.only-fetch-ids": True}):
+            delete_groups_for_project(
+                object_ids=[self.event.group_id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
+
+        assert not Group.objects.filter(id=self.event.group_id).exists()
+
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
@@ -480,75 +490,3 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert first_batch == [group2.id, group1.id]  # group2 has less times_seen than group1
             # group3 and group4 have the same times_seen, thus sorted by id
             assert second_batch == [group3.id, group4.id]
-
-
-class DeleteGroupOnlyFetchIdsFeatureFlagTest(TestCase, SnubaTestCase):
-    """
-    Tests documenting the 'deletions.only-fetch-ids' feature flag behavior.
-
-    NOTE: This feature flag is currently non-functional because Sentry's custom QuerySet
-    explicitly disables .only() and .defer() methods with NotImplementedError.
-    The flag exists but has no effect - all deletions load full model instances.
-    """
-
-    def test_only_fetch_ids_flag_has_no_effect(self) -> None:
-        """
-        Test that the 'deletions.only-fetch-ids' flag doesn't break deletion,
-        even though it has no actual effect due to .only() being disabled.
-        """
-        # Create multiple groups
-        event1 = self.store_event(
-            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
-            project_id=self.project.id,
-        )
-        event2 = self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": before_now(minutes=1).isoformat()},
-            project_id=self.project.id,
-        )
-        group1 = event1.group
-        group2 = event2.group
-
-        # The feature flag is set but has no effect - deletion still works
-        with self.options({"deletions.only-fetch-ids": True}):
-            with self.tasks():
-                delete_groups_for_project(
-                    object_ids=[group1.id, group2.id],
-                    transaction_id=uuid4().hex,
-                    project_id=self.project.id,
-                )
-
-        # Verify groups are deleted normally
-        assert not Group.objects.filter(id=group1.id).exists()
-        assert not Group.objects.filter(id=group2.id).exists()
-
-    def test_delete_mixed_error_and_issue_platform_groups(self) -> None:
-        """
-        Test that deletion correctly handles groups with different issue categories,
-        ensuring all required fields (like 'type' for issue_category) are accessible.
-        """
-        # Create error group
-        error_event = self.store_event(
-            data={"fingerprint": ["error-group"], "timestamp": before_now(minutes=1).isoformat()},
-            project_id=self.project.id,
-        )
-        error_group = error_event.group
-
-        # Create feedback group (issue platform)
-        feedback_group = self.create_group(project=self.project)
-        Group.objects.filter(id=feedback_group.id).update(type=FeedbackGroup.type_id)
-        feedback_group.refresh_from_db()
-
-        assert error_group.issue_category == GroupCategory.ERROR
-        assert feedback_group.issue_category == GroupCategory.FEEDBACK
-
-        # Delete both groups
-        with self.tasks():
-            delete_groups_for_project(
-                object_ids=[error_group.id, feedback_group.id],
-                transaction_id=uuid4().hex,
-                project_id=self.project.id,
-            )
-
-        # Verify both groups are deleted
-        assert not Group.objects.filter(id=error_group.id).exists()
-        assert not Group.objects.filter(id=feedback_group.id).exists()

@@ -215,7 +215,9 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         """
         return None
 
-    def get_queryset_fetch(self, queryset: QuerySet[ModelT], query_limit: int) -> list[ModelT]:
+    def get_queryset_fetch(
+        self, queryset: QuerySet[ModelT], query_limit: int
+    ) -> list[ModelT | tuple[Any, ...]]:
         """
         Override this to modify the queryset before it is fetched.
         Returns a list of instances.
