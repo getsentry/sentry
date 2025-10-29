@@ -682,6 +682,8 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
       packageName = 'sentry-sdk[litellm]';
     } else if (selected === 'google_genai') {
       packageName = 'sentry-sdk[google_genai]';
+    } else if (selected === 'pydantic_ai') {
+      packageName = 'sentry-sdk[pydantic_ai]';
     }
 
     return [
@@ -968,11 +970,55 @@ sentry_sdk.init(
         {
           type: 'code',
           language: 'python',
+          code: `import sentry_sdk
+
+sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)`,
+        },
+      ],
+    };
+
+    const pydanticAiStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK for [pydantic_ai:Pydantic AI] monitoring:',
+            {
+              pydantic_ai: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/pydantic-ai/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
           code: `
 import sentry_sdk
+from sentry_sdk.integrations.pydantic_ai import PydanticAiIntegration
+from sentry_sdk.integrations.openai import OpenAIIntegration
 
-sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
-`,
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    environment="local",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        PydanticAiIntegration(),
+    ],
+    # Disable OpenAI integration for correct token accounting
+    disabled_integrations=[OpenAIIntegration()],
+)`,
+        },
+        {
+          type: 'text',
+          text: t(
+            'The Pydantic AI integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+          ),
         },
       ],
     };
@@ -995,6 +1041,9 @@ sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
     }
     if (selected === 'google_genai') {
       return [googleGenAIStep];
+    }
+    if (selected === 'pydantic_ai') {
+      return [pydanticAiStep];
     }
     if (selected === 'manual') {
       return [manualStep];
@@ -1251,7 +1300,32 @@ response = client.models.generate_content(
 )
 
 print(response)
+`,
+        },
+      ],
+    };
 
+    const pydanticAiVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by creating a Pydantic AI agent:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+from pydantic_ai import Agent
+
+# Create an agent with OpenAI model
+agent = Agent('openai:gpt-4o-mini')
+
+# Run the agent
+result = agent.run_sync('Tell me a joke')
+print(result.data)
 `,
         },
       ],
@@ -1311,6 +1385,9 @@ with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
     }
     if (selected === 'google_genai') {
       return [googleGenAIVerifyStep];
+    }
+    if (selected === 'pydantic_ai') {
+      return [pydanticAiVerifyStep];
     }
     if (selected === 'manual') {
       return [manualVerifyStep];
