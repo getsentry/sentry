@@ -42,7 +42,7 @@ describe('ManageReposPanel', () => {
 
   const mockRepo: Repository = {
     id: 'repo-1',
-    name: 'repo-1',
+    name: 'org-1/repo-1',
     url: 'https://github.com/org-1/repo-1',
     provider: {
       id: 'integrations:github',
@@ -56,8 +56,8 @@ describe('ManageReposPanel', () => {
   };
 
   const mockAllRepos = [
-    {id: 'repo-1', name: 'repo-1'},
-    {id: 'repo-2', name: 'repo-2'},
+    {id: 'repo-1', name: 'org-1/repo-1'},
+    {id: 'repo-2', name: 'org-1/repo-2'},
   ];
 
   const defaultProps: ManageReposPanelProps = {

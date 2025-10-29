@@ -31,96 +31,14 @@ function ManageReposToolbar({
   const [searchValue, setSearchValue] = useState<string | undefined>();
   const debouncedSearch = useDebouncedValue(searchValue, 300);
 
-  const organizationOptions = useMemo(
-    () =>
-      integratedOrgs?.map(org => ({
-        value: org.id,
-        label: org.name,
-      })) ?? [],
-    [integratedOrgs]
-  );
-
   const {data, hasNextPage, isFetchingNextPage, isLoading, fetchNextPage} =
     useInfiniteRepositories({
       integrationId: selectedOrg,
       searchTerm: debouncedSearch,
     });
 
-  const allReposData = useMemo(
-    () => uniqBy(data?.pages.flatMap(result => result[0]) ?? [], 'id'),
-    [data?.pages]
-  );
-
-  // Filter out repos where search only matches org name, not repo name
-  const reposData = useMemo(() => {
-    if (!debouncedSearch) {
-      return allReposData;
-    }
-    return allReposData.filter(repo => {
-      const repoName = getRepoNameWithoutOrg(repo.name);
-      return repoName.toLowerCase().includes(debouncedSearch.toLowerCase());
-    });
-  }, [allReposData, debouncedSearch]);
-
-  // Auto-fetch more pages if filtering reduced visible results below threshold
-  useEffect(() => {
-    const MIN_VISIBLE_RESULTS = 50;
-    if (
-      debouncedSearch &&
-      reposData.length < MIN_VISIBLE_RESULTS &&
-      hasNextPage &&
-      !isFetchingNextPage &&
-      !isLoading
-    ) {
-      fetchNextPage();
-    }
-  }, [
-    debouncedSearch,
-    reposData.length,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    fetchNextPage,
-  ]);
-
-  const repositoryOptions = useMemo(() => {
-    let repoOptions = reposData.map(repo => ({
-      value: repo.id,
-      label: getRepoNameWithoutOrg(repo.name),
-    }));
-
-    // Ensure selected repo is always in options even if not in current filtered list
-    if (selectedRepoData && selectedRepo !== ALL_REPOS_VALUE) {
-      repoOptions = [
-        {
-          value: selectedRepoData.id,
-          label: getRepoNameWithoutOrg(selectedRepoData.name),
-        },
-        ...repoOptions,
-      ];
-    }
-
-    // Deduplicate by value to prevent React key conflicts
-    const uniqueRepoOptions = uniqBy(repoOptions, 'value');
-
-    return [{value: ALL_REPOS_VALUE, label: t('All Repos')}, ...uniqueRepoOptions];
-  }, [reposData, selectedRepo, selectedRepoData]);
-
-  function getEmptyMessage() {
-    if (isLoading) {
-      return t('Loading repositories...');
-    }
-    if (reposData.length === 0) {
-      return debouncedSearch
-        ? t('No repositories found. Please enter a different search term.')
-        : t('No repositories found');
-    }
-    return undefined;
-  }
-
-  const scrollListenerRef = useRef<HTMLElement | null>(null);
-  const scrollListenerIdRef = useRef<number>(0);
-
+  const scrollParentRef = useRef<HTMLElement | null>(null);
+  const scrollListenerIdRef = useRef(0);
   const hasNextPageRef = useRef(hasNextPage);
   const isFetchingNextPageRef = useRef(isFetchingNextPage);
   const fetchNextPageRef = useRef(fetchNextPage);
@@ -132,76 +50,98 @@ function ManageReposToolbar({
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleScroll = useCallback(() => {
-    const listElement = scrollListenerRef.current;
-
-    if (!listElement) {
-      return;
-    }
-
-    // Check if user has scrolled near the bottom
-    const scrollTop = listElement.scrollTop;
-    const scrollHeight = listElement.scrollHeight;
-    const clientHeight = listElement.clientHeight;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-
-    if (!hasNextPageRef.current || isFetchingNextPageRef.current) {
-      return;
-    }
-
-    // Trigger when within 100px of bottom
-    if (distanceFromBottom < 100) {
-      fetchNextPageRef.current();
-    }
+    const el = scrollParentRef.current;
+    if (!el) return;
+    if (!hasNextPageRef.current || isFetchingNextPageRef.current) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 100) fetchNextPageRef.current();
   }, []);
 
-  // Set up scroll listener when menu opens
-  const handleMenuOpenChange = useCallback(
+  const handleRepoDropdownOpenChange = useCallback(
     (isOpen: boolean) => {
       if (isOpen) {
-        // Increment ID to track this specific open instance
         scrollListenerIdRef.current += 1;
         const currentId = scrollListenerIdRef.current;
 
-        // Try multiple times to find the list element as it may take time to render
-        const tryAttachListener = (attempts = 0) => {
-          // Stop if menu was closed (ID changed) or too many attempts
-          if (scrollListenerIdRef.current !== currentId || attempts > 10) {
-            return;
-          }
-
-          // Find all listbox elements and get the last one (most recently opened)
-          const listElements = document.querySelectorAll('ul[role="listbox"]');
-          const listElement = listElements[listElements.length - 1];
-
-          if (listElement instanceof HTMLElement) {
-            scrollListenerRef.current = listElement;
-            listElement.addEventListener('scroll', handleScroll, {passive: true});
+        const attachListener = (attempts = 0) => {
+          if (scrollListenerIdRef.current !== currentId || attempts > 10) return;
+          const dropdownLists = document.querySelectorAll('ul[role="listbox"]');
+          const lastList = dropdownLists[dropdownLists.length - 1];
+          if (lastList instanceof HTMLElement) {
+            scrollParentRef.current = lastList;
+            lastList.addEventListener('scroll', handleScroll, {passive: true});
           } else {
-            // Retry after a short delay
-            setTimeout(() => tryAttachListener(attempts + 1), 20);
+            setTimeout(() => attachListener(attempts + 1), 20);
           }
         };
-
-        tryAttachListener();
-      } else {
-        // Clean up listener when menu closes
-        if (scrollListenerRef.current) {
-          scrollListenerRef.current.removeEventListener('scroll', handleScroll);
-          scrollListenerRef.current = null;
-        }
+        attachListener();
+      } else if (scrollParentRef.current) {
+        scrollParentRef.current.removeEventListener('scroll', handleScroll);
+        scrollParentRef.current = null;
       }
     },
     [handleScroll]
   );
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollListenerRef.current) {
-        scrollListenerRef.current.removeEventListener('scroll', handleScroll);
+  useEffect(
+    () => () => {
+      if (scrollParentRef.current) {
+        scrollParentRef.current.removeEventListener('scroll', handleScroll);
       }
-    };
-  }, [handleScroll]);
+    },
+    [handleScroll]
+  );
+
+  const organizationOptions = useMemo(
+    () =>
+      (integratedOrgs ?? []).map(org => ({
+        value: org.id,
+        label: org.name,
+      })),
+    [integratedOrgs]
+  );
+
+  const allReposData = useMemo(
+    () => uniqBy(data?.pages.flatMap(result => result[0]) ?? [], 'id'),
+    [data?.pages]
+  );
+  const filteredReposData = useMemo(() => {
+    if (!debouncedSearch) return allReposData;
+    const search = debouncedSearch.toLowerCase();
+    return allReposData.filter(repo =>
+      getRepoNameWithoutOrg(repo.name).toLowerCase().includes(search)
+    );
+  }, [allReposData, debouncedSearch]);
+
+  const repositoryOptions = useMemo(() => {
+    let repoOptions = filteredReposData.map(repo => ({
+      value: repo.id,
+      label: getRepoNameWithoutOrg(repo.name),
+    }));
+
+    if (selectedRepoData && selectedRepo !== ALL_REPOS_VALUE) {
+      repoOptions = [
+        {
+          value: selectedRepoData.id,
+          label: getRepoNameWithoutOrg(selectedRepoData.name),
+        },
+        ...repoOptions,
+      ];
+    }
+
+    const dedupedRepoOptions = uniqBy(repoOptions, 'value');
+    return [{value: ALL_REPOS_VALUE, label: t('All Repos')}, ...dedupedRepoOptions];
+  }, [filteredReposData, selectedRepo, selectedRepoData]);
+
+  const getRepoEmptyMessage = () => {
+    if (isLoading) return t('Loading repositories...');
+    if (filteredReposData.length === 0) {
+      return debouncedSearch
+        ? t('No repositories found. Please enter a different search term.')
+        : t('No repositories found');
+    }
+    return undefined;
+  };
 
   return (
     <Fragment>
@@ -232,10 +172,11 @@ function ManageReposToolbar({
           onSearch={setSearchValue}
           searchPlaceholder={t('search by repository name')}
           onOpenChange={isOpen => {
-            setSearchValue(undefined);
-            handleMenuOpenChange(isOpen);
+            handleRepoDropdownOpenChange(isOpen);
+            if (!isOpen) setSearchValue(undefined);
           }}
-          emptyMessage={getEmptyMessage()}
+          emptyMessage={getRepoEmptyMessage()}
+          menuWidth="250px"
           triggerProps={{
             icon: <IconRepository />,
             children: (
