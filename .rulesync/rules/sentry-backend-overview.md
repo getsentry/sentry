@@ -1,10 +1,9 @@
-Please also reference the following documents as needed:
+---
+root: true
+globs:
+  - '**/*'
+---
 
-@.claude/memories/backend-integrations.md description: "" globs: "src/sentry/integrations/**/*.py,tests/sentry/integrations/**/*.py"
-@.claude/memories/backend-tests.md description: "" globs: "tests/**/*.py,**/test_*.py"
-@.claude/memories/frontend-overview.md description: "" globs: "static/**/*.ts,static/**/*.tsx,static/**/*.js,static/**/*.jsx,static/**/*.css,static/**/*.less"
-@.claude/memories/python-development.md description: "" globs: "src/**/*.py,tests/**/*.py,**/test_*.py"
-@.claude/memories/typescript-tests.md description: "" globs: "**/*.spec.tsx,**/*.spec.ts,**/*.test.tsx,**/*.test.ts"
 # Sentry Development Guide for Claude
 
 ## Overview

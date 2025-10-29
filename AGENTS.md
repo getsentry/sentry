@@ -1,10 +1,32 @@
-Please also reference the following documents as needed:
+Please also reference the following documents as needed. In this case, `@` stands for the project root directory.
 
-@.claude/memories/backend-integrations.md description: "" globs: "src/sentry/integrations/**/*.py,tests/sentry/integrations/**/*.py"
-@.claude/memories/backend-tests.md description: "" globs: "tests/**/*.py,**/test_*.py"
-@.claude/memories/frontend-overview.md description: "" globs: "static/**/*.ts,static/**/*.tsx,static/**/*.js,static/**/*.jsx,static/**/*.css,static/**/*.less"
-@.claude/memories/python-development.md description: "" globs: "src/**/*.py,tests/**/*.py,**/test_*.py"
-@.claude/memories/typescript-tests.md description: "" globs: "**/*.spec.tsx,**/*.spec.ts,**/*.test.tsx,**/*.test.ts"
+<Documents>
+  <Document>
+    <Path>@.codex/memories/backend-integrations.md</Path>
+    <FilePatterns>src/sentry/integrations/**/*.py, tests/sentry/integrations/**/*.py</FilePatterns>
+  </Document>
+  <Document>
+    <Path>@.codex/memories/backend-tests.md</Path>
+    <FilePatterns>tests/**/*.py, **/test_*.py</FilePatterns>
+  </Document>
+  <Document>
+    <Path>@.codex/memories/frontend-overview.md</Path>
+    <FilePatterns>static/**/*.ts, static/**/*.tsx, static/**/*.js, static/**/*.jsx, static/**/*.css, static/**/*.less</FilePatterns>
+  </Document>
+  <Document>
+    <Path>@.codex/memories/python-development.md</Path>
+    <FilePatterns>src/**/*.py, tests/**/*.py, **/test_*.py</FilePatterns>
+  </Document>
+  <Document>
+    <Path>@.codex/memories/typescript-tests.md</Path>
+    <FilePatterns>**/*.spec.tsx, **/*.spec.ts, **/*.test.tsx, **/*.test.ts</FilePatterns>
+  </Document>
+</Documents>
+
+# Additional Conventions Beyond the Built-in Functions
+
+As this project's AI coding tool, you must follow the additional conventions below, in addition to the built-in functions.
+
 # Sentry Development Guide for Claude
 
 ## Overview

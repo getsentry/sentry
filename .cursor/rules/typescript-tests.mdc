@@ -1,8 +1,8 @@
 ---
-description: Rules and guidelines for running *.spec.tsx tests and writing React tests
-globs: *.spec.tsx
-alwaysApply: false
+description: 
+globs: **/*.spec.tsx,**/*.spec.ts,**/*.test.tsx,**/*.test.ts
 ---
+
 # Sentry React Testing Guidelines
 
 ## Running Tests
@@ -26,6 +26,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 ```
+
 ## Testing Philosophy
 
 - **User-centric testing**: Write tests that resemble how users interact with the app.
@@ -35,25 +36,28 @@ import {
 ## Query Priority (in order of preference)
 
 1. **`getByRole`** - Primary selector for most elements
+
    ```tsx
-   screen.getByRole('button', { name: 'Save' })
-   screen.getByRole('textbox', { name: 'Search' })
+   screen.getByRole('button', {name: 'Save'});
+   screen.getByRole('textbox', {name: 'Search'});
    ```
 
 2. **`getByLabelText`/`getByPlaceholderText`** - For form elements
+
    ```tsx
-   screen.getByLabelText('Email Address')
-   screen.getByPlaceholderText('Enter Search Term')
+   screen.getByLabelText('Email Address');
+   screen.getByPlaceholderText('Enter Search Term');
    ```
 
 3. **`getByText`** - For non-interactive elements
+
    ```tsx
-   screen.getByText('Error Message')
+   screen.getByText('Error Message');
    ```
 
 4. **`getByTestId`** - Last resort only
    ```tsx
-   screen.getByTestId('custom-component')
+   screen.getByTestId('custom-component');
    ```
 
 ## Best Practices
@@ -117,9 +121,10 @@ const project = ProjectFixture(partialProject)
 ```
 
 ### Use `screen` instead of destructuring
+
 ```tsx
 // ❌ Don't do this
-const { getByRole } = render(<Component />);
+const {getByRole} = render(<Component />);
 
 // ✅ Do this
 render(<Component />);
@@ -127,6 +132,7 @@ const button = screen.getByRole('button');
 ```
 
 ### Query selection guidelines
+
 - Use `getBy...` for elements that should exist
 - Use `queryBy...` ONLY when checking for non-existence
 - Use `await findBy...` when waiting for elements to appear
@@ -141,6 +147,7 @@ expect(screen.queryByRole('button')).not.toBeInTheDocument();
 ```
 
 ### Async testing
+
 ```tsx
 // ❌ Don't use waitFor for appearance
 await waitFor(() => {
@@ -155,9 +162,10 @@ await waitForElementToBeRemoved(() => screen.getByRole('alert'));
 ```
 
 ### User interactions
+
 ```tsx
 // ❌ Don't use fireEvent
-fireEvent.change(input, { target: { value: 'text' } });
+fireEvent.change(input, {target: {value: 'text'}});
 
 // ✅ Use userEvent
 await userEvent.click(input);
@@ -165,24 +173,25 @@ await userEvent.keyboard('text');
 ```
 
 ### Testing routing
+
 ```tsx
-const { router } = render(<TestComponent />, {
+const {router} = render(<TestComponent />, {
   initialRouterConfig: {
     location: {
-      pathname: "/foo/",
-      query: { page: "1" },
+      pathname: '/foo/',
+      query: {page: '1'},
     },
   },
 });
 // Uses passes in config to set initial location
-expect(router.location.pathname).toBe("/foo");
-expect(router.location.query.page).toBe("1");
+expect(router.location.pathname).toBe('/foo');
+expect(router.location.query.page).toBe('1');
 // Clicking links goes to the correct location
-await userEvent.click(screen.getByRole("link", { name: "Go to /bar/" }));
+await userEvent.click(screen.getByRole('link', {name: 'Go to /bar/'}));
 // Can check current route on the returned router
-expect(router.location.pathname).toBe("/bar/");
+expect(router.location.pathname).toBe('/bar/');
 // Can test manual route changes with router.navigate
-router.navigate("/new/path/");
+router.navigate('/new/path/');
 router.navigate(-1); // Simulates clicking the back button
 ```
 
@@ -190,18 +199,18 @@ If the component uses `useParams()`, the `route` property can be used:
 
 ```tsx
 function TestComponent() {
-  const { id } = useParams();
+  const {id} = useParams();
   return <div>{id}</div>;
 }
-const { router } = render(<TestComponent />, {
+const {router} = render(<TestComponent />, {
   initialRouterConfig: {
     location: {
-      pathname: "/foo/123/",
+      pathname: '/foo/123/',
     },
-    route: "/foo/:id/",
+    route: '/foo/:id/',
   },
 });
-expect(screen.getByText("123")).toBeInTheDocument();
+expect(screen.getByText('123')).toBeInTheDocument();
 ```
 
 ### Testing components that make network requests
@@ -209,33 +218,33 @@ expect(screen.getByText("123")).toBeInTheDocument();
 ```tsx
 // Simple GET request
 MockApiClient.addMockResponse({
-  url: "/projects/",
-  body: [{ id: 1, name: "my project" }],
+  url: '/projects/',
+  body: [{id: 1, name: 'my project'}],
 });
 
 // POST request
 MockApiClient.addMockResponse({
-  url: "/projects/",
-  method: "POST",
-  body: { id: 1, name: "my project" },
+  url: '/projects/',
+  method: 'POST',
+  body: {id: 1, name: 'my project'},
 });
 
 // Complex matching with query params and request body
 MockApiClient.addMockResponse({
-  url: "/projects/",
-  method: "POST",
-  body: { id: 2, name: "other" },
+  url: '/projects/',
+  method: 'POST',
+  body: {id: 2, name: 'other'},
   match: [
-    MockApiClient.matchQuery({ param: "1" }),
-    MockApiClient.matchData({ name: "other" }),
+    MockApiClient.matchQuery({param: '1'}),
+    MockApiClient.matchData({name: 'other'}),
   ],
 });
 
 // Error responses
 MockApiClient.addMockResponse({
-  url: "/projects/",
+  url: '/projects/',
   body: {
-    detail: "Internal Error",
+    detail: 'Internal Error',
   },
   statusCode: 500,
 });

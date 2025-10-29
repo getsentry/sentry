@@ -1,0 +1,9 @@
+{
+  "$schema": "https://github.com/dyoshikawa/rulesync/releases/download/v3.12.0/schema.json",
+  // Sync configuration between Cursor, Claude Code, and Codex
+  "targets": ["cursor", "claudecode", "codexcli"],
+  "features": ["rules"],
+  "baseDirs": ["."],
+  "delete": true,
+  "verbose": true,
+}

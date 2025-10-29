@@ -125,6 +125,12 @@ repos:
             |static/app/utils/profiling/profile/formats/ios/trace\.json
             |static/app/utils/profiling/profile/formats/node/trace\.json
             |static/app/utils/profiling/profile/formats/typescript/trace\.json
+            # rulesync generated files:
+            |\.cursor/rules/.*\.mdc
+            |\.claude/
+            |\.codex/
+            |AGENTS\.md
+            |CLAUDE\.md
           )$
 
       - id: knip
@@ -134,6 +140,21 @@ repos:
         pass_filenames: false
         stages: [pre-push]
         entry: bash -c 'if [ -n "${SENTRY_KNIP_PRE_PUSH:-}" ]; then exec ./node_modules/.bin/knip; fi' --
+
+      # Rulesync hooks for AI tool configuration management
+      - id: rulesync-generate
+        name: rulesync generate
+        entry: npx rulesync@3.12.0 generate
+        language: system
+        pass_filenames: false
+        files: ^\.rulesync/
+
+      - id: rulesync-check-sync
+        name: ensure generated files are in sync
+        entry: bash -c 'npx rulesync@3.12.0 generate >/dev/null 2>&1 && git diff --exit-code .cursor/ .claude/ .codex/ CLAUDE.md AGENTS.md >/dev/null 2>&1 || (echo "Generated files out of sync. Run npx rulesync@3.12.0 generate and stage the files."; exit 1)'
+        language: system
+        pass_filenames: false
+        files: ^(\.cursor/|\.claude/|\.codex/|CLAUDE\.md|AGENTS\.md)
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
@@ -161,7 +182,7 @@ repos:
         exclude: ^fixtures/
       - id: trailing-whitespace
         exclude_types: [svg]
-        exclude: ^(fixtures/|scripts/patches/)
+        exclude: ^(fixtures/|scripts/patches/|\.cursor/rules/.*\.mdc)
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
