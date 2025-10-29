@@ -12,7 +12,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
         self.api_token = self.create_user_auth_token(
-            user=self.user, scope_list=["org:admin", "project:admin"]
+            user=self.user, scope_list=["project:distribution"]
         )
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
