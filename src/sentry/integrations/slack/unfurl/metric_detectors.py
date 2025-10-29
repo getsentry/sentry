@@ -1,0 +1,203 @@
+from __future__ import annotations
+
+import html
+import re
+from collections.abc import Mapping
+from typing import Any
+from urllib.parse import urlparse
+
+import sentry_sdk
+from django.db.models import Q
+from django.http import QueryDict
+from django.http.request import HttpRequest
+
+from sentry import features
+from sentry.api.serializers import serialize
+from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.slack.message_builder.metric_detectors import (
+    SlackMetricDetectorMessageBuilder,
+)
+from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.unfurl.types import (
+    Handler,
+    UnfurlableUrl,
+    UnfurledUrl,
+    make_type_coercer,
+)
+from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.organization import Organization
+from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+    get_alert_rule_serializer,
+)
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.endpoints.organization_open_periods import GroupOpenPeriodSerializer
+from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
+
+map_open_period_args = make_type_coercer(
+    {
+        "org_slug": str,
+        "detector_id": int,
+        "open_period_id": int,
+        "period": str,
+        "start": str,
+        "end": str,
+    }
+)
+
+
+def unfurl_metric_detectors(
+    request: HttpRequest,
+    integration: Integration | RpcIntegration,
+    links: list[UnfurlableUrl],
+    user: User | RpcUser | None = None,
+) -> UnfurledUrl:
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_METRIC_ALERTS, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_metric_detectors(integration, links, user)
+
+
+def _unfurl_metric_detectors(
+    integration: Integration | RpcIntegration,
+    links: list[UnfurlableUrl],
+    user: User | RpcUser | None = None,
+):
+    detector_filter_query = Q()
+    open_period_filter_query = Q()
+
+    # Since we don't have real ids here, we use the org slug so that we can
+    # make sure the identifiers correspond to the correct organization.
+    for link in links:
+        # org_slug = link.args["org_slug"]
+        detector_id = link.args["detector_id"]
+        open_period_id = link.args["open_period_id"]
+
+        if open_period_id:
+            open_period_filter_query |= Q(id=open_period_id)
+        else:
+            # TODO: make sure organization has access to detector
+            detector_filter_query |= Q(id=detector_id)
+
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
+    organizations = Organization.objects.filter(
+        id__in=[oi.organization_id for oi in org_integrations]
+    )
+
+    # Since we don't have real ids here, we use the org slug so that we can
+    # make sure the identifiers correspond to the correct organization.
+    detector_map = {
+        detector.id: detector for detector in Detector.objects.filter(detector_filter_query)
+    }
+    if bool(open_period_filter_query):
+        open_period_map = {
+            op.id: op for op in GroupOpenPeriod.objects.filter(open_period_filter_query)
+        }
+
+    orgs_by_slug: dict[str, Organization] = {org.slug: org for org in organizations}
+
+    result = {}
+    for link in links:
+        if links.args["detector_id"] not in detector_map:
+            continue
+        org = orgs_by_slug.get(link.args["org_slug"])
+        if org is None:
+            continue
+
+        detector = detector_map[link.args["detector_id"]]
+        selected_open_period = open_period_map.get(link.args["open_period_id"])
+
+        chart_url = None
+        if features.has("organizations:metric-alert-chartcuterie", org):
+            try:
+                alert_rule_serialized_response = get_alert_rule_serializer(detector)
+                open_period_serialized_resonse = serialize(
+                    selected_open_period,
+                    None,
+                    GroupOpenPeriodSerializer(),  # TODO: detailed version of this serializer
+                )
+                dsd = (
+                    DataSourceDetector.objects.filter(detector=detector)
+                    .select_related("data_source")
+                    .first()
+                )
+                if not dsd:
+                    raise Exception("No data source found for detector.")
+
+                subscription = QuerySubscription.objects.get(id=int(dsd.data_source.source_id))
+                snuba_query = SnubaQuery.objects.get(id=subscription.snuba_query_id)
+
+                chart_url = build_metric_alert_chart(
+                    oragnization=org,
+                    alert_rule_serialized_response=alert_rule_serialized_response,
+                    snuba_query=snuba_query,
+                    alert_context=AlertContext.from_workflow_engine_models(),
+                    action_identifier_id=detector.id,  # TODO: change this everywhere
+                    open_period_context=(
+                        OpenPeriodContext.from_open_period(selected_open_period)
+                        if selected_open_period
+                        else None
+                    ),
+                    selected_incident_serialized=open_period_serialized_resonse,
+                    period=link.args["period"],
+                    start=link.args["start"],
+                    end=link.args["end"],
+                    user=user,
+                    subscription=subscription,
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+        result[link.url] = SlackMetricDetectorMessageBuilder(
+            detector=detector,
+            open_period=selected_open_period,
+            chart_url=chart_url,
+        ).build()
+
+    return result
+
+
+# detector link example https://sentry.sentry.io/monitors/123456/?end=2025-10-08T14%3A41%3A00&start=2025-10-08T11%3A11%3A00
+
+metric_detectors_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/monitors/(?P<detector_id>\d+)"
+)
+customer_domain_metric_detectors_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/monitors/(?P<detector_id>\d+)"
+)
+
+
+def map_metric_detector_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
+    """Extracts selected open period id and some query parameters"""
+
+    # Slack uses HTML escaped ampersands in its Event Links, when need
+    # to be unescaped for QueryDict to split properly.
+    url = html.unescape(url)
+    parsed_url = urlparse(url)
+    params = QueryDict(parsed_url.query)
+    open_period_id = None  # TODO: figure out how to handle this?
+    period = params.get("period", None)
+    start = params.get("start", None)
+    end = params.get("end", None)
+
+    data = {**args, "open_period_id": open_period_id, "period": period, "start": start, "end": end}
+    return map_open_period_args(url, data)
+
+
+metric_detector_handler = Handler(
+    fn=unfurl_metric_detectors,
+    matcher=[metric_detectors_link_regex, customer_domain_metric_detectors_link_regex],
+    arg_mapper=map_metric_detector_query_args,
+)

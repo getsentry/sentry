@@ -4,12 +4,14 @@ from typing import Any
 from sentry.integrations.slack.unfurl.discover import discover_handler
 from sentry.integrations.slack.unfurl.issues import issues_handler
 from sentry.integrations.slack.unfurl.metric_alerts import metric_alert_handler
+from sentry.integrations.slack.unfurl.metric_detectors import metric_detector_handler
 from sentry.integrations.slack.unfurl.types import Handler, LinkType
 
 link_handlers: dict[LinkType, Handler] = {
     LinkType.DISCOVER: discover_handler,
     LinkType.METRIC_ALERT: metric_alert_handler,
     LinkType.ISSUES: issues_handler,
+    LinkType.METRIC_DETECTOR: metric_detector_handler,
 }
 
 

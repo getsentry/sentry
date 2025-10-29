@@ -150,8 +150,7 @@ def fetch_metric_issue_open_periods(
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
-            path=f"/organizations/{organization.slug}/incidents/",
-            # TODO(iamrajjoshi): Use the correct endpoint and update the params
+            path=f"/organizations/{organization.slug}/open-periods/",
             params={
                 "alertRule": open_period_identifier,
                 "expand": "activities",

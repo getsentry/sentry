@@ -12,7 +12,7 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.workflow_engine.models import Action, Condition, Detector
@@ -304,6 +304,14 @@ class OpenPeriodContext:
         open_period = get_latest_open_period(group)
         if open_period is None:
             raise ValueError("No open periods found for group")
+        return cls(
+            date_started=open_period.date_started,
+            date_closed=open_period.date_ended,
+            id=open_period.id,
+        )
+
+    @classmethod
+    def from_open_period(cls, open_period: GroupOpenPeriod) -> OpenPeriodContext:
         return cls(
             date_started=open_period.date_started,
             date_closed=open_period.date_ended,
