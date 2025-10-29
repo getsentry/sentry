@@ -306,7 +306,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
-        transport_http2=True,
+        transport_http2=options.get("sdk_http2_experiment.enabled"),
         before_send_log=before_send_log,
         enable_logs=True,
         enable_metrics=True,

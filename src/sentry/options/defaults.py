@@ -3410,6 +3410,13 @@ register(
 )
 
 
+# Enable HTTP/2 transport in Sentry SDK
+register(
+    "sdk_http2_experiment.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "sdk-deprecation.profile-chunk.python",
     default="2.24.1",
