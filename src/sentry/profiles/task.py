@@ -1511,7 +1511,6 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                         )
             return True
         except Exception as e:
-
             sentry_sdk.capture_exception(e)
             metrics.incr(
                 "process_profile.process_vroomrs_profile.error",
